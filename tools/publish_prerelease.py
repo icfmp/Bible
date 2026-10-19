@@ -32,7 +32,9 @@ def digest(path: Path) -> str:
 
 
 def main() -> None:
-    assert os.environ['GITHUB_REF'] == f'refs/tags/{VERSION}'
+    assert (os.environ['GITHUB_REF'] == f'refs/tags/{VERSION}' or
+            (os.environ.get('BIBLE_RELEASE_RECOVERY') == '1' and
+             os.environ['GITHUB_REF'] == f'refs/heads/release/{VERSION}'))
     assert os.environ['GITHUB_REPOSITORY'] == REPO
     commit = run('git', 'rev-parse', 'HEAD')
     assert run('git', 'rev-parse', f'{VERSION}^{{commit}}') == commit
@@ -79,6 +81,7 @@ def main() -> None:
     provenance = {
         'version': VERSION, 'commit': commit, 'architecture': 'x86_64',
         'ci': f'https://github.com/{REPO}/actions/runs/{os.environ["GITHUB_RUN_ID"]}',
+        'publisher_commit': os.environ['GITHUB_SHA'],
         'flatpak': bundle.name, 'sha256': digest(bundle),
     }
     (out / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
@@ -87,14 +90,28 @@ def main() -> None:
     sums.write_text(''.join(f'{digest(path)}  {path.name}\n' for path in assets))
     assets.append(sums)
     notes = Path(tempfile.gettempdir()) / 'bible-release-notes.md'
-    notes.write_text(Path(f'docs/releases/{VERSION}.md').read_text() +
+    notes.write_text(Path(os.environ.get('BIBLE_RELEASE_NOTES', f'docs/releases/{VERSION}.md')).read_text() +
                      f'\nCommit : `{commit}`\n\n[CI de ce commit]({provenance["ci"]})\n\n'
                      f'SHA-256 de `{bundle.name}` :\n```text\n{provenance["sha256"]}\n```\n')
-    # A failure leaves a draft; no public release is announced before verification.
-    subprocess.run(['gh', 'release', 'create', VERSION, '--repo', REPO, '--verify-tag',
-                    '--draft', '--prerelease', '--title', VERSION,
-                    '--notes-file', str(notes), *map(str, assets)], check=True)
-    release = api(f'repos/{REPO}/releases/tags/{VERSION}')
+    # Drafts must be fetched by ID: the tag endpoint only finds published releases.
+    matching = [r for r in api(f'repos/{REPO}/releases?per_page=100')
+                if r['tag_name'] == VERSION]
+    assert len(matching) <= 1, 'Plusieurs releases correspondent à cette étiquette'
+    if matching:
+        assert matching[0]['draft'], 'Refus de remplacer une release déjà publique'
+        subprocess.run(['gh', 'release', 'upload', VERSION, '--repo', REPO,
+                        '--clobber', *map(str, assets)], check=True)
+        subprocess.run(['gh', 'release', 'edit', VERSION, '--repo', REPO,
+                        '--title', VERSION, '--notes-file', str(notes), '--prerelease'], check=True)
+    else:
+        subprocess.run(['gh', 'release', 'create', VERSION, '--repo', REPO, '--verify-tag',
+                        '--draft', '--prerelease', '--title', VERSION,
+                        '--notes-file', str(notes), *map(str, assets)], check=True)
+        matching = [r for r in api(f'repos/{REPO}/releases?per_page=100')
+                    if r['tag_name'] == VERSION]
+    assert len(matching) == 1
+    release_id = matching[0]['id']
+    release = api(f'repos/{REPO}/releases/{release_id}')
     assert release['draft'] and release['prerelease']
     assert release['tag_name'] == VERSION
     assert {a['name'] for a in release['assets']} == {p.name for p in assets}
@@ -103,7 +120,7 @@ def main() -> None:
         for path in assets:
             assert digest(Path(temporary) / path.name) == digest(path), path.name
     subprocess.run(['gh', 'release', 'edit', VERSION, '--repo', REPO, '--draft=false', '--prerelease'], check=True)
-    release = api(f'repos/{REPO}/releases/tags/{VERSION}')
+    release = api(f'repos/{REPO}/releases/{release_id}')
     assert not release['draft'] and release['prerelease']
     print(json.dumps({'release': release['html_url'], 'commit': commit,
                       'assets': [a['browser_download_url'] for a in release['assets']],
