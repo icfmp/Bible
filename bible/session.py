@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+from .providers import RESOURCE_ID
 
 
 @dataclass
@@ -50,12 +51,12 @@ class SessionStore:
                 reference = item['reference']
                 commentary = item.get('commentary')
                 if commentary is not None and (not isinstance(commentary, str)
-                        or not re.fullmatch(r'[A-Za-z0-9_-]+', commentary)):
+                        or not re.fullmatch(RESOURCE_ID, commentary)):
                     raise ValueError('Invalid commentary name')
                 scroll = item.get('scroll', 0.0)
                 study = item.get('study_visible', False)
                 if (resource is not None and (not isinstance(resource, str)
-                        or not re.fullmatch(r'[A-Za-z0-9_-]+', resource))):
+                        or not re.fullmatch(RESOURCE_ID, resource))):
                     raise ValueError('Invalid translation name')
                 if not isinstance(reference, str) or not reference or len(reference) > 256:
                     raise ValueError('Invalid reference')

@@ -2,8 +2,12 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/11-commentary-sources]
   workflow_dispatch:
+
+concurrency:
+  group: prerequisites-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -35,7 +39,7 @@ jobs:
         run: |
           set -o pipefail
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v | tee test-results.log
-          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui -v | tee ui-fr-results.log
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui -v | tee ui-fr-results.log
       - name: Interactions souris et clavier réelles sous Xvfb
         env:
           LANGUAGE: fr
@@ -51,6 +55,14 @@ jobs:
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_crosswire
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_commentary
 
+      - name: Commentaire affilié réel et suivi de verset hors connexion
+        env:
+          BIBLE_OFFLINE_PREFIX: sudo unshare --net --
+          GSK_RENDERER: cairo
+        run: |
+          set -o pipefail
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_affiliated_commentary | tee affiliated-commentary.log
+
       - name: Conserver les résultats des tests
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,6 +72,8 @@ jobs:
             test-results.log
             ui-fr-results.log
             native-input-results.log
+            affiliated-commentary.log
+            affiliated-commentary-result.json
           if-no-files-found: warn
 
   flatpak:
@@ -114,3 +128,38 @@ jobs:
             build-info.json
           if-no-files-found: error
           retention-days: 30
+
+  verification-report:
+    if: always() && github.ref == 'refs/heads/feat/11-commentary-sources'
+    needs: [prerequisites, flatpak]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: Bible-test-results
+          path: results
+      - name: Conserver les résultats réels avec le commit
+        env:
+          PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
+          FLATPAK_RESULT: ${{ needs.flatpak.result }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          report = {'commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+                    'prerequisites': os.environ['PREREQUISITES_RESULT'], 'flatpak': os.environ['FLATPAK_RESULT']}
+          for path in Path('results').glob('*'):
+              if path.is_file():
+                  report[path.name] = path.read_text()[-14000:]
+          Path('/tmp/verification-report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2))
+          PYTHON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin refs/notes/verification:refs/notes/verification || true
+          git notes --ref=verification add -f -F /tmp/verification-report.json "$GITHUB_SHA"
+          git push origin refs/notes/verification

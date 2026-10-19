@@ -29,7 +29,8 @@ class Reader:
         import Sword
         self.sword = Sword
         self.manager = Sword.SWMgr(str(root))
-        self.module = self.manager.getModule(name)
+        from .providers import module_name
+        self.module = self.manager.getModule(module_name(name))
         if self.module is None:
             raise ValueError(f'SWORD cannot open {name}')
         if self.module.getConfigEntry('ModDrv') not in self.drivers:
