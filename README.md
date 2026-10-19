@@ -1,5 +1,8 @@
 # Bible
 
+<img src="packaging/icons/bible-source.png" alt="Icône de Bible : livre bleu avec signet ocre" width="128" height="128">
+
+
 Prototype natif GNOME de lecture biblique, sans traduction préembarquée.
 Le jalon #2 comprend un catalogue CrossWire réel, un téléchargement sur demande,
 la lecture locale via SWORD et la navigation entre chapitres. Le jalon #3 ajoute
@@ -138,3 +141,8 @@ Voir [le catalogue et les conditions d’accès](docs/CATALOGUE_CROSSWIRE.md),
 [la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
 [le cahier des charges](docs/CAHIER_DES_CHARGES.md) et
 [la feuille de route](docs/FEUILLE_DE_ROUTE.md).
+
+## Icône de l’application
+
+Le livre bleu avec le titre « Bible » et le signet ocre est intégré au lanceur
+Flatpak. Voir [la source, les exports et les finitions GNOME restantes](packaging/icons/README.md).
