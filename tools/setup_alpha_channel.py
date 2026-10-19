@@ -62,7 +62,11 @@ def main():
     assert base_url.startswith('https://')
     for name,value in [('BIBLE_ALPHA_PAGES_BASE_URL',base_url),('BIBLE_ALPHA_PAGES_MANAGED','1')]:
         subprocess.run(['gh','variable','set',name,'--repo',REPO,'--body',value],check=True)
-    subprocess.run(['gh','workflow','run','alpha-channel.yml','--repo',REPO,'--ref','main','-f','verified_run=39315036866'],check=True)
+    runs = json.loads(run('gh','run','list','--repo',REPO,'--workflow','prerequisites.yml',
+                          '--branch','main','--status','success','--limit','1','--json','databaseId'))
+    assert runs, 'No successful main CI available; verify the prototype first'
+    subprocess.run(['gh','workflow','run','alpha-channel.yml','--repo',REPO,'--ref','main',
+                    '-f',f"verified_run={runs[0]['databaseId']}"],check=True)
     print('Configuration effectuée ; suivre la validation publique du workflow. Aucun lien d’installation n’est encore annoncé vérifié.')
 
 

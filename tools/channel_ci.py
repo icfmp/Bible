@@ -13,6 +13,9 @@ REPO = 'icfmp/Bible'
 DATA_BRANCH = 'flatpak-alpha-data'
 BASELINE = 'c2792c14ec86b28767cd5bc9ec8509a576e9a52d'
 
+def parent_state():
+    return Path(os.environ['RUNNER_TEMP']) / 'bible-alpha-parent'
+
 
 def api(endpoint):
     return json.loads(run('gh','api',endpoint))
@@ -45,6 +48,7 @@ def restore():
     site = Path('public')
     site.mkdir()
     heads = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
+    parent_state().write_text(heads.split()[0] if heads else '')
     if not heads:
         return
     subprocess.run(['git','fetch','origin',f'refs/heads/{DATA_BRANCH}'],check=True)
@@ -66,6 +70,7 @@ def persist():
     repository = Path(run('git','rev-parse','--absolute-git-dir'))
     heads = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
     parent = heads.split()[0] if heads else None
+    assert parent_state().read_text() == (parent or ''), 'Channel changed while preparing; refusing to overwrite its objects'
     if parent:
         subprocess.run(['git','fetch','origin',f'refs/heads/{DATA_BRANCH}'],check=True)
     with tempfile.TemporaryDirectory() as temporary:
@@ -80,6 +85,7 @@ def persist():
         if parent: arguments += ['-p',parent]
         commit = subprocess.check_output(arguments,env=env,text=True).strip()
         subprocess.run(['git','push','origin',f'{commit}:refs/heads/{DATA_BRANCH}'],check=True)
+        parent_state().write_text(commit)
 
 
 def import_signing_key():

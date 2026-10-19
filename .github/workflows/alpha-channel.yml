@@ -32,6 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BIBLE_FLATPAK_GPG_FINGERPRINT: ${{ vars.BIBLE_FLATPAK_GPG_FINGERPRINT }}
       BASE_URL: ${{ vars.BIBLE_ALPHA_PAGES_BASE_URL }}
+      PAGES_MANAGED: ${{ vars.BIBLE_ALPHA_PAGES_MANAGED }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -46,6 +47,10 @@ jobs:
         run: |
           python3 - <<'PYTHON'
           import os
+          from tools.channel_ci import api, REPO
+          assert os.environ['PAGES_MANAGED'] == '1', 'An existing unmanaged Pages site must not be overwritten'
+          page = api(f'repos/{REPO}/pages')
+          assert page['build_type'] == 'workflow' and page['html_url'].rstrip('/') == os.environ['BASE_URL']
           assert os.environ['HAS_SIGNING_KEY'] == 'true', 'Configurer BIBLE_FLATPAK_GPG_KEY avec tools.setup_alpha_channel avant publication'
           assert os.environ['BASE_URL'].startswith('https://'), 'Configurer BIBLE_ALPHA_PAGES_BASE_URL'
           assert os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'], 'Configurer BIBLE_FLATPAK_GPG_FINGERPRINT'
