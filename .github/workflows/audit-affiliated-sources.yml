@@ -1,0 +1,28 @@
+name: Examiner les sources de commentaires (#11)
+on:
+  push:
+    branches: [feat/11-commentary-sources]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Lire les sources officielles et mesurer le catalogue
+        run: python3 -m tools.audit_affiliated_sources
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue-11-source-audit
+          path: affiliated-sources-audit.json
+          if-no-files-found: error
+      - name: Conserver les résultats mesurés avec le commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin refs/notes/source-audit:refs/notes/source-audit || true
+          git notes --ref=source-audit add -f -F affiliated-sources-audit.json "$GITHUB_SHA"
+          git push origin refs/notes/source-audit
