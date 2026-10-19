@@ -38,8 +38,10 @@ def notice(title, value):
 def main():
     for title, url in [
         ('CrossWire repositories', BASE + 'masterRepoList.conf'),
-        ('SWORD configuration', 'https://www.crosswire.org/wiki/DevTools:conf_Files'),
+        ('SWORD configuration', 'https://wiki.crosswire.org/DevTools:conf_Files'),
         ('YouVersion developers', 'https://developers.youversion.com/'),
+        ('YouVersion API usage', 'https://developers.youversion.com/api-usage'),
+        ('YouVersion Bible API', 'https://developers.youversion.com/api'),
     ]:
         try:
             data = urllib.request.urlopen(url, timeout=30).read(1024 * 1024).decode('utf-8', 'replace')
@@ -66,11 +68,14 @@ def main():
                 license = section.get('DistributionLicense', '(missing)')
                 counts[license] = counts.get(license, 0) + 1
                 if section.get('Lang', '').startswith('fr'):
-                    french.append(name + '\n' + '\n'.join(f'{k}={v}' for k, v in section.items()))
-                if any(x in (name + str(dict(section))).casefold() for x in ('semeur', 'biblica', 'bds')):
+                    french.append((name, {k: v for k, v in section.items() if k in {
+                        'description', 'distributionlicense', 'copyright', 'copyrightnotes',
+                        'distributionnotes', 'cipherkey', 'versification', 'minimumversion', 'textsource'}}))
+                if any(x in (name + str(dict(section))).casefold() for x in ('semeur', 'biblica')):
                     matches.append((name, section.get('Description'), license, 'cipherkey' in section))
     notice('CrossWire catalogue audit', 'Licenses: ' + str(counts) + '\nSemeur/Biblica candidates: ' + str(matches))
-    notice('CrossWire French metadata', '\n\n'.join(french))
+    for name, metadata in french:
+        notice('CrossWire French ' + name, str(metadata))
 
 
 if __name__ == '__main__':
