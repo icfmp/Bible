@@ -9,7 +9,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - name: Examiner Pages et les permissions de configuration
@@ -32,7 +32,29 @@ jobs:
           Path('/tmp/alpha-channel-status.json').write_text(json.dumps(report,indent=2))
           print(json.dumps(report,indent=2))
           PYTHON
+      - name: Installer les outils Flatpak et GNOME de test
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11
+      - name: Installer puis mettre à jour un dépôt signé entre deux révisions
+        id: test
+        run: |
+          set -o pipefail
+          python3 -m tools.check_flatpak_channel 2>&1 | tee /tmp/flatpak-channel-test.log
+      - name: Conserver le diagnostic des tests
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/alpha-channel-status.json')
+          data = json.loads(path.read_text()) if path.exists() else {}
+          for label, name in [('test_log','/tmp/flatpak-channel-test.log'), ('test_result','flatpak-channel-test.json')]:
+              if Path(name).is_file(): data[label] = Path(name).read_text()[-18000:]
+          path.write_text(json.dumps(data,indent=2))
+          PYTHON
       - name: Conserver l’état avec le commit
+        if: always()
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
