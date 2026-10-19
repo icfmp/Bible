@@ -3,7 +3,6 @@
 The test key is ephemeral and MUST NOT be used for a public channel. Public HTTPS
 validation is a separate mandatory step after deployment with the stable key.
 """
-import contextlib
 import functools
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -22,7 +21,6 @@ BUNDLE_SHA = 'b1d0db01e1b824d6b761f3af22849f7a05fb00601d74c31ee558737962754297'
 
 def check(base_url, expected, report_path, *, test_revision=None):
     """Clean client; GPG verification remains enabled throughout."""
-    from tools.flatpak_channel import digest
     with urllib.request.urlopen(base_url + '/alpha/Bible.flatpakref', timeout=30) as response:
         descriptor = response.read()
     assert b'GPGKey=' in descriptor and b'Branch=alpha' in descriptor
@@ -91,16 +89,18 @@ def main():
             second = lambda: prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-2',allow_loopback=True)
             result = check(base,first,Path('flatpak-channel-test.json').resolve(),test_revision=second)
             # A mismatching summary must be rejected by a clean client with GPG enabled.
-            summary = site / 'alpha/repo/summary'
-            original = summary.read_bytes()
-            summary.write_bytes(original + b'corrupt')
+            # Modern Flatpak reads summary.idx; older clients use summary.
+            # Corrupt both and use a fresh client so cache cannot hide the test.
+            summaries = [site/'alpha/repo'/name for name in ['summary','summary.idx']]
+            originals = {p:p.read_bytes() for p in summaries if p.is_file()}
+            for path, data in originals.items(): path.write_bytes(data + b'corrupt')
             corrupt_env = dict(os.environ, FLATPAK_USER_DIR=str(root/'tampered-client'))
-            added = subprocess.run(['flatpak','remote-add','--user','--from',REMOTE,
-                                    str(site/'alpha/bible-alpha.flatpakrepo')],env=corrupt_env,capture_output=True,text=True)
+            subprocess.run(['flatpak','remote-add','--user','--from',REMOTE,
+                            str(site/'alpha/bible-alpha.flatpakrepo')],env=corrupt_env,capture_output=True,text=True)
             failure = subprocess.run(['flatpak','remote-ls','--user',REMOTE],env=corrupt_env,capture_output=True,text=True)
             assert failure.returncode != 0, 'Corrupt signed summary was accepted'
             result['corrupt_summary_rejected'] = True
-            summary.write_bytes(original)
+            for path, data in originals.items(): path.write_bytes(data)
             Path('flatpak-channel-test.json').write_text(json.dumps(result,indent=2) + '\n')
             print(json.dumps(result,indent=2))
         finally:
