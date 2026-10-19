@@ -1,0 +1,37 @@
+{
+  "signing_secret_available": "false",
+  "repository": {
+    "exit_code": 0,
+    "result": {
+      "has_pages": false,
+      "default_branch": "main",
+      "permissions": {
+        "admin": false,
+        "maintain": false,
+        "push": false,
+        "triage": false,
+        "pull": false
+      }
+    },
+    "error": ""
+  },
+  "pages": {
+    "exit_code": 1,
+    "result": {
+      "message": "Not Found",
+      "documentation_url": "https://docs.github.com/rest/pages/pages#get-a-apiname-pages-site",
+      "status": "404"
+    },
+    "error": "gh: Not Found (HTTP 404)\n"
+  },
+  "secret_configuration": {
+    "exit_code": 1,
+    "result": {
+      "message": "Resource not accessible by integration",
+      "documentation_url": "https://docs.github.com/rest/actions/secrets#get-a-repository-public-key",
+      "status": "403"
+    },
+    "error": "gh: Resource not accessible by integration (HTTP 403)\n"
+  },
+  "test_log": "gpg: keybox '/tmp/tmpfr0k9x6u/gpg/pubring.kbx' created\ngpg: /tmp/tmpfr0k9x6u/gpg/trustdb.gpg: trustdb created\ngpg: directory '/tmp/tmpfr0k9x6u/gpg/openpgp-revocs.d' created\ngpg: revocation certificate stored as '/tmp/tmpfr0k9x6u/gpg/openpgp-revocs.d/131DBFAE01F9E2983A2E7571038017869A03FFAB.rev'\ngpg: checking the trustdb\ngpg: marginals needed: 3  completes needed: 1  trust model: pgp\ngpg: depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u\ngpg: next trustdb check due at 2026-10-20\nImporting app/io.github.icfmp.Bible/x86_64/master (c2861d79be5907dc3aa7b8071f59fe2a560dfb2f8e9c59cbc6d5d35cc98ba1bc)\n\n(flatpak build-import-bundle:2931): GLib-CRITICAL **: 20:54:29.181: g_str_has_prefix: assertion 'str != NULL' failed\n\n(flatpak build-import-bundle:2931): OSTree-CRITICAL **: 20:54:29.181: _ostree_repo_get_remote: assertion 'name != NULL' failed\n\n(flatpak build-import-bundle:2931): GLib-CRITICAL **: 20:54:29.181: g_propagate_error: assertion 'src != NULL' failed\napp/io.github.icfmp.Bible/x86_64/alpha: d1111e8f188c7b08f72615f0fea66cf513157b51e4d0dd6819f5aa1ecacdef33\nUpdating appstream branch\nNo appstream data for app/io.github.icfmp.Bible/x86_64/alpha: No such file or directory: /files/share/app-info\nGenerating static deltas\nGenerating delta: appstream2/x86_64 (3dec7d4ed1)\nGenerating delta: app/io.github.icfmp.Bible/x86_64/alpha (d1111e8f18)\nUpdating summary\nfatal: not a tree object: c2792c14ec86b28767cd5bc9ec8509a576e9a52d\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/runner/work/Bible/Bible/tools/check_flatpak_channel.py\", line 111, in <module>\n    main()\n  File \"/home/runner/work/Bible/Bible/tools/check_flatpak_channel.py\", line 89, in main\n    first = prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-1',allow_loopback=True)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Bible/Bible/tools/flatpak_channel.py\", line 108, in prepare\n    sources = source_archive(site, source)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Bible/Bible/tools/flatpak_channel.py\", line 41, in source_archive\n    subprocess.run(['git', 'archive', '--format=tar', '-o', str(root / 'Bible-source.tar'), source], check=True)\n  File \"/usr/lib/python3.12/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['git', 'archive', '--format=tar', '-o', '/tmp/tmp7ixgl70l/Bible-c2792c14ec86b28767cd5bc9ec8509a576e9a52d-sources/Bible-source.tar', 'c2792c14ec86b28767cd5bc9ec8509a576e9a52d']' returned non-zero exit status 128.\n"
+}
