@@ -13,6 +13,8 @@ from .library import Library
 from .reading_tab import ReadingTab
 from .study_panel import StudyPanel
 from .navigation import PassagePopover
+from .notes import NoteStore
+from .notes_window import NoteEditor, NotesWindow
 from .session import Session, SessionError, SessionStore, TabState
 
 
@@ -28,6 +30,14 @@ class Window(Adw.ApplicationWindow):
         self._save_id = 0
         self._session_writable = True
         self.catalogue_window = None
+        self.notes_window = None
+        self.note_editor = None
+        self.notes_error = ''
+        try:
+            self.notes_store = NoteStore(library.root.parent / 'notes.sqlite3')
+        except Exception as error:
+            self.notes_store = None
+            self.notes_error = str(error)
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
@@ -57,10 +67,23 @@ class Window(Adw.ApplicationWindow):
                                               tooltip_text=tr('Study'))
         self.study_button.connect('toggled', self.toggle_study)
         header.pack_end(self.study_button)
+        commands = Gio.Menu()
+        commands.append(tr('Passage note'), 'win.note')
+        commands.append(tr('My notes'), 'win.notes')
+        commands.append(tr('New tab'), 'win.new-tab')
+        commands.append(tr('Library'), 'win.translations')
+        menu = Gtk.MenuButton(icon_name='open-menu-symbolic', menu_model=commands,
+                              tooltip_text=tr('Notes and commands'))
+        menu.update_property([Gtk.AccessibleProperty.LABEL], [tr('Notes and commands')])
+        header.pack_end(menu)
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
         layout.append(self.session_status)
+        self.notes_status = Gtk.Label(wrap=True, xalign=0, visible=bool(self.notes_error),
+                                       margin_start=12, margin_end=12,
+                                       label=(tr('Notes unavailable. The original file has been preserved.') + '\n' + self.notes_error) if self.notes_error else '')
+        layout.append(self.notes_status)
         self.view = Adw.TabView(vexpand=True)
         self.bar = Adw.TabBar(view=self.view, autohide=False)
         layout.append(self.bar)
@@ -85,6 +108,7 @@ class Window(Adw.ApplicationWindow):
         tiny_header.add_setter(self.previous, 'visible', False)
         tiny_header.add_setter(self.following, 'visible', False)
         tiny_header.add_setter(library_button, 'visible', False)
+        tiny_header.add_setter(new, 'visible', False)
         self.add_breakpoint(tiny_header)
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { font-size: 18pt; }')
@@ -102,11 +126,17 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
         self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
         self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
+        self.add_action_callback('note', lambda *_: self.new_note())
+        self.add_action_callback('notes', lambda *_: self.open_notes())
+        self.lookup_action('note').set_enabled(self.notes_store is not None)
+        self.lookup_action('notes').set_enabled(self.notes_store is not None)
         self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
         app.set_accels_for_action('win.new-tab', ['<Control>t'])
         app.set_accels_for_action('win.close-tab', ['<Control>w'])
         app.set_accels_for_action('win.translations', ['<Control>l'])
         app.set_accels_for_action('win.study', ['F9'])
+        app.set_accels_for_action('win.note', ['<Control>n'])
+        app.set_accels_for_action('win.notes', ['<Control><Shift>n'])
         app.set_accels_for_action('win.previous-verse', ['<Alt>Up'])
         app.set_accels_for_action('win.next-verse', ['<Alt>Down'])
         app.set_accels_for_action('win.choose-passage', ['<Control>g'])
@@ -142,7 +172,8 @@ class Window(Adw.ApplicationWindow):
         return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
 
     def append_tab(self, state, jump_to_reference=False):
-        tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference)
+        tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
+                         self.notes_store, self.open_passage_notes)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -210,6 +241,7 @@ class Window(Adw.ApplicationWindow):
         self.lookup_action('next-chapter').set_enabled(following is not None)
         self.navigation.sync()
         self.study.refresh()
+        tab.update_notes()
 
     def close_tab(self):
         page = self.view.get_selected_page()
@@ -289,6 +321,93 @@ class Window(Adw.ApplicationWindow):
                 self.tab_changed(tab)
         self.update_navigation()
 
+    def notes_changed(self):
+        for tab in self.tabs():
+            tab.update_notes(force=True)
+        if self.notes_window and not self.notes_window.closed:
+            self.notes_window.labels.set_suggestions(self.notes_store.labels())
+            self.notes_window.refresh()
+
+    def open_notes(self):
+        if self.notes_store is None:
+            return
+        if self.notes_window is None or self.notes_window.closed:
+            self.notes_window = NotesWindow(self)
+        self.notes_window.show_all()
+        self.notes_window.present()
+        return self.notes_window
+
+    def new_note(self, force_new=False):
+        tab = self.active_tab
+        if not self.notes_store or tab is None or tab.reader is None:
+            self.notes_status.set_text(tr('Open a Bible passage before creating a note.'))
+            self.notes_status.set_visible(True)
+            return
+        start, end = tab.selected_passage()
+        matching = self.notes_store.passage(tab.reader.versification, start, end)
+        if matching and not force_new:
+            return self.open_passage_notes()
+        context = dict(versification=tab.reader.versification, start=start, end=end,
+                       origin_translation=tab.state.resource,
+                       origin_language=self.library.resource(tab.state.resource).language)
+        return self.edit_note(context=context)
+
+    def open_passage_notes(self):
+        tab = self.active_tab
+        if not self.notes_store or not tab or not tab.reader:
+            return
+        start, end = tab.selected_passage()
+        notes = self.notes_store.passage(tab.reader.versification, start, end)
+        if len(notes) == 1:
+            return self.edit_note(note=notes[0])
+        if not notes:
+            return self.new_note(force_new=True)
+        window = self.open_notes()
+        window.search.set_text('')
+        window.labels.set_values([])
+        window.passage_filter = (tab.reader.versification, start, end)
+        window.refresh()
+        return window
+
+    def edit_note(self, note=None, context=None, explanation=''):
+        if self.note_editor and not self.note_editor.closed:
+            self.note_editor.status.set_text(tr('Save or close the current note before opening another.'))
+            self.note_editor.present()
+            return self.note_editor
+        self.notes_status.set_visible(False)
+        self.note_editor = NoteEditor(self, note=note, context=context, explanation=explanation)
+        self.note_editor.present()
+        return self.note_editor
+
+    def open_saved_note(self, note):
+        note = self.notes_store.get(note.id)
+        if note is None:
+            return
+        if self.note_editor and not self.note_editor.closed:
+            self.note_editor.status.set_text(tr('Save or close the current note before opening another.'))
+            self.note_editor.present()
+            return self.note_editor
+        from .sword_provider import Reader
+        tab = self.active_tab
+        candidates = list(dict.fromkeys([tab.state.resource if tab else None,
+                                         note.origin_translation, *self.library.installed('bible')]))
+        explanation = tr('No compatible translation installed. The note remains available.')
+        for name in candidates:
+            if name not in self.library.installed('bible'):
+                continue
+            try:
+                reader = tab.reader if tab and tab.state.resource == name and tab.reader else Reader(self.library.root / name, name)
+                if (reader.versification == note.versification and reader.has_reference(note.start)
+                        and reader.has_reference(note.end)):
+                    if self.navigate_selection(name, note.start):
+                        explanation = ''
+                        break
+            except Exception:
+                continue
+        if explanation:
+            explanation += f' [{note.versification}]'
+        return self.edit_note(note=note, explanation=explanation)
+
     def schedule_save(self):
         if self._initializing or self.closed or not self._session_writable:
             return
@@ -316,11 +435,19 @@ class Window(Adw.ApplicationWindow):
         self.session_status.set_visible(True)
 
     def on_close(self, *_):
+        if self.note_editor and not self.note_editor.closed:
+            self.note_editor.after_close = self.close
+            self.note_editor.close()
+            return True
         if self._save_id:
             GLib.source_remove(self._save_id)
             self._save_id = 0
         self.save_session()
         self.closed = True
+        if self.notes_window and not self.notes_window.closed:
+            self.notes_window.close()
+        if self.notes_store:
+            self.notes_store.close()
         if self.catalogue_window is not None and not self.catalogue_window.closed:
             self.catalogue_window.close()
         return False

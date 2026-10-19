@@ -88,3 +88,47 @@ FR.update({
 })
 
 FR['Verse numbering'] = 'Numérotation des versets'
+
+FR.update({
+    'My notes': 'Mes notes', 'Passage note': 'Note de passage', 'Notes and commands': 'Notes et commandes',
+    'New passage note': 'Nouvelle note de passage', 'Save': 'Enregistrer', 'Cancel': 'Annuler', 'Confirm': 'Confirmer',
+    'Original context': 'Contexte d’origine', 'Bold': 'Gras', 'Italic': 'Italique', 'List': 'Liste', 'Link': 'Lien',
+    'Note in Markdown': 'Note en Markdown', 'Safe preview': 'Aperçu sûr', 'Write': 'Écrire', 'Preview': 'Aperçu',
+    'Labels': 'Labels', 'Add a label': 'Ajouter un label', 'Remove label': 'Retirer le label',
+    'Links are displayed as text and never opened automatically.':
+        'Les liens sont affichés en texte, sans ouverture automatique.',
+    'Delete note': 'Supprimer la note', 'Note saved.': 'Note enregistrée.',
+    'Delete this note permanently?': 'Supprimer définitivement cette note ?',
+    'This removes the note and its labels from this passage.': 'La note et ses associations de labels seront supprimées de ce passage.',
+    'Discard unsaved changes?': 'Abandonner les modifications non enregistrées ?',
+    'Your note has not been saved.': 'Votre note n’a pas été enregistrée.',
+    'Search notes or references': 'Rechercher dans les notes ou les références',
+    'Most recent': 'Les plus récentes', 'Oldest first': 'Les plus anciennes', 'Bible order': 'Ordre biblique',
+    'Sort notes': 'Trier les notes', 'All passages': 'Tous les passages', 'No matching note.': 'Aucune note correspondante.',
+    'Created': 'Création', 'Modified': 'Modification', 'notes': 'notes',
+    'Backup and restore': 'Sauvegarde et restauration', 'Back up notes': 'Sauvegarder les notes',
+    'Restore notes': 'Restaurer les notes', 'Notes backup (JSON)': 'Sauvegarde des notes (JSON)',
+    'Choose a local file.': 'Choisissez un fichier local.', 'Notes backup saved.': 'Sauvegarde des notes enregistrée.',
+    'Restore complete. Added / already present / copies kept':
+        'Restauration terminée. Ajoutées / déjà présentes / copies conservées',
+    'Passage notes': 'Notes du passage', 'Underlined verse numbers have notes.':
+        'Les numéros de versets soulignés ont des notes.',
+    'Notes unavailable. The original file has been preserved.':
+        'Notes indisponibles. Le fichier d’origine a été conservé.',
+    'Open a Bible passage before creating a note.': 'Ouvrez un passage biblique avant de créer une note.',
+    'No compatible translation installed. The note remains available.':
+        'Aucune traduction compatible installée. La note reste consultable.',
+    'Invalid label': 'Label invalide (80 caractères au maximum).',
+    'Invalid labels': 'Labels invalides (32 au maximum).',
+    'A note must contain text (maximum 200000 characters)':
+        'Une note doit contenir du texte (200 000 caractères au maximum).',
+    'This note changed elsewhere. Your draft has been preserved.':
+        'Cette note a changé ailleurs. Votre brouillon a été conservé.',
+    'Choose a backup file different from the notes database':
+        'Choisissez un fichier de sauvegarde distinct de la base des notes.',
+    'Notes backup exceeds the 32 MiB limit': 'La sauvegarde dépasse la limite de 32 Mio.',
+})
+
+FR.update({'Back to reading': 'Retour à la lecture', 'note': 'note',
+           'Save or close the current note before opening another.':
+               'Enregistrez ou fermez la note actuelle avant d’en ouvrir une autre.'})

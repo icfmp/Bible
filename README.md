@@ -52,6 +52,15 @@ Les numérotations des versets doivent correspondre : une incompatibilité est
 signalée, sans alignement automatique. Pour un premier essai, utiliser **KJV**
 avec **Clarke** ou **MHCC**. Voir [les commentaires et leurs limites](docs/COMMENTAIRES_CROSSWIRE.md).
 
+**Notes** : menu de la Header Bar → **Note de passage** (`Ctrl+N`). Sélectionner
+le texte de plusieurs versets du chapitre pour annoter un passage. L’éditeur
+propose Markdown léger, aperçu sûr et labels ; **Enregistrer** conserve la note.
+Les versets annotés sont soulignés. **Mes notes** (`Ctrl+Maj+N`) permet de
+rechercher, filtrer par labels, trier et ouvrir les notes avec leur passage.
+Son menu propose la sauvegarde/restauration vers un fichier JSON choisi.
+Les notes restent disponibles si la traduction est supprimée ; les versifications
+différentes ne sont pas assimilées. Voir [le guide des notes](docs/NOTES_DE_PASSAGE.md).
+
 La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.json`
 (profil distinct dans Flatpak). Un fichier invalide ou de version inconnue est
 préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son

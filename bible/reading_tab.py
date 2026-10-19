@@ -11,9 +11,12 @@ from .i18n import LANGUAGE
 
 
 class ReadingTab(Gtk.Box):
-    def __init__(self, library, state, changed, jump_to_reference=False):
+    def __init__(self, library, state, changed, jump_to_reference=False, notes_store=None, notes_requested=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         self.library, self.state, self.changed = library, state, changed
+        self.notes_store, self.notes_requested = notes_store, notes_requested
+        self._notes_stamp = None
+        self._note_refs = {}
         self.reader = None
         self.current = None
         self._restoring_scroll = True
@@ -24,6 +27,11 @@ class ReadingTab(Gtk.Box):
         self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
                                 margin_start=12, margin_end=12)
         self.append(self.status)
+        self.note_button = Gtk.Button(visible=False, halign=Gtk.Align.START,
+                                       margin_start=24, margin_end=24)
+        self.note_button.add_css_class('flat')
+        self.note_button.connect('clicked', lambda *_: self.notes_requested() if self.notes_requested else None)
+        self.append(self.note_button)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         self.text = Gtk.TextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
@@ -32,6 +40,7 @@ class ReadingTab(Gtk.Box):
         self.text.add_css_class('reading')
         self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
         self._selected_tag = self.text.get_buffer().create_tag(None, weight=700)
+        self._annotated_tag = self.text.get_buffer().create_tag(None, underline=1)
         self.verse_click = Gtk.GestureClick(button=1)
         self.verse_click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         self.verse_click.connect('released', self.verse_clicked)
@@ -125,6 +134,7 @@ class ReadingTab(Gtk.Box):
                 part = f'{ref.rsplit(".", 1)[-1]}  {text}\n\n'
                 parts.append(part)
                 offset += len(part)
+            self._notes_stamp = None
             self.text.get_buffer().set_text(''.join(parts))
             self.highlight_selection()
             self.status.set_text(tr('Ready'))
@@ -162,7 +172,47 @@ class ReadingTab(Gtk.Box):
         if found:
             candidates = [ref for ref, offset in self._verse_offsets.items() if offset <= iterator.get_offset()]
             if candidates:
-                self.select_verse(candidates[-1])
+                reference = candidates[-1]
+                self.select_verse(reference)
+                if (reference in self._note_refs and self.notes_requested
+                        and iterator.get_offset() < self._verse_offsets[reference] + len(reference.rsplit('.', 1)[-1])):
+                    self.notes_requested()
+
+    def selected_passage(self):
+        selection = self.text.get_buffer().get_selection_bounds()
+        if selection:
+            start, end = (iterator.get_offset() for iterator in selection)
+            references = list(self._verse_offsets)
+            selected = [reference for index, reference in enumerate(references)
+                        if self._verse_offsets[reference] < end
+                        and (self._verse_offsets[references[index + 1]] if index + 1 < len(references)
+                             else self.text.get_buffer().get_char_count()) > start]
+            if selected:
+                return selected[0], selected[-1]
+        return self.state.reference, self.state.reference
+
+    def update_notes(self, force=False):
+        stamp = (id(self.reader), self.state.reference,
+                 self.notes_store.generation if self.notes_store else -1)
+        if not force and stamp == self._notes_stamp:
+            return
+        self._notes_stamp = stamp
+        buffer = self.text.get_buffer()
+        buffer.remove_tag(self._annotated_tag, buffer.get_start_iter(), buffer.get_end_iter())
+        self._note_refs = {}
+        if self.reader and self._verse_offsets and self.notes_store:
+            references = list(self._verse_offsets)
+            notes = self.notes_store.passage(self.reader.versification, references[0], references[-1])
+            for reference, offset in self._verse_offsets.items():
+                matching = [note for note in notes if note.covers(reference)]
+                if matching:
+                    self._note_refs[reference] = matching
+                    buffer.apply_tag(self._annotated_tag, buffer.get_iter_at_offset(offset),
+                                     buffer.get_iter_at_offset(offset + len(reference.rsplit('.', 1)[-1])))
+        count = len(self._note_refs.get(self.state.reference, []))
+        self.note_button.set_label(f'{tr("Passage notes")} ({count})')
+        self.note_button.set_tooltip_text(tr('Underlined verse numbers have notes.'))
+        self.note_button.set_visible(count > 0)
 
     def step_verse(self, direction):
         references = list(self._verse_offsets)

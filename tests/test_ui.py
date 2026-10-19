@@ -568,3 +568,200 @@ class WindowTests(unittest.TestCase):
             spin(lambda: window.study.info.get_popover().get_visible())
             self.assertLessEqual(window.study.info.get_popover().get_width(), 360)
             window.close()
+
+    def write_note(self, window, text, labels=()):
+        editor = window.new_note(force_new=True)
+        self.assertIsNotNone(editor)
+        editor.body.get_buffer().set_text(text)
+        for label in labels:
+            editor.labels.entry.set_text(label)
+            editor.labels.add()
+        self.assertTrue(editor.save(close=False), editor.status.get_text())
+        note = editor.note
+        editor.close()
+        self.assertTrue(editor.closed)
+        return note
+
+    def test_passage_notes_range_survive_translation_language_and_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            origin = installed_fixture(directory)
+            other = installed_fixture(directory, 'Other')
+            path = other / 'mods.d/test.conf'
+            path.write_bytes(path.read_bytes().replace(b'Lang=en', b'Lang=de'))
+            window = self.window(directory)
+            window.navigate_selection('Test', 'Gen.1.1')
+            tab = window.active_tab
+            buffer = tab.text.get_buffer()
+            buffer.select_range(buffer.get_start_iter(), buffer.get_end_iter())
+            first = self.write_note(window, '**Ancienne** note sur deux versets', ['Étude', 'Foi'])
+            self.assertEqual((first.start, first.end), ('Gen.1.1', 'Gen.1.2'))
+            self.assertEqual((first.origin_translation, first.origin_language), ('Test', 'en'))
+            self.assertIn('Gen.1.2', tab._note_refs)
+            self.assertTrue(buffer.get_iter_at_offset(tab._verse_offsets['Gen.1.1']).has_tag(tab._annotated_tag))
+            window.navigate_selection('Other', 'Gen.1.2')
+            self.assertTrue(tab.note_button.get_visible())
+            editor = window.open_passage_notes()
+            self.assertEqual(editor.note.id, first.id)
+            self.assertEqual(editor.context['origin_translation'], 'Test')
+            editor.close()
+            window.navigate_selection('Other', 'Gen.2.1')
+            second = self.write_note(window, 'Seconde note', ['Lecture'])
+            self.assertEqual(second.origin_language, 'de')
+            central = window.open_notes()
+            central.search.set_text('ancienne')
+            central.labels.entry.set_text('FOI')
+            central.labels.add()
+            central.refresh()
+            self.assertEqual([n.id for n in central.rows], [first.id])
+            central.search.set_text('Genèse 1:1')
+            central.refresh()
+            self.assertEqual([n.id for n in central.rows], [first.id])
+            central.list.emit('row-activated', central.list.get_row_at_index(0))
+            self.assertEqual(window.active_tab.state.reference, 'Gen.1.1')
+            self.assertEqual(window.note_editor.note.id, first.id)
+            window.note_editor.close()
+            window.close()
+            shutil.rmtree(origin)
+            reopened = self.window(directory)
+            self.assertEqual(len(reopened.notes_store.all()), 2)
+            self.assertEqual(reopened.notes_store.get(first.id), first)
+            editor = reopened.open_saved_note(first)
+            self.assertEqual(reopened.active_tab.state.resource, 'Other')
+            self.assertEqual(reopened.active_tab.state.reference, 'Gen.1.1')
+            self.assertEqual(editor.note.body, first.body)
+            editor.close()
+            reopened.close()
+
+    def test_incompatible_note_stays_accessible_without_false_marker(self):
+        from bible.i18n import tr
+        with tempfile.TemporaryDirectory() as directory:
+            origin = installed_fixture(directory)
+            installed_fixture(directory, 'CatholicBible', versification='Catholic')
+            window = self.window(directory)
+            window.navigate_selection('Test', 'Gen.1.1')
+            note = self.write_note(window, 'Original KJV note', ['Keep'])
+            window.navigate_selection('CatholicBible', 'Gen.1.1')
+            self.assertFalse(window.active_tab.note_button.get_visible())
+            self.assertEqual(window.active_tab._note_refs, {})
+            shutil.rmtree(origin)
+            editor = window.open_saved_note(note)
+            self.assertEqual(window.active_tab.state.resource, 'CatholicBible')
+            self.assertIn(tr('No compatible translation installed. The note remains available.'), editor.status.get_text())
+            self.assertEqual(editor.note.body, note.body)
+            self.assertEqual(editor.note.labels, ('Keep',))
+            editor.close()
+            central = window.open_notes()
+            self.assertEqual([n.id for n in central.rows], [note.id])
+            window.close()
+
+    def test_note_delete_and_unsaved_close_require_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            note = self.write_note(window, 'Keep until confirmed', ['Keep'])
+            editor = window.open_saved_note(note)
+            editor.ask_delete()
+            editor._confirmation.response('cancel')
+            self.assertIsNotNone(window.notes_store.get(note.id))
+            editor.ask_delete()
+            editor._confirmation.response('confirm')
+            self.assertTrue(editor.closed)
+            self.assertIsNone(window.notes_store.get(note.id))
+            self.assertFalse(window.active_tab.note_button.get_visible())
+            draft = window.new_note(force_new=True)
+            draft.body.get_buffer().set_text('Unsaved draft')
+            draft.close()
+            self.assertFalse(draft.closed)
+            draft._confirmation.response('cancel')
+            self.assertFalse(draft.closed)
+            window.close()
+            self.assertFalse(window.closed)
+            draft._confirmation.response('cancel')
+            self.assertTrue(draft.save())
+            self.assertFalse(window.closed)
+            self.assertEqual(window.notes_store.all()[0].body, 'Unsaved draft')
+            window.close()
+
+    def test_notes_backup_restore_and_safe_preview_remain_local(self):
+        from bible.notes_window import buffer_text
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            with patch('urllib.request.urlopen', side_effect=AssertionError('No network for notes')):
+                note = self.write_note(window, '**Gras**\n- עברית\n<script>bad()</script>\n[x](javascript:bad)', ['Local'])
+                editor = window.open_saved_note(note)
+                self.assertIn('Gras', buffer_text(editor.preview))
+                self.assertIn('<script>bad()</script>', buffer_text(editor.preview))
+                self.assertIn('javascript:bad', buffer_text(editor.preview))
+                self.assertIsNotNone(editor.labels.entry.get_completion())
+                editor.close()
+                central = window.open_notes()
+                backup = Path(directory) / 'backup.json'
+                self.assertTrue(central.backup_to(backup))
+                window.notes_store.delete(note)
+                self.assertTrue(central.restore_from(backup))
+                self.assertEqual(window.notes_store.get(note.id), note)
+                self.assertIn('Gen.1.1', window.active_tab._note_refs)
+                backup.write_text('invalid')
+                self.assertFalse(central.restore_from(backup))
+                self.assertEqual(window.notes_store.get(note.id), note)
+            window.close()
+
+    def test_note_windows_at_360_pixels_and_commentary_independence(self):
+        from tests.test_commentary import commentary_fixture
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            commentary_fixture(directory)
+            window = self.window(directory)
+            self.choose_commentary(window, 'Notes')
+            commentary = self.study_text(window)
+            note = self.write_note(window, 'Note text', ['L' * 80])
+            self.assertEqual(self.study_text(window), commentary)
+            editor = window.open_saved_note(note)
+            editor.set_default_size(360, 650)
+            spin(lambda: editor.get_width() > 0)
+            self.assertLessEqual(editor.get_width(), 360)
+            editor.close()
+            central = window.open_notes()
+            central.set_default_size(360, 650)
+            spin(lambda: central.get_width() > 0)
+            self.assertLessEqual(central.get_width(), 360)
+            self.assertEqual(self.study_text(window), commentary)
+            window.close()
+
+    def test_invalid_notes_database_preserves_file_and_reading(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            database = Path(directory) / 'notes.sqlite3'
+            original = b'Unrecognized notes data. Preserve me.'
+            database.write_bytes(original)
+            window = self.window(directory)
+            self.assertIsNotNone(window.active_tab.reader)
+            self.assertIsNone(window.notes_store)
+            self.assertFalse(window.lookup_action('notes').get_enabled())
+            self.assertTrue(window.notes_status.get_visible())
+            self.assertEqual(database.read_bytes(), original)
+            window.close()
+
+    def test_note_formatting_commands_and_catholic_reference_labels(self):
+        from bible.notes_window import buffer_text, passage_label
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            editor = window.new_note(force_new=True)
+            buffer = editor.body.get_buffer()
+            for text, prefix, suffix, expected in [
+                    ('alpha', '**', '**', '**alpha**'),
+                    ('alpha', '*', '*', '*alpha*'),
+                    ('alpha\nbeta\n', '- ', '', '- alpha\n- beta\n'),
+                    ('label', '[', '](https://)', '[label](https://)')]:
+                buffer.set_text(text)
+                buffer.select_range(buffer.get_start_iter(), buffer.get_end_iter())
+                editor.format(prefix, suffix)
+                self.assertEqual(buffer_text(editor.body), expected)
+            editor.labels.entry.set_text('Pending label')
+            self.assertTrue(editor.save(close=False))
+            self.assertEqual(editor.note.labels, ('Pending label',))
+            self.assertNotIn('Genesis', passage_label('Tob.3.16', versification='Catholic'))
+            editor.close()
+            window.close()
