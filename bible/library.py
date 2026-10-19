@@ -43,10 +43,10 @@ def resource_from_section(name, section):
     conditions = '\n'.join(f'{key}: {value}' for key, value in section.items()
                            if value and (key.startswith('copyright') or key in {
                                'distributionnotes', 'shortcopyright', 'textsource'}))
-    return Resource(name, section.get('Description', name), section.get('Lang', ''),
+    return Resource(name, section.get('Description') or name, section.get('Lang') or 'und',
                     section.get('DistributionLicense', '') or 'Unknown',
-                    section.get('About', ''), conditions, 'cipherkey' in section,
-                    section.get('ModDrv', ''))
+                    section.get('About') or '', conditions, 'cipherkey' in section,
+                    section.get('ModDrv') or '')
 
 
 def config(data):

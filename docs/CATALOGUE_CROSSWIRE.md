@@ -68,7 +68,8 @@ absents introduites dans l’issue #5.
 
 ## Français et Semeur
 
-Le catalogue principal contient notamment `FreBA` (Bible Annotée), `FreBDM1707`
+Le catalogue principal consulté le 19 octobre 2026 contient 16 Bibles françaises,
+notamment `FreBA` (Bible Annotée), `FreBDM1707`
 (Martin 1707), `FreBDM1744` (Martin 1744) et `FreLXXGiguet`. Pour Martin 1707,
 CrossWire déclare « Copyrighted; Permission to distribute granted to CrossWire ».
 L’attribution indique Philippe Lacombe ; la copie et le partage sont déclarés
@@ -78,10 +79,12 @@ l’application et conservées avec la ressource. Ce n’est pas une autorisatio
 attribuée au projet par une simple étiquette de licence.
 
 Le test réseau vise **FreBDM1707**, avec repli sur FreBA si cette première entrée
-n’existe plus dans le catalogue, puis KJV comme contrôle anglais. Il ne livre
-aucun texte biblique dans Git ou le Flatpak.
+n’existe plus dans le catalogue, puis KJV comme contrôle anglais. Le test vérifie aussi le Nouveau Testament français `FreGeneve1669`, dont
+le premier passage est découvert sans proposer la Genèse. Il ne livre aucun
+texte biblique dans Git ou le Flatpak.
 
-Le Semeur n’est pas déclaré disponible dans l’application. La recherche dans
+Le Semeur n’a pas été trouvé parmi ces traductions françaises du dépôt principal
+et n’est pas déclaré disponible dans l’application. La recherche dans
 les métadonnées du dépôt stable ne prouve pas son absence de tous les dépôts
 SWORD ni de tous les services autorisés.
 
@@ -99,13 +102,16 @@ avec le fournisseur ; aucun connecteur ni extraction de pages n’est ajouté ic
 
 ## Vérifications et essai
 
-37 tests locaux passent avec SWORD 1.9, GTK 4.18 et libadwaita 1.7 sous Xvfb,
+38 tests automatisés couvrent le catalogue et le lecteur. Les vérifications locales passent avec SWORD 1.9, GTK 4.18 et libadwaita 1.7 sous Xvfb,
 avec tests d’interface en français et anglais. Les fixtures sont des modules
 RawText réels contenant des sentinelles de test. Elles couvrent les licences
 hors de l’ancienne liste, les conditions répétées, le refus des paquets chiffrés,
 le changement de conditions, le filtrage langue/recherche, les attributions hors
 connexion et les ressources NT seules.
 
+Les vrais téléchargements de FreBDM1707 et KJV, leur lecture de 31 versets,
+la fidélité SWORD et les attributions hors connexion ont réussi dans
+[l’exécution de validation](https://github.com/icfmp/Bible/actions/runs/39221585826).
 La CI teste les vrais téléchargements français et anglais, leur fidélité verse
 par verset à SWORD et leur réouverture dans un processus avec réseau isolé.
 Elle construit aussi le Flatpak GNOME 49. Les résultats effectifs de chaque

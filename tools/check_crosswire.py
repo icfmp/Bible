@@ -14,7 +14,7 @@ from bible.library import Library, catalogue
 from bible.sword_provider import Reader
 
 
-def check_resource(resource):
+def check_resource(resource, nt_only=False):
     with tempfile.TemporaryDirectory() as directory:
         library = Library(directory)
         assert library.installed() == []
@@ -26,6 +26,10 @@ def check_resource(resource):
         john = next(book for book in reader.books if book.code == 'John')
         assert 16 in john.chapters[3]
         first = reader.first_reference()
+        if nt_only:
+            assert not reader.has_reference('Gen.1.1')
+            assert all(book.code != 'Gen' for book in reader.books)
+            assert not first.startswith('Gen.')
         chapter = reader.chapter(first)
         assert any(text for _, text in chapter.verses), 'Downloaded chapter is empty'
         for reference, text in chapter.verses:
@@ -63,8 +67,8 @@ def main():
     french = next((by_name[name] for name in ('FreBDM1707', 'FreBA') if name in by_name), None)
     assert french is not None, 'No expected French translation available from CrossWire'
     assert french.language == 'fr'
-    for name in (french.name, 'KJV'):
-        check_resource(by_name[name])
+    for name in (french.name, 'KJV', 'FreGeneve1669'):
+        check_resource(by_name[name], nt_only=name == 'FreGeneve1669')
     return 0
 
 

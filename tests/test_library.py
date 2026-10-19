@@ -51,6 +51,16 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual(parsed['Test']['About'], 'First line Copyright and address Last line')
         self.assertEqual(parsed['Test']['DistributionLicense'], 'Public Domain')
 
+    def test_bare_optional_metadata_remains_readable(self):
+        from bible.library import resource_from_section
+        from bible.resource_details import details
+        section = config(b'[Test]\nModDrv=RawText\nLang=fr\nDescription\nAbout\nDistributionLicense\n')['Test']
+        resource = resource_from_section('Test', section)
+        self.assertEqual(resource.description, 'Test')
+        self.assertEqual(resource.license, 'Unknown')
+        self.assertIn('Unknown', details(resource))
+        self.assertTrue(resource.installable)
+
     def test_fresh_profile(self):
         with tempfile.TemporaryDirectory() as d:
             library = Library(d)
