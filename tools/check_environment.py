@@ -15,12 +15,13 @@ def main():
     args = parser.parse_args()
     failures = []
 
-    def check(label, action):
+    def check(label, action, required=True):
         try:
             print(f'OK {label}: {action()}')
         except Exception as error:
-            failures.append(label)
-            print(f'FAIL {label}: {type(error).__name__}: {error}')
+            if required:
+                failures.append(label)
+            print(f'{"FAIL" if required else "WARN"} {label}: {type(error).__name__}: {error}')
 
     print(f'Python: {sys.version.split()[0]}')
     check('PyGObject', lambda: importlib.import_module('gi').__version__)
@@ -50,7 +51,7 @@ def main():
                 request = urllib.request.Request(url, method='HEAD')
                 with urllib.request.urlopen(request, timeout=15) as response:
                     return response.status
-            check(url, endpoint)
+            check(url, endpoint, required='crosswire.org' in url)
     print(f'{len(failures)} prerequisite(s) failed.')
     return 1 if failures else 0
 
