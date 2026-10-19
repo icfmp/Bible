@@ -5,6 +5,8 @@ is created only when no channel secret exists. Existing Pages sites are refused
 unless they were explicitly marked as managed by this setup.
 """
 import json
+import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -18,6 +20,7 @@ def variable(name):
 
 
 def main():
+    api(f'repos/{REPO}/contents/.github/workflows/alpha-channel.yml?ref=main')
     repository = api(f'repos/{REPO}')
     assert repository['permissions'].get('admin'), 'A repository administrator must run this setup with their own gh connection'
     if repository['has_pages']:
@@ -36,6 +39,17 @@ def main():
                 keys = run('gpg','--homedir',home,'--with-colons','--list-keys')
                 fingerprint = next(line.split(':')[9] for line in keys.splitlines() if line.startswith('fpr:'))
                 private = subprocess.check_output(['gpg','--homedir',str(home),'--armor','--export-secret-keys',fingerprint])
+                backup = Path(os.environ.get('XDG_DATA_HOME', str(Path.home()/'.local/share'))) / 'bible-alpha-signing'
+                backup.mkdir(parents=True, exist_ok=True, mode=0o700)
+                backup.chmod(0o700)
+                repository_root = Path(run('git','rev-parse','--show-toplevel')).resolve()
+                assert not backup.resolve().is_relative_to(repository_root), 'Signing backup must stay outside Git'
+                private_path = backup / f'{fingerprint}.asc'
+                with private_path.open('xb') as output:
+                    output.write(private)
+                private_path.chmod(0o600)
+                shutil.copy2(home/'openpgp-revocs.d'/f'{fingerprint}.rev', backup/f'{fingerprint}.rev')
+                print(f'Sauvegarde privée à conserver hors ligne : {private_path}')
                 subprocess.run(['gh','secret','set','BIBLE_FLATPAK_GPG_KEY','--repo',REPO],input=private,check=True)
                 subprocess.run(['gh','variable','set','BIBLE_FLATPAK_GPG_FINGERPRINT','--repo',REPO,'--body',fingerprint],check=True)
             finally:

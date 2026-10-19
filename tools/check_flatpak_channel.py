@@ -94,7 +94,10 @@ def main():
             summary = site / 'alpha/repo/summary'
             original = summary.read_bytes()
             summary.write_bytes(original + b'corrupt')
-            failure = subprocess.run(['flatpak','remote-ls','--user',REMOTE],capture_output=True,text=True)
+            corrupt_env = dict(os.environ, FLATPAK_USER_DIR=str(root/'tampered-client'))
+            added = subprocess.run(['flatpak','remote-add','--user','--from',REMOTE,
+                                    str(site/'alpha/bible-alpha.flatpakrepo')],env=corrupt_env,capture_output=True,text=True)
+            failure = subprocess.run(['flatpak','remote-ls','--user',REMOTE],env=corrupt_env,capture_output=True,text=True)
             assert failure.returncode != 0, 'Corrupt signed summary was accepted'
             result['corrupt_summary_rejected'] = True
             summary.write_bytes(original)

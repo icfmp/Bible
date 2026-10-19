@@ -32,12 +32,13 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       BIBLE_FLATPAK_GPG_FINGERPRINT: ${{ vars.BIBLE_FLATPAK_GPG_FINGERPRINT }}
       BASE_URL: ${{ vars.BIBLE_ALPHA_PAGES_BASE_URL }}
-      FLATPAK_USER_DIR: ${{ runner.temp }}/alpha-public-client
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
+      - name: Isoler le client de validation
+        run: echo "FLATPAK_USER_DIR=$RUNNER_TEMP/alpha-public-client" >> "$GITHUB_ENV"
       - name: Vérifier la configuration et le commit de construction
         env:
           INPUT_VERIFIED_RUN: ${{ inputs.verified_run }}
