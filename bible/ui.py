@@ -1,207 +1,238 @@
-"""Native GTK 4/libadwaita window; network work runs outside the GTK thread."""
-from concurrent.futures import ThreadPoolExecutor
-import locale
-import os
+"""Native tabbed GNOME reader; downloads live in a dedicated window."""
 from pathlib import Path
 
 import gi
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from .library import Library, catalogue
-from .sword_provider import Reader
-
-FR = {
-    'Translations': 'Traductions', 'Load catalogue': 'Charger le catalogue',
-    'Download': 'Télécharger', 'Open': 'Ouvrir', 'Previous chapter': 'Chapitre précédent',
-    'Next chapter': 'Chapitre suivant', 'No translation installed. Load the catalogue to choose one.':
-        'Aucune traduction installée. Chargez le catalogue pour en choisir une.',
-    'Loading catalogue…': 'Chargement du catalogue…', 'Downloading…': 'Téléchargement…',
-    'Ready': 'Prêt', 'Retry using the same button.': 'Réessayez avec le même bouton.',
-    'Reference (e.g. John 1:1)': 'Référence (par ex. John 1:1)',
-    'Downloadable resources — source: CrossWire': 'Traductions téléchargeables — source : CrossWire',
-    'No supported resource found.': 'Aucune ressource compatible trouvée.',
-}
-LANGUAGE = os.environ.get('LANGUAGE') or locale.getlocale()[0] or 'en'
-
-
-def tr(message):
-    return FR.get(message, message) if LANGUAGE.startswith('fr') else message
+from .catalogue_window import CatalogueWindow
+from .i18n import tr
+from .library import Library
+from .reading_tab import ReadingTab
+from .session import Session, SessionError, SessionStore, TabState
 
 
 class Window(Adw.ApplicationWindow):
-    def __init__(self, app, library):
-        super().__init__(application=app, title='Bible', default_width=900, default_height=700)
+    def __init__(self, app, library, session_path=None):
+        super().__init__(application=app, title='Bible', default_width=960, default_height=700)
+        self.set_size_request(360, 320)
         self.library = library
-        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
-        self.resources = []
-        self.reader = None
-        self.current = None
-        self.busy = False
+        self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.closed = False
+        self._initializing = True
+        self._syncing_study = False
+        self._save_id = 0
+        self._session_writable = True
+        self.catalogue_window = None
         self.connect('close-request', self.on_close)
-        layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
-        header.set_title_widget(Adw.WindowTitle(title='Bible', subtitle=tr('Translations')))
+        header.set_title_widget(Adw.WindowTitle(title='Bible'))
+        new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
+                         action_name='win.new-tab')
+        header.pack_start(new)
+        library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Translations'),
+                                     action_name='win.translations')
+        header.pack_end(library_button)
+        self.study_button = Gtk.ToggleButton(icon_name='sidebar-show-symbolic',
+                                              tooltip_text=tr('Study'))
+        self.study_button.connect('toggled', self.toggle_study)
+        header.pack_end(self.study_button)
         layout.append(header)
-        controls = Gtk.Box(spacing=8, margin_start=12, margin_end=12)
-        self.catalogue_button = Gtk.Button(label=tr('Load catalogue'))
-        self.catalogue_button.connect('clicked', self.load_catalogue)
-        controls.append(self.catalogue_button)
-        self.choices = Gtk.DropDown(model=Gtk.StringList.new([]), hexpand=True)
-        controls.append(self.choices)
-        self.download_button = Gtk.Button(label=tr('Download'), sensitive=False)
-        self.download_button.connect('clicked', self.install)
-        controls.append(self.download_button)
-        layout.append(controls)
-        layout.append(Gtk.Label(label=tr('Downloadable resources — source: CrossWire'),
-                                xalign=0, margin_start=12, wrap=True))
-        installed = Gtk.Box(spacing=8, margin_start=12, margin_end=12)
-        self.local = Gtk.DropDown(model=Gtk.StringList.new(self.library.installed()), hexpand=True)
-        installed.append(self.local)
-        self.open_button = Gtk.Button(label=tr('Open'))
-        self.open_button.connect('clicked', self.open_selected)
-        installed.append(self.open_button)
-        layout.append(installed)
-        navigation = Gtk.Box(spacing=8, margin_start=12, margin_end=12)
-        self.previous = Gtk.Button(icon_name='go-previous-symbolic',
-                                   tooltip_text=tr('Previous chapter'), sensitive=False)
-        self.previous.connect('clicked', lambda *_: self.show(self.current.previous))
-        navigation.append(self.previous)
-        self.reference = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'), hexpand=True)
-        self.reference.connect('activate', lambda entry: self.show(entry.get_text()))
-        navigation.append(self.reference)
-        self.following = Gtk.Button(icon_name='go-next-symbolic',
-                                    tooltip_text=tr('Next chapter'), sensitive=False)
-        self.following.connect('clicked', lambda *_: self.show(self.current.following))
-        navigation.append(self.following)
-        layout.append(navigation)
-        self.progress = Gtk.ProgressBar(margin_start=12, margin_end=12)
-        layout.append(self.progress)
-        self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
-                                margin_start=12, margin_end=12)
-        layout.append(self.status)
-        scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
-        self.text = Gtk.TextView(editable=False, cursor_visible=False,
-                                 wrap_mode=Gtk.WrapMode.WORD_CHAR,
-                                 left_margin=24, right_margin=24,
-                                 top_margin=16, bottom_margin=24)
-        self.text.add_css_class('reading')
-        scroll.set_child(self.text)
-        layout.append(scroll)
+        self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
+                                        margin_start=12, margin_end=12)
+        layout.append(self.session_status)
+        self.view = Adw.TabView(vexpand=True)
+        self.bar = Adw.TabBar(view=self.view, autohide=False)
+        layout.append(self.bar)
+        self.split = Adw.OverlaySplitView(content=self.view, show_sidebar=False,
+                                          min_sidebar_width=260, max_sidebar_width=320,
+                                          sidebar_position=Gtk.PackType.END)
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        panel.append(Adw.StatusPage(title=tr('Study'), icon_name='accessories-dictionary-symbolic',
+                                   description=tr('Study tools are not implemented yet.'), vexpand=True))
+        self.split.set_sidebar(panel)
+        self.split.connect('notify::show-sidebar', self.sidebar_changed)
+        layout.append(self.split)
+        self.set_content(layout)
+        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
+        breakpoint.add_setter(self.split, 'collapsed', True)
+        self.add_breakpoint(breakpoint)
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { font-size: 18pt; }')
         Gtk.StyleContext.add_provider_for_display(self.get_display(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.set_content(layout)
-        if self.library.installed():
-            self.open_selected()
-        else:
-            self.status.set_text(tr('No translation installed. Load the catalogue to choose one.'))
-        self.refresh_controls()
+        self.view.connect('notify::selected-page', self.selected_changed)
+        self.view.connect('page-detached', self.page_detached)
+        self.view.connect('page-reordered', lambda *_: self.schedule_save())
+        self.add_action_callback('new-tab', lambda *_: self.new_tab())
+        self.add_action_callback('close-tab', lambda *_: self.close_tab())
+        self.add_action_callback('translations', lambda *_: self.open_library())
+        self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
+        app.set_accels_for_action('win.new-tab', ['<Control>t'])
+        app.set_accels_for_action('win.close-tab', ['<Control>w'])
+        app.set_accels_for_action('win.translations', ['<Control>l'])
+        app.set_accels_for_action('win.study', ['F9'])
+        try:
+            session = self.store.load()
+        except (OSError, SessionError) as error:
+            self._session_writable = False
+            self.report_session_error(tr('Unable to restore the session. The original file has been preserved.') + '\n' + tr('Session saving is disabled to preserve the original file.'), error)
+            session = Session()
+        if not session.tabs:
+            names = self.library.installed()
+            session.tabs = [TabState(resource=names[0] if names else None)]
+        for state in session.tabs:
+            self.append_tab(state)
+        self.view.set_selected_page(self.view.get_nth_page(session.selected))
+        self._initializing = False
+        self.selected_changed()
 
-    def refresh_controls(self):
-        self.catalogue_button.set_sensitive(not self.busy)
-        self.download_button.set_sensitive(bool(self.resources) and not self.busy)
-        self.choices.set_sensitive(not self.busy)
-        self.open_button.set_sensitive(bool(self.library.installed()) and not self.busy)
-        self.local.set_sensitive(not self.busy)
-        self.reference.set_sensitive(self.reader is not None)
+    def add_action_callback(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect('activate', callback)
+        self.add_action(action)
 
-    def on_close(self, *_):
-        self.closed = True
-        self.executor.shutdown(wait=False, cancel_futures=True)
+    @property
+    def active_tab(self):
+        page = self.view.get_selected_page()
+        return page.get_child() if page else None
+
+    def tabs(self):
+        return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
+
+    def append_tab(self, state):
+        tab = ReadingTab(self.library, state, self.tab_changed, self.open_passage_in_new)
+        page = self.view.append(tab)
+        page.set_title(tab.title())
+        return page
+
+    def new_tab(self):
+        current = self.active_tab
+        names = self.library.installed()
+        state = TabState(current.state.resource, current.state.reference) if current else TabState(
+            resource=names[0] if names else None)
+        page = self.append_tab(state)
+        self.view.set_selected_page(page)
+        self.schedule_save()
+        page.get_child().reference.grab_focus()
+        return page.get_child()
+
+    def open_passage_in_new(self, resource, reference):
+        current = self.active_tab
+        if current and current.reader:
+            try:
+                reference = current.reader.key(reference).getOSISRef()
+            except Exception as error:
+                current.status.set_text(f'{tr("Unable to read this passage.")} {error}')
+                return
+        if current and current.current:
+            current.reference.set_text(current.current.reference)
+        page = self.append_tab(TabState(resource, reference))
+        self.view.set_selected_page(page)
+        self.schedule_save()
+
+    def close_tab(self):
+        page = self.view.get_selected_page()
+        if page:
+            self.view.close_page(page)
+
+    def page_detached(self, *_):
+        if self.closed:
+            return
+        if self.view.get_n_pages() == 0:
+            self.append_tab(TabState())
+        self.schedule_save()
+
+    def tab_changed(self, tab):
+        if self._initializing:
+            return
+        for index in range(self.view.get_n_pages()):
+            page = self.view.get_nth_page(index)
+            if page.get_child() is tab:
+                page.set_title(tab.title())
+                break
+        self.schedule_save()
+
+    def selected_changed(self, *_):
+        tab = self.active_tab
+        if tab is None:
+            return
+        self._syncing_study = True
+        self.study_button.set_active(tab.state.study_visible)
+        self.split.set_show_sidebar(tab.state.study_visible)
+        self._syncing_study = False
+        self.schedule_save()
+
+    def toggle_study(self, *_):
+        if not self._syncing_study:
+            self.split.set_show_sidebar(self.study_button.get_active())
+
+    def sidebar_changed(self, *_):
+        if self._syncing_study:
+            return
+        visible = self.split.get_show_sidebar()
+        self._syncing_study = True
+        self.study_button.set_active(visible)
+        if self.active_tab:
+            self.active_tab.state.study_visible = visible
+        self._syncing_study = False
+        self.schedule_save()
+
+    def open_library(self):
+        if self.catalogue_window is None or self.catalogue_window.closed:
+            self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
+        self.catalogue_window.present()
+        return self.catalogue_window
+
+    def resource_installed(self, name):
+        if self.closed:
+            return
+        for tab in self.tabs():
+            if tab.state.resource is None and tab is self.active_tab:
+                tab.state.resource = name
+            tab.refresh_resources()
+            if tab.state.resource == name:
+                tab.load_resource()
+                self.tab_changed(tab)
+
+    def schedule_save(self):
+        if self._initializing or self.closed or not self._session_writable:
+            return
+        if self._save_id:
+            GLib.source_remove(self._save_id)
+        self._save_id = GLib.timeout_add(300, self.save_session)
+
+    def save_session(self):
+        self._save_id = 0
+        if not self._session_writable:
+            return False
+        pages = self.tabs()
+        if not pages:
+            return False
+        selected = pages.index(self.active_tab) if self.active_tab in pages else 0
+        try:
+            self.store.save(Session([tab.state for tab in pages], selected))
+            self.session_status.set_visible(False)
+        except OSError as error:
+            self.report_session_error(tr('Unable to save the session.'), error)
         return False
 
-    def task(self, message, action, finished):
-        if self.busy:
-            return
-        self.busy = True
-        self.status.set_text(tr(message))
-        self.progress.set_fraction(0)
-        self.refresh_controls()
-        future = self.executor.submit(action)
+    def report_session_error(self, message, error):
+        self.session_status.set_text(f'{message}\n{error}')
+        self.session_status.set_visible(True)
 
-        def complete():
-            if self.closed:
-                return False
-            self.busy = False
-            try:
-                value = future.result()
-                finished(value)
-            except Exception as error:
-                self.status.set_text(f'{error}\n{tr("Retry using the same button.")}')
-            finally:
-                self.progress.set_fraction(0)
-                self.refresh_controls()
-            return False
-
-        future.add_done_callback(lambda _: GLib.idle_add(complete))
-
-    def load_catalogue(self, *_):
-        def loaded(resources):
-            self.resources = resources
-            self.choices.set_model(Gtk.StringList.new([
-                f'{r.language} — {r.description} ({r.name}) — {r.license}' for r in resources]))
-            self.status.set_text(tr('Ready') if resources else tr('No supported resource found.'))
-        self.task('Loading catalogue…', catalogue, loaded)
-
-    def report_progress(self, done, total):
-        def update():
-            if self.closed or not self.busy:
-                return False
-            if total:
-                self.progress.set_fraction(min(done / total, 1))
-            else:
-                self.progress.pulse()
-            self.progress.set_show_text(True)
-            self.progress.set_text(f'{done // 1024} KiB' + (f' / {total // 1024} KiB' if total else ''))
-            return False
-        GLib.idle_add(update)
-
-    def install(self, *_):
-        index = self.choices.get_selected()
-        if index >= len(self.resources):
-            return
-        resource = self.resources[index]
-
-        def installed(_):
-            names = self.library.installed()
-            self.local.set_model(Gtk.StringList.new(names))
-            self.local.set_selected(names.index(resource.name))
-            self.open_selected()
-        self.task('Downloading…', lambda: self.library.install(resource, self.report_progress), installed)
-
-    def open_selected(self, *_):
-        names = self.library.installed()
-        index = self.local.get_selected()
-        if index >= len(names):
-            return
-        name = names[index]
-        try:
-            reader = Reader(self.library.root / name, name)
-            self.reader = reader
-            self.show('Gen.1.1')
-            self.refresh_controls()
-        except Exception as error:
-            self.status.set_text(str(error))
-
-    def show(self, reference):
-        if not self.reader or not reference:
-            return
-        try:
-            chapter = self.reader.chapter(reference)
-            self.current = chapter
-            self.reference.set_text(chapter.reference)
-            self.text.get_buffer().set_text('\n\n'.join(
-                f'{ref.rsplit(".", 1)[-1]}  {text}' for ref, text in chapter.verses))
-            self.previous.set_sensitive(chapter.previous is not None)
-            self.following.set_sensitive(chapter.following is not None)
-            self.status.set_text(tr('Ready'))
-        except Exception as error:
-            self.status.set_text(str(error))
+    def on_close(self, *_):
+        if self._save_id:
+            GLib.source_remove(self._save_id)
+            self._save_id = 0
+        self.save_session()
+        self.closed = True
+        if self.catalogue_window is not None and not self.catalogue_window.closed:
+            self.catalogue_window.close()
+        return False
 
 
 class Application(Adw.Application):

@@ -111,3 +111,9 @@ YouVersion/Semeur : accès officiel, cache et téléchargement intégral toujour
 ajouté. Windows/macOS : bindings et distribution GTK/libadwaita non validés.
 Aucun paquet publié, aucune soumission Flathub, aucun choix formel de licence du
 projet annoncé. Ce dernier reste à traiter avant la distribution publique.
+
+## Suite du prototype
+
+L’issue #3 ajoute les onglets et la restauration de session. Les limites ci-dessus
+concernant leur absence décrivent uniquement la livraison initiale de l’issue #2.
+Voir [le jalon 1](JALON_1_ONGLETS.md) et le README à jour.

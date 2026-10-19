@@ -2,7 +2,8 @@
 
 Prototype natif GNOME de lecture biblique, sans traduction préembarquée.
 Le jalon #2 comprend un catalogue CrossWire réel, un téléchargement sur demande,
-la lecture locale via SWORD et la navigation entre chapitres.
+la lecture locale via SWORD et la navigation entre chapitres. Le jalon #3 ajoute
+les onglets indépendants, leur restauration et un panneau d’étude escamotable.
 
 ## Essayer sous Debian 13 ou Ubuntu 24.04
 
@@ -14,7 +15,8 @@ cd Bible
 ```
 
 Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
-fenêtre, choisir **Charger le catalogue**, sélectionner une traduction puis
+fenêtre, ouvrir **Traductions** dans la Header Bar (`Ctrl+L`), choisir
+**Charger le catalogue**, sélectionner une traduction puis
 **Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
 changent de chapitre ; l'entrée accepte les références SWORD/OSIS, par exemple
 `John 1:1` ou `Gen.2.1`. La saisie des noms de livres français n'est pas encore
@@ -23,8 +25,25 @@ langue du système (`LANGUAGE=fr /usr/bin/python3 -m bible` pour forcer le fran�
 
 Couper le réseau, fermer et relancer l'application : la traduction installée
 s'ouvre sans accès réseau. Pour changer de traduction installée, utiliser le
-second sélecteur puis **Ouvrir**. Les ressources sont conservées dans
+sélecteur de l’onglet. Les ressources sont conservées dans
 `${XDG_DATA_HOME:-~/.local/share}/bible/translations`.
+
+**Onglets et session** : `Ctrl+T` ouvre un nouvel onglet au passage courant ;
+le bouton à côté de la référence ouvre la référence saisie dans un autre onglet.
+Chaque onglet garde sa traduction et sa position. `Ctrl+W` ferme l’onglet actif.
+Fermer puis relancer restaure les onglets, leur ordre et l’onglet sélectionné.
+Une traduction supprimée laisse son onglet et sa référence visibles avec un
+message permettant de comprendre l’absence de texte.
+
+**Étude** : le bouton de panneau dans la Header Bar ou `F9` affiche/masque le
+panneau. Son état est mémorisé par onglet. Il indique honnêtement que les outils
+ne sont pas encore implémentés. Dans une petite fenêtre, il se superpose au texte
+au lieu de comprimer la lecture.
+
+La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.json`
+(profil distinct dans Flatpak). Un fichier invalide ou de version inconnue est
+préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son
+déplacement manuel, application fermée.
 
 Le catalogue de ce prototype se limite aux Bibles dont CrossWire déclare une licence réutilisable
 (domaine public ou GPL), affichée dans le sélecteur. Le lecteur présente le texte brut produit par SWORD,
@@ -61,6 +80,7 @@ flatpak-builder --user --install --force-clean build-dir packaging/io.github.icf
 flatpak run io.github.icfmp.Bible
 ```
 
-Voir [la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
+Voir [le jalon des onglets](docs/JALON_1_ONGLETS.md),
+[la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
 [le cahier des charges](docs/CAHIER_DES_CHARGES.md) et
 [la feuille de route](docs/FEUILLE_DE_ROUTE.md).

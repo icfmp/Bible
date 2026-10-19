@@ -49,4 +49,4 @@ jobs:
       - name: Construire et vérifier SWORD dans le sandbox
         run: |
           /usr/bin/python3 tools/ci_run.py flatpak-builder --user --force-clean build-dir packaging/io.github.icfmp.Bible.json
-          flatpak-builder --run build-dir packaging/io.github.icfmp.Bible.json env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; print(Sword.VerseKey("John.1.1").getOSISRef())'
+          flatpak-builder --run build-dir packaging/io.github.icfmp.Bible.json env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; from bible.ui import Window; print(Sword.VerseKey("John.1.1").getOSISRef())'
