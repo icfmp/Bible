@@ -90,15 +90,37 @@ def main():
                 'links': sorted(set(parser.links))}
         except Exception as error:
             report['documents'][key] = {'url': url, 'error': str(error)}
-    try:
-        data = io.BytesIO()
-        download(BASE + 'raw/mods.d.tar.gz', data, limit=8 * 1024 * 1024)
-        resources = entries(data.getvalue())
-        report['catalogues']['crosswire'] = {
-            'url': BASE + 'raw/mods.d.tar.gz', 'entries': len(resources),
-            'commentaries': [r for r in resources if r['commentary']]}
-    except Exception as error:
-        report['catalogues']['crosswire'] = {'error': str(error)}
+    # Endpoints transcribed from AndBible repositories.txt and the standard list.
+    urls = {
+        'crosswire': BASE + 'raw/mods.d.tar.gz',
+        'andbible-extra': 'https://andbible.github.io/andbible-extra/mods.d.tar.gz',
+        'andbible': 'https://andbible.github.io/data/andbible/mods.d.tar.gz',
+        'ebible': 'https://ebible.org/sword/mods.d.tar.gz',
+        'step': 'https://public.modules.stepbible.org/catalog/mods.d.tar.gz',
+        'xiphos-http': 'http://ftp.xiphos.org/pub/xiphos/mods.d.tar.gz',
+        'xiphos-ftp': 'ftp://ftp.xiphos.org/pub/xiphos/mods.d.tar.gz',
+    }
+    def inspect(item):
+        key, url = item
+        try:
+            with urllib.request.urlopen(url, timeout=25) as response:
+                payload = response.read(8 * 1024 * 1024 + 1)
+                if len(payload) > 8 * 1024 * 1024:
+                    raise ValueError('Catalogue too large')
+                final_url = response.url
+            resources = entries(payload)
+            return key, {'url': url, 'final_url': final_url, 'entries': len(resources),
+                'commentaries': [r for r in resources if r['commentary']],
+                'other_drivers': sorted({r['driver'] for r in resources if not r['commentary']})}
+        except Exception as error:
+            return key, {'url': url, 'error': str(error)}
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=7) as executor:
+        report['catalogues'] = dict(executor.map(inspect, urls.items()))
+    main_names = {r['name'] for r in report['catalogues']['crosswire'].get('commentaries', [])}
+    for result in report['catalogues'].values():
+        if 'commentaries' in result:
+            result['additional_commentaries'] = [r for r in result['commentaries'] if r['name'] not in main_names]
     Path('affiliated-sources-audit.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
