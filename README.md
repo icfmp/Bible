@@ -96,11 +96,13 @@ La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.j
 préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son
 déplacement manuel, application fermée.
 
-Le catalogue présente les Bibles et commentaires distribués par le dépôt principal CrossWire,
-sans filtrer leur licence. La langue, la provenance, la licence et les conditions
+La bibliothèque réunit les catalogues CrossWire, AndBible Extra (miroir Xiphos),
+AndBible et STEP Bible, avec un filtre par source et sans filtrage de licence. La langue, la provenance, la licence et les conditions
 sont visibles avant téléchargement. Les ressources chiffrées restent signalées,
 avec téléchargement désactivé. **Ressources installées** permet de consulter
 les attributions et conditions sans charger le catalogue, même hors connexion.
+Les résultats des sources accessibles restent disponibles si une autre source échoue ;
+recharger le catalogue permet de réessayer. Voir [les sources et leurs limites](docs/SOURCES_AFFILIEES_11.md).
 La Bible David Martin 1707 (`FreBDM1707`) est une version française à essayer.
 Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/CATALOGUE_CROSSWIRE.md).
 
