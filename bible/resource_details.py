@@ -43,14 +43,17 @@ def language_name(code):
 
 
 def details(resource):
-    availability = (tr('Access key required. Encrypted translations are not supported.') if resource.locked
+    availability = (tr('Access key required. Encrypted resources are not supported.') if resource.locked
                     else tr('Unsupported format.') if not resource.installable
                     else tr('Distributed by the source. Download is checked before installation.'))
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
+        f'{tr("Resource type")}: {tr("Commentaries") if resource.kind == "commentary" else tr("Bibles")}',
+        f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
         f'{tr("License")}: {plain(resource.license)}',
+        f'{tr("Verse numbering")}: {resource.versification}',
         availability,
         f'{tr("Conditions and attribution")}:\n' + (
             plain(resource.conditions) or tr('No additional conditions supplied by the source.')),

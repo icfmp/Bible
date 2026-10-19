@@ -402,14 +402,14 @@ class WindowTests(unittest.TestCase):
             dialog.search.set_text('Locked')
             dialog.filter_resources()
             self.assertFalse(dialog.download_button.get_sensitive())
-            self.assertIn(tr('Access key required. Encrypted translations are not supported.'),
+            self.assertIn(tr('Access key required. Encrypted resources are not supported.'),
                           dialog.metadata.get_text())
             with patch.object(dialog.library, 'install', side_effect=AssertionError('Must not download')):
                 dialog.install()
             dialog.search.set_text('absent')
             dialog.filter_resources()
             self.assertFalse(dialog.download_button.get_sensitive())
-            self.assertIn(tr('No matching translation.'), dialog.metadata.get_text())
+            self.assertIn(tr('No matching resource.'), dialog.metadata.get_text())
             dialog.close()
             window.close()
 
@@ -425,4 +425,146 @@ class WindowTests(unittest.TestCase):
                 self.assertIn('Public Domain', dialog.metadata.get_text())
                 self.assertFalse(dialog.download_button.get_sensitive())
                 dialog.close()
+            window.close()
+
+    def study_text(self, window):
+        buffer = window.study.text.get_buffer()
+        return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
+
+    def choose_commentary(self, window, name):
+        window.study.refresh(force=True)
+        window.study.choices.set_selected(window.study.names.index(name))
+
+    def test_commentary_follows_clicked_verse_and_keyboard_without_stale_text(self):
+        from tests.test_commentary import commentary_fixture
+        from bible.i18n import tr
+        from bible.ui import Gtk
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            commentary_fixture(directory)
+            window = self.window(directory)
+            tab = window.active_tab
+            window.lookup_action('study').activate(None)
+            self.choose_commentary(window, 'Notes')
+            spin(lambda: not tab._restoring_scroll)
+            self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
+            self.assertIn('CrossWire', window.study.source.get_text())
+            self.assertIn('Public Domain', window.study.metadata.get_text())
+            self.assertIn('עברית', self.study_text(window))
+            iterator = tab.text.get_buffer().get_iter_at_offset(tab._verse_offsets['Gen.1.2'] + 3)
+            rect = tab.text.get_iter_location(iterator)
+            x, y = tab.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET, rect.x + 2, rect.y + 2)
+            tab.verse_click.emit('released', 1, float(x), float(y))
+            self.assertEqual(tab.state.reference, 'Gen.1.2')
+            self.assertEqual(self.study_text(window), '')
+            self.assertEqual(window.study.status.get_text(), tr('No commentary for this passage.'))
+            window.lookup_action('previous-verse').activate(None)
+            self.assertEqual(tab.state.reference, 'Gen.1.1')
+            self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
+            window.navigate_selection('Test', 'John.3.16')
+            self.assertIn('JOHN COMMENTARY', self.study_text(window))
+            window.lookup_action('next-verse').activate(None)
+            self.assertEqual(tab.state.reference, 'John.3.17')
+            self.assertEqual(self.study_text(window), '')
+            window.new_tab()
+            self.assertEqual(self.study_text(window), '')
+            window.view.set_selected_page(window.view.get_nth_page(0))
+            self.assertEqual(self.study_text(window), '')
+            window.close()
+
+    def test_commentary_choice_restores_per_tab_and_missing_resource_is_kept(self):
+        from tests.test_commentary import commentary_fixture
+        from bible.i18n import tr
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            first_root = commentary_fixture(directory, 'Notes')
+            commentary_fixture(directory, 'OtherNotes', entries=[('Gen.1.1', 'SECOND COMMENTARY TEST DATA')])
+            window = self.window(directory)
+            self.choose_commentary(window, 'Notes')
+            window.study_button.set_active(True)
+            window.new_tab()
+            self.choose_commentary(window, 'OtherNotes')
+            window.study_button.set_active(True)
+            self.assertIn('SECOND COMMENTARY', self.study_text(window))
+            window.view.set_selected_page(window.view.get_nth_page(0))
+            self.assertEqual(window.active_tab.state.commentary, 'Notes')
+            self.assertNotIn('SECOND COMMENTARY', self.study_text(window))
+            window.close()
+            restored = self.window(directory)
+            self.assertEqual(restored.active_tab.state.commentary, 'Notes')
+            self.assertIn('COMMENTARY TEST DATA', self.study_text(restored))
+            restored.view.set_selected_page(restored.view.get_nth_page(1))
+            self.assertIn('SECOND COMMENTARY', self.study_text(restored))
+            restored.close()
+            shutil.rmtree(first_root)
+            missing = self.window(directory)
+            missing.view.set_selected_page(missing.view.get_nth_page(0))
+            self.assertEqual(missing.active_tab.state.commentary, 'Notes')
+            self.assertEqual(self.study_text(missing), '')
+            self.assertIn(tr('This commentary is no longer installed. Choose another or download it again.'),
+                          missing.study.status.get_text())
+            missing.close()
+            self.assertEqual(missing.store.load().tabs[0].commentary, 'Notes')
+
+    def test_commentary_types_mismatch_and_install_refresh(self):
+        from tests.test_commentary import commentary_fixture
+        from bible.i18n import tr
+        with tempfile.TemporaryDirectory() as directory:
+            commentary_fixture(directory, 'Notes')
+            window = self.window(directory)
+            self.assertIsNone(window.active_tab.state.resource)
+            window.resource_installed('Notes')
+            self.assertIsNone(window.active_tab.state.resource)
+            self.assertEqual(window.active_tab.state.commentary, 'Notes')
+            self.assertEqual(self.study_text(window), '')
+            installed_fixture(directory)
+            window.resource_installed('Test')
+            self.assertEqual(window.active_tab.state.resource, 'Test')
+            self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
+            window.navigation.sync(force=True)
+            self.assertEqual(window.navigation.names, ['Test'])
+            commentary_fixture(directory, 'CatholicNotes', versification='Catholic')
+            self.choose_commentary(window, 'CatholicNotes')
+            self.assertEqual(self.study_text(window), '')
+            self.assertIn(tr('Different versifications. Automatic alignment is unavailable.'),
+                          window.study.status.get_text())
+            self.assertIn('KJV / Catholic', window.study.status.get_text())
+            dialog = window.open_library('commentary')
+            resources = [window.library.resource(name) for name in window.library.installed()]
+            with patch('bible.catalogue_window.catalogue', return_value=resources):
+                dialog.load_catalogue()
+                spin(lambda: not dialog.busy)
+            self.assertEqual({r.name for r in dialog.filtered_resources}, {'CatholicNotes', 'Notes'})
+            dialog.kind.set_selected(0)
+            self.assertEqual([r.name for r in dialog.filtered_resources], ['Test'])
+            dialog.close()
+            window.close()
+
+    def test_commentary_remains_readable_in_one_narrow_overlay(self):
+        from tests.test_commentary import commentary_fixture
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            commentary_fixture(directory)
+            commentary_fixture(directory, 'OtherNotes', entries=[('Gen.1.1', 'OTHER COMMENTARY TEST DATA')])
+            window = self.window(directory)
+            window.set_default_size(1000, 600)
+            window.study_button.set_active(True)
+            self.choose_commentary(window, 'Notes')
+            spin(lambda: window.active_tab.get_width() > 400)
+            _, bible = window.active_tab.compute_bounds(window)
+            _, study = window.study.compute_bounds(window)
+            self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+            reading_width = window.active_tab.get_width()
+            window.lookup_action('study').activate(None)
+            spin(lambda: window.active_tab.get_width() > reading_width)
+            window.study_button.set_active(True)
+            window.set_default_size(360, 600)
+            spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
+            self.assertGreaterEqual(window.active_tab.get_width(), 340)
+            self.assertLessEqual(window.study.get_width(), window.get_width())
+            self.choose_commentary(window, 'OtherNotes')
+            self.assertEqual(self.study_text(window), 'OTHER COMMENTARY TEST DATA')
+            window.study.info.set_active(True)
+            spin(lambda: window.study.info.get_popover().get_visible())
+            self.assertLessEqual(window.study.info.get_popover().get_width(), 360)
             window.close()

@@ -14,7 +14,7 @@ from .resource_details import details, language_name
 
 class CatalogueWindow(Adw.Window):
     def __init__(self, parent, library, on_installed):
-        super().__init__(transient_for=parent, modal=True, title=tr('Translations'),
+        super().__init__(transient_for=parent, modal=True, title=tr('Library'),
                          default_width=560, default_height=640)
         self.library, self.on_installed = library, on_installed
         self.owner = parent
@@ -28,12 +28,18 @@ class CatalogueWindow(Adw.Window):
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         header = Adw.HeaderBar()
-        header.set_title_widget(Adw.WindowTitle(title=tr('Translations')))
+        header.set_title_widget(Adw.WindowTitle(title=tr('Library')))
         layout.append(header)
         self.catalogue_button = Gtk.Button(label=tr('Load catalogue'), margin_start=12, margin_end=12)
         self.catalogue_button.connect('clicked', self.load_catalogue)
         layout.append(self.catalogue_button)
-        self.installed_only = Gtk.CheckButton(label=tr('Installed translations'),
+        layout.append(Gtk.Label(label=tr('Resource type'), xalign=0, margin_start=12))
+        self.kind = Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'), tr('Commentaries')]),
+                                 margin_start=12, margin_end=12)
+        self.kind.update_property([Gtk.AccessibleProperty.LABEL], [tr('Resource type')])
+        self.kind.connect('notify::selected', self.update_languages)
+        layout.append(self.kind)
+        self.installed_only = Gtk.CheckButton(label=tr('Installed resources'),
                                                margin_start=12, margin_end=12)
         self.installed_only.connect('toggled', self.update_languages)
         layout.append(self.installed_only)
@@ -42,9 +48,9 @@ class CatalogueWindow(Adw.Window):
         self.language.update_property([Gtk.AccessibleProperty.LABEL], [tr('Language')])
         self.language.connect('notify::selected', self.filter_resources)
         layout.append(self.language)
-        self.search = Gtk.SearchEntry(placeholder_text=tr('Search translations'),
+        self.search = Gtk.SearchEntry(placeholder_text=tr('Search resources'),
                                       margin_start=12, margin_end=12)
-        self.search.update_property([Gtk.AccessibleProperty.LABEL], [tr('Search translations')])
+        self.search.update_property([Gtk.AccessibleProperty.LABEL], [tr('Search resources')])
         self.search.connect('search-changed', self.filter_resources)
         layout.append(self.search)
         self.choices = Gtk.DropDown(model=Gtk.StringList.new([]), margin_start=12, margin_end=12)
@@ -54,7 +60,7 @@ class CatalogueWindow(Adw.Window):
         factory.connect('bind', lambda _, item: item.get_child().set_text(item.get_item().get_string()))
         self.choices.set_factory(factory)
         self.choices.set_list_factory(factory)
-        self.choices.update_property([Gtk.AccessibleProperty.LABEL], [tr('Translations')])
+        self.choices.update_property([Gtk.AccessibleProperty.LABEL], [tr('Resources')])
         self.choices.connect('notify::selected', self.selection_changed)
         layout.append(self.choices)
         self.metadata = Gtk.Label(xalign=0, yalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
@@ -67,7 +73,7 @@ class CatalogueWindow(Adw.Window):
                                           margin_start=12, margin_end=12)
         self.download_button.connect('clicked', self.install)
         layout.append(self.download_button)
-        layout.append(Gtk.Label(label=tr('Downloadable resources — source: CrossWire'),
+        layout.append(Gtk.Label(label=tr('Source: CrossWire'),
                                 wrap=True, margin_start=12, margin_end=12))
         self.progress = Gtk.ProgressBar(margin_start=12, margin_end=12)
         layout.append(self.progress)
@@ -78,9 +84,10 @@ class CatalogueWindow(Adw.Window):
         self.update_languages()
 
     def current_resources(self):
-        if self.installed_only.get_active():
-            return [self.library.resource(name) for name in self.library.installed()]
-        return self.resources
+        resources = ([self.library.resource(name) for name in self.library.installed()]
+                     if self.installed_only.get_active() else self.resources)
+        kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
+        return [resource for resource in resources if resource.kind == kind]
 
     def update_languages(self, *_):
         previous = (self.languages[self.language.get_selected()]
@@ -114,7 +121,7 @@ class CatalogueWindow(Adw.Window):
 
     def selection_changed(self, *_):
         resource = self.selected_resource()
-        self.metadata.set_text(details(resource) if resource else tr('No matching translation.'))
+        self.metadata.set_text(details(resource) if resource else tr('No matching resource.'))
         self.refresh_controls()
 
     def refresh_controls(self):
@@ -123,7 +130,7 @@ class CatalogueWindow(Adw.Window):
         self.download_button.set_sensitive(bool(resource and resource.installable
                                                and resource.name not in self.library.installed())
                                            and not self.busy)
-        for widget in (self.choices, self.language, self.search, self.installed_only):
+        for widget in (self.choices, self.language, self.search, self.installed_only, self.kind):
             widget.set_sensitive(not self.busy)
 
     def on_close(self, *_):

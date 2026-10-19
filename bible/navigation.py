@@ -81,7 +81,7 @@ class PassagePopover(Gtk.Popover):
         tab = self.owner.active_tab
         if tab is None:
             return
-        installed = self.owner.library.installed()
+        installed = self.owner.library.installed('bible')
         stamp = (id(tab), tab.state.resource, tab.state.reference, tuple(installed))
         if not force and stamp == self._stamp:
             return
@@ -113,7 +113,7 @@ class PassagePopover(Gtk.Popover):
         self.books = ()
         try:
             name = self.selected_resource()
-            if name in self.owner.library.installed():
+            if name in self.owner.library.installed('bible'):
                 tab = self.owner.active_tab
                 self.reader = tab.reader if tab and tab.state.resource == name and tab.reader else Reader(
                     self.owner.library.root / name, name)

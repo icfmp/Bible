@@ -17,6 +17,7 @@ BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
 MAX_ARCHIVE = 64 * 1024 * 1024
 MAX_UNPACKED = 256 * 1024 * 1024
 BIBLE_DRIVERS = {'zText', 'RawText', 'RawText4', 'zText4'}
+COMMENTARY_DRIVERS = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
 
 
 @dataclass(frozen=True)
@@ -32,9 +33,17 @@ class Resource:
     source: str = 'CrossWire'
     source_url: str = BASE
 
+    author: str = ''
+    category: str = 'Biblical Texts'
+    versification: str = 'KJV'
+
+    @property
+    def kind(self):
+        return 'commentary' if self.driver in COMMENTARY_DRIVERS or self.category == 'Commentaries' else 'bible'
+
     @property
     def installable(self):
-        return not self.locked and self.driver in BIBLE_DRIVERS
+        return not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
 
 
 def resource_from_section(name, section):
@@ -46,7 +55,9 @@ def resource_from_section(name, section):
     return Resource(name, section.get('Description') or name, section.get('Lang') or 'und',
                     section.get('DistributionLicense', '') or 'Unknown',
                     section.get('About') or '', conditions, 'cipherkey' in section,
-                    section.get('ModDrv') or '')
+                    section.get('ModDrv') or '', author=section.get('Author') or '',
+                    category=section.get('Category') or 'Biblical Texts',
+                    versification=section.get('Versification') or 'KJV')
 
 
 def config(data):
@@ -127,8 +138,8 @@ def catalogue():
             for name in parser.sections():
                 section = parser[name]
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
-                        and (section.get('ModDrv') in BIBLE_DRIVERS
-                             or section.get('Category') == 'Biblical Texts')
+                        and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
+                             or section.get('Category') in {'Biblical Texts', 'Commentaries'})
                         and section.get('Lang')):
                     resources.append(resource_from_section(name, section))
     return sorted(resources, key=lambda r: (r.language, r.name))
@@ -139,10 +150,13 @@ class Library:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def installed(self):
-        return sorted(p.name for p in self.root.iterdir()
+    def installed(self, kind=None):
+        names = sorted(p.name for p in self.root.iterdir()
                       if p.is_dir() and not p.name.startswith('.')
                       and (p / '.complete').is_file())
+        if kind is None:
+            return names
+        return [name for name in names if self.resource(name).kind == kind]
 
     def resource(self, name):
         """Read installed attribution offline, also for pre-existing installations."""
@@ -202,10 +216,13 @@ class Library:
                 raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
             actual = resource_from_section(resource.name, section)
+            if (actual.kind, actual.driver, actual.versification) != (
+                    resource.kind, resource.driver, resource.versification):
+                raise ValueError('Resource type changed. Reload the catalogue before downloading.')
             if not actual.installable:
                 raise ValueError('Encrypted or unsupported resource')
-            if (actual.license, actual.conditions, actual.about) != (
-                    resource.license, resource.conditions, resource.about):
+            if (actual.license, actual.conditions, actual.about, actual.author) != (
+                    resource.license, resource.conditions, resource.about, resource.author):
                 raise ValueError('Resource conditions changed. Reload the catalogue before downloading.')
             data_path = safe_path(section.get('DataPath', ''))
             if not data_path.parts or data_path.parts[0] != 'modules':
@@ -214,10 +231,13 @@ class Library:
             for key in section:
                 if key.lower().endswith('path') and key.lower() != 'datapath':
                     raise ValueError('Unsupported resource path')
-            from .sword_provider import Reader
-            reader = Reader(target, resource.name)
-            chapter = reader.chapter(reader.first_reference())
-            if not any(text.strip() for _, text in chapter.verses):
+            from .sword_provider import Reader, CommentaryReader
+            reader = (CommentaryReader if actual.kind == 'commentary' else Reader)(target, resource.name)
+            first = reader.first_reference()
+            if actual.kind == 'commentary':
+                if not reader.entry(first, reader.versification):
+                    raise ValueError('No readable commentary entry in resource')
+            elif not any(text.strip() for _, text in reader.chapter(first).verses):
                 raise ValueError('No readable chapter in resource')
             del reader
             (target / '.source.json').write_text(json.dumps({

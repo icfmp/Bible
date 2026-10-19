@@ -23,6 +23,8 @@ class Book:
 
 
 class Reader:
+    drivers = {'zText', 'RawText', 'RawText4', 'zText4'}
+
     def __init__(self, root: Path, name: str):
         import Sword
         self.sword = Sword
@@ -30,6 +32,8 @@ class Reader:
         self.module = self.manager.getModule(name)
         if self.module is None:
             raise ValueError(f'SWORD cannot open {name}')
+        if self.module.getConfigEntry('ModDrv') not in self.drivers:
+            raise ValueError('Unsupported resource type')
         self.versification = self.module.getConfigEntry('Versification') or 'KJV'
         probe = Sword.VerseKey()
         probe.setVersificationSystem(self.versification)
@@ -125,3 +129,24 @@ class Reader:
         key.increment()
         following = key.getOSISRef() if key.popError() == '\x00' else None
         return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
+
+
+class VersificationMismatch(ValueError):
+    """An explicit mapping is required before two verse systems can be aligned."""
+
+
+class CommentaryReader(Reader):
+    drivers = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
+
+    def entry(self, reference, bible_versification):
+        if bible_versification != self.versification:
+            raise VersificationMismatch(f'{bible_versification} / {self.versification}')
+        key = self.key(reference)
+        # Do not use SWORD's nearest previous entry when this exact index is empty.
+        if not self.module.hasEntry(key):
+            return None
+        self.module.setKey(key)
+        text = self.module.stripText()
+        if not isinstance(text, str):
+            text = text.c_str()
+        return text if text.strip() else None

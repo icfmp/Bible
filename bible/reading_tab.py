@@ -30,6 +30,12 @@ class ReadingTab(Gtk.Box):
                                  left_margin=24, right_margin=24,
                                  top_margin=16, bottom_margin=24)
         self.text.add_css_class('reading')
+        self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
+        self._selected_tag = self.text.get_buffer().create_tag(None, weight=700)
+        self.verse_click = Gtk.GestureClick(button=1)
+        self.verse_click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        self.verse_click.connect('released', self.verse_clicked)
+        self.text.add_controller(self.verse_click)
         self._target_mark = self.text.get_buffer().create_mark(
             None, self.text.get_buffer().get_start_iter(), True)
         self.scroll.set_child(self.text)
@@ -78,8 +84,8 @@ class ReadingTab(Gtk.Box):
         self.text.get_buffer().set_text('')
         if not self.state.resource:
             self.status.set_text(tr('No translation installed. Load the catalogue to choose one.')
-                                 if not self.library.installed() else tr('Choose a translation'))
-        elif self.state.resource not in self.library.installed():
+                                 if not self.library.installed('bible') else tr('Choose a translation'))
+        elif self.state.resource not in self.library.installed('bible'):
             self.status.set_text(tr('This translation is no longer installed. Download it again or choose another translation.'))
         else:
             try:
@@ -120,6 +126,7 @@ class ReadingTab(Gtk.Box):
                 parts.append(part)
                 offset += len(part)
             self.text.get_buffer().set_text(''.join(parts))
+            self.highlight_selection()
             self.status.set_text(tr('Ready'))
             self.status.set_visible(False)
             self.schedule_scroll_restore()
@@ -129,6 +136,42 @@ class ReadingTab(Gtk.Box):
             self.status.set_text(f'{tr("Unable to read this passage.")} {error}')
             self.status.set_visible(True)
             return False
+
+    def highlight_selection(self):
+        buffer = self.text.get_buffer()
+        buffer.remove_tag(self._selected_tag, buffer.get_start_iter(), buffer.get_end_iter())
+        if self.state.reference in self._verse_offsets:
+            start = self._verse_offsets[self.state.reference]
+            buffer.apply_tag(self._selected_tag, buffer.get_iter_at_offset(start),
+                             buffer.get_iter_at_offset(start + len(self.state.reference.rsplit('.', 1)[-1])))
+        self.text.update_property([Gtk.AccessibleProperty.LABEL], [self.passage_title()])
+
+    def select_verse(self, reference):
+        if reference not in self._verse_offsets:
+            return False
+        self.state.reference = reference
+        self.highlight_selection()
+        self.changed(self)
+        return True
+
+    def verse_clicked(self, gesture, count, x, y):
+        if self.text.get_buffer().get_has_selection():
+            return
+        bx, by = self.text.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, int(x), int(y))
+        found, iterator = self.text.get_iter_at_location(bx, by)
+        if found:
+            candidates = [ref for ref, offset in self._verse_offsets.items() if offset <= iterator.get_offset()]
+            if candidates:
+                self.select_verse(candidates[-1])
+
+    def step_verse(self, direction):
+        references = list(self._verse_offsets)
+        if self.state.reference in references:
+            index = references.index(self.state.reference) + direction
+            if 0 <= index < len(references):
+                self.select_verse(references[index])
+                iterator = self.text.get_buffer().get_iter_at_offset(self._verse_offsets[references[index]])
+                self.text.scroll_to_iter(iterator, 0.1, False, 0, 0)
 
     def on_map(self, *_):
         self.schedule_scroll_restore()

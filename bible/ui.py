@@ -11,6 +11,7 @@ from .catalogue_window import CatalogueWindow
 from .i18n import tr
 from .library import Library
 from .reading_tab import ReadingTab
+from .study_panel import StudyPanel
 from .navigation import PassagePopover
 from .session import Session, SessionError, SessionStore, TabState
 
@@ -49,7 +50,7 @@ class Window(Adw.ApplicationWindow):
                                     action_name='win.next-chapter')
         header.pack_start(self.previous)
         header.pack_start(self.following)
-        library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Translations'),
+        library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Library'),
                                      action_name='win.translations')
         header.pack_end(library_button)
         self.study_button = Gtk.ToggleButton(icon_name='sidebar-show-symbolic',
@@ -64,12 +65,10 @@ class Window(Adw.ApplicationWindow):
         self.bar = Adw.TabBar(view=self.view, autohide=False)
         layout.append(self.bar)
         self.split = Adw.OverlaySplitView(content=self.view, show_sidebar=False,
-                                          min_sidebar_width=260, max_sidebar_width=320,
+                                          min_sidebar_width=300, max_sidebar_width=420,
                                           sidebar_position=Gtk.PackType.END)
-        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        panel.append(Adw.StatusPage(title=tr('Study'), icon_name='accessories-dictionary-symbolic',
-                                   description=tr('Study tools are not implemented yet.'), vexpand=True))
-        self.split.set_sidebar(panel)
+        self.study = StudyPanel(self)
+        self.split.set_sidebar(self.study)
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         layout.append(self.split)
         self.set_content(layout)
@@ -101,11 +100,15 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('reference', lambda *_: self.choose_passage(direct=True))
         self.add_action_callback('previous-chapter', lambda *_: self.step_chapter(-1))
         self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
+        self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
+        self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
         self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
         app.set_accels_for_action('win.new-tab', ['<Control>t'])
         app.set_accels_for_action('win.close-tab', ['<Control>w'])
         app.set_accels_for_action('win.translations', ['<Control>l'])
         app.set_accels_for_action('win.study', ['F9'])
+        app.set_accels_for_action('win.previous-verse', ['<Alt>Up'])
+        app.set_accels_for_action('win.next-verse', ['<Alt>Down'])
         app.set_accels_for_action('win.choose-passage', ['<Control>g'])
         app.set_accels_for_action('win.reference', ['<Control>k'])
         app.set_accels_for_action('win.previous-chapter', ['<Alt>Left'])
@@ -117,7 +120,7 @@ class Window(Adw.ApplicationWindow):
             self.report_session_error(tr('Unable to restore the session. The original file has been preserved.') + '\n' + tr('Session saving is disabled to preserve the original file.'), error)
             session = Session()
         if not session.tabs:
-            names = self.library.installed()
+            names = self.library.installed('bible')
             session.tabs = [TabState(resource=names[0] if names else None)]
         for state in session.tabs:
             self.append_tab(state)
@@ -146,8 +149,9 @@ class Window(Adw.ApplicationWindow):
 
     def new_tab(self):
         current = self.active_tab
-        names = self.library.installed()
-        state = TabState(current.state.resource, current.state.reference, current.state.scroll) if current else TabState(
+        names = self.library.installed('bible')
+        state = TabState(current.state.resource, current.state.reference, current.state.scroll,
+                         commentary=current.state.commentary) if current else TabState(
             resource=names[0] if names else None)
         page = self.append_tab(state)
         self.view.set_selected_page(page)
@@ -162,7 +166,9 @@ class Window(Adw.ApplicationWindow):
                 reader = Reader(self.library.root / resource, resource)
                 if not reader.has_reference(reference):
                     raise ValueError(tr('This passage is not available in this translation.'))
-                page = self.append_tab(TabState(resource, reader.key(reference).getOSISRef()), jump_to_reference=True)
+                page = self.append_tab(TabState(resource, reader.key(reference).getOSISRef(),
+                                                commentary=self.active_tab.state.commentary if self.active_tab else None),
+                                       jump_to_reference=True)
                 self.view.set_selected_page(page)
                 self.schedule_save()
                 return True
@@ -203,6 +209,7 @@ class Window(Adw.ApplicationWindow):
         self.lookup_action('previous-chapter').set_enabled(previous is not None)
         self.lookup_action('next-chapter').set_enabled(following is not None)
         self.navigation.sync()
+        self.study.refresh()
 
     def close_tab(self):
         page = self.view.get_selected_page()
@@ -254,14 +261,25 @@ class Window(Adw.ApplicationWindow):
         self._syncing_study = False
         self.schedule_save()
 
-    def open_library(self):
+    def open_library(self, kind=None):
         if self.catalogue_window is None or self.catalogue_window.closed:
             self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
+        if kind is not None:
+            self.catalogue_window.kind.set_selected(1 if kind == 'commentary' else 0)
         self.catalogue_window.present()
         return self.catalogue_window
 
     def resource_installed(self, name):
         if self.closed:
+            return
+        resource = self.library.resource(name)
+        if resource.kind == 'commentary':
+            self.study._readers.pop(name, None)
+            if self.active_tab:
+                self.active_tab.state.commentary = name
+                self.study_button.set_active(True)
+                self.study.refresh(force=True)
+                self.schedule_save()
             return
         for tab in self.tabs():
             if tab.state.resource is None and tab is self.active_tab:

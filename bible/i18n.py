@@ -63,3 +63,28 @@ FR.update({
     'Italian': 'Italien', 'Portuguese': 'Portugais', 'Greek': 'Grec', 'Hebrew': 'Hébreu',
     'Latin': 'Latin', 'Arabic': 'Arabe', 'Russian': 'Russe', 'Dutch': 'Néerlandais',
 })
+
+FR.update({
+    'Library': 'Bibliothèque', 'Resources': 'Ressources', 'Resource type': 'Type de ressource',
+    'Bibles': 'Bibles', 'Commentaries': 'Commentaires', 'Author': 'Auteur',
+    'Installed resources': 'Ressources installées', 'Search resources': 'Rechercher une ressource',
+    'No matching resource.': 'Aucune ressource correspondante.', 'Source: CrossWire': 'Source : CrossWire',
+    'Choose a commentary': 'Choisir un commentaire', 'Missing commentary': 'Commentaire absent',
+    'Source and conditions': 'Source et conditions', 'Commentary text': 'Texte du commentaire',
+    'Click a verse in the Bible to follow it here.': 'Cliquez sur un verset dans la Bible pour le suivre ici.',
+    'Download a commentary': 'Télécharger un commentaire',
+    'Choose or download a commentary.': 'Choisissez ou téléchargez un commentaire.',
+    'This commentary is no longer installed. Choose another or download it again.':
+        'Ce commentaire n’est plus installé. Choisissez-en un autre ou téléchargez-le à nouveau.',
+    'Open a Bible passage to read its commentary.': 'Ouvrez un passage biblique pour lire son commentaire.',
+    'No commentary for this passage.': 'Aucun commentaire pour ce passage.',
+    'Different versifications. Automatic alignment is unavailable.':
+        'Versifications différentes. L’alignement automatique n’est pas disponible.',
+    'Unable to read this commentary.': 'Impossible de lire ce commentaire.',
+    'Click a verse to select it. Alt+Up/Down selects the previous/next verse.':
+        'Cliquez sur un verset pour le sélectionner. Alt+Haut/Bas sélectionne le verset précédent/suivant.',
+    'Access key required. Encrypted resources are not supported.':
+        'Clé d’accès nécessaire. Les ressources chiffrées ne sont pas prises en charge.',
+})
+
+FR['Verse numbering'] = 'Numérotation des versets'

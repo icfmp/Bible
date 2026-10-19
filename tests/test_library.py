@@ -79,7 +79,7 @@ class LibraryTests(unittest.TestCase):
                 content = CONF.replace(b'[Test]', f'[{name}]'.encode()).replace(
                     b'Public Domain', license.encode())
                 if name == 'Helper':
-                    content = content.replace(b'ModDrv=RawText', b'ModDrv=RawCom')
+                    content = content.replace(b'ModDrv=RawText', b'ModDrv=RawLD')
                 if name == 'Locked':
                     content += b'CipherKey=\n'
                 info = tarfile.TarInfo(f'mods.d/{name}.conf')
@@ -135,7 +135,7 @@ class LibraryTests(unittest.TestCase):
         from dataclasses import replace
         for resource in [replace(RESOURCE, locked=True),
                          replace(RESOURCE, source_url='https://untrusted.test/'),
-                         replace(RESOURCE, driver='RawCom')]:
+                         replace(RESOURCE, driver='RawLD')]:
             with self.subTest(resource=resource), tempfile.TemporaryDirectory() as directory:
                 with patch('bible.library.download', side_effect=AssertionError('Must not download')):
                     with self.assertRaises(ValueError):

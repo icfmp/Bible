@@ -1,5 +1,8 @@
 # Navigation dans la Header Bar — issue #5
 
+Les outils d’étude décrits comme futurs ci-dessous ont depuis été complétés par
+[les commentaires de l’issue #6](COMMENTAIRES_CROSSWIRE.md).
+
 Le titre central affiche le livre, le chapitre, le verset et la version de
 l’onglet actif. Il suit le changement d’onglet et la restauration de session.
 Son sélecteur propose Version, Livre, Chapitre, Verset, puis deux actions :

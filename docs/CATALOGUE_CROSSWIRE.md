@@ -1,5 +1,9 @@
 # Catalogue CrossWire — issue #4
 
+Cette note décrit le jalon des traductions. L’issue #6 étend la bibliothèque aux
+[commentaires](COMMENTAIRES_CROSSWIRE.md) ; « Traductions » devient « Bibliothèque »
+et « Traductions installées » devient « Ressources installées ».
+
 ## Choisir et retrouver ses conditions
 
 Ouvrir **Traductions** avec Ctrl+L, charger le catalogue, choisir une langue et

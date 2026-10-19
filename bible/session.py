@@ -14,6 +14,7 @@ class TabState:
     reference: str = 'Gen.1.1'
     scroll: float = 0.0
     study_visible: bool = False
+    commentary: str | None = None
 
 
 @dataclass
@@ -47,6 +48,10 @@ class SessionStore:
             for item in value['tabs']:
                 resource = item['resource']
                 reference = item['reference']
+                commentary = item.get('commentary')
+                if commentary is not None and (not isinstance(commentary, str)
+                        or not re.fullmatch(r'[A-Za-z0-9_-]+', commentary)):
+                    raise ValueError('Invalid commentary name')
                 scroll = item.get('scroll', 0.0)
                 study = item.get('study_visible', False)
                 if (resource is not None and (not isinstance(resource, str)
@@ -57,7 +62,7 @@ class SessionStore:
                 if (type(scroll) not in (int, float) or not 0 <= scroll <= 1
                         or not math.isfinite(scroll) or type(study) is not bool):
                     raise ValueError('Invalid reading position')
-                tabs.append(TabState(resource, reference, float(scroll), study))
+                tabs.append(TabState(resource, reference, float(scroll), study, commentary))
             selected = value.get('selected', 0)
             if type(selected) is not int or selected < 0 or (selected >= len(tabs) if tabs else selected != 0):
                 raise ValueError('Invalid selected tab')

@@ -16,8 +16,8 @@ cd Bible
 ```
 
 Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
-fenêtre, ouvrir **Traductions** dans la Header Bar (`Ctrl+L`), choisir
-**Charger le catalogue**, choisir une **Langue**, rechercher un titre,
+fenêtre, ouvrir **Bibliothèque** dans la Header Bar (`Ctrl+L`), choisir
+**Charger le catalogue**, choisir **Bibles** et une **Langue**, rechercher un titre,
 lire sa licence et ses conditions, puis cliquer sur **Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
 changent de chapitre. Cliquer sur le titre central (`Ctrl+G`) puis choisir
 **Version → Livre → Chapitre → Verset**, par exemple **Jean → 3 → 16**.
@@ -40,20 +40,27 @@ Fermer puis relancer restaure les onglets, leur ordre et l’onglet sélectionn�
 Une traduction supprimée laisse son onglet et sa référence visibles avec un
 message permettant de comprendre l’absence de texte.
 
-**Étude** : le bouton de panneau dans la Header Bar ou `F9` affiche/masque le
-panneau. Son état est mémorisé par onglet. Il indique honnêtement que les outils
-ne sont pas encore implémentés. Dans une petite fenêtre, il se superpose au texte
-au lieu de comprimer la lecture.
+**Commentaires** : dans la bibliothèque (`Ctrl+L`), choisir **Commentaires**,
+lire les conditions et télécharger par exemple **Clarke** ou **MHCC**.
+`F9` affiche/masque le panneau droit. Cliquer sur le texte d’un verset le sélectionne ;
+`Alt+Haut/Bas` choisit le verset précédent/suivant du chapitre. Le commentaire suit
+le verset et l’onglet actifs ; une entrée absente efface le texte précédent.
+Le sélecteur du panneau permet de changer de commentaire, avec un choix mémorisé
+par onglet et restauré au redémarrage. **Source et conditions** reste disponible
+hors connexion. Dans une petite fenêtre, le panneau se superpose à la Bible.
+Les numérotations des versets doivent correspondre : une incompatibilité est
+signalée, sans alignement automatique. Pour un premier essai, utiliser **KJV**
+avec **Clarke** ou **MHCC**. Voir [les commentaires et leurs limites](docs/COMMENTAIRES_CROSSWIRE.md).
 
 La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.json`
 (profil distinct dans Flatpak). Un fichier invalide ou de version inconnue est
 préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son
 déplacement manuel, application fermée.
 
-Le catalogue présente les Bibles distribuées par le dépôt principal CrossWire,
+Le catalogue présente les Bibles et commentaires distribués par le dépôt principal CrossWire,
 sans filtrer leur licence. La langue, la provenance, la licence et les conditions
-sont visibles avant téléchargement. Les traductions chiffrées restent signalées,
-avec téléchargement désactivé. **Traductions installées** permet de consulter
+sont visibles avant téléchargement. Les ressources chiffrées restent signalées,
+avec téléchargement désactivé. **Ressources installées** permet de consulter
 les attributions et conditions sans charger le catalogue, même hors connexion.
 La Bible David Martin 1707 (`FreBDM1707`) est une version française à essayer.
 Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/CATALOGUE_CROSSWIRE.md).
@@ -72,6 +79,8 @@ règles du pays d'utilisation restent applicables.
 dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
 # Télécharge réellement une traduction temporaire (aucune incluse dans Git) :
 /usr/bin/python3 -m tools.check_crosswire
+# Télécharge deux commentaires temporaires et vérifie leur fidélité :
+/usr/bin/python3 -m tools.check_commentary
 ```
 
 Les tests locaux utilisent des sentinelles textuelles identifiées comme fixtures,

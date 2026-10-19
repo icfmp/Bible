@@ -3,13 +3,14 @@ from pathlib import Path
 from tests.test_library import CONF
 
 
-def module_fixture(root, name, entries, versification='KJV', nt_only=False):
+def module_fixture(root, name, entries, versification='KJV', nt_only=False, commentary=False):
     import Sword
     root = Path(root)
     path = root / 'modules/texts/rawtext/test'
     path.mkdir(parents=True)
-    Sword.RawText.createModule(str(path), versification)
-    module = Sword.RawText(str(path), name, 'Test data only', None,
+    driver = Sword.RawCom if commentary else Sword.RawText
+    driver.createModule(str(path), versification)
+    module = driver(str(path), name, 'Test data only', None,
                            Sword.ENC_UTF8, Sword.DIRECTION_LTR, Sword.FMT_PLAIN,
                            'en', versification)
     for reference, text in entries:
@@ -27,3 +28,5 @@ def module_fixture(root, name, entries, versification='KJV', nt_only=False):
     conf.parent.mkdir()
     conf.write_bytes(CONF.replace(b'[Test]', f'[{name}]'.encode()) +
                      f'Versification={versification}\n'.encode())
+    if commentary:
+        conf.write_bytes(conf.read_bytes().replace(b'ModDrv=RawText', b'ModDrv=RawCom'))
