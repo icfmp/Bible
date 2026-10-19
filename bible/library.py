@@ -106,11 +106,20 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
     with urllib.request.urlopen(request, timeout=30) as response:
         if not response.url.startswith('https://'):
             raise ValueError('HTTPS required')
-        total = int(response.headers.get('Content-Length', 0))
+        try:
+            total = max(0, int(response.headers.get('Content-Length', 0)))
+        except (TypeError, ValueError):
+            total = 0
+        if response.headers.get('Transfer-Encoding'):
+            total = 0
         if total > limit:
             raise ValueError('Download too large')
         done = 0
-        while chunk := response.read(64 * 1024):
+        progress(0, total)
+        # read() waits for a full block (or EOF); read1() reports bytes already
+        # received even for small/slow responses. Never invent a percentage.
+        read = getattr(response, "read1", response.read)
+        while chunk := read(64 * 1024):
             done += len(chunk)
             if done > limit:
                 raise ValueError('Download too large')
@@ -168,7 +177,7 @@ class Library:
         parser = config(files[0].read_bytes())
         return resource_from_section(name, parser[name])
 
-    def install(self, resource, progress=lambda done, total: None):
+    def install(self, resource, progress=lambda done, total: None, installing=lambda: None):
         if resource.source_url != BASE or resource.source != 'CrossWire':
             raise ValueError('Unsupported resource source')
         if not resource.installable:
@@ -182,6 +191,7 @@ class Library:
             archive_path = stage / 'download.zip'
             with archive_path.open('wb') as output:
                 download(BASE + f'packages/rawzip/{resource.name}.zip', output, progress)
+            installing()
             target = stage / 'content'
             target.mkdir()
             with zipfile.ZipFile(archive_path) as archive:

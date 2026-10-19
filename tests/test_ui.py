@@ -43,7 +43,7 @@ class WindowTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application, Gtk
-        cls.app = Application()
+        cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
 
@@ -80,9 +80,10 @@ class WindowTests(unittest.TestCase):
             window = self.window(directory)
             first = window.active_tab
             self.assertTrue(window.navigate_selection('Test', 'Gen.1.1'))
+            window.lookup_action('new-tab').activate(None)
             window.choose_passage(direct=True)
             window.navigation.direct.set_text('Gen.2.1')
-            window.navigation.new_button.emit('clicked')
+            window.navigation.direct.emit('activate')
             second = window.active_tab
             self.assertIsNot(first, second)
             self.assertEqual(first.current.reference, 'Gen.1')
@@ -264,19 +265,15 @@ class WindowTests(unittest.TestCase):
             window.choose_passage()
             nav = window.navigation
             nav.version.set_selected(nav.names.index('Test'))
-            genesis = [book.code for book in nav.books].index('Gen')
-            self.assertIn(nav.book.get_model().get_string(genesis), ('Genesis', 'Genèse'))
-            nav.book.set_selected([book.code for book in nav.books].index('John'))
-            nav.chapter.set_selected(nav.chapters.index(3))
+            self.assertIn(nav.book_rows['Gen'].get_child().get_text(), ('Genesis', 'Genèse'))
+            nav.book_list.emit('row-activated', nav.book_rows['John'])
+            nav.chapter_buttons[3].emit('clicked')
             nav.verse.set_selected(nav.verses.index(16))
-            nav.open_button.emit('clicked')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             self.assertIn('3:16', window.heading.get_title())
             self.assertEqual(window.heading.get_subtitle(), 'Test')
             window.choose_passage()
             nav.version.set_selected(nav.names.index('Other'))
-            self.assertEqual(window.active_tab.state.resource, 'Test')  # Staged until Open.
-            nav.open_button.emit('clicked')
             self.assertEqual(window.active_tab.state.resource, 'Other')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             self.assertEqual(window.heading.get_subtitle(), 'Other')
@@ -288,11 +285,11 @@ class WindowTests(unittest.TestCase):
             window = self.window(directory)
             window.navigate_selection('Test', 'John.3.16')
             first = window.active_tab
+            window.lookup_action('new-tab').activate(None)
             window.choose_passage()
             nav = window.navigation
-            nav.book.set_selected([book.code for book in nav.books].index('Gen'))
-            nav.chapter.set_selected(nav.chapters.index(2))
-            nav.new_button.emit('clicked')
+            nav.book_list.emit('row-activated', nav.book_rows['Gen'])
+            nav.chapter_buttons[2].emit('clicked')
             self.assertEqual(window.view.get_n_pages(), 2)
             self.assertEqual(first.state.reference, 'John.3.16')
             self.assertIn('2:1', window.heading.get_title())
@@ -317,19 +314,18 @@ class WindowTests(unittest.TestCase):
             window.choose_passage()
             nav = window.navigation
             self.assertEqual([book.code for book in nav.books], ['Matt', 'John', 'Rev'])
-            nav.book.set_selected(1)
+            nav.book_list.emit('row-activated', nav.book_rows['John'])
             self.assertEqual(nav.chapters, [3])
             self.assertEqual(nav.verses, [16, 18])
-            nav.open_button.emit('clicked')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             window.lookup_action('reference').activate(None)
             self.assertTrue(nav.direct_expander.get_expanded())
             nav.direct.set_text('Gen.1.1')
-            nav.open_button.emit('clicked')
+            nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             self.assertTrue(nav.status.get_visible())
             nav.direct.set_text('Jean 3:18')
-            nav.open_button.emit('clicked')
+            nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.18')
             self.assertIn('3:18', window.heading.get_title())
             window.close()
@@ -348,7 +344,7 @@ class WindowTests(unittest.TestCase):
             window.set_default_size(360, 600)
             spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
             self.assertGreater(window.passage_button.get_width(), 50)
-            self.assertFalse(window.previous.get_visible())
+            self.assertTrue(window.previous.get_visible())
             window.study_button.set_active(False)
             window.lookup_action('choose-passage').activate(None)
             spin(lambda: window.navigation.get_visible())
@@ -356,7 +352,7 @@ class WindowTests(unittest.TestCase):
                                  f'window={window.get_width()}, content=' + str([
                                      widget.measure(0, -1)[:2] for widget in
                                      (window.navigation.version, window.navigation.direct,
-                                      window.navigation.new_button)]))
+                                      window.navigation.search)]))
             window.close()
 
     def test_selected_verse_is_visible_after_wrapped_text_layout(self):

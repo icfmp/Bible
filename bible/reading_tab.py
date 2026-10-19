@@ -35,7 +35,7 @@ class ReadingTab(Gtk.Box):
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         self.text = Gtk.TextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
-                                 left_margin=24, right_margin=24,
+                                 left_margin=56, right_margin=56,
                                  top_margin=16, bottom_margin=24)
         self.text.add_css_class('reading')
         self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
@@ -48,10 +48,27 @@ class ReadingTab(Gtk.Box):
         self._target_mark = self.text.get_buffer().create_mark(
             None, self.text.get_buffer().get_start_iter(), True)
         self.scroll.set_child(self.text)
-        self.append(self.scroll)
+        self.reading_overlay = Gtk.Overlay(vexpand=True, hexpand=True)
+        self.reading_overlay.set_child(self.scroll)
+        self.previous = self.chapter_button('go-previous-symbolic', 'Previous chapter',
+                                            'win.previous-chapter', Gtk.Align.START)
+        self.following = self.chapter_button('go-next-symbolic', 'Next chapter',
+                                             'win.next-chapter', Gtk.Align.END)
+        self.append(self.reading_overlay)
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
         self.load_resource(jump_to_reference)
+
+    def chapter_button(self, icon, label, action, align):
+        button = Gtk.Button(icon_name=icon, tooltip_text=tr(label), action_name=action,
+                            halign=align, valign=Gtk.Align.CENTER,
+                            margin_start=6, margin_end=6)
+        button.add_css_class('circular')
+        button.add_css_class('osd')
+        button.add_css_class('chapter-navigation')
+        button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
+        self.reading_overlay.add_overlay(button)
+        return button
 
     def passage_title(self):
         if self.reader:

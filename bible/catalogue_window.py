@@ -1,5 +1,6 @@
 """Catalogue/download UI kept separate from the reading surface."""
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -25,6 +26,12 @@ class CatalogueWindow(Adw.Window):
         self._filtering = False
         self.busy = False
         self.closed = False
+        self._task_id = 0
+        self._pulse_id = 0
+        self._phase = "idle"
+        self._indeterminate = False
+        self._pending_progress = None
+        self._progress_lock = Lock()
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         header = Adw.HeaderBar()
@@ -138,15 +145,22 @@ class CatalogueWindow(Adw.Window):
             self.set_visible(False)
             return True
         self.closed = True
+        self.stop_animation()
         self.executor.shutdown(wait=False, cancel_futures=True)
         return False
 
-    def task(self, message, action, finished):
+    def task(self, message, action, finished, success_text=None):
         if self.busy:
             return
         self.busy = True
+        self._task_id += 1
+        self._phase = "downloading"
+        self._indeterminate = True
         self.status.set_text(tr(message))
         self.progress.set_fraction(0)
+        self.progress.set_show_text(True)
+        self.progress.set_text(tr(message))
+        self._pulse_id = GLib.timeout_add(80, self.animate_progress)
         self.refresh_controls()
         future = self.executor.submit(action)
 
@@ -154,13 +168,19 @@ class CatalogueWindow(Adw.Window):
             if self.closed:
                 return False
             self.busy = False
+            self.stop_animation()
             try:
                 value = future.result()
                 finished(value)
+                self._phase = "complete"
+                self.progress.set_fraction(1 if success_text else 0)
+                self.progress.set_text(success_text or "")
             except Exception as error:
+                self._phase = "error"
+                self.progress.set_fraction(0)
+                self.progress.set_text(tr("Failed"))
                 self.status.set_text(f'{error}\n{tr("Retry using the same button.")}')
             finally:
-                self.progress.set_fraction(0)
                 self.refresh_controls()
             return False
 
@@ -174,18 +194,43 @@ class CatalogueWindow(Adw.Window):
             self.status.set_text(tr('Ready') if resources else tr('No supported resource found.'))
         self.task('Loading catalogue…', catalogue, loaded)
 
-    def report_progress(self, done, total):
-        def update():
-            if self.closed or not self.busy:
-                return False
-            if total:
-                self.progress.set_fraction(min(done / total, 1))
-            else:
-                self.progress.pulse()
-            self.progress.set_show_text(True)
-            self.progress.set_text(f'{done // 1024} KiB' + (f' / {total // 1024} KiB' if total else ''))
+    def stop_animation(self):
+        if self._pulse_id:
+            GLib.source_remove(self._pulse_id)
+            self._pulse_id = 0
+        with self._progress_lock:
+            self._pending_progress = None
+
+    def queue_progress(self, phase, done=0, total=0):
+        # Worker threads only publish data. The GTK timeout coalesces updates
+        # and animates while a network read or validation is waiting.
+        with self._progress_lock:
+            self._pending_progress = (self._task_id, phase, done, total)
+
+    def animate_progress(self):
+        if self.closed or not self.busy:
+            self._pulse_id = 0
             return False
-        GLib.idle_add(update)
+        with self._progress_lock:
+            pending, self._pending_progress = self._pending_progress, None
+        if pending and pending[0] == self._task_id:
+            _, self._phase, done, total = pending
+            self._indeterminate = self._phase == 'installing' or not total
+            if self._phase == 'installing':
+                self.status.set_text(tr('Installing and checking…'))
+                self.progress.set_fraction(0)
+                self.progress.set_text(tr('Installing and checking…'))
+            else:
+                self.progress.set_fraction(min(done / total, 1) if total else 0)
+                self.progress.set_text(f'{done / 1024:.1f} KiB' +
+                                       (f' / {total / 1024:.1f} KiB ({min(done * 100 // total, 100)}%)'
+                                        if total else ' — ' + tr('Size unknown')))
+        if self._indeterminate:
+            self.progress.pulse()
+        return True
+
+    def report_progress(self, done, total):
+        self.queue_progress('downloading', done, total)
 
     def install(self, *_):
         resource = self.selected_resource()
@@ -194,7 +239,10 @@ class CatalogueWindow(Adw.Window):
 
         def installed(_):
             self.on_installed(resource.name)
-            self.status.set_text(tr('Ready'))
+            self.status.set_text(tr('Installed: {name}').format(name=resource.name))
             self.selection_changed()
-        self.task('Downloading…', lambda: self.library.install(resource, self.report_progress), installed)
+        self.task(tr('Downloading {name}…').format(name=resource.name),
+                  lambda: self.library.install(resource, self.report_progress,
+                                                installing=lambda: self.queue_progress('installing')),
+                  installed, success_text=tr('Installed: {name}').format(name=resource.name))
 

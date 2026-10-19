@@ -5,18 +5,38 @@ Les outils d’étude décrits comme futurs ci-dessous ont depuis été complét
 
 Le titre central affiche le livre, le chapitre, le verset et la version de
 l’onglet actif. Il suit le changement d’onglet et la restauration de session.
-Son sélecteur propose Version, Livre, Chapitre, Verset, puis deux actions :
-ouvrir dans l’onglet actif ou dans un nouvel onglet. La sélection reste provisoire
-jusqu’à cette action. La saisie directe est repliée, accessible avec Ctrl+K ;
-Ctrl+G ouvre le sélecteur, Alt+Gauche/Droite change de chapitre disponible.
-Les noms de livres français sont acceptés, avec les références anglaises/OSIS.
+Les issues #9 et #10 remplacent la présentation de l’issue #5 : le sélecteur
+présente à gauche la recherche et la liste des livres en ordre biblique, groupés
+selon le testament réellement fourni par SWORD. À droite : nom du livre et grille
+de chapitres, chapitre actif marqué. Le livre actif est ramené dans la zone
+visible à la réouverture. Sur petite largeur, les deux zones sont empilées et
+défilantes. Les noms et groupes sont traduits en français et en anglais.
 
-Les contrôles redondants au-dessus du texte ont été supprimés. La Bible reste
-à gauche et l’étude à droite, escamotable avec F9. Sous 760 pixels, l’étude
-se superpose au texte. Les flèches disparaissent sous 560 pixels ; sous 420,
-l’accès au catalogue reste dans le sélecteur et par Ctrl+L. Les listes ont des
-libellés accessibles et sont utilisables au clavier. Les outils d’étude futurs
-restent explicitement indisponibles.
+Le clic sur un livre puis sur un chapitre modifie directement l’onglet actif ;
+le sélecteur reste ouvert pour préciser le passage. Le verset et la saisie directe
+sont repliables, la traduction discrètement placée en haut. Aucune introduction
+factice et aucun bouton « ouvrir dans cet onglet » / « nouvel onglet ».
+Ctrl+T et l’action dédiée restent les seuls moyens de créer un onglet depuis
+cette interface. Si le passage manque dans la traduction choisie ou que sa
+versification diffère, un message demande de choisir explicitement son propre
+chapitre ; l’ancien texte reste affiché jusqu’à ce choix, sans faux alignement.
+
+Ctrl+G ouvre le sélecteur, Ctrl+K la saisie directe. Entrée applique une référence
+française ou anglaise/OSIS valide. Les flèches du clavier dans la liste des livres,
+Entrée/Espace et les boutons natifs sont utilisables sans souris. Les changements
+automatiques de focus GTK ne doivent pas naviguer à la place de l’utilisateur.
+
+Les commandes précédent/suivant sont désormais des boutons circulaires en
+surimpression au milieu des bords de la zone de lecture. Des marges réservent leur
+espace ; elles restent dans le panneau biblique, même avec l’étude à droite.
+Elles restent visibles à 360 pixels, utilisent les couleurs système en clair et
+sombre, et s’arrêtent aux limites réelles du contenu. Alt+Gauche/Droite garde
+les mêmes actions. La Bible reste à gauche et l’étude à droite, escamotable
+avec F9 ; sous 760 pixels, l’étude se superpose au texte.
+
+Voir [les corrections alpha #8–#10](CORRECTIONS_ALPHA_8_10.md) pour les tests et
+le paquet corrigé. La barre d’outils de lecture inspirée de Bible.com reste une
+proposition distincte ; aucune fonction audio factice n’est ajoutée.
 
 ## Contenu réel du module
 
@@ -34,7 +54,7 @@ accompagne l’ouverture du premier passage présent. Une saisie directe invalid
 conserve le passage courant. Une traduction supprimée conserve son onglet.
 La structure de session existante est inchangée.
 
-## Vérifications
+## Vérifications historiques du jalon #5
 
 32 tests automatisés passent localement en français et en anglais avec GTK
 4.18, libadwaita 1.7 et SWORD 1.9 sous Xvfb. Ils couvrent la sélection de

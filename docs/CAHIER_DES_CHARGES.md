@@ -12,7 +12,7 @@ Le client définit les usages et valide les livraisons ; le product manager pré
 - Interface française et anglaise dès la première version.
 - Code public sur GitHub : https://github.com/icfmp/Bible
 - Paquet Flatpak dès les premières livraisons ; soumission à Flathub après stabilisation. L'acceptation n'est pas garantie.
-- Logiciel libre. Licence exacte à sélectionner après examen des dépendances et de leur compatibilité.
+- Logiciel libre sous GNU GPL version 2 uniquement (`GPL-2.0-only`), choix autorisé par le client pour la préversion 0.1.0-alpha.1 après examen de SWORD. Les dépendances et les contenus conservent leurs propres licences.
 - Orientation technique proposée : Python, GTK 4, libadwaita, SQLite et moteur SWORD. Vérifier le packaging et la portabilité ; tout changement de pile majeur doit être expliqué avant réalisation.
 - L'ancienne maquette conçue pour Xiphos est une inspiration fonctionnelle ; aucun ancien code n'est à reprendre. Sa copie n'est pas encore dans ce dépôt.
 
@@ -38,6 +38,9 @@ Afficher progression et erreurs compréhensibles ; permettre annulation et repri
 
 ## 4. Lecture et navigation
 - Sélection facile du livre, du chapitre, du passage et de la traduction.
+- Décision alpha des issues #9–#10 : depuis le titre de la Header Bar, ouvrir une grande surface arrondie avec recherche et liste des livres à gauche (groupes Ancien/Nouveau Testament selon la ressource), nom du livre et grille de chapitres à droite. Noms dans la langue de l’interface, livre/chapitre actifs marqués et visibles. Sur petite largeur, adapter les deux zones en conservant leur accès.
+- Le livre puis le chapitre modifient directement l’onglet actif, sans boutons de confirmation ni choix de destination. Le verset et la traduction restent accessibles discrètement ; aucun choix de verset n’est obligatoire pour ouvrir un chapitre. Ctrl+T et l’action dédiée créent les onglets ; le sélecteur n’en crée jamais. Ne pas inventer d’introductions.
+- Deux chevrons circulaires restent visibles à mi-hauteur de la zone biblique, ancrés à ses bords et hors du texte grâce à des marges. Leur position ne dépend ni du défilement ni du panneau d’étude ; désactiver le sens sans destination réelle. Préserver les autres onglets, le focus clavier, le contraste et les noms accessibles français/anglais.
 - Recherche ou saisie directe d'une référence.
 - Trois modes mémorisés :
   1. Défilement continu traversant les chapitres.

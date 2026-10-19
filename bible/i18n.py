@@ -132,3 +132,19 @@ FR.update({
 FR.update({'Back to reading': 'Retour à la lecture', 'note': 'note',
            'Save or close the current note before opening another.':
                'Enregistrez ou fermez la note actuelle avant d’en ouvrir une autre.'})
+
+FR.update({
+    'Downloading {name}…': 'Téléchargement de {name}…',
+    'Installing and checking…': 'Installation et vérification…',
+    'Installed: {name}': 'Installé : {name}',
+    'Size unknown': 'Taille inconnue', 'Failed': 'Échec',
+})
+
+FR.update({
+    'Search books': 'Rechercher un livre', 'No matching book.': 'Aucun livre correspondant.',
+    'Old Testament': 'Ancien Testament', 'New Testament': 'Nouveau Testament',
+    'Chapters': 'Chapitres', 'Close': 'Fermer',
+})
+
+FR['Choose a chapter in this translation to start reading.'] = (
+    'Choisissez un chapitre dans cette traduction pour commencer la lecture.')

@@ -22,7 +22,7 @@ jobs:
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword xvfb xauth dbus-x11
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword xvfb xauth dbus-x11 libxtst6
       - name: Examiner les paquets SWORD disponibles
         run: |
           apt-cache search --names-only 'sword|libsword' | head -80
@@ -30,9 +30,19 @@ jobs:
         run: |
           /usr/bin/python3 tools/check_environment.py --network
       - name: Tests locaux et fenêtre GTK sous Xvfb
+        env:
+          GSK_RENDERER: cairo
         run: |
-          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
-          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui -v
+          set -o pipefail
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v | tee test-results.log
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui -v | tee ui-fr-results.log
+      - name: Interactions souris et clavier réelles sous Xvfb
+        env:
+          LANGUAGE: fr
+          GSK_RENDERER: cairo
+        run: |
+          set -o pipefail
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_alpha_ui | tee native-input-results.log
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
         env:
@@ -41,7 +51,19 @@ jobs:
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_crosswire
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_commentary
 
+      - name: Conserver les résultats des tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bible-test-results
+          path: |
+            test-results.log
+            ui-fr-results.log
+            native-input-results.log
+          if-no-files-found: warn
+
   flatpak:
+    needs: prerequisites
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -61,10 +83,34 @@ jobs:
           flatpak build-bundle local-repo Bible-alpha.flatpak io.github.icfmp.Bible --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive ./Bible-alpha.flatpak
           flatpak run --user --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible -c 'import Sword; from bible.ui import Window; print("Bundle OK")'
+      - name: Identifier le paquet et calculer sa somme
+        env:
+          PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
+        run: |
+          sha256sum Bible-alpha.flatpak > SHA256SUMS
+          python3 - <<'PYTHON'
+          import hashlib, json, os, platform, subprocess
+          from pathlib import Path
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert commit == os.environ['GITHUB_SHA']
+          assert platform.machine() == 'x86_64'
+          assert os.environ['PREREQUISITES_RESULT'] == 'success'
+          ref = subprocess.check_output(['flatpak', 'info', '--user', '--show-ref', 'io.github.icfmp.Bible'], text=True).strip()
+          assert ref.split('/')[2] == 'x86_64'
+          Path('build-info.json').write_text(json.dumps({
+              'commit': commit, 'architecture': 'x86_64', 'flatpak_ref': ref,
+              'prerequisites': os.environ['PREREQUISITES_RESULT'],
+              'ci': 'https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'],
+              'sha256': hashlib.sha256(Path('Bible-alpha.flatpak').read_bytes()).hexdigest(),
+          }, indent=2) + '\n')
+          PYTHON
       - name: Mettre le paquet alpha à disposition
         uses: actions/upload-artifact@v4
         with:
           name: Bible-alpha-linux-x86_64
-          path: Bible-alpha.flatpak
+          path: |
+            Bible-alpha.flatpak
+            SHA256SUMS
+            build-info.json
           if-no-files-found: error
           retention-days: 30

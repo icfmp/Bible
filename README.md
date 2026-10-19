@@ -29,7 +29,7 @@ n'est pas automatique : installer de nouveau le paquet après chaque livraison.
 Les traductions, commentaires et notes ne sont pas inclus dans le paquet et
 restent dans le profil Flatpak de l'utilisateur. Le profil natif décrit ci-dessous
 est distinct. Cette version n'est pas publiée sur Flathub et son fonctionnement
-graphique doit encore être essayé sur un vrai bureau GNOME.
+graphique du paquet corrigé reste à valider sur le poste GNOME du client.
 
 ## Essayer sous Debian 13 ou Ubuntu 24.04
 
@@ -125,8 +125,14 @@ sur disque ; un essai avec réseau désactivé sur poste GNOME reste à effectue
 ## Construction Flatpak de développement
 
 Construction et import de SWORD dans le sandbox vérifiés en CI. Le lancement
-graphique sur un poste GNOME reste à essayer ; aucun paquet publié ni acceptation
-Flathub annoncé.
+graphique du paquet corrigé sur le poste GNOME du client reste à essayer. La
+[préversion 0.1.0-alpha.1](https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.1)
+reste inchangée. Les correctifs #8–#10 sont fournis dans le paquet de test du
+dernier commit validé sur [GitHub Actions](https://github.com/icfmp/Bible/actions) :
+artefact **Bible-alpha-linux-x86_64**, à décompresser avant d’ouvrir le `.flatpak`
+dans Logiciels. Il contient aussi `SHA256SUMS` et `build-info.json` (commit exact).
+Le téléchargement des artefacts nécessite une connexion GitHub. Aucune acceptation
+Flathub n’est annoncée. Voir [le guide des corrections](docs/CORRECTIONS_ALPHA_8_10.md).
 
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo

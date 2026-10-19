@@ -54,12 +54,6 @@ class Window(Adw.ApplicationWindow):
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
         header.pack_start(new)
-        self.previous = Gtk.Button(icon_name='go-previous-symbolic', tooltip_text=tr('Previous chapter'),
-                                   action_name='win.previous-chapter')
-        self.following = Gtk.Button(icon_name='go-next-symbolic', tooltip_text=tr('Next chapter'),
-                                    action_name='win.next-chapter')
-        header.pack_start(self.previous)
-        header.pack_start(self.following)
         library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Library'),
                                      action_name='win.translations')
         header.pack_end(library_button)
@@ -98,20 +92,18 @@ class Window(Adw.ApplicationWindow):
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
         self.add_breakpoint(breakpoint)
-        narrow_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 560px'))
-        narrow_header.add_setter(self.split, 'collapsed', True)
-        narrow_header.add_setter(self.previous, 'visible', False)
-        narrow_header.add_setter(self.following, 'visible', False)
-        self.add_breakpoint(narrow_header)
         tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
         tiny_header.add_setter(self.split, 'collapsed', True)
-        tiny_header.add_setter(self.previous, 'visible', False)
-        tiny_header.add_setter(self.following, 'visible', False)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
         self.add_breakpoint(tiny_header)
         css = Gtk.CssProvider()
-        css.load_from_data(b'textview.reading { font-size: 18pt; }')
+        css.load_from_data(b'textview.reading { font-size: 18pt; } '
+                           b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
+                           b'padding: 0; border-radius: 9999px; } '
+                           b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
+                           b'padding: 8px; border-radius: 12px; } '
+                           b'popover.passage-selector > contents { border-radius: 18px; }')
         Gtk.StyleContext.add_provider_for_display(self.get_display(), css,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.view.connect('notify::selected-page', self.selected_changed)
@@ -168,6 +160,14 @@ class Window(Adw.ApplicationWindow):
         page = self.view.get_selected_page()
         return page.get_child() if page else None
 
+    @property
+    def previous(self):
+        return self.active_tab.previous
+
+    @property
+    def following(self):
+        return self.active_tab.following
+
     def tabs(self):
         return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
 
@@ -214,7 +214,7 @@ class Window(Adw.ApplicationWindow):
         self.passage_button.set_active(True)
         self.navigation.sync(force=True)
         self.navigation.direct_expander.set_expanded(direct)
-        (self.navigation.direct if direct else self.navigation.book).grab_focus()
+        (self.navigation.direct if direct else self.navigation.search).grab_focus()
 
     def step_chapter(self, direction):
         tab = self.active_tab
