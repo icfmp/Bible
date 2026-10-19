@@ -1,0 +1,7 @@
+{
+  "publication": "success",
+  "publisher_commit": "77e53588755aa4ca29fc263a60a6b1ca85bb579d",
+  "run": "39317571721",
+  "log": "https://github.com/icfmp/Bible/releases/tag/untagged-cba1137df6d37a46b539\nhttps://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.2\n{\n  \"release\": \"https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.2\",\n  \"commit\": \"c2792c14ec86b28767cd5bc9ec8509a576e9a52d\",\n  \"assets\": [\n    \"https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/Bible-0.1.0-alpha.2-linux-x86_64.flatpak\",\n    \"https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/Bible-0.1.0-alpha.2-sources.tar.gz\",\n    \"https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/provenance.json\",\n    \"https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/SHA256SUMS\"\n  ],\n  \"sha256\": \"b1d0db01e1b824d6b761f3af22849f7a05fb00601d74c31ee558737962754297\"\n}\n",
+  "pull_request": "pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)\n"
+}
