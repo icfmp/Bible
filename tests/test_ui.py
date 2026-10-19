@@ -373,3 +373,56 @@ class WindowTests(unittest.TestCase):
             self.assertGreaterEqual(target.y, visible.y - 2)
             self.assertLess(target.y, visible.y + visible.height)
             window.close()
+
+    def test_catalogue_language_search_conditions_and_locked_resource(self):
+        from bible.library import Resource
+        from bible.i18n import tr
+        resources = [
+            Resource('FreTest', 'Bible annotée — test fixture', 'fr', 'Copyrighted',
+                     about='<p>Attribution fixture</p><script>UNTRUSTED_SCRIPT</script>',
+                     conditions='Personal reading only.'),
+            Resource('Locked', 'Locked fixture', 'fr', 'Copyrighted', locked=True),
+            Resource('English', 'English fixture', 'en', 'Creative Commons: BY 4.0'),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            window = self.window(directory)
+            dialog = window.open_library()
+            with patch('bible.catalogue_window.catalogue', return_value=resources):
+                dialog.load_catalogue()
+                spin(lambda: not dialog.busy)
+            dialog.language.set_selected(dialog.languages.index('fr'))
+            self.assertEqual([r.name for r in dialog.filtered_resources], ['FreTest', 'Locked'])
+            dialog.search.set_text('ANNOTEE')
+            dialog.filter_resources()
+            self.assertEqual([r.name for r in dialog.filtered_resources], ['FreTest'])
+            for text in ['Copyrighted', 'Personal reading only.', 'Attribution fixture', 'CrossWire']:
+                self.assertIn(text, dialog.metadata.get_text())
+            self.assertNotIn('UNTRUSTED_SCRIPT', dialog.metadata.get_text())
+            self.assertTrue(dialog.download_button.get_sensitive())
+            dialog.search.set_text('Locked')
+            dialog.filter_resources()
+            self.assertFalse(dialog.download_button.get_sensitive())
+            self.assertIn(tr('Access key required. Encrypted translations are not supported.'),
+                          dialog.metadata.get_text())
+            with patch.object(dialog.library, 'install', side_effect=AssertionError('Must not download')):
+                dialog.install()
+            dialog.search.set_text('absent')
+            dialog.filter_resources()
+            self.assertFalse(dialog.download_button.get_sensitive())
+            self.assertIn(tr('No matching translation.'), dialog.metadata.get_text())
+            dialog.close()
+            window.close()
+
+    def test_installed_attribution_is_available_without_loading_catalogue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
+                dialog = window.open_library()
+                dialog.installed_only.set_active(True)
+                self.assertEqual([r.name for r in dialog.filtered_resources], ['Test'])
+                self.assertIn('CrossWire', dialog.metadata.get_text())
+                self.assertIn('Public Domain', dialog.metadata.get_text())
+                self.assertFalse(dialog.download_button.get_sensitive())
+                dialog.close()
+            window.close()

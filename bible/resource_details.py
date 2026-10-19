@@ -1,0 +1,59 @@
+"""Plain, noninteractive presentation of untrusted provider metadata."""
+from html.parser import HTMLParser
+import re
+from .i18n import tr
+
+
+class PlainMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+        self.hidden = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style'):
+            self.hidden += 1
+        if tag in ('br', 'p', 'div'):
+            self.parts.append('\n')
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style'):
+            self.hidden = max(0, self.hidden - 1)
+
+    def handle_data(self, data):
+        if not self.hidden:
+            self.parts.append(data)
+
+
+def plain(value):
+    parser = PlainMetadata()
+    parser.feed(value)
+    # About fields often contain SWORD's legacy RTF paragraph markers.
+    return re.sub(r'\\(?:par|pard|qc|b0?|i0?)\b\s*', '\n', ''.join(parser.parts)).strip()
+
+
+def language_name(code):
+    names = {'fr': tr('French'), 'en': tr('English'), 'de': tr('German'),
+             'es': tr('Spanish'), 'it': tr('Italian'), 'pt': tr('Portuguese'),
+             'el': tr('Greek'), 'he': tr('Hebrew'), 'la': tr('Latin'),
+             'ar': tr('Arabic'), 'ru': tr('Russian'), 'nl': tr('Dutch')}
+    base = code.replace('_', '-').split('-')[0]
+    name = names.get(base, code)
+    return name if base == code else f'{name} ({code})'
+
+
+def details(resource):
+    availability = (tr('Access key required. Encrypted translations are not supported.') if resource.locked
+                    else tr('Unsupported format.') if not resource.installable
+                    else tr('Distributed by the source. Download is checked before installation.'))
+    return '\n\n'.join([
+        f'{plain(resource.description)} ({resource.name})',
+        f'{tr("Language")}: {language_name(resource.language)}',
+        f'{tr("Source")}: {resource.source}\n{resource.source_url}',
+        f'{tr("License")}: {plain(resource.license)}',
+        availability,
+        f'{tr("Conditions and attribution")}:\n' + (
+            plain(resource.conditions) or tr('No additional conditions supplied by the source.')),
+        plain(resource.about),
+        tr('Check the source conditions before downloading. Availability does not grant redistribution rights.'),
+    ])

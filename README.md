@@ -17,8 +17,8 @@ cd Bible
 
 Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
 fenêtre, ouvrir **Traductions** dans la Header Bar (`Ctrl+L`), choisir
-**Charger le catalogue**, sélectionner une traduction puis
-**Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
+**Charger le catalogue**, choisir une **Langue**, rechercher un titre,
+lire sa licence et ses conditions, puis cliquer sur **Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
 changent de chapitre. Cliquer sur le titre central (`Ctrl+G`) puis choisir
 **Version → Livre → Chapitre → Verset**, par exemple **Jean → 3 → 16**.
 **Ouvrir dans cet onglet** applique la sélection ; **Ouvrir dans un nouvel onglet**
@@ -50,8 +50,15 @@ La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.j
 préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son
 déplacement manuel, application fermée.
 
-Le catalogue de ce prototype se limite aux Bibles dont CrossWire déclare une licence réutilisable
-(domaine public ou GPL), affichée dans le sélecteur. Le lecteur présente le texte brut produit par SWORD,
+Le catalogue présente les Bibles distribuées par le dépôt principal CrossWire,
+sans filtrer leur licence. La langue, la provenance, la licence et les conditions
+sont visibles avant téléchargement. Les traductions chiffrées restent signalées,
+avec téléchargement désactivé. **Traductions installées** permet de consulter
+les attributions et conditions sans charger le catalogue, même hors connexion.
+La Bible David Martin 1707 (`FreBDM1707`) est une version française à essayer.
+Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/CATALOGUE_CROSSWIRE.md).
+
+Le lecteur présente le texte brut produit par SWORD,
 avec numéros de versets ; les notes de traduction et les enrichissements du
 texte source ne sont pas encore présentés. Les conditions du fournisseur et les
 règles du pays d'utilisation restent applicables.
@@ -85,7 +92,8 @@ flatpak-builder --user --install --force-clean build-dir packaging/io.github.icf
 flatpak run io.github.icfmp.Bible
 ```
 
-Voir [la navigation dans la Header Bar](docs/NAVIGATION_HEADER_BAR.md),
+Voir [le catalogue et les conditions d’accès](docs/CATALOGUE_CROSSWIRE.md),
+[la navigation dans la Header Bar](docs/NAVIGATION_HEADER_BAR.md),
 [le jalon des onglets](docs/JALON_1_ONGLETS.md),
 [la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
 [le cahier des charges](docs/CAHIER_DES_CHARGES.md) et

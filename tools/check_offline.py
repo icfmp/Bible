@@ -12,8 +12,12 @@ def main():
     root, name = sys.argv[1:]
     with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
         reader = Reader(Path(root), name)
-        chapter = reader.chapter('Gen.1.1')
-        assert reader.chapter(chapter.following).previous == 'Gen.1.1'
+        first = reader.first_reference()
+        chapter = reader.chapter(first)
+        following = reader.neighbours(first)[1]
+        if following:
+            assert reader.neighbours(following)[0] == first
+            assert reader.chapter(following).verses
         digest = hashlib.sha256(json.dumps(chapter.verses, ensure_ascii=False).encode()).hexdigest()
         print(digest)
 

@@ -1,5 +1,6 @@
 """Read public provider documentation and catalogue metadata, without Bible text."""
 import io
+import re
 import tarfile
 import urllib.request
 from html.parser import HTMLParser
@@ -48,7 +49,14 @@ def main():
             parser = Text()
             parser.feed(data)
             text = '\n'.join(parser.parts) if '<html' in data.lower() else data
-            notice(title, url + '\n' + text[:13000] + '\nLinks: ' + str(sorted(set(parser.links))))
+            if title == 'SWORD configuration':
+                snippets = []
+                for word in ('CipherKey', 'DistributionLicense', 'CopyrightNotes', 'DistributionNotes', 'DataPath'):
+                    match = re.search(word, text, re.I)
+                    if match:
+                        snippets.append(text[max(0, match.start() - 80):match.start() + 650])
+                text = '\n'.join(snippets)
+            notice(title, url + '\n' + text[:11000] + '\nLinks: ' + str(sorted(set(parser.links))))
         except Exception as error:
             print(f'::warning title={title}::{error}', flush=True)
     with urllib.request.urlopen(BASE + 'raw/mods.d.tar.gz', timeout=30) as response:
@@ -71,11 +79,15 @@ def main():
                     french.append((name, {k: v for k, v in section.items() if k in {
                         'description', 'distributionlicense', 'copyright', 'copyrightnotes',
                         'distributionnotes', 'cipherkey', 'versification', 'minimumversion', 'textsource'}}))
-                if any(x in (name + str(dict(section))).casefold() for x in ('semeur', 'biblica')):
+                if re.search(r'\b(?:semeur|biblica|bds)\b', name + ' ' + str(dict(section)), re.I):
                     matches.append((name, section.get('Description'), license, 'cipherkey' in section))
     notice('CrossWire catalogue audit', 'Licenses: ' + str(counts) + '\nSemeur/Biblica candidates: ' + str(matches))
+    notice('CrossWire French choices', '\n'.join(
+        name + ': ' + str(metadata.get('description')) + '; ' + str(metadata.get('distributionlicense'))
+        for name, metadata in french))
     for name, metadata in french:
-        notice('CrossWire French ' + name, str(metadata))
+        if name == 'FreBDM1707':
+            notice('CrossWire French installation candidate', str(metadata))
 
 
 if __name__ == '__main__':

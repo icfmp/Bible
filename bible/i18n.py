@@ -44,3 +44,22 @@ FR.update({
     'This passage is unavailable. Opened the first available passage.':
         'Ce passage n’est pas disponible. Le premier passage disponible a été ouvert.',
 })
+
+FR.update({
+    'Installed translations': 'Traductions installées', 'Language': 'Langue',
+    'All languages': 'Toutes les langues', 'Search translations': 'Rechercher une traduction',
+    'No matching translation.': 'Aucune traduction correspondante.',
+    'Source': 'Source', 'License': 'Licence', 'Conditions and attribution': 'Conditions et attribution',
+    'Access key required. Encrypted translations are not supported.':
+        'Clé d’accès nécessaire. Les traductions chiffrées ne sont pas prises en charge.',
+    'Unsupported format.': 'Format non pris en charge.',
+    'Distributed by the source. Download is checked before installation.':
+        'Distribuée par la source. Le téléchargement est vérifié avant installation.',
+    'No additional conditions supplied by the source.':
+        'Aucune condition supplémentaire fournie par la source.',
+    'Check the source conditions before downloading. Availability does not grant redistribution rights.':
+        'Vérifiez les conditions de la source avant de télécharger. La disponibilité n’accorde pas de droit de redistribution.',
+    'French': 'Français', 'English': 'Anglais', 'German': 'Allemand', 'Spanish': 'Espagnol',
+    'Italian': 'Italien', 'Portuguese': 'Portugais', 'Greek': 'Grec', 'Hebrew': 'Hébreu',
+    'Latin': 'Latin', 'Arabic': 'Arabe', 'Russian': 'Russe', 'Dutch': 'Néerlandais',
+})

@@ -1,6 +1,7 @@
 """Real CrossWire catalogue and bounded, atomic resource installation."""
 import configparser
 import io
+import json
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -15,8 +16,7 @@ from dataclasses import dataclass
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
 MAX_ARCHIVE = 64 * 1024 * 1024
 MAX_UNPACKED = 256 * 1024 * 1024
-ALLOWED_LICENSES = {'public domain', 'gpl', 'gplv2', 'gplv3',
-                    'general public license for distribution'}
+BIBLE_DRIVERS = {'zText', 'RawText', 'RawText4', 'zText4'}
 
 
 @dataclass(frozen=True)
@@ -25,6 +25,28 @@ class Resource:
     description: str
     language: str
     license: str
+    about: str = ''
+    conditions: str = ''
+    locked: bool = False
+    driver: str = 'RawText'
+    source: str = 'CrossWire'
+    source_url: str = BASE
+
+    @property
+    def installable(self):
+        return not self.locked and self.driver in BIBLE_DRIVERS
+
+
+def resource_from_section(name, section):
+    # Keep provider statements, including unknown/restrictive licenses. Listing a
+    # translation does not grant redistribution rights over its contents.
+    conditions = '\n'.join(f'{key}: {value}' for key, value in section.items()
+                           if value and (key.startswith('copyright') or key in {
+                               'distributionnotes', 'shortcopyright', 'textsource'}))
+    return Resource(name, section.get('Description', name), section.get('Lang', ''),
+                    section.get('DistributionLicense', '') or 'Unknown',
+                    section.get('About', ''), conditions, 'cipherkey' in section,
+                    section.get('ModDrv', ''))
 
 
 def config(data):
@@ -44,6 +66,20 @@ def config(data):
     if pending:
         logical_lines.append(pending)
     parser.read_string('\n'.join(logical_lines))
+    # Preserve repeated legal statements; ConfigParser normally keeps only the
+    # final occurrence, whereas SWORD permits repeated configuration keys.
+    legal, section = {}, None
+    for line in logical_lines:
+        if line.strip().startswith('[') and line.strip().endswith(']'):
+            section = line.strip()[1:-1]
+        elif section and '=' in line and not line.lstrip().startswith(('#', ';')):
+            key, value = line.split('=', 1)
+            key = key.strip().lower()
+            if key.startswith('copyright') or key in {'distributionnotes', 'shortcopyright', 'about', 'textsource'}:
+                legal.setdefault((section, key), []).append(value.strip())
+    for (section, key), values in legal.items():
+        if len(values) > 1:
+            parser[section][key] = '\n'.join(values)
     return parser
 
 
@@ -73,7 +109,7 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
             raise ValueError('Incomplete download')
 
 
-def catalogue(licenses=ALLOWED_LICENSES):
+def catalogue():
     data = io.BytesIO()
     download(BASE + 'raw/mods.d.tar.gz', data, limit=8 * 1024 * 1024)
     resources = []
@@ -90,15 +126,11 @@ def catalogue(licenses=ALLOWED_LICENSES):
             parser = config(archive.extractfile(member).read())
             for name in parser.sections():
                 section = parser[name]
-                # Minimal catalogue: supported Bible drivers with an explicit reusable license.
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
-                        and section.get('ModDrv') in {'zText', 'RawText', 'RawText4', 'zText4'}
-                        and (licenses is None or section.get('DistributionLicense', '').lower() in licenses)
-                        and section.get('Lang')
-                        and not section.get('CipherKey')):
-                    resources.append(Resource(name, section.get('Description', name),
-                                              section.get('Lang', ''),
-                                              section.get('DistributionLicense', 'Unknown')))
+                        and (section.get('ModDrv') in BIBLE_DRIVERS
+                             or section.get('Category') == 'Biblical Texts')
+                        and section.get('Lang')):
+                    resources.append(resource_from_section(name, section))
     return sorted(resources, key=lambda r: (r.language, r.name))
 
 
@@ -112,7 +144,21 @@ class Library:
                       if p.is_dir() and not p.name.startswith('.')
                       and (p / '.complete').is_file())
 
+    def resource(self, name):
+        """Read installed attribution offline, also for pre-existing installations."""
+        if name not in self.installed():
+            raise ValueError('Translation is not installed')
+        files = list((self.root / name / 'mods.d').glob('*.conf'))
+        if len(files) != 1:
+            raise ValueError('Expected one resource configuration')
+        parser = config(files[0].read_bytes())
+        return resource_from_section(name, parser[name])
+
     def install(self, resource, progress=lambda done, total: None):
+        if resource.source_url != BASE or resource.source != 'CrossWire':
+            raise ValueError('Unsupported resource source')
+        if not resource.installable:
+            raise ValueError('Encrypted or unsupported resource')
         if not re.fullmatch(r'[A-Za-z0-9_-]+', resource.name):
             raise ValueError('Invalid resource name')
         if resource.name in self.installed():
@@ -155,10 +201,12 @@ class Library:
             if parser.sections() != [resource.name]:
                 raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
-            if (section.get('DistributionLicense', '').lower() not in ALLOWED_LICENSES
-                    or section.get('ModDrv') not in {'zText', 'RawText', 'RawText4', 'zText4'}
-                    or section.get('CipherKey')):
-                raise ValueError('Unsupported resource')
+            actual = resource_from_section(resource.name, section)
+            if not actual.installable:
+                raise ValueError('Encrypted or unsupported resource')
+            if (actual.license, actual.conditions, actual.about) != (
+                    resource.license, resource.conditions, resource.about):
+                raise ValueError('Resource conditions changed. Reload the catalogue before downloading.')
             data_path = safe_path(section.get('DataPath', ''))
             if not data_path.parts or data_path.parts[0] != 'modules':
                 raise ValueError('Unsafe resource DataPath')
@@ -172,6 +220,9 @@ class Library:
             if not any(text.strip() for _, text in chapter.verses):
                 raise ValueError('No readable chapter in resource')
             del reader
+            (target / '.source.json').write_text(json.dumps({
+                'source': resource.source, 'url': resource.source_url,
+            }), encoding='utf-8')
             (target / '.complete').write_text(resource.name, encoding='utf-8')
             destination = self.root / resource.name
             # Existing complete installations are never replaced by failed downloads.
