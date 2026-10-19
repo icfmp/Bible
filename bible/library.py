@@ -168,9 +168,9 @@ class Library:
                     raise ValueError('Unsupported resource path')
             from .sword_provider import Reader
             reader = Reader(target, resource.name)
-            chapter = reader.chapter()
+            chapter = reader.chapter(reader.first_reference())
             if not any(text.strip() for _, text in chapter.verses):
-                raise ValueError('No readable Genesis chapter in resource')
+                raise ValueError('No readable chapter in resource')
             del reader
             (target / '.complete').write_text(resource.name, encoding='utf-8')
             destination = self.root / resource.name

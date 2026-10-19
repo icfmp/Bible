@@ -1,7 +1,10 @@
 """Local SWORD access. No network operations or UI dependencies."""
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 import re
+
+from .book_names import canonical_input
 
 
 @dataclass(frozen=True)
@@ -10,6 +13,13 @@ class Chapter:
     verses: tuple[tuple[str, str], ...]
     previous: str | None
     following: str | None
+
+
+@dataclass(frozen=True)
+class Book:
+    code: str
+    name: str
+    chapters: dict[int, tuple[int, ...]]
 
 
 class Reader:
@@ -21,10 +31,16 @@ class Reader:
         if self.module is None:
             raise ValueError(f'SWORD cannot open {name}')
         self.versification = self.module.getConfigEntry('Versification') or 'KJV'
+        probe = Sword.VerseKey()
+        probe.setVersificationSystem(self.versification)
+        if probe.getVersificationSystem() != self.versification:
+            raise ValueError(f'Unsupported versification: {self.versification}')
 
     def key(self, reference):
+        if isinstance(reference, str):
+            reference = canonical_input(reference)
         if not isinstance(reference, str) or not re.fullmatch(
-                r"[1-4]?[A-Za-z]+(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?", reference):
+                r"(?:[1-4]\s*)?[A-Za-z][A-Za-z0-9]*(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?", reference):
             raise ValueError(f'Invalid reference: {reference}')
         key = self.sword.VerseKey()
         key.setAutoNormalize(False)
@@ -36,6 +52,53 @@ class Reader:
         key.setAutoNormalize(True)
         return key
 
+    @cached_property
+    def books(self):
+        """Discover actual indexed entries in the module's own versification.
+
+        hasEntry checks the SWORD index without decoding the entire translation.
+        No assumptions about OT/NT scope, first book, chapters, or missing verses.
+        """
+        key = self.sword.VerseKey()
+        key.setVersificationSystem(self.versification)
+        key.setTestament(1)
+        key.setBook(1)
+        key.setChapter(1)
+        key.setVerse(1)
+        entries = {}
+        while True:
+            if self.module.hasEntry(key):
+                code = key.getOSISBookName()
+                if code not in entries:
+                    entries[code] = (key.getBookName(), {})
+                entries[code][1].setdefault(key.getChapter(), []).append(key.getVerse())
+            key.increment()
+            if key.popError() != '\x00':
+                break
+        return tuple(Book(code, name, {chapter: tuple(verses) for chapter, verses in chapters.items()})
+                     for code, (name, chapters) in entries.items())
+
+    def has_reference(self, reference):
+        return bool(self.module.hasEntry(self.key(reference)))
+
+    def first_reference(self):
+        if not self.books:
+            raise ValueError('No readable indexed passage in resource')
+        book = self.books[0]
+        chapter = next(iter(book.chapters))
+        return f'{book.code}.{chapter}.{book.chapters[chapter][0]}'
+
+    def neighbours(self, reference):
+        chapter = self.key(reference).getOSISRef().rsplit('.', 1)[0]
+        passages = [(f'{book.code}.{number}', f'{book.code}.{number}.{verses[0]}')
+                    for book in self.books for number, verses in book.chapters.items()]
+        indexes = [item[0] for item in passages]
+        if chapter not in indexes:
+            return None, None
+        index = indexes.index(chapter)
+        return (passages[index - 1][1] if index > 0 else None,
+                passages[index + 1][1] if index + 1 < len(passages) else None)
+
     def chapter(self, reference='Gen.1.1'):
         key = self.key(reference)
         key.setVerse(1)
@@ -43,6 +106,8 @@ class Reader:
         verses = []
         for verse in range(1, key.getVerseMax() + 1):
             key.setVerse(verse)
+            if not self.module.hasEntry(key):
+                continue
             self.module.setKey(key)
             # SWORD strips source markup. GTK receives plain text only.
             text = self.module.stripText()

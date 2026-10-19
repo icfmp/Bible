@@ -30,6 +30,7 @@ jobs:
       - name: Tests locaux et fenêtre GTK sous Xvfb
         run: |
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui -v
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
         env:

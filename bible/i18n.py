@@ -34,3 +34,13 @@ FR.update({
     'Session saving is disabled to preserve the original file.':
         'L’enregistrement de la session est désactivé pour préserver le fichier original.',
 })
+
+FR.update({
+    'Choose a passage': 'Choisir un passage', 'Version': 'Version', 'Book': 'Livre',
+    'Chapter': 'Chapitre', 'Verse': 'Verset', 'Direct reference': 'Saisie directe',
+    'Open in this tab': 'Ouvrir dans cet onglet', 'Download a translation': 'Télécharger une traduction',
+    'No readable passage in this translation.': 'Aucun passage lisible dans cette traduction.',
+    'This passage is not available in this translation.': 'Ce passage n’est pas disponible dans cette traduction.',
+    'This passage is unavailable. Opened the first available passage.':
+        'Ce passage n’est pas disponible. Le premier passage disponible a été ouvert.',
+})

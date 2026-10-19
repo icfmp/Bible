@@ -11,6 +11,7 @@ from .catalogue_window import CatalogueWindow
 from .i18n import tr
 from .library import Library
 from .reading_tab import ReadingTab
+from .navigation import PassagePopover
 from .session import Session, SessionError, SessionStore, TabState
 
 
@@ -29,10 +30,25 @@ class Window(Adw.ApplicationWindow):
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
-        header.set_title_widget(Adw.WindowTitle(title='Bible'))
+        header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
+        self.heading = Adw.WindowTitle(title=tr('Choose a passage'))
+        heading_box = Gtk.Box(spacing=4)
+        heading_box.append(self.heading)
+        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic'))
+        self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr('Choose a passage'))
+        self.passage_button.add_css_class('flat')
+        self.navigation = PassagePopover(self)
+        self.passage_button.set_popover(self.navigation)
+        header.set_title_widget(self.passage_button)
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
         header.pack_start(new)
+        self.previous = Gtk.Button(icon_name='go-previous-symbolic', tooltip_text=tr('Previous chapter'),
+                                   action_name='win.previous-chapter')
+        self.following = Gtk.Button(icon_name='go-next-symbolic', tooltip_text=tr('Next chapter'),
+                                    action_name='win.next-chapter')
+        header.pack_start(self.previous)
+        header.pack_start(self.following)
         library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Translations'),
                                      action_name='win.translations')
         header.pack_end(library_button)
@@ -60,6 +76,17 @@ class Window(Adw.ApplicationWindow):
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
         self.add_breakpoint(breakpoint)
+        narrow_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 560px'))
+        narrow_header.add_setter(self.split, 'collapsed', True)
+        narrow_header.add_setter(self.previous, 'visible', False)
+        narrow_header.add_setter(self.following, 'visible', False)
+        self.add_breakpoint(narrow_header)
+        tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
+        tiny_header.add_setter(self.split, 'collapsed', True)
+        tiny_header.add_setter(self.previous, 'visible', False)
+        tiny_header.add_setter(self.following, 'visible', False)
+        tiny_header.add_setter(library_button, 'visible', False)
+        self.add_breakpoint(tiny_header)
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { font-size: 18pt; }')
         Gtk.StyleContext.add_provider_for_display(self.get_display(), css,
@@ -70,11 +97,19 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('new-tab', lambda *_: self.new_tab())
         self.add_action_callback('close-tab', lambda *_: self.close_tab())
         self.add_action_callback('translations', lambda *_: self.open_library())
+        self.add_action_callback('choose-passage', lambda *_: self.choose_passage())
+        self.add_action_callback('reference', lambda *_: self.choose_passage(direct=True))
+        self.add_action_callback('previous-chapter', lambda *_: self.step_chapter(-1))
+        self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
         self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
         app.set_accels_for_action('win.new-tab', ['<Control>t'])
         app.set_accels_for_action('win.close-tab', ['<Control>w'])
         app.set_accels_for_action('win.translations', ['<Control>l'])
         app.set_accels_for_action('win.study', ['F9'])
+        app.set_accels_for_action('win.choose-passage', ['<Control>g'])
+        app.set_accels_for_action('win.reference', ['<Control>k'])
+        app.set_accels_for_action('win.previous-chapter', ['<Alt>Left'])
+        app.set_accels_for_action('win.next-chapter', ['<Alt>Right'])
         try:
             session = self.store.load()
         except (OSError, SessionError) as error:
@@ -104,7 +139,7 @@ class Window(Adw.ApplicationWindow):
         return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
 
     def append_tab(self, state, jump_to_reference=False):
-        tab = ReadingTab(self.library, state, self.tab_changed, self.open_passage_in_new, jump_to_reference)
+        tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -117,22 +152,57 @@ class Window(Adw.ApplicationWindow):
         page = self.append_tab(state)
         self.view.set_selected_page(page)
         self.schedule_save()
-        page.get_child().reference.grab_focus()
+        page.get_child().text.grab_focus()
         return page.get_child()
 
-    def open_passage_in_new(self, resource, reference):
-        current = self.active_tab
-        if current and current.reader:
-            try:
-                reference = current.reader.key(reference).getOSISRef()
-            except Exception as error:
-                current.status.set_text(f'{tr("Unable to read this passage.")} {error}')
-                return
-        if current and current.current:
-            current.reference.set_text(current.current.reference)
-        page = self.append_tab(TabState(resource, reference), jump_to_reference=True)
-        self.view.set_selected_page(page)
-        self.schedule_save()
+    def navigate_selection(self, resource, reference, new_tab=False):
+        try:
+            if new_tab:
+                from .sword_provider import Reader
+                reader = Reader(self.library.root / resource, resource)
+                if not reader.has_reference(reference):
+                    raise ValueError(tr('This passage is not available in this translation.'))
+                page = self.append_tab(TabState(resource, reader.key(reference).getOSISRef()), jump_to_reference=True)
+                self.view.set_selected_page(page)
+                self.schedule_save()
+                return True
+            return bool(self.active_tab and self.active_tab.navigate(resource, reference))
+        except Exception as error:
+            if self.active_tab:
+                self.active_tab.status.set_text(f'{tr("Unable to read this passage.")} {error}')
+                self.active_tab.status.set_visible(True)
+            return False
+
+    def choose_passage(self, direct=False):
+        self.passage_button.set_active(True)
+        self.navigation.sync(force=True)
+        self.navigation.direct_expander.set_expanded(direct)
+        (self.navigation.direct if direct else self.navigation.book).grab_focus()
+
+    def step_chapter(self, direction):
+        tab = self.active_tab
+        if tab and tab.reader:
+            previous, following = tab.reader.neighbours(tab.state.reference)
+            reference = previous if direction < 0 else following
+            if reference:
+                tab.show(reference)
+
+    def update_navigation(self):
+        tab = self.active_tab
+        if not tab:
+            return
+        self.heading.set_title(tab.passage_title())
+        subtitle = tab.state.resource or tr('Choose a translation')
+        if tab.state.resource and tab.state.resource not in self.library.installed():
+            subtitle += f' ({tr("Missing translation")})'
+        self.heading.set_subtitle(subtitle)
+        self.passage_button.set_tooltip_text(f'{tab.passage_title()} — {subtitle}\n{tr("Choose a passage")} (Ctrl+G)')
+        self.passage_button.update_property([Gtk.AccessibleProperty.LABEL],
+                                             [f'{tr("Choose a passage")}: {tab.passage_title()} — {subtitle}'])
+        previous, following = tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
+        self.lookup_action('previous-chapter').set_enabled(previous is not None)
+        self.lookup_action('next-chapter').set_enabled(following is not None)
+        self.navigation.sync()
 
     def close_tab(self):
         page = self.view.get_selected_page()
@@ -154,6 +224,8 @@ class Window(Adw.ApplicationWindow):
             if page.get_child() is tab:
                 page.set_title(tab.title())
                 break
+        if tab is self.active_tab:
+            self.update_navigation()
         self.schedule_save()
 
     def selected_changed(self, *_):
@@ -164,6 +236,7 @@ class Window(Adw.ApplicationWindow):
         self.study_button.set_active(tab.state.study_visible)
         self.split.set_show_sidebar(tab.state.study_visible)
         self._syncing_study = False
+        self.update_navigation()
         self.schedule_save()
 
     def toggle_study(self, *_):
@@ -193,10 +266,10 @@ class Window(Adw.ApplicationWindow):
         for tab in self.tabs():
             if tab.state.resource is None and tab is self.active_tab:
                 tab.state.resource = name
-            tab.refresh_resources()
             if tab.state.resource == name:
                 tab.load_resource()
                 self.tab_changed(tab)
+        self.update_navigation()
 
     def schedule_save(self):
         if self._initializing or self.closed or not self._session_writable:

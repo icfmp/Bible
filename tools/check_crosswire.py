@@ -31,6 +31,9 @@ def main():
         assert library.installed() == []
         library.install(resource)
         reader = Reader(Path(directory) / resource.name, resource.name)
+        assert reader.has_reference('John.3.16'), 'John 3:16 missing from real resource'
+        john = next(book for book in reader.books if book.code == 'John')
+        assert 16 in john.chapters[3]
         chapter = reader.chapter('Gen.1.1')
         assert any(text for _, text in chapter.verses), 'Downloaded chapter is empty'
         # Compare each displayed verse with SWORD's direct stripped source text.

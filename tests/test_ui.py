@@ -19,13 +19,14 @@ def spin(until=lambda: True, duration=0.1):
     raise AssertionError('GTK layout/task did not settle')
 
 
-def installed_fixture(directory, name='Test', long_text=False):
-    from tests.test_library import fixture
+def installed_fixture(directory, name='Test', long_text=False, entries=None, versification='KJV', nt_only=False):
+    from tests.fixtures import module_fixture
     root = Path(directory) / 'translations' / name
-    root.mkdir(parents=True)
-    fixture(root)
-    conf = root / 'mods.d/test.conf'
-    conf.write_bytes(conf.read_bytes().replace(b'[Test]', f'[{name}]'.encode()))
+    module_fixture(root, name, entries if entries is not None else [
+        ('Gen.1.1', 'SENTINEL α <literal>'), ('Gen.1.2', 'SECOND SENTINEL'),
+        ('Gen.2.1', 'NEXT CHAPTER'), ('Gen.3.1', 'THIRD CHAPTER'),
+        ('John.1.1', 'JOHN TEST DATA'), ('John.3.16', 'JOHN 3:16 TEST DATA'),
+        ('John.3.17', 'JOHN 3:17 TEST DATA')], versification, nt_only)
     if long_text:
         import Sword
         module = Sword.RawText(str(root / 'modules/texts/rawtext/test'), name, 'Test data only')
@@ -78,16 +79,17 @@ class WindowTests(unittest.TestCase):
             installed_fixture(directory, 'Other')
             window = self.window(directory)
             first = window.active_tab
-            first.translations.set_selected(first.names.index('Test'))
-            first.reference.set_text('Gen.2.1')
-            first.new_passage.emit('clicked')
+            self.assertTrue(window.navigate_selection('Test', 'Gen.1.1'))
+            window.choose_passage(direct=True)
+            window.navigation.direct.set_text('Gen.2.1')
+            window.navigation.new_button.emit('clicked')
             second = window.active_tab
             self.assertIsNot(first, second)
             self.assertEqual(first.current.reference, 'Gen.1')
             self.assertEqual(second.current.reference, 'Gen.2')
             self.assertIsNot(first.reader, second.reader)
-            second.translations.set_selected(second.names.index('Other'))
-            second.following.emit('clicked')
+            window.navigate_selection('Other', 'Gen.2.1')
+            window.following.emit('clicked')
             self.assertEqual(first.state.resource, 'Test')
             self.assertEqual(first.current.reference, 'Gen.1')
             self.assertEqual(second.state.resource, 'Other')
@@ -137,9 +139,10 @@ class WindowTests(unittest.TestCase):
             installed_fixture(directory, 'Other')
             window = self.window(directory)
             tab = window.active_tab
-            tab.translations.set_selected(tab.names.index('Test'))
+            window.navigate_selection('Test', 'Gen.1.1')
             tab.show('Gen.2.1')
-            window.new_tab().translations.set_selected(0)
+            window.new_tab()
+            window.navigate_selection('Other', 'Gen.2.1')
             window.close()
             shutil.rmtree(root)
             restored = self.window(directory)
@@ -212,7 +215,9 @@ class WindowTests(unittest.TestCase):
                 self.assertEqual(window.active_tab.state.resource, 'Test')
                 self.assertIsNotNone(window.active_tab.reader)
                 self.assertIsNone(first.state.resource)
-                self.assertIn('Test', first.names)
+                window.view.set_selected_page(window.view.get_nth_page(0))
+                window.choose_passage()
+                self.assertIn('Test', window.navigation.names)
             finally:
                 release.set()
                 window.close()
@@ -250,3 +255,117 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(restored.active_tab.state.reference, 'Gen.1.2')
             self.assertEqual(restored.active_tab.scroll.get_vadjustment().get_value(), 0)
             restored.close()
+
+    def test_header_selector_reaches_john_and_changes_version_without_reference_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            installed_fixture(directory, 'Other')
+            window = self.window(directory)
+            window.choose_passage()
+            nav = window.navigation
+            nav.version.set_selected(nav.names.index('Test'))
+            genesis = [book.code for book in nav.books].index('Gen')
+            self.assertIn(nav.book.get_model().get_string(genesis), ('Genesis', 'Genèse'))
+            nav.book.set_selected([book.code for book in nav.books].index('John'))
+            nav.chapter.set_selected(nav.chapters.index(3))
+            nav.verse.set_selected(nav.verses.index(16))
+            nav.open_button.emit('clicked')
+            self.assertEqual(window.active_tab.state.reference, 'John.3.16')
+            self.assertIn('3:16', window.heading.get_title())
+            self.assertEqual(window.heading.get_subtitle(), 'Test')
+            window.choose_passage()
+            nav.version.set_selected(nav.names.index('Other'))
+            self.assertEqual(window.active_tab.state.resource, 'Test')  # Staged until Open.
+            nav.open_button.emit('clicked')
+            self.assertEqual(window.active_tab.state.resource, 'Other')
+            self.assertEqual(window.active_tab.state.reference, 'John.3.16')
+            self.assertEqual(window.heading.get_subtitle(), 'Other')
+            window.close()
+
+    def test_header_and_selector_follow_active_tab_and_restoration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            window.navigate_selection('Test', 'John.3.16')
+            first = window.active_tab
+            window.choose_passage()
+            nav = window.navigation
+            nav.book.set_selected([book.code for book in nav.books].index('Gen'))
+            nav.chapter.set_selected(nav.chapters.index(2))
+            nav.new_button.emit('clicked')
+            self.assertEqual(window.view.get_n_pages(), 2)
+            self.assertEqual(first.state.reference, 'John.3.16')
+            self.assertIn('2:1', window.heading.get_title())
+            window.previous.emit('clicked')
+            self.assertIn('1:1', window.heading.get_title())
+            window.view.set_selected_page(window.view.get_nth_page(0))
+            self.assertIn('3:16', window.heading.get_title())
+            self.assertEqual(nav.selected_reference(), 'John.3.16')
+            window.close()
+            restored = self.window(directory)
+            self.assertIn('3:16', restored.heading.get_title())
+            self.assertEqual(restored.navigation.selected_reference(), 'John.3.16')
+            self.assertEqual(restored.navigation.selected_resource(), 'Test')
+            restored.close()
+
+    def test_nt_only_selector_and_direct_french_reference(self):
+        from tests.test_navigation import NT_ENTRIES
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory, 'NTTest', entries=NT_ENTRIES, nt_only=True)
+            window = self.window(directory)
+            self.assertEqual(window.active_tab.state.reference, 'Matt.1.1')
+            window.choose_passage()
+            nav = window.navigation
+            self.assertEqual([book.code for book in nav.books], ['Matt', 'John', 'Rev'])
+            nav.book.set_selected(1)
+            self.assertEqual(nav.chapters, [3])
+            self.assertEqual(nav.verses, [16, 18])
+            nav.open_button.emit('clicked')
+            self.assertEqual(window.active_tab.state.reference, 'John.3.16')
+            window.lookup_action('reference').activate(None)
+            self.assertTrue(nav.direct_expander.get_expanded())
+            nav.direct.set_text('Gen.1.1')
+            nav.open_button.emit('clicked')
+            self.assertEqual(window.active_tab.state.reference, 'John.3.16')
+            self.assertTrue(nav.status.get_visible())
+            nav.direct.set_text('Jean 3:18')
+            nav.open_button.emit('clicked')
+            self.assertEqual(window.active_tab.state.reference, 'John.3.18')
+            self.assertIn('3:18', window.heading.get_title())
+            window.close()
+
+    def test_header_at_360_pixels_and_study_to_the_right(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = self.window(directory)
+            window.set_default_size(1000, 600)
+            window.study_button.set_active(True)
+            spin(lambda: window.active_tab.get_width() > 400)
+            _, bible = window.active_tab.compute_bounds(window)
+            _, study = window.split.get_sidebar().compute_bounds(window)
+            self.assertLess(bible.origin.x, study.origin.x)
+            self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+            window.set_default_size(360, 600)
+            spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
+            self.assertGreater(window.passage_button.get_width(), 50)
+            self.assertFalse(window.previous.get_visible())
+            window.study_button.set_active(False)
+            window.lookup_action('choose-passage').activate(None)
+            spin(lambda: window.navigation.get_visible())
+            self.assertLessEqual(window.navigation.get_width(), 360)
+            window.close()
+
+    def test_selected_verse_is_visible_after_wrapped_text_layout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entries = [(f'John.3.{verse}', f'SENTINEL {verse} ' * 30) for verse in range(1, 31)]
+            installed_fixture(directory, entries=entries)
+            window = self.window(directory)
+            window.navigate_selection('Test', 'Jean 3:16')
+            tab = window.active_tab
+            spin(lambda: not tab._restoring_scroll, duration=0.3)
+            iterator = tab.text.get_buffer().get_iter_at_offset(tab._verse_offsets['John.3.16'])
+            target = tab.text.get_iter_location(iterator)
+            visible = tab.text.get_visible_rect()
+            self.assertGreaterEqual(target.y, visible.y - 2)
+            self.assertLess(target.y, visible.y + visible.height)
+            window.close()

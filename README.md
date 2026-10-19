@@ -4,6 +4,7 @@ Prototype natif GNOME de lecture biblique, sans traduction préembarquée.
 Le jalon #2 comprend un catalogue CrossWire réel, un téléchargement sur demande,
 la lecture locale via SWORD et la navigation entre chapitres. Le jalon #3 ajoute
 les onglets indépendants, leur restauration et un panneau d’étude escamotable.
+L’issue #5 centralise la navigation dans le titre cliquable de la Header Bar.
 
 ## Essayer sous Debian 13 ou Ubuntu 24.04
 
@@ -18,18 +19,22 @@ Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
 fenêtre, ouvrir **Traductions** dans la Header Bar (`Ctrl+L`), choisir
 **Charger le catalogue**, sélectionner une traduction puis
 **Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
-changent de chapitre ; l'entrée accepte les références SWORD/OSIS, par exemple
-`John 1:1` ou `Gen.2.1`. La saisie des noms de livres français n'est pas encore
-prise en charge. L'interface est disponible en français et en anglais selon la
+changent de chapitre. Cliquer sur le titre central (`Ctrl+G`) puis choisir
+**Version → Livre → Chapitre → Verset**, par exemple **Jean → 3 → 16**.
+**Ouvrir dans cet onglet** applique la sélection ; **Ouvrir dans un nouvel onglet**
+conserve le passage de départ. Les listes reflètent le contenu réel de la
+traduction installée. **Saisie directe** (`Ctrl+K`) accepte notamment `Jean 3:16`,
+`John 3:16` ou `John.3.16`.
+L'interface est disponible en français et en anglais selon la
 langue du système (`LANGUAGE=fr /usr/bin/python3 -m bible` pour forcer le français).
 
 Couper le réseau, fermer et relancer l'application : la traduction installée
 s'ouvre sans accès réseau. Pour changer de traduction installée, utiliser le
-sélecteur de l’onglet. Les ressources sont conservées dans
+sélecteur du titre central. Les ressources sont conservées dans
 `${XDG_DATA_HOME:-~/.local/share}/bible/translations`.
 
 **Onglets et session** : `Ctrl+T` ouvre un nouvel onglet au passage courant ;
-le bouton à côté de la référence ouvre la référence saisie dans un autre onglet.
+le sélecteur central propose aussi d’ouvrir le passage dans un autre onglet.
 Chaque onglet garde sa traduction et sa position. `Ctrl+W` ferme l’onglet actif.
 Fermer puis relancer restaure les onglets, leur ordre et l’onglet sélectionné.
 Une traduction supprimée laisse son onglet et sa référence visibles avec un
@@ -80,7 +85,8 @@ flatpak-builder --user --install --force-clean build-dir packaging/io.github.icf
 flatpak run io.github.icfmp.Bible
 ```
 
-Voir [le jalon des onglets](docs/JALON_1_ONGLETS.md),
+Voir [la navigation dans la Header Bar](docs/NAVIGATION_HEADER_BAR.md),
+[le jalon des onglets](docs/JALON_1_ONGLETS.md),
 [la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
 [le cahier des charges](docs/CAHIER_DES_CHARGES.md) et
 [la feuille de route](docs/FEUILLE_DE_ROUTE.md).
