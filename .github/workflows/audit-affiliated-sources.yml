@@ -4,7 +4,6 @@ on:
     branches: [feat/11-commentary-sources]
 permissions:
   contents: write
-  actions: write
 jobs:
   audit:
     runs-on: ubuntu-24.04
@@ -15,17 +14,6 @@ jobs:
           fetch-depth: 0
       - name: Lire les sources officielles et mesurer le catalogue
         run: python3 -m tools.audit_affiliated_sources
-      - name: Arrêter les vérifications remplacées de cette branche
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PYTHON'
-          import json, os, subprocess
-          runs = json.loads(subprocess.check_output(['gh','run','list','--repo','icfmp/Bible','--branch','feat/11-commentary-sources','--workflow','prerequisites.yml','--json','databaseId,headSha,status'], text=True))
-          for run in runs:
-              if run['headSha'] != os.environ['GITHUB_SHA'] and run['status'] != 'completed':
-                  subprocess.run(['gh','run','cancel',str(run['databaseId']),'--repo','icfmp/Bible'], check=True)
-          PYTHON
       - uses: actions/upload-artifact@v4
         with:
           name: issue-11-source-audit

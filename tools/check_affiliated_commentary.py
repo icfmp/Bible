@@ -80,7 +80,10 @@ def offline_snapshot(directory, commentary):
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == '--offline':
         with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
-            print(json.dumps(offline_snapshot(*sys.argv[2:]), ensure_ascii=False))
+            directory, commentary, output = sys.argv[2:]
+            if os.environ.get('BIBLE_EXPECT_OFFLINE') == '1':
+                assert len(Path('/proc/net/route').read_text().splitlines()) <= 1, 'Network routes remain available'
+            Path(output).write_text(json.dumps(offline_snapshot(directory, commentary), ensure_ascii=False))
         return
     primary = {r.name for r in catalogue(CROSSWIRE) if r.kind == 'commentary'}
     extra = {r.name: r for r in catalogue(EXTRA) if r.kind == 'commentary'}
@@ -93,9 +96,10 @@ def main():
         library.install(resource)
         expected = offline_snapshot(directory, resource.id)
         command = shlex.split(os.environ.get('BIBLE_OFFLINE_PREFIX', ''))
-        command += ['env', 'GSK_RENDERER=cairo', 'GTK_A11Y=none', 'dbus-run-session', '--', 'xvfb-run', '-a', sys.executable, '-m', 'tools.check_affiliated_commentary', '--offline', directory, resource.id]
+        command += ['env', 'GSK_RENDERER=cairo', 'GTK_A11Y=none',
+                    'BIBLE_EXPECT_OFFLINE=' + ('1' if command else '0'), 'dbus-run-session', '--', 'xvfb-run', '-a', sys.executable, '-m', 'tools.check_affiliated_commentary', '--offline', directory, resource.id, str(Path(directory) / 'offline-result.json')]
         actual = subprocess.run(command, check=True, capture_output=True, text=True)
-        assert json.loads(actual.stdout) == expected, 'Offline reopen changed text or provenance'
+        assert json.loads((Path(directory) / 'offline-result.json').read_text()) == expected, 'Offline reopen changed text or provenance'
         Path('affiliated-commentary-result.json').write_text(json.dumps({
             'result': 'success', 'commentary': resource.id, 'bible': bible.id,
             'driver': resource.driver, 'offline_process': command[:3],
