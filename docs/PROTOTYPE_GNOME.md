@@ -62,8 +62,8 @@ Ubuntu ; la nouvelle CI ajoute les vérifications fonctionnelles.
 
 - Sept tests du stockage/catalogue/transfert/lecteur : réussis, sur les vrais
   bindings SWORD et des données sentinelles de test.
-- Test GTK sous Xvfb : ouverture de fenêtre, profil neuf vide, échec réseau
-  asynchrone, boutons réactivés et nouvelle tentative réussie sur catalogue vide.
+- Deux tests GTK sous Xvfb : ouverture de fenêtre, profil neuf vide, échec réseau
+  asynchrone, boutons réactivés et nouvelle tentative réussie sur catalogue vide ; affichage et navigation sur données sentinelles installées.
 - Génération SWIG et compilation d'une extension SWORD Python 3.13 : réussies,
   import et référence `John.1.1` vérifiés.
 - Catalogue et archive CrossWire depuis cette session : refus réel
@@ -85,3 +85,11 @@ ni contournement d'accès ajouté. Windows/macOS : bindings et distribution de G
 libadwaita non validés ; ces systèmes ne sont pas annoncés comme pris en charge
 par ce prototype. Le choix formel de licence du projet reste à traiter avant une
 distribution publique ; aucune licence de contenu n'est attribuée par l'application.
+
+## Première exécution de la nouvelle CI
+
+Le run du commit `68a5716` valide les dépendances et les tests GTK. Le test
+CrossWire échoue ; l'API Actions reste refusée (`Forbidden`) et GitHub demande
+une connexion pour consulter les logs détaillés. Le lanceur `tools/ci_run.py`
+remonte désormais les dernières lignes d'échec dans une annotation publique,
+pour permettre le diagnostic de cette intégration sans inventer sa cause.

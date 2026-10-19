@@ -30,7 +30,7 @@ jobs:
           dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         run: |
-          /usr/bin/python3 -m tools.check_crosswire
+          /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_crosswire
 
   flatpak:
     runs-on: ubuntu-24.04
@@ -45,5 +45,5 @@ jobs:
           flatpak install --user --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
       - name: Construire et vérifier SWORD dans le sandbox
         run: |
-          flatpak-builder --user --force-clean build-dir packaging/io.github.icfmp.Bible.json
+          /usr/bin/python3 tools/ci_run.py flatpak-builder --user --force-clean build-dir packaging/io.github.icfmp.Bible.json
           flatpak-builder --run build-dir packaging/io.github.icfmp.Bible.json env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; print(Sword.VerseKey("John.1.1").getOSISRef())'

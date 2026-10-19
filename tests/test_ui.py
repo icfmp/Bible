@@ -34,3 +34,30 @@ class WindowTests(unittest.TestCase):
                 wait()
             self.assertFalse(window.download_button.get_sensitive())
             window.close()
+
+    def test_installed_translation_and_navigation(self):
+        from pathlib import Path
+        from bible.ui import Application, Window, Library
+        from tests.test_library import fixture
+        app = Application()
+        app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / 'Test'
+            root.mkdir()
+            fixture(root)
+            (root / '.complete').write_text('Test')
+            window = Window(app, Library(directory))
+            window.present()
+            self.assertEqual(window.current.reference, 'Gen.1')
+            buffer = window.text.get_buffer()
+            text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+            self.assertIn('SENTINEL α <literal>', text)
+            self.assertFalse(window.previous.get_sensitive())
+            self.assertTrue(window.following.get_sensitive())
+            window.following.emit('clicked')
+            self.assertEqual(window.current.reference, 'Gen.2')
+            window.previous.emit('clicked')
+            self.assertEqual(window.current.reference, 'Gen.1')
+            window.show('Gen.99.1')
+            self.assertEqual(window.current.reference, 'Gen.1')
+            window.close()
