@@ -60,7 +60,7 @@ jobs:
         run: |
           flatpak build-bundle local-repo Bible-alpha.flatpak io.github.icfmp.Bible --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive ./Bible-alpha.flatpak
-          flatpak run --user --command=python3 io.github.icfmp.Bible -c 'import Sword; from bible.ui import Window; print("Bundle OK")'
+          flatpak run --user --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible -c 'import Sword; from bible.ui import Window; print("Bundle OK")'
       - name: Mettre le paquet alpha à disposition
         uses: actions/upload-artifact@v4
         with:
