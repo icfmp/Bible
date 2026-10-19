@@ -1,0 +1,10 @@
+--- a/cmake/sources.cmake
++++ b/cmake/sources.cmake
+@@ -433,7 +433,6 @@
+ 	include/xzcomprs.h
+ 	include/zcom.h
+ 	include/zcom4.h
+-	include/zconf.h
+ 	include/zipcomprs.h
+ 	include/zld.h
+ 	include/zstr.h

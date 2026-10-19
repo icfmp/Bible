@@ -15,6 +15,8 @@ from dataclasses import dataclass
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
 MAX_ARCHIVE = 64 * 1024 * 1024
 MAX_UNPACKED = 256 * 1024 * 1024
+ALLOWED_LICENSES = {'public domain', 'gpl', 'gplv2', 'gplv3',
+                    'general public license for distribution'}
 
 
 @dataclass(frozen=True)
@@ -71,7 +73,7 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
             raise ValueError('Incomplete download')
 
 
-def catalogue():
+def catalogue(licenses=ALLOWED_LICENSES):
     data = io.BytesIO()
     download(BASE + 'raw/mods.d.tar.gz', data, limit=8 * 1024 * 1024)
     resources = []
@@ -88,14 +90,15 @@ def catalogue():
             parser = config(archive.extractfile(member).read())
             for name in parser.sections():
                 section = parser[name]
-                # Minimal catalogue: only resources explicitly declared public domain.
+                # Minimal catalogue: supported Bible drivers with an explicit reusable license.
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
                         and section.get('ModDrv') in {'zText', 'RawText', 'RawText4', 'zText4'}
-                        and section.get('DistributionLicense', '').lower() == 'public domain'
+                        and (licenses is None or section.get('DistributionLicense', '').lower() in licenses)
+                        and section.get('Lang')
                         and not section.get('CipherKey')):
                     resources.append(Resource(name, section.get('Description', name),
                                               section.get('Lang', ''),
-                                              section['DistributionLicense']))
+                                              section.get('DistributionLicense', 'Unknown')))
     return sorted(resources, key=lambda r: (r.language, r.name))
 
 
@@ -150,9 +153,9 @@ class Library:
                 raise ValueError('Expected one resource configuration')
             parser = config(configs[0].read_bytes())
             if parser.sections() != [resource.name]:
-                raise ValueError('Resource identity mismatch')
+                raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
-            if (section.get('DistributionLicense', '').lower() != 'public domain'
+            if (section.get('DistributionLicense', '').lower() not in ALLOWED_LICENSES
                     or section.get('ModDrv') not in {'zText', 'RawText', 'RawText4', 'zText4'}
                     or section.get('CipherKey')):
                 raise ValueError('Unsupported resource')

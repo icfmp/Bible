@@ -10,16 +10,21 @@ import sys
 import tempfile
 from unittest.mock import patch
 
-from bible.library import Library, catalogue
+from bible.library import ALLOWED_LICENSES, Library, catalogue
 from bible.sword_provider import Reader
 
 
 def main():
-    resources = catalogue()
-    assert resources, 'No public-domain Bible found in real CrossWire catalogue'
-    print(f'Catalogue: {len(resources)} public-domain resources', flush=True)
+    all_resources = catalogue(licenses=None)
+    details = '; '.join(f'{r.name}: {r.license}' for r in all_resources
+                        if r.name in {'KJV', 'FreSegond'})
+    print(f'::notice title=CrossWire license metadata::{details}', flush=True)
+    resources = [r for r in all_resources if r.license.lower() in ALLOWED_LICENSES]
+    assert resources, 'No supported Bible found in real CrossWire catalogue'
+    print(f'Catalogue: {len(resources)} supported resources', flush=True)
     by_name = {r.name: r for r in resources}
-    resource = next((by_name[name] for name in ['FreSegond', 'KJV'] if name in by_name), resources[0])
+    resource = next((by_name[name] for name in ['FreSegond', 'KJV'] if name in by_name), None)
+    assert resource is not None, 'Neither FreSegond nor KJV available with a supported license'
     print(f'Chosen: {resource.name} ({resource.language}); {resource.license}', flush=True)
     with tempfile.TemporaryDirectory() as directory:
         library = Library(directory)

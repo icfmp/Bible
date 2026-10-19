@@ -26,8 +26,8 @@ s'ouvre sans accès réseau. Pour changer de traduction installée, utiliser le
 second sélecteur puis **Ouvrir**. Les ressources sont conservées dans
 `${XDG_DATA_HOME:-~/.local/share}/bible/translations`.
 
-Le catalogue de ce prototype se limite aux Bibles dont CrossWire déclare la
-licence « Public Domain ». Le lecteur présente le texte brut produit par SWORD,
+Le catalogue de ce prototype se limite aux Bibles dont CrossWire déclare une licence réutilisable
+(domaine public ou GPL), affichée dans le sélecteur. Le lecteur présente le texte brut produit par SWORD,
 avec numéros de versets ; les notes de traduction et les enrichissements du
 texte source ne sont pas encore présentés. Les conditions du fournisseur et les
 règles du pays d'utilisation restent applicables.

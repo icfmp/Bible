@@ -43,8 +43,8 @@ Ubuntu ; la nouvelle CI ajoute les vérifications fonctionnelles.
 ## Comportement et limites
 
 - Aucun accès réseau automatique au démarrage ; affichage des seules ressources installées.
-- Catalogue obtenu de `mods.d.tar.gz`, filtré sur Bibles non chiffrées déclarées
-  « Public Domain », avec descriptions et langues réelles.
+- Catalogue obtenu de `mods.d.tar.gz`, filtré sur Bibles non chiffrées de langue déclarée, avec licence de domaine
+  public ou GPL affichée, descriptions et langues réelles.
 - Téléchargement HTTPS dans un dossier provisoire, progression et vérification
   de longueur quand connue, limites de taille, CRC ZIP, refus des chemins sortants
   et des liens symboliques, puis ouverture réelle par SWORD avant renommage atomique.
@@ -114,3 +114,16 @@ réalisée localement en C++17, ainsi que l'import des bindings et une lecture d
 un processus séparé. L'intégration CI est étendue pour exécuter cette lecture
 via `sudo unshare --net --`, comparer l'empreinte des versets et vérifier la
 navigation sans réseau dans ce processus. Le résultat du sandbox reste à confirmer.
+
+Après correction du format, le catalogue renvoie bien des ressources réelles.
+Le filtre exclut maintenant les entrées auxiliaires sans langue. Le catalogue
+minimal accepte aussi les déclarations GPL, avec licence visible dans le
+sélecteur et configuration originale conservée. Le test en ligne exige une
+traduction connue (FreSegond ou KJV) plutôt que la première entrée du catalogue.
+
+Le build Flatpak en C++17 compile SWORD mais rencontre ensuite une erreur réelle
+d'installation : `file INSTALL cannot find "/run/build/sword/include/zconf.h"`.
+L'archive Debian DFSG supprime ce fichier zlib embarqué ; le SDK fournit zlib.
+Le correctif `packaging/sword-system-zlib.patch` retire uniquement cet en-tête de
+la liste d'installation. La construction et l'installation locale des sources
+corrigées sont vérifiées. Le résultat de construction Flatpak reste à suivre.

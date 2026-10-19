@@ -12,6 +12,7 @@ RESOURCE = Resource('Test', 'Test fixture, not a Bible translation', 'en', 'Publ
 CONF = b'''[Test]
 DataPath=./modules/texts/rawtext/test/
 ModDrv=RawText
+Lang=en
 DistributionLicense=Public Domain
 Encoding=UTF-8
 SourceType=Plaintext
@@ -64,14 +65,16 @@ class LibraryTests(unittest.TestCase):
     def test_catalogue_is_remote_and_filters_license(self):
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode='w:gz') as archive:
-            for name, license in [('Test', 'Public Domain'), ('Private', 'Copyright')]:
+            for name, license in [('Test', 'Public Domain'), ('GPLTest', 'GPL'), ('Private', 'Copyright'), ('Helper', 'Public Domain')]:
                 content = CONF.replace(b'[Test]', f'[{name}]'.encode()).replace(
                     b'Public Domain', license.encode())
+                if name == 'Helper':
+                    content = content.replace(b'Lang=en\n', b'')
                 info = tarfile.TarInfo(f'mods.d/{name}.conf')
                 info.size = len(content)
                 archive.addfile(info, io.BytesIO(content))
         with patch('bible.library.download', side_effect=lambda url, out, **kw: out.write(data.getvalue())):
-            self.assertEqual([r.name for r in catalogue()], ['Test'])
+            self.assertEqual([r.name for r in catalogue()], ['GPLTest', 'Test'])
 
     def test_failed_download_leaves_no_installation(self):
         with tempfile.TemporaryDirectory() as d:

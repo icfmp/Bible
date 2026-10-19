@@ -53,6 +53,10 @@
           "type": "archive",
           "url": "https://deb.debian.org/debian/pool/main/s/sword/sword_1.9.0+dfsg.orig.tar.xz",
           "sha256": "a1687b8ade230d9b30a9991b76c12920daac865f1c25bd4be3cb897b90f007d9"
+        },
+        {
+          "type": "patch",
+          "path": "sword-system-zlib.patch"
         }
       ],
       "builddir": true

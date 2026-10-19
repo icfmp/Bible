@@ -21,7 +21,7 @@ FR = {
     'Loading catalogue…': 'Chargement du catalogue…', 'Downloading…': 'Téléchargement…',
     'Ready': 'Prêt', 'Retry using the same button.': 'Réessayez avec le même bouton.',
     'Reference (e.g. John 1:1)': 'Référence (par ex. John 1:1)',
-    'Public domain resources — source: CrossWire': 'Ressources du domaine public — source : CrossWire',
+    'Downloadable resources — source: CrossWire': 'Traductions téléchargeables — source : CrossWire',
     'No supported resource found.': 'Aucune ressource compatible trouvée.',
 }
 LANGUAGE = os.environ.get('LANGUAGE') or locale.getlocale()[0] or 'en'
@@ -56,7 +56,7 @@ class Window(Adw.ApplicationWindow):
         self.download_button.connect('clicked', self.install)
         controls.append(self.download_button)
         layout.append(controls)
-        layout.append(Gtk.Label(label=tr('Public domain resources — source: CrossWire'),
+        layout.append(Gtk.Label(label=tr('Downloadable resources — source: CrossWire'),
                                 xalign=0, margin_start=12, wrap=True))
         installed = Gtk.Box(spacing=8, margin_start=12, margin_end=12)
         self.local = Gtk.DropDown(model=Gtk.StringList.new(self.library.installed()), hexpand=True)
@@ -144,7 +144,7 @@ class Window(Adw.ApplicationWindow):
         def loaded(resources):
             self.resources = resources
             self.choices.set_model(Gtk.StringList.new([
-                f'{r.language} — {r.description} ({r.name})' for r in resources]))
+                f'{r.language} — {r.description} ({r.name}) — {r.license}' for r in resources]))
             self.status.set_text(tr('Ready') if resources else tr('No supported resource found.'))
         self.task('Loading catalogue…', catalogue, loaded)
 
