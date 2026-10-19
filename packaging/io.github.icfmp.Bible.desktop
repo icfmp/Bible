@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Bible
+Comment=Read downloaded Bible translations
+Comment[fr]=Lire les traductions bibliques téléchargées
+Exec=bible
+Type=Application
+Categories=Education;
+Terminal=false

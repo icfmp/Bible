@@ -84,3 +84,9 @@ Pas de test GUI, poste GNOME, intégration SWORD, transfert réel, fidélité de
 lecture hors connexion, navigation ni construction Flatpak. Aucun corpus ou texte
 biblique factice ajouté. Les seules vérifications positives sont l'import PyGObject,
 l'exécution du diagnostic et la compilation syntaxique de son code Python.
+
+## Reprise après ajout de la pipeline
+
+Ce document conserve le diagnostic initial. Le développement a repris après
+l'ajout d'un runner Ubuntu qui installe les dépendances. Voir désormais
+[le prototype et ses résultats](PROTOTYPE_GNOME.md) et le README pour le lancement.
