@@ -1,4 +1,5 @@
 import io
+import tarfile
 from dataclasses import replace
 from pathlib import Path
 import tempfile
@@ -70,8 +71,14 @@ class ProviderTests(unittest.TestCase):
                 identity(EXTRA.id, value)
 
     def test_no_hidden_license_or_missing_language_filter(self):
-        section = config(b'[Demo]\nModDrv=RawCom\nDistributionLicense=Copyright\n')['Demo']
-        resource = resource_from_section('Demo', section, EXTRA)
+        content = b'[Demo]\nModDrv=RawCom\nDistributionLicense=Copyright\n'
+        data = io.BytesIO()
+        with tarfile.open(fileobj=data, mode='w:gz') as archive:
+            member = tarfile.TarInfo('mods.d/demo.conf')
+            member.size = len(content)
+            archive.addfile(member, io.BytesIO(content))
+        with patch('bible.library.download', side_effect=lambda url,out,**kw: out.write(data.getvalue())):
+            resource, = catalogue(EXTRA)
         self.assertEqual(resource.language, 'und')
         self.assertEqual(resource.license, 'Copyright')
         self.assertTrue(resource.installable)
