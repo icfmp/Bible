@@ -50,8 +50,9 @@ sur disque ; un essai avec réseau désactivé sur poste GNOME reste à effectue
 
 ## Construction Flatpak de développement
 
-Recette à vérifier avec le job Flatpak de la pipeline ; aucun paquet publié ni
-acceptation Flathub annoncé.
+Construction et import de SWORD dans le sandbox vérifiés en CI. Le lancement
+graphique sur un poste GNOME reste à essayer ; aucun paquet publié ni acceptation
+Flathub annoncé.
 
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo

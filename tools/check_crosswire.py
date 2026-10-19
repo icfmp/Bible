@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Explicit online integration test: downloads one real public-domain translation."""
+"""Explicit online integration test: downloads one real reusable translation."""
 from pathlib import Path
 import hashlib
 import json
