@@ -5,6 +5,10 @@ on:
     branches: [main, feat/11-commentary-sources]
   workflow_dispatch:
 
+concurrency:
+  group: prerequisites-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

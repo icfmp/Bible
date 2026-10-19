@@ -26,7 +26,19 @@ def offline_snapshot(directory, commentary):
     window.present()
     result = []
     reader = CommentaryReader(library.root / commentary, commentary)
-    for reference in ['John.3.16', 'John.3.17']:
+    references = []
+    key = reader.key('John.1.1')
+    while key.getOSISRef().startswith('John.'):
+        reference = key.getOSISRef()
+        if reader.entry(reference, reader.versification):
+            references.append(reference)
+            if len(references) == 2:
+                break
+        key.increment()
+        if key.popError() != '\x00':
+            break
+    assert len(references) == 2, 'Need two genuinely indexed commentary entries'
+    for reference in references:
         assert window.active_tab.navigate('KJV', reference)
         window.study.refresh(force=True)
         while GLib.MainContext.default().pending():
@@ -41,13 +53,27 @@ def offline_snapshot(directory, commentary):
         direct = direct if isinstance(direct, str) else direct.c_str()
         assert expected == direct, 'Commentary differs from native SWORD'
         result.append({'reference': reference, 'sha256': hashlib.sha256(actual.encode()).hexdigest()})
+    # Kretzmann uses section entries. Never substitute a nearby section for an
+    # exact absent verse or leave the previous commentary visible.
+    missing = None
+    for verse in range(1, 37):
+        reference = f'John.3.{verse}'
+        if reader.entry(reference, reader.versification) is None:
+            assert window.active_tab.navigate('KJV', reference)
+            window.study.refresh(force=True)
+            buffer = window.study.text.get_buffer()
+            assert not buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
+            assert window.study.status.get_text()
+            missing = reference
+            break
+    assert missing is not None, 'Expected sparse section commentary'
     resource = library.resource(commentary)
     assert resource.provider_id == EXTRA.id
     assert EXTRA.name in window.study.source.get_text()
     assert 'permission' in resource.license.lower()
     window.close()
     assert state.load().tabs[0].commentary == commentary
-    return {'entries': result, 'provider': resource.provider_id, 'source': resource.source,
+    return {'entries': result, 'absent_entry_clears_view': missing, 'provider': resource.provider_id, 'source': resource.source,
             'license': resource.license, 'conditions': resource.conditions}
 
 
@@ -75,7 +101,7 @@ def main():
             'driver': resource.driver, 'offline_process': command[:3],
             'checks': expected, 'commit': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
         }, ensure_ascii=False, indent=2) + '\n')
-        print(f'PASS {resource.id}: real HTTPS install; SWORD fidelity; GTK John.3.16 → John.3.17; isolated offline reopen; attribution and session preserved')
+        print(f'PASS {resource.id}: real HTTPS install; SWORD fidelity; GTK follows two indexed entries and clears an absent verse; isolated offline reopen; attribution and session preserved')
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ on:
     branches: [feat/11-commentary-sources]
 permissions:
   contents: write
-  actions: read
+  actions: write
 jobs:
   audit:
     runs-on: ubuntu-24.04
@@ -15,18 +15,16 @@ jobs:
           fetch-depth: 0
       - name: Lire les sources officielles et mesurer le catalogue
         run: python3 -m tools.audit_affiliated_sources
-      - name: Lire le diagnostic du premier essai réseau
+      - name: Arrêter les vérifications remplacées de cette branche
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --allow-escape-sequences repos/icfmp/Bible/actions/jobs/118294350215/logs > /tmp/first-integration.log
           python3 - <<'PYTHON'
-          import json, re
-          from pathlib import Path
-          path = Path('affiliated-sources-audit.json')
-          data = json.loads(path.read_text())
-          data['first_integration_log'] = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', Path('/tmp/first-integration.log').read_text())[-22000:]
-          path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+          import json, os, subprocess
+          runs = json.loads(subprocess.check_output(['gh','run','list','--repo','icfmp/Bible','--branch','feat/11-commentary-sources','--workflow','prerequisites.yml','--json','databaseId,headSha,status'], text=True))
+          for run in runs:
+              if run['headSha'] != os.environ['GITHUB_SHA'] and run['status'] != 'completed':
+                  subprocess.run(['gh','run','cancel',str(run['databaseId']),'--repo','icfmp/Bible'], check=True)
           PYTHON
       - uses: actions/upload-artifact@v4
         with:
