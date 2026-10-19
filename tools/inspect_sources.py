@@ -64,6 +64,7 @@ def main():
     french = []
     matches = []
     counts = {}
+    commentaries = []
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
         for entry in archive:
             if not entry.isfile() or not entry.name.endswith('.conf') or entry.size > 1024 * 1024:
@@ -71,6 +72,11 @@ def main():
             parser = config(archive.extractfile(entry).read())
             for name in parser.sections():
                 section = parser[name]
+                if section.get('ModDrv') in {'RawCom', 'RawCom4', 'zCom', 'zCom4'}:
+                    commentaries.append((name, section.get('Description'), section.get('Lang'),
+                                         section.get('ModDrv'), section.get('Versification', 'KJV'),
+                                         section.get('DistributionLicense'), 'cipherkey' in section,
+                                         section.get('Author', '')))
                 if section.get('ModDrv') not in {'zText', 'zText4', 'RawText', 'RawText4'}:
                     continue
                 license = section.get('DistributionLicense', '(missing)')
@@ -81,6 +87,7 @@ def main():
                         'distributionnotes', 'cipherkey', 'versification', 'minimumversion', 'textsource'}}))
                 if re.search(r'\b(?:semeur|biblica|bds)\b', name + ' ' + str(dict(section)), re.I):
                     matches.append((name, section.get('Description'), license, 'cipherkey' in section))
+    notice('CrossWire commentary choices', '\n'.join(str(item) for item in commentaries))
     notice('CrossWire catalogue audit', 'Licenses: ' + str(counts) + '\nSemeur/Biblica candidates: ' + str(matches))
     notice('CrossWire French choices', '\n'.join(
         name + ': ' + str(metadata.get('description')) + '; ' + str(metadata.get('distributionlicense'))
