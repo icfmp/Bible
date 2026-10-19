@@ -1,0 +1,55 @@
+"""One-time owner-side setup using gh authentication; never print the private key.
+
+Run after review/merge, on a trusted workstation with gh and GnuPG. A stable key
+is created only when no channel secret exists. Existing Pages sites are refused
+unless they were explicitly marked as managed by this setup.
+"""
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+from tools.channel_ci import REPO, api
+from tools.flatpak_channel import run
+
+
+def variable(name):
+    result = subprocess.run(['gh','variable','get',name,'--repo',REPO],capture_output=True,text=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def main():
+    repository = api(f'repos/{REPO}')
+    assert repository['permissions'].get('admin'), 'A repository administrator must run this setup with their own gh connection'
+    if repository['has_pages']:
+        assert variable('BIBLE_ALPHA_PAGES_MANAGED') == '1', 'An existing Pages site will not be overwritten'
+    secrets = api(f'repos/{REPO}/actions/secrets')['secrets']
+    if any(s['name']=='BIBLE_FLATPAK_GPG_KEY' for s in secrets):
+        assert variable('BIBLE_FLATPAK_GPG_FINGERPRINT'), 'Existing signing key has no fingerprint; recover it rather than replacing it'
+        print('Existing stable signing key retained.')
+    else:
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)/'gpg'
+            home.mkdir(mode=0o700)
+            try:
+                subprocess.run(['gpg','--homedir',str(home),'--batch','--pinentry-mode','loopback','--passphrase','',
+                                '--quick-generate-key','Bible alpha repository <icfmp@users.noreply.github.com>','rsa3072','sign','2y'],check=True)
+                keys = run('gpg','--homedir',home,'--with-colons','--list-keys')
+                fingerprint = next(line.split(':')[9] for line in keys.splitlines() if line.startswith('fpr:'))
+                private = subprocess.check_output(['gpg','--homedir',str(home),'--armor','--export-secret-keys',fingerprint])
+                subprocess.run(['gh','secret','set','BIBLE_FLATPAK_GPG_KEY','--repo',REPO],input=private,check=True)
+                subprocess.run(['gh','variable','set','BIBLE_FLATPAK_GPG_FINGERPRINT','--repo',REPO,'--body',fingerprint],check=True)
+            finally:
+                subprocess.run(['gpgconf','--homedir',str(home),'--kill','all'],check=False)
+    if not repository['has_pages']:
+        subprocess.run(['gh','api','--method','POST',f'repos/{REPO}/pages','-f','build_type=workflow'],check=True)
+    page = api(f'repos/{REPO}/pages')
+    assert page['build_type'] == 'workflow'
+    base_url = page['html_url'].rstrip('/')
+    assert base_url.startswith('https://')
+    for name,value in [('BIBLE_ALPHA_PAGES_BASE_URL',base_url),('BIBLE_ALPHA_PAGES_MANAGED','1')]:
+        subprocess.run(['gh','variable','set',name,'--repo',REPO,'--body',value],check=True)
+    subprocess.run(['gh','workflow','run','alpha-channel.yml','--repo',REPO,'--ref','main','-f','verified_run=39315036866'],check=True)
+    print('Configuration effectuée ; suivre la validation publique du workflow. Aucun lien d’installation n’est encore annoncé vérifié.')
+
+
+if __name__ == '__main__': main()

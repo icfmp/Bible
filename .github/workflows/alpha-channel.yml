@@ -1,0 +1,123 @@
+name: Publier le canal alpha Flatpak
+on:
+  workflow_run:
+    workflows: [Vérifier le socle GNOME]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      verified_run:
+        description: Exécution verte du socle GNOME sur main
+        required: true
+        default: '39315036866'
+permissions:
+  contents: read
+concurrency:
+  group: bible-alpha-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment:
+      name: github-pages
+      url: ${{ steps.second-deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BIBLE_FLATPAK_GPG_FINGERPRINT: ${{ vars.BIBLE_FLATPAK_GPG_FINGERPRINT }}
+      BASE_URL: ${{ vars.BIBLE_ALPHA_PAGES_BASE_URL }}
+      FLATPAK_USER_DIR: ${{ runner.temp }}/alpha-public-client
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Vérifier la configuration et le commit de construction
+        env:
+          INPUT_VERIFIED_RUN: ${{ inputs.verified_run }}
+          HAS_SIGNING_KEY: ${{ secrets.BIBLE_FLATPAK_GPG_KEY != '' }}
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          assert os.environ['HAS_SIGNING_KEY'] == 'true', 'Configurer BIBLE_FLATPAK_GPG_KEY avec tools.setup_alpha_channel avant publication'
+          assert os.environ['BASE_URL'].startswith('https://'), 'Configurer BIBLE_ALPHA_PAGES_BASE_URL'
+          assert os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'], 'Configurer BIBLE_FLATPAK_GPG_FINGERPRINT'
+          PYTHON
+          python3 -m tools.channel_ci verify
+      - name: Installer les outils de publication et de validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11
+      - name: Conserver les objets du dépôt déjà publié
+        run: python3 -m tools.channel_ci restore
+      - name: Importer la clé dédiée stable
+        env:
+          BIBLE_FLATPAK_GPG_KEY: ${{ secrets.BIBLE_FLATPAK_GPG_KEY }}
+        run: python3 -m tools.channel_ci import-key
+      - name: Préparer la première révision signée
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          from tools.flatpak_channel import prepare
+          info = json.loads(Path('incoming/verified.json').read_text())
+          prepare('incoming/Bible-alpha.flatpak','public',os.environ['BASE_URL'],
+                  Path(os.environ['RUNNER_TEMP'])/'alpha-signing-key',os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'],
+                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-1')
+          PYTHON
+          python3 -m tools.channel_ci persist
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          name: github-pages-first
+          path: public
+      - name: Publier la première révision
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-first
+      - name: Installer depuis le flatpakref HTTPS public et lancer Bible
+        run: python3 -m tools.validate_public_channel install --base-url "$BASE_URL"
+      - name: Préparer la seconde révision contrôlée du même canal
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          from tools.flatpak_channel import prepare
+          info = json.loads(Path('incoming/verified.json').read_text())
+          prepare('incoming/Bible-alpha.flatpak','public',os.environ['BASE_URL'],
+                  Path(os.environ['RUNNER_TEMP'])/'alpha-signing-key',os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'],
+                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-2')
+          PYTHON
+          python3 -m tools.channel_ci persist
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          name: github-pages-second
+          path: public
+      - name: Publier la seconde révision
+        id: second-deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-second
+      - name: Mettre à jour le client précédent et vérifier le nouveau commit
+        run: python3 -m tools.validate_public_channel update --base-url "$BASE_URL"
+      - name: Conserver les preuves publiques
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-public-verification
+          path: |
+            incoming/verified.json
+            public/alpha/provenance.json
+            public-install-check.json
+            public-update-check.json
+          if-no-files-found: warn
+      - name: Effacer les fichiers de signature du runner
+        if: always()
+        run: |
+          gpgconf --homedir "$RUNNER_TEMP/alpha-signing-key" --kill all || true
+          rm -rf -- "$RUNNER_TEMP/alpha-signing-key"
