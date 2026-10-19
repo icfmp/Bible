@@ -16,7 +16,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import json, subprocess
+          import json, re, subprocess
           from pathlib import Path
           report = {}
           def capture(args):
@@ -43,9 +43,9 @@ jobs:
           report['recovery_jobs'] = recovery_jobs
           report['direct_logs'] = {}
           for job in recovery_jobs.get('jobs', []):
-              result = subprocess.run(['gh', 'api', 'repos/icfmp/Bible/actions/jobs/' + str(job['id']) + '/logs'], text=True, capture_output=True)
+              result = subprocess.run(['gh', 'api', '--allow-escape-sequences', 'repos/icfmp/Bible/actions/jobs/' + str(job['id']) + '/logs'], text=True, capture_output=True)
               report['direct_logs'][job['name']] = {'exit_code': result.returncode,
-                  'stderr': result.stderr, 'tail': result.stdout.splitlines()[-65:]}
+                  'stderr': result.stderr, 'tail': re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', result.stdout).splitlines()[-100:]}
           Path('/tmp/release-status.json').write_text(json.dumps(report, ensure_ascii=False, indent=2))
           PY
           git config user.name github-actions[bot]
