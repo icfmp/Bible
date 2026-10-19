@@ -1,0 +1,41 @@
+name: Vérifier le canal alpha Flatpak (#17)
+on:
+  push:
+    branches: [feat/17-flatpak-alpha-channel]
+permissions:
+  contents: write
+  pages: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - name: Examiner Pages et les permissions de configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_SIGNING_KEY: ${{ secrets.BIBLE_FLATPAK_GPG_KEY != '' }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, subprocess
+          from pathlib import Path
+          report = {'signing_secret_available': os.environ['HAS_SIGNING_KEY']}
+          for key, endpoint in [('repository','repos/icfmp/Bible'), ('pages','repos/icfmp/Bible/pages'), ('secret_configuration','repos/icfmp/Bible/actions/secrets/public-key')]:
+              result = subprocess.run(['gh','api',endpoint],capture_output=True,text=True)
+              try:
+                  value = json.loads(result.stdout)
+                  if key == 'repository': value = {k:value.get(k) for k in ['has_pages','default_branch','permissions']}
+                  if key == 'secret_configuration' and result.returncode == 0: value = {'accessible': True}
+              except ValueError: value = result.stdout
+              report[key] = {'exit_code':result.returncode, 'result':value, 'error':result.stderr}
+          Path('/tmp/alpha-channel-status.json').write_text(json.dumps(report,indent=2))
+          print(json.dumps(report,indent=2))
+          PYTHON
+      - name: Conserver l’état avec le commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin refs/notes/alpha-channel:refs/notes/alpha-channel || true
+          git notes --ref=alpha-channel add -f -F /tmp/alpha-channel-status.json "$GITHUB_SHA"
+          git push origin refs/notes/alpha-channel
