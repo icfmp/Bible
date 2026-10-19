@@ -38,6 +38,14 @@ jobs:
           log = subprocess.run(['gh', 'run', 'view', '39280860527', '--job', '118155875127', '--log'], text=True, capture_output=True)
           report['publication_errors'] = [line for line in (log.stdout + log.stderr).splitlines()
               if any(marker in line for marker in ('Error:', 'error:', 'Traceback', 'HTTP ', 'AssertionError', 'CalledProcessError'))][-20:]
+          report['recovery_run'] = capture(['gh', 'api', 'repos/icfmp/Bible/actions/runs/39282134761'])
+          recovery_jobs = capture(['gh', 'api', 'repos/icfmp/Bible/actions/runs/39282134761/jobs?per_page=100'])
+          report['recovery_jobs'] = recovery_jobs
+          report['direct_logs'] = {}
+          for job in recovery_jobs.get('jobs', []):
+              result = subprocess.run(['gh', 'api', 'repos/icfmp/Bible/actions/jobs/' + str(job['id']) + '/logs'], text=True, capture_output=True)
+              report['direct_logs'][job['name']] = {'exit_code': result.returncode,
+                  'stderr': result.stderr, 'tail': result.stdout.splitlines()[-65:]}
           Path('/tmp/release-status.json').write_text(json.dumps(report, ensure_ascii=False, indent=2))
           PY
           git config user.name github-actions[bot]
