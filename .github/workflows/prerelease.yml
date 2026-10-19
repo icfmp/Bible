@@ -1,0 +1,57 @@
+name: Préversion 0.1.0-alpha.1
+
+on:
+  push:
+    branches: [release/0.1.0-alpha.1]
+    tags: [0.1.0-alpha.1]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prerelease-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verification:
+    uses: ./.github/workflows/prerequisites.yml
+
+  review:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Ouvrir la pull request de distribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh pr list --head release/0.1.0-alpha.1 --base main --json url --jq '.[0].url')
+          if [ -n "$existing" ]; then
+            echo "$existing"
+          else
+            gh pr create --base main --head release/0.1.0-alpha.1 --title 'Préparer la préversion 0.1.0-alpha.1' --body-file docs/releases/PULL_REQUEST.md
+          fi
+
+  publish:
+    if: github.ref == 'refs/tags/0.1.0-alpha.1'
+    needs: verification
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          path: release-artifacts
+      - name: Préparer les sources, publier et vérifier la préversion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/publish_prerelease.py

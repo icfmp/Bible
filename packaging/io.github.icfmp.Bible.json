@@ -46,7 +46,8 @@
         "mkdir -p /app/lib/bible-python",
         "swig -w451,402 -shadow -c++ -python -I../bindings/swig -I../include -outdir /app/lib/bible-python -o Sword.cxx ../bindings/swig/sword.i",
         "c++ -std=c++17 -shared -fPIC -O2 $(python3-config --includes) -I../include -I../bindings/swig Sword.cxx -L/app/lib -lsword -o /app/lib/bible-python/_Sword.so",
-        "PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; assert Sword.VerseKey(\"Gen.1.1\").getOSISRef() == \"Gen.1.1\"'"
+        "PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; assert Sword.VerseKey(\"Gen.1.1\").getOSISRef() == \"Gen.1.1\"'",
+        "install -Dm644 ../LICENSE /app/share/licenses/sword/LICENSE"
       ],
       "sources": [
         {
@@ -67,7 +68,9 @@
       "build-commands": [
         "cp -r bible /app/lib/bible-python/",
         "install -Dm755 packaging/bible /app/bin/bible",
-        "install -Dm644 packaging/io.github.icfmp.Bible.desktop /app/share/applications/io.github.icfmp.Bible.desktop"
+        "install -Dm644 packaging/io.github.icfmp.Bible.desktop /app/share/applications/io.github.icfmp.Bible.desktop",
+        "install -Dm644 LICENSE /app/share/licenses/bible/LICENSE",
+        "install -Dm644 THIRD_PARTY_NOTICES.md /app/share/licenses/bible/THIRD_PARTY_NOTICES.md"
       ],
       "sources": [
         {

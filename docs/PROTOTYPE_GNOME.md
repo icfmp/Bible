@@ -109,8 +109,10 @@ d'onglets, de notes, d'IA ou de synchronisation. Profils natif et Flatpak distin
 YouVersion/Semeur : accès officiel, cache et téléchargement intégral toujours à
 étudier ; aucune disponibilité hors connexion promise. Aucun contournement
 ajouté. Windows/macOS : bindings et distribution GTK/libadwaita non validés.
-Aucun paquet publié, aucune soumission Flathub, aucun choix formel de licence du
-projet annoncé. Ce dernier reste à traiter avant la distribution publique.
+Pour le jalon initial, aucun paquet n’avait été publié et le choix de licence
+restait ouvert. Le client a depuis autorisé GNU GPL-2.0-only pour la première
+préversion : voir `LICENSE`, `THIRD_PARTY_NOTICES.md` et les notes
+`docs/releases/0.1.0-alpha.1.md`. Aucune soumission Flathub n’est effectuée.
 
 ## Suite du prototype
 
