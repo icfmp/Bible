@@ -92,6 +92,14 @@ sous Xvfb ; ils ne remplacent pas les résultats des assertions.
 
 ## Paquet de test et essai client
 
+Livraison vérifiée : commit [`c2792c1`](https://github.com/icfmp/Bible/commit/c2792c1),
+[CI réussie](https://github.com/icfmp/Bible/actions/runs/39315036866),
+[paquet de test corrigé (ZIP)](https://github.com/icfmp/Bible/actions/runs/39315036866/artifacts/12218475570).
+Les deux jobs ont terminé avec succès, y compris les intégrations CrossWire,
+la construction, l’installation et l’import du paquet. L’icône bleue intégrée
+sur main pendant le travail est conservée. Les mises à jour de documentation
+qui suivent ce commit ne changent pas le code de l’application ni le paquet.
+
 La CI ne construit le Flatpak qu’après les tests et intégrations CrossWire.
 Elle l’installe et vérifie SWORD/l’interface, puis joint dans l’artefact
 **Bible-alpha-linux-x86_64** : `Bible-alpha.flatpak`, `SHA256SUMS`, `build-info.json`
@@ -106,6 +114,14 @@ Le paquet reprend la licence GPL-2.0-only déjà autorisée et les notices de SW
 aucun nouveau choix de licence ni changement de droits des contenus téléchargés.
 La release **0.1.0-alpha.1 reste inchangée** ; aucune nouvelle release ni soumission
 Flathub n’est effectuée dans cette tâche. L’artefact de test expire après 30 jours.
+
+Si une alpha est déjà installée et que Logiciels ne propose pas la mise à jour,
+réinstaller explicitement le paquet téléchargé, sans supprimer le profil :
+
+```sh
+flatpak install --user --reinstall ./Bible-alpha.flatpak
+flatpak run io.github.icfmp.Bible
+```
 
 Pour vérifier le téléchargement : `sha256sum -c SHA256SUMS` dans le dossier extrait.
 Les notes et ressources existantes restent dans le profil Flatpak ; aucune

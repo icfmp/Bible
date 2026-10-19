@@ -18,14 +18,15 @@ avec Flatpak installé, ouvrir ce fichier avec le gestionnaire de logiciels,
 ou exécuter dans son dossier :
 
 ```sh
-flatpak install --user ./Bible-alpha.flatpak
+flatpak install --user --reinstall ./Bible-alpha.flatpak
 flatpak run io.github.icfmp.Bible
 ```
 
 Flatpak propose le runtime GNOME nécessaire si celui-ci n'est pas encore installé
 et que Flathub est configuré. Ce fichier de test expire après 30 jours ; récupérer
 le paquet du dernier run réussi pour la version la plus récente. La mise à jour
-n'est pas automatique : installer de nouveau le paquet après chaque livraison.
+n'est pas automatique : réinstaller le paquet après chaque livraison ;
+`--reinstall` remplace l’alpha existante sans effacer son profil de données.
 Les traductions, commentaires et notes ne sont pas inclus dans le paquet et
 restent dans le profil Flatpak de l'utilisateur. Le profil natif décrit ci-dessous
 est distinct. Cette version n'est pas publiée sur Flathub et son fonctionnement
