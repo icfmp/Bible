@@ -1,0 +1,27 @@
+name: Vérifier le socle GNOME
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prerequisites:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v6
+      - name: Installer GTK 4, libadwaita et Flatpak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder
+      - name: Examiner les paquets SWORD disponibles
+        run: |
+          apt-cache search --names-only 'sword|libsword' | head -80
+      - name: Vérifier les dépendances et les accès réseau
+        run: |
+          /usr/bin/python3 tools/check_environment.py --network
