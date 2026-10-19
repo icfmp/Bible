@@ -40,7 +40,9 @@ The user is the client. Communicate with the client in French. Keep implementati
 
 ## Delivery discipline
 - Work in focused increments; first prove a real downloaded module and installable GTK application.
-- Use a feature branch and a reviewable pull request for implementation.
+- For routine, reversible changes, work on the current `main`, run relevant checks, commit and push the result directly when repository access permits. Refresh from the latest `main` before editing and do not force-push.
+- For changes that warrant review (data migrations, licensing or content-source policy, secrets, release/distribution, or major architecture), use a feature branch and a pull request. Explain the decision and next action in French.
+- If the environment cannot push or merge, report the exact permission/error and leave a reviewable commit or pull request; do not ask the client to perform routine Git operations without first diagnosing the access issue.
 - Run relevant tests and report actual results. Test data persistence, references, offline behavior and text fidelity where affected.
 - Distinguish automated checks from manual GUI validation and actual OS-specific checks.
 - Cloud execution does not prove the GUI works on the client's GNOME desktop.
