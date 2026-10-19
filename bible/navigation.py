@@ -27,29 +27,37 @@ class PassagePopover(Gtk.Popover):
         self.chapter = self.dropdown(content, 'Chapter', self.chapter_changed)
         self.verse = self.dropdown(content, 'Verse', self.verse_changed)
         self.direct_expander = Gtk.Expander(label=tr('Direct reference'))
-        self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'))
+        self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'),
+                                width_chars=12, max_width_chars=24)
         self.direct.update_property([Gtk.AccessibleProperty.LABEL], [tr('Direct reference')])
         self.direct.connect('activate', lambda *_: self.commit(False))
         self.direct_expander.set_child(self.direct)
         content.append(self.direct_expander)
         self.status = Gtk.Label(wrap=True, xalign=0, visible=False, max_width_chars=32)
         content.append(self.status)
-        self.open_button = Gtk.Button(label=tr('Open in this tab'))
+        self.open_button = self.action_button('Open in this tab')
         self.open_button.add_css_class('suggested-action')
         self.open_button.connect('clicked', lambda *_: self.commit(False))
         content.append(self.open_button)
-        self.new_button = Gtk.Button(label=tr('Open passage in new tab'))
+        self.new_button = self.action_button('Open passage in new tab')
         self.new_button.connect('clicked', lambda *_: self.commit(True))
         content.append(self.new_button)
-        download = Gtk.Button(label=tr('Download a translation'))
+        download = self.action_button('Download a translation')
         download.connect('clicked', self.open_library)
         content.append(download)
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                    min_content_width=280, max_content_height=500,
+                                    min_content_width=280, max_content_width=300,
+                                    propagate_natural_width=True, max_content_height=500,
                                     propagate_natural_height=True)
         scroll.set_child(content)
         self.set_child(scroll)
         self.connect('notify::visible', self.visibility_changed)
+
+    @staticmethod
+    def action_button(label):
+        # Older GTK versions measure unwrapped button text as a hard minimum.
+        return Gtk.Button(child=Gtk.Label(label=tr(label), wrap=True,
+                                           max_width_chars=26))
 
     def dropdown(self, parent, label, callback):
         parent.append(Gtk.Label(label=tr(label), xalign=0))
@@ -57,7 +65,7 @@ class PassagePopover(Gtk.Popover):
         dropdown.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
         factory = Gtk.SignalListItemFactory()
         factory.connect('setup', lambda _, item: item.set_child(Gtk.Label(
-            xalign=0, ellipsize=Pango.EllipsizeMode.END, max_width_chars=26)))
+            xalign=0, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=26)))
         factory.connect('bind', lambda _, item: item.get_child().set_text(item.get_item().get_string()))
         dropdown.set_factory(factory)
         dropdown.set_list_factory(factory)

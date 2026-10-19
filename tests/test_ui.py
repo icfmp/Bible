@@ -352,7 +352,11 @@ class WindowTests(unittest.TestCase):
             window.study_button.set_active(False)
             window.lookup_action('choose-passage').activate(None)
             spin(lambda: window.navigation.get_visible())
-            self.assertLessEqual(window.navigation.get_width(), 360)
+            self.assertLessEqual(window.navigation.get_width(), 360,
+                                 f'window={window.get_width()}, content=' + str([
+                                     widget.measure(0, -1)[:2] for widget in
+                                     (window.navigation.version, window.navigation.direct,
+                                      window.navigation.new_button)]))
             window.close()
 
     def test_selected_verse_is_visible_after_wrapped_text_layout(self):
