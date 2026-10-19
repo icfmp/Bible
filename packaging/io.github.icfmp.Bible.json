@@ -67,7 +67,8 @@
       "build-commands": [
         "cp -r bible /app/lib/bible-python/",
         "install -Dm755 packaging/bible /app/bin/bible",
-        "install -Dm644 packaging/io.github.icfmp.Bible.desktop /app/share/applications/io.github.icfmp.Bible.desktop"
+        "install -Dm644 packaging/io.github.icfmp.Bible.desktop /app/share/applications/io.github.icfmp.Bible.desktop",
+        "for size in 32 48 64 128 256 512; do install -Dm644 packaging/icons/${size}x${size}/io.github.icfmp.Bible.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.icfmp.Bible.png; done"
       ],
       "sources": [
         {

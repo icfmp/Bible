@@ -6,3 +6,4 @@ Exec=bible
 Type=Application
 Categories=Education;
 Terminal=false
+Icon=io.github.icfmp.Bible
