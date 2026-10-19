@@ -2,7 +2,7 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/11-commentary-sources]
   workflow_dispatch:
 
 permissions:
@@ -51,6 +51,14 @@ jobs:
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_crosswire
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_commentary
 
+      - name: Commentaire affilié réel et suivi de verset hors connexion
+        env:
+          BIBLE_OFFLINE_PREFIX: sudo unshare --net --
+          GSK_RENDERER: cairo
+        run: |
+          set -o pipefail
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_affiliated_commentary | tee affiliated-commentary.log
+
       - name: Conserver les résultats des tests
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,6 +68,8 @@ jobs:
             test-results.log
             ui-fr-results.log
             native-input-results.log
+            affiliated-commentary.log
+            affiliated-commentary-result.json
           if-no-files-found: warn
 
   flatpak:

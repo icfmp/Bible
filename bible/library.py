@@ -11,7 +11,9 @@ import tarfile
 import tempfile
 import urllib.request
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from concurrent.futures import ThreadPoolExecutor
+from .providers import CROSSWIRE, PROVIDERS, BY_ID, identity, module_name
 
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
 MAX_ARCHIVE = 64 * 1024 * 1024
@@ -36,6 +38,11 @@ class Resource:
     author: str = ''
     category: str = 'Biblical Texts'
     versification: str = 'KJV'
+    provider_id: str = 'crosswire'
+
+    @property
+    def id(self):
+        return identity(self.provider_id, self.name)
 
     @property
     def kind(self):
@@ -43,10 +50,11 @@ class Resource:
 
     @property
     def installable(self):
-        return not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
+        return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
+                and self.category not in {'Images', 'Maps'})
 
 
-def resource_from_section(name, section):
+def resource_from_section(name, section, provider=CROSSWIRE):
     # Keep provider statements, including unknown/restrictive licenses. Listing a
     # translation does not grant redistribution rights over its contents.
     conditions = '\n'.join(f'{key}: {value}' for key, value in section.items()
@@ -57,7 +65,8 @@ def resource_from_section(name, section):
                     section.get('About') or '', conditions, 'cipherkey' in section,
                     section.get('ModDrv') or '', author=section.get('Author') or '',
                     category=section.get('Category') or 'Biblical Texts',
-                    versification=section.get('Versification') or 'KJV')
+                    versification=section.get('Versification') or 'KJV',
+                    provider_id=provider.id, source=provider.name, source_url=provider.url)
 
 
 def config(data):
@@ -129,9 +138,11 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
             raise ValueError('Incomplete download')
 
 
-def catalogue():
+def catalogue(provider=CROSSWIRE):
     data = io.BytesIO()
-    download(BASE + 'raw/mods.d.tar.gz', data, limit=8 * 1024 * 1024)
+    if provider not in PROVIDERS:
+        raise ValueError('Unsupported resource source')
+    download(provider.catalogue_url, data, limit=8 * 1024 * 1024)
     resources = []
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data.getvalue()), mode='r:gz') as archive:
@@ -148,10 +159,33 @@ def catalogue():
                 section = parser[name]
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
                         and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
-                             or section.get('Category') in {'Biblical Texts', 'Commentaries'})
-                        and section.get('Lang')):
-                    resources.append(resource_from_section(name, section))
+                             or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
+                    resources.append(resource_from_section(name, section, provider))
     return sorted(resources, key=lambda r: (r.language, r.name))
+
+
+@dataclass(frozen=True)
+class CatalogueResult:
+    resources: tuple
+    errors: dict
+
+
+def catalogues(providers=PROVIDERS):
+    """One unavailable provider must not discard successful catalogues."""
+    def load(provider):
+        try:
+            return catalogue(provider), None
+        except Exception as error:
+            return [], str(error)
+    resources, errors = [], {}
+    with ThreadPoolExecutor(max_workers=4, thread_name_prefix='bible-catalogue') as executor:
+        for provider, (items, error) in zip(providers, executor.map(load, providers)):
+            if error is not None:
+                errors[provider.name] = error
+            resources.extend(items)
+    # Retain duplicates with distinct IDs and explicit provenance, never pick an
+    # arbitrary provider based on network completion order.
+    return CatalogueResult(tuple(sorted(resources, key=lambda r: (r.language, r.name, r.provider_id))), errors)
 
 
 class Library:
@@ -175,22 +209,34 @@ class Library:
         if len(files) != 1:
             raise ValueError('Expected one resource configuration')
         parser = config(files[0].read_bytes())
-        return resource_from_section(name, parser[name])
+        metadata_path = self.root / name / '.source.json'
+        metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
+        provider_id = metadata.get('provider_id', 'crosswire')
+        provider = BY_ID.get(provider_id)
+        internal = module_name(name)
+        if (provider is None or identity(provider_id, internal) != name
+                or metadata.get('module_name', internal) != internal):
+            raise ValueError('Installed source identity mismatch')
+        resource = resource_from_section(internal, parser[internal], provider)
+        # Read the recorded attribution, not today's registry URL, offline.
+        return replace(resource, source=metadata.get('source', resource.source),
+                       source_url=metadata.get('url', resource.source_url))
 
     def install(self, resource, progress=lambda done, total: None, installing=lambda: None):
-        if resource.source_url != BASE or resource.source != 'CrossWire':
+        provider = BY_ID.get(resource.provider_id)
+        if provider is None or resource.source_url != provider.url or resource.source != provider.name:
             raise ValueError('Unsupported resource source')
         if not resource.installable:
             raise ValueError('Encrypted or unsupported resource')
         if not re.fullmatch(r'[A-Za-z0-9_-]+', resource.name):
             raise ValueError('Invalid resource name')
-        if resource.name in self.installed():
+        if resource.id in self.installed():
             return
         with tempfile.TemporaryDirectory(prefix='.install-', dir=self.root) as temporary:
             stage = Path(temporary)
             archive_path = stage / 'download.zip'
             with archive_path.open('wb') as output:
-                download(BASE + f'packages/rawzip/{resource.name}.zip', output, progress)
+                download(provider.packages_url + f'{resource.name}.zip', output, progress)
             installing()
             target = stage / 'content'
             target.mkdir()
@@ -225,7 +271,7 @@ class Library:
             if parser.sections() != [resource.name]:
                 raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
-            actual = resource_from_section(resource.name, section)
+            actual = resource_from_section(resource.name, section, provider)
             if (actual.kind, actual.driver, actual.versification) != (
                     resource.kind, resource.driver, resource.versification):
                 raise ValueError('Resource type changed. Reload the catalogue before downloading.')
@@ -251,10 +297,11 @@ class Library:
                 raise ValueError('No readable chapter in resource')
             del reader
             (target / '.source.json').write_text(json.dumps({
+                'provider_id': provider.id, 'module_name': resource.name,
                 'source': resource.source, 'url': resource.source_url,
             }), encoding='utf-8')
-            (target / '.complete').write_text(resource.name, encoding='utf-8')
-            destination = self.root / resource.name
+            (target / '.complete').write_text(resource.id, encoding='utf-8')
+            destination = self.root / resource.id
             # Existing complete installations are never replaced by failed downloads.
             if destination.exists():
                 raise ValueError('Resource directory already exists')

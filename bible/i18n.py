@@ -148,3 +148,9 @@ FR.update({
 
 FR['Choose a chapter in this translation to start reading.'] = (
     'Choisissez un chapitre dans cette traduction pour commencer la lecture.')
+
+FR.update({
+    'All sources': 'Toutes les sources',
+    'Partial catalogue. Retry to reload unavailable sources.':
+        'Catalogue partiel. Rechargez pour réessayer les sources indisponibles.',
+})

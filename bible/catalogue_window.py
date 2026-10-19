@@ -8,7 +8,8 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, GLib, Gtk, Pango
 
 from .i18n import tr
-from .library import catalogue
+from .library import catalogues as catalogue
+from .providers import PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name
 
@@ -23,6 +24,7 @@ class CatalogueWindow(Adw.Window):
         self.resources = []
         self.filtered_resources = []
         self.languages = []
+        self.source_ids = [None] + [p.id for p in PROVIDERS]
         self._filtering = False
         self.busy = False
         self.closed = False
@@ -46,6 +48,12 @@ class CatalogueWindow(Adw.Window):
         self.kind.update_property([Gtk.AccessibleProperty.LABEL], [tr('Resource type')])
         self.kind.connect('notify::selected', self.update_languages)
         layout.append(self.kind)
+        layout.append(Gtk.Label(label=tr('Source'), xalign=0, margin_start=12))
+        self.source_filter = Gtk.DropDown(model=Gtk.StringList.new(
+            [tr('All sources')] + [p.name for p in PROVIDERS]), margin_start=12, margin_end=12)
+        self.source_filter.update_property([Gtk.AccessibleProperty.LABEL], [tr('Source')])
+        self.source_filter.connect('notify::selected', self.update_languages)
+        layout.append(self.source_filter)
         self.installed_only = Gtk.CheckButton(label=tr('Installed resources'),
                                                margin_start=12, margin_end=12)
         self.installed_only.connect('toggled', self.update_languages)
@@ -80,8 +88,7 @@ class CatalogueWindow(Adw.Window):
                                           margin_start=12, margin_end=12)
         self.download_button.connect('clicked', self.install)
         layout.append(self.download_button)
-        layout.append(Gtk.Label(label=tr('Source: CrossWire'),
-                                wrap=True, margin_start=12, margin_end=12))
+
         self.progress = Gtk.ProgressBar(margin_start=12, margin_end=12)
         layout.append(self.progress)
         self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
@@ -94,7 +101,10 @@ class CatalogueWindow(Adw.Window):
         resources = ([self.library.resource(name) for name in self.library.installed()]
                      if self.installed_only.get_active() else self.resources)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
-        return [resource for resource in resources if resource.kind == kind]
+        index = self.source_filter.get_selected()
+        provider_id = self.source_ids[index] if index < len(self.source_ids) else None
+        return [resource for resource in resources if resource.kind == kind
+                and (provider_id is None or resource.provider_id == provider_id)]
 
     def update_languages(self, *_):
         previous = (self.languages[self.language.get_selected()]
@@ -118,7 +128,7 @@ class CatalogueWindow(Adw.Window):
                                    and query in normalized(' '.join((r.name, r.description,
                                                                     r.language, language_name(r.language))))]
         self.choices.set_model(Gtk.StringList.new([
-            f'{r.description} ({r.name})' for r in self.filtered_resources]))
+            f'{r.description} ({r.name}) — {r.source}' for r in self.filtered_resources]))
         self.choices.set_selected(0)
         self.selection_changed()
 
@@ -135,9 +145,9 @@ class CatalogueWindow(Adw.Window):
         resource = self.selected_resource()
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
-                                               and resource.name not in self.library.installed())
+                                               and resource.id not in self.library.installed())
                                            and not self.busy)
-        for widget in (self.choices, self.language, self.search, self.installed_only, self.kind):
+        for widget in (self.choices, self.language, self.search, self.installed_only, self.kind, self.source_filter):
             widget.set_sensitive(not self.busy)
 
     def on_close(self, *_):
@@ -187,11 +197,16 @@ class CatalogueWindow(Adw.Window):
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
     def load_catalogue(self, *_):
-        def loaded(resources):
-            self.resources = resources
+        def loaded(result):
+            errors = getattr(result, 'errors', {})
+            resources = getattr(result, 'resources', result)
+            self.resources = list(resources)
             self.installed_only.set_active(False)
             self.update_languages()
-            self.status.set_text(tr('Ready') if resources else tr('No supported resource found.'))
+            self.status.set_text(
+                tr('Partial catalogue. Retry to reload unavailable sources.') + '\n' +
+                '\n'.join(f'{name}: {error}' for name, error in errors.items())
+                if errors else tr('Ready') if resources else tr('No supported resource found.'))
         self.task('Loading catalogue…', catalogue, loaded)
 
     def stop_animation(self):
@@ -238,7 +253,7 @@ class CatalogueWindow(Adw.Window):
             return
 
         def installed(_):
-            self.on_installed(resource.name)
+            self.on_installed(resource.id)
             self.status.set_text(tr('Installed: {name}').format(name=resource.name))
             self.selection_changed()
         self.task(tr('Downloading {name}…').format(name=resource.name),
