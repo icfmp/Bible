@@ -100,3 +100,17 @@ deux instances de l'application dans le même processus de test :
 Le test partage maintenant une seule application entre les fenêtres, comme le fait
 le programme réel. Reproduction puis vérification de la correction effectuées
 avec `dbus-run-session` et Xvfb : les deux tests GTK passent.
+
+L'échec CrossWire a été identifié dans les annotations du run `ef80b11` :
+`configparser.ParsingError` sur des lignes de copyright dans une description.
+Le parseur suit désormais la continuation par antislash de
+`FileMgr::getLine` dans les sources SWORD, et accepte les clés sans valeur.
+Un test de régression vérifie ce format. Les huit tests du cœur passent aussi
+avec la bibliothèque SWORD compilée localement depuis l'archive source.
+
+La recette Flatpak utilise C++17 pour la compatibilité avec les bibliothèques
+récentes du SDK. La compilation complète de SWORD depuis les sources a été
+réalisée localement en C++17, ainsi que l'import des bindings et une lecture dans
+un processus séparé. L'intégration CI est étendue pour exécuter cette lecture
+via `sudo unshare --net --`, comparer l'empreinte des versets et vérifier la
+navigation sans réseau dans ce processus. Le résultat du sandbox reste à confirmer.

@@ -35,7 +35,7 @@
       "buildsystem": "cmake-ninja",
       "config-opts": [
         "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
-        "-DCMAKE_CXX_STANDARD=11",
+        "-DCMAKE_CXX_STANDARD=17",
         "-DSWORD_BUILD_UTILS=No",
         "-DSWORD_BUILD_TESTS=OFF",
         "-DSWORD_NO_CURL=Yes",
@@ -45,7 +45,7 @@
       "post-install": [
         "mkdir -p /app/lib/bible-python",
         "swig -w451,402 -shadow -c++ -python -I../bindings/swig -I../include -outdir /app/lib/bible-python -o Sword.cxx ../bindings/swig/sword.i",
-        "c++ -std=c++11 -shared -fPIC -O2 $(python3-config --includes) -I../include -I../bindings/swig Sword.cxx -L/app/lib -lsword -o /app/lib/bible-python/_Sword.so",
+        "c++ -std=c++17 -shared -fPIC -O2 $(python3-config --includes) -I../include -I../bindings/swig Sword.cxx -L/app/lib -lsword -o /app/lib/bible-python/_Sword.so",
         "PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; assert Sword.VerseKey(\"Gen.1.1\").getOSISRef() == \"Gen.1.1\"'"
       ],
       "sources": [

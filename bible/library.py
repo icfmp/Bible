@@ -26,8 +26,22 @@ class Resource:
 
 
 def config(data):
-    parser = configparser.ConfigParser(interpolation=None, strict=False)
-    parser.read_string(data.decode('utf-8-sig', errors='replace'))
+    # SWORD FileMgr::getLine joins physical lines ending in backslash.
+    # Its configuration also permits bare keys and repeated entries.
+    parser = configparser.ConfigParser(interpolation=None, strict=False,
+                                       allow_no_value=True, delimiters=('=',))
+    logical_lines = []
+    pending = ''
+    for line in data.decode('utf-8-sig', errors='replace').splitlines():
+        line = line.rstrip()
+        if line.endswith('\\'):
+            pending += line[:-1]
+        else:
+            logical_lines.append(pending + line)
+            pending = ''
+    if pending:
+        logical_lines.append(pending)
+    parser.read_string('\n'.join(logical_lines))
     return parser
 
 

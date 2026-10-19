@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from bible.library import Library, Resource, catalogue, download, safe_path
+from bible.library import Library, Resource, catalogue, config, download, safe_path
 
 RESOURCE = Resource('Test', 'Test fixture, not a Bible translation', 'en', 'Public Domain')
 CONF = b'''[Test]
@@ -44,6 +44,12 @@ def archive_bytes(files):
 
 
 class LibraryTests(unittest.TestCase):
+    def test_sword_configuration_continuation(self):
+        data = CONF + b'About=First line \\\nCopyright and address \\\nLast line\nBareKey\n'
+        parsed = config(data)
+        self.assertEqual(parsed['Test']['About'], 'First line Copyright and address Last line')
+        self.assertEqual(parsed['Test']['DistributionLicense'], 'Public Domain')
+
     def test_fresh_profile(self):
         with tempfile.TemporaryDirectory() as d:
             library = Library(d)

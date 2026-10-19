@@ -30,6 +30,8 @@ jobs:
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
+        env:
+          BIBLE_OFFLINE_PREFIX: sudo unshare --net --
         run: |
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_crosswire
 

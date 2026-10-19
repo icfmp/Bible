@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Explicit online integration test: downloads one real public-domain translation."""
 from pathlib import Path
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import sys
 import tempfile
 from unittest.mock import patch
 
@@ -35,6 +41,12 @@ def main():
             assert reader.chapter('Gen.1.1').verses == expected
             following = reader.chapter(chapter.following)
             assert following.previous == 'Gen.1.1'
+        command = shlex.split(os.environ.get('BIBLE_OFFLINE_PREFIX', ''))
+        command += [sys.executable, '-m', 'tools.check_offline',
+                    str(Path(directory) / resource.name), resource.name]
+        offline = subprocess.run(command, check=True, capture_output=True, text=True)
+        digest = hashlib.sha256(json.dumps(expected, ensure_ascii=False).encode()).hexdigest()
+        assert offline.stdout.strip() == digest, 'Offline process text mismatch'
         print(f'PASS: real install, {len(expected)} verses read, SWORD fidelity, '
               'offline reopen and chapter navigation', flush=True)
     return 0
