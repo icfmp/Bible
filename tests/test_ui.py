@@ -7,10 +7,15 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK display (use xvfb-run)')
 class WindowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from bible.ui import Application
+        cls.app = Application()
+        cls.app.register()
+
     def test_empty_profile_and_async_failure_retry(self):
         from bible.ui import Application, Window, Library, GLib
-        app = Application()
-        app.register()
+        app = self.app
         with tempfile.TemporaryDirectory() as directory:
             window = Window(app, Library(directory))
             window.present()
@@ -39,8 +44,7 @@ class WindowTests(unittest.TestCase):
         from pathlib import Path
         from bible.ui import Application, Window, Library
         from tests.test_library import fixture
-        app = Application()
-        app.register()
+        app = self.app
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / 'Test'
             root.mkdir()

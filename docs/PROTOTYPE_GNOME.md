@@ -93,3 +93,10 @@ CrossWire échoue ; l'API Actions reste refusée (`Forbidden`) et GitHub demande
 une connexion pour consulter les logs détaillés. Le lanceur `tools/ci_run.py`
 remonte désormais les dernières lignes d'échec dans une annotation publique,
 pour permettre le diagnostic de cette intégration sans inventer sa cause.
+
+Le test de deuxième fenêtre a révélé une collision d'enregistrement D-Bus entre
+deux instances de l'application dans le même processus de test :
+`An object is already exported for the interface org.gtk.Application at /io/github/icfmp/Bible`.
+Le test partage maintenant une seule application entre les fenêtres, comme le fait
+le programme réel. Reproduction puis vérification de la correction effectuées
+avec `dbus-run-session` et Xvfb : les deux tests GTK passent.
