@@ -1,0 +1,36 @@
+{
+  "signing_secret_available": "false",
+  "repository": {
+    "exit_code": 0,
+    "result": {
+      "has_pages": false,
+      "default_branch": "main",
+      "permissions": {
+        "admin": false,
+        "maintain": false,
+        "push": false,
+        "triage": false,
+        "pull": false
+      }
+    },
+    "error": ""
+  },
+  "pages": {
+    "exit_code": 1,
+    "result": {
+      "message": "Not Found",
+      "documentation_url": "https://docs.github.com/rest/pages/pages#get-a-apiname-pages-site",
+      "status": "404"
+    },
+    "error": "gh: Not Found (HTTP 404)\n"
+  },
+  "secret_configuration": {
+    "exit_code": 1,
+    "result": {
+      "message": "Resource not accessible by integration",
+      "documentation_url": "https://docs.github.com/rest/actions/secrets#get-a-repository-public-key",
+      "status": "403"
+    },
+    "error": "gh: Resource not accessible by integration (HTTP 403)\n"
+  }
+}
