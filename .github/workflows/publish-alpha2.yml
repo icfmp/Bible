@@ -1,0 +1,68 @@
+name: Publier 0.1.0-alpha.2
+on:
+  push:
+    branches: [release/0.1.0-alpha.2]
+permissions:
+  contents: write
+  actions: read
+  pull-requests: write
+concurrency:
+  group: release-0.1.0-alpha.2
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: publisher
+          fetch-depth: 0
+      - uses: actions/checkout@v6
+        with:
+          ref: c2792c14ec86b28767cd5bc9ec8509a576e9a52d
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          run-id: 39315036866
+          github-token: ${{ github.token }}
+          path: source/release-artifacts
+      - name: Vérifier et publier le paquet du commit testé
+        id: publication
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BIBLE_RELEASE_NOTES: ${{ github.workspace }}/publisher/docs/releases/0.1.0-alpha.2.md
+        run: |
+          set -o pipefail
+          python3 ../publisher/tools/publish_prerelease.py 2>&1 | tee /tmp/publication.log
+      - name: Proposer la préparation en pull request
+        if: always()
+        working-directory: publisher
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create --repo icfmp/Bible --base main --head release/0.1.0-alpha.2 --title 'Préparer la préversion 0.1.0-alpha.2' --body-file docs/releases/0.1.0-alpha.2.md > /tmp/pr-result.txt 2>&1 || cat /tmp/pr-result.txt
+      - name: Conserver le résultat vérifiable de la publication
+        if: always()
+        working-directory: publisher
+        env:
+          PUBLICATION_RESULT: ${{ steps.publication.outcome }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          data = {'publication': os.environ['PUBLICATION_RESULT'], 'publisher_commit': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID']}
+          for name, path in [('log','/tmp/publication.log'), ('pull_request','/tmp/pr-result.txt')]:
+              data[name] = Path(path).read_text()[-16000:] if Path(path).exists() else 'Étape non exécutée'
+          Path('/tmp/release-report.json').write_text(json.dumps(data, indent=2))
+          PYTHON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin refs/notes/releases:refs/notes/releases || true
+          git notes --ref=releases add -f -F /tmp/release-report.json "$GITHUB_SHA"
+          git push origin refs/notes/releases
