@@ -54,15 +54,15 @@ class SessionStore:
                     raise ValueError('Invalid translation name')
                 if not isinstance(reference, str) or not reference or len(reference) > 256:
                     raise ValueError('Invalid reference')
-                if (type(scroll) not in (int, float) or not math.isfinite(scroll)
-                        or not 0 <= scroll <= 1 or type(study) is not bool):
+                if (type(scroll) not in (int, float) or not 0 <= scroll <= 1
+                        or not math.isfinite(scroll) or type(study) is not bool):
                     raise ValueError('Invalid reading position')
                 tabs.append(TabState(resource, reference, float(scroll), study))
             selected = value.get('selected', 0)
             if type(selected) is not int or selected < 0 or (selected >= len(tabs) if tabs else selected != 0):
                 raise ValueError('Invalid selected tab')
             return Session(tabs, selected)
-        except (ValueError, KeyError, TypeError) as error:
+        except (ValueError, KeyError, TypeError, RecursionError) as error:
             raise SessionError(str(error)) from error
 
     def save(self, session):

@@ -103,8 +103,8 @@ class Window(Adw.ApplicationWindow):
     def tabs(self):
         return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
 
-    def append_tab(self, state):
-        tab = ReadingTab(self.library, state, self.tab_changed, self.open_passage_in_new)
+    def append_tab(self, state, jump_to_reference=False):
+        tab = ReadingTab(self.library, state, self.tab_changed, self.open_passage_in_new, jump_to_reference)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -112,7 +112,7 @@ class Window(Adw.ApplicationWindow):
     def new_tab(self):
         current = self.active_tab
         names = self.library.installed()
-        state = TabState(current.state.resource, current.state.reference) if current else TabState(
+        state = TabState(current.state.resource, current.state.reference, current.state.scroll) if current else TabState(
             resource=names[0] if names else None)
         page = self.append_tab(state)
         self.view.set_selected_page(page)
@@ -130,7 +130,7 @@ class Window(Adw.ApplicationWindow):
                 return
         if current and current.current:
             current.reference.set_text(current.current.reference)
-        page = self.append_tab(TabState(resource, reference))
+        page = self.append_tab(TabState(resource, reference), jump_to_reference=True)
         self.view.set_selected_page(page)
         self.schedule_save()
 

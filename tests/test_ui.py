@@ -229,3 +229,24 @@ class WindowTests(unittest.TestCase):
             self.assertEqual([tab.state.reference for tab in restored.tabs()], ['Gen.2.1', 'Gen.1.1'])
             self.assertEqual(restored.active_tab.state.reference, 'Gen.2.1')
             restored.close()
+
+    def test_manual_scroll_to_top_wins_over_the_original_verse_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory, long_text=True)
+            window = self.window(directory)
+            first = window.active_tab
+            first.show('Gen.1.2')
+            spin(lambda: not first._restoring_scroll)
+            self.assertGreater(first.scroll.get_vadjustment().get_value(), 100)
+            first.scroll.get_vadjustment().set_value(0)
+            self.assertEqual(first.state.scroll, 0)
+            window.new_tab()
+            window.view.set_selected_page(window.view.get_nth_page(0))
+            spin(lambda: not first._restoring_scroll)
+            self.assertEqual(first.scroll.get_vadjustment().get_value(), 0)
+            window.close()
+            restored = self.window(directory)
+            spin(lambda: not restored.active_tab._restoring_scroll)
+            self.assertEqual(restored.active_tab.state.reference, 'Gen.1.2')
+            self.assertEqual(restored.active_tab.scroll.get_vadjustment().get_value(), 0)
+            restored.close()

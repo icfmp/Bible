@@ -55,14 +55,15 @@ sentinelles de test clairement identifiées :
   ou corrompu ; valeurs dangereuses ; échec du remplacement atomique.
 - GTK sous Xvfb et bus de session : deux passages indépendants ; changement de
   traduction dans un seul onglet ; fermeture ; réordonnancement ; restauration
-  après destruction puis création d’une fenêtre ; défilement réellement rétabli.
+  après destruction puis création d’une fenêtre ; défilement réellement rétabli,
+  y compris le retour manuel en haut après ouverture d’un verset précis.
 - Traduction supprimée entre deux ouvertures ; conservation du passage et des
   autres onglets ; session corrompue préservée.
 - Mesure de la largeur allouée au lecteur avec et sans panneau ; fenêtre étroite ;
   actions clavier des onglets ; transfert poursuivi après masquage du catalogue.
 
-Résultats locaux : **22 tests réussis** (8 du lecteur et de l’installation,
-5 de persistance, 9 GTK). Les 9 tests GTK passent aussi avec `LANGUAGE=fr`.
+Résultats locaux : **23 tests réussis** (8 du lecteur et de l’installation,
+5 de persistance, 10 GTK). Les 10 tests GTK passent aussi avec `LANGUAGE=fr`.
 Compilation syntaxique Python et contrôle du diff réussis.
 
 La pipeline existante exécute automatiquement la suite complète. Elle conserve

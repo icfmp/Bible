@@ -9,7 +9,7 @@ from .sword_provider import Reader
 
 
 class ReadingTab(Gtk.Box):
-    def __init__(self, library, state, changed, open_in_new):
+    def __init__(self, library, state, changed, open_in_new, jump_to_reference=False):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         self.library, self.state, self.changed = library, state, changed
         self.reader = None
@@ -19,6 +19,7 @@ class ReadingTab(Gtk.Box):
         self._tick_id = 0
         self._scroll_frames = 0
         self._verse_offsets = {}
+        self._jump_reference = None
         translation = Gtk.Box(spacing=6, margin_start=12, margin_end=12)
         self.translations = Gtk.DropDown(hexpand=True, tooltip_text=tr('Translations'))
         factory = Gtk.SignalListItemFactory()
@@ -63,7 +64,7 @@ class ReadingTab(Gtk.Box):
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
         self.refresh_resources()
-        self.load_resource()
+        self.load_resource(jump_to_reference)
 
     def title(self):
         return f'{self.state.resource} — {self.state.reference.rsplit(".", 1)[0]}' if self.state.resource else tr('New tab')
@@ -92,7 +93,9 @@ class ReadingTab(Gtk.Box):
         self.load_resource()
         self.changed(self)
 
-    def load_resource(self):
+    def load_resource(self, jump_to_reference=False):
+        self._verse_offsets = {}
+        self._jump_reference = None
         self.reader = None
         self.current = None
         self.previous.set_sensitive(False)
@@ -107,7 +110,7 @@ class ReadingTab(Gtk.Box):
         else:
             try:
                 self.reader = Reader(self.library.root / self.state.resource, self.state.resource)
-                self.show(self.state.reference, restore=True)
+                self.show(self.state.reference, restore=not jump_to_reference)
             except Exception as error:
                 self.status.set_text(f'{tr("Unable to read this passage.")} {error}')
         self.reference.set_sensitive(self.reader is not None)
@@ -122,6 +125,7 @@ class ReadingTab(Gtk.Box):
             self._restoring_scroll = True
             self.current = chapter
             self.state.reference = canonical
+            self._jump_reference = canonical if not restore else None
             if not restore:
                 self.state.scroll = 0.0
             self.reference.set_text(chapter.reference)
@@ -158,12 +162,13 @@ class ReadingTab(Gtk.Box):
         adjustment = self.scroll.get_vadjustment()
         maximum = max(0, adjustment.get_upper() - adjustment.get_page_size())
         desired = self.state.scroll * maximum
-        if (self.state.scroll == 0 and self.state.reference in self._verse_offsets
-                and self.state.reference.rsplit('.', 1)[-1] != '1'):
-            iterator = self.text.get_buffer().get_iter_at_offset(self._verse_offsets[self.state.reference])
+        if (self._jump_reference in self._verse_offsets
+                and self._jump_reference.rsplit('.', 1)[-1] != '1'):
+            iterator = self.text.get_buffer().get_iter_at_offset(self._verse_offsets[self._jump_reference])
             desired = max(0, self.text.get_iter_location(iterator).y)
         adjustment.set_value(min(desired, maximum))
         self._tick_id = 0
+        self._jump_reference = None
         self._restoring_scroll = False
         self.scroll_changed()
         return False

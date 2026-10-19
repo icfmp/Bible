@@ -37,7 +37,7 @@ class SessionTests(unittest.TestCase):
 
     def test_corrupt_or_future_formats_are_not_rewritten(self):
         for content in ['{', '{"version":2,"tabs":[]}', '[]',
-                        '{"version":1,"tabs":[],"selected":4}']:
+                        '{"version":1,"tabs":[],"selected":4}', '[' * 1200 + ']' * 1200]:
             with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
                 store = SessionStore(Path(directory) / 'session.json')
                 store.path.write_text(content)
@@ -47,7 +47,7 @@ class SessionTests(unittest.TestCase):
 
     def test_untrusted_values_are_rejected(self):
         for field, value in [('resource', '../outside'), ('reference', 3),
-                             ('scroll', float('nan')), ('scroll', -1),
+                             ('scroll', float('nan')), ('scroll', 10 ** 2000), ('scroll', -1),
                              ('scroll', 2), ('study_visible', 'false')]:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
                 tab = {'resource': 'KJV', 'reference': 'Gen.1.1', 'scroll': 0, 'study_visible': False}
