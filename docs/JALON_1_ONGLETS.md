@@ -1,5 +1,8 @@
 # Jalon 1 — onglets, session et panneau d’étude (issue #3)
 
+Ce document décrit le jalon historique #3. Les parcours ci-dessous tiennent
+compte du [sélecteur et des commandes corrigés dans #8–#10](CORRECTIONS_ALPHA_8_10.md).
+
 ## Réalisation
 
 Le lecteur utilise `Adw.TabView` et `Adw.TabBar`, avec fermeture et réordonnancement
@@ -80,8 +83,9 @@ LANGUAGE=fr /usr/bin/python3 -m bible
 
 Avec une traduction téléchargée :
 
-1. Saisir `Gen.1.1` et valider. Saisir `Gen.2.1` puis utiliser le bouton « Ouvrir le
-   passage dans un nouvel onglet ». Vérifier que les deux onglets restent distincts.
+1. Ouvrir la saisie directe (`Ctrl+K`), saisir `Gen.1.1` et valider avec Entrée.
+   Créer volontairement un onglet avec `Ctrl+T`, puis y saisir `Gen.2.1`. Vérifier
+   que les deux onglets restent distincts ; le sélecteur ne crée pas d’onglet.
 2. Faire défiler chaque onglet, changer leur ordre et choisir une autre traduction
    dans l’un si plusieurs sont installées. Vérifier l’indépendance.
 3. Basculer Étude par le bouton ou `F9`, redimensionner la fenêtre, puis masquer le

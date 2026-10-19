@@ -43,13 +43,16 @@ cd Bible
 Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
 fenêtre, ouvrir **Bibliothèque** dans la Header Bar (`Ctrl+L`), choisir
 **Charger le catalogue**, choisir **Bibles** et une **Langue**, rechercher un titre,
-lire sa licence et ses conditions, puis cliquer sur **Télécharger**. Après installation, le premier chapitre apparaît. Les flèches
-changent de chapitre. Cliquer sur le titre central (`Ctrl+G`) puis choisir
-**Version → Livre → Chapitre → Verset**, par exemple **Jean → 3 → 16**.
-**Ouvrir dans cet onglet** applique la sélection ; **Ouvrir dans un nouvel onglet**
-conserve le passage de départ. Les listes reflètent le contenu réel de la
-traduction installée. **Saisie directe** (`Ctrl+K`) accepte notamment `Jean 3:16`,
-`John 3:16` ou `John.3.16`.
+lire sa licence et ses conditions, puis cliquer sur **Télécharger**. La progression
+indique le transfert puis la vérification avant de confirmer l’installation.
+Les flèches rondes dans le panneau biblique changent de chapitre.
+Cliquer sur le titre central (`Ctrl+G`) : recherche/liste des livres à gauche,
+grille des chapitres à droite. Choisir un chapitre l’ouvre immédiatement dans
+l’onglet actif ; le choix d’un verset reste facultatif. Par exemple **Jean → 3**,
+puis **Verset → 16** si nécessaire. La traduction reste accessible en haut.
+Aucun bouton de validation ni choix de destination. Les livres et chapitres
+reflètent le contenu réel de la traduction installée. **Saisie directe** (`Ctrl+K`)
+accepte `Jean 3:16`, `John 3:16` ou `John.3.16` ; Entrée applique la référence.
 L'interface est disponible en français et en anglais selon la
 langue du système (`LANGUAGE=fr /usr/bin/python3 -m bible` pour forcer le français).
 
@@ -59,7 +62,8 @@ sélecteur du titre central. Les ressources sont conservées dans
 `${XDG_DATA_HOME:-~/.local/share}/bible/translations`.
 
 **Onglets et session** : `Ctrl+T` ouvre un nouvel onglet au passage courant ;
-le sélecteur central propose aussi d’ouvrir le passage dans un autre onglet.
+utiliser ensuite le sélecteur pour changer le passage de cet onglet. Le sélecteur
+central ne crée jamais d’onglet.
 Chaque onglet garde sa traduction et sa position. `Ctrl+W` ferme l’onglet actif.
 Fermer puis relancer restaure les onglets, leur ordre et l’onglet sélectionné.
 Une traduction supprimée laisse son onglet et sa référence visibles avec un

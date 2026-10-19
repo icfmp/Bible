@@ -1,5 +1,5 @@
 # Bible — Cahier des charges produit
-Version de cadrage : 18 octobre 2026. Statut : décisions produit recueillies, développement non commencé.
+Cadrage initial : 18 octobre 2026, complété par les décisions alpha du 19 octobre 2026. Développement en cours ; ce document distingue les objectifs produit des fonctions effectivement livrées.
 
 ## 1. Intention
 Bible est un logiciel libre de lecture et d'étude biblique pour le grand public, y compris les personnes sans connaissances techniques. Il doit permettre aussi bien la lecture quotidienne que l'étude approfondie. Ce n'est pas un gestionnaire personnel ni un logiciel réservé aux pasteurs.
