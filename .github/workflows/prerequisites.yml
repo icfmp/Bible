@@ -54,5 +54,17 @@ jobs:
           flatpak install --user --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
       - name: Construire et vérifier SWORD dans le sandbox
         run: |
-          /usr/bin/python3 tools/ci_run.py flatpak-builder --user --force-clean build-dir packaging/io.github.icfmp.Bible.json
+          /usr/bin/python3 tools/ci_run.py flatpak-builder --user --repo=local-repo --force-clean build-dir packaging/io.github.icfmp.Bible.json
           flatpak-builder --run build-dir packaging/io.github.icfmp.Bible.json env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; from bible.ui import Window; print(Sword.VerseKey("John.1.1").getOSISRef())'
+      - name: Créer et installer le paquet alpha pour vérification
+        run: |
+          flatpak build-bundle local-repo Bible-alpha.flatpak io.github.icfmp.Bible --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive ./Bible-alpha.flatpak
+          flatpak run --user --command=python3 io.github.icfmp.Bible -c 'import Sword; from bible.ui import Window; print("Bundle OK")'
+      - name: Mettre le paquet alpha à disposition
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          path: Bible-alpha.flatpak
+          if-no-files-found: error
+          retention-days: 30
