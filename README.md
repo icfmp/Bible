@@ -159,3 +159,9 @@ Voir [le catalogue et les conditions d’accès](docs/CATALOGUE_CROSSWIRE.md),
 
 Le livre bleu avec le titre « Bible » et le signet ocre est intégré au lanceur
 Flatpak. Voir [la source, les exports et les finitions GNOME restantes](packaging/icons/README.md).
+
+Le [canal alpha avec mises à jour Flatpak](docs/CANAL_ALPHA_FLATPAK.md) est préparé
+sur la branche de l’issue #17. Son installation/mise à jour depuis un dépôt signé
+est testée ; son activation GitHub Pages et sa validation HTTPS publique restent
+à effectuer avec la connexion administrateur. Utiliser les bundles vérifiés en
+attendant ; aucun lien d’installation du nouveau canal n’est annoncé disponible.
