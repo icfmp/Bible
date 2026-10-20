@@ -8,6 +8,13 @@ Read these before implementation:
 
 The user is the client. Communicate with the client in French. Keep implementation identifiers clear and interface strings translatable. Do not assume access to the conversation that produced these documents.
 
+## Public project language
+- Use English for all public GitHub content: issue titles, descriptions and comments; pull requests and reviews; commit messages; release notes; README and contributor-facing documentation.
+- Keep direct conversations with the client in French. Explain decisions and next steps in French privately, and in English on GitHub.
+- Keep the application available in French and English. This policy does not change UI localization or the language of downloaded resources.
+- Exact localized UI labels and error messages may be quoted when needed, with an English explanation.
+- Preserve historical contributions and authorship. Translate existing project documentation progressively when it is revised; do not rewrite Git history to change its language.
+
 ## Technical direction
 - Native GNOME first: Python + PyGObject + GTK 4 + libadwaita is the proposed baseline.
 - Use a real Header Bar and current stable GNOME patterns. Do not substitute a web mockup, Electron shell, or website.
@@ -41,7 +48,7 @@ The user is the client. Communicate with the client in French. Keep implementati
 ## Delivery discipline
 - Work in focused increments; first prove a real downloaded module and installable GTK application.
 - For routine, reversible changes, work on the current `main`, run relevant checks, commit and push the result directly when repository access permits. Refresh from the latest `main` before editing and do not force-push.
-- For changes that warrant review (data migrations, licensing or content-source policy, secrets, release/distribution, or major architecture), use a feature branch and a pull request. Explain the decision and next action in French.
+- For changes that warrant review (data migrations, licensing or content-source policy, secrets, release/distribution, or major architecture), use a feature branch and a pull request. Explain the decision and next action in the appropriate language defined above.
 - If the environment cannot push or merge, report the exact permission/error and leave a reviewable commit or pull request; do not ask the client to perform routine Git operations without first diagnosing the access issue.
 - Run relevant tests and report actual results. Test data persistence, references, offline behavior and text fidelity where affected.
 - Distinguish automated checks from manual GUI validation and actual OS-specific checks.
