@@ -612,8 +612,8 @@ class WindowTests(unittest.TestCase):
             central.search.set_text('Genèse 1:1')
             central.refresh()
             self.assertEqual([n.id for n in central.rows], [first.id])
-            central.list.emit('row-activated', central.list.get_row_at_index(0))
-            self.assertEqual(window.active_tab.state.reference, 'Gen.1.1')
+            central.list.emit('activate', 0)
+            self.assertEqual(window.active_tab.state.reference, 'Gen.2.1')  # Editing in My notes does not navigate the reader.
             self.assertEqual(window.note_editor.note.id, first.id)
             window.note_editor.close()
             window.close()

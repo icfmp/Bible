@@ -154,3 +154,24 @@ FR.update({
     'Partial catalogue. Retry to reload unavailable sources.':
         'Catalogue partiel. Rechargez pour réessayer les sources indisponibles.',
 })
+
+FR.update({
+    'Reading appearance':'Apparence de lecture','Reading font':'Police de lecture',
+    'Text size':'Taille du texte','Chapter numbers':'Numéros de chapitres','Verse numbers':'Numéros de versets',
+    'Compare translations':'Comparer les traductions','No comparison':'Aucune comparaison',
+    'Comparison translation unavailable.':'La traduction de comparaison est indisponible.',
+    'History':'Historique','History back':'Historique : retour','History forward':'Historique : avancer',
+    'Books':'Livres','No passage history yet.':'Aucun passage dans l’historique.',
+    'History resource unavailable. The passage has been kept.':'Cette traduction est indisponible. Le passage reste dans l’historique.',
+    'Add a passage note':'Ajouter une note de passage',
+    'Explore':'Explorer','Installed':'Installée','Refresh catalogue':'Actualiser le catalogue',
+    'Search languages':'Rechercher une langue','Back':'Retour',
+    'Note created with':'Note créée avec','Note actions':'Actions de la note','Delete note…':'Supprimer la note…',
+    'Write / Preview':'Écrire / Aperçu','Unsaved changes':'Modifications non enregistrées',
+    'Save this note before leaving?':'Enregistrer cette note avant de quitter l’édition ?',
+    'Keep editing':'Continuer l’édition','Discard':'Abandonner',
+    'Filter by label':'Filtrer par label','Search labels':'Rechercher un label','Remove filter':'Retirer le filtre',
+    'Today':'Aujourd’hui','Yesterday':'Hier','Reading':'Lecture','Back to notes':'Retour aux notes',
+    'Choose a note':'Choisissez une note','Your notes remain available offline.':'Vos notes restent disponibles hors connexion.',
+    'No notes yet.':'Aucune note pour le moment.','Open passage':'Ouvrir le passage',
+})

@@ -5,16 +5,19 @@ import gi
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .catalogue_window import CatalogueWindow
+from .providers import module_name
 from .i18n import tr
 from .library import Library
 from .reading_tab import ReadingTab
 from .study_panel import StudyPanel
 from .navigation import PassagePopover
 from .notes import NoteStore
-from .notes_window import NoteEditor, NotesWindow
+from .preferences import Preferences
+from .appearance import AppearancePopover
+from .notes_window import NoteEditor, NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
 
@@ -24,6 +27,7 @@ class Window(Adw.ApplicationWindow):
         self.set_size_request(360, 320)
         self.library = library
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
+        self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
         self.closed = False
         self._initializing = True
         self._syncing_study = False
@@ -31,6 +35,7 @@ class Window(Adw.ApplicationWindow):
         self._session_writable = True
         self.catalogue_window = None
         self.notes_window = None
+        self.notes_space = None
         self.note_editor = None
         self.notes_error = ''
         try:
@@ -43,6 +48,14 @@ class Window(Adw.ApplicationWindow):
         header = Adw.HeaderBar()
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
         self.heading = Adw.WindowTitle(title=tr('Choose a passage'))
+        # Bound both title and version even with long affiliated module IDs.
+        def constrain_labels(widget):
+            if isinstance(widget,Gtk.Label):
+                widget.set_max_width_chars(18);widget.set_width_chars(1);widget.set_ellipsize(Pango.EllipsizeMode.END)
+            child=widget.get_first_child()
+            while child:
+                constrain_labels(child);child=child.get_next_sibling()
+        constrain_labels(self.heading)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
         heading_box.append(Gtk.Image(icon_name='pan-down-symbolic'))
@@ -54,22 +67,36 @@ class Window(Adw.ApplicationWindow):
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
         header.pack_start(new)
-        library_button = Gtk.Button(icon_name='view-grid-symbolic', tooltip_text=tr('Library'),
-                                     action_name='win.translations')
-        header.pack_end(library_button)
-        self.study_button = Gtk.ToggleButton(icon_name='sidebar-show-symbolic',
-                                              tooltip_text=tr('Study'))
-        self.study_button.connect('toggled', self.toggle_study)
-        header.pack_end(self.study_button)
         commands = Gio.Menu()
-        commands.append(tr('Passage note'), 'win.note')
-        commands.append(tr('My notes'), 'win.notes')
-        commands.append(tr('New tab'), 'win.new-tab')
-        commands.append(tr('Library'), 'win.translations')
-        menu = Gtk.MenuButton(icon_name='open-menu-symbolic', menu_model=commands,
-                              tooltip_text=tr('Notes and commands'))
-        menu.update_property([Gtk.AccessibleProperty.LABEL], [tr('Notes and commands')])
-        header.pack_end(menu)
+        for label,action in [('Passage note','note'),('My notes','notes'),('New tab','new-tab'),
+                             ('Library','translations'),('History back','history-back'),('History forward','history-forward'),
+                             ('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
+                             ('Reading appearance','appearance'),('Compare translations','compare')]:
+            commands.append(tr(label),'win.'+action)
+        self.menu = Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands,tooltip_text=tr('Notes and commands'))
+        self.menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Notes and commands')])
+        self.library_button = library_button = Gtk.Button(icon_name='bible-library-symbolic',tooltip_text=tr('Library'),action_name='win.translations')
+        self.my_notes_button=Gtk.Button(icon_name='bible-notes-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
+        self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-symbolic',tooltip_text=tr('Study'))
+        self.study_button.connect('toggled',self.toggle_study)
+        self.appearance_button=Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
+        self.appearance_button.add_css_class('flat')
+        self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
+        self.comparison_button=Gtk.MenuButton(icon_name='view-dual-symbolic',tooltip_text=tr('Compare translations'))
+        self.comparison_popover=Gtk.Popover()
+        self.comparison_choices=Gtk.DropDown()
+        self.comparison_choices.connect('notify::selected',self.comparison_selected)
+        self.comparison_popover.set_child(self.comparison_choices)
+        self.comparison_button.set_popover(self.comparison_popover)
+        self._comparison_syncing=False
+        # pack_end packs from the outside in: menu is immediately before the
+        # native window controls, library before menu, My notes before library.
+        for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
+                             (self.my_notes_button,'My notes'),(self.study_button,'Study'),
+                             (self.appearance_button,'Reading appearance'),(self.comparison_button,'Compare translations')]:
+            widget.add_css_class('flat')
+            widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+            header.pack_end(widget)
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
@@ -88,7 +115,9 @@ class Window(Adw.ApplicationWindow):
         self.split.set_sidebar(self.study)
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         layout.append(self.split)
-        self.set_content(layout)
+        self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
+        self.main_pages.add_named(layout,'reading')
+        self.set_content(self.main_pages)
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
         self.add_breakpoint(breakpoint)
@@ -96,9 +125,15 @@ class Window(Adw.ApplicationWindow):
         tiny_header.add_setter(self.split, 'collapsed', True)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
+        tiny_header.add_setter(self.my_notes_button,'visible',False)
+        tiny_header.add_setter(self.study_button,'visible',False)
+        tiny_header.add_setter(self.appearance_button,'visible',False)
+        tiny_header.add_setter(self.comparison_button,'visible',False)
         self.add_breakpoint(tiny_header)
+        icons = Gtk.IconTheme.get_for_display(self.get_display())
+        icons.add_search_path(str(Path(__file__).parent / 'icons/scalable/actions'))
         css = Gtk.CssProvider()
-        css.load_from_data(b'textview.reading { font-size: 18pt; } '
+        css.load_from_data(b'textview.reading { } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
                            b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
@@ -118,6 +153,10 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
         self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
         self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
+        self.add_action_callback('appearance',lambda *_:self.appearance_button.popup())
+        self.add_action_callback('compare',lambda *_:self.comparison_button.popup())
+        self.add_action_callback('history-back',lambda *_:self.active_tab.travel(self.active_tab.state.history_index-1))
+        self.add_action_callback('history-forward',lambda *_:self.active_tab.travel(self.active_tab.state.history_index+1))
         self.add_action_callback('note', lambda *_: self.new_note())
         self.add_action_callback('notes', lambda *_: self.open_notes())
         self.lookup_action('note').set_enabled(self.notes_store is not None)
@@ -133,8 +172,10 @@ class Window(Adw.ApplicationWindow):
         app.set_accels_for_action('win.next-verse', ['<Alt>Down'])
         app.set_accels_for_action('win.choose-passage', ['<Control>g'])
         app.set_accels_for_action('win.reference', ['<Control>k'])
-        app.set_accels_for_action('win.previous-chapter', ['<Alt>Left'])
-        app.set_accels_for_action('win.next-chapter', ['<Alt>Right'])
+        app.set_accels_for_action('win.previous-chapter', ['<Alt>Page_Up'])
+        app.set_accels_for_action('win.history-back',['<Alt>Left'])
+        app.set_accels_for_action('win.next-chapter', ['<Alt>Page_Down'])
+        app.set_accels_for_action('win.history-forward',['<Alt>Right'])
         try:
             session = self.store.load()
         except (OSError, SessionError) as error:
@@ -173,7 +214,7 @@ class Window(Adw.ApplicationWindow):
 
     def append_tab(self, state, jump_to_reference=False):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
-                         self.notes_store, self.open_passage_notes)
+                         self.notes_store, self.open_passage_notes, self.preferences.value)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -229,7 +270,7 @@ class Window(Adw.ApplicationWindow):
         if not tab:
             return
         self.heading.set_title(tab.passage_title())
-        subtitle = tab.state.resource or tr('Choose a translation')
+        subtitle = module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
         if tab.state.resource and tab.state.resource not in self.library.installed():
             subtitle += f' ({tr("Missing translation")})'
         self.heading.set_subtitle(subtitle)
@@ -240,8 +281,35 @@ class Window(Adw.ApplicationWindow):
         self.lookup_action('previous-chapter').set_enabled(previous is not None)
         self.lookup_action('next-chapter').set_enabled(following is not None)
         self.navigation.sync()
+        self.sync_comparison()
+        self.lookup_action('history-back').set_enabled(tab.state.history_index>0)
+        self.lookup_action('history-forward').set_enabled(tab.state.history_index+1<len(tab.state.history))
         self.study.refresh()
         tab.update_notes()
+
+    def apply_appearance(self):
+        for tab in self.tabs():tab.apply_appearance()
+        if self.active_tab:self.active_tab.refresh_comparison()
+
+    def sync_comparison(self):
+        tab=self.active_tab
+        self._comparison_syncing=True
+        self._comparison_names=[None]+[name for name in self.library.installed('bible') if name!=tab.state.resource]
+        labels=[tr('No comparison')]+[self.library.resource(name).description for name in self._comparison_names[1:]]
+        # Never replace the dropdown's model recursively from its notification.
+        if getattr(self,'_comparison_labels',None)!=labels:
+            self.comparison_choices.set_model(Gtk.StringList.new(labels));self._comparison_labels=labels
+        self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
+        self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
+        self._comparison_syncing=False
+        tab.refresh_comparison()
+
+    def comparison_selected(self,widget,*_):
+        if self._comparison_syncing or not self.active_tab:return
+        index=widget.get_selected()
+        self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
+        self.active_tab.refresh_comparison()
+        self.schedule_save()
 
     def close_tab(self):
         page = self.view.get_selected_page()
@@ -329,13 +397,13 @@ class Window(Adw.ApplicationWindow):
             self.notes_window.refresh()
 
     def open_notes(self):
-        if self.notes_store is None:
-            return
-        if self.notes_window is None or self.notes_window.closed:
-            self.notes_window = NotesWindow(self)
-        self.notes_window.show_all()
-        self.notes_window.present()
-        return self.notes_window
+        if self.notes_store is None:return
+        if self.notes_space is None:
+            self.notes_space=NotesSpace(self)
+            self.notes_window=self.notes_space
+            self.main_pages.add_named(self.notes_space,'notes')
+        self.notes_space.refresh();self.notes_space.present()
+        return self.notes_space
 
     def new_note(self, force_new=False):
         tab = self.active_tab
@@ -379,14 +447,12 @@ class Window(Adw.ApplicationWindow):
         self.note_editor.present()
         return self.note_editor
 
-    def open_saved_note(self, note):
+    def open_saved_note(self, note, edit=True):
         note = self.notes_store.get(note.id)
         if note is None:
             return
-        if self.note_editor and not self.note_editor.closed:
-            self.note_editor.status.set_text(tr('Save or close the current note before opening another.'))
-            self.note_editor.present()
-            return self.note_editor
+        if edit and self.main_pages.get_visible_child_name()=='notes':
+            return self.notes_space.open_note(note)
         from .sword_provider import Reader
         tab = self.active_tab
         candidates = list(dict.fromkeys([tab.state.resource if tab else None,
@@ -406,7 +472,7 @@ class Window(Adw.ApplicationWindow):
                 continue
         if explanation:
             explanation += f' [{note.versification}]'
-        return self.edit_note(note=note, explanation=explanation)
+        return self.edit_note(note=note, explanation=explanation) if edit else not explanation
 
     def schedule_save(self):
         if self._initializing or self.closed or not self._session_writable:
@@ -444,8 +510,7 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
-        if self.notes_window and not self.notes_window.closed:
-            self.notes_window.close()
+        if self.notes_space:self.notes_space.closed=True
         if self.notes_store:
             self.notes_store.close()
         if self.catalogue_window is not None and not self.catalogue_window.closed:

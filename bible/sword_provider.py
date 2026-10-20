@@ -132,6 +132,18 @@ class Reader:
         return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
 
 
+    def structured_chapter(self, chapter):
+        from .structured_text import extract
+        source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
+        result = {}
+        for reference, plain in chapter.verses:
+            self.module.setKey(self.key(reference))
+            raw = self.module.getRawEntry()
+            raw = raw if isinstance(raw,str) else raw.c_str()
+            result[reference] = extract(raw,plain,source_type)
+        return result
+
+
 class VersificationMismatch(ValueError):
     """An explicit mapping is required before two verse systems can be aligned."""
 

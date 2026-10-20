@@ -2,7 +2,7 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main, feat/11-commentary-sources]
+    branches: [main, 'feat/**']
   workflow_dispatch:
 
 concurrency:
@@ -26,7 +26,7 @@ jobs:
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword xvfb xauth dbus-x11 libxtst6
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel iso-codes xvfb xauth dbus-x11 libxtst6
       - name: Examiner les paquets SWORD disponibles
         run: |
           apt-cache search --names-only 'sword|libsword' | head -80

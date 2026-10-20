@@ -1,49 +1,45 @@
 # Icône Bible
 
-## Direction approuvée
-
 Livre bleu vertical, pages ivoire à droite, signet ocre en haut à droite et
-mot « Bible » sur la couverture. Le client a choisi cette proposition le
-19 octobre 2026. La première proposition rouge et la variante avec croix
-ne sont pas retenues.
+mot « Bible » sur la couverture : direction choisie par le client le
+19 octobre 2026. Ni croix ni première proposition rouge.
 
-`bible-source.png` est l’image PNG RGBA originale générée avec l’outil de
-création d’images de ChatGPT, puis corrigée à la demande du client pour
-remplacer la croix par « Bible ». Ce fichier n’est pas une copie du logo
-Bible.com. La proposition utilise des couleurs et une silhouette distinctes.
+`bible-source.png` conserve sans retouche la proposition PNG RGBA créée avec
+l’outil d’images de ChatGPT puis corrigée à la demande du client. Cette référence
+artistique reste distincte du dessin vectoriel repris pour l’intégration GNOME.
 
-Les sous-dossiers 32x32 à 512x512 contiennent les exports pour le thème
-hicolor. Le manifest Flatpak les installe sous le nom `io.github.icfmp.Bible`,
-utilisé par le fichier desktop. Pillow sert uniquement à préparer ces
-exports et n’est pas une dépendance de l’application.
+## Sources et exports
 
-## Reproduire les exports
+- `scalable/apps/io.github.icfmp.Bible.svg` : dessin sur canevas 128×128, surfaces
+  planes, profil inférieur discret, ligne de base à 116 unités ; texte vectorisé.
+- `scalable/apps/io.github.icfmp.Bible.Devel.svg` : variante de développement avec
+  bande diagonale, préparée sans changer l’identifiant de l’application stable.
+- `symbolic/apps/io.github.icfmp.Bible-symbolic.svg` : silhouette monochrome 16×16.
+- `32x32` à `512x512` : exports PNG transparents depuis le SVG.
 
-Installer Pillow pour le Python de développement (par exemple
-`sudo apt install python3-pil`), puis exécuter :
+Le manifeste installe PNG, SVG et symbolique dans hicolor. Le fichier desktop
+utilise `io.github.icfmp.Bible`. Les deux symboles de commandes Bibliothèque et
+Mes notes sont distincts et vivent dans `bible/icons/scalable/actions/`.
+
+Installer Inkscape puis lancer depuis le dépôt :
 
 ```sh
-/usr/bin/python3 tools/export_app_icon.py
+python3 tools/export_vector_icons.py
 ```
 
-L’image originale est conservée sans retouche. Les exports changent
-uniquement sa résolution et conservent le canal alpha.
+`tools/export_app_icon.py` appelle désormais le même export vectoriel, pour
+éviter qu’une ancienne commande remplace les nouveaux PNG par des rasterisations
+de l’ancienne proposition. Ni Inkscape ni Pillow ne sont requis à l’exécution.
 
-## Finitions restantes — issue #13
+## Contrôles et limite restante
 
-L’image intégrée est une proposition raster approuvée ; elle n’est pas
-présentée comme un SVG final validé par l’équipe design GNOME.
-
-- Redessiner l’icône sur le gabarit GNOME 128×128 : grille de 2 px,
-  marges, poids visuel et ligne de base.
-- Privilégier les aplats sur les surfaces planes et un profil inférieur
-  discret ; vérifier le mot « Bible » aux petites tailles.
-- Préparer la version symbolique et la variante alpha/nightly.
-- Vérifier dans App Icon Preview à 32 et 64 px et sur fonds clairs/sombres.
+Les SVG sont analysés comme XML, les exports 32/64 et la variante Devel ont été
+présentés dans une véritable fenêtre GTK en clair et sombre sous Xvfb ; captures
+sous `docs/captures/remaining-issues/icons-*.png`. Les symboles de commandes sont
+trouvés par le thème GTK. La revue spécifique dans **App Icon Preview** reste à
+faire : cet outil n’est pas installé ici. Ne pas assimiler cette revue locale à
+une validation de l’équipe design GNOME.
 
 Références : [GNOME App Icons](https://developer.gnome.org/hig/guidelines/app-icons.html)
 et [palette GNOME](https://developer.gnome.org/hig/reference/palette.html).
-
-Aucune licence de projet ou d’asset existante n’est remplacée par cette
-intégration. Le choix formel de licence du projet reste suivi dans sa
-feuille de route.
+Le projet est sous GPL-2.0-only ; aucune licence existante n’est remplacée.

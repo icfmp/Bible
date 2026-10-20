@@ -35,7 +35,7 @@ class ProviderUITests(unittest.TestCase):
                     spin(lambda: not dialog.busy)
                 self.assertEqual(len(dialog.filtered_resources), 2)
                 self.assertIn('HTTP 503', dialog.status.get_text())
-                labels = [dialog.choices.get_model().get_string(i) for i in range(2)]
+                labels = [dialog.choices.get_model().get_item(i).resource.source for i in range(2)]
                 self.assertIn(EXTRA.name, labels[1])
                 dialog.source_filter.set_selected(dialog.source_ids.index(EXTRA.id))
                 self.assertEqual([r.id for r in dialog.filtered_resources], [extra.id])
