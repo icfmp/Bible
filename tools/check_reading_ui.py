@@ -29,10 +29,18 @@ def main():
             native.key('End')
             native.xtest.XTestFakeKeyEvent(native.display,code,False,0);native.x11.XFlush(native.display)
             spin(lambda:window.reading_sync.driver=='commentary',duration=.3)
+            # The preceding commentary traversal may leave the Bible on its
+            # final, short chapter. Test PageDown from a known long passage,
+            # rather than requiring a page beyond the end of the resource.
+            assert window.navigate_selection(window.active_tab.state.resource,'Gen.1.1')
+            spin(lambda:not window.active_tab._restoring_scroll and not window.study._positioning)
             native.key('F11');spin(lambda:window.immersion is not None and window.immersion.layout_ready)
             reading=window.immersion;assert reading.kind=='bible'
             reading.views[0].grab_focus();before=reading.stream.cursor
-            native.key('Page_Down');assert reading.stream.cursor!=before
+            assert reading.stream.step(reading.addresses[-1],1) is not None, 'PageDown requires another page'
+            native.key('Page_Down')
+            spin(lambda:reading.stream.cursor!=before and reading.layout_ready)
+            assert reading.stream.cursor!=before
             native.key('F10');assert reading.top.get_reveal_child()
             native.click(reading.aa);spin(lambda:window.appearance.get_visible())
             native.key('Escape');assert window.immersion is reading
