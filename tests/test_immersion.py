@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+import sys
+from contextlib import contextmanager
 from tests.test_ui import installed_fixture,spin
 from tests.test_reading_sync import linked_commentary
 
@@ -14,32 +17,46 @@ class ImmersionTests(unittest.TestCase):
         cls.app=Application.get_default() or Application();cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations',False)
 
-    def window(self,directory,rtl=False):
+    @contextmanager
+    def profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            windows=[]
+            self._profile_windows=windows
+            try:yield directory
+            finally:
+                for window in reversed(windows):
+                    if not window.closed:
+                        editor=window.note_editor
+                        if editor and not editor.closed:
+                            editor._discard=True;editor.close()
+                        window.close()
+
+    def window(self,directory,rtl=False,entries=None):
         from bible.ui import Window,Library
-        root=installed_fixture(directory,entries=[('Gen.1.1',('טקסט מקור — TEST TEXT. ' if rtl else 'SOURCE TEST α — words. ')*200),
+        root=installed_fixture(directory,entries=entries or [('Gen.1.1',('טקסט מקור — TEST TEXT. ' if rtl else 'SOURCE TEST α — words. ')*200),
                                                   ('Gen.1.2','SECOND SOURCE TEST '*150),('Gen.2.1','NEXT CHAPTER SOURCE '*180)])
         if rtl:
             with (root/'mods.d/test.conf').open('a') as file:file.write('Direction=RtoL\n')
         installed_fixture(directory,'Other');linked_commentary(directory)
         w=Window(self.app,Library(Path(directory)/'translations'));w.present();w.set_default_size(1180,760)
-        self.addCleanup(lambda:w.close() if not w.closed else None)
+        self._profile_windows.append(w)
         w.navigate_selection('Test','Gen.1.1');spin(lambda:not w.active_tab._restoring_scroll,duration=.2)
         return w
 
     def entered(self,w,kind='bible'):
         self.assertTrue(w.enter_immersion(kind))
-        spin(lambda:w.immersion and w.immersion.stream.cursor is not None,duration=.3)
+        spin(lambda:w.immersion and w.immersion.layout_ready,duration=.1)
         return w.immersion
 
     def test_real_pages_fit_and_partition_and_roundtrip_restores_panels(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with self.profile() as directory:
             w=self.window(directory);tab=w.active_tab
             tab.state.comparison='Other';tab.state.commentary='Notes';w.study_button.set_active(True);w.update_navigation();spin()
             history=len(tab.state.history);original_tabs=w.tabs();r=self.entered(w)
             self.assertEqual(r.count,2);self.assertFalse(w.split.get_mapped())
             initial=r.stream.cursor;seen=[]
             while True:
-                spin(duration=.05)
+                spin(lambda:r.layout_ready,duration=.05)
                 for view,address in zip(r.views,r.addresses):
                     plan=r.stream.plan(address.key);page=plan.pages[address.index]
                     text=view.get_buffer().props.text;self.assertEqual(text,plan.document.text[page.start:page.end])
@@ -63,14 +80,14 @@ class ImmersionTests(unittest.TestCase):
 
     def test_reflow_preserves_inside_verse_and_selection_escape_precedence(self):
         from gi.repository import Gdk
-        with tempfile.TemporaryDirectory() as directory:
+        with self.profile() as directory:
             w=self.window(directory);r=self.entered(w);self.assertTrue(r.turn(1))
             before=r.stream.anchor();self.assertGreater(before.offset,0)
             w.appearance.update('size',64)
-            spin(lambda:r.stream.cursor is not None and r.count==1,duration=.3)
+            spin(lambda:r.layout_ready and r.count==1,duration=.1)
             self.assertEqual(r.stream.anchor(),before)
             w.appearance.update('verse_numbers',False)
-            spin(lambda:r.stream.cursor is not None,duration=.3)
+            spin(lambda:r.layout_ready,duration=.1)
             self.assertEqual(r.stream.anchor(),before)
             r.views[0].grab_focus();buffer=r.views[0].get_buffer()
             buffer.select_range(buffer.get_iter_at_offset(2),buffer.get_iter_at_offset(11))
@@ -81,7 +98,8 @@ class ImmersionTests(unittest.TestCase):
             r.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
             spin(lambda:bool(copied));self.assertEqual(copied[0],text)
             w.appearance.update('size',24)
-            spin(lambda:r.stream.cursor is not None,duration=.3)
+            spin(lambda:r.layout_ready,duration=.1)
+            self.assertTrue(r.any_selection(), 'Selection lost after settled 64 → 24 reflow')
             copied=[];next(v for v in r.views if v.get_buffer().get_has_selection()).emit('copy-clipboard')
             r.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
             spin(lambda:bool(copied));self.assertEqual(copied[0],text)
@@ -91,7 +109,7 @@ class ImmersionTests(unittest.TestCase):
             w.close()
 
     def test_commentary_entry_limits_resume_and_bible_unchanged(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with self.profile() as directory:
             w=self.window(directory);tab=w.active_tab;tab.state.commentary='Notes'
             w.study_button.set_active(True);w.study.refresh();spin(lambda:not w.study._positioning)
             original=tab.state.reference;history=len(tab.state.history)
@@ -109,7 +127,7 @@ class ImmersionTests(unittest.TestCase):
 
     def test_narrow_rtl_notifications_optout_and_suspension(self):
         from bible.ui import Gtk
-        with tempfile.TemporaryDirectory() as directory:
+        with self.profile() as directory:
             w=self.window(directory,rtl=True);r=self.entered(w)
             self.assertTrue(r.source.rtl);self.assertEqual(r.pages.get_direction(),Gtk.TextDirection.RTL)
             self.assertGreater(r.frames[0].get_allocation().x,r.frames[1].get_allocation().x)
@@ -124,3 +142,101 @@ class ImmersionTests(unittest.TestCase):
             w.open_notes();self.assertIsNone(w.immersion);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
             w.notes_space.leave();r=self.entered(w);self.assertFalse(r.notification_help.get_revealed())
             w.leave_immersion();w.close()
+
+    def test_native_click_targets_notes_and_context_copy_on_each_page(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
+            # Native pointer events require an isolated display: other tests
+            # intentionally create modal dialogs and may retain GTK grabs.
+            environment=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1')
+            result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+                                   '-m','unittest',self.id(),'-v'],env=environment,
+                                  capture_output=True,text=True,timeout=45)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            return
+        from tools.check_alpha_ui import X11Input
+        from bible.notes_window import passage_label
+        from bible.ui import Gtk
+        with self.profile() as directory:
+            entries=[(f'Gen.1.{i}',f'VERSE {i} SOURCE TEST. '*8) for i in range(1,30)]
+            w=self.window(directory,entries=entries);native=X11Input()
+            try:
+                for page_index in (0,1):
+                    r=self.entered(w);self.assertEqual(len(r.addresses),2)
+                    view=r.views[page_index];address=r.addresses[page_index]
+                    plan=r.stream.plan(address.key);page=plan.pages[address.index]
+                    candidates=[span for span in plan.document.spans
+                                if page.start<span.body and span.end<page.end]
+                    self.assertGreater(len(candidates),1)
+                    target=candidates[-1];iterator=view.get_buffer().get_iter_at_offset(target.body-page.start+4)
+                    rect=view.get_iter_location(iterator)
+                    x,y=view.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,rect.x+2,rect.y+rect.height//2)
+                    native.click_at(view,x,y)
+                    self.assertEqual(r.clicked_reference,target.reference)
+                    self.assertEqual(r.selected_passage(),(target.reference,target.reference))
+                    self.assertEqual(r.stream.cursor,r.addresses[0])
+                    w.lookup_action('copy-reference').activate(None);copied=[]
+                    r.get_clipboard().read_text_async(None,lambda c,result:copied.append(c.read_text_finish(result)))
+                    spin(lambda:bool(copied))
+                    self.assertIn(passage_label(target.reference,versification=w.active_tab.reader.versification),copied[0])
+                    w.lookup_action('note').activate(None)
+                    editor=w.note_editor;self.assertIsNotNone(editor)
+                    self.assertEqual((editor.context['start'],editor.context['end']),(target.reference,target.reference))
+                    editor.body.get_buffer().set_text('SYNTHETIC NOTE FROM CLICK')
+                    self.assertTrue(editor.save())
+                    saved=w.notes_store.passage('KJV',target.reference,target.reference)
+                    self.assertEqual(len(saved),1)
+                    self.assertEqual((saved[0].start,saved[0].end),(target.reference,target.reference))
+            finally:native.close()
+
+    def test_multiverse_selection_overrides_click_and_navigation_clears_click(self):
+        with self.profile() as directory:
+            entries=[(f'Gen.1.{i}',f'VERSE {i} SOURCE TEST. '*6) for i in range(1,30)]
+            w=self.window(directory,entries=entries);r=self.entered(w)
+            view=r.views[0];plan=r.stream.plan(r.addresses[0].key);page=plan.pages[r.addresses[0].index]
+            spans=[span for span in plan.document.spans if page.start<=span.body and span.end<page.end]
+            self.assertGreater(len(spans),2)
+            # A later text selection takes precedence over a previous point click.
+            r.clicked_reference=spans[-1].reference
+            buffer=view.get_buffer();buffer.select_range(buffer.get_iter_at_offset(spans[0].body-page.start+2),
+                                                          buffer.get_iter_at_offset(spans[1].body-page.start+4))
+            self.assertEqual(r.selected_passage(),(spans[0].reference,spans[1].reference))
+            w.lookup_action('note').activate(None);editor=w.note_editor
+            self.assertEqual((editor.context['start'],editor.context['end']),(spans[0].reference,spans[1].reference))
+            editor.body.get_buffer().set_text('MULTIVERSE NOTE TEST');self.assertTrue(editor.save())
+            r=self.entered(w);r.clicked_reference=spans[-1].reference
+            self.assertTrue(r.turn(1));self.assertIsNone(r.clicked_reference)
+            self.assertEqual(r.selected_passage(),(r.stream.anchor().reference,)*2)
+            r.clicked_reference=r.stream.anchor().reference
+            w.appearance.update('size',24);spin(lambda:r.layout_ready)
+            self.assertIsNone(r.clicked_reference)
+            r.clicked_reference=r.stream.anchor().reference;r.go_to_reference('Gen.1.1')
+            self.assertIsNone(r.clicked_reference)
+
+    def test_deferred_native_selection_clear_is_restored_after_reflow(self):
+        with self.profile() as directory:
+            w=self.window(directory);r=self.entered(w)
+            w.appearance.update('size',64);spin(lambda:r.layout_ready)
+            buffer=r.views[0].get_buffer()
+            buffer.select_range(buffer.get_iter_at_offset(2),buffer.get_iter_at_offset(11))
+            expected=buffer.get_text(*buffer.get_selection_bounds(),False)
+            cleared=[]
+            def deferred_clear(*_):
+                if r.stream.cursor is None:return True
+                # Simulate GTK moving the native marks during font allocation,
+                # after render, before stable frames restore the canonical range.
+                buffer.place_cursor(buffer.get_start_iter());cleared.append(True)
+                return False
+            w.appearance.update('size',24);r.add_tick_callback(deferred_clear)
+            spin(lambda:r.layout_ready)
+            self.assertTrue(cleared);self.assertTrue(r.any_selection())
+            copied=[];r.views[0].emit('copy-clipboard')
+            r.get_clipboard().read_text_async(None,lambda c,result:copied.append(c.read_text_finish(result)))
+            spin(lambda:bool(copied));self.assertEqual(copied[0],expected)
+
+    def test_profile_closes_window_before_resources_even_after_failure(self):
+        with self.assertRaisesRegex(RuntimeError,'test interruption'):
+            with self.profile() as directory:
+                w=self.window(directory);self.entered(w)
+                raise RuntimeError('test interruption')
+        self.assertTrue(w.closed)
+        self.assertFalse(Path(directory).exists())

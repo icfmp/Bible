@@ -20,6 +20,8 @@ class Immersion(Gtk.Overlay):
         self._geometry=None;self._hide_id=0;self._last_turn=0;self._wheel=0
         self._gesture_turned=False;self._pointer_top=False;self._pointer_edge=False;self._updating=False;self.selection=None;self.addresses=[]
         self.views=[];self.frames=[];self.count=2;self._closed=False
+        self.clicked_reference=None
+        self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
                            margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
@@ -139,11 +141,25 @@ class Immersion(Gtk.Overlay):
             maximum=(usable+16)*count+(32 if count==2 else 0)+112
             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
             self._geometry=geometry;self.stream.configure(usable,page_height,anchor,key);self.render()
+        else:
+            allocation=tuple((view.get_width(),view.get_height()) for view in self.views[:self.count])
+            if allocation!=self._allocation_signature:
+                self._allocation_signature=allocation;self._stable_frames=0;self.layout_ready=False
+            else:self._stable_frames+=1
+            if self._stable_frames==2:
+                # GTK may complete font layout/selection ownership after render.
+                # Reapply canonical bounds only once the allocations are stable.
+                self._updating=True
+                try:self.restore_selection()
+                finally:self._updating=False
+                self._selection_restore_pending=False;self.layout_ready=True
         return True
 
     def reflow(self):
         if self._closed:return
+        self.clicked_reference=None
         self.capture_selection();self._restored_selection=bool(self.selection)
+        self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         key=self.stream.cursor.key if self.stream.cursor else self.initial_key
         self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
@@ -160,13 +176,15 @@ class Immersion(Gtk.Overlay):
                 return
 
     def selection_changed(self,view):
-        if self._updating:return
+        if self._updating or self._selection_restore_pending:return
         self._restored_selection=False
         if view.get_buffer().get_has_selection():self.capture_selection()
         elif not any(v.get_buffer().get_has_selection() for v in self.views):self.selection=None
 
     def render(self):
         if not self.stream.cursor:return
+        self.clicked_reference=None
+        self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
         self._updating=True;self.addresses=self.stream.spread(self.count)
         p=self.owner.preferences.value
         for index,view in enumerate(self.views):
@@ -188,10 +206,7 @@ class Immersion(Gtk.Overlay):
                     first,last=max(page.start,style.start),min(page.end,style.end)
                     if style.kind==kind and last>first:
                         buffer.apply_tag(tag,buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
-            if self.selection and self.selection[0]==address.key:
-                first,last=(plan.document.locate(a) for a in self.selection[1:])
-                first,last=max(first,page.start),min(last,page.end)
-                if last>first:buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
+        self.restore_selection()
         self._updating=False
         anchor=self.stream.anchor();caption=self.source.resource.name
         if self.kind=='bible':
@@ -209,6 +224,17 @@ class Immersion(Gtk.Overlay):
         self.footer.set_text(caption);self.caption.set_text(caption)
         self.back.set_sensitive(self.stream.step(self.stream.cursor,-1) is not None)
         self.forward.set_sensitive(self.stream.step(self.addresses[-1],1) is not None)
+
+    def restore_selection(self):
+        if not self.selection:return
+        for view,address in zip(self.views,self.addresses):
+            if self.selection[0]!=address.key:continue
+            plan=self.stream.plan(address.key);page=plan.pages[address.index]
+            first,last=(plan.document.locate(a) for a in self.selection[1:])
+            first,last=max(first,page.start),min(last,page.end)
+            if last>first:
+                buffer=view.get_buffer()
+                buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
 
     def turn(self,direction):
         if self.stream.cursor and self.stream.turn(direction,self.count):
@@ -236,6 +262,7 @@ class Immersion(Gtk.Overlay):
         if found:
             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
             anchor=plan.document.anchor(page.start+iterator.get_offset())
+            if self.kind=='bible':self.clicked_reference=anchor.reference
             self.footer.set_text(self.source.resource.name+' — '+(passage_label(anchor.reference,versification=self.source.reader.versification) if self.kind=='bible' else self.source.reader.index.label(address.key)))
 
     def selected_passage(self):
@@ -245,7 +272,9 @@ class Immersion(Gtk.Overlay):
                 plan=self.stream.plan(address.key);page=plan.pages[address.index]
                 result=plan.document.selected_passage(*(page.start+i.get_offset() for i in bounds))
                 if result:return result
-        anchor=self.stream.anchor();return anchor.reference,anchor.reference
+        anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+        reference=self.clicked_reference or anchor.reference
+        return reference,reference
 
     def copy_selection(self,view):
         if not self.selection or not getattr(self,'_restored_selection',False):return

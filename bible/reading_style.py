@@ -17,6 +17,12 @@ WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
 SPACING = {'tight': 1, 'normal': 5, 'airy': 10}
 
 
+def apply_direction(view,reader):
+    """Resource direction affects the content, not the application's controls."""
+    view.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
+    view.set_justification(Gtk.Justification.RIGHT if reader.rtl else Gtk.Justification.LEFT)
+
+
 def effective_palette(preferences, dark, high_contrast):
     if high_contrast:
         return 'contrast-night' if dark else 'contrast-day'

@@ -28,6 +28,8 @@ class PaginationTests(unittest.TestCase):
     def test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor(self):
         text='TITLE\n\n'+('Écriture Ελληνικά עברית العربية e\u0301 — source text. '*230)
         doc=Document('test',text,(PassageSpan('Gen.1.1',0,7,len(text)),),(StyleSpan('heading',0,5),))
+        # Distinct title-prefix endpoints must not collapse to the verse start.
+        for offset in range(7):self.assertEqual(doc.locate(doc.anchor(offset)),offset)
         for size in [12,19,64]:
             prefs=ReadingPreferences(size=size)
             plan=paginate(self.widget,doc,prefs,285,360)

@@ -31,6 +31,15 @@ class ReadingSync:
         drag.connect('released',lambda *_:self.end_drag())
         drag.connect('stopped',lambda *_:self.end_drag())
         bar.add_controller(drag)
+        # GestureClick stops recognizing when a press turns into a drag.
+        # Continue observing actual held-button motion on the native track;
+        # otherwise the user-intent deadline expires during a long drag.
+        motion=Gtk.EventControllerMotion()
+        motion.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def dragged(controller,*_):
+            if controller.get_current_event_state() & Gdk.ModifierType.BUTTON1_MASK:
+                self.intent(side,tab)
+        motion.connect('motion',dragged);bar.add_controller(motion)
         if GObject.signal_lookup('move-viewport',view.__gtype__):
             view.connect('move-viewport',lambda *_:self.intent(side,tab))
         scroll.get_vadjustment().connect('value-changed',lambda *_:self.moved(side,view,bar,tab))

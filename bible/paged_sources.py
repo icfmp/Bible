@@ -38,7 +38,7 @@ class BiblePages:
         reference=before if direction<0 else after
         return self.key(reference) if reference else None
     @property
-    def rtl(self):return self.reader.module.getDirection() in (self.reader.sword.DIRECTION_RTL,chr(self.reader.sword.DIRECTION_RTL))
+    def rtl(self):return self.reader.rtl
 
 
 class CommentaryPages:
@@ -55,7 +55,7 @@ class CommentaryPages:
         position=key+direction
         return position if 0<=position<len(self.reader.index.sections) else None
     @property
-    def rtl(self):return self.reader.module.getDirection() in (self.reader.sword.DIRECTION_RTL,chr(self.reader.sword.DIRECTION_RTL))
+    def rtl(self):return self.reader.rtl
 
 
 @dataclass(frozen=True)

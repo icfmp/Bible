@@ -38,6 +38,14 @@ def installed_fixture(directory, name='Test', long_text=False, entries=None, ver
     return root
 
 
+def close_test_dialogs():
+    from bible.ui import Adw, Gtk
+    # response() emits the signal without the native button's dismissal.
+    # Release test-created modal grabs before another window receives input.
+    for dialog in Gtk.Window.list_toplevels():
+        if isinstance(dialog,Adw.MessageDialog):dialog.destroy()
+
+
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK display (use xvfb-run)')
 class WindowTests(unittest.TestCase):
     @classmethod
@@ -46,6 +54,9 @@ class WindowTests(unittest.TestCase):
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
+
+    def tearDown(self):
+        close_test_dialogs()
 
     def window(self, directory):
         from bible.ui import Library, Window
@@ -538,32 +549,36 @@ class WindowTests(unittest.TestCase):
 
     def test_commentary_remains_readable_in_one_narrow_overlay(self):
         from tests.test_commentary import commentary_fixture
-        with tempfile.TemporaryDirectory() as directory:
-            installed_fixture(directory)
-            commentary_fixture(directory)
-            commentary_fixture(directory, 'OtherNotes', entries=[('Gen.1.1', 'OTHER COMMENTARY TEST DATA')])
-            window = self.window(directory)
-            window.set_default_size(1000, 600)
-            window.study_button.set_active(True)
-            self.choose_commentary(window, 'Notes')
-            spin(lambda: window.active_tab.get_width() > 400)
-            _, bible = window.active_tab.compute_bounds(window)
-            _, study = window.study.compute_bounds(window)
-            self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
-            reading_width = window.active_tab.get_width()
-            window.lookup_action('study').activate(None)
-            spin(lambda: window.active_tab.get_width() > reading_width)
-            window.study_button.set_active(True)
-            window.set_default_size(360, 600)
-            spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
-            self.assertGreaterEqual(window.active_tab.get_width(), 340)
-            self.assertLessEqual(window.study.get_width(), window.get_width())
-            self.choose_commentary(window, 'OtherNotes')
-            self.assertEqual(window.study.entry_text, 'OTHER COMMENTARY TEST DATA')
-            window.study.info.set_active(True)
-            spin(lambda: window.study.info.get_popover().get_visible())
-            self.assertLessEqual(window.study.info.get_popover().get_width(), 360)
-            window.close()
+        directory=self.enterContext(tempfile.TemporaryDirectory())
+        installed_fixture(directory)
+        commentary_fixture(directory)
+        commentary_fixture(directory, 'OtherNotes', entries=[('Gen.1.1', 'OTHER COMMENTARY TEST DATA')])
+        window = self.window(directory)
+        window.set_default_size(1000, 600)
+        window.study_button.set_active(True)
+        self.choose_commentary(window, 'Notes')
+        spin(lambda: window.active_tab.get_width() > 400)
+        _, bible = window.active_tab.compute_bounds(window)
+        _, study = window.study.compute_bounds(window)
+        self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+        reading_width = window.active_tab.get_width()
+        window.lookup_action('study').activate(None)
+        spin(lambda: window.active_tab.get_width() > reading_width)
+        window.study_button.set_active(True)
+        window.set_default_size(360, 600)
+        # Collapsed is notified before the new child allocation is complete.
+        spin(lambda: window.get_width() <= 380 and window.split.get_collapsed()
+             and window.active_tab.get_width() >= 340
+             and window.study.get_width() <= window.get_width())
+        self.assertGreaterEqual(window.active_tab.get_width(), 340)
+        self.assertLessEqual(window.study.get_width(), window.get_width())
+        self.choose_commentary(window, 'OtherNotes')
+        self.assertEqual(window.study.entry_text, 'OTHER COMMENTARY TEST DATA')
+        window.study.info.set_active(True)
+        spin(lambda: window.study.info.get_popover().get_visible())
+        self.assertLessEqual(window.study.info.get_popover().get_width(), 360)
+        window.close()
+
 
     def write_note(self, window, text, labels=()):
         editor = window.new_note(force_new=True)

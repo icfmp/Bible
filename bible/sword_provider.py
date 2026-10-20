@@ -41,6 +41,12 @@ class Reader:
         if probe.getVersificationSystem() != self.versification:
             raise ValueError(f'Unsupported versification: {self.versification}')
 
+    @property
+    def rtl(self):
+        # SWIG exposes SWORD's char direction as a one-character Python str.
+        value=self.module.getDirection()
+        return value in (self.sword.DIRECTION_RTL,chr(self.sword.DIRECTION_RTL))
+
     def key(self, reference):
         if isinstance(reference, str):
             reference = canonical_input(reference)

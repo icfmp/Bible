@@ -52,11 +52,16 @@ class Document:
         if anchor.at_body:
             from dataclasses import replace
             anchor=replace(anchor,spacing=min(span.end,offset)-self.locate(anchor))
+        else:
+            # Heading/number selections have no body-character offset. Keep
+            # their distinct positions in the presentation prefix as well.
+            from dataclasses import replace
+            anchor=replace(anchor,spacing=max(0,offset-span.start))
         return anchor
 
     def locate(self,anchor):
         span=next((s for s in self.spans if s.reference==anchor.reference),self.spans[0])
-        if anchor.offset==0 and not anchor.at_body:return span.start
+        if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
         remaining=anchor.offset
         for pos in range(span.body,span.end):
             if not self.text[pos].isspace():

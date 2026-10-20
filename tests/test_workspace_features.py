@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from tests.test_ui import installed_fixture, spin
+from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires Xvfb')
 class WorkspaceFeaturesTests(unittest.TestCase):
@@ -11,6 +11,9 @@ class WorkspaceFeaturesTests(unittest.TestCase):
     def setUpClass(cls):
         from bible.ui import Application
         cls.app=Application.get_default() or Application();cls.app.register()
+
+    def tearDown(self):
+        close_test_dialogs()
 
     def test_history_travel_does_not_append_and_preferences_keep_reference(self):
         from bible.ui import Window, Library

@@ -5,6 +5,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import GLib, Gtk, Pango
 
 from .i18n import tr
+from .reading_style import apply_direction
 from .resource_details import details, plain
 from .sword_provider import CommentaryReader, VersificationMismatch
 
@@ -136,6 +137,7 @@ class StudyPanel(Gtk.Box):
                 self.clear_content();self._display_context=context
             if name not in self._readers:self._readers[name]=CommentaryReader(self.owner.library.root/name,name)
             self.reader=self._readers[name]
+            apply_direction(self.text,self.reader)
             if tab.reader is None:
                 self.clear_content();self.status.set_text(tr('Open a Bible passage to read its commentary.'));return
             if tab.reader.versification!=self.reader.versification:

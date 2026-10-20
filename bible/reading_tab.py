@@ -11,7 +11,7 @@ from .book_names import display_name
 from .i18n import LANGUAGE
 from . import history
 from .preferences import ReadingPreferences
-from .reading_style import WIDTHS, SPACING
+from .reading_style import WIDTHS, SPACING, apply_direction
 
 
 class ReadingTab(Gtk.Box):
@@ -222,6 +222,7 @@ class ReadingTab(Gtk.Box):
             if self._comparison_name!=name:
                 self._comparison_reader=Reader(self.library.root/name,name);self._comparison_name=name
             reader=self._comparison_reader
+            apply_direction(self.comparison_text,reader)
             if not self.reader or reader.versification!=self.reader.versification:
                 raise ValueError(tr('Different versifications. Automatic alignment is unavailable.'))
             if not reader.has_reference(self.state.reference):raise ValueError(tr('This passage is not available in this translation.'))
@@ -235,6 +236,7 @@ class ReadingTab(Gtk.Box):
         except Exception as error:self.comparison_status.set_text(str(error))
 
     def render_chapter(self, chapter):
+        apply_direction(self.text,self.reader)
         buffer = self.text.get_buffer()
         preferences = self.preferences
         self.text.set_pixels_inside_wrap(SPACING[preferences.line_spacing])

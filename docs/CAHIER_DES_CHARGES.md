@@ -174,3 +174,9 @@ Voir [le guide et ses limites](LECTURE_IMMERSIVE_24_25.md). Ces changements sont
 vérifiés localement ; ils ne constituent pas une nouvelle release Flatpak
 publiée ni un essai manuel GNOME. La suspension automatique des notifications
 n’est pas annoncée : le repli d’aide manuelle prévu par #24 est utilisé.
+
+Le complément de livraison jusqu’à #25 rend explicite la direction de chaque
+ressource dans les lecteurs ordinaires et de comparaison, sans inverser les
+commandes françaises/anglaises. Le suivi automatique tient compte des mouvements
+réels pendant un glissement prolongé de barre native. État détaillé et blocages
+de validation/distribution : [SUIVI_JUSQU_A_25.md](SUIVI_JUSQU_A_25.md).

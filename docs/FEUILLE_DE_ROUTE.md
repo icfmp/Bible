@@ -88,3 +88,8 @@ livraison. Vérifications locales et procédure d’essai :
 restants la construction Flatpak de ce commit, sa CI GitHub et l’essai manuel
 GNOME. La comparaison simultanée de plusieurs commentaires et leur mise en
 forme riche intégrale restent distinctes des capacités vérifiées ici.
+
+Le [bilan jusqu’à #25](SUIVI_JUSQU_A_25.md) distingue le code disponible des
+critères manuels et de distribution encore ouverts : App Icon Preview (#13),
+activation et validation HTTPS du canal signé (#17), CI du commit final et
+essai GNOME. Ne pas assimiler ce bilan à la clôture de toutes ces issues.

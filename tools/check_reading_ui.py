@@ -29,7 +29,7 @@ def main():
             native.key('End')
             native.xtest.XTestFakeKeyEvent(native.display,code,False,0);native.x11.XFlush(native.display)
             spin(lambda:window.reading_sync.driver=='commentary',duration=.3)
-            native.key('F11');spin(lambda:window.immersion is not None and window.immersion.stream.cursor is not None)
+            native.key('F11');spin(lambda:window.immersion is not None and window.immersion.layout_ready)
             reading=window.immersion;assert reading.kind=='bible'
             reading.views[0].grab_focus();before=reading.stream.cursor
             native.key('Page_Down');assert reading.stream.cursor!=before

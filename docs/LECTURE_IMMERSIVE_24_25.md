@@ -1,5 +1,9 @@
 # Lecture immersive et commentaires continus — #24 et #25
 
+Les corrections postérieures demandées sur la PR #23 et leurs résultats sont
+détaillés dans [REVUE_23_CORRECTIONS.md](REVUE_23_CORRECTIONS.md). Les chiffres
+ci-dessous décrivent la livraison initiale, avant ces corrections.
+
 ## Livraison
 
 L’action Mode immersif, son bouton près de Aa et F11 ouvrent la Bible en

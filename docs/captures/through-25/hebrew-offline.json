@@ -1,0 +1,219 @@
+{
+  "resource": "andbible-extra~HebNTFD",
+  "source": "AndBible Extra (Xiphos)",
+  "license": "Public Domain",
+  "conditions": "textsource: http://www.kirjasilta.net/ha-berit/index.html",
+  "resource_direction": "RTL",
+  "native_reader_direction": "RTL",
+  "native_justification": "RIGHT",
+  "interface_direction": "LTR",
+  "network": "Python sockets and URL requests denied during checks",
+  "chapter": "John.1",
+  "verses": [
+    {
+      "reference": "John.1.1",
+      "sha256_words": "e49cf6e03d82d6fc9ea83f88213a43a92c4b13f22bbad6a0fa2870b5b133efee"
+    },
+    {
+      "reference": "John.1.2",
+      "sha256_words": "2518fc7c3c76b8b0c0d653a06c19d9b642e637f48669ecd3b0dab3bc46998d2d"
+    },
+    {
+      "reference": "John.1.3",
+      "sha256_words": "f4b466241791dc9e8b1cc10fc850ab67176a3d2a615e277e1be52f3768e5a01f"
+    },
+    {
+      "reference": "John.1.4",
+      "sha256_words": "0d5035d8b0babc010926fa84cf392d79bf15602ba6cc858ed7b3a0603ea61a87"
+    },
+    {
+      "reference": "John.1.5",
+      "sha256_words": "a4315369fe8c244663799f4a284db3c683bc2e577a5f5df61963d8dddf8d0b71"
+    },
+    {
+      "reference": "John.1.6",
+      "sha256_words": "dd677c2b065b5b3b670f620c974b510627306a1c160dc7ca38e7d78fdf64455a"
+    },
+    {
+      "reference": "John.1.7",
+      "sha256_words": "3deffa6cb174206bda2e7bb48109f49d9fa83a84e91a6e3c034cd4d955a80f0d"
+    },
+    {
+      "reference": "John.1.8",
+      "sha256_words": "09384e467f4c8b1b7b9311f4ec1a3366de8d9f0b0a8ec6730ac0b8ea41785f53"
+    },
+    {
+      "reference": "John.1.9",
+      "sha256_words": "933ae3608fc17184ddce026e5eb270c610bb06a4909e06fbaf40a9003adf380a"
+    },
+    {
+      "reference": "John.1.10",
+      "sha256_words": "58a7df717bde1f9fc64b6d047e7a0a001c2f9174bc0b7cd1c0b219845c8df055"
+    },
+    {
+      "reference": "John.1.11",
+      "sha256_words": "e084f5b01a093c6a7e6954a232db54960eb907aa6175873e492f82477f2ba978"
+    },
+    {
+      "reference": "John.1.12",
+      "sha256_words": "4d7ba9c6cbefd9cfbc9c51e22a0cc4e73973ec19979d90710e78841446e58217"
+    },
+    {
+      "reference": "John.1.13",
+      "sha256_words": "fd11bdf7481b464413c9530cb5f5966785e1ba667a7a0946ea910a335d79d69d"
+    },
+    {
+      "reference": "John.1.14",
+      "sha256_words": "f876b7edfff2a8e26031e934becd6d3579661388a12f25a4428e2f7090265b42"
+    },
+    {
+      "reference": "John.1.15",
+      "sha256_words": "dea818f247d435a93e3aa9b8c08db7a371078e6153037be1f652fa50b1859780"
+    },
+    {
+      "reference": "John.1.16",
+      "sha256_words": "e756c59e96b79c153fa399000a78e7ec4924773e6b3d103bb8de3537f516455c"
+    },
+    {
+      "reference": "John.1.17",
+      "sha256_words": "37eda3323fe3aa21ca8b14b266ee17da7f6a9d549276c5bd44c724de226cb36b"
+    },
+    {
+      "reference": "John.1.18",
+      "sha256_words": "67e22c1cd237bb4edbf89217661a05802ba6b40bfaceb37ba245543fdec6f084"
+    },
+    {
+      "reference": "John.1.19",
+      "sha256_words": "36e17c9a3bbf435da7b9981bb2a16047b57b1d89be74ed4ed8f0e5523633cd62"
+    },
+    {
+      "reference": "John.1.20",
+      "sha256_words": "b7e228facebfd593dbef1279a128b48fbecc1619f0c5f442112cafe0a1ec6dd0"
+    },
+    {
+      "reference": "John.1.21",
+      "sha256_words": "cc02b7dacfa8da613e923b38c9d67a15d045712962db02221140a3085adeaac5"
+    },
+    {
+      "reference": "John.1.22",
+      "sha256_words": "c6a6a905378ea635928aa6faf18d1cedb46ebc5b2da272e8ccd7ab1016a79ca5"
+    },
+    {
+      "reference": "John.1.23",
+      "sha256_words": "425cf9ed5da9efdaa78e9d5738aff572209c3ad3c14fd668594b0408f4b06c2b"
+    },
+    {
+      "reference": "John.1.24",
+      "sha256_words": "ba266f581baac08922ba8fff52f10d00aa94c48f366e28b34ebdbb2531eaaa78"
+    },
+    {
+      "reference": "John.1.25",
+      "sha256_words": "afe36a1497148f46b122225262e1f631e53d09b04334f63ec153068f217c4e90"
+    },
+    {
+      "reference": "John.1.26",
+      "sha256_words": "751ceaa3e120f18ccfcbf1c5e0d8d162a97e51549adcb8a1e114395b30c9f7b2"
+    },
+    {
+      "reference": "John.1.27",
+      "sha256_words": "0684f665840739431a24666de766cff001cb7a1c01fe2e378c3ff70e0bbe3649"
+    },
+    {
+      "reference": "John.1.28",
+      "sha256_words": "9284356533dd5e681a2562d4eacec5a964ccf70f057c04c5a0491836d6529c5b"
+    },
+    {
+      "reference": "John.1.29",
+      "sha256_words": "47472e907fc84c57b7e3ae553576eeb79758c7d28585e03235c4f5bbe9c851fa"
+    },
+    {
+      "reference": "John.1.30",
+      "sha256_words": "fdfdc0d667e5de5ceb5aae8e6486b11908d4d141984f3702bbcf9423ff9baf27"
+    },
+    {
+      "reference": "John.1.31",
+      "sha256_words": "5dc6b9d98591934ee2639e89685f21a05a002158e6dd9bfc97cdf77557818368"
+    },
+    {
+      "reference": "John.1.32",
+      "sha256_words": "6ec8621a78bd927bc8dd725435c2e611f28f367196ff7b268cc9877bb6becfd5"
+    },
+    {
+      "reference": "John.1.33",
+      "sha256_words": "0b6380e80aee83e9532a74441e5ad79804656b4c32d14f93a91aa94a88786503"
+    },
+    {
+      "reference": "John.1.34",
+      "sha256_words": "f675d56a196ced46c0aa78e99ceb142bf1b19304f3c6f4114da236b1635c583a"
+    },
+    {
+      "reference": "John.1.35",
+      "sha256_words": "e5db6fa1e616057ffe0095b442bbcc87ed3e3a642f3342bb7f4f28e71fc7fd53"
+    },
+    {
+      "reference": "John.1.36",
+      "sha256_words": "3fccac57c76b966c7bebc1cdc5c9d622b66e9f2ffc1cd1ccc155ca0379af981e"
+    },
+    {
+      "reference": "John.1.37",
+      "sha256_words": "7315cfe0545da17b8919c61f7d9165b1c9e22b0ca3ebea9795babee2abc5d753"
+    },
+    {
+      "reference": "John.1.38",
+      "sha256_words": "56e251db2587a2178084d105f4bb45767ae55d46bd1414bb5ebf2501284af63e"
+    },
+    {
+      "reference": "John.1.39",
+      "sha256_words": "dd02df04e9ecec63adb475cadc480892ce77ee8cf2009593fb14d26bf218a5f6"
+    },
+    {
+      "reference": "John.1.40",
+      "sha256_words": "4ae21de976d922769f9a198f172749055ea92099241732e082b80a828802bef3"
+    },
+    {
+      "reference": "John.1.41",
+      "sha256_words": "45dd9e4a2f787ab4663c87a78477e1b1f6981dbc7b042ccc936b8abed1ed135b"
+    },
+    {
+      "reference": "John.1.42",
+      "sha256_words": "947c2c17d13025f4604c49bb34aae6b7fd9bade53d9cf555ef6114ba93129c1d"
+    },
+    {
+      "reference": "John.1.43",
+      "sha256_words": "45fdd62f3e7ec8a31862bd7e151bdf823c517d661f12f1d5f142e3dd61aef98e"
+    },
+    {
+      "reference": "John.1.44",
+      "sha256_words": "8f34b3cddfd949cd1f7f24c0cf46ce5c3eb1505bfdf07b1aeb70cbfa364103ba"
+    },
+    {
+      "reference": "John.1.45",
+      "sha256_words": "c3ca1361ba2ce736118cea7a4a505206fb7aa0c64e2f6cbcb3ca56caa39acc1b"
+    },
+    {
+      "reference": "John.1.46",
+      "sha256_words": "45972406b04591b10ed8df82ca6fd8bf6e47255609eb91ddfa2abbddbe8e91cc"
+    },
+    {
+      "reference": "John.1.47",
+      "sha256_words": "f4f1d249f60764ffad0f0ed931c577f72405de086d89f880cfbeb1541c99bbf3"
+    },
+    {
+      "reference": "John.1.48",
+      "sha256_words": "9f4ef0655d0ebb26613d0c41a539220c7aa51b590c1e77e850cf625d6a4a27dc"
+    },
+    {
+      "reference": "John.1.49",
+      "sha256_words": "b203ee446b665e1dea450af9b2f0eeb6fa9678f89e8f28ada28528737f6fecc9"
+    },
+    {
+      "reference": "John.1.50",
+      "sha256_words": "2afb786c8e42c9f737f89c96e473f82917a54c8bab216b074f293ab91c10cf1e"
+    },
+    {
+      "reference": "John.1.51",
+      "sha256_words": "8493f99def2001c89e0122bbb8f1b1d095d8654dfb538a317bd9cca81b9bd6bd"
+    }
+  ],
+  "display": "GTK/Xvfb; not a manual GNOME/Wayland test"
+}

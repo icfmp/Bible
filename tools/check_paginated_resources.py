@@ -66,7 +66,7 @@ def main():
             spin(lambda:not window.study._positioning and not window.active_tab._restoring_scroll,duration=.3)
             original=window.active_tab.state.reference
             assert window.enter_immersion('commentary')
-            spin(lambda:window.immersion.stream.cursor is not None,duration=.3)
+            spin(lambda:window.immersion.layout_ready,duration=.3)
             immersion=window.immersion;seen=[]
             import gi
             gi.require_version('GdkX11','4.0')
@@ -84,7 +84,7 @@ def main():
                         assert last.y+last.height+view.get_top_margin()<=view.get_height()+1, (last.y,last.height,view.get_height(),immersion._geometry,window.preferences.value)
                     seen.append(view.get_buffer().props.text)
                 if not immersion.turn(1):break
-                spin(duration=.03)
+                spin(lambda:immersion.layout_ready,duration=.03)
             assert ''.join(seen)==comments.index.text(comments.index.locate('John.1.1'))
             assert window.active_tab.state.reference==original
             window.leave_immersion();spin(lambda:not window.study._positioning)
