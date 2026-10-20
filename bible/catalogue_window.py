@@ -1,6 +1,7 @@
 """Catalogue/download UI kept separate from the reading surface."""
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+import time
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -13,6 +14,7 @@ from .providers import PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
+from .catalogue_cache import CatalogueCache
 
 
 class ResourceItem(GObject.Object):
@@ -27,12 +29,18 @@ class CatalogueWindow(Adw.Window):
         self.library, self.on_installed = library, on_installed
         self.owner = parent
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
-        self.resources = []
+        self.cache=CatalogueCache(library.root.parent/'catalogue-cache')
+        self.provider_resources={p.id:list(value[0]) for p in PROVIDERS if (value:=self.cache.read(p)) is not None}
+        self.resources = sorted([r for items in self.provider_resources.values() for r in items],key=lambda r:(r.language,r.name,r.provider_id))
+        self.timings={};self.catalogue_generation=0
+        self._completed_resource=None
+        self.catalogue_executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-refresh')
         self.filtered_resources = []
         self.languages = []
         self.source_ids = [None] + [p.id for p in PROVIDERS]
         self._filtering = False
-        self.busy = False
+        self._transfer_busy = False
+        self.refreshing = False
         self.closed = False
         self._task_id = 0
         self._pulse_id = 0
@@ -51,7 +59,7 @@ class CatalogueWindow(Adw.Window):
         self.catalogue_button.connect('clicked',self.load_catalogue);header.pack_end(self.catalogue_button)
         layout.append(header)
         self.pages=Gtk.Stack(vexpand=True)
-        explorer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
+        explorer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_top=16)
         views=Gtk.Box(spacing=0,halign=Gtk.Align.CENTER);views.add_css_class('linked')
         self.explore_button=Gtk.ToggleButton(label=tr('Explore'),active=True)
         self.installed_only=Gtk.ToggleButton(label=tr('Installed resources'),group=self.explore_button)
@@ -91,18 +99,28 @@ class CatalogueWindow(Adw.Window):
         self.download_button=Gtk.Button(label=tr('Download'),sensitive=False,halign=Gtk.Align.CENTER)
         self.download_button.add_css_class('suggested-action')
         self.download_button.connect('clicked',self.install);detail.append(self.download_button)
+        self.installed_state=Gtk.Box(spacing=6,halign=Gtk.Align.CENTER,visible=False)
+        self.installed_state.append(Gtk.Image(icon_name='emblem-ok-symbolic'))
+        self.installed_state.append(Gtk.Label(label=tr('Installed — available offline'),wrap=True))
+        detail.append(self.installed_state)
         self.pages.add_named(detail,'detail');layout.append(self.pages)
         self.progress=Gtk.ProgressBar(margin_start=12,margin_end=12,visible=False)
         layout.append(self.progress)
         self.status=Gtk.Label(xalign=0,wrap=True,selectable=True,margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         layout.append(self.status)
+        self.refresh_status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12,margin_bottom=8)
+        self.refresh_status.add_css_class('dim-label');layout.append(self.refresh_status)
+        if self.resources:self.refresh_status.set_text(tr('Saved catalogue — available offline.'))
         self.set_content(layout)
         self.update_languages()
         self._catalogue_requested=False
         self.connect('map',lambda *_:GLib.timeout_add(100,self.auto_load))
 
+    @property
+    def busy(self):return self._transfer_busy or self.refreshing
+
     def auto_load(self,*_):
-        if not self.closed and not self._catalogue_requested and not self.busy and not self.resources and not self.installed_only.get_active():self.load_catalogue()
+        if not self.closed and not self._catalogue_requested and not self.busy and not self.installed_only.get_active():self.load_catalogue(force=False)
         return False
 
     def setup_resource_row(self,_,item):
@@ -152,6 +170,9 @@ class CatalogueWindow(Adw.Window):
         if self.closed:return False
         if self._filtering:
             return
+        selected=self.selected_resource()
+        selected_id=selected.id if selected else None
+        position=self.list_scroll.get_vadjustment().get_value()
         index = self.language.get_selected()
         language = self.languages[index] if index < len(self.languages) else ''
         query = normalized(self.search.get_text())
@@ -161,7 +182,8 @@ class CatalogueWindow(Adw.Window):
                                                                     r.language, language_name(r.language))))]
         self._installed_ids=set(self.library.installed())
         self.choice_model.splice(0,self.choice_model.get_n_items(),[ResourceItem(r) for r in self.filtered_resources])
-        self.choices.set_selected(0)
+        self.choices.set_selected(next((i for i,r in enumerate(self.filtered_resources) if r.id==selected_id),0))
+        self.list_scroll.get_vadjustment().set_value(position)
         self.empty.set_visible(not self.filtered_resources)
         self.selection_changed()
 
@@ -176,28 +198,33 @@ class CatalogueWindow(Adw.Window):
 
     def refresh_controls(self):
         resource = self.selected_resource()
+        installed=bool(resource and resource.id in self.library.installed())
+        self.installed_state.set_visible(installed)
+        self.download_button.set_visible(not installed)
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
                                                and resource.id not in self.library.installed())
-                                           and not self.busy)
+                                           and not self._transfer_busy)
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
-        self.progress.set_visible(self.busy)
+        self.progress.set_visible(self._transfer_busy)
 
 
     def on_close(self, *_):
-        if self.busy and not self.owner.closed:
+        if self._transfer_busy and not self.owner.closed:
             self.set_visible(False)
             return True
         self.closed = True
+        self.catalogue_generation+=1
         self.stop_animation()
         self.executor.shutdown(wait=False, cancel_futures=True)
+        self.catalogue_executor.shutdown(wait=False,cancel_futures=True)
         return False
 
     def task(self, message, action, finished, success_text=None):
-        if self.busy:
+        if self._transfer_busy:
             return
-        self.busy = True
+        self._transfer_busy = True
         self._task_id += 1
         self._phase = "downloading"
         self._indeterminate = True
@@ -214,7 +241,7 @@ class CatalogueWindow(Adw.Window):
         def complete():
             if self.closed:
                 return False
-            self.busy = False
+            self._transfer_busy = False
             self.stop_animation()
             try:
                 value = future.result()
@@ -233,19 +260,47 @@ class CatalogueWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def load_catalogue(self, *_):
+    def load_catalogue(self, *_, force=True):
+        if self.closed or self.refreshing:return
         self._catalogue_requested=True
+        self.refreshing=True;self.catalogue_generation+=1;generation=self.catalogue_generation
+        self.refresh_status.set_visible(True)
+        self.refresh_status.set_text(tr('Refreshing sources… Cached resources remain available.'))
+        self.refresh_controls()
+        def progress(provider,items,error,timings):
+            def apply():
+                if self.closed or generation!=self.catalogue_generation:return False
+                started=time.monotonic()
+                self.provider_resources[provider.id]=list(items)
+                self.resources=sorted([r for values in self.provider_resources.values() for r in values],key=lambda r:(r.language,r.name,r.provider_id))
+                self.update_languages()
+                self.timings[provider.id]=dict(timings,ui_seconds=time.monotonic()-started)
+                self.refresh_status.set_text(provider.name+': '+(str(error) if error else tr('Ready')))
+                return False
+            GLib.idle_add(apply)
         def loaded(result):
             errors = getattr(result, 'errors', {})
             resources = getattr(result, 'resources', result)
             self.resources = list(resources)
-            self.installed_only.set_active(False)
             self.update_languages()
-            self.status.set_text(
-                tr('Partial catalogue. Retry to reload unavailable sources.') + '\n' +
+            message=(
+                tr('Partial catalogue. Retry to reload unavailable sources.') + ' '+tr('Saved results retained.')+'\n' +
                 '\n'.join(f'{name}: {error}' for name, error in errors.items())
                 if errors else tr('Ready') if resources else tr('No supported resource found.'))
-        self.task('Loading catalogue…', catalogue, loaded)
+            self.refresh_status.set_text(message)
+            self.refresh_status.set_visible(bool(errors))
+            if not self._transfer_busy and self._completed_resource is None:
+                self.status.set_text(message);self.status.set_visible(False)
+        future=self.catalogue_executor.submit(lambda:catalogue(on_provider=progress,cache=self.cache,force=force))
+        def complete():
+            if self.closed or generation!=self.catalogue_generation:return False
+            self.refreshing=False
+            try:loaded(future.result())
+            except Exception as error:
+                self.refresh_status.set_text(str(error))
+                if not self._transfer_busy:self.status.set_text(str(error));self.status.set_visible(True)
+            self.refresh_controls();return False
+        future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def stop_animation(self):
         if self._pulse_id:
@@ -261,7 +316,7 @@ class CatalogueWindow(Adw.Window):
             self._pending_progress = (self._task_id, phase, done, total)
 
     def animate_progress(self):
-        if self.closed or not self.busy:
+        if self.closed or not self._transfer_busy:
             self._pulse_id = 0
             return False
         with self._progress_lock:
@@ -287,10 +342,11 @@ class CatalogueWindow(Adw.Window):
 
     def install(self, *_):
         resource = self.selected_resource()
-        if not resource or not resource.installable or self.busy:
+        if not resource or not resource.installable or self._transfer_busy:
             return
 
         def installed(_):
+            self._completed_resource=resource.id
             self.on_installed(resource.id)
             self.filter_resources()
             self.status.set_text(tr('Installed: {name}').format(name=resource.name))

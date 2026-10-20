@@ -14,7 +14,7 @@ from tests.test_library import RESOURCE, fixture, archive_bytes
 
 class ProviderTests(unittest.TestCase):
     def test_one_failed_source_keeps_others_and_retry_is_fresh(self):
-        def load(provider):
+        def load(provider,timings=None):
             if provider == EXTRA:
                 raise OSError('source offline')
             return [replace(RESOURCE, provider_id=provider.id, source=provider.name, source_url=provider.url)]

@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
+    'Saved results retained.': 'Les résultats enregistrés sont conservés.',
+    'Installed — available offline': 'Installé — disponible hors connexion',
+    'Refreshing sources… Cached resources remain available.': 'Actualisation des sources… Les ressources en cache restent disponibles.',
     'Scroll either pane to follow the passage.': 'Faites défiler un panneau pour suivre le passage.',
     'No verified alignment for this passage.': 'Aucun alignement vérifié pour ce passage.',
     'Translations': 'Traductions', 'Load catalogue': 'Charger le catalogue',

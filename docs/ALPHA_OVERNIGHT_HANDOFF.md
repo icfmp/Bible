@@ -40,7 +40,39 @@ Both Bible texts display at Genesis 1:19 and the tested Psalms. Comparison
 widths measured 707/707 pixels with equal padding, plus equal allocation with
 study open. Screenshots: `captures/study-{resolution-35,comparison-36}-{fr,en}.png`.
 Full local suite: 125 tests passed with GTK, SWORD, Babel 2.18.0 and ISO
-translations installed. CI/Flatpak publication verification is still pending.
+translations installed. Published in `1572378`: CI 39516862994 and alpha
+publication 39517587724 both succeeded. A separate system client updated to
+Flatpak `1c350c31d04396e05cb1e53b2188e699ac622cb8a04077077c3d3d10adefeecf`,
+revision `39517587724-2`, matching public provenance. Real offline checks also
+passed in the constructed Flatpak; native reverse MHC Psalm 3:1 → Segond
+Psalm 3:2 following passed without history spam. Issues #35/#36/#25 remain
+open for their outstanding manual acceptance checks.
+
+## Batch 2 — cache and installed-state increment
+
+Implemented per-provider versioned metadata caches, atomic replacement,
+15-minute freshness, as-completed provider delivery, bounded network reads,
+cache retention after failure and separate refresh/transfer state. Search,
+selection, details, installed view and downloads stay available while sources
+refresh. Closing invalidates pending callbacks. Transfer completion retains the
+original resource identity; an installed detail shows a check and “Installed —
+available offline” instead of a Download action. Library top spacing is 16 px.
+
+Local full suite: 132 tests passed. Real four-source measurement (412 resources):
+first results 0.823 s, all sources 2.047 s; warm cache 0.006 s (data/backend,
+not a claimed desktop launch measurement). Per-source network/parsing seconds:
+Extra 0.812/0.010, AndBible 0.968/0.003, CrossWire 1.509/0.072, STEP 2.023/0.020.
+The offline GTK checker verifies immediate cached resources, French filtering,
+real installed Lausanne state and stable detail selection.
+
+eBible investigation: AndBible's official repository file at commit
+`7e73c11508f32e4f531d531f6d5b110dd2a1f204` lists `/sword` and `/sword/zip`.
+The normal Bible HTTP client retrieves the catalogue. Do not use guessed
+`F10.zip` (404): its actual identity is `fraLSG1910eb`. Source addition is a
+separate reviewable policy change under AGENTS.md, not an unreviewed registry
+edit on main. Other observed French identities: `fraFOB1744eb`, `frajnd2024eb`,
+`francl2022eb`, `frasbl2022eb`. `frd2018eb` is Fordata (`frd`), not French;
+do not merge it into `fr`.
 
 Client test order for this batch:
 1. Update the existing system alpha installation; reopen the saved session.

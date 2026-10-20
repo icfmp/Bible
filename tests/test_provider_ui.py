@@ -2,6 +2,7 @@ import os
 from dataclasses import replace
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -54,6 +55,73 @@ class ProviderUITests(unittest.TestCase):
                 if dialog is not None:
                     dialog.close()
                 window.close()
+
+    def test_cached_results_are_immediate_and_survive_failed_refresh(self):
+        from bible.ui import Window
+        from bible.catalogue_cache import CatalogueCache
+        from bible.providers import CROSSWIRE
+        with tempfile.TemporaryDirectory() as directory:
+            cache=CatalogueCache(Path(directory)/'catalogue-cache')
+            cache.write(CROSSWIRE,[RESOURCE])
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            try:
+                dialog=window.open_library()
+                self.assertEqual(dialog.resources,[RESOURCE])
+                dialog.open_details(None,0)
+                with patch('bible.library.catalogue',side_effect=OSError('offline fixture')):
+                    dialog.load_catalogue();spin(lambda:not dialog.busy)
+                self.assertEqual(dialog.selected_resource(),RESOURCE)
+                self.assertEqual(dialog.pages.get_visible_child_name(),'detail')
+                self.assertIn('offline fixture',dialog.refresh_status.get_text())
+                self.assertTrue(dialog.download_button.get_sensitive())
+                dialog.close()
+            finally:window.close()
+
+    def test_progressive_results_are_interactive_during_refresh(self):
+        from bible.ui import Window
+        from bible.providers import CROSSWIRE
+        release=threading.Event();self.addCleanup(release.set)
+        def fetch(**kwargs):
+            kwargs['on_provider'](CROSSWIRE,[RESOURCE],None,{})
+            release.wait(3)
+            return CatalogueResult((RESOURCE,),{})
+        with tempfile.TemporaryDirectory() as directory:
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            try:
+                with patch('bible.catalogue_window.catalogue',side_effect=fetch):
+                    dialog=window.open_library();dialog.load_catalogue()
+                    spin(lambda:bool(dialog.filtered_resources))
+                    self.assertTrue(dialog.refreshing)
+                    dialog.open_details(None,0)
+                    self.assertTrue(dialog.download_button.get_sensitive())
+                    self.assertEqual(dialog.selected_resource(),RESOURCE)
+                    release.set();spin(lambda:not dialog.busy)
+                    self.assertEqual(dialog.pages.get_visible_child_name(),'detail')
+                    dialog.close()
+            finally:window.close()
+
+    def test_selection_and_installed_state_survive_list_refresh(self):
+        from bible.ui import Window
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            try:
+                dialog=window.open_library()
+                installed=window.library.resource('Test')
+                other=replace(installed,name='Another')
+                dialog.resources=[other,installed];dialog.update_languages()
+                dialog.open_details(None,1)
+                self.assertTrue(dialog.installed_state.get_visible())
+                self.assertFalse(dialog.download_button.get_visible())
+                dialog.resources=[installed,other];dialog.filter_resources()
+                self.assertEqual(dialog.selected_resource().id,'Test')
+                self.assertTrue(dialog.installed_state.get_visible())
+                dialog.choices.set_selected(1)
+                self.assertEqual(dialog.selected_resource().id,'Another')
+                self.assertFalse(dialog.installed_state.get_visible())
+                self.assertTrue(dialog.download_button.get_visible())
+                dialog.close()
+            finally:window.close()
 
     def test_partial_catalogue_source_filter_and_retry(self):
         from bible.ui import Window

@@ -9,10 +9,11 @@ import shutil
 import stat
 import tarfile
 import tempfile
+import time
 import urllib.request
 import zipfile
 from dataclasses import dataclass, replace
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .providers import CROSSWIRE, PROVIDERS, BY_ID, identity, module_name
 
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
@@ -111,6 +112,7 @@ def safe_path(name):
 
 
 def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE):
+    deadline=time.monotonic()+120
     request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1'})
     with urllib.request.urlopen(request, timeout=30) as response:
         if not response.url.startswith('https://'):
@@ -129,6 +131,7 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
         # received even for small/slow responses. Never invent a percentage.
         read = getattr(response, "read1", response.read)
         while chunk := read(64 * 1024):
+            if time.monotonic()>deadline:raise TimeoutError('Download exceeded its time limit')
             done += len(chunk)
             if done > limit:
                 raise ValueError('Download too large')
@@ -138,11 +141,13 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
             raise ValueError('Incomplete download')
 
 
-def catalogue(provider=CROSSWIRE):
+def catalogue(provider=CROSSWIRE, timings=None):
+    started=time.monotonic()
     data = io.BytesIO()
     if provider not in PROVIDERS:
         raise ValueError('Unsupported resource source')
     download(provider.catalogue_url, data, limit=8 * 1024 * 1024)
+    received=time.monotonic()
     resources = []
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data.getvalue()), mode='r:gz') as archive:
@@ -161,6 +166,7 @@ def catalogue(provider=CROSSWIRE):
                         and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
                              or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
                     resources.append(resource_from_section(name, section, provider))
+    if timings is not None:timings.update(network_seconds=received-started,parse_seconds=time.monotonic()-received)
     return sorted(resources, key=lambda r: (r.language, r.name))
 
 
@@ -170,19 +176,29 @@ class CatalogueResult:
     errors: dict
 
 
-def catalogues(providers=PROVIDERS):
+def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
     """One unavailable provider must not discard successful catalogues."""
     def load(provider):
+        timings={};cached=cache.read(provider) if cache else None
+        if cached and not force and time.time()-cached[1]<15*60:
+            return cached[0],None,{'cached':True,'updated':cached[1]}
         try:
-            return catalogue(provider), None
+            items=catalogue(provider,timings=timings)
+            if cache:
+                try:cache.write(provider,items)
+                except OSError as error:timings['cache_error']=str(error)
+            return items,None,timings
         except Exception as error:
-            return [], str(error)
+            return cached[0] if cached else [],str(error),timings
     resources, errors = [], {}
     with ThreadPoolExecutor(max_workers=4, thread_name_prefix='bible-catalogue') as executor:
-        for provider, (items, error) in zip(providers, executor.map(load, providers)):
+        futures={executor.submit(load,provider):provider for provider in providers}
+        for future in as_completed(futures):
+            provider=futures[future];items,error,timings=future.result()
             if error is not None:
                 errors[provider.name] = error
             resources.extend(items)
+            if on_provider:on_provider(provider,items,error,timings)
     # Retain duplicates with distinct IDs and explicit provenance, never pick an
     # arbitrary provider based on network completion order.
     return CatalogueResult(tuple(sorted(resources, key=lambda r: (r.language, r.name, r.provider_id))), errors)
