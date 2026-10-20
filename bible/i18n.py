@@ -154,3 +154,55 @@ FR.update({
     'Partial catalogue. Retry to reload unavailable sources.':
         'Catalogue partiel. Rechargez pour réessayer les sources indisponibles.',
 })
+
+FR.update({
+    'Reading appearance':'Apparence de lecture','Reading font':'Police de lecture',
+    'Text size':'Taille du texte','Chapter numbers':'Numéros de chapitres','Verse numbers':'Numéros de versets',
+    'Compare translations':'Comparer les traductions','No comparison':'Aucune comparaison',
+    'Comparison translation unavailable.':'La traduction de comparaison est indisponible.',
+    'History':'Historique','History back':'Historique : retour','History forward':'Historique : avancer',
+    'Books':'Livres','No passage history yet.':'Aucun passage dans l’historique.',
+    'History resource unavailable. The passage has been kept.':'Cette traduction est indisponible. Le passage reste dans l’historique.',
+    'Add a passage note':'Ajouter une note de passage',
+    'Explore':'Explorer','Installed':'Installée','Refresh catalogue':'Actualiser le catalogue',
+    'Search languages':'Rechercher une langue','Back':'Retour',
+    'Note created with':'Note créée avec','Note actions':'Actions de la note','Delete note…':'Supprimer la note…',
+    'Write / Preview':'Écrire / Aperçu','Unsaved changes':'Modifications non enregistrées',
+    'Save this note before leaving?':'Enregistrer cette note avant de quitter l’édition ?',
+    'Keep editing':'Continuer l’édition','Discard':'Abandonner',
+    'Filter by label':'Filtrer par label','Search labels':'Rechercher un label','Remove filter':'Retirer le filtre',
+    'Today':'Aujourd’hui','Yesterday':'Hier','Reading':'Lecture','Back to notes':'Retour aux notes',
+    'Choose a note':'Choisissez une note','Your notes remain available offline.':'Vos notes restent disponibles hors connexion.',
+    'No notes yet.':'Aucune note pour le moment.','Open passage':'Ouvrir le passage',
+})
+
+FR.update({
+    'Book':'Livre','Simple':'Simple','Decrease text size':'Réduire la taille du texte',
+    'Increase text size':'Augmenter la taille du texte','Reading mode':'Mode',
+    'System':'Système','Day':'Jour','Night':'Nuit','Day palettes':'Couleurs de jour',
+    'Night palettes':'Couleurs de nuit','White':'Blanc','Paper (sepia)':'Papier (sépia)',
+    'Dark grey':'Gris sombre','Black':'Noir','Layout':'Mise en page',
+    'Line spacing':'Interligne','Tight':'Serré','Normal':'Normal','Airy':'Aéré',
+    'Text width':'Largeur du texte','Narrow':'Étroite','Wide':'Large',
+    'Reset reading settings':'Rétablir les réglages',
+    'Colors follow the system high contrast setting.':'Les couleurs suivent le contraste élevé du système.',
+})
+
+FR.update({
+    'Introduction':'Introduction','Introduction has no verified verse alignment.':'Cette introduction n’a pas de correspondance vérifiée avec un verset.',
+    'Previous available entry':'Entrée disponible précédente','Next available entry':'Entrée disponible suivante',
+    'Immersive mode':'Mode immersif','Leave immersive mode':'Quitter le mode immersif',
+    'Read in immersive mode':'Lire en mode immersif','Reading page':'Page de lecture',
+    'Previous pages':'Pages précédentes','Next pages':'Pages suivantes',
+    'Open this passage in the Bible':'Ouvrir ce passage dans la Bible',
+    'Commentary resumed. The Bible passage is unchanged.':'Lecture du commentaire reprise. Le passage biblique est inchangé.',
+    'In GNOME, turn on Do Not Disturb in the clock menu. Bible does not change notifications.':
+        'Dans GNOME, activez Ne pas déranger dans le menu de l’horloge. Bible ne modifie pas les notifications.',
+    'Do not show again':'Ne plus afficher',
+})
+
+FR.update({
+    'Copy verses without numbers':'Copier les versets sans numéros',
+    'Copy verses with reference':'Copier les versets avec la référence',
+    'Copy reference':'Copier la référence',
+})

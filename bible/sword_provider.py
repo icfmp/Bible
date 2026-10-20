@@ -41,6 +41,12 @@ class Reader:
         if probe.getVersificationSystem() != self.versification:
             raise ValueError(f'Unsupported versification: {self.versification}')
 
+    @property
+    def rtl(self):
+        # SWIG exposes SWORD's char direction as a one-character Python str.
+        value=self.module.getDirection()
+        return value in (self.sword.DIRECTION_RTL,chr(self.sword.DIRECTION_RTL))
+
     def key(self, reference):
         if isinstance(reference, str):
             reference = canonical_input(reference)
@@ -132,11 +138,28 @@ class Reader:
         return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
 
 
+    def structured_chapter(self, chapter):
+        from .structured_text import extract
+        source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
+        result = {}
+        for reference, plain in chapter.verses:
+            self.module.setKey(self.key(reference))
+            raw = self.module.getRawEntry()
+            raw = raw if isinstance(raw,str) else raw.c_str()
+            result[reference] = extract(raw,plain,source_type)
+        return result
+
+
 class VersificationMismatch(ValueError):
     """An explicit mapping is required before two verse systems can be aligned."""
 
 
 class CommentaryReader(Reader):
+    @cached_property
+    def index(self):
+        from .commentary_index import CommentaryIndex
+        return CommentaryIndex(self)
+
     drivers = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
 
     def entry(self, reference, bible_versification):

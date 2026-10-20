@@ -32,14 +32,7 @@ def plain(value):
     return re.sub(r'\\(?:par|pard|qc|b0?|i0?)\b\s*', '\n', ''.join(parser.parts)).strip()
 
 
-def language_name(code):
-    names = {'fr': tr('French'), 'en': tr('English'), 'de': tr('German'),
-             'es': tr('Spanish'), 'it': tr('Italian'), 'pt': tr('Portuguese'),
-             'el': tr('Greek'), 'he': tr('Hebrew'), 'la': tr('Latin'),
-             'ar': tr('Arabic'), 'ru': tr('Russian'), 'nl': tr('Dutch')}
-    base = code.replace('_', '-').split('-')[0]
-    name = names.get(base, code)
-    return name if base == code else f'{name} ({code})'
+from .languages import language_name
 
 
 def details(resource):

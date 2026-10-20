@@ -54,6 +54,9 @@ class X11Input:
         spin(duration=0.15)
 
     def click(self, widget):
+        self.click_at(widget,widget.get_width()/2,widget.get_height()/2)
+
+    def move_at(self, widget, local_x, local_y):
         native = widget.get_native()
         found, bounds = widget.compute_bounds(native)
         assert found and widget.get_mapped()
@@ -63,13 +66,39 @@ class X11Input:
             self.display, native.get_surface().get_xid(),
             self.x11.XDefaultRootWindow(self.display), 0, 0,
             ctypes.byref(root_x), ctypes.byref(root_y), ctypes.byref(child))
-        x = int(root_x.value + dx + bounds.origin.x + bounds.size.width / 2)
-        y = int(root_y.value + dy + bounds.origin.y + bounds.size.height / 2)
+        x = int(root_x.value + dx + bounds.origin.x + local_x)
+        y = int(root_y.value + dy + bounds.origin.y + local_y)
         self.xtest.XTestFakeMotionEvent(self.display, -1, x, y, 0)
+        self.x11.XFlush(self.display)
+
+    def click_at(self, widget, local_x, local_y):
+        self.move_at(widget,local_x,local_y)
         self.xtest.XTestFakeButtonEvent(self.display, 1, True, 0)
         self.xtest.XTestFakeButtonEvent(self.display, 1, False, 0)
         self.x11.XFlush(self.display)
         spin(duration=0.2)
+
+    def wheel(self,widget,steps):
+        self.move_at(widget,widget.get_width()/2,widget.get_height()/2)
+        spin(duration=.1)
+        for _ in range(abs(steps)):
+            button=5 if steps>0 else 4
+            self.xtest.XTestFakeButtonEvent(self.display,button,True,0)
+            self.xtest.XTestFakeButtonEvent(self.display,button,False,0)
+        self.x11.XFlush(self.display);spin(duration=.2)
+
+    def drag_at(self,widget,x,start,end,observed=None):
+        self.move_at(widget,x,start);spin(duration=.15)
+        self.xtest.XTestFakeButtonEvent(self.display,1,True,0);self.x11.XFlush(self.display)
+        spin(duration=.1)
+        try:
+            for index in range(1,11):
+                self.move_at(widget,x,start+(end-start)*index/10)
+                spin(duration=.15)
+                if observed:observed()
+        finally:
+            self.xtest.XTestFakeButtonEvent(self.display,1,False,0);self.x11.XFlush(self.display)
+            spin(duration=.2)
 
     def close(self):
         self.x11.XCloseDisplay(self.display)
@@ -116,8 +145,27 @@ def main():
                 inputs.click(second.following)
                 assert second.state.reference == '1Cor.1.1'
                 assert window.tabs()[0].state.reference == 'Exod.1.1'
+                # Exercise Aa with actual X11 pointer/key events as well.
+                inputs.click(window.appearance_button)
+                aa=window.appearance
+                inputs.click(aa.larger)
+                assert window.preferences.value.size == 20
+                aa.smaller.grab_focus();inputs.key('space')
+                assert window.preferences.value.size == 19
+                aa.fonts['DejaVu Sans'].grab_focus();inputs.key('space')
+                assert window.preferences.value.font == 'DejaVu Sans'
+                inputs.click(aa.palettes['paper'])
+                assert window.preferences.value.day_palette == 'paper'
+                assert window.preferences.value.mode == 'system'
+                inputs.click(aa.mode);inputs.key('End');inputs.key('Return')
+                assert window.preferences.value.mode == 'night'
+                aa.verse_numbers.grab_focus();inputs.key('space')
+                assert not window.preferences.value.verse_numbers
+                inputs.key('Escape')
+                assert not aa.get_visible()
+                assert second.state.reference == '1Cor.1.1'
                 print('PASS: native X11 book/chapter clicks, chapter Space, book Return/Down, '
-                      'typed search, close, overlay and independent tabs', flush=True)
+                      'typed search, close, overlay, independent tabs and Aa mouse/keyboard controls', flush=True)
             finally:
                 window.close()
     finally:

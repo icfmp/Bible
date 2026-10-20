@@ -2,18 +2,26 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Adw, Pango, Gio
 
+from .providers import module_name
 from .i18n import tr
 from .sword_provider import Reader
 from .book_names import display_name
 from .i18n import LANGUAGE
+from . import history
+from .preferences import ReadingPreferences
+from .reading_style import WIDTHS, SPACING, apply_direction
 
 
 class ReadingTab(Gtk.Box):
-    def __init__(self, library, state, changed, jump_to_reference=False, notes_store=None, notes_requested=None):
+    def __init__(self, library, state, changed, jump_to_reference=False, notes_store=None, notes_requested=None, preferences=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         self.library, self.state, self.changed = library, state, changed
+        self.preferences = preferences or ReadingPreferences()
+        self._travelling = False
+        self._verse_ranges = {}
+        self._marker_ends = {}
         self.notes_store, self.notes_requested = notes_store, notes_requested
         self._notes_stamp = None
         self._note_refs = {}
@@ -24,6 +32,7 @@ class ReadingTab(Gtk.Box):
         self._scroll_frames = 0
         self._verse_offsets = {}
         self._jump_reference = None
+        self._appearance_anchor = None
         self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
                                 margin_start=12, margin_end=12)
         self.append(self.status)
@@ -38,6 +47,12 @@ class ReadingTab(Gtk.Box):
                                  left_margin=56, right_margin=56,
                                  top_margin=16, bottom_margin=24)
         self.text.add_css_class('reading')
+        self.text.set_pixels_inside_wrap(5)
+        self.text.set_pixels_below_lines(9)
+        self._body_tag = self.text.get_buffer().create_tag(None)
+        self._number_tag = self.text.get_buffer().create_tag(None, scale=0.65, rise=6000)
+        self._heading_tag = self.text.get_buffer().create_tag(None, weight=700, pixels_above_lines=16, pixels_below_lines=12)
+        self._chapter_tag = self.text.get_buffer().create_tag(None, weight=700, justification=Gtk.Justification.CENTER, pixels_above_lines=20, pixels_below_lines=20)
         self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
         self._selected_tag = self.text.get_buffer().create_tag(None, weight=700)
         self._annotated_tag = self.text.get_buffer().create_tag(None, underline=1)
@@ -47,6 +62,7 @@ class ReadingTab(Gtk.Box):
         self.text.add_controller(self.verse_click)
         self._target_mark = self.text.get_buffer().create_mark(
             None, self.text.get_buffer().get_start_iter(), True)
+        self.clamp = None  # Keep GtkTextView directly scrollable; centre using dynamic margins.
         self.scroll.set_child(self.text)
         self.reading_overlay = Gtk.Overlay(vexpand=True, hexpand=True)
         self.reading_overlay.set_child(self.scroll)
@@ -54,10 +70,34 @@ class ReadingTab(Gtk.Box):
                                             'win.previous-chapter', Gtk.Align.START)
         self.following = self.chapter_button('go-next-symbolic', 'Next chapter',
                                              'win.next-chapter', Gtk.Align.END)
-        self.append(self.reading_overlay)
+        self.reading_layout=Gtk.Box(spacing=16,vexpand=True)
+        self.reading_layout.append(self.reading_overlay)
+        self.comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False,vexpand=True,hexpand=True)
+        self.comparison_heading=Gtk.Label(wrap=True,margin_top=16,margin_start=12,margin_end=12)
+        self.comparison_heading.add_css_class('heading')
+        self.comparison_box.append(self.comparison_heading)
+        self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12)
+        self.comparison_box.append(self.comparison_status)
+        self.comparison_text=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                                          left_margin=24,right_margin=24,top_margin=12,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
+        self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
+        self.comparison_scroll.set_child(self.comparison_text)
+        self.comparison_box.append(self.comparison_scroll)
+        self.reading_layout.append(self.comparison_box)
+        self.append(self.reading_layout)
+        self._comparison_reader=None
+        self._comparison_name=None
+        self.add_tick_callback(self.adapt_comparison)
+        context=Gio.Menu()
+        context.append(tr('Add a passage note'),'win.note')
+        context.append(tr('Copy verses without numbers'),'win.copy-passage')
+        context.append(tr('Copy verses with reference'),'win.copy-with-reference')
+        context.append(tr('Copy reference'),'win.copy-reference')
+        self.text.set_extra_menu(context)
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
         self.load_resource(jump_to_reference)
+        history.seed(self.state)
 
     def chapter_button(self, icon, label, action, align):
         button = Gtk.Button(icon_name=icon, tooltip_text=tr(label), action_name=action,
@@ -81,7 +121,7 @@ class ReadingTab(Gtk.Box):
         return self.state.reference if self.state.resource else tr('Choose a passage')
 
     def title(self):
-        return f'{self.passage_title()} — {self.state.resource}' if self.state.resource else tr('New tab')
+        return f'{self.passage_title()} — {module_name(self.state.resource)}' if self.state.resource else tr('New tab')
 
     def navigate(self, resource, reference):
         try:
@@ -131,6 +171,8 @@ class ReadingTab(Gtk.Box):
             self.status.set_visible(True)
 
     def show(self, reference, restore=False):
+        if not restore and not self._travelling and hasattr(self,'sync_coordinator'):self.sync_coordinator.explicit_bible()
+        self._appearance_anchor = None
         if not self.reader or not reference:
             return
         try:
@@ -140,19 +182,14 @@ class ReadingTab(Gtk.Box):
             canonical = self.reader.key(reference).getOSISRef()
             self._restoring_scroll = True
             self.current = chapter
+            if not restore and not self._travelling:
+                history.visit(self.state, self.state.resource, canonical)
             self.state.reference = canonical
             self._jump_reference = canonical if not restore else None
             if not restore:
                 self.state.scroll = 0.0
-            parts, offset = [], 0
-            self._verse_offsets = {}
-            for ref, text in chapter.verses:
-                self._verse_offsets[ref] = offset
-                part = f'{ref.rsplit(".", 1)[-1]}  {text}\n\n'
-                parts.append(part)
-                offset += len(part)
+            self.render_chapter(chapter)
             self._notes_stamp = None
-            self.text.get_buffer().set_text(''.join(parts))
             self.highlight_selection()
             self.status.set_text(tr('Ready'))
             self.status.set_visible(False)
@@ -164,6 +201,137 @@ class ReadingTab(Gtk.Box):
             self.status.set_visible(True)
             return False
 
+    def adapt_comparison(self,*_):
+        orientation=Gtk.Orientation.HORIZONTAL if self.get_width()>=760 else Gtk.Orientation.VERTICAL
+        if self.reading_layout.get_orientation()!=orientation:self.reading_layout.set_orientation(orientation)
+        for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,24)]:
+            margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
+            if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
+        return True
+
+    def refresh_comparison(self):
+        name=self.state.comparison
+        self.comparison_box.set_visible(bool(name))
+        if not name:return
+        self.comparison_text.get_buffer().set_text('')
+        self.comparison_status.set_text('')
+        try:
+            if name not in self.library.installed('bible'):raise ValueError(tr('Comparison translation unavailable.'))
+            resource=self.library.resource(name)
+            self.comparison_heading.set_text(resource.description+' — '+resource.source)
+            if self._comparison_name!=name:
+                self._comparison_reader=Reader(self.library.root/name,name);self._comparison_name=name
+            reader=self._comparison_reader
+            apply_direction(self.comparison_text,reader)
+            if not self.reader or reader.versification!=self.reader.versification:
+                raise ValueError(tr('Different versifications. Automatic alignment is unavailable.'))
+            if not reader.has_reference(self.state.reference):raise ValueError(tr('This passage is not available in this translation.'))
+            chapter=reader.chapter(self.state.reference)
+            text='\n\n'.join((ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value for ref,value in chapter.verses)
+            buffer=self.comparison_text.get_buffer();buffer.set_text(text)
+            table=buffer.get_tag_table();tag=table.lookup('appearance')
+            if not tag:tag=buffer.create_tag('appearance')
+            tag.props.family=self.preferences.font;tag.props.size_points=self.preferences.size
+            buffer.apply_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
+        except Exception as error:self.comparison_status.set_text(str(error))
+
+    def render_chapter(self, chapter):
+        apply_direction(self.text,self.reader)
+        buffer = self.text.get_buffer()
+        preferences = self.preferences
+        self.text.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
+        self.text.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
+        self.comparison_text.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
+        self.comparison_text.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
+        self._body_tag.props.family = preferences.font
+        self._body_tag.props.size_points = preferences.size
+        self._heading_tag.props.size_points = preferences.size * 1.12
+        self._chapter_tag.props.size_points = preferences.size * 1.35
+        key = self.reader.key(chapter.reference + '.1')
+        title = display_name(key.getOSISBookName(), key.getBookName(), LANGUAGE)
+        if preferences.chapter_numbers:title += ' ' + str(key.getChapter())
+        pieces = [title + '\n\n']
+        spans = [(0,len(title),self._chapter_tag)]
+        offset = len(pieces[0])
+        self._verse_offsets, self._verse_ranges, self._marker_ends = {}, {}, {}
+        structured = self.reader.structured_chapter(chapter)
+        has_structure = any(segment.kind != 'text' for values in structured.values() for segment in values)
+        for index,(reference, plain) in enumerate(chapter.verses):
+            segments = structured[reference]
+            for segment in segments:
+                if segment.kind == 'heading' and segment.text.strip():
+                    value = '\n' + segment.text.strip() + '\n'
+                    pieces.append(value);spans.append((offset,offset+len(value),self._heading_tag));offset += len(value)
+            body_segments = [s for s in segments if s.kind != 'heading']
+            body = ''.join(s.text for s in body_segments)
+            # No source paragraphs: neutral continuous prose, no invented titles.
+            if not has_structure:body = plain
+            leading = body[:len(body)-len(body.lstrip('\n'))]
+            if leading:
+                pieces.append(leading);offset += len(leading);body=body[len(leading):]
+            start = offset
+            number = reference.rsplit('.',1)[-1] + ' ' if preferences.verse_numbers else ''
+            pieces.append(number);offset += len(number)
+            self._verse_offsets[reference] = start
+            self._marker_ends[reference] = offset
+            if number:spans.append((start,offset,self._number_tag))
+            pieces.append(body);offset += len(body)
+            self._verse_ranges[reference] = (start,offset)
+            separator = ' ' if not body.endswith('\n') else ''
+            pieces.append(separator);offset += len(separator)
+        buffer.set_text(''.join(pieces))
+        buffer.apply_tag(self._body_tag,buffer.get_start_iter(),buffer.get_end_iter())
+        for start,end,tag in spans:
+            buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
+
+    def position_anchor(self, offset):
+        candidates = [(ref,start,end) for ref,(start,end) in self._verse_ranges.items()
+                      if start <= offset]
+        if not candidates:return None
+        ref,start,end = candidates[-1]
+        return ref, max(0,offset-self._marker_ends[ref])
+
+    def anchor_offset(self, anchor):
+        ref,relative = anchor
+        return min(self._verse_ranges[ref][1],self._marker_ends[ref]+relative)
+
+    def apply_appearance(self):
+        if self.current:
+            buffer = self.text.get_buffer()
+            selection = buffer.get_selection_bounds()
+            selected = [self.position_anchor(i.get_offset()) for i in selection]
+            visible = self.text.get_visible_rect()
+            _,iterator = self.text.get_iter_at_location(visible.x,visible.y)
+            anchor = self._appearance_anchor or (self.position_anchor(iterator.get_offset()) if self.get_mapped() and not self._restoring_scroll else None)
+            pending_jump = self._jump_reference
+            self.render_chapter(self.current)
+            if selected and all(selected):
+                buffer.select_range(*(buffer.get_iter_at_offset(self.anchor_offset(a)) for a in selected))
+            self._notes_stamp = None
+            self.highlight_selection()
+            self.update_notes(force=True)
+            self._appearance_anchor = anchor
+            self._jump_reference = None if anchor else pending_jump
+            self.schedule_scroll_restore()
+
+    def travel(self, index):
+        if not 0 <= index < len(self.state.history):return False
+        entry = self.state.history[index]
+        if entry['resource'] not in self.library.installed('bible'):
+            self.status.set_text(tr('History resource unavailable. The passage has been kept.'))
+            self.status.set_visible(True);return False
+        history.capture(self.state)
+        self._travelling = True
+        try:
+            if not self.navigate(entry['resource'],entry['reference']):return False
+            self.state.history_index = index
+            self.state.scroll = entry.get('scroll',0.0)
+            self._jump_reference = None
+            self.schedule_scroll_restore()
+            self.changed(self)
+            return True
+        finally:self._travelling = False
+
     def highlight_selection(self):
         buffer = self.text.get_buffer()
         buffer.remove_tag(self._selected_tag, buffer.get_start_iter(), buffer.get_end_iter())
@@ -174,6 +342,7 @@ class ReadingTab(Gtk.Box):
         self.text.update_property([Gtk.AccessibleProperty.LABEL], [self.passage_title()])
 
     def select_verse(self, reference):
+        if hasattr(self,'sync_coordinator') and not self.sync_coordinator.running:self.sync_coordinator.explicit_bible()
         if reference not in self._verse_offsets:
             return False
         self.state.reference = reference
@@ -187,7 +356,8 @@ class ReadingTab(Gtk.Box):
         bx, by = self.text.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, int(x), int(y))
         found, iterator = self.text.get_iter_at_location(bx, by)
         if found:
-            candidates = [ref for ref, offset in self._verse_offsets.items() if offset <= iterator.get_offset()]
+            candidates = [ref for ref,(start,end) in self._verse_ranges.items()
+                          if start <= iterator.get_offset() < end]
             if candidates:
                 reference = candidates[-1]
                 self.select_verse(reference)
@@ -199,11 +369,8 @@ class ReadingTab(Gtk.Box):
         selection = self.text.get_buffer().get_selection_bounds()
         if selection:
             start, end = (iterator.get_offset() for iterator in selection)
-            references = list(self._verse_offsets)
-            selected = [reference for index, reference in enumerate(references)
-                        if self._verse_offsets[reference] < end
-                        and (self._verse_offsets[references[index + 1]] if index + 1 < len(references)
-                             else self.text.get_buffer().get_char_count()) > start]
+            selected = [reference for reference,(first,last) in self._verse_ranges.items()
+                        if first < end and last > start]
             if selected:
                 return selected[0], selected[-1]
         return self.state.reference, self.state.reference
@@ -231,6 +398,39 @@ class ReadingTab(Gtk.Box):
         self.note_button.set_tooltip_text(tr('Underlined verse numbers have notes.'))
         self.note_button.set_visible(count > 0)
 
+    def visible_reference(self):
+        if not self._verse_offsets:return None
+        rect=self.text.get_visible_rect()
+        starts=[(reference,self.text.get_iter_location(self.text.get_buffer().get_iter_at_offset(offset)).y)
+                for reference,offset in self._verse_offsets.items()]
+        visible=[ref for ref,y in starts if rect.y <= y < rect.y+rect.height]
+        if visible:return visible[0]
+        preceding=[ref for ref,y in starts if y<=rect.y]
+        return preceding[-1] if preceding else starts[0][0]
+
+    def reveal_reference(self, reference):
+        if reference not in self._verse_offsets:
+            self._travelling=True
+            try:self.show(reference)
+            finally:self._travelling=False
+        else:self.select_verse(reference)
+        offset=self._verse_offsets.get(reference)
+        if offset is not None:
+            iterator=self.text.get_buffer().get_iter_at_offset(offset)
+            target=self.text.get_iter_location(iterator);visible=self.text.get_visible_rect()
+            if not visible.y<=target.y<visible.y+visible.height:
+                self.text.scroll_to_iter(iterator,.05,True,0,.1)
+
+    def mark_commentary_range(self,start,end):
+        buffer=self.text.get_buffer();tag=buffer.get_tag_table().lookup('commentary-range')
+        if tag is None:tag=buffer.create_tag('commentary-range',underline=1)
+        buffer.remove_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
+        first,last=self.reader.key(start).getIndex(),self.reader.key(end).getIndex()
+        for reference,offset in self._verse_offsets.items():
+            if first<=self.reader.key(reference).getIndex()<=last:
+                finish=max(self._marker_ends[reference],offset+1)
+                buffer.apply_tag(tag,buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(finish))
+
     def step_verse(self, direction):
         references = list(self._verse_offsets)
         if self.state.reference in references:
@@ -257,7 +457,16 @@ class ReadingTab(Gtk.Box):
         adjustment = self.scroll.get_vadjustment()
         maximum = max(0, adjustment.get_upper() - adjustment.get_page_size())
         desired = self.state.scroll * maximum
-        if (self._jump_reference in self._verse_offsets
+        if self._appearance_anchor:
+            iterator = self.text.get_buffer().get_iter_at_offset(self.anchor_offset(self._appearance_anchor))
+            target = self.text.get_iter_location(iterator)
+            visible = self.text.get_visible_rect()
+            adjustment.set_value(adjustment.get_value()+target.y-visible.y)
+            # TextView validates wrapped paragraphs lazily. Keep the semantic
+            # anchor for two more frames as its adjustment bounds settle.
+            if self._scroll_frames < 5:return True
+            self._appearance_anchor = None
+        elif (self._jump_reference in self._verse_offsets
                 and self._jump_reference.rsplit('.', 1)[-1] != '1'):
             iterator = self.text.get_buffer().get_iter_at_offset(self._verse_offsets[self._jump_reference])
             self.text.get_buffer().move_mark(self._target_mark, iterator)

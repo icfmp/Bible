@@ -5,6 +5,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gdk, GLib, Gtk, Pango
 
 from .book_names import display_name, normalized
+from .providers import module_name
 from .i18n import LANGUAGE, tr
 from .sword_provider import Reader
 
@@ -29,6 +30,11 @@ class PassagePopover(Gtk.Popover):
         top.append(Gtk.Label(label=tr('Version')))
         self.version = self.dropdown('Version', self.version_changed)
         top.append(self.version)
+        self.download_button=Gtk.Button(icon_name='folder-download-symbolic',tooltip_text=tr('Download a translation'))
+        self.download_button.add_css_class('flat')
+        self.download_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Download a translation')])
+        self.download_button.connect('clicked',self.open_library)
+        top.append(self.download_button)
         self.close_button = Gtk.Button(icon_name='window-close-symbolic', tooltip_text=tr('Close'))
         self.close_button.add_css_class('flat')
         self.close_button.update_property([Gtk.AccessibleProperty.LABEL], [tr('Close')])
@@ -76,7 +82,17 @@ class PassagePopover(Gtk.Popover):
         verse_expander.set_child(self.verse)
         right.append(verse_expander)
         self.columns.append(right)
-        self.content.append(self.columns)
+        self.pages=Gtk.Stack()
+        books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        books_page.append(self.columns)
+        self.pages.add_titled(books_page,'books',tr('Books'))
+        self.history_list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        history_scroll=Gtk.ScrolledWindow(min_content_height=220,max_content_height=380,propagate_natural_height=True)
+        history_scroll.set_child(self.history_list)
+        self.pages.add_titled(history_scroll,'history',tr('History'))
+        switcher=Gtk.StackSwitcher(stack=self.pages,halign=Gtk.Align.CENTER)
+        self.content.append(switcher)
+        self.content.append(self.pages)
         self.direct_expander = Gtk.Expander(label=tr('Direct reference'))
         self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'),
                                 width_chars=12, max_width_chars=24)
@@ -86,10 +102,6 @@ class PassagePopover(Gtk.Popover):
         self.content.append(self.direct_expander)
         self.status = Gtk.Label(wrap=True, xalign=0, visible=False, max_width_chars=32)
         self.content.append(self.status)
-        download = Gtk.Button(label=tr('Download a translation'))
-        download.add_css_class('flat')
-        download.connect('clicked', self.open_library)
-        self.content.append(download)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                          propagate_natural_width=True,
                                          propagate_natural_height=True)
@@ -109,8 +121,31 @@ class PassagePopover(Gtk.Popover):
         dropdown.connect('notify::selected', callback)
         return dropdown
 
+    def refresh_history(self):
+        child=self.history_list.get_first_child()
+        while child:
+            next_child=child.get_next_sibling();self.history_list.remove(child);child=next_child
+        tab=self.owner.active_tab
+        if not tab:return
+        from .notes_window import passage_label
+        if not tab.state.history:
+            self.history_list.append(Gtk.Label(label=tr('No passage history yet.'),margin_top=16,margin_bottom=16))
+        for index in range(len(tab.state.history)-1,-1,-1):
+            entry=tab.state.history[index]
+            label=passage_label(entry['reference'])+' — '+module_name(entry['resource'])
+            button=Gtk.Button(label=label,halign=Gtk.Align.FILL)
+            button.add_css_class('flat')
+            button.connect('clicked',lambda *_,i=index:self.open_history(i))
+            self.history_list.append(button)
+
+    def open_history(self,index):
+        if self.owner.active_tab.travel(index):self.sync(force=True)
+        self.refresh_history()
+
     def visibility_changed(self, *_):
         if self.get_visible():
+            self.pages.set_visible_child_name('books')
+            self.refresh_history()
             self.search.set_text('')
             self.sync(force=True)
             self.adapt()
@@ -390,4 +425,4 @@ class PassagePopover(Gtk.Popover):
 
     def open_library(self, *_):
         self.popdown()
-        self.owner.open_library()
+        self.owner.open_library('bible')

@@ -47,3 +47,36 @@ https://github.com/GNOME/gnome-build-meta
 Le téléchargement est volontaire. Les conditions, la provenance et la licence
 déclarée par le module sont présentées dans le catalogue et les informations du
 module. Les conditions d’une ressource ne s’étendent pas aux autres ressources.
+
+## Babel 2.18.0 et CLDR
+
+Babel fournit hors connexion les noms localisés et natifs des langues et le
+format des dates. Le paquet Python est sous licence BSD à trois clauses ; ses
+données CLDR conservent la licence Unicode. Les deux notices sont installées
+sous `/app/share/licenses/babel/`. Le manifeste épingle le wheel original et
+son SHA-256. Les codes des ressources restent distincts : les alias servent
+uniquement à présenter leur nom.
+
+## iso-codes 4.18.0
+
+La base ISO 639-3 et sa traduction française complètent CLDR pour les langues
+moins répandues. Licence LGPL-2.1-or-later, conservée sous
+`/app/share/licenses/iso-codes/COPYING`. Source originale épinglée :
+https://deb.debian.org/debian/pool/main/i/iso-codes/iso-codes_4.18.0.orig.tar.xz
+
+Lors d’une distribution, joindre cette archive aux sources correspondantes,
+avec le manifeste de construction. Aucun service de traduction n’est appelé.
+
+## Polices DejaVu 2.37
+
+Le menu Aa propose Livre (DejaVu Serif) et Simple (DejaVu Sans). Le Flatpak
+installe les variantes normale, grasse, italique/oblique et grasse italique de
+ces deux familles, sans téléchargement de police à l’exécution. Pango/fontconfig
+conserve le repli vers d’autres familles pour les écritures non couvertes.
+
+Paquets Debian originaux `fonts-dejavu-core` et `fonts-dejavu-extra` 2.37-8,
+épinglés avec SHA-256 dans le manifeste. Polices dérivées de Bitstream Vera :
+licence Bitstream Vera et modifications DejaVu dans le domaine public. Les
+fichiers sont redistribués sans modification, avec les notices originales sous
+`/app/share/licenses/dejavu/`. Les polices mathématiques et autres familles du
+paquet extra ne sont pas installées. Source amont : https://dejavu-fonts.github.io/

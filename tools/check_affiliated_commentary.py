@@ -46,7 +46,7 @@ def offline_snapshot(directory, commentary):
         expected = reader.entry(reference, window.active_tab.reader.versification)
         assert expected and expected.strip(), reference
         buffer = window.study.text.get_buffer()
-        actual = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
+        actual = window.study.entry_text
         assert actual == expected, 'GTK commentary does not follow the active verse'
         reader.module.setKey(reader.key(reference))
         direct = reader.module.stripText()

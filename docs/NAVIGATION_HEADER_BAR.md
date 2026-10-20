@@ -30,8 +30,8 @@ Les commandes précédent/suivant sont désormais des boutons circulaires en
 surimpression au milieu des bords de la zone de lecture. Des marges réservent leur
 espace ; elles restent dans le panneau biblique, même avec l’étude à droite.
 Elles restent visibles à 360 pixels, utilisent les couleurs système en clair et
-sombre, et s’arrêtent aux limites réelles du contenu. Alt+Gauche/Droite garde
-les mêmes actions. La Bible reste à gauche et l’étude à droite, escamotable
+sombre, et s’arrêtent aux limites réelles du contenu. Depuis #16, Alt+Gauche/Droite
+parcourt l’historique ; Alt+Page précédente/suivante change de chapitre. La Bible reste à gauche et l’étude à droite, escamotable
 avec F9 ; sous 760 pixels, l’étude se superpose au texte.
 
 Voir [les corrections alpha #8–#10](CORRECTIONS_ALPHA_8_10.md) pour les tests et

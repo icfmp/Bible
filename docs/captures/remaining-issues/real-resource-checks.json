@@ -1,0 +1,18 @@
+[
+  {
+    "module": "andbible-extra~DanDetteBiblen",
+    "reference": "1Cor.15",
+    "verses": 58,
+    "source_structure": true,
+    "body_fidelity": true,
+    "network_connection_blocked": true
+  },
+  {
+    "module": "andbible-extra~PorRecebida",
+    "reference": "1Cor.15",
+    "verses": 58,
+    "source_structure": false,
+    "body_fidelity": true,
+    "network_connection_blocked": true
+  }
+]

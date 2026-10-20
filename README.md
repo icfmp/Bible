@@ -1,6 +1,6 @@
 # Bible
 
-<img src="packaging/icons/bible-source.png" alt="Icône de Bible : livre bleu avec signet ocre" width="128" height="128">
+<img src="packaging/icons/128x128/io.github.icfmp.Bible.png" alt="Icône de Bible : livre bleu avec signet ocre" width="128" height="128">
 
 
 Prototype natif GNOME de lecture biblique, sans traduction préembarquée.
@@ -36,15 +36,15 @@ graphique du paquet corrigé reste à valider sur le poste GNOME du client.
 
 ```sh
 sudo apt update
-sudo apt install python3 python3-gi python3-sword gir1.2-gtk-4.0 gir1.2-adw-1
+sudo apt install python3 python3-gi python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra gir1.2-gtk-4.0 gir1.2-adw-1
 cd Bible
 /usr/bin/python3 -m bible
 ```
 
 Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
 fenêtre, ouvrir **Bibliothèque** dans la Header Bar (`Ctrl+L`), choisir
-**Charger le catalogue**, choisir **Bibles** et une **Langue**, rechercher un titre,
-lire sa licence et ses conditions, puis cliquer sur **Télécharger**. La progression
+**Explorer** (chargement automatique), choisir **Bibles** et une **Langue**, rechercher un titre,
+ouvrir sa fiche, lire sa licence et ses conditions, puis cliquer sur **Télécharger**. La progression
 indique le transfert puis la vérification avant de confirmer l’installation.
 Les flèches rondes dans le panneau biblique changent de chapitre.
 Cliquer sur le titre central (`Ctrl+G`) : recherche/liste des livres à gauche,
@@ -86,7 +86,9 @@ avec **Clarke** ou **MHCC**. Voir [les commentaires et leurs limites](docs/COMME
 le texte de plusieurs versets du chapitre pour annoter un passage. L’éditeur
 propose Markdown léger, aperçu sûr et labels ; **Enregistrer** conserve la note.
 Les versets annotés sont soulignés. **Mes notes** (`Ctrl+Maj+N`) permet de
-rechercher, filtrer par labels, trier et ouvrir les notes avec leur passage.
+rechercher, filtrer par labels et trier dans la fenêtre principale. La liste et
+l’éditeur sont côte à côte sur grand écran ; **Ouvrir le passage** revient à Lecture.
+En quittant une modification, choisir Enregistrer, Abandonner ou Continuer l’édition.
 Son menu propose la sauvegarde/restauration vers un fichier JSON choisi.
 Les notes restent disponibles si la traduction est supprimée ; les versifications
 différentes ne sont pas assimilées. Voir [le guide des notes](docs/NOTES_DE_PASSAGE.md).
@@ -106,9 +108,17 @@ recharger le catalogue permet de réessayer. Voir [les sources et leurs limites]
 La Bible David Martin 1707 (`FreBDM1707`) est une version française à essayer.
 Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/CATALOGUE_CROSSWIRE.md).
 
-Le lecteur présente le texte brut produit par SWORD,
-avec numéros de versets ; les notes de traduction et les enrichissements du
-texte source ne sont pas encore présentés. Les conditions du fournisseur et les
+Le lecteur présente les mots produits par SWORD dans une colonne centrée.
+Les paragraphes et titres OSIS/ThML sont conservés quand leur extraction respecte
+le texte ; sinon le texte brut est utilisé sans titres inventés. **Aa** règle
+Livre/Simple, la taille (12–64 pt), les numéros, l’interligne et la largeur.
+Les modes Système/Jour/Nuit retrouvent les palettes de jour et de nuit mémorisées ;
+le contraste élevé du système prend temporairement priorité sans effacer ces choix.
+Voir [le guide Aa](docs/APPARENCE_12.md). La comparaison affiche une seconde traduction
+installée compatible. Les notes de traduction ne sont pas encore présentées.
+L’onglet Historique du sélecteur garde les passages de chaque onglet ;
+Alt+Gauche/Droite parcourt cet historique, Alt+Page précédente/suivante les chapitres.
+Voir [la livraison des issues restantes](docs/LIVRAISON_12_20.md). Les conditions du fournisseur et les
 règles du pays d'utilisation restent applicables.
 
 ## Vérifier
@@ -162,6 +172,13 @@ Flatpak. Voir [la source, les exports et les finitions GNOME restantes](packagin
 
 Le [canal alpha avec mises à jour Flatpak](docs/CANAL_ALPHA_FLATPAK.md) est préparé
 sur la branche de l’issue #17. Son installation/mise à jour depuis un dépôt signé
-est testée ; son activation GitHub Pages et sa validation HTTPS publique restent
-à effectuer avec la connexion administrateur. Utiliser les bundles vérifiés en
+est testée ; l’état actuel de son activation GitHub Pages et de sa validation
+HTTPS publique n’a pas pu être vérifié depuis cet environnement. Utiliser les bundles vérifiés en
 attendant ; aucun lien d’installation du nouveau canal n’est annoncé disponible.
+
+## Travail de lecture immersive et suivi des commentaires
+
+Le [guide des issues #24 et #25](docs/LECTURE_IMMERSIVE_24_25.md) présente
+l’immersion (F11), les raccourcis et le suivi automatique des passages dans
+les deux sens. Ce travail est disponible dans les sources de livraison ;
+aucun paquet déjà publié n’est présenté comme contenant ces changements.

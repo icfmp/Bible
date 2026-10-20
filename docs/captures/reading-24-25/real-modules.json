@@ -1,0 +1,90 @@
+{
+  "source_conditions": {
+    "andbible-extra~PorRecebida": {
+      "source": "AndBible Extra (Xiphos)",
+      "license": "Public domain.",
+      "conditions": "textsource: http://www.almeidarecebida.org/"
+    },
+    "andbible-extra~Kretzmann": {
+      "source": "AndBible Extra (Xiphos)",
+      "license": "FROM www.kretzmannproject.org: \\par\\parThe Popular Commentary is in the public domain. The original volumes were not copyrighted. Our online edition of Popular Commentary constitutes a new edition of the work in at least this regard: we have edited the spelling for consistency (actually this is still an ongoing process), and have, of course, added many spelling errors of our own, since this is an unpaid public effort.\\par\\par We do claim the copyright on the electronic edition, but only to assure that it is not tampered with. We give full permission to replicate and distribute the text in any form whatsoever, printed or electronic, so long as the content itself is not altered, other than to correct scanning errors, fix formatting, change fonts, etc.",
+      "conditions": "copyrightholder: www.kretzmannproject.org\ncopyrightnotes: html text from the Kretzmann Project\ncopyrightcontactname: Concordia Publishing House\ntextsource: www.kretzmannproject.org"
+    }
+  },
+  "network": "Python socket connections and URL downloads forbidden during checks",
+  "bible": "andbible-extra~PorRecebida",
+  "commentary": "andbible-extra~Kretzmann",
+  "checks": [
+    {
+      "kind": "bible",
+      "key": "John.1",
+      "size": 19,
+      "pages": 16,
+      "characters": 5008,
+      "sha256": "423ec1a35c0192908c35ddbba0a73b9d5bbe6f5c01885adab00fab381a01989a"
+    },
+    {
+      "kind": "bible",
+      "key": "John.1",
+      "size": 64,
+      "pages": 264,
+      "characters": 5008,
+      "sha256": "423ec1a35c0192908c35ddbba0a73b9d5bbe6f5c01885adab00fab381a01989a"
+    },
+    {
+      "kind": "bible",
+      "key": "John.2",
+      "size": 19,
+      "pages": 8,
+      "characters": 2538,
+      "sha256": "7dcb203c636e93a2010b46026cc9c1cef3e4b8bbb168fba4a099166f0f17ab9d"
+    },
+    {
+      "kind": "bible",
+      "key": "John.2",
+      "size": 64,
+      "pages": 132,
+      "characters": 2538,
+      "sha256": "7dcb203c636e93a2010b46026cc9c1cef3e4b8bbb168fba4a099166f0f17ab9d"
+    },
+    {
+      "kind": "commentary",
+      "key": "2341",
+      "size": 19,
+      "pages": 63,
+      "characters": 20760,
+      "sha256": "5a98408689833e2920f10b5d70c9bddd6f33cd6a8e3e30d82e82e7a645a924e5"
+    },
+    {
+      "kind": "commentary",
+      "key": "2341",
+      "size": 64,
+      "pages": 1070,
+      "characters": 20760,
+      "sha256": "5a98408689833e2920f10b5d70c9bddd6f33cd6a8e3e30d82e82e7a645a924e5"
+    },
+    {
+      "kind": "commentary",
+      "key": "2342",
+      "size": 19,
+      "pages": 42,
+      "characters": 13611,
+      "sha256": "a75a06563331de63b0bd94a7f5bb1774ab0f313c6c4153813e33231f8761c5fb"
+    },
+    {
+      "kind": "commentary",
+      "key": "2342",
+      "size": 64,
+      "pages": 706,
+      "characters": 13611,
+      "sha256": "a75a06563331de63b0bd94a7f5bb1774ab0f313c6c4153813e33231f8761c5fb"
+    }
+  ],
+  "native_bidirectional_sync": true,
+  "gui": {
+    "long_entry_partition_exact": true,
+    "bible_unchanged_during_commentary": true,
+    "missing_entry_cleared": true,
+    "display": "GTK under current display; GNOME manual validation separate"
+  }
+}
