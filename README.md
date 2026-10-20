@@ -1,184 +1,89 @@
 # Bible
 
-<img src="packaging/icons/128x128/io.github.icfmp.Bible.png" alt="Icône de Bible : livre bleu avec signet ocre" width="128" height="128">
+<img src="packaging/icons/128x128/io.github.icfmp.Bible.png" alt="Bible application icon" width="128" height="128">
 
+Read and study the Bible with a native GNOME application built with Python, GTK 4 and libadwaita.
 
-Prototype natif GNOME de lecture biblique, sans traduction préembarquée.
-Le jalon #2 comprend un catalogue CrossWire réel, un téléchargement sur demande,
-la lecture locale via SWORD et la navigation entre chapitres. Le jalon #3 ajoute
-les onglets indépendants, leur restauration et un panneau d’étude escamotable.
-L’issue #5 centralise la navigation dans le titre cliquable de la Header Bar.
+- Download Bibles and commentaries from SWORD catalogues and read them offline.
+- Open passages in separate tabs.
+- Write passage notes with labels and search your notes.
+- Customize typography, colors and fullscreen reading.
+- Available in English and French.
 
-## Essai alpha en Flatpak (sans installer les dépendances de développement)
+**Alpha software:** expect bugs and interface changes. Linux x86_64 is currently supported. No Bible translation is bundled; each resource has its own terms of use.
 
-Depuis [la dernière exécution réussie de GitHub Actions](https://github.com/icfmp/Bible/actions),
-télécharger l'artefact **Bible-alpha-linux-x86_64**, puis extraire
-`Bible-alpha.flatpak` de l'archive ZIP. Sur un ordinateur Linux x86_64
-avec Flatpak installé, ouvrir ce fichier avec le gestionnaire de logiciels,
-ou exécuter dans son dossier :
+## Install the alpha
+
+With [Flatpak](https://flatpak.org/setup/) installed, open [**Install Bible**](https://icfmp.github.io/Bible/alpha/Bible.flatpakref) in your software manager, or run:
 
 ```sh
-flatpak install --user --reinstall ./Bible-alpha.flatpak
-flatpak run io.github.icfmp.Bible
+flatpak install https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+flatpak run io.github.icfmp.Bible//alpha
 ```
 
-Flatpak propose le runtime GNOME nécessaire si celui-ci n'est pas encore installé
-et que Flathub est configuré. Ce fichier de test expire après 30 jours ; récupérer
-le paquet du dernier run réussi pour la version la plus récente. La mise à jour
-n'est pas automatique : réinstaller le paquet après chaque livraison ;
-`--reinstall` remplace l’alpha existante sans effacer son profil de données.
-Les traductions, commentaires et notes ne sont pas inclus dans le paquet et
-restent dans le profil Flatpak de l'utilisateur. Le profil natif décrit ci-dessous
-est distinct. Cette version n'est pas publiée sur Flathub et son fonctionnement
-graphique du paquet corrigé reste à valider sur le poste GNOME du client.
+The alpha comes from the project's signed repository hosted on GitHub Pages. Bible is not currently published on Flathub; its GNOME runtime is supplied through Flathub.
 
-## Essayer sous Debian 13 ou Ubuntu 24.04
+### Update
+
+Use your software manager or:
 
 ```sh
-sudo apt update
-sudo apt install python3 python3-gi python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra gir1.2-gtk-4.0 gir1.2-adw-1
+flatpak update io.github.icfmp.Bible//alpha
+```
+
+Automatic updates depend on your software manager's settings. If you previously installed a standalone bundle, see the [alpha channel guide](docs/CANAL_ALPHA_FLATPAK.md#passage-depuis-un-ancien-bundle).
+
+## Try it
+
+1. Open **Library** (`Ctrl+L`), choose a Bible, review its terms and download it. KJV is a useful first test.
+2. Click the passage title in the Header Bar to choose a book and chapter.
+3. Open another tab with `Ctrl+T`, or enter fullscreen reading with `F11`.
+4. Download a commentary such as Clarke or MHCC, then press `F9` to show the study panel. Some combinations with different versification systems are still being fixed.
+5. Create a passage note with `Ctrl+N`; find it again in **My notes** (`Ctrl+Shift+N`).
+6. Disconnect from the network and restart Bible to check offline reading.
+
+[Report a bug](https://github.com/icfmp/Bible/issues/new) with the steps to reproduce it, your Linux distribution, a screenshot if useful, and the installed build:
+
+```sh
+flatpak info io.github.icfmp.Bible//alpha
+```
+
+## Run from source
+
+On Debian 13 or Ubuntu 24.04:
+
+```sh
+sudo apt install git python3 python3-gi python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra gir1.2-gtk-4.0 gir1.2-adw-1
+git clone https://github.com/icfmp/Bible.git
 cd Bible
 /usr/bin/python3 -m bible
 ```
 
-Utiliser le Python système, qui voit les bindings de la distribution. Depuis la
-fenêtre, ouvrir **Bibliothèque** dans la Header Bar (`Ctrl+L`), choisir
-**Explorer** (chargement automatique), choisir **Bibles** et une **Langue**, rechercher un titre,
-ouvrir sa fiche, lire sa licence et ses conditions, puis cliquer sur **Télécharger**. La progression
-indique le transfert puis la vérification avant de confirmer l’installation.
-Les flèches rondes dans le panneau biblique changent de chapitre.
-Cliquer sur le titre central (`Ctrl+G`) : recherche/liste des livres à gauche,
-grille des chapitres à droite. Choisir un chapitre l’ouvre immédiatement dans
-l’onglet actif ; le choix d’un verset reste facultatif. Par exemple **Jean → 3**,
-puis **Verset → 16** si nécessaire. La traduction reste accessible en haut.
-Aucun bouton de validation ni choix de destination. Les livres et chapitres
-reflètent le contenu réel de la traduction installée. **Saisie directe** (`Ctrl+K`)
-accepte `Jean 3:16`, `John 3:16` ou `John.3.16` ; Entrée applique la référence.
-L'interface est disponible en français et en anglais selon la
-langue du système (`LANGUAGE=fr /usr/bin/python3 -m bible` pour forcer le français).
+Use the system Python so that the distribution's GTK and SWORD bindings are available. The interface follows the system language; use `LANGUAGE=fr /usr/bin/python3 -m bible` to select French.
 
-Couper le réseau, fermer et relancer l'application : la traduction installée
-s'ouvre sans accès réseau. Pour changer de traduction installée, utiliser le
-sélecteur du titre central. Les ressources sont conservées dans
-`${XDG_DATA_HOME:-~/.local/share}/bible/translations`.
-
-**Onglets et session** : `Ctrl+T` ouvre un nouvel onglet au passage courant ;
-utiliser ensuite le sélecteur pour changer le passage de cet onglet. Le sélecteur
-central ne crée jamais d’onglet.
-Chaque onglet garde sa traduction et sa position. `Ctrl+W` ferme l’onglet actif.
-Fermer puis relancer restaure les onglets, leur ordre et l’onglet sélectionné.
-Une traduction supprimée laisse son onglet et sa référence visibles avec un
-message permettant de comprendre l’absence de texte.
-
-**Commentaires** : dans la bibliothèque (`Ctrl+L`), choisir **Commentaires**,
-lire les conditions et télécharger par exemple **Clarke** ou **MHCC**.
-`F9` affiche/masque le panneau droit. Cliquer sur le texte d’un verset le sélectionne ;
-`Alt+Haut/Bas` choisit le verset précédent/suivant du chapitre. Le commentaire suit
-le verset et l’onglet actifs ; une entrée absente efface le texte précédent.
-Le sélecteur du panneau permet de changer de commentaire, avec un choix mémorisé
-par onglet et restauré au redémarrage. **Source et conditions** reste disponible
-hors connexion. Dans une petite fenêtre, le panneau se superpose à la Bible.
-Les numérotations des versets doivent correspondre : une incompatibilité est
-signalée, sans alignement automatique. Pour un premier essai, utiliser **KJV**
-avec **Clarke** ou **MHCC**. Voir [les commentaires et leurs limites](docs/COMMENTAIRES_CROSSWIRE.md).
-
-**Notes** : menu de la Header Bar → **Note de passage** (`Ctrl+N`). Sélectionner
-le texte de plusieurs versets du chapitre pour annoter un passage. L’éditeur
-propose Markdown léger, aperçu sûr et labels ; **Enregistrer** conserve la note.
-Les versets annotés sont soulignés. **Mes notes** (`Ctrl+Maj+N`) permet de
-rechercher, filtrer par labels et trier dans la fenêtre principale. La liste et
-l’éditeur sont côte à côte sur grand écran ; **Ouvrir le passage** revient à Lecture.
-En quittant une modification, choisir Enregistrer, Abandonner ou Continuer l’édition.
-Son menu propose la sauvegarde/restauration vers un fichier JSON choisi.
-Les notes restent disponibles si la traduction est supprimée ; les versifications
-différentes ne sont pas assimilées. Voir [le guide des notes](docs/NOTES_DE_PASSAGE.md).
-
-La session est conservée dans `${XDG_DATA_HOME:-~/.local/share}/bible/session.json`
-(profil distinct dans Flatpak). Un fichier invalide ou de version inconnue est
-préservé et signalé ; la sauvegarde reste désactivée jusqu’à sa réparation ou son
-déplacement manuel, application fermée.
-
-La bibliothèque réunit les catalogues CrossWire, AndBible Extra (miroir Xiphos),
-AndBible et STEP Bible, avec un filtre par source et sans filtrage de licence. La langue, la provenance, la licence et les conditions
-sont visibles avant téléchargement. Les ressources chiffrées restent signalées,
-avec téléchargement désactivé. **Ressources installées** permet de consulter
-les attributions et conditions sans charger le catalogue, même hors connexion.
-Les résultats des sources accessibles restent disponibles si une autre source échoue ;
-recharger le catalogue permet de réessayer. Voir [les sources et leurs limites](docs/SOURCES_AFFILIEES_11.md).
-La Bible David Martin 1707 (`FreBDM1707`) est une version française à essayer.
-Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/CATALOGUE_CROSSWIRE.md).
-
-Le lecteur présente les mots produits par SWORD dans une colonne centrée.
-Les paragraphes et titres OSIS/ThML sont conservés quand leur extraction respecte
-le texte ; sinon le texte brut est utilisé sans titres inventés. **Aa** règle
-Livre/Simple, la taille (12–64 pt), les numéros, l’interligne et la largeur.
-Les modes Système/Jour/Nuit retrouvent les palettes de jour et de nuit mémorisées ;
-le contraste élevé du système prend temporairement priorité sans effacer ces choix.
-Voir [le guide Aa](docs/APPARENCE_12.md). La comparaison affiche une seconde traduction
-installée compatible. Les notes de traduction ne sont pas encore présentées.
-L’onglet Historique du sélecteur garde les passages de chaque onglet ;
-Alt+Gauche/Droite parcourt cet historique, Alt+Page précédente/suivante les chapitres.
-Voir [la livraison des issues restantes](docs/LIVRAISON_12_20.md). Les conditions du fournisseur et les
-règles du pays d'utilisation restent applicables.
-
-## Vérifier
+### Run tests
 
 ```sh
-/usr/bin/python3 tools/check_environment.py --network
-/usr/bin/python3 -m unittest tests.test_library -v
-# Avec un affichage graphique ou avec Xvfb :
+/usr/bin/python3 tools/check_environment.py
+/usr/bin/python3 -m unittest discover -v
+```
+
+GUI tests need a graphical session. For a headless Linux environment, install `xvfb` and `dbus-x11`, then run:
+
+```sh
 dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v
-# Télécharge réellement une traduction temporaire (aucune incluse dans Git) :
-/usr/bin/python3 -m tools.check_crosswire
-# Télécharge deux commentaires temporaires et vérifie leur fidélité :
-/usr/bin/python3 -m tools.check_commentary
 ```
 
-Les tests locaux utilisent des sentinelles textuelles identifiées comme fixtures,
-sans se substituer au test d'intégration CrossWire. Le test hors connexion
-interdit les appels réseau de Python après installation et recharge le contenu
-sur disque ; un essai avec réseau désactivé sur poste GNOME reste à effectuer.
-
-## Construction Flatpak de développement
-
-Construction et import de SWORD dans le sandbox vérifiés en CI. Le lancement
-graphique du paquet corrigé sur le poste GNOME du client reste à essayer. La
-[préversion 0.1.0-alpha.1](https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.1)
-reste inchangée. Les correctifs #8–#10 sont fournis dans le paquet de test du
-dernier commit validé sur [GitHub Actions](https://github.com/icfmp/Bible/actions) :
-artefact **Bible-alpha-linux-x86_64**, à décompresser avant d’ouvrir le `.flatpak`
-dans Logiciels. Il contient aussi `SHA256SUMS` et `build-info.json` (commit exact).
-Le téléchargement des artefacts nécessite une connexion GitHub. Aucune acceptation
-Flathub n’est annoncée. Voir [le guide des corrections](docs/CORRECTIONS_ALPHA_8_10.md).
+To test an actual download and local reading (requires network access):
 
 ```sh
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub org.gnome.Platform//49 org.gnome.Sdk//49
-flatpak-builder --user --install --force-clean build-dir packaging/io.github.icfmp.Bible.json
-flatpak run io.github.icfmp.Bible
+/usr/bin/python3 -m tools.check_crosswire
 ```
 
-Voir [le catalogue et les conditions d’accès](docs/CATALOGUE_CROSSWIRE.md),
-[la navigation dans la Header Bar](docs/NAVIGATION_HEADER_BAR.md),
-[le jalon des onglets](docs/JALON_1_ONGLETS.md),
-[la note technique et les résultats réels](docs/PROTOTYPE_GNOME.md),
-[le cahier des charges](docs/CAHIER_DES_CHARGES.md) et
-[la feuille de route](docs/FEUILLE_DE_ROUTE.md).
+## Contributing
 
-## Icône de l’application
+Bug reports, testing, translations and code contributions are welcome. Please use **English** for issues, pull requests, commit messages and contributor documentation. Read [AGENTS.md](AGENTS.md) before making changes and check the [open issues](https://github.com/icfmp/Bible/issues).
 
-Le livre bleu avec le titre « Bible » et le signet ocre est intégré au lanceur
-Flatpak. Voir [la source, les exports et les finitions GNOME restantes](packaging/icons/README.md).
+## License
 
-Le [canal alpha avec mises à jour Flatpak](docs/CANAL_ALPHA_FLATPAK.md) est préparé
-sur la branche de l’issue #17. Son installation/mise à jour depuis un dépôt signé
-est testée ; l’état actuel de son activation GitHub Pages et de sa validation
-HTTPS publique n’a pas pu être vérifié depuis cet environnement. Utiliser les bundles vérifiés en
-attendant ; aucun lien d’installation du nouveau canal n’est annoncé disponible.
-
-## Travail de lecture immersive et suivi des commentaires
-
-Le [guide des issues #24 et #25](docs/LECTURE_IMMERSIVE_24_25.md) présente
-l’immersion (F11), les raccourcis et le suivi automatique des passages dans
-les deux sens. Ce travail est disponible dans les sources de livraison ;
-aucun paquet déjà publié n’est présenté comme contenant ces changements.
+See [LICENSE](LICENSE) (GNU GPL version 2) and [third-party notices](THIRD_PARTY_NOTICES.md). Downloaded Bibles and commentaries remain subject to their respective licenses.
