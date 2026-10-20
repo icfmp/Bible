@@ -97,6 +97,32 @@
       ]
     },
     {
+      "name": "reader-fonts",
+      "buildsystem": "simple",
+      "build-commands": [
+        "ar p fonts-dejavu-core.deb data.tar.xz | tar -xJ",
+        "ar p fonts-dejavu-extra.deb data.tar.xz | tar -xJ",
+        "install -d /app/share/fonts/dejavu",
+        "for font in DejaVuSerif.ttf DejaVuSerif-Bold.ttf DejaVuSerif-Italic.ttf DejaVuSerif-BoldItalic.ttf DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSans-Oblique.ttf DejaVuSans-BoldOblique.ttf; do install -m644 usr/share/fonts/truetype/dejavu/$font /app/share/fonts/dejavu/; done",
+        "install -Dm644 usr/share/doc/fonts-dejavu-core/copyright /app/share/licenses/dejavu/copyright",
+        "install -Dm644 usr/share/doc/fonts-dejavu-extra/copyright /app/share/licenses/dejavu/extra-copyright"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://deb.debian.org/debian/pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb",
+          "sha256": "86635b3d25b3655fc11cb3ecc3af59f0bf19643b02b94f2de48bd10253cdba12",
+          "dest-filename": "fonts-dejavu-core.deb"
+        },
+        {
+          "type": "file",
+          "url": "https://deb.debian.org/debian/pool/main/f/fonts-dejavu/fonts-dejavu-extra_2.37-8_all.deb",
+          "sha256": "83128d00e5d7db412fe5a7a4e2ee32aebbf8d9ed560ad611202fb43078f80323",
+          "dest-filename": "fonts-dejavu-extra.deb"
+        }
+      ]
+    },
+    {
       "name": "bible",
       "buildsystem": "simple",
       "build-commands": [

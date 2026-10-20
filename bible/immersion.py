@@ -1,0 +1,349 @@
+"""Native paginated full-screen Bible/commentary reading with reversible UI state."""
+import time
+import gi
+
+gi.require_version('Gtk','4.0')
+gi.require_version('Adw','1')
+from gi.repository import Adw,Gdk,Gio,GLib,Gtk,Pango
+from .i18n import tr
+from .pagination import Anchor
+from .paged_sources import PagedStream,PageAddress
+from .reading_style import SPACING,WIDTHS
+from .notes_window import passage_label
+
+
+class Immersion(Gtk.Overlay):
+    def __init__(self,owner,source,key,anchor):
+        super().__init__()
+        self.owner=owner;self.tab=owner.active_tab;self.source=source;self.kind=source.kind
+        self.initial_key=key;self.initial_anchor=anchor;self.was_fullscreen=owner.is_fullscreen()
+        self._geometry=None;self._hide_id=0;self._last_turn=0;self._wheel=0
+        self._gesture_turned=False;self._pointer_top=False;self._pointer_edge=False;self._updating=False;self.selection=None;self.addresses=[]
+        self.views=[];self.frames=[];self.count=2;self._closed=False
+        body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
+                           margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
+        self.pages.set_direction(Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
+        for number in range(2):
+            view=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                              left_margin=8,right_margin=8,top_margin=12,bottom_margin=12,hexpand=True,vexpand=True)
+            view.set_direction(Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
+            if source.rtl:view.set_justification(Gtk.Justification.RIGHT)
+            view.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading page')+' '+str(number+1)])
+            view.add_css_class(owner.reading_style.scope)
+            gesture=Gtk.GestureClick(button=1)
+            gesture.connect('released',lambda g,n,x,y,v=view:self.clicked(v,x,y));view.add_controller(gesture)
+            view.get_buffer().connect('mark-set',lambda *_,v=view:self.selection_changed(v))
+            view.connect('copy-clipboard',self.copy_selection)
+            if self.kind=='bible':
+                menu=Gio.Menu();menu.append(tr('Add a passage note'),'win.note')
+                menu.append(tr('Copy verses without numbers'),'win.copy-passage')
+                menu.append(tr('Copy verses with reference'),'win.copy-with-reference')
+                menu.append(tr('Copy reference'),'win.copy-reference');view.set_extra_menu(menu)
+            frame=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.EXTERNAL,vscrollbar_policy=Gtk.PolicyType.EXTERNAL,
+                                     min_content_height=0,propagate_natural_height=False,hexpand=True,vexpand=True)
+            frame.set_child(view);self.pages.append(frame);self.frames.append(frame);self.views.append(view)
+        self.pages.set_halign(Gtk.Align.FILL)
+        self.page_clamp=Adw.Clamp(child=self.pages,maximum_size=1200,tightening_threshold=1200,vexpand=True)
+        body.append(self.page_clamp)
+        self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
+        self.footer.add_css_class('dim-label');body.append(self.footer);self.set_child(body)
+        self.stream=PagedStream(self.views[0],source,owner.preferences.value)
+        self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN,
+                              valign=Gtk.Align.START,halign=Gtk.Align.FILL)
+        controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header=Adw.HeaderBar();header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
+        self.leave_button=Gtk.ToggleButton(icon_name='view-restore-symbolic',active=True,
+                                           tooltip_text=tr('Leave immersive mode'))
+        self.leave_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Leave immersive mode')])
+        self.leave_button.connect('clicked',lambda *_:owner.leave_immersion());header.pack_start(self.leave_button)
+        self.caption=Gtk.Label(label=source.resource.name,ellipsize=Pango.EllipsizeMode.END,max_width_chars=18,width_chars=1)
+        self.passage_button=(Gtk.MenuButton(child=self.caption) if self.kind=='bible' else Gtk.Button(child=self.caption))
+        if self.kind=='commentary':self.passage_button.connect('clicked',lambda *_:self.info.popup())
+        self.passage_button.set_tooltip_text(tr('Choose a passage') if self.kind=='bible' else source.resource.description)
+        if self.kind=='bible':
+            owner.passage_button.popdown();owner.passage_button.set_popover(None)
+            self.passage_button.set_popover(owner.navigation)
+        header.set_title_widget(self.passage_button)
+        self.aa=Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
+        owner.appearance_button.popdown();owner.appearance_button.set_popover(None)
+        self.aa.set_popover(owner.appearance)
+        commands=Gio.Menu()
+        commands.append_section(None,owner.menu.get_menu_model())
+        if self.kind=='commentary':
+            commands.append(tr('Previous available entry'),'win.previous-commentary-entry')
+            commands.append(tr('Next available entry'),'win.next-commentary-entry')
+            commands.append(tr('Open this passage in the Bible'),'win.immersive-open-bible')
+        self.menu=Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands)
+        header.pack_end(self.menu);header.pack_end(self.aa)
+        if self.kind=='commentary':
+            self.entry_previous=Gtk.Button(icon_name='go-previous-symbolic')
+            self.entry_next=Gtk.Button(icon_name='go-next-symbolic')
+            self.entry_previous.connect('clicked',lambda *_:self.change_entry(-1))
+            self.entry_next.connect('clicked',lambda *_:self.change_entry(1))
+            header.pack_start(self.entry_previous);header.pack_start(self.entry_next)
+            self.open_bible=Gtk.Button(label=tr('Open this passage in the Bible'))
+            self.open_bible.connect('clicked',lambda *_:self.open_in_bible());header.pack_end(self.open_bible)
+            self.info=Gtk.MenuButton(icon_name='dialog-information-symbolic',tooltip_text=tr('Source and conditions'))
+            from .resource_details import details
+            pop=Gtk.Popover();label=Gtk.Label(label=details(source.resource),selectable=True,wrap=True,max_width_chars=36,
+                                           margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
+            scroll=Gtk.ScrolledWindow(max_content_height=350,propagate_natural_height=True);scroll.set_child(label)
+            pop.set_child(scroll);self.info.set_popover(pop);header.pack_end(self.info)
+        controls.append(header)
+        self.notification_help=Adw.Banner(title=tr('In GNOME, turn on Do Not Disturb in the clock menu. Bible does not change notifications.'),
+                                          button_label=tr('Do not show again'))
+        self.notification_help.connect('button-clicked',lambda *_:self.hide_help())
+        self.notification_help.set_revealed(not owner.immersion_hints.disabled and not owner._immersion_help_seen)
+        owner._immersion_help_seen=True
+        controls.append(self.notification_help);self.top.set_child(controls);self.add_overlay(self.top)
+        self.back=self.page_button(-1);self.forward=self.page_button(1)
+        self.buttons=[self.back,self.forward]
+        motion=Gtk.EventControllerMotion();motion.connect('motion',self.pointer_moved);motion.connect('leave',lambda *_:self.pointer_left());self.add_controller(motion)
+        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect('key-pressed',self.key_pressed);self.add_controller(keys)
+        wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES|Gtk.EventControllerScrollFlags.KINETIC)
+        wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        wheel.connect('scroll-begin',lambda *_:self.begin_scroll())
+        wheel.connect('scroll-end',lambda *_:self.end_scroll())
+        wheel.connect('scroll',self.wheel_scroll);self.add_controller(wheel)
+        self._tick=self.add_tick_callback(self.adapt)
+        self.reveal_controls()
+
+    def page_button(self,direction):
+        icon='go-previous-symbolic' if (direction<0)!=self.source.rtl else 'go-next-symbolic'
+        button=Gtk.Button(icon_name=icon,tooltip_text=tr('Previous pages') if direction<0 else tr('Next pages'),
+                          valign=Gtk.Align.CENTER,halign=(Gtk.Align.END if self.source.rtl else Gtk.Align.START) if direction<0 else
+                          (Gtk.Align.START if self.source.rtl else Gtk.Align.END),margin_start=8,margin_end=8)
+        button.add_css_class('circular');button.add_css_class('osd');button.add_css_class('chapter-navigation')
+        button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Previous pages') if direction<0 else tr('Next pages')])
+        button.connect('clicked',lambda *_:self.turn(direction));self.add_overlay(button);return button
+
+    def adapt(self,*_):
+        if self._closed:return False
+        width,height=self.get_width(),self.get_height()
+        if width<100 or height<100:return True
+        minimum=max(280,self.owner.preferences.value.size*15)
+        count=2 if (width-112-32)/2>=minimum else 1
+        usable=min(WIDTHS[self.owner.preferences.value.column_width],int((width-112-(32 if count==2 else 0))/count))
+        usable=max(40,usable-16)
+        page_height=max(40,self.pages.get_height()-24)
+        geometry=(usable,page_height,count)
+        if self.kind=='commentary':
+            self.entry_previous.set_visible(width>=700);self.entry_next.set_visible(width>=700)
+            self.open_bible.set_visible(width>=700);self.info.set_visible(width>=500)
+        if geometry!=self._geometry:
+            anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+            key=self.stream.cursor.key if self.stream.cursor else self.initial_key
+            self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
+            maximum=(usable+16)*count+(32 if count==2 else 0)+112
+            self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
+            self._geometry=geometry;self.stream.configure(usable,page_height,anchor,key);self.render()
+        return True
+
+    def reflow(self):
+        if self._closed:return
+        self.capture_selection();self._restored_selection=bool(self.selection)
+        anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+        key=self.stream.cursor.key if self.stream.cursor else self.initial_key
+        self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
+        # Keep the stream anchor until adapt recalculates both geometry and pages.
+        self.stream.cursor=None
+
+    def capture_selection(self):
+        if self._updating:return
+        for view,address in zip(self.views,self.addresses):
+            bounds=view.get_buffer().get_selection_bounds()
+            if bounds:
+                plan=self.stream.plan(address.key);page=plan.pages[address.index]
+                self.selection=(address.key,*(plan.document.anchor(page.start+i.get_offset()) for i in bounds))
+                return
+
+    def selection_changed(self,view):
+        if self._updating:return
+        self._restored_selection=False
+        if view.get_buffer().get_has_selection():self.capture_selection()
+        elif not any(v.get_buffer().get_has_selection() for v in self.views):self.selection=None
+
+    def render(self):
+        if not self.stream.cursor:return
+        self._updating=True;self.addresses=self.stream.spread(self.count)
+        p=self.owner.preferences.value
+        for index,view in enumerate(self.views):
+            self.frames[index].set_visible(index<self.count);view.set_visible(index<self.count)
+            if index>=len(self.addresses):view.get_buffer().set_text('');continue
+            address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
+            buffer=view.get_buffer();buffer.set_text(plan.document.text[page.start:page.end])
+            table=buffer.get_tag_table();body=table.lookup('page-body')
+            if body is None:body=buffer.create_tag('page-body')
+            body.props.family=p.font;body.props.size_points=p.size
+            buffer.apply_tag(body,buffer.get_start_iter(),buffer.get_end_iter())
+            view.set_pixels_inside_wrap(SPACING[p.line_spacing]);view.set_pixels_below_lines(SPACING[p.line_spacing])
+            for kind in ('chapter','heading','number'):
+                tag=table.lookup('page-'+kind)
+                if tag is None:tag=buffer.create_tag('page-'+kind)
+                if kind=='number':tag.props.scale=.65;tag.props.rise=6000
+                else:tag.props.weight=700;tag.props.scale=1.35 if kind=='chapter' else 1.12
+                for style in plan.document.styles:
+                    first,last=max(page.start,style.start),min(page.end,style.end)
+                    if style.kind==kind and last>first:
+                        buffer.apply_tag(tag,buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
+            if self.selection and self.selection[0]==address.key:
+                first,last=(plan.document.locate(a) for a in self.selection[1:])
+                first,last=max(first,page.start),min(last,page.end)
+                if last>first:buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
+        self._updating=False
+        anchor=self.stream.anchor();caption=self.source.resource.name
+        if self.kind=='bible':
+            caption+=' — '+passage_label(anchor.reference,versification=self.source.reader.versification)
+            self.owner.active_tab.state.reference=anchor.reference
+        else:
+            caption+=' — '+self.source.reader.index.label(self.stream.cursor.key)
+            section=self.source.reader.index.sections[self.stream.cursor.key]
+            self.open_bible.set_sensitive(not section.introduction)
+            for direction,button in [(-1,self.entry_previous),(1,self.entry_next)]:
+                position=self.source.entry_neighbour(self.stream.cursor.key,direction)
+                button.set_sensitive(position is not None)
+                button.set_tooltip_text((tr('Previous available entry') if direction<0 else tr('Next available entry'))+
+                                       (': '+self.source.reader.index.label(position) if position is not None else ''))
+        self.footer.set_text(caption);self.caption.set_text(caption)
+        self.back.set_sensitive(self.stream.step(self.stream.cursor,-1) is not None)
+        self.forward.set_sensitive(self.stream.step(self.addresses[-1],1) is not None)
+
+    def turn(self,direction):
+        if self.stream.cursor and self.stream.turn(direction,self.count):
+            self.selection=None;self.render();return True
+        return False
+
+    def go_to_reference(self,reference):
+        if self.kind!='bible':return
+        key=self.source.key(reference);self.initial_anchor=Anchor(reference);self.initial_key=key
+        self.stream.configure(self.stream.width,self.stream.height,self.initial_anchor,key);self.render()
+
+    def change_entry(self,direction):
+        key=self.source.entry_neighbour(self.stream.cursor.key,direction)
+        if key is None:return
+        doc=self.source.document(key,self.owner.preferences.value)
+        anchor=doc.anchor(0);self.stream.configure(self.stream.width,self.stream.height,anchor,key)
+        self.selection=None;self.render();self.reveal_controls()
+
+    def clicked(self,view,x,y):
+        if view.get_buffer().get_has_selection() or view not in self.views:return
+        index=self.views.index(view)
+        if index>=len(self.addresses):return
+        bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
+        found,iterator=view.get_iter_at_location(bx,by)
+        if found:
+            address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
+            anchor=plan.document.anchor(page.start+iterator.get_offset())
+            self.footer.set_text(self.source.resource.name+' — '+(passage_label(anchor.reference,versification=self.source.reader.versification) if self.kind=='bible' else self.source.reader.index.label(address.key)))
+
+    def selected_passage(self):
+        for view,address in zip(self.views,self.addresses):
+            bounds=view.get_buffer().get_selection_bounds()
+            if bounds:
+                plan=self.stream.plan(address.key);page=plan.pages[address.index]
+                result=plan.document.selected_passage(*(page.start+i.get_offset() for i in bounds))
+                if result:return result
+        anchor=self.stream.anchor();return anchor.reference,anchor.reference
+
+    def copy_selection(self,view):
+        if not self.selection or not getattr(self,'_restored_selection',False):return
+        key,start,end=self.selection;doc=self.stream.plan(key).document
+        value=doc.text[doc.locate(start):doc.locate(end)]
+        view.get_clipboard().set(value)
+        from gi.repository import GObject
+        GObject.signal_stop_emission_by_name(view,'copy-clipboard')
+
+    def any_selection(self):return any(view.get_buffer().get_has_selection() for view in self.views)
+
+    def key_pressed(self,controller,key,code,state):
+        if key==Gdk.KEY_Escape:
+            for popover in self.open_popovers():
+                if popover and popover.get_visible():popover.popdown();return True
+            self.owner.leave_immersion();return True
+        if key==Gdk.KEY_F10:
+            self.reveal_controls();self.leave_button.grab_focus();return True
+        if self.controls_focused() or self.any_selection() or state&Gdk.ModifierType.CONTROL_MASK:return False
+        if key in (Gdk.KEY_Page_Down,Gdk.KEY_Page_Up,Gdk.KEY_space,Gdk.KEY_Left,Gdk.KEY_Right):
+            direction=-1 if key==Gdk.KEY_Page_Up or (key==Gdk.KEY_space and state&Gdk.ModifierType.SHIFT_MASK) else 1
+            if key in (Gdk.KEY_Left,Gdk.KEY_Right):direction=(1 if key==Gdk.KEY_Right else -1)*(-1 if self.source.rtl else 1)
+            self.turn(direction);return True
+        return False
+
+    def begin_scroll(self):self._wheel=0;self._gesture_turned=False
+    def end_scroll(self):self._wheel=0;self._gesture_turned=False
+
+    def wheel_scroll(self,controller,dx,dy):
+        if self.controls_focused() or self.any_selection() or self.open_popovers() or self._pointer_top:return False
+        delta=dy if abs(dy)>=abs(dx) else dx*(-1 if self.source.rtl else 1)
+        now=time.monotonic();smooth=controller.get_unit()==Gdk.ScrollUnit.SURFACE
+        self._wheel+=delta
+        if smooth and (self._gesture_turned or abs(self._wheel)<60):return True
+        if now-self._last_turn<.25:return True
+        self._last_turn=now;self._gesture_turned=True
+        self.turn(1 if self._wheel>0 else -1);self._wheel=0;return True
+
+    def pointer_moved(self,controller,x,y):
+        self._pointer_top=y<max(90,self.top.get_height() if self.top.get_reveal_child() else 90)
+        self._pointer_edge=x<75 or x>self.get_width()-75
+        if self._pointer_top:self.reveal_controls()
+        elif self._pointer_edge:
+            for button in self.buttons:button.set_visible(True)
+            self.schedule_hide()
+        else:self.schedule_hide()
+
+    def pointer_left(self):
+        self._pointer_top=False;self._pointer_edge=False;self.schedule_hide()
+
+    def open_popovers(self):
+        result=[]
+        def visit(widget):
+            if isinstance(widget,Gtk.Popover) and widget.get_visible():result.append(widget)
+            child=widget.get_first_child()
+            while child:
+                visit(child);child=child.get_next_sibling()
+        visit(self)
+        return result
+
+    def controls_focused(self):
+        focus=self.owner.get_focus()
+        if not focus:return False
+        return (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons))
+
+    def reveal_controls(self):
+        self.top.set_reveal_child(True)
+        for button in self.buttons:button.set_visible(True)
+        self.schedule_hide()
+
+    def schedule_hide(self):
+        if self._hide_id:GLib.source_remove(self._hide_id)
+        self._hide_id=GLib.timeout_add(1600,self.hide_controls)
+
+    def hide_controls(self):
+        self._hide_id=0
+        if self.controls_focused() or self.open_popovers() or self._pointer_top:self.schedule_hide();return False
+        self.top.set_reveal_child(False)
+        if not self._pointer_edge:
+            for button in self.buttons:button.set_visible(False)
+        return False
+
+    def hide_help(self):
+        self.owner.immersion_hints.disable();self.notification_help.set_revealed(False)
+
+    def open_in_bible(self):
+        section=self.source.reader.index.sections[self.stream.cursor.key]
+        if section.introduction:return
+        reference=section.start;reader=self.owner.active_tab.reader
+        if reader and reader.versification==self.source.reader.versification and reader.has_reference(reference):
+            self.owner.leave_immersion();self.owner.navigate_selection(self.owner.active_tab.state.resource,reference)
+
+    def finish(self):
+        self._closed=True
+        if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
+        if self._tick:self.remove_tick_callback(self._tick);self._tick=0
+        self.owner.appearance.popdown();self.aa.set_popover(None);self.owner.appearance_button.set_popover(self.owner.appearance)
+        if self.kind=='bible':
+            self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
+        anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+        return anchor,self.stream.cursor.key if self.stream.cursor else self.initial_key

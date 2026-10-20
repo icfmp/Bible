@@ -48,6 +48,24 @@ Afficher progression et erreurs compréhensibles ; permettre annulation et repri
   3. Pagination comme une liseuse EPUB, selon la taille de fenêtre et la typographie, indépendante des limites des chapitres.
 - Changer de mode conserve une ancre de lecture.
 - Taille de caractères et présentation confortables ; priorité à la lisibilité.
+- Décision #12 du 20 octobre : un panneau Aa natif compact avec aperçu immédiat,
+  sans Appliquer. Dans l’ordre : Livre/Simple avec aperçu de police, A−/valeur/A+
+  jusqu’aux très gros caractères, mode Système/Jour/Nuit, quatre palettes nommées
+  Blanc/Papier (sépia)/Gris sombre/Noir. Le choix de jour et celui de nuit sont
+  mémorisés séparément ; sélectionner une palette ne désactive pas le suivi système.
+- Mise en page repliable : interligne Serré/Normal/Aéré et colonne Étroite/Normale/
+  Large ; rétablir les valeurs par défaut sans toucher aux données. Réglages locaux
+  communs aux onglets ; commentaires cohérents, ancrage et sélection préservés.
+- Suivre les notifications natives libadwaita clair/sombre et contraste élevé.
+  Le contraste élevé prend temporairement priorité sur les palettes décoratives,
+  avec une explication dans Aa ; restaurer ensuite les choix personnels. Conserver
+  police/taille/interligne et références. Les composants natifs suivent Adwaita,
+  les couleurs personnalisées restent limitées aux lecteurs. Aucun réglage de
+  contraste élevé supplémentaire, horaire ni géolocalisation.
+- Polices hors connexion, licences conservées et repli pour les écritures non
+  couvertes. Contrôler palette, liens, numéros, sélection, focus et commandes.
+  Le test système sur GNOME/Flatpak et lecteur d’écran demeure distinct des tests
+  automatisés. Les modes de défilement/pagination restent un chantier séparé.
 - Trois interrupteurs indépendants et mémorisés : afficher les surlignages, les numéros de chapitre, les numéros de verset.
 - Masquer n'efface rien. Références et actions restent utilisables quand les numéros sont invisibles.
 - Surlignages en plusieurs couleurs ; accès centralisé aux passages surlignés retenu comme proposition de présentation, à vérifier en maquette.
@@ -142,3 +160,17 @@ Toutes les combinaisons sont possibles, notamment texte seul. Mémoriser les cho
 
 Ces références orientent l'étude technique ; leur présence ne signifie pas qu'une intégration ou une permission a été validée.
 
+
+## Complément de réalisation — lecture #24 et suivi #25
+
+La branche de livraison ajoute un mode immersif paginé pour la Bible et le
+commentaire actif, avec ancre interne au verset/à l’entrée, ainsi que la lecture
+continue des entrées et leur suivi automatique dans les deux sens. Les clés,
+liens et limites proviennent de SWORD. Les entrées absentes et les différences
+de versification ne sont pas compensées par des correspondances inventées.
+Le prototype conserve un commentaire visible à la fois.
+
+Voir [le guide et ses limites](LECTURE_IMMERSIVE_24_25.md). Ces changements sont
+vérifiés localement ; ils ne constituent pas une nouvelle release Flatpak
+publiée ni un essai manuel GNOME. La suspension automatique des notifications
+n’est pas annoncée : le repli d’aide manuelle prévu par #24 est utilisé.

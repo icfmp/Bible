@@ -17,6 +17,12 @@ from .navigation import PassagePopover
 from .notes import NoteStore
 from .preferences import Preferences
 from .appearance import AppearancePopover
+from .reading_style import ReadingStyle
+from .reading_sync import ReadingSync
+from .immersion import Immersion
+from .immersion_hints import ImmersionHints
+from .pagination import Anchor
+from .paged_sources import BiblePages, CommentaryPages
 from .notes_window import NoteEditor, NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
@@ -28,7 +34,10 @@ class Window(Adw.ApplicationWindow):
         self.library = library
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
+        self.reading_style = ReadingStyle(self)
         self.closed = False
+        self.immersion=None;self._immersion_help_seen=False
+        self.immersion_hints=ImmersionHints(library.root.parent/'immersion-help.json')
         self._initializing = True
         self._syncing_study = False
         self._save_id = 0
@@ -71,7 +80,7 @@ class Window(Adw.ApplicationWindow):
         for label,action in [('Passage note','note'),('My notes','notes'),('New tab','new-tab'),
                              ('Library','translations'),('History back','history-back'),('History forward','history-forward'),
                              ('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
-                             ('Reading appearance','appearance'),('Compare translations','compare')]:
+                             ('Reading appearance','appearance'),('Compare translations','compare'),('Immersive mode','immersive')]:
             commands.append(tr(label),'win.'+action)
         self.menu = Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands,tooltip_text=tr('Notes and commands'))
         self.menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Notes and commands')])
@@ -79,6 +88,8 @@ class Window(Adw.ApplicationWindow):
         self.my_notes_button=Gtk.Button(icon_name='bible-notes-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
         self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-symbolic',tooltip_text=tr('Study'))
         self.study_button.connect('toggled',self.toggle_study)
+        self.immersive_button=Gtk.ToggleButton(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Immersive mode'))
+        self.immersive_button.connect('clicked',lambda *_:self.toggle_immersion())
         self.appearance_button=Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
         self.appearance_button.add_css_class('flat')
         self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
@@ -93,7 +104,7 @@ class Window(Adw.ApplicationWindow):
         # native window controls, library before menu, My notes before library.
         for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
                              (self.my_notes_button,'My notes'),(self.study_button,'Study'),
-                             (self.appearance_button,'Reading appearance'),(self.comparison_button,'Compare translations')]:
+                             (self.immersive_button,'Immersive mode'),(self.appearance_button,'Reading appearance'),(self.comparison_button,'Compare translations')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
@@ -112,6 +123,8 @@ class Window(Adw.ApplicationWindow):
                                           min_sidebar_width=300, max_sidebar_width=420,
                                           sidebar_position=Gtk.PackType.END)
         self.study = StudyPanel(self)
+        self.reading_style.decorate(self.study.text)
+        self.reading_sync=ReadingSync(self)
         self.split.set_sidebar(self.study)
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         layout.append(self.split)
@@ -129,9 +142,10 @@ class Window(Adw.ApplicationWindow):
         tiny_header.add_setter(self.study_button,'visible',False)
         tiny_header.add_setter(self.appearance_button,'visible',False)
         tiny_header.add_setter(self.comparison_button,'visible',False)
+        tiny_header.add_setter(self.immersive_button,'visible',False)
         self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
-        icons.add_search_path(str(Path(__file__).parent / 'icons/scalable/actions'))
+        icons.add_search_path(str(Path(__file__).parent / 'icons'))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
@@ -153,15 +167,23 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
         self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
         self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
-        self.add_action_callback('appearance',lambda *_:self.appearance_button.popup())
-        self.add_action_callback('compare',lambda *_:self.comparison_button.popup())
+        self.add_action_callback('appearance',lambda *_:self.show_appearance())
+        self.add_action_callback('compare',lambda *_:self.show_comparison())
+        self.add_action_callback('immersive',lambda *_:self.toggle_immersion())
+        self.add_action_callback('previous-commentary-entry',lambda *_:self.immersion.change_entry(-1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(-1))
+        self.add_action_callback('next-commentary-entry',lambda *_:self.immersion.change_entry(1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(1))
+        self.add_action_callback('immersive-open-bible',lambda *_:self.immersion.open_in_bible() if self.immersion and self.immersion.kind=='commentary' else None)
         self.add_action_callback('history-back',lambda *_:self.active_tab.travel(self.active_tab.state.history_index-1))
         self.add_action_callback('history-forward',lambda *_:self.active_tab.travel(self.active_tab.state.history_index+1))
+        self.add_action_callback('copy-passage',lambda *_:self.copy_passage())
+        self.add_action_callback('copy-with-reference',lambda *_:self.copy_passage(True))
+        self.add_action_callback('copy-reference',lambda *_:self.copy_passage(reference_only=True))
         self.add_action_callback('note', lambda *_: self.new_note())
         self.add_action_callback('notes', lambda *_: self.open_notes())
         self.lookup_action('note').set_enabled(self.notes_store is not None)
         self.lookup_action('notes').set_enabled(self.notes_store is not None)
         self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
+        app.set_accels_for_action('win.immersive',['F11'])
         app.set_accels_for_action('win.new-tab', ['<Control>t'])
         app.set_accels_for_action('win.close-tab', ['<Control>w'])
         app.set_accels_for_action('win.translations', ['<Control>l'])
@@ -191,6 +213,103 @@ class Window(Adw.ApplicationWindow):
         self._initializing = False
         self.selected_changed()
 
+    def copy_passage(self,with_reference=False,reference_only=False):
+        from .notes_window import passage_label
+        tab=self.active_tab
+        if not tab or not tab.reader:return
+        if self.immersion:
+            if self.immersion.kind!='bible':return
+            first,last=self.immersion.selected_passage();reader=self.immersion.source.reader
+            version=self.immersion.source.resource.name
+        else:first,last=tab.selected_passage();reader=tab.reader;version=module_name(tab.state.resource)
+        label=passage_label(first,last,reader.versification)+' — '+version
+        if reference_only:value=label
+        else:
+            start,end=reader.key(first).getIndex(),reader.key(last).getIndex()
+            chapter=reader.chapter(first)
+            value='\n'.join(text for ref,text in chapter.verses if start<=reader.key(ref).getIndex()<=end)
+            if with_reference:value=label+'\n'+value
+        self.get_clipboard().set(value)
+
+    def show_appearance(self):
+        if self.immersion:self.immersion.reveal_controls();self.immersion.aa.popup()
+        else:self.appearance_button.popup()
+
+    def show_comparison(self):
+        if self.immersion:self.leave_immersion()
+        self.comparison_button.popup()
+
+    def toggle_immersion(self):
+        if self.immersion:self.leave_immersion()
+        else:self.enter_immersion('bible')
+
+    def enter_immersion(self,kind='bible'):
+        if self.immersion:self.leave_immersion()
+        tab=self.active_tab
+        if not tab or not tab.reader:return False
+        if kind=='commentary':
+            study=self.study
+            if not study.reader or study.current_position is None:return False
+            source=CommentaryPages(study.reader,self.library.resource(tab.state.commentary))
+            key=study.current_position
+            doc=source.document(key,self.preferences.value);anchor=doc.anchor(0)
+            saved=tab.state.commentary_positions.get(tab.state.commentary)
+            if saved and saved.get('immersive'):
+                positions=[i for i,section in enumerate(source.reader.index.sections) if section.index==saved['index']]
+                if positions:
+                    key=positions[0];doc=source.document(key,self.preferences.value)
+                    anchor=Anchor(doc.spans[0].reference,saved['offset'],True)
+            else:
+                current=study.anchor()
+                if current:
+                    key,offset=current;doc=source.document(key,self.preferences.value);anchor=doc.anchor(offset)
+        else:
+            source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
+            anchor=Anchor(tab.state.reference)
+            if tab.text.get_mapped() and not tab._restoring_scroll:
+                rect=tab.text.get_visible_rect();_,iterator=tab.text.get_iter_at_location(rect.x,rect.y)
+                position=tab.position_anchor(iterator.get_offset())
+                if position:
+                    reference,offset=position;buffer=tab.text.get_buffer();first=tab._marker_ends[reference]
+                    text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
+                    anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
+            key=source.key(anchor.reference)
+        self.navigation.popdown();self.appearance.popdown()
+        self.reading_sync.driver=None
+        immersion=Immersion(self,source,key,anchor);self.immersion=immersion
+        self.main_pages.add_named(immersion,'immersive');self.main_pages.set_visible_child_name('immersive')
+        self.immersive_button.set_active(True);self.lookup_action('note').set_enabled(kind=='bible' and self.notes_store is not None)
+        self.fullscreen();return True
+
+    def leave_immersion(self):
+        immersion=self.immersion
+        if not immersion:return
+        anchor,key=immersion.finish();tab=immersion.tab;self.immersion=None
+        self.main_pages.set_visible_child_name('reading');self.main_pages.remove(immersion)
+        if not immersion.was_fullscreen:self.unfullscreen()
+        self.immersive_button.set_active(False);self.lookup_action('note').set_enabled(self.notes_store is not None)
+        self.reading_sync.driver=None
+        if immersion.kind=='bible' and tab.reader:
+            tab._travelling=True
+            try:tab.show(anchor.reference)
+            finally:tab._travelling=False
+            if anchor.reference in tab._verse_ranges:
+                first,last=tab._verse_ranges[anchor.reference];body=tab._marker_ends[anchor.reference]
+                buffer=tab.text.get_buffer();text=buffer.get_text(buffer.get_iter_at_offset(body),buffer.get_iter_at_offset(last),False)
+                remaining=anchor.offset;offset=0
+                for offset,char in enumerate(text):
+                    if not char.isspace():
+                        if remaining<=0:break
+                        remaining-=1
+                tab._appearance_anchor=(anchor.reference,offset) if anchor.at_body else None
+                tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
+        elif immersion.kind=='commentary':
+            section=immersion.source.reader.index.sections[key]
+            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor.offset,canonical=True,immersive=True)
+            if tab is self.active_tab:self.study.resume(key,anchor)
+        self.update_navigation() if immersion.kind=='bible' else None
+        self.schedule_save()
+
     def add_action_callback(self, name, callback):
         action = Gio.SimpleAction.new(name, None)
         action.connect('activate', callback)
@@ -215,11 +334,15 @@ class Window(Adw.ApplicationWindow):
     def append_tab(self, state, jump_to_reference=False):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
                          self.notes_store, self.open_passage_notes, self.preferences.value)
+        self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
+        tab.text.add_css_class(self.reading_style.scope)
+        self.reading_style.decorate(tab.comparison_text)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
 
     def new_tab(self):
+        if self.immersion:self.leave_immersion()
         current = self.active_tab
         names = self.library.installed('bible')
         state = TabState(current.state.resource, current.state.reference, current.state.scroll,
@@ -252,7 +375,10 @@ class Window(Adw.ApplicationWindow):
             return False
 
     def choose_passage(self, direct=False):
-        self.passage_button.set_active(True)
+        if self.immersion and self.immersion.kind=='commentary':self.leave_immersion()
+        button=self.immersion.passage_button if self.immersion else self.passage_button
+        if self.immersion:self.immersion.reveal_controls()
+        button.set_active(True)
         self.navigation.sync(force=True)
         self.navigation.direct_expander.set_expanded(direct)
         (self.navigation.direct if direct else self.navigation.search).grab_focus()
@@ -269,6 +395,10 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if not tab:
             return
+        self.immersive_button.set_sensitive(tab.reader is not None)
+        self.lookup_action('immersive').set_enabled(tab.reader is not None)
+        for name in ['copy-passage','copy-with-reference','copy-reference']:
+            self.lookup_action(name).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
         self.heading.set_title(tab.passage_title())
         subtitle = module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
         if tab.state.resource and tab.state.resource not in self.library.installed():
@@ -287,9 +417,13 @@ class Window(Adw.ApplicationWindow):
         self.study.refresh()
         tab.update_notes()
 
-    def apply_appearance(self):
+    def apply_appearance(self,reflow=True):
+        self.reading_style.apply_mode()
+        if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
+        self.reading_style.apply_text(self.study.text)
         if self.active_tab:self.active_tab.refresh_comparison()
+        if self.immersion:self.immersion.reflow()
 
     def sync_comparison(self):
         tab=self.active_tab
@@ -312,6 +446,7 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def close_tab(self):
+        if self.immersion:self.leave_immersion()
         page = self.view.get_selected_page()
         if page:
             self.view.close_page(page)
@@ -324,6 +459,12 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def tab_changed(self, tab):
+        if self.immersion and self.immersion.kind=='bible' and tab is self.immersion.tab:
+            current=self.immersion.stream.anchor() if self.immersion.stream.cursor else self.immersion.initial_anchor
+            if current.reference!=tab.state.reference or self.immersion.source.reader is not tab.reader:
+                source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
+                self.immersion.source=source;self.immersion.stream.source=source
+                self.immersion.go_to_reference(tab.state.reference)
         if self._initializing:
             return
         for index in range(self.view.get_n_pages()):
@@ -336,6 +477,8 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def selected_changed(self, *_):
+        if self.immersion:self.leave_immersion()
+        self.reading_sync.driver=None
         tab = self.active_tab
         if tab is None:
             return
@@ -362,6 +505,7 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def open_library(self, kind=None):
+        if self.immersion:self.leave_immersion()
         if self.catalogue_window is None or self.catalogue_window.closed:
             self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
         if kind is not None:
@@ -397,6 +541,7 @@ class Window(Adw.ApplicationWindow):
             self.notes_window.refresh()
 
     def open_notes(self):
+        if self.immersion:self.leave_immersion()
         if self.notes_store is None:return
         if self.notes_space is None:
             self.notes_space=NotesSpace(self)
@@ -406,25 +551,27 @@ class Window(Adw.ApplicationWindow):
         return self.notes_space
 
     def new_note(self, force_new=False):
+        override=self.immersion.selected_passage() if self.immersion and self.immersion.kind=='bible' else None
+        if self.immersion:self.leave_immersion()
         tab = self.active_tab
         if not self.notes_store or tab is None or tab.reader is None:
             self.notes_status.set_text(tr('Open a Bible passage before creating a note.'))
             self.notes_status.set_visible(True)
             return
-        start, end = tab.selected_passage()
+        start, end = override or tab.selected_passage()
         matching = self.notes_store.passage(tab.reader.versification, start, end)
         if matching and not force_new:
-            return self.open_passage_notes()
+            return self.open_passage_notes((start,end))
         context = dict(versification=tab.reader.versification, start=start, end=end,
                        origin_translation=tab.state.resource,
                        origin_language=self.library.resource(tab.state.resource).language)
         return self.edit_note(context=context)
 
-    def open_passage_notes(self):
+    def open_passage_notes(self, passage=None):
         tab = self.active_tab
         if not self.notes_store or not tab or not tab.reader:
             return
-        start, end = tab.selected_passage()
+        start, end = passage or tab.selected_passage()
         notes = self.notes_store.passage(tab.reader.versification, start, end)
         if len(notes) == 1:
             return self.edit_note(note=notes[0])
@@ -501,6 +648,7 @@ class Window(Adw.ApplicationWindow):
         self.session_status.set_visible(True)
 
     def on_close(self, *_):
+        if self.immersion:self.leave_immersion()
         if self.note_editor and not self.note_editor.closed:
             self.note_editor.after_close = self.close
             self.note_editor.close()
@@ -510,6 +658,9 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        self.study.cancel_reveal()
+        self.reading_style.close()
+        Gtk.StyleContext.remove_provider_for_display(self.get_display(),self.appearance.swatch_css)
         if self.notes_space:self.notes_space.closed=True
         if self.notes_store:
             self.notes_store.close()

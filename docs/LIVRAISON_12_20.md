@@ -1,5 +1,9 @@
 # Lecture, bibliothèque et notes — issues restantes
 
+Le [complément Aa de la #12](APPARENCE_12.md) intègre les décisions actualisées :
+Livre/Simple, A−/A+, modes Système/Jour/Nuit, palettes séparées, mise en page
+et priorité automatique au contraste élevé, sans perdre les autres travaux.
+
 ## Fonctionnement livré dans le code
 
 - **#12 et #15** : commandes de comparaison et Aa dans la Header Bar, icônes
@@ -60,11 +64,12 @@ Fermer et relancer sans réseau pour vérifier session, préférences et notes.
 
 ## Résultats locaux
 
-- Suite complète : **97 tests réussis** sous GTK 4.18/libadwaita 1.7 et SWORD 1.9.
-- Interface française : **39 tests réussis** ; fonctionnalités nouvelles :
-  **9 tests ciblés réussis**, y compris la première visite sans passage fictif.
+- Suite complète : **102 tests réussis** sous GTK 4.18/libadwaita 1.7 et SWORD 1.9.
+- Interface française : **44 tests réussis** ; fonctionnalités nouvelles :
+  **5 tests spécifiques d’apparence réussis**, intégrés à ces suites. Les neuf
+  tests précédents d’historique/espaces restent inclus dans la suite complète.
 - Interactions natives X11 : clics, clavier, recherche, fermeture du sélecteur,
-  navigation en surimpression et onglets indépendants réussis.
+  navigation en surimpression, onglets indépendants et commandes Aa réussis.
 - `actionlint`, compilation Python, analyse JSON/SVG et `git diff --check` réussis.
 
 Ces ensembles se recouvrent et ne doivent pas être additionnés. Des avertissements

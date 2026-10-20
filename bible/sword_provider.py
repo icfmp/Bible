@@ -149,6 +149,11 @@ class VersificationMismatch(ValueError):
 
 
 class CommentaryReader(Reader):
+    @cached_property
+    def index(self):
+        from .commentary_index import CommentaryIndex
+        return CommentaryIndex(self)
+
     drivers = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
 
     def entry(self, reference, bible_versification):

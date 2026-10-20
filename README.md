@@ -36,7 +36,7 @@ graphique du paquet corrigé reste à valider sur le poste GNOME du client.
 
 ```sh
 sudo apt update
-sudo apt install python3 python3-gi python3-sword python3-babel iso-codes gir1.2-gtk-4.0 gir1.2-adw-1
+sudo apt install python3 python3-gi python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra gir1.2-gtk-4.0 gir1.2-adw-1
 cd Bible
 /usr/bin/python3 -m bible
 ```
@@ -111,7 +111,10 @@ Le Semeur n’est pas annoncé disponible : voir [l’étude des sources](docs/C
 Le lecteur présente les mots produits par SWORD dans une colonne centrée.
 Les paragraphes et titres OSIS/ThML sont conservés quand leur extraction respecte
 le texte ; sinon le texte brut est utilisé sans titres inventés. **Aa** règle
-la police, la taille et les numéros. La comparaison affiche une seconde traduction
+Livre/Simple, la taille (12–64 pt), les numéros, l’interligne et la largeur.
+Les modes Système/Jour/Nuit retrouvent les palettes de jour et de nuit mémorisées ;
+le contraste élevé du système prend temporairement priorité sans effacer ces choix.
+Voir [le guide Aa](docs/APPARENCE_12.md). La comparaison affiche une seconde traduction
 installée compatible. Les notes de traduction ne sont pas encore présentées.
 L’onglet Historique du sélecteur garde les passages de chaque onglet ;
 Alt+Gauche/Droite parcourt cet historique, Alt+Page précédente/suivante les chapitres.
@@ -172,3 +175,10 @@ sur la branche de l’issue #17. Son installation/mise à jour depuis un dépôt
 est testée ; l’état actuel de son activation GitHub Pages et de sa validation
 HTTPS publique n’a pas pu être vérifié depuis cet environnement. Utiliser les bundles vérifiés en
 attendant ; aucun lien d’installation du nouveau canal n’est annoncé disponible.
+
+## Travail de lecture immersive et suivi des commentaires
+
+Le [guide des issues #24 et #25](docs/LECTURE_IMMERSIVE_24_25.md) présente
+l’immersion (F11), les raccourcis et le suivi automatique des passages dans
+les deux sens. Ce travail est disponible dans les sources de livraison ;
+aucun paquet déjà publié n’est présenté comme contenant ces changements.

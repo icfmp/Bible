@@ -116,8 +116,27 @@ def main():
                 inputs.click(second.following)
                 assert second.state.reference == '1Cor.1.1'
                 assert window.tabs()[0].state.reference == 'Exod.1.1'
+                # Exercise Aa with actual X11 pointer/key events as well.
+                inputs.click(window.appearance_button)
+                aa=window.appearance
+                inputs.click(aa.larger)
+                assert window.preferences.value.size == 20
+                aa.smaller.grab_focus();inputs.key('space')
+                assert window.preferences.value.size == 19
+                aa.fonts['DejaVu Sans'].grab_focus();inputs.key('space')
+                assert window.preferences.value.font == 'DejaVu Sans'
+                inputs.click(aa.palettes['paper'])
+                assert window.preferences.value.day_palette == 'paper'
+                assert window.preferences.value.mode == 'system'
+                inputs.click(aa.mode);inputs.key('End');inputs.key('Return')
+                assert window.preferences.value.mode == 'night'
+                aa.verse_numbers.grab_focus();inputs.key('space')
+                assert not window.preferences.value.verse_numbers
+                inputs.key('Escape')
+                assert not aa.get_visible()
+                assert second.state.reference == '1Cor.1.1'
                 print('PASS: native X11 book/chapter clicks, chapter Space, book Return/Down, '
-                      'typed search, close, overlay and independent tabs', flush=True)
+                      'typed search, close, overlay, independent tabs and Aa mouse/keyboard controls', flush=True)
             finally:
                 window.close()
     finally:

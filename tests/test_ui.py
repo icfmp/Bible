@@ -559,7 +559,7 @@ class WindowTests(unittest.TestCase):
             self.assertGreaterEqual(window.active_tab.get_width(), 340)
             self.assertLessEqual(window.study.get_width(), window.get_width())
             self.choose_commentary(window, 'OtherNotes')
-            self.assertEqual(self.study_text(window), 'OTHER COMMENTARY TEST DATA')
+            self.assertEqual(window.study.entry_text, 'OTHER COMMENTARY TEST DATA')
             window.study.info.set_active(True)
             spin(lambda: window.study.info.get_popover().get_visible())
             self.assertLessEqual(window.study.info.get_popover().get_width(), 360)

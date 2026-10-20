@@ -19,6 +19,7 @@ class TabState:
     history: list = field(default_factory=list)
     history_index: int = -1
     comparison: str | None = None
+    commentary_positions: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -80,7 +81,16 @@ class SessionStore:
                 comparison = item.get('comparison')
                 if comparison is not None and (not isinstance(comparison,str) or not re.fullmatch(RESOURCE_ID,comparison)):
                     raise ValueError('Invalid comparison')
-                tabs.append(TabState(resource, reference, float(scroll), study, commentary, history, cursor, comparison))
+                positions=item.get('commentary_positions',{})
+                if not isinstance(positions,dict) or len(positions)>50:raise ValueError('Invalid commentary positions')
+                for name,anchor in positions.items():
+                    if (not isinstance(name,str) or not re.fullmatch(RESOURCE_ID,name)
+                            or not isinstance(anchor,dict) or not isinstance(anchor.get('reference'),str)
+                            or len(anchor['reference'])>256 or type(anchor.get('index')) is not int
+                            or not 0<=anchor['index']<=1000000 or type(anchor.get('offset')) is not int
+                            or not 0<=anchor['offset']<=10000000
+                            or any(type(anchor[flag]) is not bool for flag in ('canonical','immersive') if flag in anchor)):raise ValueError('Invalid commentary anchor')
+                tabs.append(TabState(resource, reference, float(scroll), study, commentary, history, cursor, comparison, positions))
             selected = value.get('selected', 0)
             if type(selected) is not int or selected < 0 or (selected >= len(tabs) if tabs else selected != 0):
                 raise ValueError('Invalid selected tab')

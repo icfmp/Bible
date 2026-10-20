@@ -26,7 +26,7 @@ jobs:
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel iso-codes xvfb xauth dbus-x11 libxtst6
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6
       - name: Examiner les paquets SWORD disponibles
         run: |
           apt-cache search --names-only 'sword|libsword' | head -80
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -o pipefail
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v | tee test-results.log
-          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui -v | tee ui-fr-results.log
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui tests.test_workspace_features tests.test_appearance tests.test_immersion tests.test_reading_sync tests.test_pagination -v | tee ui-fr-results.log
       - name: Interactions souris et clavier réelles sous Xvfb
         env:
           LANGUAGE: fr
@@ -47,6 +47,7 @@ jobs:
         run: |
           set -o pipefail
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_alpha_ui | tee native-input-results.log
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_reading_ui | tee native-reading-results.log
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
         env:
@@ -72,6 +73,7 @@ jobs:
             test-results.log
             ui-fr-results.log
             native-input-results.log
+            native-reading-results.log
             affiliated-commentary.log
             affiliated-commentary-result.json
           if-no-files-found: warn

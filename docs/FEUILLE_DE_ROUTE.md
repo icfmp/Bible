@@ -79,3 +79,12 @@ Commencer par cette étape ; ne pas implémenter toute la feuille de route en un
 ## Texte à donner à Codex pour démarrer
 Lis AGENTS.md, docs/CAHIER_DES_CHARGES.md et cette feuille de route. Réalise l'étape 0 puis commence la première livraison GNOME de l'étape 1. Pour ce jalon réversible, suis AGENTS.md : commits vérifiés directement sur main si l'accès le permet ; en cas de refus, signale l'erreur exacte et prépare une pull request relisible. Vérifie réellement Python/SWORD/GTK/Flatpak. Commence par un module CrossWire utilisable pour les essais, sans embarquer de traduction complète. Préserve l'objectif YouVersion/Semeur comme étude séparée et documente les limites. N'ajoute pas d'IA, de synchronisation ou de fonctions hors périmètre à cette première livraison. Rapporte précisément les tests effectués, les blocages et la procédure pour essayer l'application.
 
+
+## Suivi des issues #24 et #25
+
+Lecture immersive et commentaires continus implémentés sur la branche de
+livraison. Vérifications locales et procédure d’essai :
+[LECTURE_IMMERSIVE_24_25.md](LECTURE_IMMERSIVE_24_25.md). Conserver comme critères
+restants la construction Flatpak de ce commit, sa CI GitHub et l’essai manuel
+GNOME. La comparaison simultanée de plusieurs commentaires et leur mise en
+forme riche intégrale restent distinctes des capacités vérifiées ici.

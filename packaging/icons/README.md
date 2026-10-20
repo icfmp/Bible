@@ -19,7 +19,7 @@ artistique reste distincte du dessin vectoriel repris pour l’intégration GNOM
 
 Le manifeste installe PNG, SVG et symbolique dans hicolor. Le fichier desktop
 utilise `io.github.icfmp.Bible`. Les deux symboles de commandes Bibliothèque et
-Mes notes sont distincts et vivent dans `bible/icons/scalable/actions/`.
+Mes notes sont distincts et vivent dans `bible/icons/hicolor/scalable/actions/`.
 
 Installer Inkscape puis lancer depuis le dépôt :
 

@@ -27,10 +27,11 @@ class ProviderUITests(unittest.TestCase):
             window = Window(self.app, Library(Path(directory) / 'translations'))
             window.present()
             try:
-                dialog = window.open_library()
                 extra = replace(RESOURCE, provider_id=EXTRA.id, source=EXTRA.name, source_url=EXTRA.url)
                 result = CatalogueResult((RESOURCE, extra), {'STEP': 'HTTP 503 fixture'})
+                # Install the worker fixture before presenting the auto-loading UI.
                 with patch('bible.catalogue_window.catalogue', return_value=result):
+                    dialog = window.open_library()
                     dialog.load_catalogue()
                     spin(lambda: not dialog.busy)
                 self.assertEqual(len(dialog.filtered_resources), 2)
@@ -76,7 +77,9 @@ class ProviderUITests(unittest.TestCase):
                 window.active_tab.navigate('Test', 'Gen.1.2')
                 window.study.refresh(force=True)
                 buffer = window.study.text.get_buffer()
-                self.assertEqual(buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False), 'EXTRA SENTINEL TWO')
+                self.assertEqual(window.study.entry_text, 'EXTRA SENTINEL TWO')
+                self.assertIn('EXTRA SENTINEL ONE', buffer.props.text)
+                self.assertEqual(buffer.props.text.count('EXTRA SENTINEL TWO'), 1)
                 self.assertIn(EXTRA.name, window.study.source.get_text())
                 dialog.close()
             finally:
