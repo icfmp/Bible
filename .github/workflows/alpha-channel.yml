@@ -88,6 +88,14 @@ jobs:
           artifact_name: github-pages-first
       - name: Installer depuis le flatpakref HTTPS public et lancer Bible
         run: python3 -m tools.validate_public_channel install --base-url "$BASE_URL"
+      - name: Restaurer la publication sauvegardée dans Git avant la seconde révision
+        run: |
+          python3 - <<'PYTHON'
+          import shutil
+          from tools.channel_ci import restore
+          shutil.rmtree('public')
+          restore()
+          PYTHON
       - name: Préparer la seconde révision contrôlée du même canal
         run: |
           python3 - <<'PYTHON'

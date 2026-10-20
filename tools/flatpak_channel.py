@@ -26,6 +26,17 @@ def run(*args):
     return subprocess.check_output(list(map(str, args)), text=True).strip()
 
 
+def restore_repository_layout(repo):
+    """Recreate only empty directories lost by Git; preserve repository contents."""
+    repo = Path(repo)
+    assert not repo.is_symlink() and not (repo / 'config').is_symlink() and (repo / 'config').is_file(), 'Invalid saved OSTree repository'
+    for name in ('objects', 'extensions', 'refs', 'refs/heads', 'refs/remotes',
+                 'refs/mirrors', 'state', 'tmp', 'tmp/cache'):
+        path = repo / name
+        assert not path.is_symlink(), f'Unexpected link in OSTree repository: {name}'
+        path.mkdir(exist_ok=True)
+
+
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -82,6 +93,7 @@ def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revis
     repo = alpha / 'repo'
     if not (repo / 'config').exists():
         subprocess.run(['ostree', f'--repo={repo}', 'init', '--mode=archive-z2'], check=True)
+    restore_repository_layout(repo)
     with tempfile.TemporaryDirectory() as temporary:
         imported = Path(temporary) / 'imported'
         subprocess.run(['ostree', f'--repo={imported}', 'init', '--mode=archive-z2'], check=True)

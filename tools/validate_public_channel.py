@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import time
 import urllib.request
-from tools.check_flatpak_channel import check
+from tools.check_flatpak_channel import check, verify_data
 from tools.flatpak_channel import APP_ID, run
 
 
@@ -38,7 +38,8 @@ def main():
             time.sleep(10)
         else: raise RuntimeError('flatpak update did not install the published revision')
         assert installed != old['install_commit'], 'The update must change the installed commit'
-        result = dict(old, update_commit=installed, public_update_success=True,
+        verify_data(old['user_data_snapshot'])
+        result = dict(old, user_data_preserved=True, update_commit=installed, public_update_success=True,
                       public_url=args.base_url + '/alpha/Bible.flatpakref')
         Path('public-update-check.json').write_text(json.dumps(result,indent=2) + '\n')
         with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:

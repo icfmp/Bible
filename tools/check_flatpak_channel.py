@@ -6,6 +6,8 @@ validation is a separate mandatory step after deployment with the stable key.
 import functools
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
+import hashlib
+import shutil
 import os
 from pathlib import Path
 import subprocess
@@ -17,6 +19,26 @@ from tools.flatpak_channel import APP_ID, REF, REMOTE, prepare, run
 
 SOURCE = 'c2792c14ec86b28767cd5bc9ec8509a576e9a52d'
 BUNDLE_SHA = 'b1d0db01e1b824d6b761f3af22849f7a05fb00601d74c31ee558737962754297'
+
+
+def data_snapshot():
+    """Independent sentinel in the actual app profile; never replace existing data."""
+    profile = Path.home() / '.var/app' / APP_ID / 'data/bible'
+    profile.mkdir(parents=True, exist_ok=True)
+    directory = Path(tempfile.mkdtemp(prefix='channel-update-check-', dir=profile))
+    fixtures = {'note.txt': 'Note personnelle — Jean 1:1',
+                'preferences.json': '{"palette":"night","font_size":22}',
+                'resource.dat': 'Local resource preservation sentinel'}
+    for name, content in fixtures.items():
+        (directory / name).write_text(content)
+    return {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in directory.iterdir()}
+
+
+def verify_data(snapshot):
+    assert snapshot, 'Missing pre-update user data snapshot'
+    for name, expected in snapshot.items():
+        assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, f'User data changed: {name}'
 
 
 def check(base_url, expected, report_path, *, test_revision=None):
@@ -52,13 +74,15 @@ print('Bible GTK startup OK')'''
                     '--env=PYTHONPATH=/app/lib/bible-python','--env=GSK_RENDERER=cairo',
                     '--command=python3',APP_ID + '//alpha','-c',command], check=True)
     result = {'install_commit': installed, 'ref': REF, 'origin': REMOTE,
-              'gpg_commit': True, 'gpg_summary': True, 'gtk_startup': True}
+              'gpg_commit': True, 'gpg_summary': True, 'gtk_startup': True,
+              'user_data_snapshot': data_snapshot()}
     if test_revision:
         updated = test_revision()
         subprocess.run(['flatpak','update','--user','--noninteractive', APP_ID + '//alpha'], check=True)
         current = run('flatpak','info','--user','--show-commit',APP_ID + '//alpha')
         assert current == updated['flatpak_commit'] and current != installed
-        result.update(update_commit=current, update_success=True)
+        verify_data(result['user_data_snapshot'])
+        result.update(update_commit=current, update_success=True, user_data_preserved=True)
     report_path.write_text(json.dumps(result, indent=2) + '\n')
     return result
 
@@ -77,8 +101,28 @@ def main():
             bundle.write_bytes(response.read())
         from tools.flatpak_channel import digest
         assert digest(bundle) == BUNDLE_SHA
-        site = root / 'site'
-        site.mkdir()
+        # Real persistence boundary: Git drops empty OSTree directories.
+        from tools.channel_ci import persist, restore
+        work = root / 'work'
+        work.mkdir()
+        remote = root / 'remote.git'
+        subprocess.run(['git', 'init', '--bare', str(remote)], check=True)
+        subprocess.run(['git', 'init', '-b', 'main', str(work)], check=True)
+        subprocess.run(['git', '-C', str(work), 'remote', 'add', 'origin', str(remote)], check=True)
+        original = Path.cwd()
+        # Source archive is generated from the checked-out project, not the data repository.
+        from tools.flatpak_channel import source_archive
+        (work / 'public/alpha').mkdir(parents=True)
+        source_archive(work / 'public', SOURCE)
+        os.chdir(work)
+        os.environ['RUNNER_TEMP'] = str(root)
+        # restore() expects an absent staging directory.
+        cached_sources = root / 'sources'
+        shutil.move(str(work / 'public/alpha'), cached_sources)
+        (work / 'public').rmdir()
+        restore()
+        shutil.move(str(cached_sources), work / 'public/alpha')
+        site = work / 'public'
         server = ThreadingHTTPServer(('127.0.0.1',0),functools.partial(SimpleHTTPRequestHandler,directory=str(site)))
         thread = Thread(target=server.serve_forever,daemon=True)
         thread.start()
@@ -86,8 +130,14 @@ def main():
         try:
             first = prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-1',allow_loopback=True)
             os.environ['FLATPAK_USER_DIR'] = str(root / 'client-installation')
-            second = lambda: prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-2',allow_loopback=True)
-            result = check(base,first,Path('flatpak-channel-test.json').resolve(),test_revision=second)
+            persist()
+            def second():
+                shutil.rmtree(site)
+                restore()
+                updated = prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-2',allow_loopback=True)
+                persist()
+                return updated
+            result = check(base,first,original / 'flatpak-channel-test.json',test_revision=second)
             # A mismatching summary must be rejected by a clean client with GPG enabled.
             # Modern Flatpak reads summary.idx; older clients use summary.
             # Corrupt both and use a fresh client so cache cannot hide the test.
@@ -101,9 +151,10 @@ def main():
             assert failure.returncode != 0, 'Corrupt signed summary was accepted'
             result['corrupt_summary_rejected'] = True
             for path, data in originals.items(): path.write_bytes(data)
-            Path('flatpak-channel-test.json').write_text(json.dumps(result,indent=2) + '\n')
+            (original / 'flatpak-channel-test.json').write_text(json.dumps(result,indent=2) + '\n')
             print(json.dumps(result,indent=2))
         finally:
+            os.chdir(original)
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
