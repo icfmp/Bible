@@ -51,7 +51,7 @@ def language_info(code, interface=None):
     native=''
     try:
         own=Locale.parse(code.replace('-','_'))
-        native=own.get_display_name(own)
+        native=own.get_display_name(own) or ''
     except (UnknownLocaleError,ValueError):pass
     return name,native
 

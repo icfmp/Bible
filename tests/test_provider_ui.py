@@ -21,6 +21,40 @@ class ProviderUITests(unittest.TestCase):
         cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
 
+    def test_coptic_catalogue_load_search_and_select(self):
+        from bible.ui import Window
+        from bible.languages import language_info
+        coptic = replace(RESOURCE, name='CopticFixture', language='cop')
+        with tempfile.TemporaryDirectory() as directory:
+            window = Window(self.app, Library(Path(directory) / 'translations'))
+            window.present()
+            dialog = None
+            try:
+                language_info.cache_clear()
+                with patch('babel.Locale.get_display_name', return_value=None), patch(
+                        'bible.catalogue_window.catalogue',
+                        return_value=CatalogueResult((RESOURCE, coptic), {})):
+                    dialog = window.open_library()
+                    dialog.load_catalogue()
+                    spin(lambda: not dialog.busy)
+                    self.assertNotEqual(dialog._phase, 'error', dialog.status.get_text())
+                    self.assertEqual(len(dialog.filtered_resources), 2)
+                    self.assertTrue(dialog.catalogue_button.get_sensitive())
+                    for query in ('cop', 'copte', 'Coptic'):
+                        dialog.language.search.set_text(query)
+                        dialog.language.filter()
+                        self.assertIn('cop', dialog.language.visible_codes)
+                    dialog.language.activate(None, dialog.language.visible_codes.index('cop'))
+                    self.assertEqual(dialog.filtered_resources, [coptic])
+                    self.assertEqual(dialog.selected_resource(), coptic)
+                    self.assertTrue(dialog.download_button.get_sensitive())
+                    self.assertNotIn('None', dialog.language.display_language('cop'))
+            finally:
+                language_info.cache_clear()
+                if dialog is not None:
+                    dialog.close()
+                window.close()
+
     def test_partial_catalogue_source_filter_and_retry(self):
         from bible.ui import Window
         with tempfile.TemporaryDirectory() as directory:
