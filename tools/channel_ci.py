@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 import tempfile
-from tools.flatpak_channel import digest, run
+from tools.flatpak_channel import digest, run, restore_repository_layout
 
 REPO = 'icfmp/Bible'
 DATA_BRANCH = 'flatpak-alpha-data'
@@ -59,6 +59,9 @@ def restore():
             for path in worktree.rglob('*'):
                 assert not path.is_symlink(), 'Unexpected link in channel data'
             shutil.copytree(worktree,site,ignore=shutil.ignore_patterns('.git'),dirs_exist_ok=True)
+            repo = site / 'alpha/repo'
+            if repo.exists():
+                restore_repository_layout(repo)
         finally:
             subprocess.run(['git','worktree','remove','--force',str(worktree)],check=True)
 

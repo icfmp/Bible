@@ -1,0 +1,31 @@
+name: Vérifier la restauration du canal alpha
+on:
+  pull_request:
+    paths: ['tools/*channel*.py', 'tests/test_channel_*.py', '.github/workflows/*channel*.yml']
+  push:
+    branches: [main, fix/17-ostree-git-restore]
+    paths: ['tools/*channel*.py', 'tests/test_channel_*.py', '.github/workflows/*channel*.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Installer les outils réels
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ostree flatpak gnupg xvfb xauth dbus-x11
+      - name: Vérifier les gardes et deux publications OSTree via Git
+        run: python3 -m unittest tests.test_channel_gates tests.test_channel_storage -v
+      - name: Installation signée et flatpak update après restauration Git
+        run: python3 -m tools.check_flatpak_channel
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: channel-restore-verification
+          path: flatpak-channel-test.json
+          if-no-files-found: warn

@@ -2,29 +2,30 @@
 
 ## État réel de cette livraison
 
-**Préparé et testé sur dépôt statique local ; pas encore publié sur Pages.**
-Branche `feat/17-flatpak-alpha-channel`, à ouvrir en PR par le product manager.
-Le test installe le véritable paquet alpha.2 depuis un `.flatpakref` servi par un
-dépôt OSTree signé, lance son interface GTK, signe une seconde révision, puis
-vérifie que `flatpak update --user` installe son nouveau commit. Les vérifications
-GPG des commits et résumés restent activées ; un client neuf refuse un résumé
-altéré. Les deux révisions contrôlées ont le même code applicatif `c2792c1`, avec
-messages de commits OSTree distincts : ce test vérifie une mise à jour de paquet,
-pas une nouvelle fonction de Bible. La clé de ce test est éphémère, jamais publiée
-comme clé du canal réel.
+L’activation publique a réussi au workflow
+[39325789404](https://github.com/icfmp/Bible/actions/runs/39325789404) :
+installation publique et mise à jour entre deux révisions signées validées.
+La configuration et la clé existantes doivent être conservées. **Ne pas relancer
+la configuration initiale ci-dessous pour réparer une publication.**
 
-L’inspection GitHub a constaté :
+Installation : https://icfmp.github.io/Bible/alpha/Bible.flatpakref
 
-- `has_pages: false` ; lecture de Pages : **`gh: Not Found (HTTP 404)`**.
-- Secret `BIBLE_FLATPAK_GPG_KEY` indisponible.
-- API de configuration des secrets, depuis Actions :
-  **`gh: Resource not accessible by integration (HTTP 403)`**.
+La publication suivante
+[39325929556](https://github.com/icfmp/Bible/actions/runs/39325929556) a échoué :
+`error: Listing refs: opendir(refs/remotes): No such file or directory`.
+Git ne conserve pas les répertoires vides OSTree. La restauration recrée maintenant
+les répertoires structurels manquants sans réinitialiser le dépôt, modifier sa
+configuration, remplacer la clé ni ajouter de faux fichiers de références.
 
-Aucune ancienne page n’est écrasée, aucune clé privée n’est versionnée ni jointe
-aux artefacts. Alpha.1 et alpha.2 restent les solutions de secours publiées.
-**Aucune URL d’installation publique de ce canal n’est encore annoncée vérifiée.**
-La validation HTTPS publique entre deux révisions et l’essai GNOME du client
-restent à effectuer après activation.
+Le test `tests.test_channel_storage` publie deux vrais commits OSTree via un
+aller-retour Git et vérifie leur filiation et leur intégrité avec `ostree fsck`.
+Le contrôle Flatpak et la publication publique restaurent aussi depuis Git avant
+la seconde révision. Ils vérifient `flatpak update` et des fichiers sentinelles
+créés dans un sous-dossier distinct du profil applicatif, sans remplacer les
+données existantes. Ces sentinelles contrôlent la conservation des fichiers ;
+elles ne constituent pas une validation fonctionnelle des notes de l’utilisateur.
+La clé du contrôle local est éphémère et distincte de la clé publique stable.
+L’essai manuel sur le poste GNOME du client reste nécessaire.
 
 ## Configuration unique à effectuer par le product manager
 
