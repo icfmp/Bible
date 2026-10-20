@@ -8,6 +8,7 @@ from .i18n import tr
 from .reading_style import apply_direction
 from .resource_details import details, plain
 from .sword_provider import CommentaryReader, VersificationMismatch
+from .reference_resolution import resolve
 
 
 class StudyPanel(Gtk.Box):
@@ -76,7 +77,7 @@ class StudyPanel(Gtk.Box):
         self.scroll.set_child(self.text)
         self.append(self.scroll)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
-        hint = Gtk.Label(label=tr('Click a verse in the Bible to follow it here.'),
+        hint = Gtk.Label(label=tr('Scroll either pane to follow the passage.'),
                           wrap=True, margin_start=12, margin_end=12)
         self.append(hint)
         download = Gtk.Button(label=tr('Download a commentary'), margin_start=12,
@@ -140,8 +141,6 @@ class StudyPanel(Gtk.Box):
             apply_direction(self.text,self.reader)
             if tab.reader is None:
                 self.clear_content();self.status.set_text(tr('Open a Bible passage to read its commentary.'));return
-            if tab.reader.versification!=self.reader.versification:
-                raise VersificationMismatch(f'{tab.reader.versification} / {self.reader.versification}')
             self.follow(tab.state.reference)
             saved=tab.state.commentary_positions.get(name)
             if context!=getattr(self,'_last_restored_context',None):
@@ -165,11 +164,18 @@ class StudyPanel(Gtk.Box):
 
     def follow(self,reference):
         if not self.reader:return
+        try:
+            resolved=resolve(reference,self.owner.active_tab.reader.versification,self.reader,require_entry=False)
+        except (ValueError,VersificationMismatch) as error:
+            self.clear_content();self.status.set_text(tr('No verified alignment for this passage.')+f' {error}')
+            self.entry_controls();return
+        reference=resolved.start
         position=self.reader.index.locate(reference)
         if position is None or not self.reader.index.text(position).strip():
             self.clear_content();self._missing_near=self.reader.index.near(reference)
             self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
         self.status.set_text('');self.current_position=position
+        self.passage.set_text(self.reader.index.label(position))
         if position not in self.loaded:
             self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
             self.rebuild()

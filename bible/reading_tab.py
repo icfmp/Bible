@@ -2,7 +2,7 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Adw, Pango, Gio
+from gi.repository import Gtk, Adw, Pango, Gio, GLib
 
 from .providers import module_name
 from .i18n import tr
@@ -70,7 +70,7 @@ class ReadingTab(Gtk.Box):
                                             'win.previous-chapter', Gtk.Align.START)
         self.following = self.chapter_button('go-next-symbolic', 'Next chapter',
                                              'win.next-chapter', Gtk.Align.END)
-        self.reading_layout=Gtk.Box(spacing=16,vexpand=True)
+        self.reading_layout=Gtk.Box(spacing=16,vexpand=True,homogeneous=True)
         self.reading_layout.append(self.reading_overlay)
         self.comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False,vexpand=True,hexpand=True)
         self.comparison_heading=Gtk.Label(wrap=True,margin_top=16,margin_start=12,margin_end=12)
@@ -202,15 +202,32 @@ class ReadingTab(Gtk.Box):
             return False
 
     def adapt_comparison(self,*_):
+        geometry=(self.scroll.get_width(),self.scroll.get_height(),self.preferences.column_width)
+        changed=geometry!=getattr(self,'_reading_geometry',geometry)
+        if changed and not self._restoring_scroll and getattr(self,'_layout_anchor',None):
+            self._appearance_anchor=self._layout_anchor;self._jump_reference=None
+            self.schedule_scroll_restore()
+        self._reading_geometry=geometry
         orientation=Gtk.Orientation.HORIZONTAL if self.get_width()>=760 else Gtk.Orientation.VERTICAL
         if self.reading_layout.get_orientation()!=orientation:self.reading_layout.set_orientation(orientation)
-        for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,24)]:
+        for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,56)]:
             margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
             if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
+        if self.text.get_mapped() and not self._restoring_scroll:
+            rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
+            self._layout_anchor=self.position_anchor(iterator.get_offset())
         return True
 
     def refresh_comparison(self):
         name=self.state.comparison
+        stamp=(name,id(self.reader),self.state.reference,repr(self.preferences))
+        if stamp==getattr(self,'_comparison_stamp',None):return
+        self._comparison_stamp=stamp
+        if bool(name)!=self.comparison_box.get_visible() and self.text.get_mapped() and not self._restoring_scroll:
+            rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
+            self._appearance_anchor=self.position_anchor(iterator.get_offset())
+            self._jump_reference=None
+            self.schedule_scroll_restore()
         self.comparison_box.set_visible(bool(name))
         if not name:return
         self.comparison_text.get_buffer().set_text('')
@@ -223,12 +240,34 @@ class ReadingTab(Gtk.Box):
                 self._comparison_reader=Reader(self.library.root/name,name);self._comparison_name=name
             reader=self._comparison_reader
             apply_direction(self.comparison_text,reader)
-            if not self.reader or reader.versification!=self.reader.versification:
-                raise ValueError(tr('Different versifications. Automatic alignment is unavailable.'))
-            if not reader.has_reference(self.state.reference):raise ValueError(tr('This passage is not available in this translation.'))
-            chapter=reader.chapter(self.state.reference)
+            if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
+            from .reference_resolution import resolve
+            resolved=resolve(self.state.reference,self.reader.versification,reader)
+            chapter=reader.chapter(resolved.start)
+            self.comparison_heading.set_text(resource.description+' — '+resource.source+' · '+resolved.start+
+                                             ('–'+resolved.end if resolved.end!=resolved.start else ''))
             text='\n\n'.join((ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value for ref,value in chapter.verses)
             buffer=self.comparison_text.get_buffer();buffer.set_text(text)
+            offset=0
+            for ref,value in chapter.verses:
+                if ref==resolved.start:break
+                offset+=len((ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value)+2
+            mark=buffer.create_mark(None,buffer.get_iter_at_offset(offset),True)
+            if getattr(self,'_comparison_tick',0):self.comparison_text.remove_tick_callback(self._comparison_tick)
+            frames=[0]
+            def reveal(*_):
+                frames[0]+=1
+                if not self.get_mapped() or frames[0]<3:return frames[0]<10
+                self.comparison_text.set_bottom_margin(max(24,self.comparison_scroll.get_height()))
+                iterator=buffer.get_iter_at_mark(mark)
+                target=self.comparison_text.get_iter_location(iterator)
+                rect=self.comparison_text.get_visible_rect();adj=self.comparison_scroll.get_vadjustment()
+                adj.set_value(adj.get_value()+target.y-rect.y)
+                if frames[0]<6:return True
+                buffer.delete_mark(mark)
+                self._comparison_tick=0
+                return False
+            self._comparison_tick=self.comparison_text.add_tick_callback(reveal)
             table=buffer.get_tag_table();tag=table.lookup('appearance')
             if not tag:tag=buffer.create_tag('appearance')
             tag.props.family=self.preferences.font;tag.props.size_points=self.preferences.size
@@ -475,8 +514,9 @@ class ReadingTab(Gtk.Box):
             target = self.text.get_iter_location(iterator)
             visible = self.text.get_visible_rect()
             if not (visible.y <= target.y < visible.y + visible.height):
-                self.text.scroll_to_mark(self._target_mark, 0.0, True, 0.0, 0.0)
+                adjustment.set_value(adjustment.get_value()+target.y-visible.y)
                 return True
+            if self._scroll_frames < 6:return True
         else:
             adjustment.set_value(min(desired, maximum))
         self._tick_id = 0

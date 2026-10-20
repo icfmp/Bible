@@ -103,12 +103,15 @@ class ReadingSync:
                 section=study.reader.index.sections[position]
                 if section.introduction:
                     study.status.set_text(study.translate('Introduction has no verified verse alignment.'));return False
-                if study.reader.versification!=tab.reader.versification:return False
-                if not tab.reader.has_reference(section.start) or not tab.reader.has_reference(section.end):
-                    study.status.set_text(study.translate('This passage is not available in this translation.'));return False
+                from .reference_resolution import resolve
+                try:
+                    start=resolve(section.start,study.reader.versification,tab.reader).start
+                    end=resolve(section.end,study.reader.versification,tab.reader).end
+                except ValueError as error:
+                    study.status.set_text(study.translate('No verified alignment for this passage.')+f' {error}');return False
                 current=tab.reader.key(tab.state.reference).getIndex()
-                if not section.contains_index(current):tab.reveal_reference(section.start)
-                tab.mark_commentary_range(section.start,section.end)
+                if not tab.reader.key(start).getIndex()<=current<=tab.reader.key(end).getIndex():tab.reveal_reference(start)
+                tab.mark_commentary_range(start,end)
                 study.current_position=position;study.remember_position()
         finally:self.running=False
         return False

@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 from .book_names import canonical_input
+from .reference_resolution import VersificationMismatch, resolve
 
 
 @dataclass(frozen=True)
@@ -150,10 +151,6 @@ class Reader:
         return result
 
 
-class VersificationMismatch(ValueError):
-    """An explicit mapping is required before two verse systems can be aligned."""
-
-
 class CommentaryReader(Reader):
     @cached_property
     def index(self):
@@ -163,9 +160,13 @@ class CommentaryReader(Reader):
     drivers = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
 
     def entry(self, reference, bible_versification):
-        if bible_versification != self.versification:
-            raise VersificationMismatch(f'{bible_versification} / {self.versification}')
-        key = self.key(reference)
+        try:
+            resolved = resolve(reference, bible_versification, self, require_entry=False)
+        except VersificationMismatch:
+            raise
+        except ValueError:
+            return None
+        key = self.key(resolved.start)
         # Do not use SWORD's nearest previous entry when this exact index is empty.
         if not self.module.hasEntry(key):
             return None

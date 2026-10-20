@@ -533,7 +533,7 @@ class WindowTests(unittest.TestCase):
             commentary_fixture(directory, 'CatholicNotes', versification='Catholic')
             self.choose_commentary(window, 'CatholicNotes')
             self.assertEqual(self.study_text(window), '')
-            self.assertIn(tr('Different versifications. Automatic alignment is unavailable.'),
+            self.assertIn(tr('No verified alignment for this passage.'),
                           window.study.status.get_text())
             self.assertIn('KJV / Catholic', window.study.status.get_text())
             dialog = window.open_library('commentary')

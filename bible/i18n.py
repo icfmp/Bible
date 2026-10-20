@@ -3,6 +3,8 @@ import locale
 import os
 
 FR = {
+    'Scroll either pane to follow the passage.': 'Faites défiler un panneau pour suivre le passage.',
+    'No verified alignment for this passage.': 'Aucun alignement vérifié pour ce passage.',
     'Translations': 'Traductions', 'Load catalogue': 'Charger le catalogue',
     'Download': 'Télécharger', 'Open': 'Ouvrir', 'Previous chapter': 'Chapitre précédent',
     'Next chapter': 'Chapitre suivant', 'No translation installed. Load the catalogue to choose one.':
