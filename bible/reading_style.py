@@ -100,6 +100,8 @@ class ReadingStyle:
         selector = 'textview.' + self.scope
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
+.passage-actions {{ border-radius: 12px; padding: 3px; }}
+.passage-actions button {{ min-width: 26px; min-height: 26px; padding: 2px; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}

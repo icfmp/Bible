@@ -370,6 +370,7 @@ class StudyPanel(Gtk.Box):
         self.passage.set_text(self.reader.index.label(position))
         self.status.set_text(tr('Commentary resumed. The Bible passage is unchanged.'))
         self.entry_controls()
+        self.update_indicator()
 
     def selection_changed(self, *_):
         if self._syncing or self.owner.active_tab is None:

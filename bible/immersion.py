@@ -36,6 +36,8 @@ class Immersion(Gtk.Overlay):
             view.add_css_class(owner.reading_style.scope)
             owner.reading_style.views.add(view)
             view._reading_palette=owner.reading_style.palette
+            if self.kind=='bible':
+                owner.passage_actions.bind(view,lambda v=view:owner.passage_actions.immersive(self,v))
             gesture=Gtk.GestureClick(button=1)
             gesture.connect('released',lambda g,n,x,y,v=view:self.clicked(v,x,y));view.add_controller(gesture)
             view.get_buffer().connect('mark-set',lambda *_,v=view:self.selection_changed(v))
@@ -265,6 +267,7 @@ class Immersion(Gtk.Overlay):
                 buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
 
     def turn(self,direction):
+        self.owner.passage_actions.dismiss()
         if self.stream.cursor and self.stream.turn(direction,self.count):
             self.selection=None;self.render();return True
         return False
@@ -307,7 +310,7 @@ class Immersion(Gtk.Overlay):
     def copy_selection(self,view):
         if not self.selection or not getattr(self,'_restored_selection',False):return
         key,start,end=self.selection;doc=self.stream.plan(key).document
-        value=doc.text[doc.locate(start):doc.locate(end)]
+        value=doc.copy(doc.locate(start),doc.locate(end))
         view.get_clipboard().set(value)
         from gi.repository import GObject
         GObject.signal_stop_emission_by_name(view,'copy-clipboard')
@@ -315,6 +318,8 @@ class Immersion(Gtk.Overlay):
     def any_selection(self):return any(view.get_buffer().get_has_selection() for view in self.views)
 
     def key_pressed(self,controller,key,code,state):
+        if state&Gdk.ModifierType.SHIFT_MASK and key in (Gdk.KEY_Left,Gdk.KEY_Right,Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down):
+            return False
         if key==Gdk.KEY_Escape:
             for popover in self.open_popovers():
                 if popover and popover.get_visible():popover.popdown();return True
@@ -364,6 +369,7 @@ class Immersion(Gtk.Overlay):
         return result
 
     def controls_focused(self):
+        if self.owner.passage_actions.contains(self.owner.get_focus()):return True
         focus=self.owner.get_focus()
         if not focus:return False
         return (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons))

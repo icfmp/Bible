@@ -86,7 +86,9 @@ class ReadingTab(Gtk.Box):
                                           left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
         self.comparison_scroll.set_child(self.comparison_text)
-        self.comparison_box.append(self.comparison_scroll)
+        self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
+        self.comparison_overlay.set_child(self.comparison_scroll)
+        self.comparison_box.append(self.comparison_overlay)
         self.reading_layout.append(self.comparison_box)
         self.append(self.reading_layout)
         self._comparison_reader=None

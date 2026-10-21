@@ -226,6 +226,8 @@ class Window(Adw.ApplicationWindow):
         if not session.tabs:
             names = self.library.installed('bible')
             session.tabs = [TabState(resource=names[0] if names else None)]
+        from .passage_actions import PassageActions
+        self.passage_actions=PassageActions(self)
         for state in session.tabs:
             self.append_tab(state)
         self.view.set_selected_page(self.view.get_nth_page(session.selected))
@@ -263,6 +265,7 @@ class Window(Adw.ApplicationWindow):
         else:self.enter_immersion('bible')
 
     def enter_immersion(self,kind='bible'):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         if self.immersion:self.leave_immersion()
         tab=self.active_tab
         if not tab or not tab.reader:return False
@@ -302,6 +305,7 @@ class Window(Adw.ApplicationWindow):
         self.fullscreen();return True
 
     def leave_immersion(self):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         immersion=self.immersion
         if not immersion:return
         anchor,key=immersion.finish();tab=immersion.tab;self.immersion=None
@@ -360,6 +364,8 @@ class Window(Adw.ApplicationWindow):
         self.reading_style.decorate(tab.comparison_text)
         from .comparison_sync import ComparisonSync
         tab.comparison_sync = ComparisonSync(self, tab)
+        self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
+        self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -378,6 +384,7 @@ class Window(Adw.ApplicationWindow):
         return page.get_child()
 
     def navigate_selection(self, resource, reference, new_tab=False):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         try:
             if new_tab:
                 from .sword_provider import Reader
@@ -601,20 +608,24 @@ class Window(Adw.ApplicationWindow):
                        origin_language=self.library.resource(tab.state.resource).language)
         return self.edit_note(context=context)
 
-    def open_passage_notes(self, passage=None):
+    def open_passage_notes(self, passage=None, *, resource=None, reader=None):
         tab = self.active_tab
-        if not self.notes_store or not tab or not tab.reader:
+        reader=reader or (tab.reader if tab else None)
+        resource=resource or (tab.state.resource if tab else None)
+        if not self.notes_store or not tab or not reader:
             return
         start, end = passage or tab.selected_passage()
-        notes = self.notes_store.passage(tab.reader.versification, start, end)
+        notes = self.notes_store.passage(reader.versification, start, end)
         if len(notes) == 1:
             return self.edit_note(note=notes[0])
         if not notes:
-            return self.new_note(force_new=True)
+            context=dict(versification=reader.versification,start=start,end=end,
+                         origin_translation=resource,origin_language=self.library.resource(resource).language)
+            return self.edit_note(context=context)
         window = self.open_notes()
         window.search.set_text('')
         window.labels.set_values([])
-        window.passage_filter = (tab.reader.versification, start, end)
+        window.passage_filter = (reader.versification, start, end)
         window.refresh()
         return window
 
