@@ -1,7 +1,7 @@
-# Alpha landing page — product review required
+# Alpha landing page — approved presentation
 
-This is a proposal for issue #37. **Do not merge or publish before product-manager
-review.** No Pages configuration, public signing key, channel URL or repository
+The product manager approved the desktop/mobile/dark presentation on PR #41.
+The client authorized merge/publication after current-alpha/channel checks. No Pages configuration, public signing key, channel URL or repository
 history has been changed.
 
 The English page uses local assets, system fonts, responsive layout, native
@@ -15,11 +15,12 @@ notices, public key and fallback bundles remain accessible in disclosure content
 assets on every generation. Provenance is escaped and follows the package being
 published. Historical archives and OSTree objects are not removed. The real
 application screenshot is deliberately identified separately: public source
-`4a285f327b84008b398d3bf6841737534da831f0`, alpha revision `39558047623-2`,
-Flatpak commit `46b9ed2d2077d6163470fc37450dc33eb86bc6e59e838566fbc0f3e2dba0f5a3`.
-It was captured from the installed signed public alpha, with a disposable profile,
-English UI and real offline FreSegond1910 John 3. No proposed features are shown.
-The screenshot must be reviewed/replaced when the published interface changes.
+`8d3a1834333a55e35cf61be248352f7e34ee40b7`, alpha revision `39644596592-2`,
+Flatpak commit `118c2b72752f0bce34f29c3556b357a663d849e0097ef3b0d8e76b87b602f79a`.
+It was captured from /app code in the installed signed public alpha with a
+private test profile, English UI, actual FreSegond1910 John 3:16 and MHC 2.2
+in the right drawer. Capture resolution is 1400×900 with no generated imagery.
+Current main (including the validated #51 crash and #36 surfaces fixes) is merged.
 
 Review captures:
 
