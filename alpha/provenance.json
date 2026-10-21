@@ -1,12 +1,12 @@
 {
-  "source_commit": "f8395bc145494695e89ca49262618d9f2dac23aa",
-  "ci_run": "39607925555",
-  "packaging_revision": "39609190124-2",
-  "flatpak_commit": "8182188f2611f926ac5736ba2cec37ed4ec70aa6a09077afd7aa0692ce5256ee",
+  "source_commit": "08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf",
+  "ci_run": "39631126308",
+  "packaging_revision": "39632604890-1",
+  "flatpak_commit": "c52b0a9a28a9ddeec12e32fc4bb5acc05357eb694e94c2784b24c46b1816a82e",
   "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
   "remote": "bible-alpha",
   "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
-  "source_archive": "Bible-f8395bc145494695e89ca49262618d9f2dac23aa-sources.tar.gz",
-  "source_sha256": "04257f0175fc8f1a54654d7ffd1d154b55aec57453e95fdf63aa45221e91d7f6",
-  "bundle_sha256": "884329de11c7832bb90b609c20683c4c94e7752aff3b07fed1a6a6a407776a64"
+  "source_archive": "Bible-08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf-sources.tar.gz",
+  "source_sha256": "bad3bb811f9dd757068e4413eff9ce3c70ce6337a6ce4cde23e3b5598d77c783",
+  "bundle_sha256": "40ecd920fe1700ce452cd70817c0b359e9d19132e9316d8f2f9b0d5ff406d975"
 }
