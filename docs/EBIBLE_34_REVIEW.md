@@ -67,3 +67,36 @@ partial failures, cache retention and GTK installed-state checks. JND package
 Catalogue and reader screenshots are in `docs/captures/ebible-34-*-fr.png`.
 These are candidate-source Xvfb checks; a packaged candidate and manual GNOME
 validation are separate, still outstanding checks.
+
+
+## Final source review and integration
+
+The client authorized completing the source review and integration. Current main,
+including #51/#36 corrections and the approved website, is merged. The current
+official AndBible repository file (blob `54e501d47f071e4f0991b3da8b6522bf3ec82dc7`)
+still names HTTPS ebible.org /sword and /sword/zip. Only this stable source is
+added; identity/collision, language, cache and archive/conditions guards are kept.
+No beta, restricted source or Bible.com access is introduced.
+
+The five current catalogue/package pairs were inspected through the normal
+bounded HTTPS downloader. [Exact audit](evidence/ebible-34-current-audit.json):
+
+| Resource | Catalogue/package version | Current guarded metadata |
+| --- | --- | --- |
+| F10 | 90.0 / 99.0 | About differs: installation refused |
+| FOB | 61.0 / 71.0 | About differs: installation refused |
+| FRANCL | 498.0 / 1234.0 | About and conditions differ: installation refused |
+| JND | 2.7 / 2.17 | Guarded terms/type match: installs as actual version 2.17 |
+| SBL | 112.0 / 170.0 | About differs: installation refused |
+
+The four refused installations return the unchanged `Resource conditions changed`
+guard. JND's stale catalogue version is disclosed too; the installer already
+compares actual source/type/versification and complete guarded legal fields,
+not a separate version equality rule. No guard was weakened for any resource.
+This audit covers those five requested examples, not every eBible module.
+
+147 integrated local tests pass. A fresh real JND download/install and a separate
+offline GTK reopen pass; John 3:16 still matches direct SWORD output and the
+previous SHA-256. Updated French catalogue/reader captures are real GTK/Xvfb.
+The source-policy review is complete for this addition. Public availability and
+manual GNOME acceptance are recorded separately after final publication.

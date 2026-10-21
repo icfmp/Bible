@@ -1,0 +1,45 @@
+[
+  {
+    "id": "ebible~fraLSG1910eb",
+    "catalogue_version": "90.0",
+    "package_version": "99.0",
+    "different_guard_fields": [
+      "about"
+    ],
+    "rejected": "Resource conditions changed. Reload the catalogue before downloading."
+  },
+  {
+    "id": "ebible~fraFOB1744eb",
+    "catalogue_version": "61.0",
+    "package_version": "71.0",
+    "different_guard_fields": [
+      "about"
+    ],
+    "rejected": "Resource conditions changed. Reload the catalogue before downloading."
+  },
+  {
+    "id": "ebible~francl2022eb",
+    "catalogue_version": "498.0",
+    "package_version": "1234.0",
+    "different_guard_fields": [
+      "conditions",
+      "about"
+    ],
+    "rejected": "Resource conditions changed. Reload the catalogue before downloading."
+  },
+  {
+    "id": "ebible~frajnd2024eb",
+    "catalogue_version": "2.7",
+    "package_version": "2.17",
+    "different_guard_fields": []
+  },
+  {
+    "id": "ebible~frasbl2022eb",
+    "catalogue_version": "112.0",
+    "package_version": "170.0",
+    "different_guard_fields": [
+      "about"
+    ],
+    "rejected": "Resource conditions changed. Reload the catalogue before downloading."
+  }
+]
