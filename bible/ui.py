@@ -99,6 +99,8 @@ class Window(Adw.ApplicationWindow):
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
         self.comparison_popover.set_child(self.comparison_choices)
         self.comparison_button.set_popover(self.comparison_popover)
+        from .popover_dismissal import install
+        self._popover_dismissal = install(self, [self.navigation, self.appearance, self.comparison_popover])
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
@@ -451,6 +453,8 @@ class Window(Adw.ApplicationWindow):
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
         self.active_tab.refresh_comparison()
         self.schedule_save()
+        # Finish the nested GtkDropDown activation before dismissing its parent.
+        GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):
         if self.immersion:self.leave_immersion()
