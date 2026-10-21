@@ -3,6 +3,15 @@ import locale
 import os
 
 FR = {
+    'Highlight actions': 'Actions de surlignage',
+    'Highlights unavailable. The original file is preserved.': 'Surlignages indisponibles. Le fichier d’origine est conservé.',
+    'Highlights': 'Surlignages', 'Highlight': 'Surligner', 'Remove highlight': 'Retirer le surlignage',
+    'Show highlights': 'Afficher les surlignages', 'Yellow': 'Jaune', 'Green': 'Vert', 'Blue': 'Bleu',
+    'Back up highlights': 'Sauvegarder les surlignages', 'Restore highlights': 'Restaurer les surlignages',
+    'Search highlighted passages': 'Chercher les passages surlignés', 'No highlights yet.': 'Aucun surlignage pour le moment.',
+    'Restore highlights?': 'Restaurer les surlignages ?',
+    'Merge the backup with existing highlights. Notes and translations are unchanged.': 'Fusionner la sauvegarde avec les surlignages existants. Les notes et traductions sont conservées.',
+    'No installed translation can open this highlight. The highlight is retained.': 'Aucune traduction installée ne permet d’ouvrir ce surlignage. Il est conservé.',
     'Very airy': 'Très aéré',
     'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
     'Saved results retained.': 'Les résultats enregistrés sont conservés.',

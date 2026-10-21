@@ -94,6 +94,9 @@ class ReadingTab(Gtk.Box):
         context.append(tr('Copy verses without numbers'),'win.copy-passage')
         context.append(tr('Copy verses with reference'),'win.copy-with-reference')
         context.append(tr('Copy reference'),'win.copy-reference')
+        for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]:
+            context.append(tr('Highlight')+': '+tr(label),'win.highlight-'+color)
+        context.append(tr('Remove highlight'),'win.highlight-remove')
         self.text.set_extra_menu(context)
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
@@ -232,6 +235,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_box.set_visible(bool(name))
         if not name:return
         self.comparison_text.get_buffer().set_text('')
+        self._comparison_ranges={}
         self.comparison_status.set_text('')
         try:
             if name not in self.library.installed('bible'):raise ValueError(tr('Comparison translation unavailable.'))
@@ -247,7 +251,11 @@ class ReadingTab(Gtk.Box):
             chapter=reader.chapter(resolved.start)
             self.comparison_heading.set_text(resource.description+' — '+resource.source+' · '+resolved.start+
                                              ('–'+resolved.end if resolved.end!=resolved.start else ''))
-            text='\n\n'.join((ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value for ref,value in chapter.verses)
+            pieces=[];self._comparison_ranges={};position=0
+            for ref,value in chapter.verses:
+                line=(ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value
+                pieces.append(line);self._comparison_ranges[ref]=(position,position+len(line));position+=len(line)+2
+            text='\n\n'.join(pieces)
             buffer=self.comparison_text.get_buffer();buffer.set_text(text)
             offset=0
             for ref,value in chapter.verses:
@@ -273,6 +281,7 @@ class ReadingTab(Gtk.Box):
             if not tag:tag=buffer.create_tag('appearance')
             tag.props.family=self.preferences.font;tag.props.size_points=self.preferences.size
             buffer.apply_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
+            self.update_highlights()
         except Exception as error:self.comparison_status.set_text(str(error))
 
     def render_chapter(self, chapter):
@@ -323,6 +332,19 @@ class ReadingTab(Gtk.Box):
         buffer.apply_tag(self._body_tag,buffer.get_start_iter(),buffer.get_end_iter())
         for start,end,tag in spans:
             buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
+        self.update_highlights()
+
+    def update_highlights(self,high=None,palette=None):
+        store=getattr(self,'_highlight_store',None)
+        if store is None or not self.reader:return
+        if high is not None:self._highlight_high=high
+        if palette is not None:self._highlight_palette=palette
+        from .highlight_ui import paint
+        options=(self.preferences.show_highlights,getattr(self,'_highlight_high',False),getattr(self,'_highlight_palette','white'))
+        paint(self.text,store,self.reader.versification,[(ref,*bounds) for ref,bounds in self._verse_ranges.items()],*options)
+        if self._comparison_reader and self.state.comparison:
+            paint(self.comparison_text,store,self._comparison_reader.versification,
+                  [(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()],*options)
 
     def position_anchor(self, offset):
         candidates = [(ref,start,end) for ref,(start,end) in self._verse_ranges.items()

@@ -42,6 +42,9 @@ class Immersion(Gtk.Overlay):
                 menu.append(tr('Copy verses without numbers'),'win.copy-passage')
                 menu.append(tr('Copy verses with reference'),'win.copy-with-reference')
                 menu.append(tr('Copy reference'),'win.copy-reference');view.set_extra_menu(menu)
+                for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]:
+                    menu.append(tr('Highlight')+': '+tr(label),'win.highlight-'+color)
+                menu.append(tr('Remove highlight'),'win.highlight-remove')
             frame=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.EXTERNAL,vscrollbar_policy=Gtk.PolicyType.EXTERNAL,
                                      min_content_height=0,propagate_natural_height=False,hexpand=True,vexpand=True)
             frame.set_child(view);self.pages.append(frame);self.frames.append(frame);self.views.append(view)
@@ -206,6 +209,14 @@ class Immersion(Gtk.Overlay):
                     first,last=max(page.start,style.start),min(page.end,style.end)
                     if style.kind==kind and last>first:
                         buffer.apply_tag(tag,buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
+        if self.kind=='bible' and hasattr(self.owner,'highlights'):
+            from .highlight_ui import paint
+            for view,address in zip(self.views,self.addresses):
+                plan=self.stream.plan(address.key);page=plan.pages[address.index]
+                ranges=[(span.reference,max(page.start,span.body)-page.start,min(page.end,span.end)-page.start)
+                        for span in plan.document.spans if span.end>page.start and span.body<page.end]
+                paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
+                      self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
         self.restore_selection()
         self._updating=False
         anchor=self.stream.anchor();caption=self.source.resource.name
