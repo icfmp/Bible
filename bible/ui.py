@@ -359,7 +359,11 @@ class Window(Adw.ApplicationWindow):
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
         self.reading_style.decorate(tab.text)
-        tab.reading_overlay.add_css_class(self.reading_style.scope+'-surface')
+        # The viewport, headers, gutters and empty comparison space belong to
+        # the same reading palette as the text, not the native window surface.
+        for surface in (tab.reading_layout,tab.reading_overlay,tab.scroll,
+                        tab.comparison_box,tab.comparison_overlay,tab.comparison_scroll):
+            surface.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
         from .comparison_sync import ComparisonSync
         tab.comparison_sync = ComparisonSync(self, tab)
