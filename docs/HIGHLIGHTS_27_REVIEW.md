@@ -54,3 +54,19 @@ screen readers and the client's manual high-contrast checks remain separate.
 This feature is not in the published alpha until review, merge and verified
 publication. It is compatible with the book-document span model in PR #39;
 the combined branches still require an integration check after review.
+
+## Coordination with the corrective alpha (21 October)
+
+Main through `d48c760` is merged into this review branch without merging the PR
+into main. The shared ordinary/comparison renderer retains each pane's exact
+reference ranges and reapplies personal highlights after a genuine document
+rebuild. The independent comparison coordinator and the client's validated study
+coordinator remain separate. The new typography/defaults and original-character
+native Copy are retained. No highlight schema or backup migration was added.
+
+143 local tests pass. The real offline highlight helper also verifies three
+FreSegond verses, unchanged source words, hide/show without deletion and
+backup/merge restoration. This is not yet a published feature. #45's temporary
+commentary indicator must never be stored here or controlled by Show highlights;
+#46 must snapshot its source/range and use this store only after required review.
+Those subsequent UI changes are not claimed by this coordination commit.
