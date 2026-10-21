@@ -134,7 +134,7 @@ proceed independently; no PR was merged merely to unblock another batch.
 | #34 | [#38](https://github.com/icfmp/Bible/pull/38), `20d7328` | 133 local tests; CI 39555537014 green; real eBible JND installation, offline reading and constructed Flatpak checked | Source-policy review; F10 upstream catalogue/package metadata mismatch remains rejected |
 | #24/#25 | [#39](https://github.com/icfmp/Bible/pull/39), `db0e6a6` | 137 local tests; CI 39559694478 green; constructed Flatpak offline Genesis: 180 exact pages, 42 chapter continuations, 1.397 s preparation/stabilization with 63 GTK ticks; Very airy anchor retained | Architecture review, manual page/book boundaries and GNOME responsiveness |
 | #27 | [#40](https://github.com/icfmp/Bible/pull/40), `38cf200` | 139 local tests; CI 39561285495 green; constructed Flatpak three real verse highlights, unchanged text, hide/show, backup/merge and list checked | Persistence/UI review; native file portals, high contrast and accessibility |
-| #37 | [#41](https://github.com/icfmp/Bible/pull/41), `933516c` | 135 local tests; desktop/mobile/dark browser checks; controlled real signed install/update, data preservation and corrupt-summary rejection | **Product-manager review before merge or publication**; branch CI 39563016832 pending at this checkpoint; restoration CI 39563046980 green |
+| #37 | [#41](https://github.com/icfmp/Bible/pull/41), `933516c` | 135 local tests; desktop/mobile/dark browser checks; controlled real signed install/update, data preservation and corrupt-summary rejection | **Product-manager review before merge or publication**; branch CI 39563016832 and restoration CI 39563046980 green |
 
 Details and screenshots are in each PR's review document. #37 uses the actual
 published `4a285f3` application screenshot, not the proposed pagination or
@@ -172,9 +172,8 @@ were changed. Keep #28 open, retain manual Do Not Disturb guidance.
   `/tmp/bible-night-alpha3-proof.json`. They are disposable; authoritative code,
   review notes and captures are committed/pushed. Never use these test-profile
   helpers against the client's personal profile.
-- If this session is interrupted, first check PR41 CI 39563016832 and update
-  this checkpoint; do not publish its page before PM review. Then process reviews
-  and the outstanding #31 product decision. Manual validation remains open.
+- If this session is interrupted, PR41 CI 39563016832 is green. Do not publish its page before PM review.
+  Process reviews and the outstanding #31 product decision. Manual validation remains open.
 
 ## Ordered client checks on the published alpha
 
