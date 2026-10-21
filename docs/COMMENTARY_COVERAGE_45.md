@@ -30,8 +30,10 @@ Actual GTK captures: [light](captures/context-45-light.png),
 [emulated high contrast](captures/context-45-high-contrast-emulated.png),
 [pagination](captures/context-45-immersion.png).
 
-Personal-highlight overlap must also be checked on the separately reviewed PR40
-candidate; it is not a feature of the current public alpha. In high contrast a
+Personal-highlight overlap was also checked on the separately reviewed PR40
+candidate `3496f1a`: 148 tests and real native overlap/hide-show/immersion pass.
+Evidence: `captures/context-45-personal-overlap-review.png` on that branch.
+Personal highlights are not a feature of current main or the public alpha. In high contrast a
 personal highlight's double underline and this dotted cue can coexist; neither
 changes the other's state. Manual GNOME/Wayland, live desktop high contrast and
 assistive-technology acceptance remain distinct from these Xvfb checks.

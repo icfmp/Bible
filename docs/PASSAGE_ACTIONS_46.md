@@ -49,6 +49,13 @@ Actual GTK captures: [single verse](captures/actions-46-single.png),
 [comparison source](captures/actions-46-comparison.png),
 [pagination](captures/actions-46-immersion.png).
 
+The final constructed Flatpak also passes the complete real offline native
+selection/action probe with asserted `/app` imports and no source-code overlay;
+the comparison wheel/reflow probe passes there too. On PR40 `3496f1a`, 148 tests
+and the native Highlight action verify original Calvin/Lausanne identity. On
+PR39 `c981f95`, 146 tests and the native action probe verify continuous-book
+compatibility. Both review branches are pushed, not merged or published.
+
 Final public availability requires green CI/publication and an actual update of
 the existing signed alpha. Keep #46 open for the PR40 Highlight dependency and
 manual client acceptance; #26 stays excluded and #28 remains manual guidance.
