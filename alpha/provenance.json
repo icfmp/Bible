@@ -1,8 +1,8 @@
 {
   "source_commit": "6560dc4a765a9c8a26388c7df1e9de4679e0c376",
   "ci_run": "39673122687",
-  "packaging_revision": "39674239853-1",
-  "flatpak_commit": "4007b79e539829267d3941aafa4c60807a4502d14d848a89be5c2c942294188c",
+  "packaging_revision": "39674239853-2",
+  "flatpak_commit": "f36e063db7004fc6a20aa8051234e2f488f8a09c5b6ce3e399d779c1e595452a",
   "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
   "remote": "bible-alpha",
   "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
