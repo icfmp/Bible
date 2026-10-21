@@ -104,7 +104,10 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None):
         elif span.kind=='number':
             from .verse_typography import NUMBER_SCALE, number_rise
             attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(number_rise(context,preferences) if context and preferences else 0)]
-        elif span.kind=='verse-start':attrs=[Pango.attr_allow_breaks_new(False)]
+        # Nonbreaking presentation spaces already bind marker and first word.
+        # Thousands of ALLOW_BREAKS ranges make whole-book Pango shaping
+        # disproportionately slow; retain these spans for partition boundaries.
+        elif span.kind=='verse-start':continue
         else:continue
         for attr in attrs:
             attr.start_index=len(document.text[start:left].encode())

@@ -28,6 +28,10 @@ def main():
             assert len(ticks)>2,'GTK main loop did not run during preparation'
             plan=reading.stream.plan('Gen');document=plan.document
             assert ''.join(document.text[p.start:p.end] for p in plan.pages)==document.text
+            for style in document.styles:
+                if style.kind=='number':assert document.copy(style.end-1,style.end)==' '
+                if style.kind=='verse-start':
+                    assert not any(style.start<page.end<style.end for page in plan.pages)
             chapter_titles=[s for s in document.styles if s.kind=='chapter'][1:]
             joins=[(style,plan.containing(style.start)) for style in chapter_titles
                    if plan.pages[plan.containing(style.start)].start<style.start

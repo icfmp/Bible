@@ -47,3 +47,29 @@ The worker/page-plan change is isolated for architectural review under
 AGENTS.md. Candidate Flatpak CI and manual GNOME/Wayland/accessibility testing
 remain separate checks. Do not advertise this candidate as available through
 the public signed channel until review, merge and publication are verified.
+
+## Coordination with the corrective alpha (21 October)
+
+Merged main through `d48c760` into this review branch, without merging this PR
+into main. The 14 pt / Very airy / Narrow defaults, font-relative gray numbers,
+nonbreaking first-word presentation and original-character native Copy now work
+through whole-book documents as well. Book composition explicitly concatenates
+copy text alongside display text so presentation spaces cannot leak into Copy.
+
+Whole-book Pango shaping exposed a significant slowdown from thousands of
+ALLOW_BREAKS attribute ranges. Nonbreaking presentation spaces already enforce
+the grouping, so the redundant Pango attributes are omitted; span metadata still
+prevents anchor/page partitions from splitting a marker/first word.
+
+141 full local tests passed; after the final shaping correction, 12 affected
+pagination/immersion/typography tests passed. The real offline Genesis check has
+211 pages and 42 chapter continuations with the new default; preparation stabilized
+in 1.377 s while GTK processed 77 heartbeat ticks (largest gap 0.325 s). Display
+page slices reconstruct the complete document, generated marker gaps copy as
+ordinary spaces, marker/word groups do not split at page boundaries and reflow
+retains the canonical anchor. These metrics supersede the old Airy measurements
+for this coordinated candidate. [Actual GTK capture](captures/continuous-book-24-corrective.png).
+
+Architecture review and manual GNOME/Wayland/accessibility acceptance remain
+required. A new branch CI/Flatpak candidate must be verified; nothing in this PR
+is announced as published.
