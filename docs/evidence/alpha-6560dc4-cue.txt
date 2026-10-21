@@ -1,0 +1,8 @@
+dbus-daemon[34814]: [session uid=0 pid=34814] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=0 pid=34830 comm="flatpak run --system --filesystem=/src:ro --filesy" label="kernel")
+dbus-daemon[34814]: [session uid=0 pid=34814] Successfully activated service 'org.freedesktop.Flatpak'
+PACKAGED IMPORT: /app/lib/bible-python/bible/__init__.py actual Xvfb screenshots delegated to parent Pillow
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+
+(process:2): Gtk-WARNING **: 20:58:52.626: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+PASS: actual MHC Genesis 1:1–2 coverage in both Bibles, mapped Psalm case, hide/reopen, unchanged text, emulated high contrast and paginated coverage; personal overlap only when executing the PR40 candidate

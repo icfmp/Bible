@@ -33,3 +33,14 @@ emulated high contrast, study open/closed, resize, unavailable/restored content,
 selection, equal widths and anchor retention. This source-overlay diagnostic
 is not presented as a final installed-package check. All 159 full local tests pass. A new CI/publication/package verification follows
 before availability is reported.
+
+## Final installed-package confirmation
+
+Source **6560dc4**, main CI **39673122687** and publication **39674239853** are
+green. Revision **39674239853-2** is actually available and installed through the
+existing signed channel. The exact previously failing /app pixel matrix passes
+all 16 states; 28 affected packaged unit tests plus one isolated native click test
+pass. Real highlights/backup, selection actions, continuous books, MHC true end,
+both synchronization directions and notes/session reopen pass. Final public
+provenance, bundle digest, actual profile preservation, GTK captures and limits
+are recorded in [the delivery report](PENDING_DELIVERIES_2026_10_21.md).

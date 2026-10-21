@@ -1,32 +1,39 @@
 # Alpha stabilization handoff — 21 October 2026
 
-## Pending-deliveries integration — current state supersedes older sections
+## Completed pending deliveries — current verified state
 
-PRs #41, #38, #40 and #39 were technically reviewed and merged sequentially,
-with the client's explicit authorization. Main source `1e7613d` passed CI
-39668011046 and signed publication 39669216171. Revision 39669216171-2 is
-actually public and installed in the disposable test client; its bundle digest,
-public links, installation/update and unchanged signing fingerprint were checked.
+This section supersedes all older pending-review/publication/issue-state entries
+below. PRs **#41 → #38 → #40 → #39** were technically reviewed and merged in that
+order under the client's authorization. Final application source **6560dc4** is
+actually available through the existing signed alpha, revision **39674239853-2**,
+Flatpak commit `f36e063db7004fc6a20aa8051234e2f488f8a09c5b6ce3e399d779c1e595452a`. Main CI **39673122687** and publication
+**39674239853** are green; downloaded CI bundle, public provenance and updated
+system alpha client match. Signing fingerprint/channel/URLs/configuration are
+unchanged. Actual profile notes/session/preferences/highlights/backup hashes
+survived the update unchanged.
 
-**Delivery is held:** a final actual /app palette probe then exposed a repeatable
-GTK 4.20.4 abort from redundant personal-highlight painting during primary-view
-validation, despite the real MHC boundary/end/synchronization/session probe passing.
-The focused integration fix and original native traces are documented in
-[HIGHLIGHT_LAYOUT_INTEGRATION.md](HIGHLIGHT_LAYOUT_INTEGRATION.md). It preserves
-synchronization and persistent highlights; a stale immersive source constructor
-is also corrected. All 159 local tests and 16 candidate-runtime palette states
-pass. Next: wait for this fix's green main CI/publication, update the existing
-alpha client, then repeat affected actual /app checks before announcing a version.
+The temporary delivery hold after `1e7613d` is resolved: a native GTK layout abort
+from redundant highlight repaint was diagnosed and fixed, without disabling
+synchronization or persistent marks. Final installed /app checks pass: 28 affected
+unit tests + one isolated native pointer case, 16 palette pixel states, real book
+pagination, eBible offline fidelity, persistent marks/backup, contextual actions,
+MHC true end/both synchronization directions/notes/session and temporary-cue
+coexistence. All 159 full tests and 70 French UI CI tests pass. These automated
+Xvfb results do not replace client GNOME/Wayland/accessibility acceptance.
 
-The approved page is public at https://icfmp.github.io/Bible/; desktop/mobile/dark,
-keyboard navigation and all public installation/update/source/key links pass.
-Reviewed eBible JND 2.17 installs and reads offline. F10/FOB/FRANCL/SBL currently
-fail the unchanged conditions guard because upstream catalogue/package attribution
-or conditions differ. Personal highlights are persistent and distinct from the
-commentary cue; the former public 8d3a183 lacked the personal-highlight module.
-#24/#27/#34 remain open for client GNOME acceptance; #37 closes only after the
-final package/page delivery evidence is recorded. The client validated and closed
-#51/#36. #26 stays excluded; new OpenBible features and general review wait.
+Page is public and verified: https://icfmp.github.io/Bible/ . Its approved layout,
+real signed-alpha hero, current package provenance, installation/update/key/source
+links and actual HTTPS signed install/update all pass. #37 deployment criteria are
+satisfied. #34/#27/#24 remain open for client GNOME acceptance; the client already
+validated and closed #51/#36. eBible JND 2.17 installs and reads offline; upstream
+F10/FOB/FRANCL/SBL metadata conflicts remain refused by the unchanged guard.
+Personal persistent marks are now published, independently from the commentary cue.
+
+Detailed final source/revision/proof/remaining tests:
+[PENDING_DELIVERIES_2026_10_21.md](PENDING_DELIVERIES_2026_10_21.md).
+No pending PRs remain. #26 is excluded, #28 retains its manual fallback, new
+OpenBible features and the general code review remain deferred. This final
+handoff is documentation only; the published application source above is exact.
 
 ## Product-manager cleanup — current tracking decision
 

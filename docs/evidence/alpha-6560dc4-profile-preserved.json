@@ -1,0 +1,11 @@
+{
+  "actual_disposable_profile": true,
+  "files_sha256": {
+    "session.json": "aa02c42f77c7883c0bd856ac481127fb5b176ae005539497fe8fc9d6505c444b",
+    "reading-preferences.json": "baba18431703332b065824bc4b0154e8acd088b3ca0a0f7ff6d779112475604c",
+    "highlights.json": "a1a2ae84e46d253e9305c9a224c1f2b61a9f3ddf770371627e4708d6c6772e41",
+    "highlights-validation-backup.json": "a1a2ae84e46d253e9305c9a224c1f2b61a9f3ddf770371627e4708d6c6772e41",
+    "notes.sqlite3": "70097a8b531e3170d3f6d2d84a01637a753e07f9ee15da231786d2aa716021c8"
+  },
+  "unchanged_by_channel_update": true
+}

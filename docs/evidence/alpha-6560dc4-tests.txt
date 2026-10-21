@@ -1,0 +1,41 @@
+dbus-daemon[34266]: [session uid=0 pid=34266] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=0 pid=34280 comm="flatpak run --system --filesystem=/src:ro --filesy" label="kernel")
+dbus-daemon[34266]: [session uid=0 pid=34266] Successfully activated service 'org.freedesktop.Flatpak'
+PACKAGED IMPORT: /app/lib/bible-python/bible/__init__.py
+Native pointer case runs separately with external isolated Xvfb (not shipped inside Flatpak).
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+
+(process:2): Gtk-WARNING **: 20:57:51.134: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+test_chapters_share_a_page_and_odd_book_leaves_right_page_blank (tests.test_book_stream.BookStreamTests.test_chapters_share_a_page_and_odd_book_leaves_right_page_blank) ... ok
+test_even_book_returns_to_last_full_spread_without_extra_blank_spread (tests.test_book_stream.BookStreamTests.test_even_book_returns_to_last_full_spread_without_extra_blank_spread) ... ok
+test_main_loop_runs_while_book_preparation_is_waiting (tests.test_book_stream.BookStreamTests.test_main_loop_runs_while_book_preparation_is_waiting) ... ok
+test_commentary_entry_limits_resume_and_bible_unchanged (tests.test_immersion.ImmersionTests.test_commentary_entry_limits_resume_and_bible_unchanged) ... ok
+test_commentary_inline_formatting_survives_highlight_integration (tests.test_immersion.ImmersionTests.test_commentary_inline_formatting_survives_highlight_integration) ... ok
+test_deferred_native_selection_clear_is_restored_after_reflow (tests.test_immersion.ImmersionTests.test_deferred_native_selection_clear_is_restored_after_reflow) ... ok
+test_multiverse_selection_overrides_click_and_navigation_clears_click (tests.test_immersion.ImmersionTests.test_multiverse_selection_overrides_click_and_navigation_clears_click) ... ok
+test_narrow_rtl_notifications_optout_and_suspension (tests.test_immersion.ImmersionTests.test_narrow_rtl_notifications_optout_and_suspension) ... ok
+test_passage_navigation_keeps_the_continuous_book_source (tests.test_immersion.ImmersionTests.test_passage_navigation_keeps_the_continuous_book_source) ... ok
+test_profile_closes_window_before_resources_even_after_failure (tests.test_immersion.ImmersionTests.test_profile_closes_window_before_resources_even_after_failure) ... ok
+test_real_pages_fit_and_partition_and_roundtrip_restores_panels (tests.test_immersion.ImmersionTests.test_real_pages_fit_and_partition_and_roundtrip_restores_panels) ... ok
+test_reflow_preserves_inside_verse_and_selection_escape_precedence (tests.test_immersion.ImmersionTests.test_reflow_preserves_inside_verse_and_selection_escape_precedence) ... ok
+test_canonical_identity_colors_backup_and_merge_preserve_other_passages (tests.test_highlights.HighlightStoreTests.test_canonical_identity_colors_backup_and_merge_preserve_other_passages) ... ok
+test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write (tests.test_highlights.HighlightStoreTests.test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write) ... ok
+test_failed_atomic_replace_preserves_file_and_memory (tests.test_highlights.HighlightStoreTests.test_failed_atomic_replace_preserves_file_and_memory) ... ok
+test_comparison_rebuild_does_not_retag_unchanged_primary_layout (tests.test_highlight_ui.HighlightUITests.test_comparison_rebuild_does_not_retag_unchanged_primary_layout) ... ok
+test_missing_system_does_not_open_a_different_passage_or_delete_mark (tests.test_highlight_ui.HighlightUITests.test_missing_system_does_not_open_a_different_passage_or_delete_mark) ... ok
+test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks (tests.test_highlight_ui.HighlightUITests.test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks) ... ok
+test_windows_share_marks_and_repaint_without_overwriting_other_verses (tests.test_highlight_ui.HighlightUITests.test_windows_share_marks_and_repaint_without_overwriting_other_verses) ... ok
+test_colliding_names_keep_separate_content_provenance_and_session (tests.test_providers.ProviderTests.test_colliding_names_keep_separate_content_provenance_and_session) ... ok
+test_ebible_identity_does_not_collide_with_historical_crosswire_ids (tests.test_providers.ProviderTests.test_ebible_identity_does_not_collide_with_historical_crosswire_ids) ... ok
+test_legacy_attribution_without_source_file_and_namespace_validation (tests.test_providers.ProviderTests.test_legacy_attribution_without_source_file_and_namespace_validation) ... ok
+test_no_hidden_license_or_missing_language_filter (tests.test_providers.ProviderTests.test_no_hidden_license_or_missing_language_filter) ... ok
+test_one_failed_source_keeps_others_and_retry_is_fresh (tests.test_providers.ProviderTests.test_one_failed_source_keeps_others_and_retry_is_fresh) ... ok
+test_native_links_introductions_and_distinct_identical_texts (tests.test_reading_sync.CommentaryIndexTests.test_native_links_introductions_and_distinct_identical_texts) ... ok
+test_both_directions_ranges_missing_history_focus_and_long_entry (tests.test_reading_sync.ReadingSyncTests.test_both_directions_ranges_missing_history_focus_and_long_entry) ... ok
+test_partial_copy_stays_partial_and_selection_does_not_sync (tests.test_reading_sync.ReadingSyncTests.test_partial_copy_stays_partial_and_selection_does_not_sync) ... ok
+test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end (tests.test_reading_sync.ReadingSyncTests.test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 14.151s
+
+OK

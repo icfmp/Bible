@@ -37,6 +37,20 @@ Bible.com/Semeur, unmerged highlights or continuous-book pagination.
 Local repeated-render tests preserve sentinel descriptors, key, historical object
 and archive while updating provenance. Existing publication-gate and persistence
 tests also run. Controlled signed installation/update validation uses a disposable
-test-only key and isolated client; it never replaces the public key. Public HTTPS
-installation has already been checked for the current alpha, but this proposed
-page is not deployed and must be verified again after an approved publication.
+test-only key and isolated client; it never replaces the public key. Public HTTPS installation/update of the reviewed page and its actual signed
+channel are now verified; the approved page is deployed.
+
+## Final public deployment
+
+https://icfmp.github.io/Bible/ is live. The final available package is source
+**6560dc4**, revision **39674239853-2** (main CI **39673122687**, publication
+**39674239853**, both green). Dynamic provenance matches this package; the real
+hero capture remains explicitly identified separately as signed source 8d3a183.
+Actual HTTPS installation and signed update pass, preserve test data and retain
+the existing key, remote and descriptors. All public links/assets return correctly
+and the source archive digest matches. Chromium desktop/mobile/dark, keyboard,
+image and overflow checks pass on this actual public deployment.
+
+Actual public captures: [desktop](captures/website-37-public-desktop.png),
+[mobile](captures/website-37-public-mobile.png), [dark](captures/website-37-public-dark.png).
+Full proof and manual-accessibility limits: [delivery](PENDING_DELIVERIES_2026_10_21.md).

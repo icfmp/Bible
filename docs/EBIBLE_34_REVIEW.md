@@ -100,3 +100,16 @@ offline GTK reopen pass; John 3:16 still matches direct SWORD output and the
 previous SHA-256. Updated French catalogue/reader captures are real GTK/Xvfb.
 The source-policy review is complete for this addition. Public availability and
 manual GNOME acceptance are recorded separately after final publication.
+
+## Final combined public delivery
+
+This reviewed PR is merged. Source **6560dc4**, signed alpha revision
+**39674239853-2**, is actually published and installed; main CI **39673122687**
+and publication **39674239853** are green. The final combined package preserves
+current stability fixes and the existing signed channel. Actual /app checks,
+public links, native captures, integration corrections and remaining manual
+GNOME acceptance are recorded in
+[the final delivery report](PENDING_DELIVERIES_2026_10_21.md).
+This supersedes earlier candidate-only availability statements, without claiming
+client GNOME/Wayland/accessibility acceptance. The corresponding feature issue
+remains open for the client's tests.

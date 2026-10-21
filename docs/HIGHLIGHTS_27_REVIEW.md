@@ -121,3 +121,16 @@ records; backup/merge and the find list work. Native pointer/keyboard actions
 apply a real second-Bible Calvin/Lausanne mark with the correct frozen source.
 Actual MHC coverage coexists with personal marks, remains when personal marks
 are hidden and survives immersion. Updated actual GTK captures are committed.
+
+## Final combined public delivery
+
+This reviewed PR is merged. Source **6560dc4**, signed alpha revision
+**39674239853-2**, is actually published and installed; main CI **39673122687**
+and publication **39674239853** are green. The final combined package preserves
+current stability fixes and the existing signed channel. Actual /app checks,
+public links, native captures, integration corrections and remaining manual
+GNOME acceptance are recorded in
+[the final delivery report](PENDING_DELIVERIES_2026_10_21.md).
+This supersedes earlier candidate-only availability statements, without claiming
+client GNOME/Wayland/accessibility acceptance. The corresponding feature issue
+remains open for the client's tests.

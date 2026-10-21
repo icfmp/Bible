@@ -1,0 +1,17 @@
+{
+  "install_commit": "4007b79e539829267d3941aafa4c60807a4502d14d848a89be5c2c942294188c",
+  "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+  "origin": "bible-alpha",
+  "gpg_commit": true,
+  "gpg_summary": true,
+  "gtk_startup": true,
+  "user_data_snapshot": {
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-t63g7h66/resource.dat": "c2ebe57d716c072d710b0e8c01cd21460ebcd480f821bdee32d854f15c6ebe35",
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-t63g7h66/preferences.json": "9eefa89861cd3067fdbc2307b57c4853fa25252df2f8fe8a400e7d7e52bff708",
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-t63g7h66/note.txt": "cec9c78bf24ea5917ff4416e35d46b290b01a5d969bef63ca6231616f0e6b91a"
+  },
+  "user_data_preserved": true,
+  "update_commit": "f36e063db7004fc6a20aa8051234e2f488f8a09c5b6ce3e399d779c1e595452a",
+  "public_update_success": true,
+  "public_url": "https://icfmp.github.io/Bible/alpha/Bible.flatpakref"
+}

@@ -1,0 +1,109 @@
+{
+  "provenance": {
+    "source_commit": "6560dc4a765a9c8a26388c7df1e9de4679e0c376",
+    "ci_run": "39673122687",
+    "packaging_revision": "39674239853-2",
+    "flatpak_commit": "f36e063db7004fc6a20aa8051234e2f488f8a09c5b6ce3e399d779c1e595452a",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-6560dc4a765a9c8a26388c7df1e9de4679e0c376-sources.tar.gz",
+    "source_sha256": "bba2a79041b18bdf927593d540db11c04249a40bb901589a03ae272fa7122cfb",
+    "bundle_sha256": "a7edd82b97d921464bd474bd48f3538bcec57ad9ea516a4f728f5acf7c7b8b72"
+  },
+  "links": [
+    {
+      "url": "https://icfmp.github.io/Bible/assets/bible.svg",
+      "status": 200,
+      "bytes": 3769,
+      "redirect": "https://icfmp.github.io/Bible/assets/bible.svg"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/assets/style.css",
+      "status": 200,
+      "bytes": 2694,
+      "redirect": "https://icfmp.github.io/Bible/assets/style.css"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/alpha/Bible.flatpakref",
+      "status": 200,
+      "bytes": 1487,
+      "redirect": "https://icfmp.github.io/Bible/alpha/Bible.flatpakref"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/assets/reading.png",
+      "status": 200,
+      "bytes": 287082,
+      "redirect": "https://icfmp.github.io/Bible/assets/reading.png"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md",
+      "status": 200,
+      "bytes": 285528,
+      "redirect": "https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/issues",
+      "status": 200,
+      "bytes": 324883,
+      "redirect": "https://github.com/icfmp/Bible/issues"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible",
+      "status": 200,
+      "bytes": 283406,
+      "redirect": "https://github.com/icfmp/Bible"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/commit/6560dc4a765a9c8a26388c7df1e9de4679e0c376",
+      "status": 200,
+      "bytes": 753400,
+      "redirect": "https://github.com/icfmp/Bible/commit/6560dc4a765a9c8a26388c7df1e9de4679e0c376"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/alpha/Bible-6560dc4a765a9c8a26388c7df1e9de4679e0c376-sources.tar.gz",
+      "status": 200,
+      "bytes": 29751372,
+      "redirect": "https://icfmp.github.io/Bible/alpha/Bible-6560dc4a765a9c8a26388c7df1e9de4679e0c376-sources.tar.gz"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/blob/6560dc4a765a9c8a26388c7df1e9de4679e0c376/LICENSE",
+      "status": 200,
+      "bytes": 360879,
+      "redirect": "https://github.com/icfmp/Bible/blob/6560dc4a765a9c8a26388c7df1e9de4679e0c376/LICENSE"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/blob/6560dc4a765a9c8a26388c7df1e9de4679e0c376/THIRD_PARTY_NOTICES.md",
+      "status": 200,
+      "bytes": 252487,
+      "redirect": "https://github.com/icfmp/Bible/blob/6560dc4a765a9c8a26388c7df1e9de4679e0c376/THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/alpha/bible-alpha.flatpakrepo",
+      "status": 200,
+      "bytes": 1356,
+      "redirect": "https://icfmp.github.io/Bible/alpha/bible-alpha.flatpakrepo"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/alpha/bible-alpha.gpg",
+      "status": 200,
+      "bytes": 928,
+      "redirect": "https://icfmp.github.io/Bible/alpha/bible-alpha.gpg"
+    },
+    {
+      "url": "https://icfmp.github.io/Bible/alpha/provenance.json",
+      "status": 200,
+      "bytes": 628,
+      "redirect": "https://icfmp.github.io/Bible/alpha/provenance.json"
+    },
+    {
+      "url": "https://github.com/icfmp/Bible/releases",
+      "status": 200,
+      "bytes": 227379,
+      "redirect": "https://github.com/icfmp/Bible/releases"
+    }
+  ],
+  "signed_descriptor": true,
+  "repository_summary_bytes": 1709,
+  "repository_signature_bytes": 464
+}

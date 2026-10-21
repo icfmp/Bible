@@ -1,0 +1,24 @@
+dbus-daemon[34422]: [session uid=0 pid=34422] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=0 pid=34436 comm="flatpak run --system --filesystem=/src:ro --filesy" label="kernel")
+dbus-daemon[34422]: [session uid=0 pid=34422] Successfully activated service 'org.freedesktop.Flatpak'
+PACKAGED IMPORT: /app/lib/bible-python/bible/__init__.py
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+test_native_click_targets_notes_and_context_copy_on_each_page (tests.test_immersion.ImmersionTests.test_native_click_targets_notes_and_context_copy_on_each_page) ... <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+
+(process:2): Gtk-WARNING **: 20:58:05.652: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+/usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1801: DeprecationWarning: Gtk.CssProvider.load_from_data is deprecated
+  super().load_from_data(text, length)
+/src/tools/check_alpha_ui.py:66: DeprecationWarning: GdkX11.X11Surface.get_xid is deprecated
+  self.display, native.get_surface().get_xid(),
+/usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1077: DeprecationWarning: Gtk.ListStore.set_column_types is deprecated
+  self.set_column_types(column_types)
+/app/lib/bible-python/bible/notes_window.py:77: DeprecationWarning: Gtk.Entry.set_completion is deprecated
+  self.entry.set_completion(completion)
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.597s
+
+OK

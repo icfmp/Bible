@@ -1,0 +1,63 @@
+{
+  "provenance": {
+    "source_commit": "6560dc4a765a9c8a26388c7df1e9de4679e0c376",
+    "ci_run": "39673122687",
+    "packaging_revision": "39674239853-2",
+    "flatpak_commit": "f36e063db7004fc6a20aa8051234e2f488f8a09c5b6ce3e399d779c1e595452a",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-6560dc4a765a9c8a26388c7df1e9de4679e0c376-sources.tar.gz",
+    "source_sha256": "bba2a79041b18bdf927593d540db11c04249a40bb901589a03ae272fa7122cfb",
+    "bundle_sha256": "a7edd82b97d921464bd474bd48f3538bcec57ad9ea516a4f728f5acf7c7b8b72"
+  },
+  "main_ci": {
+    "run": "39673122687",
+    "conclusion": "success",
+    "tests": 159,
+    "french_ui_tests": 70
+  },
+  "publication": {
+    "run": "39674239853",
+    "conclusion": "success",
+    "signed_install_update": true
+  },
+  "installed_public_commit_matches": true,
+  "ci_bundle_digest_matches": true,
+  "packaged_import": "/app/lib/bible-python/bible/__init__.py",
+  "packaged_unit_tests": 28,
+  "packaged_isolated_native_test": 1,
+  "palette_surface_states": 16,
+  "real_offline_book": {
+    "book": "Gen",
+    "pages": 211,
+    "chapters_continuing_within_page": 42,
+    "preparation_seconds": 1.5364085040055215,
+    "gtk_heartbeat_ticks": 74,
+    "largest_heartbeat_gap": 0.4239950529881753,
+    "exact_page_partition": true,
+    "offline": true
+  },
+  "real_offline_ebible": {
+    "offline": true,
+    "id": "ebible~frajnd2024eb",
+    "reference": "John.3.16",
+    "version": "2.17",
+    "sha256": "0d5882a7e879e2693e30609ab17916fca88625d9e5b8362892e3cb534db2c2f1"
+  },
+  "native_actions": true,
+  "real_highlight_backup_restore": true,
+  "temporary_personal_overlap_and_paginated_coverage": true,
+  "real_commentary_end": "Rev.22.20–Rev.22.21",
+  "commentary_synchronization_both_directions": true,
+  "commentary_notes_session_reopen": true,
+  "public_page": "https://icfmp.github.io/Bible/",
+  "browser_desktop_mobile_dark_keyboard": true,
+  "manual_gnome_wayland_accessibility_claimed": false,
+  "manual_acceptance_issues_open": [
+    24,
+    27,
+    34
+  ],
+  "excluded_issue": 26
+}

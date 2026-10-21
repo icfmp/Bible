@@ -1,0 +1,28 @@
+dbus-daemon[34196]: [session uid=0 pid=34196] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=0 pid=34212 comm="flatpak run --system --filesystem=/src:ro --filesy" label="kernel")
+dbus-daemon[34196]: [session uid=0 pid=34196] Successfully activated service 'org.freedesktop.Flatpak'
+PACKAGED IMPORT: /app/lib/bible-python/bible/__init__.py actual Xvfb screenshots delegated to parent Pillow
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+
+(process:2): Gtk-WARNING **: 20:57:43.452: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(process:2): Gtk-WARNING **: 20:57:44.187: Trying to snapshot GtkGizmo 0x563355be1ea0 without a current allocation
+SURFACE white-plain white RGB (255, 255, 255) widths 787 787
+SURFACE white-study white RGB (255, 255, 255) widths 507 507
+SURFACE paper-plain paper RGB (244, 236, 216) widths 787 787
+SURFACE paper-study paper RGB (244, 236, 216) widths 507 507
+SURFACE dark-plain dark RGB (40, 40, 40) widths 787 787
+SURFACE dark-study dark RGB (40, 40, 40) widths 507 507
+SURFACE black-plain black RGB (0, 0, 0) widths 787 787
+SURFACE black-study black RGB (0, 0, 0) widths 507 507
+SURFACE contrast-day-plain contrast-day RGB (255, 255, 255) widths 787 787
+SURFACE contrast-day-study contrast-day RGB (255, 255, 255) widths 507 507
+SURFACE contrast-night-plain contrast-night RGB (0, 0, 0) widths 787 787
+SURFACE contrast-night-study contrast-night RGB (0, 0, 0) widths 507 507
+SURFACE resize-1200 white RGB (255, 255, 255) widths 738 738
+SURFACE resize-1600 white RGB (255, 255, 255) widths 507 507
+SURFACE unavailable-empty white RGB (255, 255, 255) widths 507 507
+
+(process:2): Gtk-WARNING **: 20:57:50.410: Trying to snapshot GtkGizmo 0x563355a68aa0 without a current allocation
+SURFACE restored white RGB (255, 255, 255) widths 507 507
+PASS: viewport/margins/gutter/empty space pixels, all palettes and emulated high contrast, study open/closed, resize, empty/error and restored content; equal widths, selection and anchor
