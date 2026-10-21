@@ -2,7 +2,7 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import GLib, Gtk, Pango
+from gi.repository import Adw, GLib, Gtk, Pango
 
 from .i18n import tr
 from .reading_style import apply_direction
@@ -24,66 +24,104 @@ class StudyPanel(Gtk.Box):
         self._display_context=None;self._positioning=False;self._reveal_tick=0
         self._loading=False;self._missing_near=0
         self.translate=tr
-        self.append(Gtk.Label(label=tr('Commentaries'), xalign=0,
-                              margin_start=12, margin_top=12))
-        self.choices = Gtk.DropDown(enable_search=True, margin_start=12, margin_end=12)
+        self.add_css_class('background')
+        self.add_css_class('study-drawer')
+        self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
+        self.hide_button = Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Hide study'))
+        self.hide_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Hide study')])
+        self.hide_button.connect('clicked',lambda *_:owner.study_button.set_active(False))
+        self.header.pack_start(self.hide_button)
+        self.choices = Gtk.DropDown(enable_search=True)
         factory = Gtk.SignalListItemFactory()
         factory.connect('setup', lambda _, item: item.set_child(Gtk.Label(
-            xalign=0, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=32)))
+            xalign=0, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=24)))
         factory.connect('bind', lambda _, item: item.get_child().set_text(item.get_item().get_string()))
-        self.choices.set_factory(factory)
-        self.choices.set_list_factory(factory)
-        self.choices.update_property([Gtk.AccessibleProperty.LABEL], [tr('Choose a commentary')])
-        self.choices.connect('notify::selected', self.selection_changed)
-        self.append(self.choices)
-        self.passage = Gtk.Label(xalign=0, wrap=True, margin_start=12, margin_end=12)
-        self.append(self.passage)
-        entries=Gtk.Box(spacing=6,margin_start=12,margin_end=12)
-        self.previous_entry=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Previous available entry'))
-        self.next_entry=Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Next available entry'))
+        self.choices.set_factory(factory);self.choices.set_list_factory(factory)
+        self.choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Choose a commentary')])
+        self.choices.connect('notify::selected',self.selection_changed)
+        self.header.set_title_widget(self.choices)
+        from .appearance import AppearancePopover
+        self.appearance = AppearancePopover(owner)
+        self.appearance_button = Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
+        self.appearance_button.set_popover(self.appearance)
+        self.appearance_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading appearance')])
+        self.immersive_button = Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Read in immersive mode'))
+        self.immersive_button.connect('clicked',lambda *_:owner.enter_immersion('commentary'))
+        self.more = Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Commentary actions'))
+        self.more.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary actions')])
+        actions = Gtk.Popover()
+        action_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,
+                             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
+        self.previous_entry = Gtk.Button(label=tr('Previous available entry'))
+        self.next_entry = Gtk.Button(label=tr('Next available entry'))
         self.previous_entry.connect('clicked',lambda *_:self.step_entry(-1))
         self.next_entry.connect('clicked',lambda *_:self.step_entry(1))
-        entries.append(self.previous_entry);entries.append(self.next_entry)
-        self.immersive_button=Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Read in immersive mode'))
-        self.immersive_button.connect('clicked',lambda *_:owner.enter_immersion('commentary'))
-        entries.append(self.immersive_button)
-        self.append(entries)
-        self.source = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR,
-                                 margin_start=12, margin_end=12)
-        self.append(self.source)
-        self.info = Gtk.MenuButton(label=tr('Source and conditions'),
-                                    margin_start=12, margin_end=12)
-        popover = Gtk.Popover()
-        self.metadata = Gtk.Label(xalign=0, yalign=0, wrap=True,
-                                   wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
-                                   max_width_chars=32, margin_start=12, margin_end=12,
-                                   margin_top=12, margin_bottom=12)
-        info_scroll = Gtk.ScrolledWindow(min_content_width=260, max_content_width=300,
-                                         propagate_natural_width=True,
-                                         max_content_height=350, propagate_natural_height=True,
-                                         hscrollbar_policy=Gtk.PolicyType.NEVER)
+        action_box.append(self.previous_entry);action_box.append(self.next_entry)
+        self.info = Gtk.MenuButton(label=tr('Source and conditions'))
+        from .catalogue_window import MetadataLabel
+        self.metadata = MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                      selectable=True,max_width_chars=32,margin_start=12,margin_end=12,
+                                      margin_top=12,margin_bottom=12)
+        info_scroll = Gtk.ScrolledWindow(min_content_width=260,max_content_width=320,
+                                         propagate_natural_width=True,max_content_height=350,
+                                         propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         info_scroll.set_child(self.metadata)
-        popover.set_child(info_scroll)
-        self.info.set_popover(popover)
-        self.append(self.info)
-        self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
-                                 margin_start=12, margin_end=12)
+        info = Gtk.Popover();info.set_child(info_scroll);self.info.set_popover(info)
+        action_box.append(self.info)
+        library = Gtk.Button(label=tr('Download a commentary'))
+        library.connect('clicked',lambda *_:self.open_library())
+        action_box.append(library)
+        actions.set_child(action_box);self.more.set_popover(actions)
+        for widget in [self.more,self.immersive_button,self.appearance_button]:
+            widget.add_css_class('flat');self.header.pack_end(widget)
+        self.append(self.header)
+        self.popovers = [self.appearance,actions,info]
+        for popover in self.popovers:
+            popover.set_autohide(False);owner._reading_popovers.append(popover)
+        # Retain semantic source/reference fields for existing synchronization
+        # and accessible tooltips, without duplicating long in-content banners.
+        self.source = Gtk.Label()
+        self.passage = Gtk.Label()
+        self.source.connect('notify::label',lambda *_:self.choices.set_tooltip_text(self.source.get_text()))
+        self.passage.connect('notify::label',lambda *_:self.text.update_property(
+            [Gtk.AccessibleProperty.LABEL],[tr('Commentary text')+': '+self.passage.get_text()]))
+        self.status = MetadataLabel(xalign=0,wrap=True,selectable=True,
+                                    margin_start=16,margin_end=16,visible=False)
+        self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
         self.append(self.status)
-        self.text = Gtk.TextView(editable=False, cursor_visible=False,
-                                 wrap_mode=Gtk.WrapMode.WORD_CHAR, left_margin=12,
-                                 right_margin=12, top_margin=8, bottom_margin=12)
-        self.text.update_property([Gtk.AccessibleProperty.LABEL], [tr('Commentary text')])
-        self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+        self.text = Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
+                                 left_margin=24,right_margin=24,top_margin=20,bottom_margin=24)
+        self.text.add_css_class('study-reader')
+        self.text.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary text')])
+        self.scroll = Gtk.ScrolledWindow(vexpand=True,hexpand=True)
         self.scroll.set_child(self.text)
-        self.append(self.scroll)
+        self.pages = Gtk.Stack(vexpand=True)
+        self.pages.add_named(self.scroll,'reading')
+        self.empty = Adw.StatusPage(title=tr('Choose a commentary'),
+                                    description=tr('Choose or download a commentary.'),icon_name='accessories-dictionary-symbolic')
+        self.download = Gtk.Button(label=tr('Download a commentary'),halign=Gtk.Align.CENTER)
+        self.download.connect('clicked',lambda *_:self.open_library())
+        self.empty.set_child(self.download);self.pages.add_named(self.empty,'empty')
+        self.pages.set_visible_child_name('empty');self.append(self.pages)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
-        hint = Gtk.Label(label=tr('Scroll either pane to follow the passage.'),
-                          wrap=True, margin_start=12, margin_end=12)
-        self.append(hint)
-        download = Gtk.Button(label=tr('Download a commentary'), margin_start=12,
-                              margin_end=12, margin_bottom=12)
-        download.connect('clicked', lambda *_: owner.open_library('commentary'))
-        self.append(download)
+        self._layout_geometry = None;self._layout_anchor = None
+        self.add_tick_callback(self.adapt)
+
+    def adapt(self,*_):
+        from .reading_style import WIDTHS
+        geometry=(self.scroll.get_width(),self.scroll.get_height(),self.owner.preferences.value.column_width)
+        if geometry != self._layout_geometry and geometry[0]>0:
+            anchor=self._layout_anchor or self.anchor()
+            margin=max(24,(geometry[0]-WIDTHS[geometry[2]])//2)
+            self.text.set_left_margin(margin);self.text.set_right_margin(margin)
+            self._layout_geometry=geometry
+            if anchor:self.reveal(*anchor,force=True)
+        if not self._positioning:self._layout_anchor=self.anchor()
+        return not self.owner.closed
+
+    def open_library(self):
+        for popover in self.popovers:popover.popdown()
+        self.owner.open_library('commentary')
 
     def refresh(self, force=False):
         tab = self.owner.active_tab
@@ -103,7 +141,7 @@ class StudyPanel(Gtk.Box):
         for name in self.names[1:]:
             if name in installed:
                 resource = self.owner.library.resource(name)
-                labels.append(f'{plain(resource.description)} ({name})')
+                labels.append(f'{name} — {plain(resource.description)}')
             else:
                 labels.append(f'{name} ({tr("Missing commentary")})')
         if labels != self._labels:
@@ -115,6 +153,8 @@ class StudyPanel(Gtk.Box):
 
     def clear_content(self):
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
+        self._layout_anchor=None
+        if self.owner.active_tab:self.owner.active_tab.mark_commentary_range(None,None)
         self.text.get_buffer().set_text('')
 
     @property
@@ -125,11 +165,13 @@ class StudyPanel(Gtk.Box):
         self.passage.set_text(tab.passage_title())
         name=tab.state.commentary
         if name is None or name not in installed:
+            self.pages.set_visible_child_name('empty')
             self.clear_content();self.reader=None;self.source.set_text('');self.metadata.set_text('');self.info.set_sensitive(False)
             self.status.set_text(tr('Choose or download a commentary.') if name is None else
                                 tr('This commentary is no longer installed. Choose another or download it again.'))
             self.entry_controls();return
         try:
+            self.pages.set_visible_child_name('reading')
             resource=self.owner.library.resource(name)
             self.source.set_text(f'{plain(resource.description)} — {resource.source}')
             self.metadata.set_text(details(resource));self.info.set_sensitive(True)
@@ -153,7 +195,7 @@ class StudyPanel(Gtk.Box):
                             from .paged_sources import CommentaryPages
                             from .pagination import Anchor
                             document=CommentaryPages(self.reader,resource).document(self.current_position,self.owner.preferences.value)
-                            offset=document.locate(Anchor(section.start,offset,True))
+                            offset=max(0,document.locate(Anchor(section.start,offset,True))-document.spans[0].body)
                         self.reveal(self.current_position,offset,force=True)
         except VersificationMismatch as error:
             self.clear_content();self.reader=None
@@ -180,6 +222,20 @@ class StudyPanel(Gtk.Box):
             self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
             self.rebuild()
         self.reveal(position);self.entry_controls()
+        self.update_indicator()
+
+    def update_indicator(self):
+        tab=self.owner.active_tab
+        if not tab:return
+        if not tab.reader or not self.reader or self.current_position is None or not self.owner.split.get_show_sidebar():
+            tab.mark_commentary_range(None,None);return
+        section=self.reader.index.sections[self.current_position]
+        if section.introduction:tab.mark_commentary_range(None,None);return
+        try:
+            first=resolve(section.start,self.reader.versification,tab.reader,require_entry=False).start
+            last=resolve(section.end,self.reader.versification,tab.reader,require_entry=False).end
+            tab.mark_commentary_range(first,last)
+        except ValueError:tab.mark_commentary_range(None,None)
 
     def anchor(self):
         position=self.visible_section()
@@ -200,15 +256,25 @@ class StudyPanel(Gtk.Box):
 
     def rebuild(self,anchor=None):
         self.cancel_reveal();self._positioning=True
-        pieces=[];self.ranges={};offset=0
+        from .paged_sources import CommentaryPages
+        from .pagination import Document,StyleSpan
+        from .bible_render import bind_copy
+        from .commentary_format import apply
+        source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
+        pieces=[];styles=[];self.ranges={};offset=0
         for position in self.loaded:
             heading=self.reader.index.label(position)+'\n'
-            body=self.reader.index.text(position)
-            pieces.extend([heading,body,'\n\n'])
-            self.ranges[position]=(offset,offset+len(heading),offset+len(heading)+len(body))
-            offset+=len(heading)+len(body)+2
-        buffer=self.text.get_buffer();buffer.set_text(''.join(pieces))
+            document=source.document(position,self.owner.preferences.value)
+            base=offset+len(heading)
+            pieces.extend([heading,document.text,'\n\n'])
+            styles.extend(StyleSpan(s.kind,s.start+base,s.end+base) for s in document.styles)
+            self.ranges[position]=(offset,base+document.spans[0].body,base+len(document.text))
+            offset=base+len(document.text)+2
+        document=Document('study',''.join(pieces),(),tuple(styles))
+        buffer=self.text.get_buffer();buffer.set_text(document.text)
+        bind_copy(self.text,document)
         self.owner.reading_style.apply_text(self.text,preserve=False)
+        apply(self.text,[(s.kind,s.start,s.end) for s in styles],self.owner.preferences.value,self.owner.reading_style.palette)
         tag=buffer.get_tag_table().lookup('entry-heading')
         if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
         for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
@@ -226,6 +292,7 @@ class StudyPanel(Gtk.Box):
         top=self.text.get_iter_location(buffer.get_iter_at_offset(start)).y
         bottom=self.text.get_iter_location(buffer.get_iter_at_offset(end)).y
         if not force and (top<=visible.y<bottom or visible.y<=top<visible.y+visible.height):return
+        self._layout_anchor=(position,offset)
         self.cancel_reveal();self._positioning=True
         frames=[0]
         def restore(*_):
@@ -286,6 +353,7 @@ class StudyPanel(Gtk.Box):
         position=(self.current_position+direction) if self.current_position is not None else self._missing_near-(1 if direction<0 else 0)
         if not 0<=position<len(self.reader.index.sections):return
         self.current_position=position
+        self.passage.set_text(self.reader.index.label(position));self.update_indicator()
         if position not in self.loaded:
             self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)));self.rebuild()
         self.reveal(position,force=True);self.entry_controls()
@@ -298,10 +366,11 @@ class StudyPanel(Gtk.Box):
         from .paged_sources import CommentaryPages
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
         doc=source.document(position,self.owner.preferences.value)
-        self.rebuild((position,doc.locate(anchor)))
+        self.rebuild((position,max(0,doc.locate(anchor)-doc.spans[0].body)))
         self.passage.set_text(self.reader.index.label(position))
         self.status.set_text(tr('Commentary resumed. The Bible passage is unchanged.'))
         self.entry_controls()
+        self.update_indicator()
 
     def selection_changed(self, *_):
         if self._syncing or self.owner.active_tab is None:

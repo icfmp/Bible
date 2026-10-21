@@ -89,8 +89,13 @@ class CommentaryPages:
     def document(self,key,preferences):
         section=self.reader.index.sections[key]
         text=self.reader.index.text(key)
+        from .commentary_format import format_entry
+        text,inline,titles=format_entry(self.reader.index.raw(key),text,str(self.reader.module.getConfigEntry('SourceType')))
+        prefix=''.join(title+'\n' for title in titles)
+        styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
+        styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
-        return Document(key,text,(PassageSpan(reference,0,0,len(text)),))
+        return Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
     def neighbour(self,key,direction):return None  # Page navigation stops at entry boundaries.
     def entry_neighbour(self,key,direction):
         position=key+direction

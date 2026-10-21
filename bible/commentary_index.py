@@ -61,6 +61,16 @@ class CommentaryIndex:
         text = self.reader.module.stripText()
         return text if isinstance(text,str) else text.c_str()
 
+    @lru_cache(maxsize=20)
+    def raw(self, position):
+        section=self.sections[position]
+        key=self.reader.sword.VerseKey()
+        key.setVersificationSystem(self.reader.versification)
+        key.setIntros(True);key.setIndex(section.index)
+        self.reader.module.setKey(key)
+        text=self.reader.module.getRawEntry()
+        return text if isinstance(text,str) else text.c_str()
+
     def label(self, position):
         section = self.sections[position]
         if section.introduction:
