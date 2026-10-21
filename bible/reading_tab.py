@@ -12,6 +12,7 @@ from .i18n import LANGUAGE
 from . import history
 from .preferences import ReadingPreferences
 from .reading_style import WIDTHS, SPACING, apply_direction
+from .context_indicator import ContextTextView
 
 
 class ReadingTab(Gtk.Box):
@@ -25,6 +26,7 @@ class ReadingTab(Gtk.Box):
         self.notes_store, self.notes_requested = notes_store, notes_requested
         self._notes_stamp = None
         self._note_refs = {}
+        self._study_coverage = None
         self.reader = None
         self.current = None
         self._restoring_scroll = True
@@ -43,7 +45,7 @@ class ReadingTab(Gtk.Box):
         self.append(self.note_button)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         self.scroll.set_margin_top(56)  # Fixed clearance for the reading overlay controls.
-        self.text = Gtk.TextView(editable=False, cursor_visible=False,
+        self.text = ContextTextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                  left_margin=56, right_margin=56,
                                  top_margin=16, bottom_margin=24)
@@ -80,7 +82,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_box.append(self.comparison_heading)
         self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12)
         self.comparison_box.append(self.comparison_status)
-        self.comparison_text=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
+        self.comparison_text=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                           left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
         self.comparison_scroll.set_child(self.comparison_text)
@@ -270,6 +272,7 @@ class ReadingTab(Gtk.Box):
                 self._comparison_document, self._comparison_offsets, self._comparison_ranges, self._comparison_markers = render(
                     self.comparison_text, reader, chapter, self.preferences)
                 self._comparison_signature = signature
+                self.refresh_study_indicator()
                 if selected and old.key == chapter.reference:
                     buffer.select_range(*(buffer.get_iter_at_offset(self._comparison_document.locate(a)) for a in selected))
             sync = getattr(self, 'comparison_sync', None)
@@ -315,6 +318,7 @@ class ReadingTab(Gtk.Box):
         from .bible_render import render
         self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
             self.text, self.reader, chapter, self.preferences)
+        self.refresh_study_indicator()
 
     def position_anchor(self, offset):
         candidates = [(ref,start,end) for ref,(start,end) in self._verse_ranges.items()
@@ -454,14 +458,29 @@ class ReadingTab(Gtk.Box):
                 self.text.scroll_to_iter(iterator,.05,True,0,.1)
 
     def mark_commentary_range(self,start,end):
-        buffer=self.text.get_buffer();tag=buffer.get_tag_table().lookup('commentary-range')
-        if tag is None:tag=buffer.create_tag('commentary-range',underline=1)
-        buffer.remove_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
-        first,last=self.reader.key(start).getIndex(),self.reader.key(end).getIndex()
-        for reference,offset in self._verse_offsets.items():
-            if first<=self.reader.key(reference).getIndex()<=last:
-                finish=max(self._marker_ends[reference],offset+1)
-                buffer.apply_tag(tag,buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(finish))
+        self._study_coverage=(self.reader.versification,start,end) if start and end and self.reader else None
+        self.refresh_study_indicator()
+
+    def study_ranges(self,reader,ranges):
+        if not self._study_coverage or not self.state.study_visible or not reader:return []
+        system,start,end=self._study_coverage
+        from .reference_resolution import resolve
+        try:
+            first=reader.key(resolve(start,system,reader,require_entry=False).start).getIndex()
+            last=reader.key(resolve(end,system,reader,require_entry=False).end).getIndex()
+            return [(begin,finish) for reference,begin,finish in ranges
+                    if first<=reader.key(reference).getIndex()<=last]
+        except ValueError:return []
+
+    def refresh_study_indicator(self):
+        if not hasattr(self,'text'):return
+        ranges=[(ref,start,end) for ref,(start,end) in self._verse_ranges.items()]
+        self.text.set_study_ranges(self.study_ranges(self.reader,ranges))
+        if hasattr(self,'comparison_text'):
+            ranges=[(ref,start,end) for ref,(start,end) in getattr(self,'_comparison_ranges',{}).items()]
+            self.comparison_text.set_study_ranges(self.study_ranges(getattr(self,'_comparison_reader',None),ranges))
+        owner=getattr(getattr(self,'sync_coordinator',None),'owner',None)
+        if owner and owner.immersion and owner.immersion.kind=='bible':owner.immersion.update_study_indicator()
 
     def step_verse(self, direction):
         references = list(self._verse_offsets)

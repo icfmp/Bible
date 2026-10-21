@@ -533,6 +533,8 @@ class Window(Adw.ApplicationWindow):
         self.study_button.set_active(visible)
         if self.active_tab:
             self.active_tab.state.study_visible = visible
+            if visible:self.study.update_indicator()
+            else:self.active_tab.mark_commentary_range(None,None)
         self._syncing_study = False
         self.schedule_save()
 

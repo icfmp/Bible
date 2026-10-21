@@ -102,16 +102,21 @@ class ReadingSync:
                 if position is None:return False
                 section=study.reader.index.sections[position]
                 if section.introduction:
+                    study.current_position=position
+                    study.passage.set_text(study.reader.index.label(position));study.entry_controls()
+                    tab.mark_commentary_range(None,None)
                     study.status.set_text(study.translate('Introduction has no verified verse alignment.'));return False
                 from .reference_resolution import resolve
                 try:
                     start=resolve(section.start,study.reader.versification,tab.reader).start
                     end=resolve(section.end,study.reader.versification,tab.reader).end
                 except ValueError as error:
+                    tab.mark_commentary_range(None,None)
                     study.status.set_text(study.translate('No verified alignment for this passage.')+f' {error}');return False
                 current=tab.reader.key(tab.state.reference).getIndex()
                 if not tab.reader.key(start).getIndex()<=current<=tab.reader.key(end).getIndex():tab.reveal_reference(start)
                 tab.mark_commentary_range(start,end)
                 study.current_position=position;study.remember_position()
+                study.passage.set_text(study.reader.index.label(position));study.entry_controls()
         finally:self.running=False
         return False

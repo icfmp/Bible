@@ -154,6 +154,7 @@ class StudyPanel(Gtk.Box):
     def clear_content(self):
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
         self._layout_anchor=None
+        if self.owner.active_tab:self.owner.active_tab.mark_commentary_range(None,None)
         self.text.get_buffer().set_text('')
 
     @property
@@ -221,6 +222,20 @@ class StudyPanel(Gtk.Box):
             self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
             self.rebuild()
         self.reveal(position);self.entry_controls()
+        self.update_indicator()
+
+    def update_indicator(self):
+        tab=self.owner.active_tab
+        if not tab:return
+        if not tab.reader or not self.reader or self.current_position is None or not self.owner.split.get_show_sidebar():
+            tab.mark_commentary_range(None,None);return
+        section=self.reader.index.sections[self.current_position]
+        if section.introduction:tab.mark_commentary_range(None,None);return
+        try:
+            first=resolve(section.start,self.reader.versification,tab.reader,require_entry=False).start
+            last=resolve(section.end,self.reader.versification,tab.reader,require_entry=False).end
+            tab.mark_commentary_range(first,last)
+        except ValueError:tab.mark_commentary_range(None,None)
 
     def anchor(self):
         position=self.visible_section()
@@ -338,6 +353,7 @@ class StudyPanel(Gtk.Box):
         position=(self.current_position+direction) if self.current_position is not None else self._missing_near-(1 if direction<0 else 0)
         if not 0<=position<len(self.reader.index.sections):return
         self.current_position=position
+        self.passage.set_text(self.reader.index.label(position));self.update_indicator()
         if position not in self.loaded:
             self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)));self.rebuild()
         self.reveal(position,force=True);self.entry_controls()
