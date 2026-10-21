@@ -73,3 +73,18 @@ for this coordinated candidate. [Actual GTK capture](captures/continuous-book-24
 Architecture review and manual GNOME/Wayland/accessibility acceptance remain
 required. A new branch CI/Flatpak candidate must be verified; nothing in this PR
 is announced as published.
+
+## Drawer and contextual actions coordination
+
+Main through `f8395bc` is merged on this review branch without publishing the PR.
+All 146 tests pass. Actual offline FreSegond Genesis produces 211 pages with 42
+chapter starts continuing within a page; preparation took 1.47 seconds with 75
+GTK heartbeat ticks (largest observed gap 0.365 seconds). Exact page partition
+and canonical in-verse reflow anchors remain intact. Original-character Copy,
+nonbreaking verse starts and the efficient whole-book Pango attributes are kept.
+
+The real native pointer/keyboard action probe also passes in this candidate,
+including partial Copy, original second-Bible note context, mapped Compare and
+immersive selection/closing without accidental page turns. Screenshot:
+`captures/continuous-book-24-drawer-actions.png`. These are Xvfb checks, not manual
+GNOME validation. PR #39 remains awaiting review and is not in the public alpha.
