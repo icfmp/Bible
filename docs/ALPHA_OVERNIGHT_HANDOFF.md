@@ -1,12 +1,71 @@
 # Alpha stabilization handoff — 21 October 2026
 
-**Latest corrective delivery:** see `CORRECTIVE_ALPHA_42_43_36.md`. Published
-source `d48c760`, revision `39592269695-2`, CI 39591287215/publication
-39592269695 green, actual public system update verified. The sections below
-record the earlier overnight baseline; their `4a285f3` delivery is historical.
-PR39 is coordinated at `f4e8935` (141 tests plus real book checks); PR40 at
-`d9643f4` (143 tests plus real highlights). They remain unmerged; new branch CI
-needs its final status recorded. Next: #44, then #45/#46. #26 excluded.
+**Latest application source:** `f8395bc145494695e89ca49262618d9f2dac23aa`.
+The client subsequently corrected #44 to a RIGHT drawer. That targeted
+follow-up is in progress; final delivery must include it. Delivery metadata below
+is finalized only after public signed update verification.
+
+## Current resumption state — latest work
+
+- #43, #42, #12/#15 and #36 were delivered first in `d48c760`: CI
+  39591287215/publication 39592269695 green, revision 39592269695-2,
+  actual public update verified. See `CORRECTIVE_ALPHA_42_43_36.md`.
+- #44 initially used a full left drawer (superseded by the client's explicit
+  correction to RIGHT); the initial increment followed in `370d2e5`/`ef4df7e`: 140 tests, real GTK
+  captures/slide recording and native study wheel/long-drag checks. Published
+  source ef4df7e, CI 39598544372/publication 39599447490 green, revision
+  39599447490-2, actual installed Flatpak 770f499300b796448ed32bd868446961c9280cdc659051e8de9c400e22307d87.
+  The first drawer CI caught an unallocated test button; the checker now waits
+  for its native allocation. The actual navigation behavior was preserved.
+- #45 temporary mapped full-range dotted cue: `247a1dc`; #46 frozen-source
+  passage actions: `71524e2`; native pointer/keyboard CI fixture: `f8395bc`.
+  Published interim source f8395bc: CI 39607925555/publication 39609190124
+  green, revision 39609190124-2; public install/update checks passed.
+  143 full local tests, 10 final affected tests and real offline native action,
+  popup, coverage and comparison probes pass. Final native study wheel and
+  >1.5-second drags pass in both directions with focus/history preserved.
+- PR #40 remains unmerged at `3496f1a`: CI 39608953767 green, final main coordinated, 148 tests,
+  native actual second-Bible Highlight source/versification verified; personal
+  overlap, hide/show independence and immersion verified. This is the explicit
+  remaining dependency for #46's Highlight button; main has Copy/Note/Compare.
+- PR #39 remains unmerged at `c981f95`: CI 39609210333 green, final main coordinated, 146 tests,
+  actual offline Genesis 211 exact pages/42 chapter continuations, 1.47 s
+  preparation, 75 GTK heartbeat ticks, maximum observed gap 0.365 s. Canonical
+  reflow anchor and native contextual actions pass. Whole-book shaping keeps
+  nonbreaking presentation spaces without redundant expensive Pango ranges.
+- PR #38 source-policy review and PR #41 product-manager review remain pending.
+  The new landing page is prepared with screenshots, not published. Existing
+  signed-channel publication does not publish the PR41 redesign.
+- The client validated GNOME Bible↔commentary scrolling on 4a285f3. Preserve
+  it; automated Xvfb evidence does not validate the new layout on GNOME or close
+  every #25 criterion. No issue is closed solely on automated evidence.
+- #26 excluded; #28 manual fallback preserved. #31's chooser-location question
+  remains unchanged. The general code review is a separate future assignment.
+- All code/captures/review notes are committed and pushed. Working container
+  `bible-night`: `/src` is this checkout, `/evidence` is host `/tmp`. Test profiles
+  under `/tmp/bible-night-*` are disposable and must never be used as client data.
+  For packaged probes run from `/tmp`, import `/app/lib/bible-python` before
+  `/src`, and assert `bible.__file__` starts with `/app/`; do not test source
+  overlays accidentally. Public branch `//alpha` is distinct from `//master`.
+
+### Ordered client checks for the final source
+
+1. Update the existing alpha and reopen saved resources, notes, session and
+   explicit appearance preferences. Reset only a disposable profile to check
+   14 pt / Very airy / Narrow defaults.
+2. Passage/comparison/Aa: trigger, outside click, Escape; comparison selection
+   applies and closes. Resource details: no automatic selection, deliberate
+   copy works, no visible RTF paragraph commands or lost attribution.
+3. Both Bibles: complete gray verse numbers, no orphan marker, exact partial
+   copy, equal widths and bidirectional reference-based following (also Psalms).
+4. Right commentary drawer: F9, slide, narrow/wide, theme, local Aa/conditions,
+   immersion/return; repeat the previously working two-way scroll/long entry.
+5. Temporary full commentary range: wrapped verses, hide/reopen, themes and
+   pagination. Deliberate Bible selection: exact Copy, correct original-source
+   Note, Compare, keyboard/pointer selection and Escape/outside dismissal.
+   Highlight and continuous-book pagination await PR40/PR39 review and delivery.
+
+## Historical overnight baseline (superseded where noted)
 
 Scope: batches requested by the client, in order. #26 is excluded. GitHub
 content is English; the application remains French/English. Do not publish
@@ -165,7 +224,7 @@ a claim about the client's GNOME session. No actual suppression, crash recovery
 or critical-alert filtering has been demonstrated. No host settings or permissions
 were changed. Keep #28 open, retain manual Do Not Disturb guidance.
 
-## Current delivery and precise resumption
+## Historical delivery and resumption before the corrective work
 
 - Public application source remains **`4a285f3`**, revision **39558047623-2**,
   Flatpak **46b9ed2d2077d6163470fc37450dc33eb86bc6e59e838566fbc0f3e2dba0f5a3**.
@@ -183,7 +242,7 @@ were changed. Keep #28 open, retain manual Do Not Disturb guidance.
 - If this session is interrupted, PR41 CI 39563016832 is green. Do not publish its page before PM review.
   Process reviews and the outstanding #31 product decision. Manual validation remains open.
 
-## Ordered client checks on the published alpha
+## Historical checks for the earlier alpha
 
 1. Close Bible, update the existing system installation with
    `flatpak update --system io.github.icfmp.Bible//alpha`, reopen and check saved

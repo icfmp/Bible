@@ -1,9 +1,10 @@
-# Full-height left study drawer (#44)
+# Full-height right study drawer (#44)
 
-The latest client decision replaces the earlier right pane/overlay arrangement.
+The client corrected the side after the first drawer delivery: the complete
+commentary drawer belongs on the right, with the Bible on the left.
 The existing native OverlaySplitView now contains the complete Bible column and
-the complete left commentary column, each with an aligned Header Bar. Only the
-visible header exposes native window controls in the narrow layout. Source
+the complete right commentary column, each with an aligned Header Bar. The rightmost
+visible header exposes the native end window controls at every width. Source
 choice, Aa, immersion and secondary actions are compact; conditions and Library
 remain available. Installed content has no permanent download/instruction strip.
 
@@ -57,7 +58,25 @@ Actual GTK evidence:
 - [Narrow](captures/study-drawer-44-narrow.png)
 - [Native opening/closing recording](captures/study-drawer-44-slide.webm)
 
-CI/publication and actual public update must be recorded before claiming a new
-available alpha. The already-published corrective remains `d48c760` until then.
+Published drawer increment: source `ef4df7e`, CI 39598544372 and publication
+39599447490 green, revision 39599447490-2. An actual system update matched
+Flatpak `770f499300b796448ed32bd868446961c9280cdc659051e8de9c400e22307d87`.
+The original channel fingerprint was preserved. The latest combined delivery
+is recorded in `ALPHA_OVERNIGHT_HANDOFF.md`.
+
 Keep the client's positive GNOME two-way scrolling validation distinct from
-this new drawer's manual retest. #45/#46 and review PRs remain separate work.
+this new drawer's manual retest. Verified inline styling falls back to original
+plain source for conversions that cannot be proved character-for-character;
+not every entry/module is claimed to provide rich formatting.
+
+
+## Client side correction
+
+After the initial drawer delivery the client explicitly corrected the requested
+side to RIGHT. The Bible remains on the left. This follow-up changes only native
+sidebar placement, the dismissal arrow and which aligned header shows native end
+window controls. Existing study/reference/selection algorithms are preserved.
+Updated captures and the slide recording above show the actual right drawer.
+The targeted geometry/native action checks pass; final delivery metadata is in
+`ALPHA_OVERNIGHT_HANDOFF.md`. Earlier left-drawer screenshots in historical issue
+comments are superseded by these captures.

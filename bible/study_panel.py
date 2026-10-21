@@ -27,7 +27,7 @@ class StudyPanel(Gtk.Box):
         self.add_css_class('background')
         self.add_css_class('study-drawer')
         self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
-        self.hide_button = Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Hide study'))
+        self.hide_button = Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Hide study'))
         self.hide_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Hide study')])
         self.hide_button.connect('clicked',lambda *_:owner.study_button.set_active(False))
         self.header.pack_start(self.hide_button)
