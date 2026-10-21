@@ -149,9 +149,9 @@ def main():
                 inputs.click(window.appearance_button)
                 aa=window.appearance
                 inputs.click(aa.larger)
-                assert window.preferences.value.size == 20
+                assert window.preferences.value.size == 15
                 aa.smaller.grab_focus();inputs.key('space')
-                assert window.preferences.value.size == 19
+                assert window.preferences.value.size == 14
                 aa.fonts['DejaVu Sans'].grab_focus();inputs.key('space')
                 assert window.preferences.value.font == 'DejaVu Sans'
                 inputs.click(aa.palettes['paper'])
