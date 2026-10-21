@@ -1,5 +1,13 @@
 # Alpha stabilization handoff — 21 October 2026
 
+**Latest corrective delivery:** see `CORRECTIVE_ALPHA_42_43_36.md`. Published
+source `d48c760`, revision `39592269695-2`, CI 39591287215/publication
+39592269695 green, actual public system update verified. The sections below
+record the earlier overnight baseline; their `4a285f3` delivery is historical.
+PR39 is coordinated at `f4e8935` (141 tests plus real book checks); PR40 at
+`d9643f4` (143 tests plus real highlights). They remain unmerged; new branch CI
+needs its final status recorded. Next: #44, then #45/#46. #26 excluded.
+
 Scope: batches requested by the client, in order. #26 is excluded. GitHub
 content is English; the application remains French/English. Do not publish
 the #37 page before product-manager review. Preserve the existing signed

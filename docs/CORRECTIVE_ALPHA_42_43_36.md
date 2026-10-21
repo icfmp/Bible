@@ -63,8 +63,12 @@ Actual GTK captures:
 
 ## Delivery boundary
 
-The corrective source is committed on main; CI and signed alpha publication must
-be checked before announcing availability. No signing key or channel URL changes.
+Published source `d48c760`, CI **39591287215** and alpha publication
+**39592269695** are green. Revision **39592269695-2** was installed by the
+existing system client through the public signed channel, matching Flatpak
+`4825d1f2e23e11edbaede22c342771af5dd5ccbc05f98e0272f2e17b7a735d9a`.
+Constructed packaged `/app` code passes native popup and real comparison checks.
+No signing key or channel URL changes.
 Pending PR38–41 are not merged. PR39 needs these typography/copy changes integrated
 and checked against its worker pagination. PR40 remains the personal-highlight
 review; #45's temporary indicator must remain separate. PR41 remains unpublished
