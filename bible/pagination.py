@@ -45,7 +45,15 @@ class Document:
     copy_text: str | None = None
 
     def copy(self, start, end):
-        return (self.copy_text if self.copy_text is not None else self.text)[start:end]
+        text=self.copy_text if self.copy_text is not None else self.text
+        hidden=sorted((max(start,s.start),min(end,s.end)) for s in self.styles
+                      if s.kind=='hidden' and s.end>start and s.start<end)
+        if not hidden:return text[start:end]
+        pieces=[];position=start
+        for first,last in hidden:
+            if first>position:pieces.append(text[position:first])
+            position=max(position,last)
+        pieces.append(text[position:end]);return ''.join(pieces)
 
     def anchor(self,offset):
         if not self.spans:return Anchor('',0)
@@ -105,6 +113,12 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None):
             from .verse_typography import NUMBER_SCALE, number_rise
             attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(number_rise(context,preferences) if context and preferences else 0)]
         elif span.kind=='verse-start':attrs=[Pango.attr_allow_breaks_new(False)]
+        elif span.kind=='italic':attrs=[Pango.attr_style_new(Pango.Style.ITALIC)]
+        elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
+        elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
+        elif span.kind=='hidden':
+            rectangle=Pango.Rectangle()
+            attrs=[Pango.attr_shape_new(rectangle,rectangle)]
         else:continue
         for attr in attrs:
             attr.start_index=len(document.text[start:left].encode())

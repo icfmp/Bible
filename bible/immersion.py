@@ -27,12 +27,17 @@ class Immersion(Gtk.Overlay):
                            margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
         self.pages.set_direction(Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
         for number in range(2):
-            view=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
+            from .context_indicator import ContextTextView
+            view=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                               left_margin=8,right_margin=8,top_margin=12,bottom_margin=12,hexpand=True,vexpand=True)
             view.set_direction(Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
             if source.rtl:view.set_justification(Gtk.Justification.RIGHT)
             view.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading page')+' '+str(number+1)])
             view.add_css_class(owner.reading_style.scope)
+            owner.reading_style.views.add(view)
+            view._reading_palette=owner.reading_style.palette
+            if self.kind=='bible':
+                owner.passage_actions.bind(view,lambda v=view:owner.passage_actions.immersive(self,v))
             gesture=Gtk.GestureClick(button=1)
             gesture.connect('released',lambda g,n,x,y,v=view:self.clicked(v,x,y));view.add_controller(gesture)
             view.get_buffer().connect('mark-set',lambda *_,v=view:self.selection_changed(v))
@@ -184,6 +189,19 @@ class Immersion(Gtk.Overlay):
         if view.get_buffer().get_has_selection():self.capture_selection()
         elif not any(v.get_buffer().get_has_selection() for v in self.views):self.selection=None
 
+    def update_study_indicator(self):
+        for view in self.views:
+            context=getattr(view,'_study_page',None)
+            if self.kind!='bible' or not context:
+                view.set_study_ranges([]);continue
+            document,first,last=context
+            ranges=[]
+            for span in document.spans:
+                number=len(span.reference.rsplit('.',1)[-1])+1 if self.owner.preferences.value.verse_numbers else 0
+                begin=max(first,span.body-number);end=min(last,span.end)
+                if end>begin:ranges.append((span.reference,begin-first,end-first))
+            view.set_study_ranges(self.tab.study_ranges(self.source.reader,ranges))
+
     def render(self):
         if not self.stream.cursor:return
         self.clicked_reference=None
@@ -195,6 +213,7 @@ class Immersion(Gtk.Overlay):
             if index>=len(self.addresses):view.get_buffer().set_text('');continue
             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
             buffer=view.get_buffer();buffer.set_text(plan.document.text[page.start:page.end])
+            view._study_page=(plan.document,page.start,page.end)
             from .bible_render import bind_copy
             bind_copy(view,plan.document,page.start)
             table=buffer.get_tag_table();body=table.lookup('page-body')
@@ -222,6 +241,12 @@ class Immersion(Gtk.Overlay):
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
                 paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
                       self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
+            from .commentary_format import apply
+            inline=[(s.kind,max(s.start,page.start)-page.start,min(s.end,page.end)-page.start)
+                    for s in plan.document.styles if s.kind in {'hidden','italic','bold','small-caps'}
+                    and s.end>page.start and s.start<page.end]
+            apply(view,inline,p,self.owner.reading_style.palette)
+        self.update_study_indicator()
         self.restore_selection()
         self._updating=False
         anchor=self.stream.anchor();caption=self.source.resource.name
@@ -253,6 +278,7 @@ class Immersion(Gtk.Overlay):
                 buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
 
     def turn(self,direction):
+        self.owner.passage_actions.dismiss()
         if self.stream.cursor and self.stream.turn(direction,self.count):
             self.selection=None;self.render();return True
         return False
@@ -295,7 +321,7 @@ class Immersion(Gtk.Overlay):
     def copy_selection(self,view):
         if not self.selection or not getattr(self,'_restored_selection',False):return
         key,start,end=self.selection;doc=self.stream.plan(key).document
-        value=doc.text[doc.locate(start):doc.locate(end)]
+        value=doc.copy(doc.locate(start),doc.locate(end))
         view.get_clipboard().set(value)
         from gi.repository import GObject
         GObject.signal_stop_emission_by_name(view,'copy-clipboard')
@@ -303,6 +329,8 @@ class Immersion(Gtk.Overlay):
     def any_selection(self):return any(view.get_buffer().get_has_selection() for view in self.views)
 
     def key_pressed(self,controller,key,code,state):
+        if state&Gdk.ModifierType.SHIFT_MASK and key in (Gdk.KEY_Left,Gdk.KEY_Right,Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down):
+            return False
         if key==Gdk.KEY_Escape:
             for popover in self.open_popovers():
                 if popover and popover.get_visible():popover.popdown();return True
@@ -352,6 +380,7 @@ class Immersion(Gtk.Overlay):
         return result
 
     def controls_focused(self):
+        if self.owner.passage_actions.contains(self.owner.get_focus()):return True
         focus=self.owner.get_focus()
         if not focus:return False
         return (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons))

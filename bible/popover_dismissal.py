@@ -29,8 +29,11 @@ def install(owner, popovers):
         target = owner.pick(x, y, Gtk.PickFlags.DEFAULT)
         if target and any(target is p or target.is_ancestor(p) for p in opened):
             return
+        owner._popup_dismissed_event_time=event.get_time()
         for popover in opened:
             popover.popdown()
+            callback=getattr(popover,'parent_dismissed',None)
+            if callback:callback(target)
         # Do not reopen a trigger or select a verse from the dismissal click.
         controller.set_state(Gtk.EventSequenceState.CLAIMED)
 

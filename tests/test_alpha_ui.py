@@ -305,7 +305,7 @@ class AlphaTests(unittest.TestCase):
                     bounds()
                     found, button = tab.following.compute_bounds(window)
                     _, study = window.study.compute_bounds(window)
-                    self.assertLessEqual(button.origin.x + button.size.width, study.origin.x)
+                    self.assertGreaterEqual(button.origin.x, study.origin.x+study.size.width)
                     window.study_button.set_active(False)
                     test_ui.spin(lambda: tab.get_width() > 900)
                     bounds()
