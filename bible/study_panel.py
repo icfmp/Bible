@@ -23,6 +23,7 @@ class StudyPanel(Gtk.Box):
         self.reader=None;self.current_position=None;self.loaded=[];self.ranges={}
         self._display_context=None;self._positioning=False;self._reveal_tick=0
         self._loading=False;self._missing_near=0
+        self._scroll_idle=0;self._load_idle=0;self._processing_scroll=False
         self.translate=tr
         self.add_css_class('background')
         self.add_css_class('study-drawer')
@@ -152,6 +153,7 @@ class StudyPanel(Gtk.Box):
         self.render(tab, installed)
 
     def clear_content(self):
+        self.cancel_scroll()
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
         self._layout_anchor=None
         if self.owner.active_tab:self.owner.active_tab.mark_commentary_range(None,None)
@@ -255,6 +257,7 @@ class StudyPanel(Gtk.Box):
         return next(reversed(self.ranges))
 
     def rebuild(self,anchor=None):
+        self.cancel_scroll()
         self.cancel_reveal();self._positioning=True
         from .paged_sources import CommentaryPages
         from .pagination import Document,StyleSpan
@@ -309,24 +312,49 @@ class StudyPanel(Gtk.Box):
         self._reveal_tick=self.text.add_tick_callback(restore)
 
     def scrolled(self,*_):
-        if self._positioning or not self.loaded or not self.reader or self.owner.closed:return
+        if (self._positioning or not self.loaded or not self.reader or self.owner.closed
+                or not self.owner.split.get_show_sidebar()):return
         if getattr(self.text,'_reader_reflow_tick',0):return
-        self.remember_position()
-        adjustment=self.scroll.get_vadjustment()
-        if not self._loading:
-            before=adjustment.get_value()<100 and self.loaded[0]>0
-            after=adjustment.get_value()+adjustment.get_page_size()>adjustment.get_upper()-180 and self.loaded[-1]+1<len(self.reader.index.sections)
-            if before or after:
-                self._loading=True;GLib.idle_add(self.load_more,-1 if before else 1)
+        # Read layout/anchors after GTK finishes the adjustment notification;
+        # coalesce it with any pending scroll work and cancel it on replacement.
+        if not self._scroll_idle and not self._processing_scroll:
+            self._scroll_idle=GLib.idle_add(self.process_scroll)
+
+    def cancel_scroll(self):
+        for name in ('_scroll_idle','_load_idle'):
+            source=getattr(self,name,0)
+            if source:GLib.source_remove(source);setattr(self,name,0)
+        self._loading=False
+
+    def process_scroll(self):
+        self._scroll_idle=0
+        if (self.owner.closed or not self.owner.split.get_show_sidebar() or
+                self._positioning or not self.loaded or not self.reader or
+                getattr(self.text,'_reader_reflow_tick',0)):return False
+        self._processing_scroll=True
+        try:
+            self.remember_position()
+            adjustment=self.scroll.get_vadjustment()
+            if not self._loading:
+                before=adjustment.get_value()<100 and self.loaded[0]>0
+                after=adjustment.get_value()+adjustment.get_page_size()>adjustment.get_upper()-180 and self.loaded[-1]+1<len(self.reader.index.sections)
+                if before or after:
+                    self._loading=True
+                    self._load_idle=GLib.idle_add(self.load_more,-1 if before else 1)
+        finally:self._processing_scroll=False
+        return False
 
     def load_more(self,direction):
+        self._load_idle=0
         self._loading=False
-        if self.owner.closed or not self.reader or not self.loaded:return False
+        if self.owner.closed or not self.owner.split.get_show_sidebar() or not self.reader or not self.loaded:return False
         anchor=self.anchor()
         first=max(0,self.loaded[0]-3) if direction<0 else self.loaded[0]
         last=min(len(self.reader.index.sections),self.loaded[-1]+4) if direction>0 else self.loaded[-1]+1
-        self.loaded=list(range(first,last))
-        if len(self.loaded)>20:self.loaded=self.loaded[:20] if direction<0 else self.loaded[-20:]
+        loaded=list(range(first,last))
+        if len(loaded)>20:loaded=loaded[:20] if direction<0 else loaded[-20:]
+        if loaded==self.loaded:return False
+        self.loaded=loaded
         self.rebuild(anchor);return False
 
     def remember_position(self):

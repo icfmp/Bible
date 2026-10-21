@@ -30,7 +30,8 @@ def main():
             assert study.header.get_height()==window.header.get_height()
             original=study.entry_text
             buffer=study.text.get_buffer()
-            visible=buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),False)
+            document=study.text._bible_copy_source[0]
+            visible=document.copy(0,len(document.text))
             assert '* 24 *' not in visible and '* it was *' not in visible
             assert '<hi' not in visible and 'The Creation.' in visible
             native.move_at(window,2,2);spin(duration=.2)

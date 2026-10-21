@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
-import html
 import json
 from pathlib import Path
 import re
@@ -125,25 +124,8 @@ def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revis
                   'source_sha256': digest(sources), 'bundle_sha256': digest(bundle)}
     old.write_text(json.dumps(provenance, indent=2) + '\n')
     (site / '.nojekyll').touch()
-    (site / 'index.html').write_text(f'''<!doctype html><html lang="fr"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width"><title>Bible — canal alpha</title>
-<main style="max-width:48rem;margin:3rem auto;padding:1rem;font:1.1rem system-ui;line-height:1.6">
-<h1>Bible — préversions Linux x86_64</h1>
-<p><a href="alpha/Bible.flatpakref">Installer Bible avec Logiciels GNOME</a></p>
-<p>Installer une seule fois, puis utiliser <code>flatpak update --user</code> ou Logiciels.
-Le runtime GNOME provient de Flathub ; Bible utilise son propre canal de test signé.</p>
-<p>Avant de remplacer une installation depuis un bundle,
-<a href="https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md">lire les instructions</a>.
-Aucune suppression automatique de données.</p>
-<p>Préversion susceptible de défauts. L’essai manuel sur le poste GNOME reste nécessaire.</p>
-<p>Source : <a href="https://github.com/icfmp/Bible/commit/{source}">{source[:12]}</a> ;
-révision {html.escape(str(revision))} ; <a href="alpha/{sources.name}">sources correspondantes</a>.
-GPL-2.0-only ; dépendances et contenus téléchargés sous leurs licences propres.</p>
-<p><a href="alpha/bible-alpha.flatpakrepo">Ajouter le dépôt</a> ·
-<a href="alpha/bible-alpha.gpg">Clé publique</a> ·
-<a href="https://github.com/icfmp/Bible/issues">Signaler un problème</a> ·
-<a href="https://github.com/icfmp/Bible/releases">Bundles de secours</a></p>
-</main></html>''')
+    from tools.site_render import render
+    render(site, provenance)
     for path in site.rglob('*'):
         assert not path.is_symlink(), f'Pages cannot publish symlinks: {path}'
     assert sum(p.stat().st_size for p in site.rglob('*') if p.is_file()) < MAX_SITE_BYTES, 'Site exceeds the 512 MiB publishing limit; last deployment must be kept'

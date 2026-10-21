@@ -79,6 +79,15 @@ def main():
             native.click_at(other,*point(other,offset+4));spin(lambda:actions.target is not None)
             assert actions.target.source.resource==secondary
             assert actions.target.source.reader.versification==system
+            if actions.highlight_button:
+                saved=actions.target
+                native.click(actions.highlight_button)
+                native.click(actions.highlight_popover.get_child().get_first_child())
+                for reference in saved.references:
+                    mark=window.highlights.entries[(system,reference)]
+                    assert mark['resource']==secondary and mark['color']=='yellow'
+                assert actions.target==saved and actions.valid()
+                capture(args.prefix+'-highlight-candidate.png')
             native.click(actions.note_button);editor=window.note_editor
             assert editor.context['origin_translation']==secondary and editor.context['versification']==system
             editor.close();spin()

@@ -23,6 +23,7 @@ from .immersion import Immersion
 from .immersion_hints import ImmersionHints
 from .pagination import Anchor
 from .paged_sources import BibleBookPages, CommentaryPages
+from .highlights import HighlightStore,COLORS
 from .notes_window import NoteEditor, NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
@@ -34,6 +35,13 @@ class Window(Adw.ApplicationWindow):
         self.library = library
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
+        from weakref import WeakValueDictionary
+        if not hasattr(app,'_highlight_stores'):app._highlight_stores=WeakValueDictionary()
+        path=(library.root.parent/'highlights.json').resolve()
+        self.highlights=app._highlight_stores.get(path)
+        if self.highlights is None:
+            self.highlights=HighlightStore(path);app._highlight_stores[path]=self.highlights
+        self.highlights_window=None
         self.reading_style = ReadingStyle(self)
         self.closed = False
         self.immersion=None;self._immersion_help_seen=False
@@ -77,7 +85,7 @@ class Window(Adw.ApplicationWindow):
                          action_name='win.new-tab')
         header.pack_start(new)
         commands = Gio.Menu()
-        for label,action in [('Passage note','note'),('My notes','notes'),('New tab','new-tab'),
+        for label,action in [('Passage note','note'),('My notes','notes'),('Highlights','highlights'),('New tab','new-tab'),
                              ('Library','translations'),('History back','history-back'),('History forward','history-forward'),
                              ('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
                              ('Reading appearance','appearance'),('Compare translations','compare'),('Immersive mode','immersive')]:
@@ -198,6 +206,9 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('copy-reference',lambda *_:self.copy_passage(reference_only=True))
         self.add_action_callback('note', lambda *_: self.new_note())
         self.add_action_callback('notes', lambda *_: self.open_notes())
+        self.add_action_callback('highlights',lambda *_:self.open_highlights())
+        for color in COLORS:self.add_action_callback('highlight-'+color,lambda *_,value=color:self.mark_highlight(value))
+        self.add_action_callback('highlight-remove',lambda *_:self.mark_highlight(None))
         self.lookup_action('note').set_enabled(self.notes_store is not None)
         self.lookup_action('notes').set_enabled(self.notes_store is not None)
         self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
@@ -359,10 +370,16 @@ class Window(Adw.ApplicationWindow):
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
         self.reading_style.decorate(tab.text)
-        tab.reading_overlay.add_css_class(self.reading_style.scope+'-surface')
+        # The viewport, headers, gutters and empty comparison space belong to
+        # the same reading palette as the text, not the native window surface.
+        for surface in (tab.reading_layout,tab.reading_overlay,tab.scroll,
+                        tab.comparison_box,tab.comparison_overlay,tab.comparison_scroll):
+            surface.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
         from .comparison_sync import ComparisonSync
         tab.comparison_sync = ComparisonSync(self, tab)
+        tab._highlight_store=self.highlights
+        tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
         self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
         self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
         page = self.view.append(tab)
@@ -423,6 +440,8 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if not tab:
             return
+        for color in [*COLORS,'remove']:
+            self.lookup_action('highlight-'+color).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
         parent=self.reader_controls.get_parent()
         if parent is not tab.reading_overlay:
             if parent:parent.remove_overlay(self.reader_controls)
@@ -535,6 +554,7 @@ class Window(Adw.ApplicationWindow):
         self.study.header.set_show_end_title_buttons(visible)
 
     def sidebar_changed(self, *_):
+        if not self.split.get_show_sidebar():self.study.cancel_scroll()
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
@@ -584,6 +604,42 @@ class Window(Adw.ApplicationWindow):
         if self.notes_window and not self.notes_window.closed:
             self.notes_window.labels.set_suggestions(self.notes_store.labels())
             self.notes_window.refresh()
+
+    def refresh_highlights(self):
+        for window in self.get_application().get_windows():
+            if (isinstance(window,Window) and not getattr(window,'closed',True)
+                    and hasattr(window,'view') and window.highlights is self.highlights):
+                window.paint_highlights()
+
+    def paint_highlights(self):
+        for tab in self.tabs():tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
+        if self.immersion:
+            self.immersion.capture_selection();self.immersion.render()
+        if self.highlights_window and not self.highlights_window.closed:self.highlights_window.refresh()
+
+    def mark_highlight(self,color):
+        tab=self.active_tab
+        if not tab or not tab.reader or (self.immersion and self.immersion.kind!='bible'):return
+        try:
+            start,end=self.immersion.selected_passage() if self.immersion else tab.selected_passage()
+            key=tab.reader.key(start);last=tab.reader.key(end).getIndex();references=[]
+            while key.getIndex()<=last:
+                reference=key.getOSISRef()
+                if tab.reader.has_reference(reference):references.append(reference)
+                if len(references)>1000:raise ValueError('Select at most 1000 verses')
+                key.increment()
+                if key.popError()!='\x00':break
+            self.highlights.set(tab.reader.versification,references,color,tab.state.resource)
+            self.refresh_highlights()
+        except (ValueError,OSError,TypeError) as error:
+            tab.status.set_text(str(error));tab.status.set_visible(True)
+
+    def open_highlights(self):
+        if self.immersion:self.leave_immersion()
+        from .highlight_ui import HighlightsWindow
+        if self.highlights_window is None or self.highlights_window.closed:self.highlights_window=HighlightsWindow(self)
+        self.highlights_window.refresh();self.highlights_window.present()
+        return self.highlights_window
 
     def open_notes(self):
         if self.immersion:self.leave_immersion()
@@ -708,6 +764,7 @@ class Window(Adw.ApplicationWindow):
         self.save_session()
         self.closed = True
         self.study.cancel_reveal()
+        self.study.cancel_scroll()
         self.reading_style.close()
         Gtk.StyleContext.remove_provider_for_display(self.get_display(),self.appearance.swatch_css)
         if self.notes_space:self.notes_space.closed=True

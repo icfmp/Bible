@@ -7,12 +7,15 @@ import unittest
 from unittest.mock import patch
 
 from bible.library import Library, Resource, catalogue, catalogues, resource_from_section, config
-from bible.providers import CROSSWIRE, EXTRA, ANDBIBLE, STEP, identity
+from bible.providers import CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, identity
 from bible.session import Session, SessionStore, TabState
 from tests.test_library import RESOURCE, fixture, archive_bytes
 
 
 class ProviderTests(unittest.TestCase):
+    def test_ebible_identity_does_not_collide_with_historical_crosswire_ids(self):
+        self.assertEqual(identity(EBIBLE.id,'fraLSG1910eb'),'ebible~fraLSG1910eb')
+        self.assertEqual(identity(CROSSWIRE.id,'fraLSG1910eb'),'fraLSG1910eb')
     def test_one_failed_source_keeps_others_and_retry_is_fresh(self):
         def load(provider,timings=None):
             if provider == EXTRA:

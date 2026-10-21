@@ -118,6 +118,7 @@ class ReadingStyle:
         appearance = getattr(self.owner, 'appearance', None)
         if appearance:
             appearance.sync_system()
+        if hasattr(self.owner,'view') and hasattr(self.owner,'highlights'):self.owner.refresh_highlights()
         study = getattr(self.owner, 'study', None)
         if study and getattr(study, 'appearance', None):study.appearance.sync_system()
 

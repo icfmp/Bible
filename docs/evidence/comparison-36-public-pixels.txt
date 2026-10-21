@@ -1,0 +1,18 @@
+PACKAGED IMPORT: /app/lib/bible-python/bible/__init__.py actual Xvfb screenshots delegated to parent Pillow
+SURFACE white-plain white RGB (255, 255, 255) widths 787 787
+SURFACE white-study white RGB (255, 255, 255) widths 507 507
+SURFACE paper-plain paper RGB (244, 236, 216) widths 787 787
+SURFACE paper-study paper RGB (244, 236, 216) widths 507 507
+SURFACE dark-plain dark RGB (40, 40, 40) widths 787 787
+SURFACE dark-study dark RGB (40, 40, 40) widths 507 507
+SURFACE black-plain black RGB (0, 0, 0) widths 787 787
+SURFACE black-study black RGB (0, 0, 0) widths 507 507
+SURFACE contrast-day-plain contrast-day RGB (255, 255, 255) widths 787 787
+SURFACE contrast-day-study contrast-day RGB (255, 255, 255) widths 507 507
+SURFACE contrast-night-plain contrast-night RGB (0, 0, 0) widths 787 787
+SURFACE contrast-night-study contrast-night RGB (0, 0, 0) widths 507 507
+SURFACE resize-1200 white RGB (255, 255, 255) widths 738 738
+SURFACE resize-1600 white RGB (255, 255, 255) widths 507 507
+SURFACE unavailable-empty white RGB (255, 255, 255) widths 507 507
+SURFACE restored white RGB (255, 255, 255) widths 507 507
+PASS: viewport/margins/gutter/empty space pixels, all palettes and emulated high contrast, study open/closed, resize, empty/error and restored content; equal widths, selection and anchor
