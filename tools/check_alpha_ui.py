@@ -142,6 +142,10 @@ def main():
                 inputs.click(nav.close_button)
                 assert not nav.get_visible()
                 second = window.new_tab()
+                # A newly selected page is mapped before its overlay buttons
+                # receive their first allocation. Do not click a zero-width
+                # target at an obsolete position after the split-header layout.
+                spin(lambda:second.following.get_mapped() and second.following.get_width()>0,duration=.05)
                 inputs.click(second.following)
                 assert second.state.reference == '1Cor.1.1'
                 assert window.tabs()[0].state.reference == 'Exod.1.1'

@@ -1,0 +1,10 @@
+IMPORT /app/lib/bible-python/bible/__init__.py
+MODULES [('FreSegond1910', '4.0', 'Segond'), ('MHC', '2.2', 'KJV')]
+LOAD (2, 5, 2, 8) chars 39599
+LOAD (2, 8, 2, 11) chars 55032
+LOAD (2, 11, 2, 14) chars 64400
+LOAD (2, 14, 2, 17) chars 91828
+LOAD (2, 17, 2, 20) chars 108456
+LOAD (2, 20, 4, 23) chars 135171
+TRUE END Rev.22.20 Rev.22.21 loaded [5504, 5505]
+PASS: progressive boundaries, bounded 20-entry buffer, native reverse/wheel/keyboard/long drag, both sync directions, tab/source/hide cancellation, real resource end, notes/session reopen
