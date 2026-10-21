@@ -136,7 +136,7 @@ class Window(Adw.ApplicationWindow):
         self.split = Adw.OverlaySplitView(content=layout, show_sidebar=False,
                                           min_sidebar_width=360, max_sidebar_width=560,
                                           sidebar_width_fraction=.38,
-                                          sidebar_position=Gtk.PackType.START)
+                                          sidebar_position=Gtk.PackType.END)
         self.study = StudyPanel(self)
         self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
         self.header_height_group.add_widget(header)
@@ -144,6 +144,7 @@ class Window(Adw.ApplicationWindow):
         self.reading_style.decorate(self.study.text)
         self.reading_sync=ReadingSync(self)
         self.split.set_sidebar(self.study)
+        self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
         self.main_pages.add_named(self.split,'reading')
@@ -152,7 +153,6 @@ class Window(Adw.ApplicationWindow):
         breakpoint.add_setter(self.split, 'collapsed', True)
         breakpoint.add_setter(self.split, 'min-sidebar-width', 280.0)
         breakpoint.add_setter(self.split, 'sidebar-width-fraction', 1.0)
-        breakpoint.add_setter(self.study.header, 'show-end-title-buttons', True)
         self.add_breakpoint(breakpoint)
         tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
         tiny_header.add_setter(self.split, 'collapsed', True)
@@ -160,7 +160,6 @@ class Window(Adw.ApplicationWindow):
         # adaptive sizing and its single visible set of native window controls.
         tiny_header.add_setter(self.split, 'min-sidebar-width', 280.0)
         tiny_header.add_setter(self.split, 'sidebar-width-fraction', 1.0)
-        tiny_header.add_setter(self.study.header, 'show-end-title-buttons', True)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
         tiny_header.add_setter(self.my_notes_button,'visible',False)
@@ -539,6 +538,11 @@ class Window(Adw.ApplicationWindow):
     def toggle_study(self, *_):
         if not self._syncing_study:
             self.split.set_show_sidebar(self.study_button.get_active())
+
+    def sync_header_controls(self):
+        visible=self.split.get_show_sidebar()
+        self.header.set_show_end_title_buttons(not visible)
+        self.study.header.set_show_end_title_buttons(visible)
 
     def sidebar_changed(self, *_):
         if self._syncing_study:

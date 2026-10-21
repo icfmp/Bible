@@ -26,7 +26,7 @@ def main():
             spin(lambda:not tab._restoring_scroll and not window.study._positioning,duration=.3)
             study=window.study
             _,sidebar=study.compute_bounds(window);_,bible=tab.compute_bounds(window)
-            assert sidebar.origin.x+sidebar.size.width<=bible.origin.x+1
+            assert bible.origin.x+bible.size.width<=sidebar.origin.x+1
             assert study.header.get_height()==window.header.get_height()
             original=study.entry_text
             buffer=study.text.get_buffer()
@@ -82,12 +82,13 @@ def main():
                 _,bounds=tab.compute_bounds(window)
                 # Native clipping can retain a mapped sidebar widget. Verify
                 # the public state and completed allocation, not that detail.
-                assert (bounds.origin.x>100) if shown else (bounds.origin.x<2)
+                assert bounds.origin.x<2
+                assert (bounds.size.width<window.get_width()-100) if shown else (bounds.size.width>=window.get_width()-2)
             window.set_default_size(360,700)
             spin(lambda:window.split.get_collapsed() and window.get_width()<380,duration=.3)
             assert study.get_width()<=window.get_width()
             native.move_at(window,2,2);ImageGrab.grab().save(args.prefix+'-narrow.png')
-            print('PASS: full-height left drawer, aligned headers, compact actions, shared Aa, '
+            print('PASS: full-height right drawer, aligned headers, compact actions, shared Aa, '
                   'offline source/conditions, bidirectional following, no history spam, narrow adaptation, '
                   'rapid toggles and disabled animations',flush=True)
             print('MHC_entry_sha256',hashlib.sha256(original.encode()).hexdigest(),
