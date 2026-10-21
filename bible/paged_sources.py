@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
 from .book_names import display_name
 from .i18n import LANGUAGE
+from .verse_typography import first_word_length
 
 
 class BiblePages:
@@ -30,6 +31,7 @@ class BiblePages:
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
             pieces.append(body);offset+=len(body)
+            if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
             spans.append(PassageSpan(reference,start,body_start,offset))
             if not body.endswith('\n'):pieces.append(' ');offset+=1
         return Document(key,''.join(pieces),tuple(spans),tuple(styles))

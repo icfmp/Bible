@@ -32,6 +32,8 @@ def effective_palette(preferences, dark, high_contrast):
 class ReadingStyle:
     def __init__(self, owner):
         self.owner = owner
+        from weakref import WeakSet
+        self.views = WeakSet()
         self.manager = Adw.StyleManager.get_default()
         self.scope = 'bible-content-' + str(id(owner))
         self.provider = Gtk.CssProvider()
@@ -48,6 +50,8 @@ class ReadingStyle:
         self.changed()
 
     def decorate(self, view):
+        self.views.add(view)
+        view._reading_palette = self.palette
         view.add_css_class(self.scope)
         self.apply_text(view)
 
@@ -93,6 +97,12 @@ class ReadingStyle:
 {selector}:focus-visible {{ outline: 2px solid {fg}; outline-offset: -2px; }}
 '''
         self.provider.load_from_data(self.css.encode())
+        from .verse_typography import NUMBER_COLORS
+        for view in self.views:
+            view._reading_palette = self.palette
+            for name in ['verse-number', 'page-number']:
+                tag = view.get_buffer().get_tag_table().lookup(name)
+                if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
         appearance = getattr(self.owner, 'appearance', None)
         if appearance:
             appearance.sync_system()

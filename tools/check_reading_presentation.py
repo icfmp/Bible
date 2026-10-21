@@ -26,10 +26,11 @@ def main():
         window.appearance.reset()
         assert window.preferences.value.size==14
         assert tab.navigate('FreSegond1910','John.3.16')
-        capture('airy')
+        assert window.preferences.value.line_spacing=='very-airy'
+        capture('very-airy-default')
         assert window.reader_controls.get_parent() is tab.reading_overlay
+        window.appearance.update('line_spacing','airy');capture('airy')
         window.appearance.update('line_spacing','very-airy');capture('very-airy')
-        window.appearance.update('line_spacing','airy')
         for palette,mode,attribute in [('white','day','day_palette'),('paper','day','day_palette'),
                                        ('dark','night','night_palette'),('black','night','night_palette')]:
             window.appearance.update(attribute,palette);window.appearance.update('mode',mode)

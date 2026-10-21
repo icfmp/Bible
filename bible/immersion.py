@@ -197,10 +197,13 @@ class Immersion(Gtk.Overlay):
             body.props.family=p.font;body.props.size_points=p.size
             buffer.apply_tag(body,buffer.get_start_iter(),buffer.get_end_iter())
             view.set_pixels_inside_wrap(SPACING[p.line_spacing]);view.set_pixels_below_lines(SPACING[p.line_spacing])
-            for kind in ('chapter','heading','number'):
+            for kind in ('chapter','heading','number','verse-start'):
                 tag=table.lookup('page-'+kind)
                 if tag is None:tag=buffer.create_tag('page-'+kind)
-                if kind=='number':tag.props.scale=.65;tag.props.rise=6000
+                if kind=='number':
+                    from .verse_typography import configure
+                    configure(tag,view,p,self.owner.reading_style.palette)
+                elif kind=='verse-start':tag.props.allow_breaks=False
                 else:tag.props.weight=700;tag.props.scale=1.35 if kind=='chapter' else 1.12
                 for style in plan.document.styles:
                     first,last=max(page.start,style.start),min(page.end,style.end)

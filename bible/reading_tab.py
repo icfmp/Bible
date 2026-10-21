@@ -51,7 +51,8 @@ class ReadingTab(Gtk.Box):
         self.text.set_pixels_inside_wrap(5)
         self.text.set_pixels_below_lines(9)
         self._body_tag = self.text.get_buffer().create_tag(None)
-        self._number_tag = self.text.get_buffer().create_tag(None, scale=0.65, rise=6000)
+        self._number_tag = self.text.get_buffer().create_tag('verse-number')
+        self._verse_start_tag = self.text.get_buffer().create_tag('verse-start', allow_breaks=False)
         self._heading_tag = self.text.get_buffer().create_tag(None, weight=700, pixels_above_lines=16, pixels_below_lines=12)
         self._chapter_tag = self.text.get_buffer().create_tag(None, weight=700, justification=Gtk.Justification.CENTER, pixels_above_lines=20, pixels_below_lines=20)
         self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
@@ -287,6 +288,8 @@ class ReadingTab(Gtk.Box):
         self._body_tag.props.size_points = preferences.size
         self._heading_tag.props.size_points = preferences.size * 1.12
         self._chapter_tag.props.size_points = preferences.size * 1.35
+        from .verse_typography import configure, first_word_length
+        configure(self._number_tag, self.text, preferences, getattr(self.text, '_reading_palette', 'white'))
         key = self.reader.key(chapter.reference + '.1')
         title = display_name(key.getOSISBookName(), key.getBookName(), LANGUAGE)
         if preferences.chapter_numbers:title += ' ' + str(key.getChapter())
@@ -316,6 +319,7 @@ class ReadingTab(Gtk.Box):
             self._marker_ends[reference] = offset
             if number:spans.append((start,offset,self._number_tag))
             pieces.append(body);offset += len(body)
+            if number:spans.append((start,self._marker_ends[reference]+first_word_length(body),self._verse_start_tag))
             self._verse_ranges[reference] = (start,offset)
             separator = ' ' if not body.endswith('\n') else ''
             pieces.append(separator);offset += len(separator)
