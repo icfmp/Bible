@@ -26,15 +26,17 @@ class PassagePopover(Gtk.Popover):
         self.book_index, self.chapter_number = 0, None
         self.book_rows, self.chapter_buttons = {}, {}
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'),
+                                width_chars=12,max_width_chars=24,hexpand=True)
+        self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
+        self.direct.connect('activate',lambda *_:self.commit())
+        self.content.append(self.direct)
+        self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
+        self.content.append(self.status)
         top = Gtk.Box(spacing=8)
         top.append(Gtk.Label(label=tr('Version')))
         self.version = self.dropdown('Version', self.version_changed)
         top.append(self.version)
-        self.download_button=Gtk.Button(icon_name='folder-download-symbolic',tooltip_text=tr('Download a translation'))
-        self.download_button.add_css_class('flat')
-        self.download_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Download a translation')])
-        self.download_button.connect('clicked',self.open_library)
-        top.append(self.download_button)
         self.close_button = Gtk.Button(icon_name='window-close-symbolic', tooltip_text=tr('Close'))
         self.close_button.add_css_class('flat')
         self.close_button.update_property([Gtk.AccessibleProperty.LABEL], [tr('Close')])
@@ -93,15 +95,6 @@ class PassagePopover(Gtk.Popover):
         switcher=Gtk.StackSwitcher(stack=self.pages,halign=Gtk.Align.CENTER)
         self.content.append(switcher)
         self.content.append(self.pages)
-        self.direct_expander = Gtk.Expander(label=tr('Direct reference'))
-        self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'),
-                                width_chars=12, max_width_chars=24)
-        self.direct.update_property([Gtk.AccessibleProperty.LABEL], [tr('Direct reference')])
-        self.direct.connect('activate', lambda *_: self.commit())
-        self.direct_expander.set_child(self.direct)
-        self.content.append(self.direct_expander)
-        self.status = Gtk.Label(wrap=True, xalign=0, visible=False, max_width_chars=32)
-        self.content.append(self.status)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                          propagate_natural_width=True,
                                          propagate_natural_height=True)

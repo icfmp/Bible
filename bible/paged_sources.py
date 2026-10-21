@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
 from .book_names import display_name
 from .i18n import LANGUAGE
+from .verse_typography import first_word_length
 
 
 class BiblePages:
@@ -24,15 +25,22 @@ class BiblePages:
                     text=segment.text.strip()+'\n';pieces.append(text)
                     styles.append(StyleSpan('heading',offset,offset+len(text)));offset+=len(text)
             body=''.join(s.text for s in segments if s.kind!='heading')
-            leading=body[:len(body)-len(body.lstrip('\n'))]
+            leading=body[:len(body)-len(body.lstrip())]
             if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
             number=reference.rsplit('.',1)[-1]+' ' if preferences.verse_numbers else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
             pieces.append(body);offset+=len(body)
+            if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
             spans.append(PassageSpan(reference,start,body_start,offset))
             if not body.endswith('\n'):pieces.append(' ');offset+=1
-        return Document(key,''.join(pieces),tuple(spans),tuple(styles))
+        original=''.join(pieces)
+        display=list(original)
+        for style in styles:
+            if style.kind=='verse-start':
+                for index in range(style.start,style.end):
+                    if display[index].isspace():display[index]='\u00a0'
+        return Document(key,''.join(display),tuple(spans),tuple(styles),original)
     def neighbour(self,key,direction):
         before,after=self.reader.neighbours(key+'.1')
         reference=before if direction<0 else after
@@ -48,8 +56,13 @@ class CommentaryPages:
     def document(self,key,preferences):
         section=self.reader.index.sections[key]
         text=self.reader.index.text(key)
+        from .commentary_format import format_entry
+        text,inline,titles=format_entry(self.reader.index.raw(key),text,str(self.reader.module.getConfigEntry('SourceType')))
+        prefix=''.join(title+'\n' for title in titles)
+        styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
+        styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
-        return Document(key,text,(PassageSpan(reference,0,0,len(text)),))
+        return Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
     def neighbour(self,key,direction):return None  # Page navigation stops at entry boundaries.
     def entry_neighbour(self,key,direction):
         position=key+direction

@@ -99,15 +99,24 @@ class Window(Adw.ApplicationWindow):
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
         self.comparison_popover.set_child(self.comparison_choices)
         self.comparison_button.set_popover(self.comparison_popover)
+        from .popover_dismissal import install
+        self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
+        self._popover_dismissal = install(self, self._reading_popovers)
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
         for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
-                             (self.my_notes_button,'My notes'),(self.study_button,'Study'),
-                             (self.immersive_button,'Immersive mode'),(self.appearance_button,'Reading appearance'),(self.comparison_button,'Compare translations')]:
+                             (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
+        self.reader_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,
+                                    margin_top=12,margin_end=12)
+        for widget,label in [(self.comparison_button,'Compare translations'),
+                             (self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
+            widget.add_css_class('flat')
+            widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+            self.reader_controls.append(widget)
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
@@ -119,30 +128,39 @@ class Window(Adw.ApplicationWindow):
         self.view = Adw.TabView(vexpand=True)
         self.bar = Adw.TabBar(view=self.view, autohide=False)
         layout.append(self.bar)
-        self.split = Adw.OverlaySplitView(content=self.view, show_sidebar=False,
-                                          min_sidebar_width=300, max_sidebar_width=420,
+        layout.append(self.view)
+        self.header = header
+        self.split = Adw.OverlaySplitView(content=layout, show_sidebar=False,
+                                          min_sidebar_width=360, max_sidebar_width=560,
+                                          sidebar_width_fraction=.38,
                                           sidebar_position=Gtk.PackType.END)
         self.study = StudyPanel(self)
+        self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        self.header_height_group.add_widget(header)
+        self.header_height_group.add_widget(self.study.header)
         self.reading_style.decorate(self.study.text)
         self.reading_sync=ReadingSync(self)
         self.split.set_sidebar(self.study)
+        self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
-        layout.append(self.split)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
-        self.main_pages.add_named(layout,'reading')
+        self.main_pages.add_named(self.split,'reading')
         self.set_content(self.main_pages)
-        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
+        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
+        breakpoint.add_setter(self.split, 'min-sidebar-width', 280.0)
+        breakpoint.add_setter(self.split, 'sidebar-width-fraction', 1.0)
         self.add_breakpoint(breakpoint)
         tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
         tiny_header.add_setter(self.split, 'collapsed', True)
+        # Adw breakpoints do not stack: the tiny layout also needs the drawer's
+        # adaptive sizing and its single visible set of native window controls.
+        tiny_header.add_setter(self.split, 'min-sidebar-width', 280.0)
+        tiny_header.add_setter(self.split, 'sidebar-width-fraction', 1.0)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
         tiny_header.add_setter(self.my_notes_button,'visible',False)
         tiny_header.add_setter(self.study_button,'visible',False)
-        tiny_header.add_setter(self.appearance_button,'visible',False)
-        tiny_header.add_setter(self.comparison_button,'visible',False)
-        tiny_header.add_setter(self.immersive_button,'visible',False)
         self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
@@ -207,6 +225,8 @@ class Window(Adw.ApplicationWindow):
         if not session.tabs:
             names = self.library.installed('bible')
             session.tabs = [TabState(resource=names[0] if names else None)]
+        from .passage_actions import PassageActions
+        self.passage_actions=PassageActions(self)
         for state in session.tabs:
             self.append_tab(state)
         self.view.set_selected_page(self.view.get_nth_page(session.selected))
@@ -244,6 +264,7 @@ class Window(Adw.ApplicationWindow):
         else:self.enter_immersion('bible')
 
     def enter_immersion(self,kind='bible'):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         if self.immersion:self.leave_immersion()
         tab=self.active_tab
         if not tab or not tab.reader:return False
@@ -262,7 +283,8 @@ class Window(Adw.ApplicationWindow):
             else:
                 current=study.anchor()
                 if current:
-                    key,offset=current;doc=source.document(key,self.preferences.value);anchor=doc.anchor(offset)
+                    key,offset=current;doc=source.document(key,self.preferences.value)
+                    anchor=doc.anchor(doc.spans[0].body+offset if offset else 0)
         else:
             source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
             anchor=Anchor(tab.state.reference)
@@ -274,7 +296,7 @@ class Window(Adw.ApplicationWindow):
                     text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
                     anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
             key=source.key(anchor.reference)
-        self.navigation.popdown();self.appearance.popdown()
+        for popover in self._reading_popovers:popover.popdown()
         self.reading_sync.driver=None
         immersion=Immersion(self,source,key,anchor);self.immersion=immersion
         self.main_pages.add_named(immersion,'immersive');self.main_pages.set_visible_child_name('immersive')
@@ -282,6 +304,7 @@ class Window(Adw.ApplicationWindow):
         self.fullscreen();return True
 
     def leave_immersion(self):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         immersion=self.immersion
         if not immersion:return
         anchor,key=immersion.finish();tab=immersion.tab;self.immersion=None
@@ -335,8 +358,17 @@ class Window(Adw.ApplicationWindow):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
-        tab.text.add_css_class(self.reading_style.scope)
+        self.reading_style.decorate(tab.text)
+        # The viewport, headers, gutters and empty comparison space belong to
+        # the same reading palette as the text, not the native window surface.
+        for surface in (tab.reading_layout,tab.reading_overlay,tab.scroll,
+                        tab.comparison_box,tab.comparison_overlay,tab.comparison_scroll):
+            surface.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
+        from .comparison_sync import ComparisonSync
+        tab.comparison_sync = ComparisonSync(self, tab)
+        self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
+        self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page
@@ -355,6 +387,7 @@ class Window(Adw.ApplicationWindow):
         return page.get_child()
 
     def navigate_selection(self, resource, reference, new_tab=False):
+        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
         try:
             if new_tab:
                 from .sword_provider import Reader
@@ -380,7 +413,6 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:self.immersion.reveal_controls()
         button.set_active(True)
         self.navigation.sync(force=True)
-        self.navigation.direct_expander.set_expanded(direct)
         (self.navigation.direct if direct else self.navigation.search).grab_focus()
 
     def step_chapter(self, direction):
@@ -395,6 +427,10 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if not tab:
             return
+        parent=self.reader_controls.get_parent()
+        if parent is not tab.reading_overlay:
+            if parent:parent.remove_overlay(self.reader_controls)
+            tab.reading_overlay.add_overlay(self.reader_controls)
         self.immersive_button.set_sensitive(tab.reader is not None)
         self.lookup_action('immersive').set_enabled(tab.reader is not None)
         for name in ['copy-passage','copy-with-reference','copy-reference']:
@@ -419,6 +455,8 @@ class Window(Adw.ApplicationWindow):
 
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
+        self.appearance.sync()
+        if getattr(self.study,'appearance',None):self.study.appearance.sync()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
         self.reading_style.apply_text(self.study.text)
@@ -444,6 +482,8 @@ class Window(Adw.ApplicationWindow):
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
         self.active_tab.refresh_comparison()
         self.schedule_save()
+        # Finish the nested GtkDropDown activation before dismissing its parent.
+        GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):
         if self.immersion:self.leave_immersion()
@@ -493,14 +533,24 @@ class Window(Adw.ApplicationWindow):
         if not self._syncing_study:
             self.split.set_show_sidebar(self.study_button.get_active())
 
+    def sync_header_controls(self):
+        visible=self.split.get_show_sidebar()
+        self.header.set_show_end_title_buttons(not visible)
+        self.study.header.set_show_end_title_buttons(visible)
+
     def sidebar_changed(self, *_):
+        if not self.split.get_show_sidebar():self.study.cancel_scroll()
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
+        if not visible:
+            for popover in self.study.popovers:popover.popdown()
         self._syncing_study = True
         self.study_button.set_active(visible)
         if self.active_tab:
             self.active_tab.state.study_visible = visible
+            if visible:self.study.update_indicator()
+            else:self.active_tab.mark_commentary_range(None,None)
         self._syncing_study = False
         self.schedule_save()
 
@@ -567,20 +617,24 @@ class Window(Adw.ApplicationWindow):
                        origin_language=self.library.resource(tab.state.resource).language)
         return self.edit_note(context=context)
 
-    def open_passage_notes(self, passage=None):
+    def open_passage_notes(self, passage=None, *, resource=None, reader=None):
         tab = self.active_tab
-        if not self.notes_store or not tab or not tab.reader:
+        reader=reader or (tab.reader if tab else None)
+        resource=resource or (tab.state.resource if tab else None)
+        if not self.notes_store or not tab or not reader:
             return
         start, end = passage or tab.selected_passage()
-        notes = self.notes_store.passage(tab.reader.versification, start, end)
+        notes = self.notes_store.passage(reader.versification, start, end)
         if len(notes) == 1:
             return self.edit_note(note=notes[0])
         if not notes:
-            return self.new_note(force_new=True)
+            context=dict(versification=reader.versification,start=start,end=end,
+                         origin_translation=resource,origin_language=self.library.resource(resource).language)
+            return self.edit_note(context=context)
         window = self.open_notes()
         window.search.set_text('')
         window.labels.set_values([])
-        window.passage_filter = (tab.reader.versification, start, end)
+        window.passage_filter = (reader.versification, start, end)
         window.refresh()
         return window
 
@@ -659,6 +713,7 @@ class Window(Adw.ApplicationWindow):
         self.save_session()
         self.closed = True
         self.study.cancel_reveal()
+        self.study.cancel_scroll()
         self.reading_style.close()
         Gtk.StyleContext.remove_provider_for_display(self.get_display(),self.appearance.swatch_css)
         if self.notes_space:self.notes_space.closed=True

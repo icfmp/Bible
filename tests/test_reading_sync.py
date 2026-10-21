@@ -112,3 +112,32 @@ class ReadingSyncTests(unittest.TestCase):
             adj=tab.scroll.get_vadjustment();adj.set_value(adj.get_upper()*.4);spin(duration=.2)
             self.assertEqual(tab.state.reference,'Gen.1.1')
             w.close()
+
+    def test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end(self):
+        from unittest.mock import patch
+        from bible.ui import GLib
+        with tempfile.TemporaryDirectory() as directory:
+            w=self.setup_window(directory);study=w.study
+            try:
+                with patch.object(study,'remember_position') as remember:
+                    study.scrolled();study.scrolled()
+                    self.assertTrue(study._scroll_idle)
+                    remember.assert_not_called()
+                    spin(lambda:not study._scroll_idle)
+                    remember.assert_called_once()
+                study.scrolled();self.assertTrue(study._scroll_idle)
+                w.study_button.set_active(False)
+                self.assertEqual(study._scroll_idle,0)
+                w.study_button.set_active(True);spin(lambda:not study._positioning)
+                # A queued load must not act on a replaced source/tab buffer.
+                study._loading=True;study._load_idle=GLib.idle_add(study.load_more,1)
+                study.clear_content()
+                self.assertEqual(study._load_idle,0);self.assertFalse(study._loading)
+                study.follow('Gen.2.1');spin(lambda:not study._positioning)
+                self.assertEqual(study.loaded[-1],len(study.reader.index.sections)-1)
+                with patch.object(study,'rebuild') as rebuild:
+                    study.load_more(1);rebuild.assert_not_called()
+                study.scrolled();w.close()
+                self.assertEqual(study._scroll_idle,0);self.assertEqual(study._load_idle,0)
+            finally:
+                if not w.closed:w.close()

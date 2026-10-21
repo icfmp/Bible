@@ -48,6 +48,24 @@ def close_test_dialogs():
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK display (use xvfb-run)')
 class WindowTests(unittest.TestCase):
+    def test_metadata_focus_does_not_select_but_explicit_selection_does(self):
+        from bible.library import Resource
+        with tempfile.TemporaryDirectory() as directory:
+            window = self.window(directory)
+            with patch('bible.catalogue_window.catalogue', return_value=[Resource('Test','Resource test','fr','Public Domain')]):
+                dialog = window.open_library(); dialog.load_catalogue()
+                spin(lambda: not dialog.busy)
+                for _ in range(2):
+                    dialog.open_details(None, 0); spin()
+                    self.assertFalse(dialog.metadata.get_selection_bounds()[0])
+                    dialog.metadata.grab_focus(); spin()
+                    self.assertFalse(dialog.metadata.get_selection_bounds()[0])
+                    dialog.metadata.select_region(0, 10)
+                    self.assertTrue(dialog.metadata.get_selection_bounds()[0])
+                    self.assertTrue(dialog.metadata.get_selectable())
+                    dialog.back_to_list()
+                dialog.close()
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application, Gtk
@@ -330,7 +348,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(nav.verses, [16, 18])
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             window.lookup_action('reference').activate(None)
-            self.assertTrue(nav.direct_expander.get_expanded())
+            self.assertTrue(nav.direct.get_mapped())
             nav.direct.set_text('Gen.1.1')
             nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
@@ -341,7 +359,7 @@ class WindowTests(unittest.TestCase):
             self.assertIn('3:18', window.heading.get_title())
             window.close()
 
-    def test_header_at_360_pixels_and_study_to_the_right(self):
+    def test_header_at_360_pixels_and_full_height_study_to_the_right(self):
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -350,8 +368,11 @@ class WindowTests(unittest.TestCase):
             spin(lambda: window.active_tab.get_width() > 400)
             _, bible = window.active_tab.compute_bounds(window)
             _, study = window.split.get_sidebar().compute_bounds(window)
-            self.assertLess(bible.origin.x, study.origin.x)
+            self.assertGreater(study.origin.x, bible.origin.x)
             self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+            self.assertEqual(window.header.get_height(),window.study.header.get_height())
+            self.assertFalse(window.header.get_show_end_title_buttons())
+            self.assertTrue(window.study.header.get_show_end_title_buttons())
             window.set_default_size(360, 600)
             spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
             self.assertGreater(window.passage_button.get_width(), 50)

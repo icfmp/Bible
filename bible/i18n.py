@@ -3,6 +3,14 @@ import locale
 import os
 
 FR = {
+    'Passage actions': 'Actions du passage',
+    'Copy selected text': 'Copier le texte sélectionné',
+    'Copy options': 'Options de copie',
+    'Dismiss passage actions': 'Fermer les actions du passage',
+    'Highlight': 'Surligner',
+    'Hide study': 'Masquer l’étude',
+    'Commentary actions': 'Actions du commentaire',
+    'Very airy': 'Très aéré',
     'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
     'Saved results retained.': 'Les résultats enregistrés sont conservés.',
     'Installed — available offline': 'Installé — disponible hors connexion',

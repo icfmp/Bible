@@ -45,6 +45,18 @@ class SystemStyleOverride:
 
 
 class PaletteTests(unittest.TestCase):
+    def test_approved_defaults_missing_fields_and_saved_choices(self):
+        from bible.reading_style import SPACING
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'reading.json'
+            value=Preferences(path).value
+            self.assertEqual((value.size,value.line_spacing,value.column_width),(14,'very-airy','narrow'))
+            path.write_text('{"size":19,"line_spacing":"normal","column_width":"wide"}')
+            saved=Preferences(path)
+            self.assertEqual((saved.value.size,saved.value.line_spacing,saved.value.column_width),(19,'normal','wide'))
+            saved.value.line_spacing='very-airy';saved.save()
+            self.assertEqual(Preferences(path).value.line_spacing,'very-airy')
+            self.assertGreater(SPACING['very-airy'],SPACING['airy'])
     def test_contrast_text_links_numbers_selection_all_palettes(self):
         for name,(bg,fg,link,selection,selected) in PALETTES.items():
             with self.subTest(name=name):
@@ -67,6 +79,25 @@ class PaletteTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires real GTK under Xvfb')
 class AppearanceTests(unittest.TestCase):
+    def test_controls_follow_active_bible_overlay_and_reference_field_is_visible(self):
+        from bible.ui import Window,Library
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            try:
+                spin()
+                self.assertIs(window.reader_controls.get_parent(),window.active_tab.reading_overlay)
+                first=window.reader_controls.get_first_child()
+                self.assertIs(first,window.comparison_button)
+                self.assertIs(first.get_next_sibling(),window.appearance_button)
+                self.assertIs(window.appearance_button.get_next_sibling(),window.immersive_button)
+                window.new_tab();spin()
+                self.assertIs(window.reader_controls.get_parent(),window.active_tab.reading_overlay)
+                window.choose_passage(direct=True);spin()
+                self.assertTrue(window.navigation.direct.get_mapped())
+                self.assertIs(window.navigation.content.get_first_child(),window.navigation.direct)
+            finally:window.close()
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application
@@ -129,8 +160,8 @@ class AppearanceTests(unittest.TestCase):
                 before=buffer.get_text(*buffer.get_selection_bounds(),False)
                 w.appearance.fonts['DejaVu Sans'].emit('clicked')
                 self.assertEqual(w.preferences.value.font,'DejaVu Sans')
-                w.appearance.larger.emit('clicked');self.assertEqual(w.preferences.value.size,20)
-                w.appearance.smaller.emit('clicked');self.assertEqual(w.preferences.value.size,19)
+                w.appearance.larger.emit('clicked');self.assertEqual(w.preferences.value.size,15)
+                w.appearance.smaller.emit('clicked');self.assertEqual(w.preferences.value.size,14)
                 w.appearance.line_spacing.set_selected(2);w.appearance.column_width.set_selected(0)
                 self.assertEqual(w.preferences.value.line_spacing,'airy')
                 self.assertEqual(w.preferences.value.column_width,'narrow')
