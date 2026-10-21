@@ -38,6 +38,8 @@ personal highlight's double underline and this dotted cue can coexist; neither
 changes the other's state. Manual GNOME/Wayland, live desktop high contrast and
 assistive-technology acceptance remain distinct from these Xvfb checks.
 
-This source is not announced as published until CI, signed publication and an
-actual public-channel update have been verified. No issue is closed merely from
+Published in final source `08a00d2`, CI 39631126308/publication 39632604890
+green, revision 39632604890-2; actual system alpha update verified against
+public provenance with unchanged signing fingerprint. Captures now show the
+client-corrected right drawer. See `ALPHA_OVERNIGHT_HANDOFF.md`. No issue is closed merely from
 the presence of this visual cue; #25 retains its remaining acceptance criteria.

@@ -80,3 +80,9 @@ Updated captures and the slide recording above show the actual right drawer.
 The targeted geometry/native action checks pass; final delivery metadata is in
 `ALPHA_OVERNIGHT_HANDOFF.md`. Earlier left-drawer screenshots in historical issue
 comments are superseded by these captures.
+
+
+The RIGHT-drawer follow-up is published in source `08a00d2`: CI 39631126308
+and publication 39632604890 green, revision 39632604890-2. An actual existing
+system alpha update matches public provenance; the signing fingerprint is
+unchanged. This does not replace the client's manual GNOME retest.
