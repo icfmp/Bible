@@ -29,7 +29,11 @@ def plain(value):
     parser = PlainMetadata()
     parser.feed(value)
     # About fields often contain SWORD's legacy RTF paragraph markers.
-    return re.sub(r'\\(?:par|pard|qc|b0?|i0?)\b\s*', '\n', ''.join(parser.parts)).strip()
+    value = ''.join(parser.parts)
+    # Some catalogues double the backslash and omit the space before an
+    # immediately following capital (e.g. \\par\\parSource:). Keep all words.
+    value = re.sub(r'\\+par(?:d)?(?=$|[^a-z])\s*', '\n', value)
+    return re.sub(r'\\+(?:qc|b0?|i0?)\b\s*', '', value).strip()
 
 
 from .languages import language_name
