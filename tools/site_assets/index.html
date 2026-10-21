@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Bible is a free, native desktop application for Bible reading and study. Try the Linux Flatpak alpha.">
+  <title>Bible — Read and study, simply</title>
+  <link rel="icon" href="assets/bible.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap"><a class="brand" href="#main"><img src="assets/bible.svg" width="44" height="44" alt="">Bible</a><span class="badge">Alpha release</span></header>
+<main id="main">
+  <section class="hero wrap" aria-labelledby="title">
+    <h1 id="title">Read and study the Bible,<br> simply.</h1>
+    <p class="intro">A quiet place to read. Space to explore, compare and keep your own notes.</p>
+    <a class="button" href="alpha/Bible.flatpakref">Install Bible</a>
+    <p class="platform">Linux x86_64 · Flatpak · Free and open source</p>
+    <p class="small">An early release. Expect rough edges and help us improve it.<br>Interface available in English and French.</p>
+    <figure><img class="screenshot" src="assets/reading.png" width="1200" height="900" alt="Published Bible alpha: John 3 in the French Louis Segond translation, with reading appearance and fullscreen controls."><figcaption>Real application capture · published alpha 4a285f3</figcaption></figure>
+  </section>
+  <section class="features wrap" aria-label="Reading and study features">
+    <article><h2>Read offline</h2><p>Choose and download a translation from the library. Keep reading without an internet connection.</p></article>
+    <article><h2>Follow your questions</h2><p>Keep passages open in tabs, compare translations and consult downloaded commentaries.</p><p class="small">Coverage and reference mapping depend on each resource. Missing entries are identified.</p></article>
+    <article><h2>Make it yours</h2><p>Adjust the reading appearance and keep personal notes connected to passages.</p></article>
+  </section>
+  <section class="help wrap" aria-labelledby="updates"><h2 id="updates">Install once. Keep up to date.</h2>
+    <p>Open the installation file with GNOME Software or your Flatpak installer. Then update through Software, or run <code>flatpak update</code>. Automatic updates depend on your desktop settings.</p>
+    <p>Bible uses its own signed alpha channel. The GNOME runtime comes from Flathub. No Bible translation is bundled: download resources you are entitled to use.</p>
+    <p>Coming from an older standalone bundle? <a href="https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md">Read the migration and installation help</a> before replacing it. Keep your existing notes and resources.</p>
+    <p><a href="https://github.com/icfmp/Bible/issues">Report an issue</a> · <a href="https://github.com/icfmp/Bible">Explore the project</a></p>
+  </section>
+  <section class="details wrap" aria-label="Release and technical details"><details><summary>Release details, sources and manual setup</summary>
+    <p>Current build: <a href="https://github.com/icfmp/Bible/commit/${source_commit}">${short_commit}</a> · revision ${packaging_revision}.</p>
+    <p><a href="alpha/${source_archive}">Corresponding source archive</a> · <a href="https://github.com/icfmp/Bible/blob/${source_commit}/LICENSE">GPL-2.0-only license</a> · <a href="https://github.com/icfmp/Bible/blob/${source_commit}/THIRD_PARTY_NOTICES.md">Third-party notices</a></p>
+    <p>Downloaded resources and dependencies retain their own licenses.</p>
+    <p><a href="alpha/bible-alpha.flatpakrepo">Add the alpha repository manually</a> · <a href="alpha/bible-alpha.gpg">Signing public key</a> · <a href="alpha/provenance.json">Full build provenance</a> · <a href="https://github.com/icfmp/Bible/releases">Fallback bundles</a></p>
+    <p>The installation may be system-wide or per-user. Use the matching scope when troubleshooting; see <a href="https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md">detailed channel instructions</a>.</p>
+    <dl><dt>Flatpak commit</dt><dd>${flatpak_commit}</dd><dt>Source SHA-256</dt><dd>${source_sha256}</dd><dt>Signing fingerprint</dt><dd>${signing_fingerprint}</dd></dl>
+  </details></section>
+</main>
+<footer class="wrap">Bible · A free and open-source desktop project.</footer>
+</body></html>
