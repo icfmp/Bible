@@ -42,6 +42,7 @@ class CatalogueWindow(Adw.Window):
         self.resources = sorted([r for items in self.provider_resources.values() for r in items],key=lambda r:(r.language,r.name,r.provider_id))
         self.timings={};self.catalogue_generation=0
         self._completed_resource=None
+        self._failed_resource=None
         self.catalogue_executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-refresh')
         self.filtered_resources = []
         self.languages = []
@@ -203,6 +204,8 @@ class CatalogueWindow(Adw.Window):
 
     def selection_changed(self, *_):
         resource = self.selected_resource()
+        if resource and resource.id in self.library.installed():
+            resource=self.library.resource(resource.id)
         self.metadata.set_text(details(resource) if resource else tr('No matching resource.'))
         self.refresh_controls()
 
@@ -211,13 +214,14 @@ class CatalogueWindow(Adw.Window):
         installed=bool(resource and resource.id in self.library.installed())
         self.installed_state.set_visible(installed)
         self.download_button.set_visible(not installed)
+        self.download_button.set_label(tr('Retry') if resource and resource.id==self._failed_resource else tr('Download'))
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
                                                and resource.id not in self.library.installed())
                                            and not self._transfer_busy)
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
-        self.progress.set_visible(self._transfer_busy)
+        self.progress.set_visible(self._transfer_busy or self._phase=='error')
 
 
     def on_close(self, *_):
@@ -231,7 +235,7 @@ class CatalogueWindow(Adw.Window):
         self.catalogue_executor.shutdown(wait=False,cancel_futures=True)
         return False
 
-    def task(self, message, action, finished, success_text=None):
+    def task(self, message, action, finished, success_text=None, resource=None):
         if self._transfer_busy:
             return
         self._transfer_busy = True
@@ -256,6 +260,7 @@ class CatalogueWindow(Adw.Window):
             try:
                 value = future.result()
                 finished(value)
+                self._failed_resource=None
                 self._phase = "complete"
                 self.progress.set_fraction(1 if success_text else 0)
                 self.progress.set_text(success_text or "")
@@ -263,7 +268,10 @@ class CatalogueWindow(Adw.Window):
                 self._phase = "error"
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr("Failed"))
-                self.status.set_text(f'{error}\n{tr("Retry using the same button.")}')
+                self._failed_resource=resource.id if resource else None
+                context=(resource.id+': ') if resource else ''
+                self.status.set_text(f'{context}{error}\n{tr("Retry using the same button.")}')
+                self.status.set_visible(True)
             finally:
                 self.refresh_controls()
             return False
@@ -299,7 +307,7 @@ class CatalogueWindow(Adw.Window):
                 if errors else tr('Ready') if resources else tr('No supported resource found.'))
             self.refresh_status.set_text(message)
             self.refresh_status.set_visible(bool(errors))
-            if not self._transfer_busy and self._completed_resource is None:
+            if not self._transfer_busy and self._completed_resource is None and self._phase!='error':
                 self.status.set_text(message);self.status.set_visible(False)
         future=self.catalogue_executor.submit(lambda:catalogue(on_provider=progress,cache=self.cache,force=force))
         def complete():
@@ -364,5 +372,5 @@ class CatalogueWindow(Adw.Window):
         self.task(tr('Downloading {name}…').format(name=resource.name),
                   lambda: self.library.install(resource, self.report_progress,
                                                 installing=lambda: self.queue_progress('installing')),
-                  installed, success_text=tr('Installed: {name}').format(name=resource.name))
+                  installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
 

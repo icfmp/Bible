@@ -222,6 +222,11 @@ class ReadingTab(Gtk.Box):
         for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,56)]:
             margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
             if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
+        if self.scroll.get_height()>0:
+            from .navigation_overlay import position
+            for button in (self.previous,self.following):
+                position(button,self.text.get_left_margin(),self.scroll.get_width()-self.text.get_right_margin(),
+                         self.scroll.get_margin_top(),self.scroll.get_height(),self.reading_overlay.get_width())
         comparison_geometry=(self.comparison_scroll.get_width(),self.comparison_scroll.get_height(),self.preferences.column_width)
         if (comparison_geometry!=getattr(self,'_comparison_geometry',comparison_geometry)
                 and getattr(self,'_comparison_layout_anchor',None)):

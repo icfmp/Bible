@@ -36,10 +36,10 @@ def main():
             assert '<hi' not in visible and 'The Creation.' in visible
             native.move_at(window,2,2);spin(duration=.2)
             ImageGrab.grab().save(args.prefix+'-light.png')
-            native.click(study.appearance_button);native.click(study.appearance.larger)
+            native.click(window.appearance_button);native.click(window.appearance.larger)
             assert window.preferences.value.size==15
-            native.click(study.appearance.smaller);native.click(study.appearance_button)
-            assert not study.appearance.get_visible();assert study.entry_text==original
+            native.click(window.appearance.smaller);native.click(window.appearance_button)
+            assert not window.appearance.get_visible();assert study.entry_text==original
             native.click(study.more);native.click(study.info)
             assert study.metadata.get_text() and study.info.get_popover().get_visible()
             native.click_at(tab.text,tab.text.get_width()-8,300)

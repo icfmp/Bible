@@ -281,8 +281,11 @@ class AlphaTests(unittest.TestCase):
             def bounds():
                 found, rect = tab.following.compute_bounds(tab.reading_overlay)
                 self.assertTrue(found)
-                self.assertAlmostEqual(rect.origin.y + rect.size.height / 2,
-                                       tab.reading_overlay.get_height() / 2, delta=1)
+                center=rect.origin.y+rect.size.height/2
+                self.assertGreater(center,tab.reading_overlay.get_height()*.65)
+                self.assertLess(center,tab.reading_overlay.get_height()*.95)
+                self.assertGreaterEqual(rect.origin.x,tab.scroll.get_width()-tab.text.get_right_margin()+4)
+                self.assertLessEqual(rect.origin.x-(tab.scroll.get_width()-tab.text.get_right_margin()),16)
                 self.assertLessEqual(rect.origin.x + rect.size.width, tab.reading_overlay.get_width())
                 self.assertAlmostEqual(rect.size.width, rect.size.height, delta=1)
                 self.assertGreaterEqual(tab.text.get_right_margin(), rect.size.width + 6)

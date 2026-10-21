@@ -67,11 +67,12 @@ class Immersion(Gtk.Overlay):
         self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN,
                               valign=Gtk.Align.START,halign=Gtk.Align.FILL)
         controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        header=Adw.HeaderBar();header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
+        header=Adw.HeaderBar(show_start_title_buttons=False,show_end_title_buttons=False)
+        header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
         self.leave_button=Gtk.ToggleButton(icon_name='view-restore-symbolic',active=True,
                                            tooltip_text=tr('Leave immersive mode'))
         self.leave_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Leave immersive mode')])
-        self.leave_button.connect('clicked',lambda *_:owner.leave_immersion());header.pack_start(self.leave_button)
+        self.leave_button.connect('clicked',lambda *_:owner.leave_immersion())
         self.caption=Gtk.Label(label=source.resource.name,ellipsize=Pango.EllipsizeMode.END,max_width_chars=18,width_chars=1)
         self.passage_button=(Gtk.MenuButton(child=self.caption) if self.kind=='bible' else Gtk.Button(child=self.caption))
         if self.kind=='commentary':self.passage_button.connect('clicked',lambda *_:self.info.popup())
@@ -90,7 +91,7 @@ class Immersion(Gtk.Overlay):
             commands.append(tr('Next available entry'),'win.next-commentary-entry')
             commands.append(tr('Open this passage in the Bible'),'win.immersive-open-bible')
         self.menu=Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands)
-        header.pack_end(self.menu);header.pack_end(self.aa)
+        header.pack_start(self.menu);header.pack_end(self.aa);header.pack_end(self.leave_button)
         if self.kind=='commentary':
             self.entry_previous=Gtk.Button(icon_name='go-previous-symbolic')
             self.entry_next=Gtk.Button(icon_name='go-next-symbolic')
@@ -117,6 +118,8 @@ class Immersion(Gtk.Overlay):
         motion=Gtk.EventControllerMotion();motion.connect('motion',self.pointer_moved);motion.connect('leave',lambda *_:self.pointer_left());self.add_controller(motion)
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         keys.connect('key-pressed',self.key_pressed);self.add_controller(keys)
+        pointer=Gtk.GestureClick(button=0);pointer.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        pointer.connect('pressed',lambda *_:owner.set_focus_visible(False));self.add_controller(pointer)
         wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES|Gtk.EventControllerScrollFlags.KINETIC)
         wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         wheel.connect('scroll-begin',lambda *_:self.begin_scroll())
@@ -142,6 +145,15 @@ class Immersion(Gtk.Overlay):
             elif changed=='controls' and self.stream.cursor:self.update_page_buttons()
         width,height=self.get_width(),self.get_height()
         if width<100 or height<100:return True
+        from .navigation_overlay import position
+        ok,first=self.frames[0].compute_bounds(self)
+        last_frame=self.frames[1] if self.count==2 else self.frames[0]
+        last_ok,last=last_frame.compute_bounds(self)
+        if ok and last_ok:
+            for button in self.buttons:
+                position(button,first.origin.x+self.views[0].get_left_margin(),
+                         last.origin.x+last.size.width-self.views[-1].get_right_margin(),
+                         first.origin.y,first.size.height,width)
         minimum=max(280,self.owner.preferences.value.size*15)
         count=2 if (width-112-32)/2>=minimum else 1
         usable=min(WIDTHS[self.owner.preferences.value.column_width],int((width-112-(32 if count==2 else 0))/count))
@@ -352,6 +364,7 @@ class Immersion(Gtk.Overlay):
     def any_selection(self):return any(view.get_buffer().get_has_selection() for view in self.views)
 
     def key_pressed(self,controller,key,code,state):
+        self.owner.set_focus_visible(True)
         if state&Gdk.ModifierType.SHIFT_MASK and key in (Gdk.KEY_Left,Gdk.KEY_Right,Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down):
             return False
         if key==Gdk.KEY_Escape:
@@ -383,11 +396,7 @@ class Immersion(Gtk.Overlay):
     def pointer_moved(self,controller,x,y):
         self._pointer_top=y<max(90,self.top.get_height() if self.top.get_reveal_child() else 90)
         self._pointer_edge=x<75 or x>self.get_width()-75
-        if self._pointer_top:self.reveal_controls()
-        elif self._pointer_edge:
-            for button in self.buttons:button.set_visible(True)
-            self.schedule_hide()
-        else:self.schedule_hide()
+        self.reveal_controls()
 
     def pointer_left(self):
         self._pointer_top=False;self._pointer_edge=False;self.schedule_hide()

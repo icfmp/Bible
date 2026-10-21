@@ -25,9 +25,11 @@ class StudyPanel(Gtk.Box):
         self._loading=False;self._missing_near=0
         self._scroll_idle=0;self._load_idle=0;self._processing_scroll=False
         self.translate=tr
-        self.add_css_class('background')
+        self.add_css_class('sidebar-pane')
+        self.add_css_class('end')
         self.add_css_class('study-drawer')
         self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
+        self.header.add_css_class('flat')
         self.hide_button = Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Hide study'))
         self.hide_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Hide study')])
         self.hide_button.connect('clicked',lambda *_:owner.study_button.set_active(False))
@@ -41,11 +43,6 @@ class StudyPanel(Gtk.Box):
         self.choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Choose a commentary')])
         self.choices.connect('notify::selected',self.selection_changed)
         self.header.set_title_widget(self.choices)
-        from .appearance import AppearancePopover
-        self.appearance = AppearancePopover(owner)
-        self.appearance_button = Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
-        self.appearance_button.set_popover(self.appearance)
-        self.appearance_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading appearance')])
         self.immersive_button = Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Read in immersive mode'))
         self.immersive_button.connect('clicked',lambda *_:owner.enter_immersion('commentary'))
         self.more = Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Commentary actions'))
@@ -73,10 +70,10 @@ class StudyPanel(Gtk.Box):
         library.connect('clicked',lambda *_:self.open_library())
         action_box.append(library)
         actions.set_child(action_box);self.more.set_popover(actions)
-        for widget in [self.more,self.immersive_button,self.appearance_button]:
+        for widget in [self.more,self.immersive_button]:
             widget.add_css_class('flat');self.header.pack_end(widget)
         self.append(self.header)
-        self.popovers = [self.appearance,actions,info]
+        self.popovers = [actions,info]
         for popover in self.popovers:
             popover.set_autohide(False);owner._reading_popovers.append(popover)
         # Retain semantic source/reference fields for existing synchronization

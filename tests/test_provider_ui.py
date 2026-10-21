@@ -22,6 +22,33 @@ class ProviderUITests(unittest.TestCase):
         cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
 
+    def test_failed_install_keeps_resource_error_and_retry_after_selection_and_refresh(self):
+        from bible.ui import Window
+        from bible.i18n import tr
+        with tempfile.TemporaryDirectory() as directory:
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            release=threading.Event()
+            try:
+                dialog=window.open_library();dialog.resources=[RESOURCE,replace(RESOURCE,name='Other')]
+                dialog.update_languages();dialog.open_details(None,0)
+                def failed(*args,**kwargs):
+                    release.wait(3);raise ValueError('Conditions really changed')
+                with patch.object(window.library,'install',side_effect=failed):
+                    dialog.install();dialog.choices.set_selected(1);release.set()
+                    spin(lambda:not dialog.busy)
+                self.assertEqual(dialog._phase,'error')
+                self.assertIn('Test: Conditions really changed',dialog.status.get_text())
+                self.assertTrue(dialog.status.get_visible());self.assertTrue(dialog.progress.get_visible())
+                self.assertEqual(dialog.download_button.get_label(),tr('Download'))
+                dialog.choices.set_selected(0);self.assertEqual(dialog.download_button.get_label(),tr('Retry'))
+                with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult(tuple(dialog.resources),{})):
+                    dialog.load_catalogue();spin(lambda:not dialog.refreshing)
+                self.assertTrue(dialog.status.get_visible())
+                self.assertIn('Conditions really changed',dialog.status.get_text())
+                self.assertEqual(window.library.installed(),[])
+                dialog.close()
+            finally:release.set();window.close()
+
     def test_coptic_catalogue_load_search_and_select(self):
         from bible.ui import Window
         from bible.languages import language_info

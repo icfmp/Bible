@@ -1,0 +1,9 @@
+
+(process:35072): Gtk-WARNING **: 21:40:51.373: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+OFFLINE RESTART PASS ebible~fraFOB1744eb NRSV
+OFFLINE RESTART PASS ebible~fraLSG1910eb NRSV
+OFFLINE RESTART PASS ebible~frajnd2024eb Luther
+OFFLINE RESTART PASS ebible~francl2022eb Catholic2
+OFFLINE RESTART PASS ebible~frasbl2022eb NRSVA
+OFFLINE RESTART PASS KJV KJV
+OFFLINE RESTART PASS FreCrampon Catholic2
