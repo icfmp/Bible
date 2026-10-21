@@ -513,7 +513,8 @@ class NotesSpace(Gtk.Box):
         self.owner=owner;self.closed=False;self.rows=[];self._choosers=[];self.passage_filter=None
         self.editor=None
         header=Adw.HeaderBar();header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        self.workspace_title=Gtk.Label(label=tr('My notes'),visible=False)
+        self.workspace_title=Gtk.Label(label=tr('My notes'),ellipsize=Pango.EllipsizeMode.END,
+                                       width_chars=1,max_width_chars=18)
         self.workspace_title.add_css_class('heading');header.set_title_widget(self.workspace_title)
         reading=Gtk.Button(label=tr('Reading'),tooltip_text=tr('Back to reading'))
         reading.connect('clicked',lambda *_:self.leave());header.pack_start(reading)

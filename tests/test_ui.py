@@ -330,7 +330,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(nav.verses, [16, 18])
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
             window.lookup_action('reference').activate(None)
-            self.assertTrue(nav.direct_expander.get_expanded())
+            self.assertTrue(nav.direct.get_mapped())
             nav.direct.set_text('Gen.1.1')
             nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')

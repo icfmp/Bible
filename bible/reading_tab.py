@@ -42,6 +42,7 @@ class ReadingTab(Gtk.Box):
         self.note_button.connect('clicked', lambda *_: self.notes_requested() if self.notes_requested else None)
         self.append(self.note_button)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+        self.scroll.set_margin_top(56)  # Fixed clearance for the reading overlay controls.
         self.text = Gtk.TextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                  left_margin=56, right_margin=56,
@@ -79,7 +80,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12)
         self.comparison_box.append(self.comparison_status)
         self.comparison_text=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
-                                          left_margin=24,right_margin=24,top_margin=12,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
+                                          left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_box.append(self.comparison_scroll)

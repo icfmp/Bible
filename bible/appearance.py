@@ -70,7 +70,7 @@ class AppearancePopover(Gtk.Popover):
         box.append(self.system_status)
         layout=Gtk.Expander(label=tr('Layout'))
         layout_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8)
-        self.line_spacing=self.choice(layout_box,'Line spacing','line_spacing',[('tight','Tight'),('normal','Normal'),('airy','Airy')])
+        self.line_spacing=self.choice(layout_box,'Line spacing','line_spacing',[('tight','Tight'),('normal','Normal'),('airy','Airy'),('very-airy','Very airy')])
         self.column_width=self.choice(layout_box,'Text width','column_width',[('narrow','Narrow'),('normal','Normal'),('wide','Wide')])
         layout.set_child(layout_box);box.append(layout)
         for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers')]:
@@ -102,7 +102,7 @@ class AppearancePopover(Gtk.Popover):
         self.size.set_text(f'{p.size} pt · 12–64')
         self.size.update_property([Gtk.AccessibleProperty.LABEL],[f'{tr("Text size")}: {p.size} pt (12–64)'])
         self.smaller.set_sensitive(p.size>12);self.larger.set_sensitive(p.size<64)
-        for attr,values in [('mode',['system','day','night']),('line_spacing',['tight','normal','airy']),('column_width',['narrow','normal','wide'])]:
+        for attr,values in [('mode',['system','day','night']),('line_spacing',['tight','normal','airy','very-airy']),('column_width',['narrow','normal','wide'])]:
             getattr(self,attr).set_selected(values.index(getattr(p,attr)))
         for key,button in self.palettes.items():button.set_active(key in (p.day_palette,p.night_palette))
         self.chapter_numbers.set_active(p.chapter_numbers);self.verse_numbers.set_active(p.verse_numbers)

@@ -103,11 +103,17 @@ class Window(Adw.ApplicationWindow):
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
         for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
-                             (self.my_notes_button,'My notes'),(self.study_button,'Study'),
-                             (self.immersive_button,'Immersive mode'),(self.appearance_button,'Reading appearance'),(self.comparison_button,'Compare translations')]:
+                             (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
+        self.reader_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,
+                                    margin_top=12,margin_end=12)
+        for widget,label in [(self.comparison_button,'Compare translations'),
+                             (self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
+            widget.add_css_class('flat')
+            widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+            self.reader_controls.append(widget)
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
@@ -140,9 +146,6 @@ class Window(Adw.ApplicationWindow):
         tiny_header.add_setter(new, 'visible', False)
         tiny_header.add_setter(self.my_notes_button,'visible',False)
         tiny_header.add_setter(self.study_button,'visible',False)
-        tiny_header.add_setter(self.appearance_button,'visible',False)
-        tiny_header.add_setter(self.comparison_button,'visible',False)
-        tiny_header.add_setter(self.immersive_button,'visible',False)
         self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
@@ -336,6 +339,7 @@ class Window(Adw.ApplicationWindow):
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
         tab.text.add_css_class(self.reading_style.scope)
+        tab.reading_overlay.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
         page = self.view.append(tab)
         page.set_title(tab.title())
@@ -380,7 +384,6 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:self.immersion.reveal_controls()
         button.set_active(True)
         self.navigation.sync(force=True)
-        self.navigation.direct_expander.set_expanded(direct)
         (self.navigation.direct if direct else self.navigation.search).grab_focus()
 
     def step_chapter(self, direction):
@@ -395,6 +398,10 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if not tab:
             return
+        parent=self.reader_controls.get_parent()
+        if parent is not tab.reading_overlay:
+            if parent:parent.remove_overlay(self.reader_controls)
+            tab.reading_overlay.add_overlay(self.reader_controls)
         self.immersive_button.set_sensitive(tab.reader is not None)
         self.lookup_action('immersive').set_enabled(tab.reader is not None)
         for name in ['copy-passage','copy-with-reference','copy-reference']:

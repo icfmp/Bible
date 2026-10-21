@@ -9,14 +9,14 @@ import tempfile
 @dataclass
 class ReadingPreferences:
     font: str = 'DejaVu Serif'
-    size: int = 19
+    size: int = 14
     chapter_numbers: bool = True
     verse_numbers: bool = True
     mode: str = 'system'
     day_palette: str = 'white'
     night_palette: str = 'dark'
-    line_spacing: str = 'normal'
-    column_width: str = 'normal'
+    line_spacing: str = 'airy'
+    column_width: str = 'narrow'
 
 
 class Preferences:
@@ -28,13 +28,13 @@ class Preferences:
         try:
             value = json.loads(self.path.read_text())
             if not isinstance(value,dict):raise ValueError('Invalid reading preferences')
-            font,size = value.get('font','DejaVu Serif'), value.get('size',19)
+            font,size = value.get('font','DejaVu Serif'), value.get('size',14)
             if not isinstance(font,str) or not font or len(font)>100:raise ValueError('Invalid font')
             if type(size) is not int or not 12<=size<=64:raise ValueError('Invalid text size')
             for key in ['chapter_numbers','verse_numbers']:
                 if type(value.get(key,True)) is not bool:raise ValueError('Invalid visibility preference')
             choices = {'mode': ('system','day','night'), 'day_palette': ('white','paper'),
-                       'night_palette': ('dark','black'), 'line_spacing': ('tight','normal','airy'),
+                       'night_palette': ('dark','black'), 'line_spacing': ('tight','normal','airy','very-airy'),
                        'column_width': ('narrow','normal','wide')}
             defaults = ReadingPreferences()
             selected = {key:value.get(key,getattr(defaults,key)) for key in choices}

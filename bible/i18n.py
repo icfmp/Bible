@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Very airy': 'Très aéré',
     'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
     'Saved results retained.': 'Les résultats enregistrés sont conservés.',
     'Installed — available offline': 'Installé — disponible hors connexion',

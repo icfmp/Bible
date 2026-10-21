@@ -1,5 +1,16 @@
 # Dépendances et contenus
 
+## Approved GNOME symbolic icons
+
+The notebook and library SVG assets are the original 16 px GNOME Icon
+Development Kit assets by Jakub Steiner, copied without redrawing from:
+https://gitlab.gnome.org/Teams/Design/icon-development-kit/-/raw/main/icons/notebook.svg
+and https://gitlab.gnome.org/Teams/Design/icon-development-kit/-/raw/main/icons/library.svg.
+Their embedded RDF metadata declares CC0 1.0:
+https://creativecommons.org/publicdomain/zero/1.0/.
+Metadata is retained in the bundled files. The app's GPL-2.0-only license is
+unchanged; no artwork is fetched at runtime.
+
 Bible est distribué sous GNU GPL version 2 uniquement (`GPL-2.0-only`),
 selon le fichier `LICENSE`. Ce choix a été autorisé par le client pour la
 préversion 0.1.0-alpha.1.

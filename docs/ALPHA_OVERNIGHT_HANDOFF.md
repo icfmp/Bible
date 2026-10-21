@@ -65,6 +65,13 @@ Extra 0.812/0.010, AndBible 0.968/0.003, CrossWire 1.509/0.072, STEP 2.023/0.020
 The offline GTK checker verifies immediate cached resources, French filtering,
 real installed Lausanne state and stable detail selection.
 
+Published source `20361ce`, CI 39518470411 and publication 39519173539 both
+green. A separate system client updated to Flatpak
+`23a16b55f9a6b2334a89cb46256f7841d808a5892c30f629e1ee5ee37bab13b6`,
+revision `39519173539-2`, matching public provenance. The published Flatpak
+passed the offline cache/installed-detail checker as well. Manual GNOME
+acceptance is still pending.
+
 eBible investigation: AndBible's official repository file at commit
 `7e73c11508f32e4f531d531f6d5b110dd2a1f204` lists `/sword` and `/sword/zip`.
 The normal Bible HTTP client retrieves the catalogue. Do not use guessed
@@ -73,6 +80,34 @@ separate reviewable policy change under AGENTS.md, not an unreviewed registry
 edit on main. Other observed French identities: `fraFOB1744eb`, `frajnd2024eb`,
 `francl2022eb`, `frasbl2022eb`. `frd2018eb` is Fordata (`frd`), not French;
 do not merge it into `fr`.
+
+eBible is prepared in **PR #38**, branch `feat/34-ebible-provider`, commit
+`20d7328`, requiring source-policy review. Local 133 tests and branch CI
+39555537014 are green. JND 2.17 installs and matches direct SWORD output
+offline; actual French catalogue/reader screenshots and the comparison table
+are committed on that branch. F10 catalogue 90.0 versus package 99.0 has
+different notices and is correctly refused by the unchanged conditions guard.
+Do not merge this PR or announce eBible in the public alpha without review.
+
+## Batch 3 — reading increment
+
+Implemented Compare → Aa → Fullscreen in the active Bible viewport, with fixed
+clearance and scoped palette surface; approved upstream CC0 GNOME icons;
+14 pt/Airy/Narrow defaults preserving explicit old preferences; persisted Very
+airy; always-visible top reference entry; removed redundant bottom expander
+and selector download action; visible My notes workspace title.
+
+Full local suite: 134 tests passed. Real-resource GTK checks and screenshots
+cover four palettes, Airy/Very airy at 14 pt, selector and notes workspace.
+`tools/check_reading_presentation.py` intentionally resets only a supplied
+disposable TEST profile. Never run it against the client's profile.
+
+**#31 product decision pending:** the existing version dropdown is retained
+until an approved alternate active-translation chooser exists. Do not remove
+an essential function or invent a new location silently. See
+`docs/READING_ALPHA_12_31.md`. Existing history, notes, backup and faithful
+source presentation have been preserved and tested, not rebuilt. CI and alpha
+publication for this increment still need verification.
 
 Client test order for this batch:
 1. Update the existing system alpha installation; reopen the saved session.
@@ -86,11 +121,9 @@ Client test order for this batch:
 
 ## Remaining batches
 
-2. #32/#33/#19/#34: immediate per-source catalogue cache, progressive refresh,
-   accurate installed/selection state, spacing, verified eBible source (PR
-   required for content-source policy).
-3. #31/#16/#12/#15/#20: simplify selector; keep translation choice accessible;
-   overlays/icons/defaults; preserve working history, notes and text fidelity.
+2. #32/#33/#19: published; manual acceptance remains. #34: PR #38 awaiting review.
+3. #31/#16/#12/#15/#20: reading increment implemented and locally tested;
+   publication verification pending; #31 version placement decision pending.
 4. #24/#25: continuous chapter pagination, book starts on the left, uniform
    palette, preserve anchors and avoid hidden Bible navigation in immersion.
 5. #27/#37/#28: safe highlights (reviewable persistence/backup design), page

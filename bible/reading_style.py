@@ -14,7 +14,7 @@ PALETTES = {
     'contrast-night': ('#000000', '#ffffff', '#9fc5ff', '#ffdf00', '#000000'),
 }
 WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
-SPACING = {'tight': 1, 'normal': 5, 'airy': 10}
+SPACING = {'tight': 1, 'normal': 5, 'airy': 10, 'very-airy': 16}
 
 
 def apply_direction(view,reader):
@@ -86,6 +86,7 @@ class ReadingStyle:
         bg, fg, link, selection, selected = PALETTES[self.palette]
         selector = 'textview.' + self.scope
         self.css = f'''
+.{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
