@@ -27,6 +27,7 @@ class Reader:
     drivers = {'zText', 'RawText', 'RawText4', 'zText4'}
 
     def __init__(self, root: Path, name: str):
+        self.root,self.name=Path(root),name
         import Sword
         self.sword = Sword
         self.manager = Sword.SWMgr(str(root))

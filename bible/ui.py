@@ -22,7 +22,7 @@ from .reading_sync import ReadingSync
 from .immersion import Immersion
 from .immersion_hints import ImmersionHints
 from .pagination import Anchor
-from .paged_sources import BiblePages, CommentaryPages
+from .paged_sources import BibleBookPages, CommentaryPages
 from .highlights import HighlightStore,COLORS
 from .notes_window import NoteEditor, NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
@@ -297,7 +297,7 @@ class Window(Adw.ApplicationWindow):
                     key,offset=current;doc=source.document(key,self.preferences.value)
                     anchor=doc.anchor(doc.spans[0].body+offset if offset else 0)
         else:
-            source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
+            source=BibleBookPages(tab.reader,self.library.resource(tab.state.resource))
             anchor=Anchor(tab.state.reference)
             if tab.text.get_mapped() and not tab._restoring_scroll:
                 rect=tab.text.get_visible_rect();_,iterator=tab.text.get_iter_at_location(rect.x,rect.y)

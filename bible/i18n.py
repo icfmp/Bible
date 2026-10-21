@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Preparing reading pages…': 'Préparation des pages de lecture…',
     'Highlight actions': 'Actions de surlignage',
     'Highlights unavailable. The original file is preserved.': 'Surlignages indisponibles. Le fichier d’origine est conservé.',
     'Highlights': 'Surlignages', 'Highlight': 'Surligner', 'Remove highlight': 'Retirer le surlignage',
