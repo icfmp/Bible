@@ -535,6 +535,7 @@ class Window(Adw.ApplicationWindow):
         self.study.header.set_show_end_title_buttons(visible)
 
     def sidebar_changed(self, *_):
+        if not self.split.get_show_sidebar():self.study.cancel_scroll()
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
@@ -708,6 +709,7 @@ class Window(Adw.ApplicationWindow):
         self.save_session()
         self.closed = True
         self.study.cancel_reveal()
+        self.study.cancel_scroll()
         self.reading_style.close()
         Gtk.StyleContext.remove_provider_for_display(self.get_display(),self.appearance.swatch_css)
         if self.notes_space:self.notes_space.closed=True

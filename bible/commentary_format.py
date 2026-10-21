@@ -87,7 +87,11 @@ def apply(view,styles,preferences,palette):
     buffer=view.get_buffer();table=buffer.get_tag_table()
     for kind,first,last in styles:
         name='source-'+kind;tag=table.lookup(name) or buffer.create_tag(name)
-        if kind=='hidden':tag.props.invisible=True
+        # Keep native visible-byte indices aligned with the buffer. GTK 4.20
+        # can abort in pixel-to-iterator conversion with invisible inline tags.
+        # Zero-scale source decorations have no ink/advance; Document.copy()
+        # still omits precisely these verified generated markers.
+        if kind=='hidden':tag.props.scale=0
         elif kind=='italic':tag.props.style=Pango.Style.ITALIC
         elif kind=='bold':tag.props.weight=700
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
