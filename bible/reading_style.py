@@ -96,7 +96,6 @@ class ReadingStyle:
         self.palette = effective_palette(self.owner.preferences.value,
                                          self.manager.get_dark(), self.manager.get_high_contrast())
         bg, fg, link, selection, selected = PALETTES[self.palette]
-        study_bg = bg if self.manager.get_high_contrast() else f'mix({bg}, {fg}, 0.025)'
         selector = 'textview.' + self.scope
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
@@ -105,7 +104,7 @@ class ReadingStyle:
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
-{selector}.study-reader, {selector}.study-reader text {{ background-color: {study_bg}; }}
+{selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
 {selector}:focus-visible {{ outline: 2px solid {fg}; outline-offset: -2px; }}
 '''
         self.provider.load_from_data(self.css.encode())
@@ -119,8 +118,6 @@ class ReadingStyle:
         if appearance:
             appearance.sync_system()
         if hasattr(self.owner,'view') and hasattr(self.owner,'highlights'):self.owner.refresh_highlights()
-        study = getattr(self.owner, 'study', None)
-        if study and getattr(study, 'appearance', None):study.appearance.sync_system()
 
     def close(self):
         for handler in self.handlers:

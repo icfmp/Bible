@@ -40,8 +40,8 @@ def main():
         if not args.offline:
             resources=[r for r in catalogue(EBIBLE) if r.language in ('fr','fra','fre')]
             other={r.name:r for r in catalogue(CROSSWIRE)}
-            resources.extend(other[name] for name in ('KJV','FreCrampon') if name in other)
-            assert len(resources)>=7,'Expected French controls and two additional real resources'
+            resources.extend(other[name] for name in ('KJV','FreCrampon','FreSegond1910','FreLSN1872') if name in other)
+            assert len(resources)>=9,'Expected French resources, additional resources and regression controls'
             dialog=window.open_library();dialog._catalogue_requested=True;results=[]
             for resource in resources:
                 dialog.resources=[resource];dialog.update_languages();dialog.open_details(None,0)

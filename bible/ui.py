@@ -88,7 +88,7 @@ class Window(Adw.ApplicationWindow):
         for label,action in [('Passage note','note'),('My notes','notes'),('Highlights','highlights'),('New tab','new-tab'),
                              ('Library','translations'),('History back','history-back'),('History forward','history-forward'),
                              ('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
-                             ('Reading appearance','appearance'),('Compare translations','compare'),('Immersive mode','immersive')]:
+                             ('Compare translations','compare'),('Immersive mode','immersive')]:
             commands.append(tr(label),'win.'+action)
         self.menu = Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands,tooltip_text=tr('Notes and commands'))
         self.menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Notes and commands')])
@@ -113,15 +113,14 @@ class Window(Adw.ApplicationWindow):
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
-        for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
+        for widget,label in [(self.menu,'Notes and commands'),(self.appearance_button,'Reading appearance'),(library_button,'Library'),
                              (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
         self.reader_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,
                                     margin_top=12,margin_end=12)
-        for widget,label in [(self.comparison_button,'Compare translations'),
-                             (self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
+        for widget,label in [(self.comparison_button,'Compare translations'),(self.immersive_button,'Immersive mode')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             self.reader_controls.append(widget)
@@ -471,7 +470,6 @@ class Window(Adw.ApplicationWindow):
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
-        if getattr(self.study,'appearance',None):self.study.appearance.sync()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
         self.reading_style.apply_text(self.study.text)

@@ -40,8 +40,8 @@ not reported as usable installation.
 regression. Candidate UI installation immediately exposes all five French eBible
 Bibles and two additional actual CrossWire Bibles (KJV and Crampon). Seven independent
 SWORD John 3:16 comparisons pass. All seven reopen/read after restart inside an
-isolated network namespace. Four systems are represented: NRSV, Luther, Catholic2,
-NRSVA and KJV (five systems). Candidate resource code is not a final packaged
+isolated network namespace. Five systems are represented: NRSV, Luther, Catholic2,
+NRSVA and KJV. Candidate resource code is not a final packaged
 verification. Final full checks/build/actual Flatpak checks remain required.
 
 Evidence: `evidence/stabilization-56-original-package.txt`,
@@ -70,3 +70,47 @@ Independent #53/#54/#55 controls/surface corrections may continue. No #26 or
 OpenBible #47–50 work; no visual/functional issue is closed without client acceptance.
 No candidate alpha is announced as available until actual build and publication
 verification. Preserve notes/highlights/resources/sessions/preferences and signing.
+
+## Independent native UI corrections — candidate verification
+
+- #53 uses libadwaita's documented `sidebar-pane`/`end` surface and a flat header.
+  Commentary text/margins are transparent over the same native surface, with native
+  sidebar foreground; primary/comparison reading palettes are unchanged. No custom
+  gray is hardcoded. Verified against libadwaita 1.5 `_sidebars.scss` and
+  `_header-bar.scss`; the same styles work in the actual GNOME 49 runtime.
+- #54 moves the existing global Aa before the main Header Bar menu. Duplicate
+  overlay/drawer controls and the duplicate appearance menu entry are removed;
+  the single existing popover/preferences are reparented into immersive controls.
+- #55 positions the same circular actions near the actual text margins, around
+  80% of the reading viewport. Width/drawer/comparison/resize recompute safe margins;
+  page vs chapter semantics are unchanged. No scripture/selection rewrite.
+- #24 controls/focus only: compact exit/Aa at the top right, no native window-title
+  buttons in immersion, reveal on pointer movement/F10/entry and retain visibility
+  while focused or a popover is open. The actual published GTK trace showed
+  `GtkWindow:focus-visible` remaining true after pointer selection. Use native
+  `set_focus_visible(False)` on pointer presses and true on keyboard events;
+  no global CSS outline removal or loss of focusability. Pagination algorithms,
+  heading grouping, preparation/cancellation/cache remain unchanged and pending.
+
+161 full local tests pass. Affected tests include Header Bar order/shared popover,
+original notes/selection/immersion state and safe-margin lower navigation across
+wide/narrow/drawer layouts. Actual native pointer/keyboard checks in the GNOME 49
+runtime pass, including uniform header/content pixels in light/dark and emulated
+high contrast, one mapped Aa, global settings, arrows, pointer vs keyboard focus,
+F10/exit/popover lifecycle. This is **explicit source-candidate code** in that
+runtime, not a final installed-package claim or manual GNOME/Wayland validation.
+
+Original signed baseline and candidate captures are under `docs/captures/` with
+`stabilization-before-6560dc4` and `stabilization-candidate-*` names. Native logs are
+in `docs/evidence/stabilization-native-ui-candidate.txt` and the original focus
+trace. The capture helper waits for real GTK layout before saving; the remaining
+blank preparation interval is not claimed fixed by these captures.
+
+Final delivery scope is intentionally limited to verified installation and UI
+corrections. The higher-reasoning versification and pagination mechanism review
+remains explicit; do not ask the client to retest an unsupported Darby comparison
+or claim that chapter orphans/preparation are resolved. Keep all relevant issues
+open for client acceptance. Final full CI/build, actual /app resource installs,
+network-isolated reading, native UI/regressions and signed publication must pass
+before reporting an available revision. Test fresh KJV/Crampon plus Segond/Lausanne
+controls alongside all five French eBible resources in the final package.
