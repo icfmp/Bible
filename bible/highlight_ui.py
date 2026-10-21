@@ -8,20 +8,38 @@ from .notes_window import passage_label,message
 from .reading_style import PALETTES
 
 
+def text_changed(buffer):
+    buffer._highlight_revision+=1
+
+
 def paint(view,store,system,ranges,visible,high,palette):
     buffer=view.get_buffer();table=buffer.get_tag_table()
+    if not hasattr(buffer,'_highlight_revision'):
+        buffer._highlight_revision=0
+        buffer.connect('changed',text_changed)
+    ranges=tuple(ranges)
+    state=(buffer,buffer._highlight_revision,system,ranges,visible,high,palette,
+           tuple((reference,store.entries.get((system,reference),{}).get('color'))
+                 for reference,_,_ in ranges))
+    # Comparison can rebuild from an adjustment notification during GTK layout.
+    # Do not invalidate the unchanged primary view while GTK validates it.
+    if getattr(view,'_highlight_paint_state',None)==state:return
     for color,(background,label) in COLORS.items():
         tag=table.lookup('highlight-'+color)
         if tag is None:tag=buffer.create_tag('highlight-'+color)
-        tag.props.background=PALETTES[palette][0] if high else background
-        tag.props.foreground=PALETTES[palette][1] if high else '#202020'
-        tag.props.underline=Pango.Underline.DOUBLE if high else Pango.Underline.NONE
+        style=(PALETTES[palette][0] if high else background,
+               PALETTES[palette][1] if high else '#202020',
+               Pango.Underline.DOUBLE if high else Pango.Underline.NONE)
+        if getattr(tag,'_highlight_style',None)!=style:
+            tag.props.background,tag.props.foreground,tag.props.underline=style
+            tag._highlight_style=style
         buffer.remove_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
-    if not visible:return
-    for reference,start,end in ranges:
-        mark=store.entries.get((system,reference))
-        if mark and end>start:
-            buffer.apply_tag(table.lookup('highlight-'+mark['color']),buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
+    if visible:
+        for reference,start,end in ranges:
+            mark=store.entries.get((system,reference))
+            if mark and end>start:
+                buffer.apply_tag(table.lookup('highlight-'+mark['color']),buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
+    view._highlight_paint_state=state
 
 
 class MarkItem(GObject.Object):

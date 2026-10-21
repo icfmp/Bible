@@ -1,0 +1,49 @@
+Actual signed alpha 1e7613d, revision 39669216171-2; GTK 4.20.4.
+Reproducible first palette/comparison layout after real MHC end/session probe.
+
+**
+Gtk:ERROR:../gtk/gtktextview.c:5021:gtk_text_view_validate_onscreen: assertion failed: (priv->onscreen_validated)
+Bail out! Gtk:ERROR:../gtk/gtktextview.c:5021:gtk_text_view_validate_onscreen: assertion failed: (priv->onscreen_validated)
+Fatal Python error: Aborted
+
+Current thread 0x00007f91ff6bbbc0 (most recent call first):
+  File "/usr/lib/python3.13/site-packages/gi/overrides/GLib.py", line 575 in iteration
+  File "/src/tests/test_ui.py", line 15 in spin
+  File "/src/tools/check_comparison_surfaces.py", line 39 in check
+  File "/src/tools/check_comparison_surfaces.py", line 60 in main
+  File "/src/tools/check_comparison_surfaces.py", line 75 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 98 in _run_module_code
+  File "<frozen runpy>", line 294 in run_path
+  File "/src/docs/evidence/flatpak_capture_worker.py", line 16 in <module>
+
+Extension modules: gi._gi, cairo._cairo, gi._gi_cairo, _Sword (total: 4)
+
+Actual paint callback stack while GTK validates the primary view:
+PAINT 139824186231872 (True, False, 'white') [('<module>', 75), ('main', 60), ('check', 39), ('spin', 15), ('iteration', 575), ('scroll_changed', 566), ('tab_changed', 531), ('update_navigation', 465), ('sync_comparison', 492), ('refresh_comparison', 280), ('update_highlights', 336), ('paint', 19)]
+PAINT 139824179240064 (True, False, 'white') [('<module>', 75), ('main', 60), ('check', 39), ('spin', 15), ('iteration', 575), ('scroll_changed', 566), ('tab_changed', 531), ('update_navigation', 465), ('sync_comparison', 492), ('refresh_comparison', 280), ('update_highlights', 338), ('paint', 19)]
+
+Thread 1 (LWP 33334 "python3"):
+#0  0x00007f22631ac47c in __pthread_kill_implementation () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007f22631522be in raise () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007f22631398ed in abort () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007f2261af2102 in g_assertion_message[cold] () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#4  0x00007f2261b63017 in g_assertion_message_expr () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#5  0x00007f225ffc362d in gtk_text_view_validate_onscreen () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#6  0x00007f225ffc5bd4 in gtk_text_view_flush_first_validate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#7  0x00007f225ffc6674 in gtk_text_view_size_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#8  0x00007f225ffed957 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#9  0x00007f225ff44ff5 in gtk_scrolled_window_allocate_child () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#10 0x00007f225ff45500 in gtk_scrolled_window_size_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#11 0x00007f225ffed957 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#12 0x00007f225ff12a9a in gtk_overlay_layout_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#13 0x00007f225ffed801 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#14 0x00007f225fe28b43 in gtk_box_layout_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#15 0x00007f225ffed801 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#16 0x00007f225fe28b43 in gtk_box_layout_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#17 0x00007f225ffed801 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#18 0x00007f225fe10370 in gtk_bin_layout_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#19 0x00007f225ffed801 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#20 0x00007f223ec0c464 in adw_tab_view_size_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libadwaita-1.so.0
+#21 0x00007f225ffed957 in gtk_widget_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#22 0x00007f225fe28b43 in gtk_box_layout_allocate () from /proc/33334/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1

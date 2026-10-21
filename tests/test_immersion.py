@@ -189,6 +189,17 @@ class ImmersionTests(unittest.TestCase):
                     self.assertEqual((saved[0].start,saved[0].end),(target.reference,target.reference))
             finally:native.close()
 
+    def test_passage_navigation_keeps_the_continuous_book_source(self):
+        with self.profile() as directory:
+            w=self.window(directory,entries=[('Gen.1.1','FIRST CHAPTER TEST. '*50),
+                                             ('Gen.2.1','SECOND CHAPTER TEST. '*50)])
+            reading=self.entered(w)
+            self.assertTrue(w.active_tab.navigate('Test','Gen.2.1'))
+            spin(lambda:reading.stream.cursor is not None and reading.layout_ready)
+            self.assertTrue(reading.source.book_pages)
+            self.assertEqual(reading.stream.cursor.key,'Gen')
+            self.assertEqual(reading.stream.anchor().reference,'Gen.2.1')
+
     def test_multiverse_selection_overrides_click_and_navigation_clears_click(self):
         with self.profile() as directory:
             entries=[(f'Gen.1.{i}',f'VERSE {i} SOURCE TEST. '*6) for i in range(1,30)]

@@ -1,5 +1,33 @@
 # Alpha stabilization handoff — 21 October 2026
 
+## Pending-deliveries integration — current state supersedes older sections
+
+PRs #41, #38, #40 and #39 were technically reviewed and merged sequentially,
+with the client's explicit authorization. Main source `1e7613d` passed CI
+39668011046 and signed publication 39669216171. Revision 39669216171-2 is
+actually public and installed in the disposable test client; its bundle digest,
+public links, installation/update and unchanged signing fingerprint were checked.
+
+**Delivery is held:** a final actual /app palette probe then exposed a repeatable
+GTK 4.20.4 abort from redundant personal-highlight painting during primary-view
+validation, despite the real MHC boundary/end/synchronization/session probe passing.
+The focused integration fix and original native traces are documented in
+[HIGHLIGHT_LAYOUT_INTEGRATION.md](HIGHLIGHT_LAYOUT_INTEGRATION.md). It preserves
+synchronization and persistent highlights; a stale immersive source constructor
+is also corrected. All 159 local tests and 16 candidate-runtime palette states
+pass. Next: wait for this fix's green main CI/publication, update the existing
+alpha client, then repeat affected actual /app checks before announcing a version.
+
+The approved page is public at https://icfmp.github.io/Bible/; desktop/mobile/dark,
+keyboard navigation and all public installation/update/source/key links pass.
+Reviewed eBible JND 2.17 installs and reads offline. F10/FOB/FRANCL/SBL currently
+fail the unchanged conditions guard because upstream catalogue/package attribution
+or conditions differ. Personal highlights are persistent and distinct from the
+commentary cue; the former public 8d3a183 lacked the personal-highlight module.
+#24/#27/#34 remain open for client GNOME acceptance; #37 closes only after the
+final package/page delivery evidence is recorded. The client validated and closed
+#51/#36. #26 stays excluded; new OpenBible features and general review wait.
+
 ## Product-manager cleanup — current tracking decision
 
 The client requested a project-wide cleanup on 21 October 2026. This section

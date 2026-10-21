@@ -517,7 +517,7 @@ class Window(Adw.ApplicationWindow):
         if self.immersion and self.immersion.kind=='bible' and tab is self.immersion.tab:
             current=self.immersion.stream.anchor() if self.immersion.stream.cursor else self.immersion.initial_anchor
             if current.reference!=tab.state.reference or self.immersion.source.reader is not tab.reader:
-                source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
+                source=BibleBookPages(tab.reader,self.library.resource(tab.state.resource))
                 self.immersion.source=source;self.immersion.stream.source=source
                 self.immersion.go_to_reference(tab.state.reference)
         if self._initializing:

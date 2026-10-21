@@ -13,6 +13,31 @@ class HighlightUITests(unittest.TestCase):
         cls.app=Application.get_default() or Application();cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations',False)
 
+    def test_comparison_rebuild_does_not_retag_unchanged_primary_layout(self):
+        from bible.ui import Window,Library
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory);installed_fixture(directory,'Other')
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present()
+            try:
+                spin();tab=window.active_tab;tab.select_verse('Gen.1.1');window.mark_highlight('yellow')
+                tab.state.comparison='Other';tab.refresh_comparison();spin()
+                buffer=tab.text.get_buffer();changes=[]
+                buffer.connect('remove-tag',lambda *_:changes.append(True))
+                # A comparison rebuild may be requested by the primary view's
+                # adjustment notification while GTK is validating that layout.
+                tab._comparison_signature=None;tab._comparison_stamp=None
+                tab.refresh_comparison()
+                self.assertEqual(changes,[])
+                other=tab.comparison_text.get_buffer()
+                self.assertTrue(other.get_iter_at_offset(tab._comparison_markers['Gen.1.1']).has_tag(
+                    other.get_tag_table().lookup('highlight-yellow')))
+                # Replacing text with identical characters still removes tags.
+                # A subsequent repaint must restore the mark, not reuse stale state.
+                text=buffer.props.text;buffer.set_text(text);tab.update_highlights()
+                self.assertTrue(buffer.get_iter_at_offset(tab._marker_ends['Gen.1.1']).has_tag(
+                    buffer.get_tag_table().lookup('highlight-yellow')))
+            finally:window.close()
+
     def test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks(self):
         from bible.ui import Window,Library
         from tests.test_appearance import SystemStyleOverride
