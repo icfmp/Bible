@@ -1,4 +1,4 @@
-# Continuous book pagination — architecture review candidate
+# Continuous book pagination — integration review
 
 This branch replaces chapter-sized Bible page plans with one continuous
 document per actual SWORD book. Chapter titles use remaining page space;
@@ -88,3 +88,26 @@ including partial Copy, original second-Bible note context, mapped Compare and
 immersive selection/closing without accidental page turns. Screenshot:
 `captures/continuous-book-24-drawer-actions.png`. These are Xvfb checks, not manual
 GNOME validation. PR #39 remains awaiting review and is not in the public alpha.
+
+## Final combined integration review — 21 October 2026
+
+The client authorized sequential completion of the outstanding deliveries.
+Current main, including reviewed PRs #41, #38 and #40, is integrated in
+`b90bd9b`. The architecture review confirms a single background worker with
+independent SWORD and Pango state, bounded current/adjacent-book plans and GTK
+updates on its owning thread. There is no data/schema migration. The existing
+commentary crash, palette, reference synchronization and original-character
+Copy fixes remain present. Personal highlights and the temporary commentary
+indicator remain separate; commentary inline styles are applied on every page.
+
+All **157 combined local tests pass**. Real offline FreSegond Genesis has
+**211 pages and 42 chapter continuations within pages**, an exact text partition
+and preserved canonical anchor after Very airy reflow. Stabilization took
+1.427 seconds with 75 GTK heartbeat ticks (largest observed gap 0.358 seconds).
+The refreshed [actual GTK capture](captures/continuous-book-24-final-review.png)
+comes from this integrated code with real downloaded modules. Native pointer
+and keyboard action validation also checks immersive selection and Copy without
+unintended page turns, as well as persistent highlights and second-Bible note
+context. These automated Xvfb checks do not replace client GNOME/Wayland or
+accessibility acceptance. Actual signed-channel availability is checked after
+main CI and publication, not inferred from this source review.
