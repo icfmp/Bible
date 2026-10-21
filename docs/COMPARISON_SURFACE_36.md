@@ -47,3 +47,23 @@ notifications are automated evidence, not manual GNOME/Wayland, physical trackpa
 live portal or accessibility acceptance. Keep #36 open for client validation.
 No pending PR is merged and the existing signed alpha channel is unchanged.
 Final tests and actual published source/revision are recorded in the handoff.
+
+
+## Actual published-package verification
+
+Source `c964162`, CI 39639628244/publication 39640813062 green, revision
+39640813062-2. Actual existing system update matches public provenance with the
+unchanged signing fingerprint. The complete pixel matrix also passes on that
+PUBLIC alpha with /app imports; captures above have been replaced by those
+actual Flatpak screenshots. [Pixel log](evidence/comparison-36-public-pixels.txt).
+
+The runtime lacks Pillow, so [the Xvfb parent](evidence/flatpak_capture_parent.py)
+performs real ImageGrab captures and unmodified pixel reads, while [the worker](evidence/flatpak_capture_worker.py)
+executes the checker in the sandbox and asserts /app imports. The two communicate
+only over a local Unix socket in the disposable shared evidence directory. With
+this environment's /src and /evidence mounts, run the parent inside bible-night
+under dbus-run-session and xvfb-run (1800×1100 display), passing the checker path,
+TEST profile and screenshot prefix. No source app overlay or synthetic pixels.
+The helper now waits for study positioning only when the drawer is visible; an
+unmapped drawer does not receive animation frames. This corrects the test wait,
+not the product's reading behavior. Manual GNOME/live high contrast remains open.

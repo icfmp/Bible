@@ -57,3 +57,17 @@ evidence must be recorded before announcing availability. Xvfb is not manual GNO
 physical trackpad, Wayland or accessibility acceptance. Keep #51 open for the
 client's real GNOME retest. Pending PRs remain unmerged; #26 and OpenBible feature
 work remain excluded.
+
+
+## Verified delivery
+
+Final application source `c9641627b5449d940634443dc4a504969a73e679`, including
+crash increment `679f8e6`. CI 39639628244/publication 39640813062 green; public
+revision **39640813062-2**. Actual existing system alpha update matches public
+provenance with unchanged signing fingerprint. The tested CI bundle hash matches
+the public bundle exactly. Its complete native boundary probe runs on /app code:
+[evidence](evidence/commentary-51-fixed-package.txt). The public alpha additionally
+passes all 8 affected format/sync/comparison tests on asserted /app imports.
+145 full local tests and the existing native study/comparison regressions pass.
+See [delivery proof](evidence/alpha-51-36-provenance.json) and the handoff.
+No pending PR is merged; manual GNOME retest and issue closure remain pending.

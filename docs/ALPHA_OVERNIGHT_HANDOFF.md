@@ -1,6 +1,58 @@
 # Alpha stabilization handoff — 21 October 2026
 
-**Latest application source:** `08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf`.
+## Current priority follow-up — #51 crash, then #36 surfaces
+
+Verified published application source: `c9641627b5449d940634443dc4a504969a73e679`;
+crash increment `679f8e6`, visual/recovery increment `c964162`. Both pushed.
+CI **39639628244** and publication **39640813062** are green. Actual public
+revision **39640813062-2**. The existing system alpha client
+updated to `ea17ae42b4407397212c9d92a926e99b625e03a1c269bdb93bbadc794f07d57a`, exactly matching public provenance.
+Signing fingerprint unchanged: `47A17230403EA4953745E6E020EB9FFCCECAFD8F`.
+CI bundle SHA-256 `18c651446c2d32df71d900868c1fccc6f927c6855c8ccff3b9c798890e0b17e4` matches both the downloaded,
+natively tested bundle and the public provenance. No channel/configuration/key
+or token change. Proof: `evidence/alpha-51-36-provenance.json`.
+
+- #51 reproduced in the real original /app Flatpak (GTK 4.20.4, Segond 4.0,
+  MHC 2.2): native 133/SIGTRAP in visible-byte-index hit-testing around invisible
+  inline source-decoration tags, after several progressive loads in Genesis.
+  Python/GDB traces: `evidence/commentary-51-original-trace.txt`. Controlled
+  original-package run with only that attribute omitted survives 100 rounds.
+- Verified source decorations now have zero font scale, retaining original
+  characters/offsets and exact Copy; unknown/literal text is unchanged. Scroll/
+  load callbacks are coalesced/cancelled, retention capped at 20 entries, terminal
+  loads no-op. Study synchronization is preserved. See `COMMENTARY_CRASH_51.md`.
+- The real candidate-runtime probe survives 100 native rounds; the complete
+  boundary tool crosses loads/evictions, reverse/wheel/keyboard/long drag, both
+  sync directions, tab/source/hide changes, actual final MHC Rev.22.20–21,
+  repeated terminal scrolling and saved note/session reopen.
+- #36 confirms native gray (250/250/250) around White (255/255/255). Both Bible
+  surfaces and common gutter now share the active palette; study stays secondary.
+  Actual pixel checks cover four palettes, both emulated high-contrast modes,
+  study open/closed, resize, unavailable/empty and restored content. Recovery
+  also fixes indexing a None document signature after an unavailable comparison.
+  See `COMPARISON_SURFACE_36.md` and its real screenshots.
+- 145 local tests pass. Native real Segond/Lausanne following, equal widths,
+  selection/reflow and no-history tests pass. Native study wheel and two >1.5 s
+  drags pass with focus/history retained. Candidate source overlays are explicitly
+  identified. The actual CI bundle passes the complete native real boundary
+  probe with asserted /app imports (evidence/commentary-51-fixed-package.txt).
+  After the actual public update, all 8 affected tests pass on /app code, and
+  the full palette/state pixel matrix passes on the public alpha. Final captures
+  are from that public Flatpak, not the earlier source overlay.
+- Issues 51/36 have English implementation/evidence comments and remain open
+  for manual GNOME/Wayland/physical trackpad/live high contrast/accessibility.
+- Current GNOME retest order: (1) update the existing alpha and check notes/
+  session, (2) scroll MHC through successive loaded boundaries, reverse, use
+  keyboard/physical trackpad and long scrollbar drags, (3) reach Revelation 22
+  and keep scrolling at the real end; change tab/source and hide/reopen study,
+  then restart and check positions/notes, (4) compare Lausanne in every palette
+  and actual desktop high contrast, study open/closed and resized; check exact
+  Copy, selection and both reference-following directions.
+- No pending PR merged or new OpenBible functionality. #26 stays excluded.
+  Review branches have not been revalidated against this new follow-up; bring
+  main's fixes into candidates before any later reviewed integration.
+
+**Previous delivered application source:** `08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf`.
 The client corrected #44 to a RIGHT drawer, Bible LEFT. The targeted follow-up
 is implemented, tested, pushed and published. All 143 tests and real native
 drawer/coverage checks pass. Captures show the corrected layout.
@@ -18,7 +70,7 @@ Eleven affected geometry/native UI/context/action tests also pass in the actuall
 updated public alpha, with imports asserted under `/app/lib/bible-python` rather
 than the source checkout. This is GTK/Xvfb evidence, not manual GNOME acceptance.
 
-## Current resumption state — latest work
+## Earlier stabilized increments — before the #51 report
 
 - #43, #42, #12/#15 and #36 were delivered first in `d48c760`: CI
   39591287215/publication 39592269695 green, revision 39592269695-2,

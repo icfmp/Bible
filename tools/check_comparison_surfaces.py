@@ -37,7 +37,7 @@ def main():
             selected=selection();reference=tab.state.reference
             def check(label):
                 spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False)
-                     and not w.study._positioning,duration=.3)
+                     and (not w.split.get_show_sidebar() or not w.study._positioning),duration=.3)
                 native.move_at(w,2,2);image=ImageGrab.grab();image.save(args.prefix+'-'+label+'.png')
                 palette=w.reading_style.palette;bg=PALETTES[palette][0]
                 expected=tuple(int(bg[i:i+2],16) for i in (1,3,5))
