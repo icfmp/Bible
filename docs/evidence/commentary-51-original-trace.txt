@@ -1,0 +1,68 @@
+Public source 08a00d2; revision 39632604890-2; Flatpak d14a066a86a5d17247ce3ced766373b9dd8b3969690f85cf1adb346f66aa74e7
+GTK 4.20.4, FreSegond1910 4.0 (Segond), MHC 2.2 (KJV). Offline disposable test profile. Exit 133 (SIGTRAP).
+
+LOAD BEGIN 1 [2, 3, 4, 5] anchor (5, 4105)
+LOAD END [2, 3, 4, 5, 6, 7, 8] chars 39599
+STEP 17 passage Gen.1.20 loaded [2, 3, 4, 5, 6, 7, 8] position 8 scroll 16807 21115 positioning True
+STEP 18 passage Gen.1.14 loaded [2, 3, 4, 5, 6, 7, 8] position 7 scroll 24013 24848 positioning False
+LOAD BEGIN 1 [2, 3, 4, 5, 6, 7, 8] anchor (7, 4402)
+LOAD END [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] chars 55032
+STEP 19 passage Gen.1.14 loaded [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] position 2 scroll 30942 38441 positioning True
+STEP 20 passage Gen.1.14 loaded [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] position 7 scroll 31795 53561 positioning False
+LOAD BEGIN 1 [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] anchor (11, 3281)
+LOAD END [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] chars 64400
+STEP 21 passage Gen.1.29 loaded [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] position 4 scroll 10115 10986 positioning True
+STEP 22 passage Gen.2.1 loaded [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] position 14 scroll 12811 27497 positioning False
+STEP 23 passage Gen.1.14 loaded [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] position 7 scroll 29322 46856 positioning False
+
+(process:2): Gtk-WARNING **: 16:42:28.421: ../gtk/gtktextbtree.c:4012: byte index off the end of the line
+
+(process:2): Gtk-ERROR **: 16:42:28.421: Byte index 2693 is off the end of the line
+Current thread 0x00007fb6d10a1bc0 (most recent call first):
+  File "/app/lib/bible-python/bible/study_panel.py", line 243 in anchor
+  File "/app/lib/bible-python/bible/study_panel.py", line 334 in remember_position
+  File "/app/lib/bible-python/bible/study_panel.py", line 314 in scrolled
+  File "/usr/lib/python3.13/site-packages/gi/overrides/GLib.py", line 575 in iteration
+  File "/src/tests/test_ui.py", line 15 in spin
+  File "/src/tools/check_alpha_ui.py", line 88 in wheel
+  File "/evidence/reproduce-commentary51.py", line 39 in <module>
+
+Native GDB backtrace from a separate original-package reproduction:
+Thread 1 "python3" received signal SIGTRAP, Trace/breakpoint trap.
+0x00007f4b102487eb in g_log_writer_default () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#0  0x00007f4b102487eb in g_log_writer_default () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#1  0x00007f4b10245da4 in g_log_structured_array () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#2  0x00007f4b10246b48 in g_log_structured_standard () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#3  0x00007f4b0e69e102 in iter_set_from_byte_offset () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#4  0x00007f4b0e6a5a39 in gtk_text_iter_set_visible_line_index () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#5  0x00007f4b0e6a746d in line_display_index_to_iter () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#6  0x00007f4b0e6ab61e in gtk_text_layout_get_iter_at_position () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#7  0x00007f4b0e6ab6ed in gtk_text_layout_get_iter_at_pixel () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#8  0x00007f4b1012a056 in ffi_call_unix64 () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libffi.so.8
+#9  0x00007f4b10128f36 in ffi_call_int () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libffi.so.8
+#10 0x00007f4b101297ae in ffi_call () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libffi.so.8
+#11 0x00007f4b1037a461 in pygi_invoke_c_callable () from /proc/28688/root/usr/lib/python3.13/site-packages/gi/_gi.cpython-313-x86_64-linux-gnu.so
+#12 0x00007f4b1037c634 in pygi_function_cache_invoke () from /proc/28688/root/usr/lib/python3.13/site-packages/gi/_gi.cpython-313-x86_64-linux-gnu.so
+#13 0x00007f4b11a6667e in PyObject_Vectorcall () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libpython3.13.so.1.0
+#14 0x00007f4b11bce252 in _PyEval_EvalFrameDefault () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libpython3.13.so.1.0
+#15 0x00007f4b11ae7f82 in method_vectorcall () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libpython3.13.so.1.0
+#16 0x00007f4b10378f69 in pygi_signal_closure_marshal () from /proc/28688/root/usr/lib/python3.13/site-packages/gi/_gi.cpython-313-x86_64-linux-gnu.so
+#17 0x00007f4b1014962c in g_closure_invoke () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#18 0x00007f4b1015f709 in signal_emit_unlocked_R.isra.0 () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#19 0x00007f4b101611bd in signal_emit_valist_unlocked () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#20 0x00007f4b101670b8 in g_signal_emit_valist () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#21 0x00007f4b10167173 in g_signal_emit () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#22 0x00007f4b0e504330 in adjustment_set_value () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#23 0x00007f4b1014962c in g_closure_invoke () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#24 0x00007f4b1015f709 in signal_emit_unlocked_R.isra.0 () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#25 0x00007f4b101611bd in signal_emit_valist_unlocked () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#26 0x00007f4b101670b8 in g_signal_emit_valist () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#27 0x00007f4b10167173 in g_signal_emit () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0
+#28 0x00007f4b0e93214d in _gdk_frame_clock_emit_update () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#29 0x00007f4b0e93328a in gdk_frame_clock_paint_idle () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libgtk-4.so.1
+#30 0x00007f4b1023dce1 in g_timeout_dispatch () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#31 0x00007f4b1023990b in g_main_dispatch () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#32 0x00007f4b1023cd47 in g_main_context_iterate_unlocked.isra () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#33 0x00007f4b1023d593 in g_main_context_iteration () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0
+#34 0x00007f4b1012a056 in ffi_call_unix64 () from /proc/28688/root/usr/lib/x86_64-linux-gnu/libffi.so.8
+[Inferior 1 (process 28688) detached]

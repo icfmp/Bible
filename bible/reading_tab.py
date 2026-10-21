@@ -270,7 +270,7 @@ class ReadingTab(Gtk.Box):
                 buffer = self.comparison_text.get_buffer()
                 old = getattr(self, '_comparison_document', None)
                 selected = [old.anchor(i.get_offset()) for i in buffer.get_selection_bounds()] if old else []
-                if old and getattr(self, '_comparison_signature', (None,))[0] == name:
+                if old and (getattr(self, '_comparison_signature', None) or (None,))[0] == name:
                     rect = self.comparison_text.get_visible_rect()
                     _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
                     if old.key == chapter.reference:anchor = old.anchor(iterator.get_offset())

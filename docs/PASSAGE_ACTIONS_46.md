@@ -56,6 +56,9 @@ and the native Highlight action verify original Calvin/Lausanne identity. On
 PR39 `c981f95`, 146 tests and the native action probe verify continuous-book
 compatibility. Both review branches are pushed, not merged or published.
 
-Final public availability requires green CI/publication and an actual update of
-the existing signed alpha. Keep #46 open for the PR40 Highlight dependency and
+Public final source `08a00d2` is verified: CI 39631126308 and publication
+39632604890 green, revision 39632604890-2; actual existing system alpha update
+matches public provenance with the unchanged signing fingerprint. See
+`ALPHA_OVERNIGHT_HANDOFF.md`. Eleven affected tests also pass in the actually
+updated public alpha with asserted `/app` imports. Keep #46 open for the PR40 Highlight dependency and
 manual client acceptance; #26 stays excluded and #28 remains manual guidance.

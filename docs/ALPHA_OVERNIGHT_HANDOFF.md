@@ -1,11 +1,106 @@
 # Alpha stabilization handoff — 21 October 2026
 
-**Latest application source:** `f8395bc145494695e89ca49262618d9f2dac23aa`.
-The client subsequently corrected #44 to a RIGHT drawer. That targeted
-follow-up is in progress; final delivery must include it. Delivery metadata below
-is finalized only after public signed update verification.
+## Product-manager cleanup — current tracking decision
 
-## Current resumption state — latest work
+The client requested a project-wide cleanup on 21 October 2026. This section
+supersedes older issue-state and pending-product-review statements below;
+historical delivery evidence is retained unchanged.
+
+- Published application remains **c964162**, revision **39640813062-2**.
+- Implementation issues **#12, #15, #16, #19, #20, #25, #32, #33, #35,
+  #42, #43 and #45** are closed as implemented/tested/published. Their still
+  unperformed manual GNOME/accessibility acceptance is explicitly transferred
+  to [#52](https://github.com/icfmp/Bible/issues/52). Closing these tickets
+  does not claim those manual checks passed. New defects get focused issues
+  or reopen the original issue.
+- **#51 and #36 stay open** for the client's crash and comparison retests.
+- **#31** retains the active-version chooser placement decision; **#44** retains
+  the newer unified study-tab direction; **#46** awaits Highlight from PR #40.
+- PR **#38** (eBible), **#39** (continuous-book pagination), **#40** (personal
+  highlights) and **#41** (landing page) remain unmerged. Incorporate the current
+  main fixes and rerun affected checks before integration. Do not advertise
+  their candidate features as public-alpha features.
+- **PR #41 product presentation is approved** after desktop/mobile/dark review.
+  Before merge/publication, refresh its old 4a285f3 hero using an authentic
+  current-alpha screenshot, update review evidence, integrate main and verify
+  CI/channel preservation. Keep **#37** open until public HTTPS installation
+  and update links are checked. No redesigned page was published by this review.
+- **#47–#50** remain the approved OpenBible backlog. **#26** stays excluded;
+  **#28** retains manual Do Not Disturb guidance, not automatic suppression.
+- No general code review, pending PR merge or application-code change was
+  performed as part of this bookkeeping and product review.
+
+## Current priority follow-up — #51 crash, then #36 surfaces
+
+Verified published application source: `c9641627b5449d940634443dc4a504969a73e679`;
+crash increment `679f8e6`, visual/recovery increment `c964162`. Both pushed.
+CI **39639628244** and publication **39640813062** are green. Actual public
+revision **39640813062-2**. The existing system alpha client
+updated to `ea17ae42b4407397212c9d92a926e99b625e03a1c269bdb93bbadc794f07d57a`, exactly matching public provenance.
+Signing fingerprint unchanged: `47A17230403EA4953745E6E020EB9FFCCECAFD8F`.
+CI bundle SHA-256 `18c651446c2d32df71d900868c1fccc6f927c6855c8ccff3b9c798890e0b17e4` matches both the downloaded,
+natively tested bundle and the public provenance. No channel/configuration/key
+or token change. Proof: `evidence/alpha-51-36-provenance.json`.
+
+- #51 reproduced in the real original /app Flatpak (GTK 4.20.4, Segond 4.0,
+  MHC 2.2): native 133/SIGTRAP in visible-byte-index hit-testing around invisible
+  inline source-decoration tags, after several progressive loads in Genesis.
+  Python/GDB traces: `evidence/commentary-51-original-trace.txt`. Controlled
+  original-package run with only that attribute omitted survives 100 rounds.
+- Verified source decorations now have zero font scale, retaining original
+  characters/offsets and exact Copy; unknown/literal text is unchanged. Scroll/
+  load callbacks are coalesced/cancelled, retention capped at 20 entries, terminal
+  loads no-op. Study synchronization is preserved. See `COMMENTARY_CRASH_51.md`.
+- The real candidate-runtime probe survives 100 native rounds; the complete
+  boundary tool crosses loads/evictions, reverse/wheel/keyboard/long drag, both
+  sync directions, tab/source/hide changes, actual final MHC Rev.22.20–21,
+  repeated terminal scrolling and saved note/session reopen.
+- #36 confirms native gray (250/250/250) around White (255/255/255). Both Bible
+  surfaces and common gutter now share the active palette; study stays secondary.
+  Actual pixel checks cover four palettes, both emulated high-contrast modes,
+  study open/closed, resize, unavailable/empty and restored content. Recovery
+  also fixes indexing a None document signature after an unavailable comparison.
+  See `COMPARISON_SURFACE_36.md` and its real screenshots.
+- 145 local tests pass. Native real Segond/Lausanne following, equal widths,
+  selection/reflow and no-history tests pass. Native study wheel and two >1.5 s
+  drags pass with focus/history retained. Candidate source overlays are explicitly
+  identified. The actual CI bundle passes the complete native real boundary
+  probe with asserted /app imports (evidence/commentary-51-fixed-package.txt).
+  After the actual public update, all 8 affected tests pass on /app code, and
+  the full palette/state pixel matrix passes on the public alpha. Final captures
+  are from that public Flatpak, not the earlier source overlay.
+- Issues 51/36 have English implementation/evidence comments and remain open
+  for manual GNOME/Wayland/physical trackpad/live high contrast/accessibility.
+- Current GNOME retest order: (1) update the existing alpha and check notes/
+  session, (2) scroll MHC through successive loaded boundaries, reverse, use
+  keyboard/physical trackpad and long scrollbar drags, (3) reach Revelation 22
+  and keep scrolling at the real end; change tab/source and hide/reopen study,
+  then restart and check positions/notes, (4) compare Lausanne in every palette
+  and actual desktop high contrast, study open/closed and resized; check exact
+  Copy, selection and both reference-following directions.
+- No pending PR merged or new OpenBible functionality. #26 stays excluded.
+  Review branches have not been revalidated against this new follow-up; bring
+  main's fixes into candidates before any later reviewed integration.
+
+**Previous delivered application source:** `08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf`.
+The client corrected #44 to a RIGHT drawer, Bible LEFT. The targeted follow-up
+is implemented, tested, pushed and published. All 143 tests and real native
+drawer/coverage checks pass. Captures show the corrected layout.
+
+**Verified final delivery:** CI [39631126308](https://github.com/icfmp/Bible/actions/runs/39631126308)
+and publication [39632604890](https://github.com/icfmp/Bible/actions/runs/39632604890)
+are green. Public revision **39632604890-2**. An existing system
+alpha client actually updated to Flatpak
+`d14a066a86a5d17247ce3ced766373b9dd8b3969690f85cf1adb346f66aa74e7`, matching public provenance.
+Fingerprint unchanged: `47A17230403EA4953745E6E020EB9FFCCECAFD8F`.
+The public install/update workflow also verifies user-data preservation. No token,
+signing key, channel or repository configuration was regenerated or changed.
+The PR41 redesign was not published by this ordinary alpha delivery.
+Eleven affected geometry/native UI/context/action tests also pass in the actually
+updated public alpha, with imports asserted under `/app/lib/bible-python` rather
+than the source checkout. This is GTK/Xvfb evidence, not manual GNOME acceptance.
+
+## Earlier stabilized increments — before the #51 report
 
 - #43, #42, #12/#15 and #36 were delivered first in `d48c760`: CI
   39591287215/publication 39592269695 green, revision 39592269695-2,
@@ -24,11 +119,17 @@ is finalized only after public signed update verification.
   143 full local tests, 10 final affected tests and real offline native action,
   popup, coverage and comparison probes pass. Final native study wheel and
   >1.5-second drags pass in both directions with focus/history preserved.
-- PR #40 remains unmerged at `3496f1a`: CI 39608953767 green, final main coordinated, 148 tests,
+- PR #40 remains unmerged at `09d24c6`: main through 08a00d2 coordinated;
+  CI 39631209621 green (148 full tests plus 67 localized checks); 11 affected
+  local tests pass after the side correction. Earlier 3496f1a: CI
+  39608953767 green, 148 full tests,
   native actual second-Bible Highlight source/versification verified; personal
   overlap, hide/show independence and immersion verified. This is the explicit
   remaining dependency for #46's Highlight button; main has Copy/Note/Compare.
-- PR #39 remains unmerged at `c981f95`: CI 39609210333 green, final main coordinated, 146 tests,
+- PR #39 remains unmerged at `f079f9d`: main through 08a00d2 coordinated;
+  CI 39631262242 green (146 full tests plus 67 localized checks); 11 affected
+  local tests pass after the side correction. Earlier c981f95: CI
+  39609210333 green, 146 full tests,
   actual offline Genesis 211 exact pages/42 chapter continuations, 1.47 s
   preparation, 75 GTK heartbeat ticks, maximum observed gap 0.365 s. Canonical
   reflow anchor and native contextual actions pass. Whole-book shaping keeps
@@ -48,7 +149,7 @@ is finalized only after public signed update verification.
   `/src`, and assert `bible.__file__` starts with `/app/`; do not test source
   overlays accidentally. Public branch `//alpha` is distinct from `//master`.
 
-### Ordered client checks for the final source
+### Ordered client checks for the final source (right drawer)
 
 1. Update the existing alpha and reopen saved resources, notes, session and
    explicit appearance preferences. Reset only a disposable profile to check
