@@ -359,7 +359,7 @@ class WindowTests(unittest.TestCase):
             self.assertIn('3:18', window.heading.get_title())
             window.close()
 
-    def test_header_at_360_pixels_and_study_to_the_right(self):
+    def test_header_at_360_pixels_and_full_height_study_to_the_left(self):
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -368,8 +368,9 @@ class WindowTests(unittest.TestCase):
             spin(lambda: window.active_tab.get_width() > 400)
             _, bible = window.active_tab.compute_bounds(window)
             _, study = window.split.get_sidebar().compute_bounds(window)
-            self.assertLess(bible.origin.x, study.origin.x)
-            self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+            self.assertLess(study.origin.x, bible.origin.x)
+            self.assertLessEqual(study.origin.x + study.size.width, bible.origin.x + 1)
+            self.assertEqual(window.header.get_height(),window.study.header.get_height())
             window.set_default_size(360, 600)
             spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
             self.assertGreater(window.passage_button.get_width(), 50)
@@ -578,7 +579,7 @@ class WindowTests(unittest.TestCase):
         spin(lambda: window.active_tab.get_width() > 400)
         _, bible = window.active_tab.compute_bounds(window)
         _, study = window.study.compute_bounds(window)
-        self.assertLessEqual(bible.origin.x + bible.size.width, study.origin.x + 1)
+        self.assertLessEqual(study.origin.x + study.size.width, bible.origin.x + 1)
         reading_width = window.active_tab.get_width()
         window.lookup_action('study').activate(None)
         spin(lambda: window.active_tab.get_width() > reading_width)

@@ -87,29 +87,37 @@ class ReadingStyle:
         tag.props.family = preferences.font
         tag.props.size_points = preferences.size
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
+        from .verse_typography import configure
+        for name in ['verse-number','page-number','source-number']:
+            number=buffer.get_tag_table().lookup(name)
+            if number:configure(number,view,preferences,self.palette)
 
     def changed(self, *_):
         self.palette = effective_palette(self.owner.preferences.value,
                                          self.manager.get_dark(), self.manager.get_high_contrast())
         bg, fg, link, selection, selected = PALETTES[self.palette]
+        study_bg = bg if self.manager.get_high_contrast() else f'mix({bg}, {fg}, 0.025)'
         selector = 'textview.' + self.scope
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
+{selector}.study-reader, {selector}.study-reader text {{ background-color: {study_bg}; }}
 {selector}:focus-visible {{ outline: 2px solid {fg}; outline-offset: -2px; }}
 '''
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS
         for view in self.views:
             view._reading_palette = self.palette
-            for name in ['verse-number', 'page-number']:
+            for name in ['verse-number', 'page-number', 'source-number']:
                 tag = view.get_buffer().get_tag_table().lookup(name)
                 if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
         appearance = getattr(self.owner, 'appearance', None)
         if appearance:
             appearance.sync_system()
+        study = getattr(self.owner, 'study', None)
+        if study and getattr(study, 'appearance', None):study.appearance.sync_system()
 
     def close(self):
         for handler in self.handlers:

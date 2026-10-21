@@ -215,6 +215,17 @@ class ReadingTab(Gtk.Box):
         for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,56)]:
             margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
             if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
+        comparison_geometry=(self.comparison_scroll.get_width(),self.comparison_scroll.get_height(),self.preferences.column_width)
+        if (comparison_geometry!=getattr(self,'_comparison_geometry',comparison_geometry)
+                and getattr(self,'_comparison_layout_anchor',None)):
+            anchor=self._comparison_layout_anchor
+            self.reveal_comparison(anchor.reference,anchor=anchor,settle=True)
+        self._comparison_geometry=comparison_geometry
+        if (self.comparison_text.get_mapped() and not getattr(self,'_comparison_positioning',False)
+                and getattr(self,'_comparison_document',None)):
+            rect=self.comparison_text.get_visible_rect()
+            _,iterator=self.comparison_text.get_iter_at_location(rect.x,rect.y)
+            self._comparison_layout_anchor=self._comparison_document.anchor(iterator.get_offset())
         if self.text.get_mapped() and not self._restoring_scroll:
             rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
             self._layout_anchor=self.position_anchor(iterator.get_offset())

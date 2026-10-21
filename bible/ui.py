@@ -100,7 +100,8 @@ class Window(Adw.ApplicationWindow):
         self.comparison_popover.set_child(self.comparison_choices)
         self.comparison_button.set_popover(self.comparison_popover)
         from .popover_dismissal import install
-        self._popover_dismissal = install(self, [self.navigation, self.appearance, self.comparison_popover])
+        self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
+        self._popover_dismissal = install(self, self._reading_popovers)
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
@@ -127,23 +128,36 @@ class Window(Adw.ApplicationWindow):
         self.view = Adw.TabView(vexpand=True)
         self.bar = Adw.TabBar(view=self.view, autohide=False)
         layout.append(self.bar)
-        self.split = Adw.OverlaySplitView(content=self.view, show_sidebar=False,
-                                          min_sidebar_width=300, max_sidebar_width=420,
-                                          sidebar_position=Gtk.PackType.END)
+        layout.append(self.view)
+        self.header = header
+        self.split = Adw.OverlaySplitView(content=layout, show_sidebar=False,
+                                          min_sidebar_width=360, max_sidebar_width=560,
+                                          sidebar_width_fraction=.38,
+                                          sidebar_position=Gtk.PackType.START)
         self.study = StudyPanel(self)
+        self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        self.header_height_group.add_widget(header)
+        self.header_height_group.add_widget(self.study.header)
         self.reading_style.decorate(self.study.text)
         self.reading_sync=ReadingSync(self)
         self.split.set_sidebar(self.study)
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
-        layout.append(self.split)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
-        self.main_pages.add_named(layout,'reading')
+        self.main_pages.add_named(self.split,'reading')
         self.set_content(self.main_pages)
-        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 760px'))
+        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
+        breakpoint.add_setter(self.split, 'min-sidebar-width', 280.0)
+        breakpoint.add_setter(self.split, 'sidebar-width-fraction', 1.0)
+        breakpoint.add_setter(self.study.header, 'show-end-title-buttons', True)
         self.add_breakpoint(breakpoint)
         tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
         tiny_header.add_setter(self.split, 'collapsed', True)
+        # Adw breakpoints do not stack: the tiny layout also needs the drawer's
+        # adaptive sizing and its single visible set of native window controls.
+        tiny_header.add_setter(self.split, 'min-sidebar-width', 280.0)
+        tiny_header.add_setter(self.split, 'sidebar-width-fraction', 1.0)
+        tiny_header.add_setter(self.study.header, 'show-end-title-buttons', True)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
         tiny_header.add_setter(self.my_notes_button,'visible',False)
@@ -267,7 +281,8 @@ class Window(Adw.ApplicationWindow):
             else:
                 current=study.anchor()
                 if current:
-                    key,offset=current;doc=source.document(key,self.preferences.value);anchor=doc.anchor(offset)
+                    key,offset=current;doc=source.document(key,self.preferences.value)
+                    anchor=doc.anchor(doc.spans[0].body+offset if offset else 0)
         else:
             source=BiblePages(tab.reader,self.library.resource(tab.state.resource))
             anchor=Anchor(tab.state.reference)
@@ -279,7 +294,7 @@ class Window(Adw.ApplicationWindow):
                     text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
                     anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
             key=source.key(anchor.reference)
-        self.navigation.popdown();self.appearance.popdown()
+        for popover in self._reading_popovers:popover.popdown()
         self.reading_sync.driver=None
         immersion=Immersion(self,source,key,anchor);self.immersion=immersion
         self.main_pages.add_named(immersion,'immersive');self.main_pages.set_visible_child_name('immersive')
@@ -430,6 +445,8 @@ class Window(Adw.ApplicationWindow):
 
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
+        self.appearance.sync()
+        if getattr(self.study,'appearance',None):self.study.appearance.sync()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
         self.reading_style.apply_text(self.study.text)
@@ -510,6 +527,8 @@ class Window(Adw.ApplicationWindow):
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
+        if not visible:
+            for popover in self.study.popovers:popover.popdown()
         self._syncing_study = True
         self.study_button.set_active(visible)
         if self.active_tab:

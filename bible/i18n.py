@@ -3,6 +3,8 @@ import locale
 import os
 
 FR = {
+    'Hide study': 'Masquer l’étude',
+    'Commentary actions': 'Actions du commentaire',
     'Very airy': 'Très aéré',
     'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
     'Saved results retained.': 'Les résultats enregistrés sont conservés.',

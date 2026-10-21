@@ -36,4 +36,10 @@ class ComparisonTests(unittest.TestCase):
                 tab.comparison_sync.armed_until=0
                 state=tab.state.reference;adjustment.set_value(0);spin(duration=.2)
                 self.assertEqual(tab.state.reference,state)
+                tab.reveal_comparison('Gen.1.3',settle=True)
+                spin(lambda:not getattr(tab,'_comparison_positioning',False))
+                before=tab.comparison_visible_reference()
+                window.study_button.set_active(True)
+                spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False),duration=.3)
+                self.assertEqual(tab.comparison_visible_reference(),before)
             finally:window.close()
