@@ -25,7 +25,7 @@ class BiblePages:
                     text=segment.text.strip()+'\n';pieces.append(text)
                     styles.append(StyleSpan('heading',offset,offset+len(text)));offset+=len(text)
             body=''.join(s.text for s in segments if s.kind!='heading')
-            leading=body[:len(body)-len(body.lstrip('\n'))]
+            leading=body[:len(body)-len(body.lstrip())]
             if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
             number=reference.rsplit('.',1)[-1]+' ' if preferences.verse_numbers else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
@@ -34,7 +34,13 @@ class BiblePages:
             if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
             spans.append(PassageSpan(reference,start,body_start,offset))
             if not body.endswith('\n'):pieces.append(' ');offset+=1
-        return Document(key,''.join(pieces),tuple(spans),tuple(styles))
+        original=''.join(pieces)
+        display=list(original)
+        for style in styles:
+            if style.kind=='verse-start':
+                for index in range(style.start,style.end):
+                    if display[index].isspace():display[index]='\u00a0'
+        return Document(key,''.join(display),tuple(spans),tuple(styles),original)
     def neighbour(self,key,direction):
         before,after=self.reader.neighbours(key+'.1')
         reference=before if direction<0 else after

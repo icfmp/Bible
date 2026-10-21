@@ -52,6 +52,10 @@ class ReadingStyle:
     def decorate(self, view):
         self.views.add(view)
         view._reading_palette = self.palette
+        from .verse_typography import NUMBER_COLORS
+        for name in ['verse-number', 'page-number']:
+            tag = view.get_buffer().get_tag_table().lookup(name)
+            if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
         view.add_css_class(self.scope)
         self.apply_text(view)
 

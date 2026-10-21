@@ -13,7 +13,7 @@ class VerseTypographyTests(unittest.TestCase):
         from bible.pagination import paginate
         app = Application.get_default() or Application(); app.register()
         with tempfile.TemporaryDirectory() as directory:
-            installed_fixture(directory, entries=[(f'Ps.119.{v}', 'Au commencement, mots de contrôle. '*3) for v in [1, 12, 123]])
+            installed_fixture(directory, entries=[(f'Ps.119.{v}', '\u2009Au commencement, mots de contrôle. '*3) for v in [1, 12, 123]])
             window = Window(app, Library(Path(directory)/'translations')); window.present()
             try:
                 tab = window.active_tab; tab.navigate('Test','Ps.119.1')
@@ -35,5 +35,15 @@ class VerseTypographyTests(unittest.TestCase):
                                 if style.kind=='verse-start':
                                     self.assertFalse(style.start < page.end < style.end)
                         self.assertNotIn('\u2060',document.text)
-                        self.assertNotIn('\u00a0',document.text)
+                        self.assertNotIn('\u00a0',document.copy(0,len(document.text)))
+                        # Native Ctrl+C uses the original characters rather than
+                        # the nonbreaking presentation spaces in its buffer.
+                        buffer.select_range(buffer.get_start_iter(),buffer.get_end_iter())
+                        values=[]
+                        tab.text.emit('copy-clipboard')
+                        def copied(clipboard,result):values.append(clipboard.read_text_finish(result))
+                        tab.text.get_clipboard().read_text_async(None,copied)
+                        spin(lambda:bool(values))
+                        self.assertEqual(values[0],tab._document.copy(0,len(tab._document.text)))
+                        self.assertNotIn('\u00a0',values[0])
             finally:window.close()

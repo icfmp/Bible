@@ -340,9 +340,11 @@ class Window(Adw.ApplicationWindow):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
-        tab.text.add_css_class(self.reading_style.scope)
+        self.reading_style.decorate(tab.text)
         tab.reading_overlay.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
+        from .comparison_sync import ComparisonSync
+        tab.comparison_sync = ComparisonSync(self, tab)
         page = self.view.append(tab)
         page.set_title(tab.title())
         return page

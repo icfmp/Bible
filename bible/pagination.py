@@ -42,6 +42,10 @@ class Document:
     text: str
     spans: tuple[PassageSpan,...]
     styles: tuple[StyleSpan,...] = ()
+    copy_text: str | None = None
+
+    def copy(self, start, end):
+        return (self.copy_text if self.copy_text is not None else self.text)[start:end]
 
     def anchor(self,offset):
         if not self.spans:return Anchor('',0)

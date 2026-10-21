@@ -192,6 +192,8 @@ class Immersion(Gtk.Overlay):
             if index>=len(self.addresses):view.get_buffer().set_text('');continue
             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
             buffer=view.get_buffer();buffer.set_text(plan.document.text[page.start:page.end])
+            from .bible_render import bind_copy
+            bind_copy(view,plan.document,page.start)
             table=buffer.get_tag_table();body=table.lookup('page-body')
             if body is None:body=buffer.create_tag('page-body')
             body.props.family=p.font;body.props.size_points=p.size
