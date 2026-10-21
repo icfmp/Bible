@@ -25,7 +25,10 @@ ANDBIBLE = Provider('andbible', 'AndBible', 'https://andbible.github.io/data/and
 STEP = Provider('step', 'STEP Bible (Tyndale)', 'https://public.modules.stepbible.org/',
                 'https://public.modules.stepbible.org/catalog/mods.d.tar.gz',
                 'https://public.modules.stepbible.org/packages/')
-PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP)
+EBIBLE = Provider('ebible', 'eBible', 'https://ebible.org/sword/',
+                  'https://ebible.org/sword/mods.d.tar.gz',
+                  'https://ebible.org/sword/zip/')
+PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE)
 BY_ID = {p.id: p for p in PROVIDERS}
 MODULE_NAME = r'[A-Za-z0-9_-]+'
 RESOURCE_ID = rf'(?:[a-z0-9-]+~)?{MODULE_NAME}'
