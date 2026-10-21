@@ -70,3 +70,19 @@ backup/merge restoration. This is not yet a published feature. #45's temporary
 commentary indicator must never be stored here or controlled by Show highlights;
 #46 must snapshot its source/range and use this store only after required review.
 Those subsequent UI changes are not claimed by this coordination commit.
+
+## Drawer and contextual actions integration
+
+Main through `f8395bc` is now merged into this review branch. All 148 tests pass.
+The real offline native pointer/keyboard action probe applies Yellow through the
+floating bar in the second Bible and verifies the recorded Calvin versification,
+Lausanne resource and exact references. The frozen selection remains available
+for Copy, Note and Compare. The actual MHC coverage probe confirms dotted temporary
+coverage in both Bibles, mapped Psalms, immersion and coexistence with a personal
+highlight. Hiding personal highlights leaves the temporary cue intact.
+
+Real GTK screenshots: `captures/actions-46-highlight-review.png` and
+`captures/context-45-personal-overlap-review.png`. These are automated Xvfb checks,
+not manual GNOME validation. The store/schema and signed channel are unchanged.
+PR #40 still requires review: the public main build intentionally has no Highlight
+action until this dependency is approved and merged. Nothing here is published.
