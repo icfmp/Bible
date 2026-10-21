@@ -86,3 +86,38 @@ Real GTK screenshots: `captures/actions-46-highlight-review.png` and
 not manual GNOME validation. The store/schema and signed channel are unchanged.
 PR #40 still requires review: the public main build intentionally has no Highlight
 action until this dependency is approved and merged. Nothing here is published.
+
+## Final persistence/integration review
+
+The client explicitly authorized completing this review and integration. Before
+integration, the installed signed public 8d3a183 has no bible.highlights module
+and does have the temporary commentary indicator. This distinguishes the channel's
+published code from the client's positive visual observation; their exact local
+build is not remotely inspected and that observation is not discarded.
+
+Current main, including #51/#36 corrections, approved page and reviewed eBible,
+is integrated. Review of version-1 storage confirms atomic replacement, bounded
+validation, preservation of corrupt/future files, explicit backup/merge restore
+and source-system identities. No notes/session/resource format is migrated.
+
+Two concrete integration fixes: windows in the same application/profile now
+share one weakly cached store and repaint after changes, avoiding stale-window
+writes that discard other marks. The existing commentary inline styling stays
+inside each page's render loop, independently of personal Bible highlights;
+this preserves the #51 zero-scale correction and emphasis on both pages.
+Regression tests verify two-window persistence/painting and commentary formatting.
+The original store/schema and its existing tests are reused, not replaced.
+
+Personal marks remain independent from the temporary #45 dotted coverage cue.
+The #46 bar reuses the reviewed store and actual selected translation/system;
+existing candidate-format highlights load without migration or deletion.
+Final test totals, actual real-resource controls and public alpha availability
+are recorded after the combined delivery. Manual GNOME remains separate.
+
+
+Integrated validation: all 154 tests pass, including the two concrete review
+regressions. Real offline Segond marks keep exact source text; hide/show retains
+records; backup/merge and the find list work. Native pointer/keyboard actions
+apply a real second-Bible Calvin/Lausanne mark with the correct frozen source.
+Actual MHC coverage coexists with personal marks, remains when personal marks
+are hidden and survives immersion. Updated actual GTK captures are committed.

@@ -56,3 +56,22 @@ class HighlightUITests(unittest.TestCase):
                 self.assertIn(('Segond','Ps.3.2'),window.highlights.entries)
                 self.assertTrue(panel.status.get_text());panel.close()
             finally:window.close()
+
+    def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self):
+        from bible.ui import Window,Library
+        from bible.highlights import HighlightStore
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory);library=Library(Path(directory)/'translations')
+            first=Window(self.app,library);second=Window(self.app,library)
+            first.present();second.present()
+            try:
+                spin();first.active_tab.select_verse('Gen.1.1');first.mark_highlight('yellow')
+                second.active_tab.select_verse('Gen.1.2');second.mark_highlight('blue')
+                expected={('KJV','Gen.1.1'),('KJV','Gen.1.2')}
+                self.assertEqual(set(first.highlights.entries),expected)
+                self.assertEqual(set(second.highlights.entries),expected)
+                self.assertEqual(set(HighlightStore(Path(directory)/'highlights.json').entries),expected)
+                view=first.active_tab.text;buffer=view.get_buffer()
+                tag=buffer.get_tag_table().lookup('highlight-blue')
+                self.assertTrue(buffer.get_iter_at_offset(first.active_tab._marker_ends['Gen.1.2']).has_tag(tag))
+            finally:second.close();first.close()

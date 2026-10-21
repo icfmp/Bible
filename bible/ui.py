@@ -35,7 +35,12 @@ class Window(Adw.ApplicationWindow):
         self.library = library
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
-        self.highlights=HighlightStore(library.root.parent/'highlights.json')
+        from weakref import WeakValueDictionary
+        if not hasattr(app,'_highlight_stores'):app._highlight_stores=WeakValueDictionary()
+        path=(library.root.parent/'highlights.json').resolve()
+        self.highlights=app._highlight_stores.get(path)
+        if self.highlights is None:
+            self.highlights=HighlightStore(path);app._highlight_stores[path]=self.highlights
         self.highlights_window=None
         self.reading_style = ReadingStyle(self)
         self.closed = False
@@ -601,6 +606,12 @@ class Window(Adw.ApplicationWindow):
             self.notes_window.refresh()
 
     def refresh_highlights(self):
+        for window in self.get_application().get_windows():
+            if (isinstance(window,Window) and not getattr(window,'closed',True)
+                    and hasattr(window,'view') and window.highlights is self.highlights):
+                window.paint_highlights()
+
+    def paint_highlights(self):
         for tab in self.tabs():tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
         if self.immersion:
             self.immersion.capture_selection();self.immersion.render()

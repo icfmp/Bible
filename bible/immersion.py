@@ -233,6 +233,11 @@ class Immersion(Gtk.Overlay):
                     first,last=max(page.start,style.start),min(page.end,style.end)
                     if style.kind==kind and last>first:
                         buffer.apply_tag(tag,buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
+            from .commentary_format import apply
+            inline=[(s.kind,max(s.start,page.start)-page.start,min(s.end,page.end)-page.start)
+                    for s in plan.document.styles if s.kind in {'hidden','italic','bold','small-caps'}
+                    and s.end>page.start and s.start<page.end]
+            apply(view,inline,p,self.owner.reading_style.palette)
         if self.kind=='bible' and hasattr(self.owner,'highlights'):
             from .highlight_ui import paint
             for view,address in zip(self.views,self.addresses):
@@ -241,11 +246,6 @@ class Immersion(Gtk.Overlay):
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
                 paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
                       self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
-            from .commentary_format import apply
-            inline=[(s.kind,max(s.start,page.start)-page.start,min(s.end,page.end)-page.start)
-                    for s in plan.document.styles if s.kind in {'hidden','italic','bold','small-caps'}
-                    and s.end>page.start and s.start<page.end]
-            apply(view,inline,p,self.owner.reading_style.palette)
         self.update_study_indicator()
         self.restore_selection()
         self._updating=False
