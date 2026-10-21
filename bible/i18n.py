@@ -160,7 +160,7 @@ FR.update({
     'Downloading {name}…': 'Téléchargement de {name}…',
     'Installing and checking…': 'Installation et vérification…',
     'Installed: {name}': 'Installé : {name}',
-    'Size unknown': 'Taille inconnue', 'Failed': 'Échec',
+    'Size unknown': 'Taille inconnue', 'Failed': 'Échec', 'Retry': 'Réessayer',
 })
 
 FR.update({

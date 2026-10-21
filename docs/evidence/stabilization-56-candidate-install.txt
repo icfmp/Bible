@@ -1,0 +1,9 @@
+
+(process:35020): Gtk-WARNING **: 21:40:07.254: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+{"id": "ebible~fraFOB1744eb", "driver": "zText", "system": "NRSV", "version": "71.0", "sha256": "280960856d860a9a77d0d9be2e0c6ffc849627e472dbd5b79882445057410c4f", "installed_ui": true, "immediate_reader": true}
+{"id": "ebible~fraLSG1910eb", "driver": "zText", "system": "NRSV", "version": "99.0", "sha256": "d25df98e3adc1563df9f428957098e41116ed013892fbde3d0cfc4830eeb5358", "installed_ui": true, "immediate_reader": true}
+{"id": "ebible~frajnd2024eb", "driver": "zText", "system": "Luther", "version": "2.17", "sha256": "0d5882a7e879e2693e30609ab17916fca88625d9e5b8362892e3cb534db2c2f1", "installed_ui": true, "immediate_reader": true}
+{"id": "ebible~francl2022eb", "driver": "zText", "system": "Catholic2", "version": "1234.0", "sha256": "9dabf4ebb9117354a79322cb942935e2d48728aa8fd0413277181389ab9d9e77", "installed_ui": true, "immediate_reader": true}
+{"id": "ebible~frasbl2022eb", "driver": "zText", "system": "NRSVA", "version": "170.0", "sha256": "833981b1f3d253023fd5e770a03d9deaf449dd37463b95ed413586d063742c03", "installed_ui": true, "immediate_reader": true}
+{"id": "KJV", "driver": "zText", "system": "KJV", "version": "3.1", "sha256": "b3ae694dadcede27d8ce51e79f5ada9a282f74ecdc959630896367d035e27120", "installed_ui": true, "immediate_reader": true}
+{"id": "FreCrampon", "driver": "zText", "system": "Catholic2", "version": "3.4", "sha256": "27c808c1ab4e7e2b255ad7f23a622926d505c92bb6d6a51ad22be73e5e7e0857", "installed_ui": true, "immediate_reader": true}

@@ -45,6 +45,30 @@ def archive_bytes(files):
 
 
 class LibraryTests(unittest.TestCase):
+    def test_generated_notice_revision_dates_keep_original_package_and_catalogue(self):
+        from dataclasses import replace
+        from bible.library import compatible_notices,resource_from_section
+        with tempfile.TemporaryDirectory() as source,tempfile.TemporaryDirectory() as directory:
+            fixture(source);path=Path(source)/'mods.d/test.conf'
+            notice='Attribution. Personal use only.'
+            old='2026-03-11';new='2026-10-20'
+            data=path.read_bytes()+f'About={notice} {new}\nCopyrightNotes={notice} {new}\nCopyrightDate=2022\nVersion=2.0\nHistory_2.0=Automatically generated on {new} using Haiola (http://haiola.org)\n'.encode()
+            path.write_bytes(data);actual=resource_from_section('Test',config(data)['Test'])
+            expected=replace(actual,about=actual.about.replace(new,old),conditions=actual.conditions.replace(new,old))
+            payload=archive_bytes({str(p.relative_to(source)):p.read_bytes() for p in Path(source).rglob('*') if p.is_file()})
+            with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(payload)):
+                library=Library(directory);library.install(expected)
+            self.assertEqual(library.resource('Test'),actual)
+            self.assertEqual((Path(directory)/'Test/mods.d/test.conf').read_bytes(),data)
+            import json
+            saved=json.loads((Path(directory)/'Test/.source.json').read_text())
+            self.assertEqual(saved['catalogue_notices']['conditions'],expected.conditions)
+            for changed in [replace(actual,license='GPL'),replace(actual,author='Someone else'),
+                            replace(actual,conditions=actual.conditions.replace('2022','2023')),
+                            replace(actual,conditions=actual.conditions.replace('Personal use only.','Redistribution prohibited.'))]:
+                self.assertFalse(compatible_notices(expected,changed,config(data)['Test']))
+            self.assertFalse(compatible_notices(expected,actual,config(data.replace(b'using Haiola',b'using Another'))['Test']))
+
     def test_sword_configuration_continuation(self):
         data = CONF + b'About=First line \\\nCopyright and address \\\nLast line\nBareKey\n'
         parsed = config(data)

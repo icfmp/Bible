@@ -111,6 +111,26 @@ def safe_path(name):
     return path
 
 
+def compatible_notices(expected, actual, section):
+    """Recognize Haiola's generated revision dates; keep raw legal notices."""
+    fields=('license','conditions','about','author')
+    if all(getattr(expected,key)==getattr(actual,key) for key in fields):return True
+    if (expected.license,expected.author)!=(actual.license,actual.author):return False
+    history=section.get('History_'+(section.get('Version') or ''),'') or ''
+    if not (history.startswith('Automatically generated on ') and 'using Haiola (' in history):return False
+    dates=[];bodies=[]
+    for value in (expected.about,actual.about):
+        match=re.fullmatch(r'(.*\S) +(\d{4}-\d{2}-\d{2})\s*',value,re.DOTALL)
+        if not match:return False
+        bodies.append(match[1]);dates.append(match[2])
+    if bodies[0]!=bodies[1]:return False
+    def conditions(value,date):
+        # Only CopyrightNotes' terminal date may mirror About's revision date.
+        # CopyrightDate, holders, licenses, restrictions and all prose stay exact.
+        return re.sub(r'(?m)^(copyrightnotes:.*) +'+re.escape(date)+r'$',r'\1',value)
+    return conditions(expected.conditions,dates[0])==conditions(actual.conditions,dates[1])
+
+
 def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE):
     deadline=time.monotonic()+120
     request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1'})
@@ -293,8 +313,7 @@ class Library:
                 raise ValueError('Resource type changed. Reload the catalogue before downloading.')
             if not actual.installable:
                 raise ValueError('Encrypted or unsupported resource')
-            if (actual.license, actual.conditions, actual.about, actual.author) != (
-                    resource.license, resource.conditions, resource.about, resource.author):
+            if not compatible_notices(resource,actual,section):
                 raise ValueError('Resource conditions changed. Reload the catalogue before downloading.')
             data_path = safe_path(section.get('DataPath', ''))
             if not data_path.parts or data_path.parts[0] != 'modules':
@@ -315,6 +334,9 @@ class Library:
             (target / '.source.json').write_text(json.dumps({
                 'provider_id': provider.id, 'module_name': resource.name,
                 'source': resource.source, 'url': resource.source_url,
+                'catalogue_notices': {key:getattr(resource,key) for key in ('license','conditions','about','author')},
+                'updated_notice_fields': [key for key in ('license','conditions','about','author')
+                                         if getattr(resource,key)!=getattr(actual,key)],
             }), encoding='utf-8')
             (target / '.complete').write_text(resource.id, encoding='utf-8')
             destination = self.root / resource.id
