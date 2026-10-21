@@ -70,7 +70,7 @@ class ImmersionTests(unittest.TestCase):
                 self.assertTrue(r.turn(-1));self.assertEqual(r.stream.cursor,before)
                 self.assertTrue(r.turn(1))
             self.assertEqual(len({a for a,_ in seen}),len(seen))
-            expected=''.join(r.source.document(key,w.preferences.value).text for key in ['Gen.1','Gen.2'])
+            expected=r.source.document('Gen',w.preferences.value).text
             self.assertEqual(''.join(t for _,t in seen),expected)
             reached=r.stream.anchor();w.leave_immersion();spin(lambda:not tab._restoring_scroll)
             self.assertEqual(tab.state.reference,reached.reference)
@@ -129,8 +129,9 @@ class ImmersionTests(unittest.TestCase):
         from bible.ui import Gtk
         with self.profile() as directory:
             w=self.window(directory,rtl=True);r=self.entered(w)
-            self.assertTrue(r.source.rtl);self.assertEqual(r.pages.get_direction(),Gtk.TextDirection.RTL)
-            self.assertGreater(r.frames[0].get_allocation().x,r.frames[1].get_allocation().x)
+            self.assertTrue(r.source.rtl);self.assertEqual(r.pages.get_direction(),Gtk.TextDirection.LTR)
+            self.assertLess(r.frames[0].get_allocation().x,r.frames[1].get_allocation().x)
+            self.assertEqual(r.views[0].get_direction(),Gtk.TextDirection.RTL)
             r.hide_help();self.assertTrue(w.immersion_hints.disabled)
             w.set_default_size(360,650);spin(lambda:r.count==1,duration=.3)
             self.assertLessEqual(w.get_width(),360)

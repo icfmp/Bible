@@ -15,6 +15,7 @@ from .notes_window import passage_label
 class Immersion(Gtk.Overlay):
     def __init__(self,owner,source,key,anchor):
         super().__init__()
+        self.add_css_class(owner.reading_style.scope+'-surface')
         self.owner=owner;self.tab=owner.active_tab;self.source=source;self.kind=source.kind
         self.initial_key=key;self.initial_anchor=anchor;self.was_fullscreen=owner.is_fullscreen()
         self._geometry=None;self._hide_id=0;self._last_turn=0;self._wheel=0
@@ -25,7 +26,8 @@ class Immersion(Gtk.Overlay):
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
                            margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
-        self.pages.set_direction(Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
+        self.pages.set_direction(Gtk.TextDirection.LTR if self.kind=='bible' else
+                                 Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
         for number in range(2):
             view=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                               left_margin=8,right_margin=8,top_margin=12,bottom_margin=12,hexpand=True,vexpand=True)
@@ -50,7 +52,10 @@ class Immersion(Gtk.Overlay):
         body.append(self.page_clamp)
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');body.append(self.footer);self.set_child(body)
-        self.stream=PagedStream(self.views[0],source,owner.preferences.value)
+        if getattr(source,'book_pages',False):
+            from .book_stream import BookStream
+            self.stream=BookStream(self.views[0],source,owner.preferences.value)
+        else:self.stream=PagedStream(self.views[0],source,owner.preferences.value)
         self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN,
                               valign=Gtk.Align.START,halign=Gtk.Align.FILL)
         controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -123,6 +128,10 @@ class Immersion(Gtk.Overlay):
 
     def adapt(self,*_):
         if self._closed:return False
+        if hasattr(self.stream,'poll'):
+            changed=self.stream.poll()
+            if changed=='current':self.render()
+            elif changed=='controls' and self.stream.cursor:self.update_page_buttons()
         width,height=self.get_width(),self.get_height()
         if width<100 or height<100:return True
         minimum=max(280,self.owner.preferences.value.size*15)
@@ -140,8 +149,10 @@ class Immersion(Gtk.Overlay):
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
             maximum=(usable+16)*count+(32 if count==2 else 0)+112
             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
-            self._geometry=geometry;self.stream.configure(usable,page_height,anchor,key);self.render()
+            self._geometry=geometry;self.stream.spread_count=count
+            self.stream.configure(usable,page_height,anchor,key);self.render()
         else:
+            if self.stream.cursor is None:return True
             allocation=tuple((view.get_width(),view.get_height()) for view in self.views[:self.count])
             if allocation!=self._allocation_signature:
                 self._allocation_signature=allocation;self._stable_frames=0;self.layout_ready=False
@@ -182,7 +193,15 @@ class Immersion(Gtk.Overlay):
         elif not any(v.get_buffer().get_has_selection() for v in self.views):self.selection=None
 
     def render(self):
-        if not self.stream.cursor:return
+        if not self.stream.cursor:
+            self.clicked_reference=None
+            self._updating=True;self.addresses=[];self.layout_ready=False
+            for view in self.views:view.get_buffer().set_text('')
+            self._updating=False
+            self.back.set_sensitive(False);self.forward.set_sensitive(False)
+            self.footer.set_text((tr('Unable to read this passage.')+' '+self.stream.error)
+                                 if getattr(self.stream,'error',None) else tr('Preparing reading pages…'))
+            return
         self.clicked_reference=None
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
         self._updating=True;self.addresses=self.stream.spread(self.count)
@@ -222,6 +241,9 @@ class Immersion(Gtk.Overlay):
                 button.set_tooltip_text((tr('Previous available entry') if direction<0 else tr('Next available entry'))+
                                        (': '+self.source.reader.index.label(position) if position is not None else ''))
         self.footer.set_text(caption);self.caption.set_text(caption)
+        self.update_page_buttons()
+
+    def update_page_buttons(self):
         self.back.set_sensitive(self.stream.step(self.stream.cursor,-1) is not None)
         self.forward.set_sensitive(self.stream.step(self.addresses[-1],1) is not None)
 
@@ -243,6 +265,7 @@ class Immersion(Gtk.Overlay):
 
     def go_to_reference(self,reference):
         if self.kind!='bible':return
+        self.clicked_reference=None
         key=self.source.key(reference);self.initial_anchor=Anchor(reference);self.initial_key=key
         self.stream.configure(self.stream.width,self.stream.height,self.initial_anchor,key);self.render()
 
@@ -375,4 +398,5 @@ class Immersion(Gtk.Overlay):
         if self.kind=='bible':
             self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+        if hasattr(self.stream,'close'):self.stream.close()
         return anchor,self.stream.cursor.key if self.stream.cursor else self.initial_key

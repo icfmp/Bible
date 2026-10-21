@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Preparing reading pages…': 'Préparation des pages de lecture…',
     'Very airy': 'Très aéré',
     'Saved catalogue — available offline.': 'Catalogue enregistré — disponible hors connexion.',
     'Saved results retained.': 'Les résultats enregistrés sont conservés.',

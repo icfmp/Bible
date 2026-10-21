@@ -1,6 +1,6 @@
 """Bounded, on-demand chapter/entry sources for the native paginated reader."""
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
 from .book_names import display_name
 from .i18n import LANGUAGE
@@ -26,7 +26,7 @@ class BiblePages:
             body=''.join(s.text for s in segments if s.kind!='heading')
             leading=body[:len(body)-len(body.lstrip('\n'))]
             if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
-            number=reference.rsplit('.',1)[-1]+' ' if preferences.verse_numbers else ''
+            number=reference.rsplit('.',1)[-1]+'\u00a0' if preferences.verse_numbers else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
             pieces.append(body);offset+=len(body)
@@ -39,6 +39,38 @@ class BiblePages:
         return self.key(reference) if reference else None
     @property
     def rtl(self):return self.reader.rtl
+
+
+class BibleBookPages(BiblePages):
+    """Load one actual book on demand; chapters share a continuous document."""
+    book_pages=True
+
+    def key(self,reference):return self.reader.key(reference).getOSISBookName()
+
+    def clone(self):
+        from .sword_provider import Reader
+        return BibleBookPages(Reader(self.reader.root,self.reader.name),self.resource)
+
+    def document(self,key,preferences):
+        code=key.split('.')[0]
+        book=next((b for b in self.reader.books if b.code==code),None)
+        if book is None:raise ValueError('Book unavailable: '+code)
+        pieces=[];spans=[];styles=[];offset=0
+        for number in book.chapters:
+            doc=super().document(f'{code}.{number}',preferences)
+            prefix=offset
+            if pieces:pieces.append('\n\n');offset+=2
+            pieces.append(doc.text)
+            for index,span in enumerate(doc.spans):
+                spans.append(replace(span,start=prefix if index==0 else span.start+offset,
+                                     body=span.body+offset,end=span.end+offset))
+            styles.extend(replace(style,start=style.start+offset,end=style.end+offset) for style in doc.styles)
+            offset+=len(doc.text)
+        return Document(code,''.join(pieces),tuple(spans),tuple(styles))
+
+    def neighbour(self,key,direction):
+        codes=[b.code for b in self.reader.books];position=codes.index(key)+direction
+        return codes[position] if 0<=position<len(codes) else None
 
 
 class CommentaryPages:
