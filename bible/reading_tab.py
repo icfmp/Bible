@@ -51,7 +51,8 @@ class ReadingTab(Gtk.Box):
         self.text.set_pixels_inside_wrap(5)
         self.text.set_pixels_below_lines(9)
         self._body_tag = self.text.get_buffer().create_tag(None)
-        self._number_tag = self.text.get_buffer().create_tag(None, scale=0.65, rise=6000)
+        self._number_tag = self.text.get_buffer().create_tag('verse-number')
+        self._verse_start_tag = self.text.get_buffer().create_tag('verse-start', allow_breaks=False)
         self._heading_tag = self.text.get_buffer().create_tag(None, weight=700, pixels_above_lines=16, pixels_below_lines=12)
         self._chapter_tag = self.text.get_buffer().create_tag(None, weight=700, justification=Gtk.Justification.CENTER, pixels_above_lines=20, pixels_below_lines=20)
         self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
@@ -223,115 +224,90 @@ class ReadingTab(Gtk.Box):
         return True
 
     def refresh_comparison(self):
-        name=self.state.comparison
-        stamp=(name,id(self.reader),self.state.reference,repr(self.preferences))
-        if stamp==getattr(self,'_comparison_stamp',None):return
-        self._comparison_stamp=stamp
-        if bool(name)!=self.comparison_box.get_visible() and self.text.get_mapped() and not self._restoring_scroll:
-            rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
-            self._appearance_anchor=self.position_anchor(iterator.get_offset())
-            self._jump_reference=None
-            self.schedule_scroll_restore()
+        name = self.state.comparison
+        stamp = (name, self.state.reference, tuple(vars(self.preferences).items()))
+        if stamp == getattr(self, '_comparison_stamp', None):return
+        self._comparison_stamp = stamp
+        if bool(name) != self.comparison_box.get_visible() and self.text.get_mapped() and not self._restoring_scroll:
+            rect = self.text.get_visible_rect(); _, iterator = self.text.get_iter_at_location(rect.x, rect.y)
+            self._appearance_anchor = self.position_anchor(iterator.get_offset())
+            self._jump_reference = None; self.schedule_scroll_restore()
         self.comparison_box.set_visible(bool(name))
         if not name:return
-        self.comparison_text.get_buffer().set_text('')
-        self._comparison_ranges={}
         self.comparison_status.set_text('')
         try:
             if name not in self.library.installed('bible'):raise ValueError(tr('Comparison translation unavailable.'))
-            resource=self.library.resource(name)
-            self.comparison_heading.set_text(resource.description+' — '+resource.source)
-            if self._comparison_name!=name:
-                self._comparison_reader=Reader(self.library.root/name,name);self._comparison_name=name
-            reader=self._comparison_reader
-            apply_direction(self.comparison_text,reader)
+            resource = self.library.resource(name)
+            if self._comparison_name != name:
+                self._comparison_reader = Reader(self.library.root/name, name); self._comparison_name = name
+            reader = self._comparison_reader
             if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
             from .reference_resolution import resolve
-            resolved=resolve(self.state.reference,self.reader.versification,reader)
-            chapter=reader.chapter(resolved.start)
+            resolved = resolve(self.state.reference, self.reader.versification, reader)
+            chapter = reader.chapter(resolved.start)
             self.comparison_heading.set_text(resource.description+' — '+resource.source+' · '+resolved.start+
-                                             ('–'+resolved.end if resolved.end!=resolved.start else ''))
-            pieces=[];self._comparison_ranges={};position=0
-            for ref,value in chapter.verses:
-                line=(ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value
-                pieces.append(line);self._comparison_ranges[ref]=(position,position+len(line));position+=len(line)+2
-            text='\n\n'.join(pieces)
-            buffer=self.comparison_text.get_buffer();buffer.set_text(text)
-            offset=0
-            for ref,value in chapter.verses:
-                if ref==resolved.start:break
-                offset+=len((ref.rsplit('.',1)[-1]+' ' if self.preferences.verse_numbers else '')+value)+2
-            mark=buffer.create_mark(None,buffer.get_iter_at_offset(offset),True)
-            if getattr(self,'_comparison_tick',0):self.comparison_text.remove_tick_callback(self._comparison_tick)
-            frames=[0]
-            def reveal(*_):
-                frames[0]+=1
-                if not self.get_mapped() or frames[0]<3:return frames[0]<10
-                self.comparison_text.set_bottom_margin(max(24,self.comparison_scroll.get_height()))
-                iterator=buffer.get_iter_at_mark(mark)
-                target=self.comparison_text.get_iter_location(iterator)
-                rect=self.comparison_text.get_visible_rect();adj=self.comparison_scroll.get_vadjustment()
-                adj.set_value(adj.get_value()+target.y-rect.y)
-                if frames[0]<6:return True
-                buffer.delete_mark(mark)
-                self._comparison_tick=0
-                return False
-            self._comparison_tick=self.comparison_text.add_tick_callback(reveal)
-            table=buffer.get_tag_table();tag=table.lookup('appearance')
-            if not tag:tag=buffer.create_tag('appearance')
-            tag.props.family=self.preferences.font;tag.props.size_points=self.preferences.size
-            buffer.apply_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
-            self.update_highlights()
-        except Exception as error:self.comparison_status.set_text(str(error))
+                                             ('–'+resolved.end if resolved.end != resolved.start else ''))
+            signature = (name, chapter.reference, tuple(vars(self.preferences).items()))
+            rebuild = signature != getattr(self, '_comparison_signature', None)
+            anchor = None
+            if rebuild:
+                from .bible_render import render
+                buffer = self.comparison_text.get_buffer()
+                old = getattr(self, '_comparison_document', None)
+                selected = [old.anchor(i.get_offset()) for i in buffer.get_selection_bounds()] if old else []
+                if old and getattr(self, '_comparison_signature', (None,))[0] == name:
+                    rect = self.comparison_text.get_visible_rect()
+                    _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
+                    if old.key == chapter.reference:anchor = old.anchor(iterator.get_offset())
+                self._comparison_document, self._comparison_offsets, self._comparison_ranges, self._comparison_markers = render(
+                    self.comparison_text, reader, chapter, self.preferences)
+                self._comparison_signature = signature
+                self.update_highlights()
+                if selected and old.key == chapter.reference:
+                    buffer.select_range(*(buffer.get_iter_at_offset(self._comparison_document.locate(a)) for a in selected))
+            sync = getattr(self, 'comparison_sync', None)
+            if not (sync and sync.running and sync.driver == 'comparison'):
+                self.reveal_comparison(resolved.start, anchor=anchor, settle=rebuild)
+        except Exception as error:
+            self.comparison_text.get_buffer().set_text('')
+            self._comparison_signature = None; self._comparison_offsets = {}
+            self.comparison_status.set_text(str(error))
+
+    def comparison_visible_reference(self):
+        offsets = getattr(self, '_comparison_offsets', {})
+        if not offsets:return None
+        rect = self.comparison_text.get_visible_rect(); buffer = self.comparison_text.get_buffer()
+        starts = [(ref, self.comparison_text.get_iter_location(buffer.get_iter_at_offset(offset)).y)
+                  for ref, offset in offsets.items()]
+        visible = [ref for ref, y in starts if rect.y <= y < rect.y+rect.height]
+        if visible:return visible[0]
+        preceding = [ref for ref, y in starts if y <= rect.y]
+        return preceding[-1] if preceding else starts[0][0]
+
+    def reveal_comparison(self, reference, anchor=None, settle=False):
+        offsets = getattr(self, '_comparison_offsets', {})
+        if reference not in offsets:return
+        if getattr(self, '_comparison_tick', 0):self.comparison_text.remove_tick_callback(self._comparison_tick)
+        frames = [0]; self._comparison_positioning = True
+        def reveal(*_):
+            frames[0] += 1
+            if not self.get_mapped():
+                self._comparison_tick = 0; self._comparison_positioning = False; return False
+            if settle and frames[0] < 3:return True
+            view = self.comparison_text; buffer = view.get_buffer()
+            offset = self._comparison_document.locate(anchor) if anchor else offsets[reference]
+            target = view.get_iter_location(buffer.get_iter_at_offset(offset))
+            rect = view.get_visible_rect(); adjustment = self.comparison_scroll.get_vadjustment()
+            view.set_bottom_margin(max(24, self.comparison_scroll.get_height()))
+            adjustment.set_value(adjustment.get_value()+target.y-rect.y)
+            if settle and frames[0] < 6:return True
+            self._comparison_tick = 0; self._comparison_positioning = False; return False
+        self._comparison_tick = self.comparison_text.add_tick_callback(reveal)
 
     def render_chapter(self, chapter):
-        apply_direction(self.text,self.reader)
-        buffer = self.text.get_buffer()
-        preferences = self.preferences
-        self.text.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
-        self.text.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
-        self.comparison_text.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
-        self.comparison_text.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
-        self._body_tag.props.family = preferences.font
-        self._body_tag.props.size_points = preferences.size
-        self._heading_tag.props.size_points = preferences.size * 1.12
-        self._chapter_tag.props.size_points = preferences.size * 1.35
-        key = self.reader.key(chapter.reference + '.1')
-        title = display_name(key.getOSISBookName(), key.getBookName(), LANGUAGE)
-        if preferences.chapter_numbers:title += ' ' + str(key.getChapter())
-        pieces = [title + '\n\n']
-        spans = [(0,len(title),self._chapter_tag)]
-        offset = len(pieces[0])
-        self._verse_offsets, self._verse_ranges, self._marker_ends = {}, {}, {}
-        structured = self.reader.structured_chapter(chapter)
-        has_structure = any(segment.kind != 'text' for values in structured.values() for segment in values)
-        for index,(reference, plain) in enumerate(chapter.verses):
-            segments = structured[reference]
-            for segment in segments:
-                if segment.kind == 'heading' and segment.text.strip():
-                    value = '\n' + segment.text.strip() + '\n'
-                    pieces.append(value);spans.append((offset,offset+len(value),self._heading_tag));offset += len(value)
-            body_segments = [s for s in segments if s.kind != 'heading']
-            body = ''.join(s.text for s in body_segments)
-            # No source paragraphs: neutral continuous prose, no invented titles.
-            if not has_structure:body = plain
-            leading = body[:len(body)-len(body.lstrip('\n'))]
-            if leading:
-                pieces.append(leading);offset += len(leading);body=body[len(leading):]
-            start = offset
-            number = reference.rsplit('.',1)[-1] + ' ' if preferences.verse_numbers else ''
-            pieces.append(number);offset += len(number)
-            self._verse_offsets[reference] = start
-            self._marker_ends[reference] = offset
-            if number:spans.append((start,offset,self._number_tag))
-            pieces.append(body);offset += len(body)
-            self._verse_ranges[reference] = (start,offset)
-            separator = ' ' if not body.endswith('\n') else ''
-            pieces.append(separator);offset += len(separator)
-        buffer.set_text(''.join(pieces))
-        buffer.apply_tag(self._body_tag,buffer.get_start_iter(),buffer.get_end_iter())
-        for start,end,tag in spans:
-            buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
+        from .bible_render import render
+        self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
+            self.text, self.reader, chapter, self.preferences)
         self.update_highlights()
 
     def update_highlights(self,high=None,palette=None):

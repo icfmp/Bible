@@ -22,6 +22,14 @@ class ResourceItem(GObject.Object):
         super().__init__();self.resource=resource
 
 
+class MetadataLabel(Gtk.Label):
+    """Keep native selection/copy, without GtkLabel's focus-time Select All."""
+    def do_grab_focus(self):
+        result = Gtk.Label.do_grab_focus(self)
+        self.select_region(0, 0)
+        return result
+
+
 class CatalogueWindow(Adw.Window):
     def __init__(self, parent, library, on_installed):
         super().__init__(transient_for=parent, modal=True, title=tr('Library'),
@@ -93,7 +101,7 @@ class CatalogueWindow(Adw.Window):
         explorer.append(self.empty)
         self.pages.add_named(explorer,'list')
         detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=20,margin_end=20,margin_top=12,margin_bottom=12)
-        self.metadata=Gtk.Label(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,selectable=True,max_width_chars=55)
+        self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,selectable=True,max_width_chars=55)
         metadata_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         metadata_scroll.set_child(self.metadata);detail.append(metadata_scroll)
         self.download_button=Gtk.Button(label=tr('Download'),sensitive=False,halign=Gtk.Align.CENTER)
@@ -143,6 +151,8 @@ class CatalogueWindow(Adw.Window):
         self._list_position=self.list_scroll.get_vadjustment().get_value()
         self.choices.set_selected(index);self.selection_changed()
         self.pages.set_visible_child_name('detail');self.back_button.set_visible(True)
+        self.metadata.select_region(0, 0)
+        self.back_button.grab_focus()
 
     def back_to_list(self,*_):
         self.pages.set_visible_child_name('list');self.back_button.set_visible(False)

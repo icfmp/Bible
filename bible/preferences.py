@@ -15,7 +15,7 @@ class ReadingPreferences:
     mode: str = 'system'
     day_palette: str = 'white'
     night_palette: str = 'dark'
-    line_spacing: str = 'airy'
+    line_spacing: str = 'very-airy'
     column_width: str = 'narrow'
     show_highlights: bool = True
 

@@ -102,6 +102,8 @@ class Window(Adw.ApplicationWindow):
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
         self.comparison_popover.set_child(self.comparison_choices)
         self.comparison_button.set_popover(self.comparison_popover)
+        from .popover_dismissal import install
+        self._popover_dismissal = install(self, [self.navigation, self.appearance, self.comparison_popover])
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
@@ -344,9 +346,11 @@ class Window(Adw.ApplicationWindow):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
                          self.notes_store, self.open_passage_notes, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
-        tab.text.add_css_class(self.reading_style.scope)
+        self.reading_style.decorate(tab.text)
         tab.reading_overlay.add_css_class(self.reading_style.scope+'-surface')
         self.reading_style.decorate(tab.comparison_text)
+        from .comparison_sync import ComparisonSync
+        tab.comparison_sync = ComparisonSync(self, tab)
         tab._highlight_store=self.highlights
         tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
         page = self.view.append(tab)
@@ -461,6 +465,8 @@ class Window(Adw.ApplicationWindow):
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
         self.active_tab.refresh_comparison()
         self.schedule_save()
+        # Finish the nested GtkDropDown activation before dismissing its parent.
+        GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):
         if self.immersion:self.leave_immersion()
