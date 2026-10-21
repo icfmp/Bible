@@ -1,5 +1,35 @@
 # Alpha stabilization handoff — 21 October 2026
 
+## Product-manager cleanup — current tracking decision
+
+The client requested a project-wide cleanup on 21 October 2026. This section
+supersedes older issue-state and pending-product-review statements below;
+historical delivery evidence is retained unchanged.
+
+- Published application remains **c964162**, revision **39640813062-2**.
+- Implementation issues **#12, #15, #16, #19, #20, #25, #32, #33, #35,
+  #42, #43 and #45** are closed as implemented/tested/published. Their still
+  unperformed manual GNOME/accessibility acceptance is explicitly transferred
+  to [#52](https://github.com/icfmp/Bible/issues/52). Closing these tickets
+  does not claim those manual checks passed. New defects get focused issues
+  or reopen the original issue.
+- **#51 and #36 stay open** for the client's crash and comparison retests.
+- **#31** retains the active-version chooser placement decision; **#44** retains
+  the newer unified study-tab direction; **#46** awaits Highlight from PR #40.
+- PR **#38** (eBible), **#39** (continuous-book pagination), **#40** (personal
+  highlights) and **#41** (landing page) remain unmerged. Incorporate the current
+  main fixes and rerun affected checks before integration. Do not advertise
+  their candidate features as public-alpha features.
+- **PR #41 product presentation is approved** after desktop/mobile/dark review.
+  Before merge/publication, refresh its old 4a285f3 hero using an authentic
+  current-alpha screenshot, update review evidence, integrate main and verify
+  CI/channel preservation. Keep **#37** open until public HTTPS installation
+  and update links are checked. No redesigned page was published by this review.
+- **#47–#50** remain the approved OpenBible backlog. **#26** stays excluded;
+  **#28** retains manual Do Not Disturb guidance, not automatic suppression.
+- No general code review, pending PR merge or application-code change was
+  performed as part of this bookkeeping and product review.
+
 ## Current priority follow-up — #51 crash, then #36 surfaces
 
 Verified published application source: `c9641627b5449d940634443dc4a504969a73e679`;
