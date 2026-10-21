@@ -48,6 +48,24 @@ def close_test_dialogs():
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK display (use xvfb-run)')
 class WindowTests(unittest.TestCase):
+    def test_metadata_focus_does_not_select_but_explicit_selection_does(self):
+        from bible.library import Resource
+        with tempfile.TemporaryDirectory() as directory:
+            window = self.window(directory)
+            with patch('bible.catalogue_window.catalogue', return_value=[Resource('Test','Resource test','fr','Public Domain')]):
+                dialog = window.open_library(); dialog.load_catalogue()
+                spin(lambda: not dialog.busy)
+                for _ in range(2):
+                    dialog.open_details(None, 0); spin()
+                    self.assertFalse(dialog.metadata.get_selection_bounds()[0])
+                    dialog.metadata.grab_focus(); spin()
+                    self.assertFalse(dialog.metadata.get_selection_bounds()[0])
+                    dialog.metadata.select_region(0, 10)
+                    self.assertTrue(dialog.metadata.get_selection_bounds()[0])
+                    self.assertTrue(dialog.metadata.get_selectable())
+                    dialog.back_to_list()
+                dialog.close()
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application, Gtk

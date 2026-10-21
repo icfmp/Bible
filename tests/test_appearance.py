@@ -50,7 +50,7 @@ class PaletteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'reading.json'
             value=Preferences(path).value
-            self.assertEqual((value.size,value.line_spacing,value.column_width),(14,'airy','narrow'))
+            self.assertEqual((value.size,value.line_spacing,value.column_width),(14,'very-airy','narrow'))
             path.write_text('{"size":19,"line_spacing":"normal","column_width":"wide"}')
             saved=Preferences(path)
             self.assertEqual((saved.value.size,saved.value.line_spacing,saved.value.column_width),(19,'normal','wide'))
