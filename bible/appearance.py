@@ -73,7 +73,7 @@ class AppearancePopover(Gtk.Popover):
         self.line_spacing=self.choice(layout_box,'Line spacing','line_spacing',[('tight','Tight'),('normal','Normal'),('airy','Airy'),('very-airy','Very airy')])
         self.column_width=self.choice(layout_box,'Text width','column_width',[('narrow','Narrow'),('normal','Normal'),('wide','Wide')])
         layout.set_child(layout_box);box.append(layout)
-        for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers')]:
+        for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights')]:
             button=Gtk.CheckButton(label=tr(label))
             button.connect('toggled',lambda widget,key=attr:self.update(key,widget.get_active()))
             setattr(self,attr,button);box.append(button)
@@ -106,6 +106,7 @@ class AppearancePopover(Gtk.Popover):
             getattr(self,attr).set_selected(values.index(getattr(p,attr)))
         for key,button in self.palettes.items():button.set_active(key in (p.day_palette,p.night_palette))
         self.chapter_numbers.set_active(p.chapter_numbers);self.verse_numbers.set_active(p.verse_numbers)
+        self.show_highlights.set_active(p.show_highlights)
         self.sync_system();self._syncing=False
 
     def sync_system(self):
@@ -123,7 +124,7 @@ class AppearancePopover(Gtk.Popover):
     def update(self,key,value):
         if self._syncing:return
         setattr(self.owner.preferences.value,key,value)
-        self.persist(reflow=key not in {'mode','day_palette','night_palette'})
+        self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights'})
 
     def persist(self,reflow=True):
         try:

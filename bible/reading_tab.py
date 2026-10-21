@@ -99,6 +99,9 @@ class ReadingTab(Gtk.Box):
         context.append(tr('Copy verses without numbers'),'win.copy-passage')
         context.append(tr('Copy verses with reference'),'win.copy-with-reference')
         context.append(tr('Copy reference'),'win.copy-reference')
+        for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]:
+            context.append(tr('Highlight')+': '+tr(label),'win.highlight-'+color)
+        context.append(tr('Remove highlight'),'win.highlight-remove')
         self.text.set_extra_menu(context)
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
@@ -274,6 +277,7 @@ class ReadingTab(Gtk.Box):
                 self._comparison_document, self._comparison_offsets, self._comparison_ranges, self._comparison_markers = render(
                     self.comparison_text, reader, chapter, self.preferences)
                 self._comparison_signature = signature
+                self.update_highlights()
                 self.refresh_study_indicator()
                 if selected and old.key == chapter.reference:
                     buffer.select_range(*(buffer.get_iter_at_offset(self._comparison_document.locate(a)) for a in selected))
@@ -320,6 +324,19 @@ class ReadingTab(Gtk.Box):
         from .bible_render import render
         self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
             self.text, self.reader, chapter, self.preferences)
+        self.update_highlights()
+
+    def update_highlights(self,high=None,palette=None):
+        store=getattr(self,'_highlight_store',None)
+        if store is None or not self.reader:return
+        if high is not None:self._highlight_high=high
+        if palette is not None:self._highlight_palette=palette
+        from .highlight_ui import paint
+        options=(self.preferences.show_highlights,getattr(self,'_highlight_high',False),getattr(self,'_highlight_palette','white'))
+        paint(self.text,store,self.reader.versification,[(ref,*bounds) for ref,bounds in self._verse_ranges.items()],*options)
+        if self._comparison_reader and self.state.comparison:
+            paint(self.comparison_text,store,self._comparison_reader.versification,
+                  [(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()],*options)
         self.refresh_study_indicator()
 
     def position_anchor(self, offset):

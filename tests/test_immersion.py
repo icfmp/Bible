@@ -240,3 +240,19 @@ class ImmersionTests(unittest.TestCase):
                 raise RuntimeError('test interruption')
         self.assertTrue(w.closed)
         self.assertFalse(Path(directory).exists())
+
+    def test_commentary_inline_formatting_survives_highlight_integration(self):
+        with self.profile() as directory:
+            w=self.window(directory);tab=w.active_tab
+            tab.state.commentary='Notes';w.study_button.set_active(True);w.update_navigation();spin()
+            r=self.entered(w,'commentary')
+            from bible.pagination import StyleSpan
+            for address in r.addresses:
+                document=r.stream.plan(address.key).document
+                document.styles=(*document.styles,StyleSpan('hidden',0,1),StyleSpan('italic',1,5))
+            r.render();spin(lambda:r.layout_ready)
+            for view in r.views[:len(r.addresses)]:
+                table=view.get_buffer().get_tag_table()
+                self.assertIsNotNone(table.lookup('source-hidden'))
+                self.assertEqual(table.lookup('source-hidden').props.scale,0)
+                self.assertIsNotNone(table.lookup('source-italic'))
