@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -55,7 +56,7 @@ class CollectorTests(unittest.TestCase):
             return data, dict(url=url, bytes=len(data), sha256=c.sha(data))
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)/'pages-out'
-            args = ['collector', '--output', str(directory)]
+            args = ['collector', '--output', str(directory), '--workers', '1']
             first = [result(b'<html>synthetic index</html>', c.INDEX),
                      result(sample('JHN.1'), refs['JHN.1']), KeyboardInterrupt()]
             with patch.object(c.sys, 'argv', args), patch.object(c, 'discover', return_value=refs), contextlib.redirect_stdout(io.StringIO()):
@@ -78,6 +79,61 @@ class CollectorTests(unittest.TestCase):
                 with zipfile.ZipFile(directory.with_name('pages-out.zip')) as archive:
                     self.assertEqual(archive.testzip(), None)
                     self.assertEqual(archive.read('pages/JHN.1.html'), sample('JHN.1'))
+
+    def test_ten_transfers_overlap_and_manifest_stays_consistent(self):
+        refs = {f'JHN.{n}': f'https://www.bible.com/fr/bible/21/JHN.{n}.BDS' for n in range(1, 11)}
+        barrier = threading.Barrier(10)
+        lock = threading.Lock()
+        active = peak = 0
+        def fetch(url):
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(active, peak)
+            barrier.wait(timeout=5)
+            ref = c.REF.fullmatch(c.urlsplit(url).path)
+            data = sample(ref[1]+'.'+ref[2])
+            with lock:
+                active -= 1
+            return data, dict(url=url, sha256=c.sha(data), bytes=len(data))
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory/'pages').mkdir()
+            manifest = dict(index_pages=refs, pages={}, errors=[])
+            with patch.object(c.Fetcher, 'fetch', side_effect=fetch), contextlib.redirect_stdout(io.StringIO()):
+                self.assertFalse(c.collect(directory, manifest, c.Fetcher(0.5), 10, None))
+            self.assertEqual(peak, 10)
+            self.assertEqual(set(manifest['pages']), set(refs))
+            saved = json.loads((directory/'manifest.json').read_text())
+            self.assertEqual(len(saved['pages']), 10)
+            for ref, record in saved['pages'].items():
+                self.assertEqual(c.sha((directory/'pages'/(ref+'.html')).read_bytes()), record['sha256'])
+
+    def test_stop_event_prevents_new_network_request(self):
+        fetcher = c.Fetcher(0.5)
+        fetcher.stop.set()
+        with patch.object(c, 'urlopen') as network:
+            with self.assertRaises(c.CancelledError):
+                fetcher.fetch(c.INDEX)
+            network.assert_not_called()
+
+    def test_rate_limit_is_shared_across_threads(self):
+        fetcher = c.Fetcher(0.5)
+        clock, pauses = [100.0], []
+        def pause(seconds):
+            pauses.append(seconds)
+            clock[0] += seconds
+            return False
+        def slot():
+            fetcher.request_slot()
+        with patch.object(c.time, 'monotonic', side_effect=lambda: clock[0]), patch.object(fetcher.stop, 'wait', side_effect=pause):
+            threads = [threading.Thread(target=slot) for _ in range(4)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        self.assertEqual(pauses, [0, 0.5, 0.5, 0.5])
+        self.assertEqual(fetcher.last, 101.5)
 
 
 if __name__ == '__main__':
