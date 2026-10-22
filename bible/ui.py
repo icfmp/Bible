@@ -533,6 +533,10 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def tab_changed(self, tab):
+        active=self.active_tab
+        context=(id(active),id(active.reader),active.state.resource) if active else None
+        if context!=getattr(self,'_reference_context',None):
+            self.reference_preview.dismiss();self._reference_context=context
         if self.immersion and self.immersion.kind=='bible' and tab is self.immersion.tab:
             current=self.immersion.stream.anchor() if self.immersion.stream.cursor else self.immersion.initial_anchor
             if current.reference!=tab.state.reference or self.immersion.source.reader is not tab.reader:
