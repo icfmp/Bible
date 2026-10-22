@@ -1,0 +1,91 @@
+{
+  "code": "signed-public-alpha",
+  "source_commit": "87b9803eebf56fbd3acaa1e3c6b9cfd8f5d60d0b",
+  "flatpak_commit": "f876b328b4777182cdb499dd7cb617d328cdb30a6ada042f7a3f15560aea3294",
+  "reader_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "network": "flatpak --unshare=network",
+  "resources": {
+    "FreSegond1910": {
+      "versification": "Segond",
+      "driver": "zText",
+      "version": "4.0",
+      "john_3_16_characters": 143,
+      "direct_sword_match": true,
+      "sha256": "d25df98e3adc1563df9f428957098e41116ed013892fbde3d0cfc4830eeb5358"
+    },
+    "KJV": {
+      "versification": "KJV",
+      "driver": "zText",
+      "version": "3.1",
+      "john_3_16_characters": 142,
+      "direct_sword_match": true,
+      "sha256": "b3ae694dadcede27d8ce51e79f5ada9a282f74ecdc959630896367d035e27120"
+    },
+    "ebible~frajnd2024eb": {
+      "versification": "Luther",
+      "driver": "zText",
+      "version": "2.17",
+      "john_3_16_characters": 142,
+      "direct_sword_match": true,
+      "sha256": "0d5882a7e879e2693e30609ab17916fca88625d9e5b8362892e3cb534db2c2f1"
+    },
+    "ebible~fraLSG1910eb": {
+      "versification": "NRSV",
+      "driver": "zText",
+      "version": "99.0",
+      "john_3_16_characters": 143,
+      "direct_sword_match": true,
+      "sha256": "d25df98e3adc1563df9f428957098e41116ed013892fbde3d0cfc4830eeb5358"
+    },
+    "ebible~frasbl2022eb": {
+      "versification": "NRSVA",
+      "driver": "zText",
+      "version": "170.0",
+      "john_3_16_characters": 142,
+      "direct_sword_match": true,
+      "sha256": "833981b1f3d253023fd5e770a03d9deaf449dd37463b95ed413586d063742c03"
+    }
+  },
+  "pairs": [
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "aligned": false,
+      "error": "Segond / Luther"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreSegond1910",
+      "aligned": false,
+      "error": "Luther / Segond"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "ebible~frajnd2024eb",
+      "aligned": true,
+      "start": "John.3.16",
+      "end": "John.3.16"
+    },
+    {
+      "primary": "KJV",
+      "comparison": "FreSegond1910",
+      "aligned": true,
+      "start": "John.3.16",
+      "end": "John.3.16"
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "FreSegond1910",
+      "aligned": true,
+      "start": "John.3.16",
+      "end": "John.3.16"
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "FreSegond1910",
+      "aligned": false,
+      "error": "NRSVA / Segond"
+    }
+  ],
+  "status": "reproducer; no correction implemented"
+}

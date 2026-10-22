@@ -1,0 +1,18 @@
+{
+  "source_commit": "87b9803eebf56fbd3acaa1e3c6b9cfd8f5d60d0b",
+  "old_commit": "1d272b67742c5ad69d65fc2b41efb12b11ad8a85dd20541494745bc6997cae60",
+  "update_commit": "f876b328b4777182cdb499dd7cb617d328cdb30a6ada042f7a3f15560aea3294",
+  "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+  "origin": "bible-alpha",
+  "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+  "gpg_commit": true,
+  "gpg_summary": true,
+  "actual_old_to_new_update": true,
+  "all_preupdate_file_hashes_preserved": true,
+  "postlaunch_notes_resources_preferences_highlights_preserved": true,
+  "files_checked": 31,
+  "actual_gtk_restart": true,
+  "restored_two_tabs": true,
+  "ci_bundle_and_public_source_hashes_verified": true,
+  "personal_client_profile_accessed": false
+}

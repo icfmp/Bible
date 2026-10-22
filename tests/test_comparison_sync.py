@@ -7,6 +7,47 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ComparisonTests(unittest.TestCase):
+    def test_switching_primary_clears_an_obsolete_alignment_error(self):
+        from bible.ui import Application, Window, Library
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory,'Unsupported',versification='Luther')
+            installed_fixture(directory,'Primary')
+            installed_fixture(directory,'Target',entries=[('Gen.1.1','TARGET SOURCE TEXT')])
+            window=Window(app,Library(Path(directory)/'translations'));window.present()
+            try:
+                tab=window.active_tab;tab.navigate('Unsupported','Gen.1.1')
+                tab.state.comparison='Target';window.sync_comparison()
+                spin(lambda:not tab._restoring_scroll)
+                self.assertTrue(tab.comparison_status.get_text())
+                self.assertFalse(tab.comparison_text.get_buffer().props.text)
+                # Same printed reference and comparison resource, new primary.
+                self.assertTrue(tab.navigate('Primary','Gen.1.1'))
+                spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
+                self.assertFalse(tab.comparison_status.get_text())
+                self.assertIn('TARGET SOURCE TEXT',tab.comparison_text.get_buffer().props.text)
+            finally:window.close()
+
+    def test_switching_primary_recomputes_the_same_printed_psalm_reference(self):
+        from bible.ui import Application, Window, Library
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            entries=[('Ps.3.1','FIRST SOURCE VERSE'),('Ps.3.2','SECOND SOURCE VERSE')]
+            installed_fixture(directory,'Primary',entries=entries)
+            installed_fixture(directory,'Shifted',entries=entries,versification='Segond')
+            installed_fixture(directory,'Target',entries=entries)
+            window=Window(app,Library(Path(directory)/'translations'));window.present()
+            try:
+                tab=window.active_tab;tab.navigate('Primary','Ps.3.2')
+                tab.state.comparison='Target';window.sync_comparison()
+                spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
+                self.assertTrue(tab.comparison_heading.get_text().endswith('Ps.3.2'))
+                self.assertTrue(tab.navigate('Shifted','Ps.3.2'))
+                spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
+                self.assertFalse(tab.comparison_status.get_text())
+                self.assertTrue(tab.comparison_heading.get_text().endswith('Ps.3.1'))
+            finally:window.close()
+
     def test_shared_render_and_reference_follow_without_history(self):
         from bible.ui import Application, Window, Library
         app=Application.get_default() or Application();app.register()

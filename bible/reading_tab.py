@@ -245,7 +245,8 @@ class ReadingTab(Gtk.Box):
 
     def refresh_comparison(self):
         name = self.state.comparison
-        stamp = (name, self.state.reference, tuple(vars(self.preferences).items()))
+        stamp = (name, self.state.resource, self.reader.versification if self.reader else None,
+                 self.state.reference, tuple(vars(self.preferences).items()))
         if stamp == getattr(self, '_comparison_stamp', None):return
         self._comparison_stamp = stamp
         if bool(name) != self.comparison_box.get_visible() and self.text.get_mapped() and not self._restoring_scroll:
