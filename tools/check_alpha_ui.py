@@ -145,7 +145,8 @@ def main():
                 # A newly selected page is mapped before its overlay buttons
                 # receive their first allocation. Do not click a zero-width
                 # target at an obsolete position after the split-header layout.
-                spin(lambda:second.following.get_mapped() and second.following.get_width()>0,duration=.05)
+                spin(lambda:not second._restoring_scroll and second.following.get_mapped()
+                     and second.following.get_width()>0,duration=.3)
                 inputs.click(second.following)
                 assert second.state.reference == '1Cor.1.1'
                 assert window.tabs()[0].state.reference == 'Exod.1.1'
