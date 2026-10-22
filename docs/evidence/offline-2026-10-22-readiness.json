@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-22",
+  "baseline_commit": "884591cd194bd7c07e3534a9b652c154a578dd34",
+  "scope": "Accessible executor filesystem; no network or Docker retry",
+  "commands": {
+    "flatpak": null,
+    "flatpak-builder": null,
+    "Xvfb": null,
+    "xvfb-run": null,
+    "docker": "/usr/local/bin/docker"
+  },
+  "native_probe": {
+    "Pango": "available",
+    "PangoCairo": "available",
+    "Gtk": "Namespace Gtk not available for version 4.0",
+    "Adw": "Namespace Adw not available",
+    "Sword": "missing",
+    "babel": "missing"
+  },
+  "previous_build_paths": {
+    "build-dir": false,
+    ".flatpak-builder": false,
+    "/var/lib/flatpak": false,
+    "/home/agent/.local/share/flatpak": false
+  },
+  "accessible_resource_configurations": [],
+  "andbible_jsword_source_files": [],
+  "remote_ci": "not checked",
+  "signed_publication_for_884591c": "not checked",
+  "last_saved_publication": {
+    "source": "6560dc4",
+    "revision": "39674239853-2",
+    "fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F"
+  }
+}

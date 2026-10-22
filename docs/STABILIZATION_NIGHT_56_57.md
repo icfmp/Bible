@@ -1,5 +1,13 @@
 # Current alpha stabilization — resource installation and reading UI
 
+**Offline continuation, 22 October:** see
+[the current resumption report](OFFLINE_RESUMPTION_2026_10_22.md). Base 884591c is
+confirmed; its CI, nine-resource/eight-comparison claims and signed publication
+are not verified offline. New #24 preparation/heading work is local on a feature
+branch, with 34 passing tests and five GTK skips. #57's missing upstream mapping
+inputs are listed explicitly. Original candidate evidence below is historical;
+no installed-package or new-alpha claim is added.
+
 Published baseline remains source **6560dc4**, revision **39674239853-2**,
 unchanged signed fingerprint `47A17230403EA4953745E6E020EB9FFCCECAFD8F`.
 Main `8e94fd7` already contains reviewed page/eBible/highlights/pagination PRs;

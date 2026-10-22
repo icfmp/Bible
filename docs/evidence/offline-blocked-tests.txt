@@ -1,0 +1,20 @@
+Dependency-limited existing-suite probe, 22 October 2026.
+Command:
+/usr/bin/python3 -m unittest tests.test_reference_resolution tests.test_library tests.test_providers tests.test_session tests.test_notes tests.test_highlights -v
+
+Observed: Ran 40 tests; 31 passed, FAILED (errors=9).
+Eight errors: ModuleNotFoundError: No module named 'Sword'
+- test_reverse_mapping_and_unavailable_target
+- test_segond_psalm_mapping_and_native_commentary
+- test_changed_conditions_or_encrypted_package_are_not_installed
+- test_generated_notice_revision_dates_keep_original_package_and_catalogue
+- test_install_and_restart_offline_fidelity
+- test_install_preserves_non_whitelisted_conditions_offline
+- test_colliding_names_keep_separate_content_provenance_and_session
+- test_legacy_attribution_without_source_file_and_namespace_validation
+
+One error: ModuleNotFoundError: No module named 'babel'
+- test_bare_optional_metadata_remains_readable
+
+These are unresolved runtime prerequisites, not successful resource or mapping
+checks. No mock SWORD binding or approximate alignment was substituted.

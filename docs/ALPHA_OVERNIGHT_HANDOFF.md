@@ -1,5 +1,24 @@
 # Alpha stabilization handoff — 21 October 2026
 
+## Offline continuation — 22 October 2026 (current local work)
+
+Resume from [OFFLINE_RESUMPTION_2026_10_22.md](OFFLINE_RESUMPTION_2026_10_22.md)
+before using older publication/candidate statements below. Base **884591c** is
+confirmed locally. Its remote CI, reported nine installations/eight comparison
+configurations and corresponding signed publication remain unverified. The last
+saved signed provenance is still **6560dc4 / 39674239853-2**.
+
+Local implementation commit **fa2bfa0** on `feat/24-offline-preparation` adds #24 document/plan caching,
+cooperative cancellation, UTF-8 preparation optimization and heading keep-with-next.
+34 local tests pass; five native GTK tests skip. These include actual headless
+Pango with synthetic data, not real installed-module or built-package checks.
+GTK/Adwaita/SWORD/Flatpak and old test profiles are unavailable in this executor;
+no further Docker/network retry is made. #57 retains the explicit Luther guard:
+required AndBible/JSword conversion sources/tables are missing and itemized in
+the report. Existing #53–56 corrections are preserved; package checkers and the
+remaining validation order are prepared there. No new alpha or remote delivery
+is claimed, and the signed channel/user data are unchanged.
+
 ## Completed pending deliveries — current verified state
 
 This section supersedes all older pending-review/publication/issue-state entries
