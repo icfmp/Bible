@@ -7,6 +7,7 @@ from gi.repository import Adw, Gtk, Pango, Gio, GObject, GLib
 
 from .book_names import display_name
 from .i18n import LANGUAGE, tr
+from .markdown import render
 from .notes import clean_labels, parts
 
 
