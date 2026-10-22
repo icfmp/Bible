@@ -1,0 +1,3 @@
+# Preserve captured diagnostic output verbatim, including trailing spaces.
+docs/evidence/recovery-24/**/*.log -whitespace
+docs/evidence/recovery-24/flatpak/installed-info.txt -whitespace
