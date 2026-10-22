@@ -92,12 +92,12 @@ jobs:
       - uses: actions/checkout@v6
       - name: Installer Flatpak et le SDK GNOME
         run: |
-          # Avoid the stalled Azure mirror and optional desktop/media packages.
+          # Use the official archive with the established build dependencies.
           if [ -f /etc/apt/apt-mirrors.txt ]; then
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y flatpak flatpak-builder elfutils
+          sudo apt-get install -y flatpak flatpak-builder elfutils
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
       - name: Construire et vérifier SWORD dans le sandbox
