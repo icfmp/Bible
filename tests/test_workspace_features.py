@@ -50,7 +50,18 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                 self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
                 self.assertEqual(w.notes_store.all()[0].body,'A local note')
                 self.assertIs(w.active_tab,tab);self.assertEqual(tab.state.reference,'Gen.2.1')
-                space.present();space.open_note(w.notes_store.all()[0]);editor=space.editor
+                space.present();spin()
+                def visible_labels(widget):
+                    from bible.ui import Gtk
+                    values=[widget.get_text()] if isinstance(widget,Gtk.Label) else []
+                    child=widget.get_first_child()
+                    while child:
+                        values.extend(visible_labels(child));child=child.get_next_sibling()
+                    return values
+                # Check factory-bound native rows: callback exceptions otherwise
+                # print to stderr while a unittest can still appear to pass.
+                self.assertIn('A local note',visible_labels(space.list))
+                space.open_note(w.notes_store.all()[0]);editor=space.editor
                 editor.body.get_buffer().set_text('Discard me');space.leave();editor._confirmation.response('discard');spin()
                 self.assertEqual(w.notes_store.all()[0].body,'A local note')
                 self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
