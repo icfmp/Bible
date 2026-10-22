@@ -3,6 +3,7 @@ import gi
 
 gi.require_version('Adw', '1')
 from gi.repository import Adw, Gtk
+from .reading_metrics import SPACING, WIDTHS
 
 # background, text, link, selection background, selection text; opaque colors.
 PALETTES = {
@@ -13,8 +14,6 @@ PALETTES = {
     'contrast-day': ('#ffffff', '#000000', '#003f87', '#004a99', '#ffffff'),
     'contrast-night': ('#000000', '#ffffff', '#9fc5ff', '#ffdf00', '#000000'),
 }
-WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
-SPACING = {'tight': 1, 'normal': 5, 'airy': 10, 'very-airy': 16}
 
 
 def apply_direction(view,reader):

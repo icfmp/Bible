@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('profile');parser.add_argument('--screenshot');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('profile');parser.add_argument('--screenshot')
+    parser.add_argument('--require-packaged',action='store_true');args=parser.parse_args()
+    import bible
+    if args.require_packaged:assert bible.__file__.startswith('/app/lib/bible-python/'),bible.__file__
     from bible.ui import Application,Window,Gtk,GLib
     from bible.library import Library
     from bible.paged_sources import PageAddress

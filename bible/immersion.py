@@ -19,6 +19,7 @@ class Immersion(Gtk.Overlay):
         self.owner=owner;self.tab=owner.active_tab;self.source=source;self.kind=source.kind
         self.initial_key=key;self.initial_anchor=anchor;self.was_fullscreen=owner.is_fullscreen()
         self._geometry=None;self._hide_id=0;self._last_turn=0;self._wheel=0
+        self._geometry_candidate=None;self._geometry_since=0
         self._gesture_turned=False;self._pointer_top=False;self._pointer_edge=False;self._updating=False;self.selection=None;self.addresses=[]
         self.views=[];self.frames=[];self.count=2;self._closed=False
         self.clicked_reference=None
@@ -169,6 +170,12 @@ class Immersion(Gtk.Overlay):
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
             maximum=(usable+16)*count+(32 if count==2 else 0)+112
             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
+            # Settle allocations before scheduling expensive work. Rapid resize
+            # and consecutive Aa changes should prepare only the last geometry.
+            if geometry!=self._geometry_candidate:
+                self._geometry_candidate=geometry;self._geometry_since=time.monotonic()
+                return True
+            if time.monotonic()-self._geometry_since<.08:return True
             self._geometry=geometry;self.stream.spread_count=count
             self.stream.configure(usable,page_height,anchor,key);self.render()
         else:
@@ -194,7 +201,9 @@ class Immersion(Gtk.Overlay):
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         key=self.stream.cursor.key if self.stream.cursor else self.initial_key
         self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
+        self._geometry_candidate=None
         # Keep the stream anchor until adapt recalculates both geometry and pages.
+        if hasattr(self.stream,'cancel_pending'):self.stream.cancel_pending()
         self.stream.cursor=None
 
     def capture_selection(self):
@@ -229,7 +238,10 @@ class Immersion(Gtk.Overlay):
         if not self.stream.cursor:
             self.clicked_reference=None
             self._updating=True;self.addresses=[];self.layout_ready=False
-            for view in self.views:view.get_buffer().set_text('')
+            for view in self.views:
+                view._study_page=None
+                view.set_study_ranges([])
+                view.get_buffer().set_text('')
             self._updating=False
             self.back.set_sensitive(False);self.forward.set_sensitive(False)
             self.footer.set_text((tr('Unable to read this passage.')+' '+self.stream.error)
@@ -241,7 +253,8 @@ class Immersion(Gtk.Overlay):
         p=self.owner.preferences.value
         for index,view in enumerate(self.views):
             self.frames[index].set_visible(index<self.count);view.set_visible(index<self.count)
-            if index>=len(self.addresses):view.get_buffer().set_text('');continue
+            if index>=len(self.addresses):
+                view._study_page=None;view.get_buffer().set_text('');continue
             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
             buffer=view.get_buffer();buffer.set_text(plan.document.text[page.start:page.end])
             view._study_page=(plan.document,page.start,page.end)
