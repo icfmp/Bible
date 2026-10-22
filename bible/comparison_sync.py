@@ -34,6 +34,7 @@ class ComparisonSync(ReadingSync):
     def synchronize(self):
         self.pending=False;tab=self.tab
         if (self.owner.closed or self.owner.active_tab is not tab or self.owner.immersion
+                or getattr(self.owner,'_study_resizing',False)
                 or self.running or not tab.state.comparison or not tab._comparison_reader
                 or not tab.text.get_mapped() or not tab.comparison_text.get_mapped()):return False
         # Queued layout callbacks must not outlive the actual input gesture.

@@ -35,6 +35,9 @@ class Window(Adw.ApplicationWindow):
         self.library = library
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
+        from .study_settings import StudySettings
+        self.study_settings = StudySettings(library.root.parent / 'study-preferences.json')
+        self._study_resizing = False
         from weakref import WeakValueDictionary
         if not hasattr(app,'_highlight_stores'):app._highlight_stores=WeakValueDictionary()
         path=(library.root.parent/'highlights.json').resolve()
@@ -145,9 +148,13 @@ class Window(Adw.ApplicationWindow):
         self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
         self.header_height_group.add_widget(header)
         self.header_height_group.add_widget(self.study.header)
-        self.reading_style.decorate(self.study.text)
         self.reading_sync=ReadingSync(self)
-        self.split.set_sidebar(self.study)
+        from .study_resize import StudyDivider
+        sidebar = Gtk.Box()
+        self.study_divider = StudyDivider(self, self.study_settings)
+        sidebar.append(self.study_divider); sidebar.append(self.study)
+        self.study.set_hexpand(True)
+        self.split.set_sidebar(sidebar)
         self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
@@ -155,15 +162,11 @@ class Window(Adw.ApplicationWindow):
         self.set_content(self.main_pages)
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
-        breakpoint.add_setter(self.split, 'min-sidebar-width', 280.0)
-        breakpoint.add_setter(self.split, 'sidebar-width-fraction', 1.0)
         self.add_breakpoint(breakpoint)
         tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
         tiny_header.add_setter(self.split, 'collapsed', True)
         # Adw breakpoints do not stack: the tiny layout also needs the drawer's
         # adaptive sizing and its single visible set of native window controls.
-        tiny_header.add_setter(self.split, 'min-sidebar-width', 280.0)
-        tiny_header.add_setter(self.split, 'sidebar-width-fraction', 1.0)
         tiny_header.add_setter(library_button, 'visible', False)
         tiny_header.add_setter(new, 'visible', False)
         tiny_header.add_setter(self.my_notes_button,'visible',False)
@@ -173,6 +176,8 @@ class Window(Adw.ApplicationWindow):
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
+                           b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
+                           b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
                            b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
@@ -242,6 +247,7 @@ class Window(Adw.ApplicationWindow):
         self.view.set_selected_page(self.view.get_nth_page(session.selected))
         self._initializing = False
         self.selected_changed()
+        self.study_divider.apply()
 
     def copy_passage(self,with_reference=False,reference_only=False):
         from .notes_window import passage_label
@@ -382,6 +388,15 @@ class Window(Adw.ApplicationWindow):
         self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
         self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
         page = self.view.append(tab)
+        def selection_changed(*_):
+            if self.active_tab is tab and self.study.tool=='notes':
+                if not getattr(self.study,'_notes_idle',0):
+                    def refresh():
+                        self.study._notes_idle=0
+                        if not self.closed:self.study.notes.refresh()
+                        return False
+                    self.study._notes_idle=GLib.idle_add(refresh)
+        tab.text.get_buffer().connect('mark-set',selection_changed)
         page.set_title(tab.title())
         return page
 
@@ -472,7 +487,6 @@ class Window(Adw.ApplicationWindow):
         self.appearance.sync()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
-        self.reading_style.apply_text(self.study.text)
         if self.active_tab:self.active_tab.refresh_comparison()
         if self.immersion:self.immersion.reflow()
 
@@ -602,6 +616,7 @@ class Window(Adw.ApplicationWindow):
         if self.notes_window and not self.notes_window.closed:
             self.notes_window.labels.set_suggestions(self.notes_store.labels())
             self.notes_window.refresh()
+        if self.study.tool=='notes':self.study.notes.refresh()
 
     def refresh_highlights(self):
         for window in self.get_application().get_windows():
@@ -614,6 +629,7 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:
             self.immersion.capture_selection();self.immersion.render()
         if self.highlights_window and not self.highlights_window.closed:self.highlights_window.refresh()
+        if self.study.tool=='notes':self.study.notes.refresh()
 
     def mark_highlight(self,color):
         tab=self.active_tab

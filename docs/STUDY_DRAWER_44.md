@@ -1,4 +1,8 @@
-# Full-height right study drawer (#44)
+# Historical drawer delivery (#44)
+
+This records the earlier drawer increments. The updated 22 October brief and
+mockup supersede its shared typography direction for the docked sidebar.
+See [the current passage study implementation](PASSAGE_STUDY_44_60.md).
 
 The client corrected the side after the first drawer delivery: the complete
 commentary drawer belongs on the right, with the Bible on the left.

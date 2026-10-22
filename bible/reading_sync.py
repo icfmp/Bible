@@ -84,6 +84,7 @@ class ReadingSync:
         self.pending=False
         owner=self.owner;tab=owner.active_tab;study=owner.study
         if (owner.closed or getattr(owner,'immersion',None) or self.running or not tab
+                or getattr(owner,'_study_resizing',False) or study.tool!='commentaries'
                 or not tab.reader or not owner.split.get_show_sidebar() or not study.reader
                 or not tab.text.get_mapped() or not study.text.get_mapped()):return False
         if (tab._restoring_scroll or study._positioning

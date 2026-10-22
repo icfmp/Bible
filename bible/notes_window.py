@@ -7,7 +7,6 @@ from gi.repository import Adw, Gtk, Pango, Gio, GObject, GLib
 
 from .book_names import display_name
 from .i18n import LANGUAGE, tr
-from .markdown import render
 from .notes import clean_labels, parts
 
 
@@ -168,14 +167,9 @@ class NoteEditor(Adw.Window):
         scroll = Gtk.ScrolledWindow(vexpand=True)
         scroll.set_child(self.body)
         self.stack.add_titled(scroll, 'edit', tr('Write'))
-        self.preview = Gtk.TextView(editable=False, cursor_visible=False,
-                                    wrap_mode=Gtk.WrapMode.WORD_CHAR, left_margin=12,
-                                    right_margin=12, top_margin=12, bottom_margin=12)
-        self.preview.update_property([Gtk.AccessibleProperty.LABEL], [tr('Safe preview')])
-        buffer = self.preview.get_buffer()
-        self.tags = {'bold': buffer.create_tag(None, weight=700),
-                     'italic': buffer.create_tag(None, style=Pango.Style.ITALIC),
-                     'link': buffer.create_tag(None, underline=Pango.Underline.SINGLE)}
+        from .note_preview import NotePreview
+        self.preview = NotePreview()
+        self.tags = self.preview.tags
         preview_scroll = Gtk.ScrolledWindow(vexpand=True)
         preview_scroll.set_child(self.preview)
         self.stack.add_titled(preview_scroll, 'preview', tr('Preview'))
@@ -199,11 +193,7 @@ class NoteEditor(Adw.Window):
         self.update_preview()
 
     def update_preview(self):
-        text, spans = render(buffer_text(self.body))
-        buffer = self.preview.get_buffer()
-        buffer.set_text(text)
-        for kind, start, end in spans:
-            buffer.apply_tag(self.tags[kind], buffer.get_iter_at_offset(start), buffer.get_iter_at_offset(end))
+        self.preview.set_source(buffer_text(self.body))
 
     def format(self, prefix, suffix):
         buffer = self.body.get_buffer()
