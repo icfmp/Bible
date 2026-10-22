@@ -3,6 +3,23 @@ import locale
 import os
 
 FR = {
+    'References':'Références', 'Study resources':'Ressources d’étude', 'Bible cross-references':'Renvois bibliques',
+    'Update':'Mettre à jour', 'Cross-references':'Références croisées', 'View all':'Tout voir',
+    'Passage preview':'Aperçu du passage', 'Local passage text':'Texte local du passage',
+    'Open in current tab':'Ouvrir dans cet onglet', 'Open in new tab':'Ouvrir dans un nouvel onglet',
+    'Beginning of passage; open it to read more.':'Début du passage ; ouvrez-le pour lire la suite.',
+    'Text from your installed translation.':'Texte de votre traduction installée.',
+    'This passage is unavailable in the selected translation.':'Ce passage est indisponible dans la traduction sélectionnée.',
+    'Translation unavailable.':'Traduction indisponible.',
+    'Download reference data':'Télécharger les renvois',
+    'Open a Bible passage to see its references.':'Ouvrez un passage biblique pour voir ses renvois.',
+    'Download OpenBible reference data once to use it offline.':'Téléchargez les renvois OpenBible une fois pour les utiliser hors connexion.',
+    'Loading references…':'Chargement des renvois…',
+    'Reference data is unavailable. Download it again from Library.':'Les données de renvois sont indisponibles. Téléchargez-les à nouveau dans la bibliothèque.',
+    'No cross-references for this passage.':'Aucun renvoi pour ce passage.',
+    'Community score: {score}':'Pertinence communautaire : {score}',
+    'Related to {count} selected verses.':'Associé à {count} versets sélectionnés.',
+    'OpenBible.info · CC BY 4.0. Community suggestions; explore the context.':'OpenBible.info · CC BY 4.0. Suggestions communautaires ; consultez le contexte.',
     'Passage study': 'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
     'Add note': 'Ajouter une note', 'Edit note': 'Modifier la note',
     'Notes on': 'Notes sur', 'No notes for this passage.': 'Aucune note pour ce passage.',

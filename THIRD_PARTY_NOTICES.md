@@ -109,3 +109,15 @@ licence Bitstream Vera et modifications DejaVu dans le domaine public. Les
 fichiers sont redistribués sans modification, avec les notices originales sous
 `/app/share/licenses/dejavu/`. Les polices mathématiques et autres familles du
 paquet extra ne sont pas installées. Source amont : https://dejavu-fonts.github.io/
+
+## Optional OpenBible.info cross-reference data
+
+User-requested download from <https://www.openbible.info/labs/cross-references/>;
+[Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
+Bible imports reference relationships and community scores, validates addresses,
+and indexes/deduplicates/ranks them locally; no ESV quotations are included.
+The Library and preview retain source/license credit. The audited dataset date,
+checksum, numbering limits and transformations are documented in
+[OPENBIBLE_REFERENCES_47.md](docs/OPENBIBLE_REFERENCES_47.md). This optional dataset
+is not part of the application bundle. Installed Bible excerpts retain their
+own resource terms.

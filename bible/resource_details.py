@@ -45,7 +45,7 @@ def details(resource):
                     else tr('Distributed by the source. Download is checked before installation.'))
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
-        f'{tr("Resource type")}: {tr("Commentaries") if resource.kind == "commentary" else tr("Bibles")}',
+        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources'}.get(resource.kind,'Bibles')),
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',

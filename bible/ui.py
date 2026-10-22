@@ -144,6 +144,8 @@ class Window(Adw.ApplicationWindow):
                                           min_sidebar_width=360, max_sidebar_width=560,
                                           sidebar_width_fraction=.38,
                                           sidebar_position=Gtk.PackType.END)
+        from .reference_preview import ReferencePreview
+        self.reference_preview=ReferencePreview(self)
         self.study = StudyPanel(self)
         self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
         self.header_height_group.add_widget(header)
@@ -177,6 +179,9 @@ class Window(Adw.ApplicationWindow):
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
+                           b'.study-drawer listview { background-color: transparent; } '
+                           b'.study-tools button { min-width: 0; } '
+                           b'.reference-excerpt { font-weight: normal; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
@@ -389,11 +394,13 @@ class Window(Adw.ApplicationWindow):
         self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
         page = self.view.append(tab)
         def selection_changed(*_):
-            if self.active_tab is tab and self.study.tool=='notes':
+            if self.active_tab is tab and self.study.tool in ('notes','references'):
                 if not getattr(self.study,'_notes_idle',0):
                     def refresh():
                         self.study._notes_idle=0
-                        if not self.closed:self.study.notes.refresh()
+                        if not self.closed:
+                            if self.study.tool=='notes':self.study.notes.refresh()
+                            self.study.references.refresh()
                         return False
                     self.study._notes_idle=GLib.idle_add(refresh)
         tab.text.get_buffer().connect('mark-set',selection_changed)
@@ -586,12 +593,18 @@ class Window(Adw.ApplicationWindow):
         if self.catalogue_window is None or self.catalogue_window.closed:
             self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
         if kind is not None:
-            self.catalogue_window.kind.set_selected(1 if kind == 'commentary' else 0)
+            self.catalogue_window.kind.set_selected({'commentary':1,'study':2}.get(kind,0))
         self.catalogue_window.present()
         return self.catalogue_window
 
     def resource_installed(self, name):
         if self.closed:
+            return
+        from .study_resources import REFERENCE_RESOURCE_ID
+        if name==REFERENCE_RESOURCE_ID:
+            for window in self.get_application().get_windows():
+                if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
+                    window.study.references.invalidate()
             return
         resource = self.library.resource(name)
         if resource.kind == 'commentary':
@@ -777,6 +790,8 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        self.reference_preview.dismiss()
+        self.study.references.close()
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()

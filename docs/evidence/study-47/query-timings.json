@@ -1,0 +1,9 @@
+{
+  "dataset_relationships": 344799,
+  "queries": 250,
+  "origin_counts": "1 to 5",
+  "median_ms": 0.307,
+  "p95_ms": 0.461,
+  "max_ms": 41.471,
+  "environment": "Debian source validation container; timings are observations, not a latency guarantee"
+}
