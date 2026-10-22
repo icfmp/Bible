@@ -92,7 +92,7 @@ class CollectorTests(unittest.TestCase):
                 peak = max(active, peak)
             barrier.wait(timeout=5)
             ref = c.REF.fullmatch(c.urlsplit(url).path)
-            data = sample(ref[1]+'.'+ref[2])
+            data = sample(ref[2]+'.'+ref[3])
             with lock:
                 active -= 1
             return data, dict(url=url, sha256=c.sha(data), bytes=len(data))
@@ -134,6 +134,36 @@ class CollectorTests(unittest.TestCase):
                 thread.join()
         self.assertEqual(pauses, [0, 0.5, 0.5, 0.5])
         self.assertEqual(fetcher.last, 101.5)
+
+    def test_source_url_accepts_chapter_and_version_links(self):
+        for url in ['https://www.bible.com/fr/bible/21/JHN.1.BDS',
+                    'https://bible.com/fr/versions/21',
+                    'https://www.bible.com/fr/versions/21-la-bible-du-semeur?returnTo=JHN.1']:
+            self.assertEqual(c.source_from_url(url), (21, c.INDEX))
+        self.assertEqual(c.source_from_url('https://www.bible.com/bible/1/JHN.1.KJV'),
+                         (1, 'https://www.bible.com/versions/1'))
+        for bad in ['https://elsewhere.invalid/fr/versions/21',
+                    'https://user:password@www.bible.com/versions/21',
+                    'http://www.bible.com/versions/21']:
+            with self.assertRaises(ValueError):
+                c.source_from_url(bad)
+
+    def test_other_canons_are_not_forced_to_66_books(self):
+        raw = b'<a href="/bible/99999/JHN.1.TEST">one</a><a href="/bible/99999/JHN.INTRO1.TEST">intro</a><a href="/bible/21/JHN.1.BDS">ignore</a>'
+        pages = c.discover(raw, 'https://www.bible.com/versions/99999')
+        self.assertEqual(set(pages), {'JHN.1', 'JHN.INTRO1'})
+        with self.assertRaises(ValueError):
+            c.discover(raw+b'<a href="/bible/99999/JHN.3.TEST">missing chapter 2</a>', 'https://www.bible.com/versions/99999')
+
+    def test_wrong_version_output_is_rejected_without_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory/'manifest.json').write_text(json.dumps(dict(schema=1, version_id=21)))
+            args = ['collector', '--url', 'https://www.bible.com/versions/1', '--output', str(directory)]
+            with patch.object(c.sys, 'argv', args), patch.object(c.Fetcher, 'fetch') as network:
+                with self.assertRaisesRegex(ValueError, 'another version'):
+                    c.main()
+                network.assert_not_called()
 
 
 if __name__ == '__main__':
