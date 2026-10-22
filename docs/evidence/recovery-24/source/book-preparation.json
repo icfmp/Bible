@@ -1,0 +1,67 @@
+{
+  "code": "source",
+  "imports": {
+    "BookStream": "/src/bible/book_stream.py",
+    "BibleBookPages": "/src/bible/paged_sources.py",
+    "Document": "/src/bible/pagination.py",
+    "ReadingPreferences": "/src/bible/preferences.py",
+    "Reader": "/src/bible/sword_provider.py"
+  },
+  "resource": "FreSegond1910",
+  "pango": "1.56.3",
+  "network": "forbidden",
+  "gui_validation": false,
+  "books": [
+    {
+      "key": "Gen",
+      "pages": 280,
+      "characters": 198265,
+      "sha256": "b5159431b5e81d8442abe7bfa02907a6e3715af2fe8cbe6f58b184daa09c012c",
+      "source_verses": 1533,
+      "kept_heading_groups": 50,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 0.8698299819998283,
+      "reflow_seconds": 0.3676032530001976,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 96,
+      "largest_poll_gap_seconds": 0.012768027999300102
+    },
+    {
+      "key": "Mark",
+      "pages": 116,
+      "characters": 82543,
+      "sha256": "7805df499b1aaa4f56c1728b16a0f78b64e606b8543e3fc0c65c8d17a54cded2",
+      "source_verses": 679,
+      "kept_heading_groups": 16,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 0.29738355800054705,
+      "reflow_seconds": 0.0968721879999066,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 36,
+      "largest_poll_gap_seconds": 0.010241236000183562
+    },
+    {
+      "key": "Luke",
+      "pages": 195,
+      "characters": 139952,
+      "sha256": "5c0e5f691ef3395e5836138c7339d1c03cf220075fbc6117ccdd890ad16d939e",
+      "source_verses": 1151,
+      "kept_heading_groups": 24,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 0.14377360199978284,
+      "reflow_seconds": 0.1725808840001264,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 23,
+      "largest_poll_gap_seconds": 0.010976608000419219
+    }
+  ],
+  "superseded_requests": true,
+  "close_seconds": 0.0011291769997114898,
+  "worker_joined": true
+}
