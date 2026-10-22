@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "app_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "rows": [
+    {
+      "source": "Calvin",
+      "reference": "Ps.3.2",
+      "target": "ebible~frajnd2024eb",
+      "start": "Ps.3.2",
+      "end": "Ps.3.2"
+    },
+    {
+      "source": "Luther",
+      "reference": "Ps.3.2",
+      "target": "FreLSN1872",
+      "start": "Ps.3.2",
+      "end": "Ps.3.2"
+    },
+    {
+      "source": "Luther",
+      "reference": "Gen.32.1",
+      "target": "FreLSN1872",
+      "start": "Gen.31.55",
+      "end": "Gen.31.55"
+    },
+    {
+      "source": "Calvin",
+      "reference": "Gen.32.1",
+      "target": "ebible~frajnd2024eb",
+      "start": "Gen.32.2",
+      "end": "Gen.32.2"
+    }
+  ],
+  "unrepresentable_native_part_rejected": true
+}

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from tests.fixtures import module_fixture
 from bible.sword_provider import Reader
 from bible.reference_resolution import resolve, VersificationMismatch
@@ -19,6 +20,22 @@ class MappingTests(unittest.TestCase):
                 self.assertEqual(actual,set(expected))
         self.assertIsNone(table('LXX'))
         self.assertIsNone(to_base('Gen.1.1','LXX'))
+        # A future engine with different dimensions must not gain implicit
+        # identities just because its system name matches a shipped table.
+        import Sword
+        native= Sword.VerseKey
+        class ChangedCanon:
+            def __init__(self):self.key=native()
+            def __getattr__(self,name):return getattr(self.key,name)
+            def getVerseMax(self):return self.key.getVerseMax()+1
+        table.cache_clear()
+        try:
+            with patch.object(Sword,'VerseKey',ChangedCanon):
+                self.assertIsNone(table('Luther'))
+                self.assertIsNone(to_base('Gen.1.1','Luther'))
+                self.assertIsNone(from_base('Gen.1.1','Luther'))
+        finally:table.cache_clear()
+        self.assertIsNotNone(table('Luther'))
 
     def test_real_keys_boundaries_parts_and_merged_verses(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -44,6 +61,14 @@ class MappingTests(unittest.TestCase):
             self.assertEqual((result.start,result.end),('Ps.51.2','Ps.51.3'))
             self.assertEqual(resolve('Acts.19.40','German',other).start,'Acts.19.40')
             self.assertEqual(resolve('Acts.19.41','KJV',other).start,'Acts.19.40')
+            # Calvin has a verified native map but no JSword table. Exercise
+            # the native/table bridge at an actual numbering difference.
+            self.assertEqual(resolve('Ps.3.2','Calvin',other).start,'Ps.3.2')
+            module_fixture(root/'native','Native',[(ref,'SYNTHETIC '+ref) for ref in
+                ['Ps.3.2','Gen.31.55']],versification='Calvin')
+            native_target=Reader(root/'native','Native')
+            self.assertEqual(resolve('Gen.32.1','Luther',native_target).start,'Gen.31.55')
+            with self.assertRaises(VersificationMismatch):resolve('Ps.51.3','Luther',native_target)
 
     def test_disjoint_and_qualified_ranges_are_not_filled_or_truncated(self):
         with tempfile.TemporaryDirectory() as directory:

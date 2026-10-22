@@ -65,6 +65,11 @@ its separate coordinator.
   corpus. All seven downloaded resources currently use zText; RawText behavior
   is additionally covered by real SWORD synthetic fixtures, not claimed as a
   fresh real-resource format test.
+- A simulated incompatible native canon disables table capability and implicit
+  identity. Native-only Calvin ↔ Luther is also checked at Psalm and Genesis
+  numbering changes; an unrepresentable verse part is rejected. Four additional
+  real-resource bridge cases pass inside the installed package
+  ([receipt](evidence/comparison-57/native-bridge-package.json)).
 
 An early test script requested SBL's absent 3 John 1:15 and emitted a TextView
 signal on TextBuffer. These harness failures are recorded in the workspace and
