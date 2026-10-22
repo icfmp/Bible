@@ -52,6 +52,7 @@ def main():
     from bible.ui import Application, Window, Gtk
     from bible.library import Library, catalogue
     from bible.providers import EBIBLE
+    from bible.i18n import tr
     from tools.check_alpha_ui import X11Input
     from tools.check_resource_installation import wait
     import bible
@@ -150,7 +151,7 @@ def main():
         # readable target text, clearly labelled, and resume on a supported verse.
         assert tab.navigate('ebible~frajnd2024eb','Ps.3.1')
         tab.state.comparison='KJV';window.sync_comparison();settled()
-        assert tab.comparison_status.get_text() and 'Independent reading' in tab.comparison_heading.get_text()
+        assert tab.comparison_status.get_text() and tr('Independent reading') in tab.comparison_heading.get_text()
         assert tab.comparison_text.get_buffer().get_char_count()>0
         limitation=tab.comparison_status.get_text()
         heading=tab.comparison_heading.get_text()

@@ -110,5 +110,40 @@ is changed by this correction.
 
 ## Installed package and publication
 
-Pending: record actual installed-package matrix, review, CI and signed public
-update below before claiming delivery or closing #57.
+A separately installed test bundle, `app/io.github.icfmp.Bible/x86_64/validation-57`,
+commit `a8ece5d7da4fd0610b2a787fe18ea07e42cd36fb961001dd7b06d07bc121b764`,
+passes the complete real-resource matrix described above, first after a real
+in-app Darby download and then after an offline restart. All application files,
+including mapping JSON, match the source bytes; 14 native canons and bundled
+LGPL/provenance files were verified inside `/app`.
+
+**130 affected tests pass in French against the installed package**, with all
+application imports under `/app/lib/bible-python`. The unchanged native
+immersion click test that requires a nested Xvfb is excluded from this package
+suite; it remains covered by source CI and the prior package validation.
+
+The first online package harness lacked the cloud proxy CA and tried to write
+to a host-owned output directory. Explicit trusted CA input and a disposable
+container-owned output directory fixed the harness, with TLS verification kept
+on. A hardcoded English test expectation was localized before the successful
+French package suite. These failed harness attempts are not counted as passes.
+
+[Online package matrix](evidence/comparison-57/package-online-matrix.json),
+[offline package matrix](evidence/comparison-57/package-offline-matrix.json),
+[package byte audit](evidence/comparison-57/package-audit.json),
+[130-test import/result receipt](evidence/comparison-57/package-suite.json),
+[test log](evidence/comparison-57/package-suite.log).
+
+![Actual installed Flatpak: Segond and eBible Darby/JND](evidence/comparison-57/package-comparison.png)
+
+This disposable validation ref is not installed on the client's machine.
+Delivery uses the existing signed `bible-alpha` / `//alpha` channel. PR #62
+records final CI, review, main merge and the subsequent signed public update
+verification. Keep #57 open until that verification succeeds.
+
+Client retest after updating the usual installation:
+1. Compare Darby/JND and Segond in both roles, then scroll either pane.
+2. Open Psalm 3:2 and Genesis 32:1 against KJV; check the displayed target reference.
+3. Switch translations/tabs, change text size, then restart offline; check text,
+   notes and highlights. An explicitly unavailable alignment must keep readable
+   independent text.

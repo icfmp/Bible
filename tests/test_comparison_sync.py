@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from tests.test_ui import installed_fixture, spin
+from bible.i18n import tr
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
@@ -21,7 +22,7 @@ class ComparisonTests(unittest.TestCase):
                 spin(lambda:not tab._restoring_scroll)
                 self.assertTrue(tab.comparison_status.get_text())
                 self.assertIn('TARGET SOURCE TEXT',tab.comparison_text.get_buffer().props.text)
-                self.assertIn('Independent reading',tab.comparison_heading.get_text())
+                self.assertIn(tr('Independent reading'),tab.comparison_heading.get_text())
                 before=tab.state.reference;history=list(tab.state.history)
                 for side in ('primary','comparison'):
                     tab.comparison_sync.intent(side);tab.comparison_sync.synchronize()
