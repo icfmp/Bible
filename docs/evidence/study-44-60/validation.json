@@ -1,0 +1,36 @@
+{
+  "source_full_suite": {
+    "tests": 184,
+    "failures": 0,
+    "errors": 0,
+    "command": "dbus-run-session -- xvfb-run -a python3 -m unittest discover -v",
+    "log": "source-suite-local-http.log"
+  },
+  "source_review_suite": {
+    "tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "log": "source-reviewed-tests.log"
+  },
+  "source_final_study_regressions": {
+    "tests": 4,
+    "failures": 0,
+    "errors": 0,
+    "log": "source-final-targeted.log"
+  },
+  "installed_flatpak_affected_suite": {
+    "tests": 89,
+    "failures": 0,
+    "errors": 0,
+    "receipt": "affected-suite.json"
+  },
+  "source_and_installed_native_scroll": "PASS: wheel in both panes; two scrollbar drags >1.5 seconds; focus/history retained",
+  "source_drawer_probe": "PASS: real MHC emphasis/copy, two-way following, separate immersion, 36 native animation frames, disabled-animation toggles",
+  "packaged_files_match_current_sources": 68,
+  "source_gtk": "4.18.6 / libadwaita 1.7.6",
+  "package_gtk": "4.20.4 / libadwaita 1.8.8 (GNOME 49)",
+  "manual_gnome_wayland_validation": false,
+  "in_depth_accessibility": "Deferred; not tested",
+  "publication": "Pending exact-head CI, merge, existing signed publisher and actual update verification; reported in PR",
+  "profiles": "Disposable validation profiles only; personal client data was not accessed"
+}

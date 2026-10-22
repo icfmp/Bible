@@ -1,4 +1,4 @@
-"""One safe, local commentary view following the active reading tab."""
+"""Native passage study tools and the existing synchronized commentary reader."""
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -30,6 +30,9 @@ class StudyPanel(Gtk.Box):
         self.add_css_class('study-drawer')
         self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
         self.header.add_css_class('flat')
+        title = Gtk.Label(label=tr('Passage study'), ellipsize=Pango.EllipsizeMode.END,
+                          width_chars=1, max_width_chars=22)
+        title.add_css_class('heading'); self.header.set_title_widget(title)
         self.hide_button = Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Hide study'))
         self.hide_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Hide study')])
         self.hide_button.connect('clicked',lambda *_:owner.study_button.set_active(False))
@@ -42,7 +45,6 @@ class StudyPanel(Gtk.Box):
         self.choices.set_factory(factory);self.choices.set_list_factory(factory)
         self.choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Choose a commentary')])
         self.choices.connect('notify::selected',self.selection_changed)
-        self.header.set_title_widget(self.choices)
         self.immersive_button = Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Read in immersive mode'))
         self.immersive_button.connect('clicked',lambda *_:owner.enter_immersion('commentary'))
         self.more = Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Commentary actions'))
@@ -73,6 +75,25 @@ class StudyPanel(Gtk.Box):
         for widget in [self.more,self.immersive_button]:
             widget.add_css_class('flat');self.header.pack_end(widget)
         self.append(self.header)
+        self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
+        switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)
+        layout = switcher.get_layout_manager()
+        if isinstance(layout, Gtk.BoxLayout):layout.set_homogeneous(False)
+        switcher.set_margin_start(12); switcher.set_margin_end(12)
+        self.append(switcher)
+        from .passage_notes import PassageNotes
+        self.notes = PassageNotes(owner)
+        notes_scroll = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
+        notes_scroll.set_child(self.notes)
+        self.tools.add_titled(notes_scroll, 'notes', tr('Notes'))
+        self.commentaries = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self.choices.set_margin_start(12); self.choices.set_margin_end(12)
+        self.commentaries.append(self.choices)
+        self.tools.add_titled(self.commentaries, 'commentaries', tr('Commentaries'))
+        tool = owner.study_settings.tool
+        self.tools.set_visible_child_name(tool if tool in ('notes','commentaries') else 'commentaries')
+        self.append(self.tools)
+        self.tools.connect('notify::visible-child-name', self.tool_changed)
         self.popovers = [actions,info]
         for popover in self.popovers:
             popover.set_autohide(False);owner._reading_popovers.append(popover)
@@ -86,7 +107,7 @@ class StudyPanel(Gtk.Box):
         self.status = MetadataLabel(xalign=0,wrap=True,selectable=True,
                                     margin_start=16,margin_end=16,visible=False)
         self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
-        self.append(self.status)
+        self.commentaries.append(self.status)
         self.text = Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                  left_margin=24,right_margin=24,top_margin=20,bottom_margin=24)
         self.text.add_css_class('study-reader')
@@ -100,18 +121,45 @@ class StudyPanel(Gtk.Box):
         self.download = Gtk.Button(label=tr('Download a commentary'),halign=Gtk.Align.CENTER)
         self.download.connect('clicked',lambda *_:self.open_library())
         self.empty.set_child(self.download);self.pages.add_named(self.empty,'empty')
-        self.pages.set_visible_child_name('empty');self.append(self.pages)
+        self.pages.set_visible_child_name('empty');self.commentaries.append(self.pages)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
         self._layout_geometry = None;self._layout_anchor = None
         self.add_tick_callback(self.adapt)
+        self.sidebar_preferences = None
+        self.tool_controls()
+
+    @property
+    def tool(self):return self.tools.get_visible_child_name()
+
+    def tool_controls(self):
+        for widget in (self.more,self.immersive_button):widget.set_visible(self.tool=='commentaries')
+
+    def tool_changed(self, *_):
+        self.tool_controls()
+        self.owner.study_settings.tool = self.tool
+        try:self.owner.study_settings.save()
+        except (OSError,ValueError) as error:self.owner.report_session_error(tr('Unable to save study preferences.'),error)
+        coordinator=getattr(self.owner,'reading_sync',None)
+        if coordinator:
+            coordinator.driver=None; coordinator.needs_sync=False; coordinator.forced_position=None
+        if self.tool=='notes':self.notes.refresh()
+        else:self.refresh(force=True)
+        self.update_indicator()
+
+    def apply_typography(self):
+        from .preferences import ReadingPreferences
+        self.sidebar_preferences = ReadingPreferences(font='sans-serif', size=12, line_spacing='normal')
+        self.text.set_pixels_inside_wrap(0); self.text.set_pixels_below_lines(0)
+        buffer=self.text.get_buffer(); tag=buffer.get_tag_table().lookup('reader-typography')
+        if tag is None:tag=buffer.create_tag('reader-typography')
+        tag.props.family='sans-serif'; tag.props.size_points=12; tag.props.line_height=1.5
+        buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
 
     def adapt(self,*_):
-        from .reading_style import WIDTHS
-        geometry=(self.scroll.get_width(),self.scroll.get_height(),self.owner.preferences.value.column_width)
+        geometry=(self.scroll.get_width(),self.scroll.get_height())
         if geometry != self._layout_geometry and geometry[0]>0:
             anchor=self._layout_anchor or self.anchor()
-            margin=max(24,(geometry[0]-WIDTHS[geometry[2]])//2)
-            self.text.set_left_margin(margin);self.text.set_right_margin(margin)
+            self.text.set_left_margin(24);self.text.set_right_margin(24)
             self._layout_geometry=geometry
             if anchor:self.reveal(*anchor,force=True)
         if not self._positioning:self._layout_anchor=self.anchor()
@@ -124,6 +172,9 @@ class StudyPanel(Gtk.Box):
     def refresh(self, force=False):
         tab = self.owner.active_tab
         if tab is None:
+            return
+        if self.tool!='commentaries':
+            if self.tool=='notes':self.notes.refresh(force=force)
             return
         installed = self.owner.library.installed('commentary')
         stamp = (id(tab), tab.state.commentary, tab.state.reference,
@@ -226,7 +277,8 @@ class StudyPanel(Gtk.Box):
     def update_indicator(self):
         tab=self.owner.active_tab
         if not tab:return
-        if not tab.reader or not self.reader or self.current_position is None or not self.owner.split.get_show_sidebar():
+        if (self.tool!='commentaries' or not tab.reader or not self.reader or self.current_position is None
+                or not self.owner.split.get_show_sidebar()):
             tab.mark_commentary_range(None,None);return
         section=self.reader.index.sections[self.current_position]
         if section.introduction:tab.mark_commentary_range(None,None);return
@@ -273,8 +325,13 @@ class StudyPanel(Gtk.Box):
         document=Document('study',''.join(pieces),(),tuple(styles))
         buffer=self.text.get_buffer();buffer.set_text(document.text)
         bind_copy(self.text,document)
-        self.owner.reading_style.apply_text(self.text,preserve=False)
-        apply(self.text,[(s.kind,s.start,s.end) for s in styles],self.owner.preferences.value,self.owner.reading_style.palette)
+        self.apply_typography()
+        palette='contrast-night' if self.owner.reading_style.manager.get_dark() else 'contrast-day'
+        apply(self.text,[(s.kind,s.start,s.end) for s in styles],self.sidebar_preferences,palette)
+        # Native sidebar ink follows theme/contrast changes without a rebuild.
+        # The Bible's fixed palette colors must not override it here.
+        number=buffer.get_tag_table().lookup('source-number')
+        if number:number.props.foreground_set=False
         tag=buffer.get_tag_table().lookup('entry-heading')
         if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
         for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
@@ -374,6 +431,7 @@ class StudyPanel(Gtk.Box):
             if 0<=following<count:self.next_entry.set_tooltip_text(tr('Next available entry')+': '+self.reader.index.label(following))
 
     def step_entry(self,direction):
+        if self.tool!='commentaries':self.tools.set_visible_child_name('commentaries')
         if not self.reader:return
         position=(self.current_position+direction) if self.current_position is not None else self._missing_near-(1 if direction<0 else 0)
         if not 0<=position<len(self.reader.index.sections):return

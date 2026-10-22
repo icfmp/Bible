@@ -1,0 +1,33 @@
+{
+  "app_import": "/src/bible/ui.py",
+  "accessibility": "Deferred; not tested",
+  "native_drag_keyboard_resize": {
+    "before": 652,
+    "after": 700,
+    "divider_width": 8,
+    "reference_preserved": true,
+    "history_preserved": true
+  },
+  "emulated_text_scale": {
+    "line_height_before": 19,
+    "line_height_after": 28
+  },
+  "notes_highlights_draft": {
+    "multiple_notes": true,
+    "native_highlight_color_change": true,
+    "native_popup_escape": true,
+    "draft_target_preserved": true
+  },
+  "adaptive_comparison": true,
+  "typography": {
+    "family": "sans-serif",
+    "points": 12,
+    "line_height": 1.5,
+    "independent_of_Aa": true,
+    "source_copy_sha256": "89e10d40da155d1a82c674c37ce7bd487ed0a9183a73a69d422ad538892796c8"
+  },
+  "saved_width": 700,
+  "selected_tool": "notes",
+  "offline_restart_and_saved_annotations": true,
+  "status": "PASS"
+}

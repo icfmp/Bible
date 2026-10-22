@@ -22,7 +22,8 @@ def main():
             window.appearance.reset();window.appearance.update('mode','day')
             tab=window.active_tab;tab.state.comparison=None;tab.refresh_comparison()
             tab.navigate('FreSegond1910','Gen.1.25');tab.state.commentary='MHC'
-            window.study_button.set_active(True);window.study.refresh()
+            window.study_button.set_active(True)
+            window.study.tools.set_visible_child_name('commentaries');window.study.refresh()
             spin(lambda:not tab._restoring_scroll and not window.study._positioning,duration=.3)
             study=window.study
             _,sidebar=study.compute_bounds(window);_,bible=tab.compute_bounds(window)
@@ -31,13 +32,17 @@ def main():
             original=study.entry_text
             buffer=study.text.get_buffer()
             document=study.text._bible_copy_source[0]
-            visible=document.copy(0,len(document.text))
+            first,body,last=study.ranges[study.current_position]
+            visible=document.copy(first,last)
             assert '* 24 *' not in visible and '* it was *' not in visible
             assert '<hi' not in visible and 'The Creation.' in visible
             native.move_at(window,2,2);spin(duration=.2)
             ImageGrab.grab().save(args.prefix+'-light.png')
             native.click(window.appearance_button);native.click(window.appearance.larger)
             assert window.preferences.value.size==15
+            typography=buffer.get_tag_table().lookup('reader-typography')
+            assert typography.props.family=='sans-serif' and typography.props.size_points==12
+            assert abs(typography.props.line_height-1.5)<.001
             native.click(window.appearance.smaller);native.click(window.appearance_button)
             assert not window.appearance.get_visible();assert study.entry_text==original
             native.click(study.more);native.click(study.info)
@@ -89,7 +94,7 @@ def main():
             spin(lambda:window.split.get_collapsed() and window.get_width()<380,duration=.3)
             assert study.get_width()<=window.get_width()
             native.move_at(window,2,2);ImageGrab.grab().save(args.prefix+'-narrow.png')
-            print('PASS: full-height right drawer, aligned headers, compact actions, shared Aa, '
+            print('PASS: full-height right drawer, aligned headers, compact actions, fixed sidebar typography and global Aa, '
                   'offline source/conditions, bidirectional following, no history spam, narrow adaptation, '
                   'rapid toggles and disabled animations',flush=True)
             print('MHC_entry_sha256',hashlib.sha256(original.encode()).hexdigest(),

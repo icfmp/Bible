@@ -1,0 +1,35 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "accessibility": "Deferred; not tested",
+  "native_drag_keyboard_resize": {
+    "before": 420,
+    "after": 468,
+    "divider_width": 8,
+    "reference_preserved": true,
+    "history_preserved": true,
+    "selection_preserved": true,
+    "close_during_held_drag": true
+  },
+  "emulated_text_scale": {
+    "line_height_before": 19,
+    "line_height_after": 28
+  },
+  "notes_highlights_draft": {
+    "multiple_notes": true,
+    "native_highlight_color_change": true,
+    "native_popup_escape": true,
+    "draft_target_preserved": true
+  },
+  "adaptive_comparison": true,
+  "typography": {
+    "family": "sans-serif",
+    "points": 12,
+    "line_height": 1.5,
+    "independent_of_Aa": true,
+    "source_copy_sha256": "6ba1a7f8e05ed23c01207f4219fdb77d4eaa7bd723167834876cdbdfca1acf81"
+  },
+  "saved_width": 468,
+  "selected_tool": "notes",
+  "offline_restart_and_saved_annotations": true,
+  "status": "PASS"
+}

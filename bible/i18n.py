@@ -3,6 +3,14 @@ import locale
 import os
 
 FR = {
+    'Passage study': 'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
+    'Add note': 'Ajouter une note', 'Edit note': 'Modifier la note',
+    'Notes on': 'Notes sur', 'No notes for this passage.': 'Aucune note pour ce passage.',
+    'No highlights for this passage.': 'Aucun surlignage pour ce passage.',
+    'Add highlight': 'Ajouter un surlignage', 'Show more notes': 'Afficher plus de notes',
+    'Resize study panel': 'Redimensionner le panneau d’étude',
+    'Resize study panel: drag or use Left/Right arrow keys': 'Redimensionner le panneau d’étude : faites glisser ou utilisez les flèches gauche/droite',
+    'Unable to save study preferences.': 'Impossible d’enregistrer les préférences d’étude.',
     'Automatic following unavailable. Reading independently.': 'Suivi automatique indisponible. Lecture indépendante.',
     'Independent reading': 'Lecture indépendante',
     'Preparing reading pages…': 'Préparation des pages de lecture…',
