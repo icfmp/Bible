@@ -1,0 +1,63 @@
+{
+  "resources": [
+    {
+      "id": "FreSegond1910",
+      "provider": "crosswire",
+      "kind": "bible",
+      "driver": "zText",
+      "versification": "Segond",
+      "source": "CrossWire",
+      "license": "Copyrighted; Permission to distribute granted to CrossWire",
+      "conditions": "textsource: https://concordance.bible/media/download/Sg1910-osis_v11n.zip"
+    },
+    {
+      "id": "KJV",
+      "provider": "crosswire",
+      "kind": "bible",
+      "driver": "zText",
+      "versification": "KJV",
+      "source": "CrossWire",
+      "license": "GPL",
+      "conditions": "textsource: https://gitlab.com/crosswire-bible-society/kjv"
+    },
+    {
+      "id": "MHC",
+      "provider": "crosswire",
+      "kind": "commentary",
+      "driver": "zCom4",
+      "versification": "KJV",
+      "source": "CrossWire",
+      "license": "Public Domain",
+      "conditions": "textsource: http://www.ccel.org/"
+    }
+  ],
+  "files": {
+    "translations/KJV/.complete": "f98326ec7971053443d80268b911680a0eec8d4ead3b1d67445b7d534f1b5b2f",
+    "translations/KJV/.source.json": "a86f8c5ef2cab988f82da4a84ec37c17964d126a983c946079129dd45798afad",
+    "translations/MHC/.complete": "ebfe9fad7dad141bc0c122c7fb50afdb4ca6df673f3bd9643fb054315b0bcc05",
+    "translations/MHC/.source.json": "17a206f5050d3a443ccb65f45a5105d31823f02b6a900e7f95dceb52d52ab68e",
+    "translations/FreSegond1910/.complete": "323320a8e05c5edaedd72830c51945fca588dc5fe5a7588729905c8f4148c5b2",
+    "translations/FreSegond1910/.source.json": "78daacbd795341f1cc1e823a73603b760b040bc4f20b66527411d4e984b7bc46",
+    "translations/FreSegond1910/mods.d/fresegond1910.conf": "d566eace1d3ce0374e7dfd707c25d2c21e09d5e2aa5464696e31444dde769236",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/nt.bzs": "d3c597031d04768f464b51a5a7fe424dd2285918906bc97a469bce777459dfd1",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/ot.bzv": "e13676b75f72e59dbd6055a4340b295953d233ab70e01987b617cd5f605f3f41",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/ot.bzz": "64ad10f0116412bbe936ddd9a9547ac04ecad9a32de585a0e9b61a88e6ec1c4b",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/nt.bzv": "69537987a9eca477501fb1e55ceee604521427c15224f8aba8cee7a242d3ccf9",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/ot.bzs": "c7c8dcc025cbda6440ca6c6ec4768c4491ba815b47d0ffefdff8fee7dfbfd35c",
+    "translations/FreSegond1910/modules/texts/ztext/fresegond1910/nt.bzz": "f49181fa863e957fed76fc53866c4f6100b4b48153558f5dee57a7bdc798dca4",
+    "translations/MHC/mods.d/mhc.conf": "889f178712b8bcc1794284f0c2dec042a0680e501587a553cdb6ed4bc6beb537",
+    "translations/MHC/modules/comments/zcom4/mhc/nt.bzs": "0f732e912192fc69f32a8b12d33990b7dbcb3d47d50c7abaf78aa58476f27b90",
+    "translations/MHC/modules/comments/zcom4/mhc/ot.bzv": "ec989374aa4826ac8c43f7120c3bfb24b355aafca95f96bb0674ddcc1a970d22",
+    "translations/MHC/modules/comments/zcom4/mhc/ot.bzz": "fedea56aa596a369ab90ed87e4b3af9597c054bb2459329d7dfe934fe09ebe02",
+    "translations/MHC/modules/comments/zcom4/mhc/nt.bzv": "8268569a5e3cc223d41b0210714ec145821fa45160e2eb61f1979a2c39907346",
+    "translations/MHC/modules/comments/zcom4/mhc/ot.bzs": "f4bedc7f4fbf1e360069016a7b7314a30e92add993d48c264dab022e050aadc3",
+    "translations/MHC/modules/comments/zcom4/mhc/nt.bzz": "b1df16b75618d989e81c1e0f3ed6bf01e57d0c682b23fe20d8f521ec2c6a6b0e",
+    "translations/KJV/mods.d/kjv.conf": "a9d97ba99e04722fe516327ca5fbda13498b554ecb972b11007467323d71608c",
+    "translations/KJV/modules/texts/ztext/kjv/nt.bzs": "70159b639064d2cfa6422ed0a0941a660dccaeb0d0f7f4ccd92fb85e52618129",
+    "translations/KJV/modules/texts/ztext/kjv/ot.bzv": "2ae86c0e08fd959de69dbed2cc27032741e46a0e8a8b2b6f761f35a0065b1b0a",
+    "translations/KJV/modules/texts/ztext/kjv/ot.bzz": "539419f322b13049c289387017dc22403097365068ef0d1b5ff77771078634fa",
+    "translations/KJV/modules/texts/ztext/kjv/nt.bzv": "9977932ff019375b53b8e468ff99b1bdcf0ee6f2417418e8e5d72bdf0951351a",
+    "translations/KJV/modules/texts/ztext/kjv/ot.bzs": "20bb2f810c0ab500afe71335425e639df9e9d4172b014dc552be7d1143b785c9",
+    "translations/KJV/modules/texts/ztext/kjv/nt.bzz": "ba9eec17e3fc00b9a1faa47cd65f219bd03e6c373833b560f021229b92461a15"
+  }
+}

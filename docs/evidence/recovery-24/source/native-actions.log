@@ -1,0 +1,133 @@
+SYNTHETIC native fixtures: sentinel data only, not scripture
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.0' (uid=0 pid=13024 comm="/usr/bin/python3 -m tools.check_passage_actions /v" label="kernel")
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.506: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13065): Gtk-WARNING **: 09:43:33.513: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.522: Failed to create RealtimeKit proxy: Could not connect: No such file or directory
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.522: Choosing gtk.portal for org.freedesktop.impl.portal.Settings as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13068): Gtk-WARNING **: 09:43:33.529: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.529: Failed to create settings proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.529: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.529: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13070): Gtk-WARNING **: 09:43:33.536: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.536: Failed to create file chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.536: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.536: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13072): Gtk-WARNING **: 09:43:33.542: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.543: Failed to create app chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.543: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.543: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13074): Gtk-WARNING **: 09:43:33.549: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.549: Failed to create print proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.549: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.549: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13076): Gtk-WARNING **: 09:43:33.555: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.555: Failed to create notification proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.555: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.556: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13078): Gtk-WARNING **: 09:43:33.561: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.562: Failed to create inhibit proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.562: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.562: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13080): Gtk-WARNING **: 09:43:33.568: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.568: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.568: No skeleton to export
+[W][09:43:33.569196] pw.conf      | [          conf.c: 1182 try_load_conf()] can't load config client.conf: No such file or directory
+[E][09:43:33.569200] pw.conf      | [          conf.c: 1215 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.569: Failed connect to PipeWire: Couldn't create PipeWire context
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13082): Gtk-WARNING **: 09:43:33.575: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.575: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.575: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.575: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13084): Gtk-WARNING **: 09:43:33.581: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.582: Failed to create account proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.582: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.582: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13086): Gtk-WARNING **: 09:43:33.588: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.589: Failed to create email proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.589: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.589: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.1' (uid=0 pid=13042 comm="/usr/libexec/xdg-desktop-portal" label="kernel")
+
+(xdg-desktop-portal-gtk:13088): Gtk-WARNING **: 09:43:33.594: cannot open display: 
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.595: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13042): xdg-desktop-portal-WARNING **: 09:43:33.595: No skeleton to export
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=0 pid=13024 comm="/usr/bin/python3 -m tools.check_passage_actions /v" label="kernel")
+dbus-daemon[13009]: [session uid=0 pid=13009 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[13097]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=0 pid=13024 comm="/usr/bin/python3 -m tools.check_passage_actions /v" label="kernel")
+dbus-daemon[13097]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+PASS: native single verse, completed drag, exact partial Copy, retained selection, keyboard extension without focus theft, nested Escape, comparison note source/versification, mapped Compare and immersive action/close lifecycle

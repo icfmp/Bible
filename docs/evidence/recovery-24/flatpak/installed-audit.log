@@ -1,0 +1,9 @@
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=0 pid=24047 comm="flatpak run --user --unshare=network --env=PYTHONP" label="kernel")
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Successfully activated service 'org.freedesktop.Flatpak'
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.0' (uid=0 pid=24047 comm="flatpak run --user --unshare=network --env=PYTHONP" label="kernel")
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.2' (uid=0 pid=24060 comm="/usr/libexec/xdg-document-portal" label="kernel")
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=0 pid=24047 comm="flatpak run --user --unshare=network --env=PYTHONP" label="kernel")
+dbus-daemon[24045]: [session uid=0 pid=24045 pidfd=5] Successfully activated service 'org.a11y.Bus'
+PASS: all installed application Python files match source; original test resources unchanged

@@ -1,0 +1,67 @@
+{
+  "code": "installed-package",
+  "imports": {
+    "BookStream": "/app/lib/bible-python/bible/book_stream.py",
+    "BibleBookPages": "/app/lib/bible-python/bible/paged_sources.py",
+    "Document": "/app/lib/bible-python/bible/pagination.py",
+    "ReadingPreferences": "/app/lib/bible-python/bible/preferences.py",
+    "Reader": "/app/lib/bible-python/bible/sword_provider.py"
+  },
+  "resource": "FreSegond1910",
+  "pango": "1.57.1",
+  "network": "forbidden",
+  "gui_validation": false,
+  "books": [
+    {
+      "key": "Gen",
+      "pages": 280,
+      "characters": 198215,
+      "sha256": "8f1d172c2864c8a997d098d0e2f29e37307598855da5b331437b04ed52d4d3d2",
+      "source_verses": 1533,
+      "kept_heading_groups": 50,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 1.0597230080002191,
+      "reflow_seconds": 0.3114216399990255,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 114,
+      "largest_poll_gap_seconds": 0.015315749000365031
+    },
+    {
+      "key": "Mark",
+      "pages": 116,
+      "characters": 82543,
+      "sha256": "fc01ba34d221f82e024d9a4f57b521a2cc679db90dc034dad5dfffa027c13e77",
+      "source_verses": 679,
+      "kept_heading_groups": 16,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 0.37969539599907876,
+      "reflow_seconds": 0.11622400299893343,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 44,
+      "largest_poll_gap_seconds": 0.01144973500049673
+    },
+    {
+      "key": "Luke",
+      "pages": 195,
+      "characters": 139928,
+      "sha256": "92a1d0450fee8e0ff5efbbdb37573e6138d824cecc15703a4f6f7321afb2ab0b",
+      "source_verses": 1151,
+      "kept_heading_groups": 24,
+      "exact_partition": true,
+      "exact_source_words": true,
+      "preparation_seconds": 0.176956737999717,
+      "reflow_seconds": 0.21654621200104884,
+      "document_reused": true,
+      "plan_reused": true,
+      "poll_heartbeat_ticks": 29,
+      "largest_poll_gap_seconds": 0.012760188999891398
+    }
+  ],
+  "superseded_requests": true,
+  "close_seconds": 0.0012353579986665864,
+  "worker_joined": true
+}

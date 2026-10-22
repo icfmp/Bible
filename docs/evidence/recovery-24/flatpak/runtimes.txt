@@ -1,0 +1,5 @@
+org.freedesktop.Platform.GL.default/x86_64/25.08	flathub	c8dc11565887
+org.freedesktop.Platform.GL.default/x86_64/25.08-extra	flathub	4a2f70260483
+org.freedesktop.Platform.codecs-extra/x86_64/25.08-extra	flathub	4ac6fc6727e2
+org.gnome.Platform/x86_64/49	flathub	2bb946ea4ebb
+org.gnome.Sdk/x86_64/49	flathub	faf37bdc9622

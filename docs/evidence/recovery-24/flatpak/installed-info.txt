@@ -1,0 +1,14 @@
+          ID: io.github.icfmp.Bible
+         Ref: app/io.github.icfmp.Bible/x86_64/recovery-24
+        Arch: x86_64
+      Branch: recovery-24
+      Origin: bible-origin
+  Collection: 
+Installation: user
+   Installed: 42.8?MB
+     Runtime: org.gnome.Platform/x86_64/49
+         Sdk: org.gnome.Sdk/x86_64/49
+
+      Commit: 5e7ab679ab0c90529cf3a4bf499705f3057602608219bdf8b2200e00a02c63f4
+     Subject: Export io.github.icfmp.Bible
+        Date: 2026-10-22 09:47:30 +0000

@@ -67,11 +67,16 @@ class Reader:
 
     @cached_property
     def books(self):
+        return self.discover_books()
+
+    def discover_books(self, cancelled=None):
         """Discover actual indexed entries in the module's own versification.
 
         hasEntry checks the SWORD index without decoding the entire translation.
         No assumptions about OT/NT scope, first book, chapters, or missing verses.
         """
+        from .preparation import checkpoint
+        checkpoint(cancelled)
         key = self.sword.VerseKey()
         key.setVersificationSystem(self.versification)
         key.setTestament(1)
@@ -80,6 +85,7 @@ class Reader:
         key.setVerse(1)
         entries = {}
         while True:
+            checkpoint(cancelled)
             if self.module.hasEntry(key):
                 code = key.getOSISBookName()
                 if code not in entries:
@@ -112,12 +118,15 @@ class Reader:
         return (passages[index - 1][1] if index > 0 else None,
                 passages[index + 1][1] if index + 1 < len(passages) else None)
 
-    def chapter(self, reference='Gen.1.1'):
+    def chapter(self, reference='Gen.1.1', *, cancelled=None):
+        from .preparation import checkpoint
+        checkpoint(cancelled)
         key = self.key(reference)
         key.setVerse(1)
         first = key.getOSISRef()
         verses = []
         for verse in range(1, key.getVerseMax() + 1):
+            checkpoint(cancelled)
             key.setVerse(verse)
             if not self.module.hasEntry(key):
                 continue
@@ -140,11 +149,14 @@ class Reader:
         return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
 
 
-    def structured_chapter(self, chapter):
+    def structured_chapter(self, chapter, *, cancelled=None):
         from .structured_text import extract
+        from .preparation import checkpoint
+        checkpoint(cancelled)
         source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
         result = {}
         for reference, plain in chapter.verses:
+            checkpoint(cancelled)
             self.module.setKey(self.key(reference))
             raw = self.module.getRawEntry()
             raw = raw if isinstance(raw,str) else raw.c_str()

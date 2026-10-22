@@ -1,0 +1,20 @@
+{
+  "recovery_commit": "66386c7a0e686befd0d797fc13f582be1649a701",
+  "archive_sha256": "ac998aa44bc191b55380e06e74d8ad93110d3ba7456192a2649bfdf2f6c909c2",
+  "base": "884591cd194bd7c07e3534a9b652c154a578dd34",
+  "original_commits": [
+    "fa2bfa02f6aeb640f134bda0abf7f4a30a1e1911",
+    "dd48c3f56509079017c950582c49fc6cbe8304f6"
+  ],
+  "restored_commits": [
+    "cf762305ac4a8334c3baf1c549bc55ae0f26c262",
+    "c813b998aa8de25c3b2113889df8e4c9cfedd657"
+  ],
+  "tree": "baf8a94e6b80f725157cf41a4c68f390e9b245e5",
+  "cumulative_patch_tree": "baf8a94e6b80f725157cf41a4c68f390e9b245e5",
+  "archive_checksums": "all verified",
+  "reverse_patch_check": "passed",
+  "diff_check": "passed",
+  "compileall": "passed",
+  "recovery_branch_merged": false
+}

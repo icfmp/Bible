@@ -1,0 +1,16 @@
+{
+  "data": "Synthetic text only; no installed module or GTK measurement",
+  "verses": 1500,
+  "characters": 321054,
+  "baseline_import_adjustment": "reading_style.SPACING -> reading_metrics.SPACING (same values; GTK unavailable)",
+  "884591c": {
+    "seconds": 2.758482823000122,
+    "pages": 506,
+    "exact_partition": true
+  },
+  "candidate": {
+    "seconds": 1.4362514879999253,
+    "pages": 507,
+    "exact_partition": true
+  }
+}

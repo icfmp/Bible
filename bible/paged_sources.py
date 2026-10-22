@@ -5,19 +5,23 @@ from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
 from .book_names import display_name
 from .i18n import LANGUAGE
 from .verse_typography import first_word_length
+from .preparation import checkpoint
 
 
 class BiblePages:
     kind='bible'
     def __init__(self,reader,resource):self.reader=reader;self.resource=resource
     def key(self,reference):return self.reader.key(reference).getOSISRef().rsplit('.',1)[0]
-    def document(self,key,preferences):
-        chapter=self.reader.chapter(key+'.1');structured=self.reader.structured_chapter(chapter)
+    def document(self,key,preferences,*,cancelled=None):
+        checkpoint(cancelled)
+        chapter=self.reader.chapter(key+'.1',cancelled=cancelled)
+        structured=self.reader.structured_chapter(chapter,cancelled=cancelled)
         native=self.reader.key(key+'.1')
         title=display_name(native.getOSISBookName(),native.getBookName(),LANGUAGE)
         if preferences.chapter_numbers:title+=' '+str(native.getChapter())
         pieces=[title+'\n\n'];styles=[StyleSpan('chapter',0,len(title))];spans=[];offset=len(pieces[0])
         for reference,plain in chapter.verses:
+            checkpoint(cancelled)
             start=offset if spans else 0
             segments=structured[reference]
             for segment in segments:
@@ -59,13 +63,17 @@ class BibleBookPages(BiblePages):
         from .sword_provider import Reader
         return BibleBookPages(Reader(self.reader.root,self.reader.name),self.resource)
 
-    def document(self,key,preferences):
+    def document(self,key,preferences,*,cancelled=None):
+        checkpoint(cancelled)
         code=key.split('.')[0]
+        if 'books' not in self.reader.__dict__:
+            self.reader.__dict__['books']=self.reader.discover_books(cancelled)
         book=next((b for b in self.reader.books if b.code==code),None)
         if book is None:raise ValueError('Book unavailable: '+code)
         pieces=[];copies=[];spans=[];styles=[];offset=0
         for number in book.chapters:
-            doc=super().document(f'{code}.{number}',preferences)
+            checkpoint(cancelled)
+            doc=super().document(f'{code}.{number}',preferences,cancelled=cancelled)
             prefix=offset
             if pieces:pieces.append('\n\n');copies.append('\n\n');offset+=2
             pieces.append(doc.text)

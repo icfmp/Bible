@@ -1,0 +1,11 @@
+{
+  "source_commit": "c813b998aa8de25c3b2113889df8e4c9cfedd657",
+  "source_tree": "baf8a94e6b80f725157cf41a4c68f390e9b245e5",
+  "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/recovery-24",
+  "flatpak_commit": "5e7ab679ab0c90529cf3a4bf499705f3057602608219bdf8b2200e00a02c63f4",
+  "bundle_sha256": "09f9bd98adcc5796d18038b207f132b6428ed3caf567f2fae0304c2552f13fbe",
+  "installed_application_matches_source": true,
+  "later_changes": "validation tests and documentation only; application Python hashes are recorded in installed-audit.json",
+  "signed_alpha_published": false,
+  "manual_gnome_validation": false
+}

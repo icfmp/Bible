@@ -253,6 +253,50 @@ class ImmersionTests(unittest.TestCase):
         self.assertTrue(w.closed)
         self.assertFalse(Path(directory).exists())
 
+    def test_exit_during_preparation_cancels_worker_and_keeps_reading_state(self):
+        from concurrent.futures import CancelledError
+        from threading import Event
+        import time
+        from unittest.mock import patch
+        from bible.book_stream import BookStream
+        from bible.preparation import checkpoint
+        entered, cancelled, release = Event(), Event(), Event()
+        build = BookStream.build
+
+        def delayed(stream, key, preferences, width, height, anchor, is_cancelled=None):
+            entered.set()
+            deadline = time.monotonic() + 3
+            try:
+                while not release.wait(.005):
+                    checkpoint(is_cancelled)
+                    if time.monotonic() > deadline:
+                        raise TimeoutError('Preparation was neither released nor cancelled')
+            except CancelledError:
+                cancelled.set()
+                raise
+            return build(stream, key, preferences, width, height, anchor, is_cancelled)
+
+        with self.profile() as directory:
+            w = self.window(directory)
+            tab = w.active_tab
+            reference, tabs = tab.state.reference, w.tabs()
+            try:
+                with patch.object(BookStream, 'build', delayed):
+                    self.assertTrue(w.enter_immersion())
+                    reading = w.immersion
+                    spin(entered.is_set)
+                    self.assertIsNone(reading.stream.cursor)
+                    w.leave_immersion()
+                self.assertIsNone(w.immersion)
+                self.assertTrue(cancelled.is_set())
+                self.assertTrue(reading.stream.closed)
+                self.assertTrue(all(not thread.is_alive() for thread in reading.stream.executor._threads))
+                self.assertEqual(tab.state.reference, reference)
+                self.assertEqual(w.tabs(), tabs)
+                self.assertIs(w.active_tab, tab)
+            finally:
+                release.set()
+
     def test_commentary_inline_formatting_survives_highlight_integration(self):
         with self.profile() as directory:
             w=self.window(directory);tab=w.active_tab

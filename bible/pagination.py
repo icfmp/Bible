@@ -4,13 +4,15 @@ Offsets count non-whitespace Unicode characters inside a source verse/entry.
 Pango byte offsets are converted before slicing Python text; pages partition the
 entire display document exactly, including paragraph separators and headings.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from bisect import bisect_right
 import unicodedata
 import gi
 
 gi.require_version('Pango','1.0')
 from gi.repository import Pango
-from .reading_style import SPACING
+from .reading_metrics import SPACING
+from .preparation import checkpoint
 
 
 @dataclass(frozen=True)
@@ -101,17 +103,31 @@ class PagePlan:
         return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
 
 
-def attributes(document,start=0,end=None,*,context=None,preferences=None):
+def attributes(document,start=0,end=None,*,context=None,preferences=None,cancelled=None):
     end=len(document.text) if end is None else end
     values=Pango.AttrList()
+    # Encode each intervening slice once, rather than the entire prefix twice
+    # for every style in a whole book (quadratic in the book's length).
+    positions={start,end}
     for span in document.styles:
+        if span.end>start and span.start<end and span.kind!='verse-start':
+            positions.update((max(start,span.start),min(end,span.end)))
+    byte_offsets={};previous=start;offset=0
+    for position in sorted(positions):
+        checkpoint(cancelled)
+        offset+=len(document.text[previous:position].encode())
+        byte_offsets[position]=offset;previous=position
+    rise=None
+    for span in document.styles:
+        checkpoint(cancelled)
         left,right=max(start,span.start),min(end,span.end)
         if right<=left:continue
         if span.kind in ('heading','chapter'):
             attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12)]
         elif span.kind=='number':
             from .verse_typography import NUMBER_SCALE, number_rise
-            attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(number_rise(context,preferences) if context and preferences else 0)]
+            if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
+            attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(rise)]
         # Nonbreaking presentation spaces already bind marker and first word.
         # Thousands of ALLOW_BREAKS ranges make whole-book Pango shaping
         # disproportionately slow; retain these spans for partition boundaries.
@@ -124,21 +140,48 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None):
             attrs=[Pango.attr_shape_new(rectangle,rectangle)]
         else:continue
         for attr in attrs:
-            attr.start_index=len(document.text[start:left].encode())
-            attr.end_index=len(document.text[start:right].encode())
+            attr.start_index=byte_offsets[left]
+            attr.end_index=byte_offsets[right]
             values.insert(attr)
     return values
 
 
-def paginate(widget,document,preferences,width,height,anchor=None):
+def heading_groups(document):
+    """Keep consecutive source/chapter headings with the next body character.
+
+    Offsets are metadata only: source text, copy text and canonical spans stay
+    untouched. Include all intervening blank lines and consecutive headings.
+    """
+    groups=[]
+    for style in sorted(document.styles,key=lambda s:s.start):
+        if style.kind not in {'heading','chapter'}:continue
+        start,end=style.start,style.end
+        if groups and not document.text[groups[-1][1]:start].strip():
+            start=groups.pop()[0]
+        groups.append((start,end))
+    result=[]
+    for start,end in groups:
+        while end<len(document.text) and document.text[end].isspace():end+=1
+        if end<len(document.text):result.append((start,end+1))
+    return result
+
+
+def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=None):
     """Measure real shaped lines. No verse/chapter-length estimates or columns."""
+    checkpoint(cancelled)
+    groups=heading_groups(document)
     split=document.locate(anchor) if anchor else 0
+    for start,end in groups:
+        if start<split<end:split=start
     for style in document.styles:
         if style.kind=='verse-start' and style.start<split<style.end:split=style.start
+    for start,end in groups:
+        if start<split<end:split=start
     while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
     pages=[]
     for first,last in boundaries:
+        checkpoint(cancelled)
         if first==last:continue
         text=document.text[first:last]
         layout=widget.create_pango_layout(text)
@@ -146,11 +189,16 @@ def paginate(widget,document,preferences,width,height,anchor=None):
         layout.set_width(max(20,int(width))*Pango.SCALE)
         layout.set_wrap(Pango.WrapMode.WORD_CHAR)
         layout.set_spacing(SPACING[preferences.line_spacing]*Pango.SCALE)
-        layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences))
-        raw=text.encode();byte_to_char={0:0};n=0
-        for i,char in enumerate(text):n+=len(char.encode());byte_to_char[n]=i+1
+        layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences,
+                                         cancelled=cancelled))
+        byte_to_char={0:0};n=0
+        for i,char in enumerate(text):
+            if i%2048==0:checkpoint(cancelled)
+            n+=len(char.encode());byte_to_char[n]=i+1
+        checkpoint(cancelled)
         iterator=layout.get_iter();lines=[]
         while True:
+            checkpoint(cancelled)
             line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
             lines.append((byte_to_char[line.start_index],logical.y/Pango.SCALE,logical.height/Pango.SCALE))
             if not iterator.next_line():break
@@ -159,12 +207,36 @@ def paginate(widget,document,preferences,width,height,anchor=None):
         # separators remain copied verbatim without clipping the last glyph.
         metrics=widget.get_pango_context().get_metrics(layout.get_font_description(),None)
         reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
-        page_start=first;top=lines[0][1]
-        for offset,y,line_height in lines:
+        capacity=max(1,height-reserve-2)
+        starts=[first+line[0] for line in lines]
+        # Treat a heading and the first shaped body line as one block when it
+        # fits. Oversized titles still make progress one line at a time.
+        protected=list(groups)+[(s.start,s.end) for s in document.styles if s.kind=='verse-start']
+        intervals=[]
+        for start,end in protected:
+            if start<first or end>last:continue
+            begin=bisect_right(starts,start)-1;finish=bisect_right(starts,end-1)-1
+            if lines[finish][1]+lines[finish][2]-lines[begin][1]<=capacity:
+                # Ranges may share the heading's first body line. Merge them
+                # only if the combined group can still fit on an empty page.
+                overlaps=[(a,b) for a,b in intervals if a<=finish and b>=begin]
+                left=min([begin]+[a for a,b in overlaps]);right=max([finish]+[b for a,b in overlaps])
+                if lines[right][1]+lines[right][2]-lines[left][1]>capacity:continue
+                intervals=[item for item in intervals if item not in overlaps]
+                intervals.append((left,right))
+        blocks=dict(intervals)
+        page_start=first;top=lines[0][1];index=0
+        while index<len(lines):
+            checkpoint(cancelled)
+            finish=blocks.get(index,index)
+            offset,y,_=lines[index];bottom=lines[finish][1]+lines[finish][2]
             absolute=first+offset
-            if y+line_height-top>max(1,height-reserve-2) and absolute>page_start:
+            if bottom-top>capacity and absolute>page_start:
                 pages.append(Page(page_start,absolute));page_start=absolute;top=y
+            index=finish+1
         if page_start<last:pages.append(Page(page_start,last))
     if not pages:pages=[Page(0,0)]
-    assert ''.join(document.text[p.start:p.end] for p in pages)==document.text
+    checkpoint(cancelled)
+    assert pages[0].start==0 and pages[-1].end==len(document.text)
+    assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
     return PagePlan(document,tuple(pages))
