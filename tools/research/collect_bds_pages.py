@@ -2,10 +2,11 @@
 """Collect public BDS pages into a resumable, local research ZIP (Python 3.10+).
 
 Standard library only. No account, API key, browser, authentication workaround
-or SWORD conversion. Defaults to one request every two seconds. Source content
+or SWORD conversion. Up to ten transfers; globally spaced request starts. Source content
 and the resulting archive must not be committed to the application repository.
 """
 import argparse
+from concurrent.futures import CancelledError, FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import datetime, timezone
 import hashlib
 from html.parser import HTMLParser
@@ -13,6 +14,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import threading
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
@@ -95,11 +97,20 @@ def check_page(data, reference):
 class Fetcher:
     def __init__(self, delay):
         self.delay, self.last = delay, 0.0
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+
+    def request_slot(self):
+        # One GLOBAL limiter, not one independent rate limit per worker.
+        with self.lock:
+            pause = max(0, self.last+self.delay-time.monotonic())
+            if self.stop.wait(pause):
+                raise CancelledError('Collection stopped')
+            self.last = time.monotonic()
 
     def fetch(self, url):
         for attempt in range(3):
-            time.sleep(max(0, self.last+self.delay-time.monotonic()))
-            self.last = time.monotonic()
+            self.request_slot()
             try:
                 request = Request(url, headers={
                     'User-Agent': 'Bible-BDS-Research/0.1 (local HTML collection)',
@@ -121,6 +132,7 @@ class Fetcher:
             except HTTPError as error:
                 # No bypass or repeated requests after an access/rate-limit refusal.
                 if error.code in {401, 403, 429}:
+                    self.stop.set()
                     retry = error.headers.get('Retry-After')
                     raise RuntimeError(f'HTTP {error.code}; collection stopped. Retry-After: {retry or "not supplied"}') from error
                 if error.code not in {500, 502, 503, 504} or attempt == 2:
@@ -128,8 +140,79 @@ class Fetcher:
             except (URLError, TimeoutError, ConnectionError):
                 if attempt == 2:
                     raise
-            time.sleep(2**(attempt+1))
+            if self.stop.wait(2**(attempt+1)):
+                raise CancelledError('Collection stopped')
         raise RuntimeError('Fetch failed')
+
+
+def collect(directory, manifest, fetcher, workers, limit):
+    todo = [(r, u) for r, u in manifest['index_pages'].items() if r not in manifest['pages']]
+    if limit is not None:
+        todo = todo[:limit]
+    iterator = iter(todo)
+    pool = ThreadPoolExecutor(max_workers=workers)
+    pending = {}
+    failed = False
+
+    def download(ref, url):
+        try:
+            data, record = fetcher.fetch(url)
+            check_page(data, ref)
+            return data, record
+        except Exception:
+            fetcher.stop.set()
+            raise
+
+    def fill():
+        while len(pending) < workers and not fetcher.stop.is_set():
+            item = next(iterator, None)
+            if item is None:
+                break
+            ref, url = item
+            pending[pool.submit(download, ref, url)] = item
+
+    def finish(future, ref, url):
+        nonlocal failed
+        try:
+            data, record = future.result()
+        except CancelledError:
+            return
+        except Exception as error:
+            failed = True
+            fetcher.stop.set()
+            manifest['errors'].append(dict(reference=ref, url=url, at=now(), error=str(error)))
+            print(f'Failed {ref}: {error}', file=sys.stderr, flush=True)
+            return
+        path = directory/'pages'/(ref+'.html')
+        temporary = path.with_suffix('.html.tmp')
+        temporary.write_bytes(data)
+        temporary.replace(path)
+        manifest['pages'][ref] = record
+        save_json(directory/'manifest.json', manifest)
+        print(f'[{len(manifest["pages"])}/{len(manifest["index_pages"])}] Saved {ref}', flush=True)
+
+    try:
+        fill()
+        while pending:
+            done, _ = wait(pending, timeout=0.2, return_when=FIRST_COMPLETED)
+            for future in done:
+                ref, url = pending.pop(future)
+                finish(future, ref, url)
+            fill()
+    except KeyboardInterrupt:
+        failed = True
+        fetcher.stop.set()
+        print('\nStopping. Waiting for in-flight requests (up to 30 seconds)...', flush=True)
+    finally:
+        fetcher.stop.set()
+        pool.shutdown(wait=True, cancel_futures=True)
+        # Save successful in-flight responses even when the user interrupted.
+        for future, (ref, url) in pending.items():
+            try:
+                finish(future, ref, url)
+            except KeyboardInterrupt:
+                failed = True
+    return failed
 
 
 def archive(directory, manifest):
@@ -153,11 +236,13 @@ def archive(directory, manifest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('bds-pages'))
-    parser.add_argument('--delay', type=float, default=2.0, help='Seconds between requests, minimum 1')
+    parser.add_argument('--workers', type=int, default=4, help='Concurrent transfers, 1 to 10')
+    parser.add_argument('--delay', type=float, default=0.5,
+                        help='Minimum GLOBAL interval between request starts, seconds (>= 0.5)')
     parser.add_argument('--limit', type=int, help='Research smoke test only; omit for all indexed pages')
     args = parser.parse_args()
-    if args.delay < 1 or (args.limit is not None and args.limit < 1):
-        parser.error('Delay must be >= 1; limit must be positive')
+    if args.delay < 0.5 or not 1 <= args.workers <= 10 or (args.limit is not None and args.limit < 1):
+        parser.error('Delay must be >= 0.5; workers 1..10; limit positive')
     directory = args.output.resolve()
     directory.mkdir(parents=True, exist_ok=True)
     (directory/'pages').mkdir(exist_ok=True)
@@ -193,33 +278,15 @@ def main():
     manifest['pages'] = valid
     save_json(saved, manifest)
     print(f'{len(pages)} indexed pages (chapters + introductions); {len(valid)} already verified.', flush=True)
-    downloaded, failed = 0, False
+    print(f'Up to {args.workers} simultaneous transfers; global request interval {args.delay}s.', flush=True)
+    failed = False
     try:
-        for ref, url in pages.items():
-            if ref in valid:
-                continue
-            if args.limit is not None and downloaded >= args.limit:
-                break
-            print(f'[{len(manifest["pages"])+1}/{len(pages)}] {ref}', flush=True)
-            data, record = fetcher.fetch(url)
-            check_page(data, ref)
-            path = directory/'pages'/(ref+'.html')
-            temporary = path.with_suffix('.html.tmp')
-            temporary.write_bytes(data)
-            temporary.replace(path)
-            manifest['pages'][ref] = record
-            downloaded += 1
-            save_json(saved, manifest)
-    except KeyboardInterrupt:
-        failed = True
-        print('\nInterrupted. Verified pages saved; rerun the same command to resume.', flush=True)
-    except Exception as error:
-        failed = True
-        manifest['errors'].append(dict(reference=ref, url=url, at=now(), error=str(error)))
-        print(f'\nStopped at {ref}: {error}\nRerun the same command after resolving the error.', file=sys.stderr)
+        failed = collect(directory, manifest, fetcher, args.workers, args.limit)
     finally:
         destination = archive(directory, manifest)
         print(f'ZIP: {destination}\nVerified: {len(manifest["pages"])}/{len(pages)}; complete: {manifest["complete"]}', flush=True)
+        if not manifest['complete']:
+            print('Rerun the same command to resume.', flush=True)
     return 1 if failed or not manifest['complete'] else 0
 
 
