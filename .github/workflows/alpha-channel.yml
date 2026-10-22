@@ -58,6 +58,10 @@ jobs:
           python3 -m tools.channel_ci verify
       - name: Installer les outils de publication et de validation
         run: |
+          # Use the official archive for the existing public validation tools.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
           sudo apt-get update
           sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11
       - name: Conserver les objets du dépôt déjà publié
