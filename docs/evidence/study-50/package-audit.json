@@ -2,7 +2,7 @@
   "app_path": "/app/lib/bible-python/bible",
   "files": {
     "paged_sources.py": "278357f274e1146bb7b85f261c25a1979f884c56b137d8c3e923b4c650fbe3e3",
-    "note_preview.py": "313d056dc0a7b33b373d83a2d47855df5a2f625bf8bec8ebef1401ca102b08c5",
+    "note_preview.py": "035b0212123666916ad7d6bd18d89af7cffc412109344d793e11b6b1b6942d3c",
     "preparation.py": "6993cfab6df90b164dc7fd566116f771b8b17aa1d1247ae4b0140119bee83d6b",
     "highlights.py": "8bfd4dce0ac6f1e2a0cc2a230c15776965005dcce8d9380bd22a9df9627a3462",
     "sword_provider.py": "20eef10c314dda959eed30c09a363bdc0991eea933e5dd618da4e01cb46a49b0",

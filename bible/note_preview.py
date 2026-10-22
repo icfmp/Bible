@@ -16,7 +16,7 @@ class NotePreview(Gtk.TextView):
         self.tags = {'bold': buffer.create_tag(None, weight=700),
                      'italic': buffer.create_tag(None, style=Pango.Style.ITALIC),
                      'link': buffer.create_tag(None, underline=Pango.Underline.SINGLE)}
-        self.citation_tag=buffer.create_tag(None,underline=Pango.Underline.SINGLE,weight=600)
+        self.citation_tag=buffer.create_tag(None,underline=Pango.Underline.SINGLE)
         click=Gtk.GestureClick(button=1)
         click.connect('pressed',self.pressed);click.connect('released',self.released);self.add_controller(click)
         motion=Gtk.EventControllerMotion();motion.connect('motion',self.motion);self.add_controller(motion)
