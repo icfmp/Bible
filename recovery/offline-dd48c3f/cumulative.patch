@@ -1,0 +1,1325 @@
+diff --git a/bible/book_stream.py b/bible/book_stream.py
+index 3878d82..021165e 100644
+--- a/bible/book_stream.py
++++ b/bible/book_stream.py
+@@ -1,11 +1,15 @@
+ """Bounded background SWORD/Pango preparation; GTK stays on its owning thread."""
+-from concurrent.futures import ThreadPoolExecutor
++from collections import OrderedDict
++from concurrent.futures import CancelledError, ThreadPoolExecutor
+ from dataclasses import replace
++from threading import Event, Lock
+ import gi
++gi.require_version('Pango','1.0')
+ gi.require_version('PangoCairo','1.0')
+ from gi.repository import Pango,PangoCairo
+ from .paged_sources import PagedStream,PageAddress
+ from .pagination import paginate
++from .preparation import checkpoint
+ 
+ 
+ class LayoutContext:
+@@ -31,36 +35,109 @@ class BookStream(PagedStream):
+         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-pages')
+         self.futures={};self.errors={};self.error=None;self.pending=None
+         self.requested_anchor=None;self.spread_count=2;self.closed=False
+-
+-    def build(self,key,preferences,width,height,anchor):
+-        source=self.source.clone()  # Its own SWMgr/VerseKey, not the visible reader.
+-        document=source.document(key,preferences)
+-        layout=LayoutContext(self.resolution,self.language)
+-        return paginate(layout,document,preferences,width,height,anchor)
++        self.cancellations={}
++        # Caches belong to this resource/stream, never to a persisted profile.
++        # Documents depend only on number visibility; plans additionally depend
++        # on geometry, typography and the canonical reflow partition.
++        self.documents=OrderedDict();self.plans=OrderedDict();self._cache_lock=Lock()
++        self._worker_source=None;self._worker_layout=None
++        self._configuration=None
++
++    @staticmethod
++    def document_signature(key,preferences):
++        return key,preferences.chapter_numbers,preferences.verse_numbers
++
++    def _remember(self,cache,key,value,cancelled=None):
++        with self._cache_lock:
++            checkpoint(cancelled)
++            cache[key]=value;cache.move_to_end(key)
++            while len(cache)>3:cache.popitem(last=False)
++
++    def build(self,key,preferences,width,height,anchor,cancelled=None):
++        checkpoint(cancelled)
++        signature=self.document_signature(key,preferences)
++        plan_key=(signature,preferences.font,preferences.size,preferences.line_spacing,
++                  width,height,anchor)
++        with self._cache_lock:
++            plan=self.plans.get(plan_key)
++            if plan is not None:
++                self.plans.move_to_end(plan_key);return plan
++            document=self.documents.get(signature)
++            if document is not None:self.documents.move_to_end(signature)
++        if document is None:
++            if self._worker_source is None:self._worker_source=self.source.clone()
++            checkpoint(cancelled)
++            document=self._worker_source.document(key,preferences,cancelled=cancelled)
++            checkpoint(cancelled)
++            self._remember(self.documents,signature,document,cancelled)
++        if self._worker_layout is None:
++            self._worker_layout=LayoutContext(self.resolution,self.language)
++        plan=paginate(self._worker_layout,document,preferences,width,height,anchor,cancelled=cancelled)
++        checkpoint(cancelled)
++        self._remember(self.plans,plan_key,plan,cancelled)
++        return plan
+ 
+     def request(self,key):
++        if self.closed:return
+         if key not in self.cache and key not in self.futures and key not in self.errors:
++            event=Event();self.cancellations[key]=event
+             self.futures[key]=self.executor.submit(self.build,key,replace(self.preferences),
+-                                                   self.width,self.height,self.partitions.get(key))
++                                                   self.width,self.height,self.partitions.get(key),event.is_set)
+ 
+     def plan(self,key):
+         self.request(key)
+         return self.cache.get(key)
+ 
++    def _cancel(self,key):
++        self.cancellations.pop(key).set()
++        self.futures.pop(key).cancel()
++
++    def cancel_pending(self):
++        for key in list(self.futures):self._cancel(key)
++        self.pending=None
++
+     def configure(self,width,height,anchor,key):
+-        for future in self.futures.values():future.cancel()
+-        self.futures={};self.errors={};self.error=None
+-        self.width=max(20,width);self.height=max(20,height)
++        if self.closed:return
++        width,height=max(20,width),max(20,height)
++        p=self.preferences
++        configuration=(key,width,height,anchor,p.font,p.size,p.line_spacing,p.chapter_numbers,p.verse_numbers)
++        if configuration==self._configuration and (self.pending==key or
++                (self.cursor and self.cursor.key==key and self.requested_anchor==anchor)):return
++        self._configuration=configuration
++        self.cancel_pending()
++        self.errors={};self.error=None
++        self.width=width;self.height=height
+         self.cache.clear();self.partitions={key:anchor};self.cursor=None
++        self._retain_books(key)
+         self.pending=key;self.requested_anchor=anchor;self.request(key)
+ 
++    def _retain_books(self,key):
++        neighbours=[self.source.neighbour(key,direction) for direction in (1,-1)]
++        retained={key,*(n for n in neighbours if n is not None)}
++        for old in list(self.futures):
++            if old not in retained:self._cancel(old)
++        for old in list(self.cache):
++            if old not in retained:del self.cache[old]
++        with self._cache_lock:
++            for old in list(self.documents):
++                if old[0] not in retained:del self.documents[old]
++            for old in list(self.plans):
++                if old[0][0] not in retained:del self.plans[old]
++        return neighbours
++
++    def _prefetch(self,key):
++        neighbours=self._retain_books(key)
++        for neighbour in neighbours:
++            if neighbour is not None:self.request(neighbour)
++
+     def poll(self):
+         if self.closed:return None
+         changed=None
+         for key,future in list(self.futures.items()):
+             if not future.done():continue
+-            del self.futures[key]
++            del self.futures[key];self.cancellations.pop(key)
+             try:self.cache[key]=future.result()
++            except CancelledError:continue
+             except Exception as error:
+                 self.errors[key]=str(error)
+                 if key==self.pending:self.error=str(error);self.pending=None;changed='current'
+@@ -69,11 +146,10 @@ class BookStream(PagedStream):
+                 plan=self.cache[key];index=plan.containing(plan.document.locate(self.requested_anchor))
+                 if self.spread_count==2:index=index//2*2
+                 self.cursor=PageAddress(key,index);self.pending=None;changed='current'
+-                # Only adjacent books are prepared, never the whole translation.
+-                for direction in (1,-1):
+-                    neighbour=self.source.neighbour(key,direction)
+-                    if neighbour is not None:self.request(neighbour)
++                # Prefetch after collecting this batch: pruning may otherwise
++                # invalidate the futures snapshot currently being iterated.
+             elif changed is None:changed='controls'
++        if changed=='current' and self.cursor:self._prefetch(self.cursor.key)
+         while len(self.cache)>3:
+             key=next(iter(self.cache))
+             if self.cursor and key==self.cursor.key:self.cache.move_to_end(key);continue
+@@ -109,12 +185,17 @@ class BookStream(PagedStream):
+             if before is None:return False
+             self.cursor=before
+         elif not super().turn(direction,count):return False
+-        self.requested_anchor=None;return True
++        self.requested_anchor=None;self._prefetch(self.cursor.key);return True
+ 
+     def anchor(self):
+         return self.requested_anchor or super().anchor()
+ 
+     def close(self):
+         self.closed=True
+-        # Join before a disposable profile can remove SWORD's backing files.
++        self.cancel_pending()
++        # Cooperative cancellation stops at the next native-operation boundary;
++        # join before a disposable profile can remove SWORD's backing files.
+         self.executor.shutdown(wait=True,cancel_futures=True)
++        self.pending=None;self.cache.clear()
++        with self._cache_lock:self.documents.clear();self.plans.clear()
++        self._worker_source=None;self._worker_layout=None
+diff --git a/bible/immersion.py b/bible/immersion.py
+index 0ae1fdb..e7d1ca8 100644
+--- a/bible/immersion.py
++++ b/bible/immersion.py
+@@ -19,6 +19,7 @@ class Immersion(Gtk.Overlay):
+         self.owner=owner;self.tab=owner.active_tab;self.source=source;self.kind=source.kind
+         self.initial_key=key;self.initial_anchor=anchor;self.was_fullscreen=owner.is_fullscreen()
+         self._geometry=None;self._hide_id=0;self._last_turn=0;self._wheel=0
++        self._geometry_candidate=None;self._geometry_since=0
+         self._gesture_turned=False;self._pointer_top=False;self._pointer_edge=False;self._updating=False;self.selection=None;self.addresses=[]
+         self.views=[];self.frames=[];self.count=2;self._closed=False
+         self.clicked_reference=None
+@@ -169,6 +170,12 @@ class Immersion(Gtk.Overlay):
+             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
+             maximum=(usable+16)*count+(32 if count==2 else 0)+112
+             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
++            # Settle allocations before scheduling expensive work. Rapid resize
++            # and consecutive Aa changes should prepare only the last geometry.
++            if geometry!=self._geometry_candidate:
++                self._geometry_candidate=geometry;self._geometry_since=time.monotonic()
++                return True
++            if time.monotonic()-self._geometry_since<.08:return True
+             self._geometry=geometry;self.stream.spread_count=count
+             self.stream.configure(usable,page_height,anchor,key);self.render()
+         else:
+@@ -194,7 +201,9 @@ class Immersion(Gtk.Overlay):
+         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+         key=self.stream.cursor.key if self.stream.cursor else self.initial_key
+         self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
++        self._geometry_candidate=None
+         # Keep the stream anchor until adapt recalculates both geometry and pages.
++        if hasattr(self.stream,'cancel_pending'):self.stream.cancel_pending()
+         self.stream.cursor=None
+ 
+     def capture_selection(self):
+@@ -229,7 +238,10 @@ class Immersion(Gtk.Overlay):
+         if not self.stream.cursor:
+             self.clicked_reference=None
+             self._updating=True;self.addresses=[];self.layout_ready=False
+-            for view in self.views:view.get_buffer().set_text('')
++            for view in self.views:
++                view._study_page=None
++                view.set_study_ranges([])
++                view.get_buffer().set_text('')
+             self._updating=False
+             self.back.set_sensitive(False);self.forward.set_sensitive(False)
+             self.footer.set_text((tr('Unable to read this passage.')+' '+self.stream.error)
+@@ -241,7 +253,8 @@ class Immersion(Gtk.Overlay):
+         p=self.owner.preferences.value
+         for index,view in enumerate(self.views):
+             self.frames[index].set_visible(index<self.count);view.set_visible(index<self.count)
+-            if index>=len(self.addresses):view.get_buffer().set_text('');continue
++            if index>=len(self.addresses):
++                view._study_page=None;view.get_buffer().set_text('');continue
+             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
+             buffer=view.get_buffer();buffer.set_text(plan.document.text[page.start:page.end])
+             view._study_page=(plan.document,page.start,page.end)
+diff --git a/bible/paged_sources.py b/bible/paged_sources.py
+index 1d34497..d25fc1e 100644
+--- a/bible/paged_sources.py
++++ b/bible/paged_sources.py
+@@ -5,19 +5,23 @@ from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
+ from .book_names import display_name
+ from .i18n import LANGUAGE
+ from .verse_typography import first_word_length
++from .preparation import checkpoint
+ 
+ 
+ class BiblePages:
+     kind='bible'
+     def __init__(self,reader,resource):self.reader=reader;self.resource=resource
+     def key(self,reference):return self.reader.key(reference).getOSISRef().rsplit('.',1)[0]
+-    def document(self,key,preferences):
+-        chapter=self.reader.chapter(key+'.1');structured=self.reader.structured_chapter(chapter)
++    def document(self,key,preferences,*,cancelled=None):
++        checkpoint(cancelled)
++        chapter=self.reader.chapter(key+'.1',cancelled=cancelled)
++        structured=self.reader.structured_chapter(chapter,cancelled=cancelled)
+         native=self.reader.key(key+'.1')
+         title=display_name(native.getOSISBookName(),native.getBookName(),LANGUAGE)
+         if preferences.chapter_numbers:title+=' '+str(native.getChapter())
+         pieces=[title+'\n\n'];styles=[StyleSpan('chapter',0,len(title))];spans=[];offset=len(pieces[0])
+         for reference,plain in chapter.verses:
++            checkpoint(cancelled)
+             start=offset if spans else 0
+             segments=structured[reference]
+             for segment in segments:
+@@ -59,13 +63,17 @@ class BibleBookPages(BiblePages):
+         from .sword_provider import Reader
+         return BibleBookPages(Reader(self.reader.root,self.reader.name),self.resource)
+ 
+-    def document(self,key,preferences):
++    def document(self,key,preferences,*,cancelled=None):
++        checkpoint(cancelled)
+         code=key.split('.')[0]
++        if 'books' not in self.reader.__dict__:
++            self.reader.__dict__['books']=self.reader.discover_books(cancelled)
+         book=next((b for b in self.reader.books if b.code==code),None)
+         if book is None:raise ValueError('Book unavailable: '+code)
+         pieces=[];copies=[];spans=[];styles=[];offset=0
+         for number in book.chapters:
+-            doc=super().document(f'{code}.{number}',preferences)
++            checkpoint(cancelled)
++            doc=super().document(f'{code}.{number}',preferences,cancelled=cancelled)
+             prefix=offset
+             if pieces:pieces.append('\n\n');copies.append('\n\n');offset+=2
+             pieces.append(doc.text)
+diff --git a/bible/pagination.py b/bible/pagination.py
+index 4bee933..6af9265 100644
+--- a/bible/pagination.py
++++ b/bible/pagination.py
+@@ -4,13 +4,15 @@ Offsets count non-whitespace Unicode characters inside a source verse/entry.
+ Pango byte offsets are converted before slicing Python text; pages partition the
+ entire display document exactly, including paragraph separators and headings.
+ """
+-from dataclasses import dataclass, field
++from dataclasses import dataclass
++from bisect import bisect_right
+ import unicodedata
+ import gi
+ 
+ gi.require_version('Pango','1.0')
+ from gi.repository import Pango
+-from .reading_style import SPACING
++from .reading_metrics import SPACING
++from .preparation import checkpoint
+ 
+ 
+ @dataclass(frozen=True)
+@@ -101,17 +103,31 @@ class PagePlan:
+         return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
+ 
+ 
+-def attributes(document,start=0,end=None,*,context=None,preferences=None):
++def attributes(document,start=0,end=None,*,context=None,preferences=None,cancelled=None):
+     end=len(document.text) if end is None else end
+     values=Pango.AttrList()
++    # Encode each intervening slice once, rather than the entire prefix twice
++    # for every style in a whole book (quadratic in the book's length).
++    positions={start,end}
+     for span in document.styles:
++        if span.end>start and span.start<end and span.kind!='verse-start':
++            positions.update((max(start,span.start),min(end,span.end)))
++    byte_offsets={};previous=start;offset=0
++    for position in sorted(positions):
++        checkpoint(cancelled)
++        offset+=len(document.text[previous:position].encode())
++        byte_offsets[position]=offset;previous=position
++    rise=None
++    for span in document.styles:
++        checkpoint(cancelled)
+         left,right=max(start,span.start),min(end,span.end)
+         if right<=left:continue
+         if span.kind in ('heading','chapter'):
+             attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12)]
+         elif span.kind=='number':
+             from .verse_typography import NUMBER_SCALE, number_rise
+-            attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(number_rise(context,preferences) if context and preferences else 0)]
++            if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
++            attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(rise)]
+         # Nonbreaking presentation spaces already bind marker and first word.
+         # Thousands of ALLOW_BREAKS ranges make whole-book Pango shaping
+         # disproportionately slow; retain these spans for partition boundaries.
+@@ -124,21 +140,48 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None):
+             attrs=[Pango.attr_shape_new(rectangle,rectangle)]
+         else:continue
+         for attr in attrs:
+-            attr.start_index=len(document.text[start:left].encode())
+-            attr.end_index=len(document.text[start:right].encode())
++            attr.start_index=byte_offsets[left]
++            attr.end_index=byte_offsets[right]
+             values.insert(attr)
+     return values
+ 
+ 
+-def paginate(widget,document,preferences,width,height,anchor=None):
++def heading_groups(document):
++    """Keep consecutive source/chapter headings with the next body character.
++
++    Offsets are metadata only: source text, copy text and canonical spans stay
++    untouched. Include all intervening blank lines and consecutive headings.
++    """
++    groups=[]
++    for style in sorted(document.styles,key=lambda s:s.start):
++        if style.kind not in {'heading','chapter'}:continue
++        start,end=style.start,style.end
++        if groups and not document.text[groups[-1][1]:start].strip():
++            start=groups.pop()[0]
++        groups.append((start,end))
++    result=[]
++    for start,end in groups:
++        while end<len(document.text) and document.text[end].isspace():end+=1
++        if end<len(document.text):result.append((start,end+1))
++    return result
++
++
++def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=None):
+     """Measure real shaped lines. No verse/chapter-length estimates or columns."""
++    checkpoint(cancelled)
++    groups=heading_groups(document)
+     split=document.locate(anchor) if anchor else 0
++    for start,end in groups:
++        if start<split<end:split=start
+     for style in document.styles:
+         if style.kind=='verse-start' and style.start<split<style.end:split=style.start
++    for start,end in groups:
++        if start<split<end:split=start
+     while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
+     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
+     pages=[]
+     for first,last in boundaries:
++        checkpoint(cancelled)
+         if first==last:continue
+         text=document.text[first:last]
+         layout=widget.create_pango_layout(text)
+@@ -146,11 +189,16 @@ def paginate(widget,document,preferences,width,height,anchor=None):
+         layout.set_width(max(20,int(width))*Pango.SCALE)
+         layout.set_wrap(Pango.WrapMode.WORD_CHAR)
+         layout.set_spacing(SPACING[preferences.line_spacing]*Pango.SCALE)
+-        layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences))
+-        raw=text.encode();byte_to_char={0:0};n=0
+-        for i,char in enumerate(text):n+=len(char.encode());byte_to_char[n]=i+1
++        layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences,
++                                         cancelled=cancelled))
++        byte_to_char={0:0};n=0
++        for i,char in enumerate(text):
++            if i%2048==0:checkpoint(cancelled)
++            n+=len(char.encode());byte_to_char[n]=i+1
++        checkpoint(cancelled)
+         iterator=layout.get_iter();lines=[]
+         while True:
++            checkpoint(cancelled)
+             line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
+             lines.append((byte_to_char[line.start_index],logical.y/Pango.SCALE,logical.height/Pango.SCALE))
+             if not iterator.next_line():break
+@@ -159,12 +207,36 @@ def paginate(widget,document,preferences,width,height,anchor=None):
+         # separators remain copied verbatim without clipping the last glyph.
+         metrics=widget.get_pango_context().get_metrics(layout.get_font_description(),None)
+         reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
+-        page_start=first;top=lines[0][1]
+-        for offset,y,line_height in lines:
++        capacity=max(1,height-reserve-2)
++        starts=[first+line[0] for line in lines]
++        # Treat a heading and the first shaped body line as one block when it
++        # fits. Oversized titles still make progress one line at a time.
++        protected=list(groups)+[(s.start,s.end) for s in document.styles if s.kind=='verse-start']
++        intervals=[]
++        for start,end in protected:
++            if start<first or end>last:continue
++            begin=bisect_right(starts,start)-1;finish=bisect_right(starts,end-1)-1
++            if lines[finish][1]+lines[finish][2]-lines[begin][1]<=capacity:
++                # Ranges may share the heading's first body line. Merge them
++                # only if the combined group can still fit on an empty page.
++                overlaps=[(a,b) for a,b in intervals if a<=finish and b>=begin]
++                left=min([begin]+[a for a,b in overlaps]);right=max([finish]+[b for a,b in overlaps])
++                if lines[right][1]+lines[right][2]-lines[left][1]>capacity:continue
++                intervals=[item for item in intervals if item not in overlaps]
++                intervals.append((left,right))
++        blocks=dict(intervals)
++        page_start=first;top=lines[0][1];index=0
++        while index<len(lines):
++            checkpoint(cancelled)
++            finish=blocks.get(index,index)
++            offset,y,_=lines[index];bottom=lines[finish][1]+lines[finish][2]
+             absolute=first+offset
+-            if y+line_height-top>max(1,height-reserve-2) and absolute>page_start:
++            if bottom-top>capacity and absolute>page_start:
+                 pages.append(Page(page_start,absolute));page_start=absolute;top=y
++            index=finish+1
+         if page_start<last:pages.append(Page(page_start,last))
+     if not pages:pages=[Page(0,0)]
+-    assert ''.join(document.text[p.start:p.end] for p in pages)==document.text
++    checkpoint(cancelled)
++    assert pages[0].start==0 and pages[-1].end==len(document.text)
++    assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
+     return PagePlan(document,tuple(pages))
+diff --git a/bible/preparation.py b/bible/preparation.py
+new file mode 100644
+index 0000000..25ab45d
+--- /dev/null
++++ b/bible/preparation.py
+@@ -0,0 +1,7 @@
++"""Cooperative cancellation at boundaries of native SWORD/Pango operations."""
++from concurrent.futures import CancelledError
++
++
++def checkpoint(cancelled=None):
++    if cancelled is not None and cancelled():
++        raise CancelledError()
+diff --git a/bible/reading_metrics.py b/bible/reading_metrics.py
+new file mode 100644
+index 0000000..2a9d2b4
+--- /dev/null
++++ b/bible/reading_metrics.py
+@@ -0,0 +1,4 @@
++"""Reader geometry shared by GTK and the independent Pango worker."""
++
++WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
++SPACING = {'tight': 1, 'normal': 5, 'airy': 10, 'very-airy': 16}
+diff --git a/bible/reading_style.py b/bible/reading_style.py
+index 7b24444..a11b864 100644
+--- a/bible/reading_style.py
++++ b/bible/reading_style.py
+@@ -3,6 +3,7 @@ import gi
+ 
+ gi.require_version('Adw', '1')
+ from gi.repository import Adw, Gtk
++from .reading_metrics import SPACING, WIDTHS
+ 
+ # background, text, link, selection background, selection text; opaque colors.
+ PALETTES = {
+@@ -13,8 +14,6 @@ PALETTES = {
+     'contrast-day': ('#ffffff', '#000000', '#003f87', '#004a99', '#ffffff'),
+     'contrast-night': ('#000000', '#ffffff', '#9fc5ff', '#ffdf00', '#000000'),
+ }
+-WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
+-SPACING = {'tight': 1, 'normal': 5, 'airy': 10, 'very-airy': 16}
+ 
+ 
+ def apply_direction(view,reader):
+diff --git a/bible/sword_provider.py b/bible/sword_provider.py
+index a88b0d5..136cb78 100644
+--- a/bible/sword_provider.py
++++ b/bible/sword_provider.py
+@@ -67,11 +67,16 @@ class Reader:
+ 
+     @cached_property
+     def books(self):
++        return self.discover_books()
++
++    def discover_books(self, cancelled=None):
+         """Discover actual indexed entries in the module's own versification.
+ 
+         hasEntry checks the SWORD index without decoding the entire translation.
+         No assumptions about OT/NT scope, first book, chapters, or missing verses.
+         """
++        from .preparation import checkpoint
++        checkpoint(cancelled)
+         key = self.sword.VerseKey()
+         key.setVersificationSystem(self.versification)
+         key.setTestament(1)
+@@ -80,6 +85,7 @@ class Reader:
+         key.setVerse(1)
+         entries = {}
+         while True:
++            checkpoint(cancelled)
+             if self.module.hasEntry(key):
+                 code = key.getOSISBookName()
+                 if code not in entries:
+@@ -112,12 +118,15 @@ class Reader:
+         return (passages[index - 1][1] if index > 0 else None,
+                 passages[index + 1][1] if index + 1 < len(passages) else None)
+ 
+-    def chapter(self, reference='Gen.1.1'):
++    def chapter(self, reference='Gen.1.1', *, cancelled=None):
++        from .preparation import checkpoint
++        checkpoint(cancelled)
+         key = self.key(reference)
+         key.setVerse(1)
+         first = key.getOSISRef()
+         verses = []
+         for verse in range(1, key.getVerseMax() + 1):
++            checkpoint(cancelled)
+             key.setVerse(verse)
+             if not self.module.hasEntry(key):
+                 continue
+@@ -140,11 +149,14 @@ class Reader:
+         return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
+ 
+ 
+-    def structured_chapter(self, chapter):
++    def structured_chapter(self, chapter, *, cancelled=None):
+         from .structured_text import extract
++        from .preparation import checkpoint
++        checkpoint(cancelled)
+         source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
+         result = {}
+         for reference, plain in chapter.verses:
++            checkpoint(cancelled)
+             self.module.setKey(self.key(reference))
+             raw = self.module.getRawEntry()
+             raw = raw if isinstance(raw,str) else raw.c_str()
+diff --git a/docs/ALPHA_OVERNIGHT_HANDOFF.md b/docs/ALPHA_OVERNIGHT_HANDOFF.md
+index 1db5ca3..e37fed7 100644
+--- a/docs/ALPHA_OVERNIGHT_HANDOFF.md
++++ b/docs/ALPHA_OVERNIGHT_HANDOFF.md
+@@ -1,5 +1,24 @@
+ # Alpha stabilization handoff — 21 October 2026
+ 
++## Offline continuation — 22 October 2026 (current local work)
++
++Resume from [OFFLINE_RESUMPTION_2026_10_22.md](OFFLINE_RESUMPTION_2026_10_22.md)
++before using older publication/candidate statements below. Base **884591c** is
++confirmed locally. Its remote CI, reported nine installations/eight comparison
++configurations and corresponding signed publication remain unverified. The last
++saved signed provenance is still **6560dc4 / 39674239853-2**.
++
++Local implementation commit **fa2bfa0** on `feat/24-offline-preparation` adds #24 document/plan caching,
++cooperative cancellation, UTF-8 preparation optimization and heading keep-with-next.
++34 local tests pass; five native GTK tests skip. These include actual headless
++Pango with synthetic data, not real installed-module or built-package checks.
++GTK/Adwaita/SWORD/Flatpak and old test profiles are unavailable in this executor;
++no further Docker/network retry is made. #57 retains the explicit Luther guard:
++required AndBible/JSword conversion sources/tables are missing and itemized in
++the report. Existing #53–56 corrections are preserved; package checkers and the
++remaining validation order are prepared there. No new alpha or remote delivery
++is claimed, and the signed channel/user data are unchanged.
++
+ ## Completed pending deliveries — current verified state
+ 
+ This section supersedes all older pending-review/publication/issue-state entries
+diff --git a/docs/OFFLINE_RESUMPTION_2026_10_22.md b/docs/OFFLINE_RESUMPTION_2026_10_22.md
+new file mode 100644
+index 0000000..efdbdbd
+--- /dev/null
++++ b/docs/OFFLINE_RESUMPTION_2026_10_22.md
+@@ -0,0 +1,186 @@
++# Offline continuation — 22 October 2026
++
++Base commit: **884591cd194bd7c07e3534a9b652c154a578dd34**. Work is isolated
++on `feat/24-offline-preparation` for the pagination/worker architecture review.
++Implementation and source-test evidence are committed locally in **fa2bfa0**.
++The client explicitly authorized offline implementation and local commits;
++remote CI, push and publication are deferred. Existing integrations are retained,
++not rebuilt or merged again. No user-data schema, resource installation, signing
++key, channel configuration, release metadata or public website is changed.
++
++## Recovered evidence and execution limits
++
++`docs/STABILIZATION_NIGHT_56_57.md` and its original candidate logs are recovered.
++They record 161 local tests and seven resource installations/offline checks on
++source-candidate code. `tools/check_resource_installation.py` now expects at least
++nine resources, but that assertion is not an executed nine-installation result.
++No saved eight-configuration comparison result was located. No verification note
++is attached locally to 884591c. The previously announced green CI, nine
++installations, eight comparisons and signed publication for 884591c therefore
++remain **unverified**, rather than being inferred from source or old logs.
++
++The latest *saved* signed-publication proof is still
++`evidence/alpha-6560dc4-provenance.json`: source 6560dc4, revision 39674239853-2,
++fingerprint `47A17230403EA4953745E6E020EB9FFCCECAFD8F`. This is historical evidence,
++not a fresh check of the remote channel. No new alpha is announced.
++
++The executor can run commands and native Pango/PangoCairo. It lacks GTK 4,
++libadwaita, SWORD Python bindings, Babel in `/usr/bin/python3`, Xvfb, Flatpak and
++flatpak-builder. No `mods.d/*.conf` was recovered in accessible `/workspace` or
++`/tmp`; the old `/tmp/bible-night-*` profiles, build tree and builder cache are
++absent there. The historical `bible-night` container could not be inspected:
++the Docker socket call was denied, then the explicitly permitted diagnostic
++did not complete before interruption. No further Docker or network attempt is
++made. This does not establish that the old container or client resources were
++deleted. Inventory: `evidence/offline-2026-10-22-readiness.json`.
++
++## #24 implemented locally
++
++- The worker retains one private SWORD reader and one private Pango font map,
++  separate from GTK's visible reader/context. Completed book documents survive
++  geometry/font/spacing changes. Number visibility invalidates the document;
++  typography, geometry and canonical partition invalidate the page plan. Both
++  caches are bounded to three entries and pruned to the current/adjacent books.
++  Nothing is persisted to the user's profile.
++- Superseding work signals cooperative cancellation, including active work.
++  Checkpoints cover index discovery, verse extraction, structured content,
++  chapter composition, style construction and shaped-line traversal. Queued
++  work is cancelled and obsolete prefetch is pruned. Cancellation is not a
++  resource error, and obsolete results cannot replace the current request.
++  Closing cancels and joins the worker before releasing backing files.
++  An individual native SWORD/Pango call cannot be interrupted mid-call; there
++  is no claim of a hard cancellation-latency bound.
++- UTF-8 style offsets are computed from successive slices once instead of
++  repeatedly encoding entire book prefixes. Verse-number rise is measured once
++  per layout. GTK allocations settle for 80 ms before scheduling page work,
++  limiting repeated preparation during resize or Aa changes.
++- Chapter and source headings, consecutive headings and intervening blank lines
++  stay with the first shaped body line whenever the combined block fits on a
++  page. Verse-marker/first-word metadata also protects page boundaries where
++  the group fits. Oversized titles/groups make progress without empty-page
++  loops or dropped text. Canonical body anchors, exact display/copy partitions
++  and original source text are retained. An anchor inside a heading gap may
++  move the partition back to that heading to prevent an orphan title.
++- Existing pointer-versus-keyboard focus handling and the shared exit/Aa
++  controls are retained. Empty/preparing pages now discard stale study ranges.
++  Actual GTK allocation, click-frame, popover and exit checks remain pending
++  in the constructed/installed package; no cloud desktop acceptance is claimed.
++
++Actual source-only validation: **34 tests pass, 5 GTK/display tests skip**.
++This includes 13 new headless tests using **real native Pango** with explicitly
++synthetic Unicode text, 24 font/height/number combinations, cache reuse,
++supersession, cancellation, worker shutdown, and existing notes/session/
++highlight preservation checks. Command and raw output:
++`evidence/offline-24-tests.txt`. Compilation and `git diff --check` pass.
++
++A separate dependency probe ran 40 existing tests: 31 passed and nine errored
++because SWORD (eight) or Babel (one) is unavailable. These errors are not test
++passes or product regressions established with the required runtime. Details:
++`evidence/offline-blocked-tests.txt`. The full suite has not been validated.
++
++One native Pango timing sample on 1,500 synthetic verses (321,054 characters)
++measured 2.758 s on 884591c versus 1.436 s on this candidate. The baseline's
++SPACING import alone was redirected to the identical GTK-independent constants
++to load it without GTK. Both partitions reconstruct the exact text; heading
++grouping changes the count from 506 to 507 pages. This is one source/Pango sample,
++not installed-resource preparation, GTK heartbeat or desktop responsiveness
++evidence. Raw measurement: `evidence/offline-24-pango-timing.json`.
++
++## #57 — local inspection; exact outstanding inputs
++
++Inspected local `bible/reference_resolution.py`, `bible/sword_provider.py`,
++`bible/comparison_sync.py`, `tests/test_reference_resolution.py`, the pinned
++SWORD manifest and the saved AndBible installation investigation. The runtime
++uses destination `VerseKey.positionFrom(source)`, preserves the target system,
++and explicitly rejects differing systems outside the shipped-mapping allowlist.
++`Luther` is not added to that list; no module/provider-name exception or
++same-number fallback is introduced.
++
++The saved investigation states SWORD 1.9 registers Luther without a mapping;
++the upstream C++ source itself is absent here and was not re-inspected offline.
++The package manifest pins `sword_1.9.0+dfsg.orig.tar.xz`, SHA-256
++`a1687b8ade230d9b30a9991b76c12920daac865f1c25bd4be3cb897b90f007d9`.
++Only its URL/hash and prior conclusions are available, not the archive.
++
++The saved JSword pin is **6ebd10a005fa7761e611c048ececea1430e22546**. The cited
++`src/main/java/org/crosswire/jsword/book/install/sword/AbstractSwordInstaller.java`
++was examined for ZIP installation, not reference alignment. No AndBible/JSword
++checkout, Java mapping implementation, mapping data, registration files or
++mapping tests are tracked or recovered in this executor. The AndBible pin
++7e73c11508f32e4f531d531f6d5b110dd2a1f204 in the provider review documents repository
++discovery; it must not be presented as a verified alignment implementation.
++
++Required before implementing #57:
++
++1. Recover the exact AndBible superproject revision and JSword gitlink used by
++   the reported working comparison, with the source tree for the JSword pin.
++2. Locate and inspect its versification registry, reference/range conversion
++   implementation and *all* mapping tables/transitive routes covering Luther
++   and the other installed systems. Record actual file paths, revisions and
++   hashes after obtaining them; filenames are not guessed here.
++3. Recover corresponding tests/data for forward and reverse conversion,
++   Psalms/superscriptions, chapter shifts, split/merged/omitted verses, ranges
++   and canon differences. Verify which cases are exact, unsupported or ambiguous.
++4. Recover the pinned SWORD C++ archive to inspect native fallback and mapping
++   registration directly; confirm how an explicit shared mapping can integrate
++   without silently invoking identity fallback.
++5. Recover representative installed modules and original configuration/metadata,
++   including actual Luther resources beyond a Darby-only case and mapped-system
++   controls. Verify text and both scroll directions offline, then verify in the
++   actual package. Inspect applicable upstream licenses before copying any data.
++
++Until these inputs exist, #57 remains pending. No approximate alignment is made.
++
++## #53–56 and package verification prepared, not executed
++
++The existing native sidebar surface (#53), single shared Header Bar/immersive
++Aa (#54), safe-margin navigation (#55) and generated-date-only notice rule (#56)
++are retained. Resource/conditions code and signed-distribution files are unchanged.
++Do not repeat the previously saved seven source installations as new evidence.
++
++New `tools/check_book_preparation.py` reads existing resources only: direct SWORD
++word fidelity, exact display/copy partitions, heading grouping, document/plan
++reuse, canonical reflow and superseded requests. Default real-resource
++reproducers are Genesis, Mark 7→8 and Luke 13→14 in FreSegond1910. It never opens
++a window, downloads, installs, resets preferences or writes sessions. Its report
++states source versus installed-package code and whether GUI validation occurred.
++`--require-packaged` checks the paths of every relevant imported application
++class. The existing GTK continuous-book checker now also has this guard.
++
++Once a genuine candidate Flatpak and a disposable test profile with the saved
++resources are recovered, run outside the checkout (for example from `/tmp`),
++with `/app/lib/bible-python` **before** the read-only tools/tests checkout on
++PYTHONPATH. Use an isolated candidate installation/ref, never replace the
++existing signed `//alpha` to run these checks. Record the source commit,
++Flatpak ref/commit and bundle SHA-256 before testing. An overlay in a GNOME
++runtime is source-candidate evidence, not installed-package evidence.
++
++1. Build offline only if GNOME 49 SDK/runtime, source archives and builder cache
++   are present. They are absent here. Distinguish builder-tree smoke tests from
++   tests of an installed bundle. Do not regenerate a key or alter channel URLs.
++2. In the installed candidate, disable networking and run
++   `tools.check_book_preparation TEST_PROFILE --require-packaged --output OUTPUT`.
++   Mount the existing resource profile read-only for this read-only checker.
++3. With a separate writable **disposable** copy of that profile, run
++   `tools.check_continuous_books TEST_PROFILE --require-packaged` and
++   `tools.check_stabilized_ui TEST_PROFILE CAPTURE_PREFIX --require-packaged`
++   under GTK/Xvfb. Check native sidebar pixels, shared Aa, safe margins,
++   pointer frame, F10, Escape/popover precedence and exit during preparation.
++4. Run the affected full native suites (book preparation/pagination/immersion,
++   UI/provider UI/library, reference resolution, notes/session/highlights),
++   including `tools.check_passage_actions` for exact native selection/copy.
++   Record all application import paths under `/app/lib/bible-python`.
++5. Run `tools.check_resource_installation TEST_PROFILE --offline
++   --require-packaged` only if the saved `resource-check.json` and corresponding
++   installed modules are recovered. This proves reopening/fidelity, not fresh
++   installation. Fresh nine-resource UI installation and conditions/error
++   regressions remain separate package gates once their inputs are available.
++6. Recover the actual eight-comparison evidence or define and execute the matrix
++   explicitly. Unsupported Luther comparisons must still show the honest
++   limitation until #57 has verified tables; do not count them as aligned.
++7. Resume remote CI/push/publication only after connectivity returns. Require
++   matching public provenance, unchanged signing fingerprint, successful signed
++   update and profile-data hashes before announcing availability.
++
++No package has been built or installed during this offline continuation.
++Client GNOME/Wayland/accessibility acceptance remains separate and open.
+diff --git a/docs/STABILIZATION_NIGHT_56_57.md b/docs/STABILIZATION_NIGHT_56_57.md
+index af6e1f6..82929cd 100644
+--- a/docs/STABILIZATION_NIGHT_56_57.md
++++ b/docs/STABILIZATION_NIGHT_56_57.md
+@@ -1,5 +1,13 @@
+ # Current alpha stabilization — resource installation and reading UI
+ 
++**Offline continuation, 22 October:** see
++[the current resumption report](OFFLINE_RESUMPTION_2026_10_22.md). Base 884591c is
++confirmed; its CI, nine-resource/eight-comparison claims and signed publication
++are not verified offline. New #24 preparation/heading work is local on a feature
++branch, with 34 passing tests and five GTK skips. #57's missing upstream mapping
++inputs are listed explicitly. Original candidate evidence below is historical;
++no installed-package or new-alpha claim is added.
++
+ Published baseline remains source **6560dc4**, revision **39674239853-2**,
+ unchanged signed fingerprint `47A17230403EA4953745E6E020EB9FFCCECAFD8F`.
+ Main `8e94fd7` already contains reviewed page/eBible/highlights/pagination PRs;
+diff --git a/docs/evidence/offline-2026-10-22-readiness.json b/docs/evidence/offline-2026-10-22-readiness.json
+new file mode 100644
+index 0000000..ef600dc
+--- /dev/null
++++ b/docs/evidence/offline-2026-10-22-readiness.json
+@@ -0,0 +1,35 @@
++{
++  "date": "2026-10-22",
++  "baseline_commit": "884591cd194bd7c07e3534a9b652c154a578dd34",
++  "scope": "Accessible executor filesystem; no network or Docker retry",
++  "commands": {
++    "flatpak": null,
++    "flatpak-builder": null,
++    "Xvfb": null,
++    "xvfb-run": null,
++    "docker": "/usr/local/bin/docker"
++  },
++  "native_probe": {
++    "Pango": "available",
++    "PangoCairo": "available",
++    "Gtk": "Namespace Gtk not available for version 4.0",
++    "Adw": "Namespace Adw not available",
++    "Sword": "missing",
++    "babel": "missing"
++  },
++  "previous_build_paths": {
++    "build-dir": false,
++    ".flatpak-builder": false,
++    "/var/lib/flatpak": false,
++    "/home/agent/.local/share/flatpak": false
++  },
++  "accessible_resource_configurations": [],
++  "andbible_jsword_source_files": [],
++  "remote_ci": "not checked",
++  "signed_publication_for_884591c": "not checked",
++  "last_saved_publication": {
++    "source": "6560dc4",
++    "revision": "39674239853-2",
++    "fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F"
++  }
++}
+diff --git a/docs/evidence/offline-24-pango-timing.json b/docs/evidence/offline-24-pango-timing.json
+new file mode 100644
+index 0000000..5f26955
+--- /dev/null
++++ b/docs/evidence/offline-24-pango-timing.json
+@@ -0,0 +1,16 @@
++{
++  "data": "Synthetic text only; no installed module or GTK measurement",
++  "verses": 1500,
++  "characters": 321054,
++  "baseline_import_adjustment": "reading_style.SPACING -> reading_metrics.SPACING (same values; GTK unavailable)",
++  "884591c": {
++    "seconds": 2.758482823000122,
++    "pages": 506,
++    "exact_partition": true
++  },
++  "candidate": {
++    "seconds": 1.4362514879999253,
++    "pages": 507,
++    "exact_partition": true
++  }
++}
+diff --git a/docs/evidence/offline-24-tests.txt b/docs/evidence/offline-24-tests.txt
+new file mode 100644
+index 0000000..4b3505e
+--- /dev/null
++++ b/docs/evidence/offline-24-tests.txt
+@@ -0,0 +1,48 @@
++Source-only verification, 22 October 2026.
++Base: 884591c; branch: feat/24-offline-preparation.
++Command: XDG_CACHE_HOME=/tmp/bible-font-cache /usr/bin/python3 -m unittest tests.test_book_preparation tests.test_pagination tests.test_book_stream tests.test_session tests.test_notes tests.test_highlights -v
++
++test_close_cancels_active_work_and_leaves_no_worker_or_cache (tests.test_book_preparation.HeadlessBookStreamTests.test_close_cancels_active_work_and_leaves_no_worker_or_cache) ... ok
++test_identical_reconfiguration_reuses_plan_and_can_restore_cleared_cursor (tests.test_book_preparation.HeadlessBookStreamTests.test_identical_reconfiguration_reuses_plan_and_can_restore_cleared_cursor) ... ok
++test_navigation_prunes_obsolete_prefetch_and_all_caches_are_bounded (tests.test_book_preparation.HeadlessBookStreamTests.test_navigation_prunes_obsolete_prefetch_and_all_caches_are_bounded) ... ok
++test_reflow_cancels_before_waiting_for_geometry_to_settle (tests.test_book_preparation.HeadlessBookStreamTests.test_reflow_cancels_before_waiting_for_geometry_to_settle) ... ok
++test_reflow_reuses_source_document_but_number_visibility_invalidates_it (tests.test_book_preparation.HeadlessBookStreamTests.test_reflow_reuses_source_document_but_number_visibility_invalidates_it) ... ok
++test_revisiting_initial_configuration_after_turn_repositions_the_cursor (tests.test_book_preparation.HeadlessBookStreamTests.test_revisiting_initial_configuration_after_turn_repositions_the_cursor) ... ok
++test_superseded_book_stops_and_never_overwrites_the_new_request (tests.test_book_preparation.HeadlessBookStreamTests.test_superseded_book_stops_and_never_overwrites_the_new_request) ... ok
++test_anchor_in_heading_gap_keeps_chapter_and_section_with_body (tests.test_book_preparation.HeadlessPaginationTests.test_anchor_in_heading_gap_keeps_chapter_and_section_with_body) ... ok
++test_book_composition_stops_before_reading_later_chapters (tests.test_book_preparation.HeadlessPaginationTests.test_book_composition_stops_before_reading_later_chapters) ... ok
++test_cancellation_reaches_native_layout_iteration (tests.test_book_preparation.HeadlessPaginationTests.test_cancellation_reaches_native_layout_iteration) ... ok
++test_cancelled_sword_operations_do_not_touch_the_reader (tests.test_book_preparation.HeadlessPaginationTests.test_cancelled_sword_operations_do_not_touch_the_reader) ... ok
++test_oversized_heading_makes_progress_and_unicode_text_is_unchanged (tests.test_book_preparation.HeadlessPaginationTests.test_oversized_heading_makes_progress_and_unicode_text_is_unchanged) ... ok
++test_titles_stay_with_body_across_font_geometry_and_number_visibility (tests.test_book_preparation.HeadlessPaginationTests.test_titles_stay_with_body_across_font_geometry_and_number_visibility) ... ok
++test_notification_hint_is_only_local_and_preserves_bad_original (tests.test_pagination.HintTests.test_notification_hint_is_only_local_and_preserves_bad_original) ... ok
++test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor (tests.test_pagination.PaginationTests.test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor) ... skipped 'Requires native Pango/GTK'
++test_real_sword_chapter_boundaries_and_spread_roundtrip (tests.test_pagination.PaginationTests.test_real_sword_chapter_boundaries_and_spread_roundtrip) ... skipped 'Requires native Pango/GTK'
++test_chapters_share_a_page_and_odd_book_leaves_right_page_blank (tests.test_book_stream.BookStreamTests.test_chapters_share_a_page_and_odd_book_leaves_right_page_blank) ... skipped 'Requires native GTK/Pango'
++test_even_book_returns_to_last_full_spread_without_extra_blank_spread (tests.test_book_stream.BookStreamTests.test_even_book_returns_to_last_full_spread_without_extra_blank_spread) ... skipped 'Requires native GTK/Pango'
++test_main_loop_runs_while_book_preparation_is_waiting (tests.test_book_stream.BookStreamTests.test_main_loop_runs_while_book_preparation_is_waiting) ... skipped 'Requires native GTK/Pango'
++test_corrupt_or_future_formats_are_not_rewritten (tests.test_session.SessionTests.test_corrupt_or_future_formats_are_not_rewritten) ... ok
++test_existing_version_one_session_without_commentary_is_preserved (tests.test_session.SessionTests.test_existing_version_one_session_without_commentary_is_preserved) ... ok
++test_failed_atomic_replace_preserves_existing_session (tests.test_session.SessionTests.test_failed_atomic_replace_preserves_existing_session) ... ok
++test_new_profile (tests.test_session.SessionTests.test_new_profile) ... ok
++test_roundtrip_preserves_order_selection_positions_and_missing_resources (tests.test_session.SessionTests.test_roundtrip_preserves_order_selection_positions_and_missing_resources) ... ok
++test_untrusted_values_are_rejected (tests.test_session.SessionTests.test_untrusted_values_are_rejected) ... ok
++test_backup_merge_conflicts_duplicates_and_unicode (tests.test_notes.NoteTests.test_backup_merge_conflicts_duplicates_and_unicode) ... ok
++test_delete_is_transactional_and_does_not_touch_other_notes (tests.test_notes.NoteTests.test_delete_is_transactional_and_does_not_touch_other_notes) ... ok
++test_empty_database_migrates_explicitly_and_private_files (tests.test_notes.NoteTests.test_empty_database_migrates_explicitly_and_private_files) ... ok
++test_failed_export_preserves_existing_backup_and_protects_database (tests.test_notes.NoteTests.test_failed_export_preserves_existing_backup_and_protects_database) ... ok
++test_future_or_unrelated_database_is_not_modified (tests.test_notes.NoteTests.test_future_or_unrelated_database_is_not_modified) ... ok
++test_initial_schema_persistence_passages_and_labels (tests.test_notes.NoteTests.test_initial_schema_persistence_passages_and_labels) ... ok
++test_invalid_passage_body_labels_and_backup_size (tests.test_notes.NoteTests.test_invalid_passage_body_labels_and_backup_size) ... ok
++test_invalid_restore_validates_every_record_before_writing (tests.test_notes.NoteTests.test_invalid_restore_validates_every_record_before_writing) ... ok
++test_markdown_is_inert_and_preserves_untrusted_text (tests.test_notes.NoteTests.test_markdown_is_inert_and_preserves_untrusted_text) ... ok
++test_optimistic_edits_and_failed_write_preserve_old_note (tests.test_notes.NoteTests.test_optimistic_edits_and_failed_write_preserve_old_note) ... ok
++test_restore_transaction_rolls_back_after_a_partial_write_failure (tests.test_notes.NoteTests.test_restore_transaction_rolls_back_after_a_partial_write_failure) ... ok
++test_canonical_identity_colors_backup_and_merge_preserve_other_passages (tests.test_highlights.HighlightStoreTests.test_canonical_identity_colors_backup_and_merge_preserve_other_passages) ... ok
++test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write (tests.test_highlights.HighlightStoreTests.test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write) ... ok
++test_failed_atomic_replace_preserves_file_and_memory (tests.test_highlights.HighlightStoreTests.test_failed_atomic_replace_preserves_file_and_memory) ... ok
++
++----------------------------------------------------------------------
++Ran 39 tests in 1.339s
++
++OK (skipped=5)
+diff --git a/docs/evidence/offline-blocked-tests.txt b/docs/evidence/offline-blocked-tests.txt
+new file mode 100644
+index 0000000..1bdbe61
+--- /dev/null
++++ b/docs/evidence/offline-blocked-tests.txt
+@@ -0,0 +1,20 @@
++Dependency-limited existing-suite probe, 22 October 2026.
++Command:
++/usr/bin/python3 -m unittest tests.test_reference_resolution tests.test_library tests.test_providers tests.test_session tests.test_notes tests.test_highlights -v
++
++Observed: Ran 40 tests; 31 passed, FAILED (errors=9).
++Eight errors: ModuleNotFoundError: No module named 'Sword'
++- test_reverse_mapping_and_unavailable_target
++- test_segond_psalm_mapping_and_native_commentary
++- test_changed_conditions_or_encrypted_package_are_not_installed
++- test_generated_notice_revision_dates_keep_original_package_and_catalogue
++- test_install_and_restart_offline_fidelity
++- test_install_preserves_non_whitelisted_conditions_offline
++- test_colliding_names_keep_separate_content_provenance_and_session
++- test_legacy_attribution_without_source_file_and_namespace_validation
++
++One error: ModuleNotFoundError: No module named 'babel'
++- test_bare_optional_metadata_remains_readable
++
++These are unresolved runtime prerequisites, not successful resource or mapping
++checks. No mock SWORD binding or approximate alignment was substituted.
+diff --git a/tests/test_book_preparation.py b/tests/test_book_preparation.py
+new file mode 100644
+index 0000000..48ffc38
+--- /dev/null
++++ b/tests/test_book_preparation.py
+@@ -0,0 +1,249 @@
++"""Real headless Pango checks; synthetic text is never a Bible resource."""
++from concurrent.futures import CancelledError
++from threading import Event
++import time
++import unittest
++
++from bible.book_stream import BookStream, LayoutContext
++from bible.pagination import Anchor, Document, PassageSpan, StyleSpan, heading_groups, paginate
++from bible.preferences import ReadingPreferences
++from bible.preparation import checkpoint
++
++
++def synthetic_document(key='Mark', chapters=True, verses=True):
++    pieces=[];styles=[];spans=[];offset=0
++    for chapter in (7,8):
++        prefix=(f'SYNTHETIC {key} {chapter}' if chapters else f'SYNTHETIC {key}')+'\n\n'
++        styles.append(StyleSpan('chapter',offset,offset+len(prefix)-2))
++        first=offset;pieces.append(prefix);offset+=len(prefix)
++        heading='Synthetic section heading\n'
++        styles.append(StyleSpan('heading',offset,offset+len(heading)))
++        pieces.append(heading);offset+=len(heading)
++        for verse in range(1,5):
++            start=first if verse==1 else offset
++            number=str(verse)+'\u00a0' if verses else ''
++            if number:styles.append(StyleSpan('number',offset,offset+len(number)))
++            pieces.append(number);offset+=len(number);body=offset
++            text=('Écriture Ελληνικά עברית العربية e\u0301 — SYNTHETIC test. '*35)+'\n\n'
++            if number:styles.append(StyleSpan('verse-start',body-len(number),body+8))
++            pieces.append(text);offset+=len(text)
++            spans.append(PassageSpan(f'{key}.{chapter}.{verse}',start,body,offset))
++    text=''.join(pieces)
++    return Document(key,text,tuple(spans),tuple(styles),text.replace('\u00a0',' '))
++
++
++class SyntheticSource:
++    """Controllable source with actual worker/layout execution, no SWORD mock."""
++    def __init__(self):
++        self.calls=[];self.clones=0;self.wait_for=None;self.entered=Event()
++        self.cancelled=Event();self.release=Event()
++
++    def clone(self):self.clones+=1;return self
++
++    def document(self,key,preferences,*,cancelled=None):
++        self.calls.append((key,preferences.chapter_numbers,preferences.verse_numbers))
++        if key==self.wait_for:
++            self.entered.set()
++            try:
++                while not self.release.wait(.005):checkpoint(cancelled)
++            except CancelledError:
++                self.cancelled.set();raise
++        checkpoint(cancelled)
++        return synthetic_document(key,preferences.chapter_numbers,preferences.verse_numbers)
++
++    def neighbour(self,key,direction):
++        keys=['Mark','Luke','John','Acts','Rom'];index=keys.index(key)+direction
++        return keys[index] if 0<=index<len(keys) else None
++
++
++class HeadlessPaginationTests(unittest.TestCase):
++    def setUp(self):self.layout=LayoutContext(96,'en')
++
++    def test_titles_stay_with_body_across_font_geometry_and_number_visibility(self):
++        for size in (12,14,32,64):
++            for height in (260,400,700):
++                for numbers in (False,True):
++                    with self.subTest(size=size,height=height,numbers=numbers):
++                        prefs=ReadingPreferences(size=size,verse_numbers=numbers)
++                        document=synthetic_document(verses=numbers)
++                        plan=paginate(self.layout,document,prefs,350,height)
++                        self.assertEqual(''.join(document.text[p.start:p.end] for p in plan.pages),document.text)
++                        self.assertEqual(''.join(document.copy(p.start,p.end) for p in plan.pages),document.copy_text)
++                        for first,last in heading_groups(document):
++                            # This same group on an otherwise empty page tells
++                            # whether keep-with-next can fit at this font/height.
++                            text=document.text[first:last]
++                            styles=tuple(StyleSpan(s.kind,max(0,s.start-first),min(last,s.end)-first)
++                                         for s in document.styles if s.end>first and s.start<last)
++                            probe=Document('group',text,(),styles)
++                            if len(paginate(self.layout,probe,prefs,350,height).pages)==1:
++                                self.assertEqual(plan.containing(first),plan.containing(last-1))
++                        for style in document.styles:
++                            if style.kind=='verse-start':
++                                # If a marker/word itself exceeds the page's
++                                # height, progress takes priority over grouping.
++                                text=document.text[style.start:style.end]
++                                probe=Document('word',text,(),(StyleSpan('number',0,2),))
++                                if len(paginate(self.layout,probe,prefs,350,height).pages)==1:
++                                    self.assertFalse(any(style.start<p.end<style.end for p in plan.pages))
++
++    def test_anchor_in_heading_gap_keeps_chapter_and_section_with_body(self):
++        doc=synthetic_document();title=next(s for s in doc.styles if s.kind=='heading')
++        anchor=doc.anchor(title.end)
++        plan=paginate(self.layout,doc,ReadingPreferences(),350,600,anchor)
++        first,last=heading_groups(doc)[0]
++        self.assertEqual(plan.containing(first),plan.containing(last-1))
++        # A distant in-verse reflow still starts at its exact canonical anchor.
++        anchor=doc.anchor(doc.spans[3].body+60)
++        plan=paginate(self.layout,doc,ReadingPreferences(),400,600,anchor)
++        self.assertEqual(doc.anchor(plan.pages[plan.containing(doc.locate(anchor))].start),anchor)
++
++    def test_oversized_heading_makes_progress_and_unicode_text_is_unchanged(self):
++        text=('OVERSIZED SYNTHETIC TITLE '*100)+'\n\n'+'Body e\u0301 עברית العربية '*40
++        end=text.index('\n')
++        doc=Document('long',text,(PassageSpan('Mark.8.1',0,end+2,len(text)),),
++                     (StyleSpan('heading',0,end),))
++        plan=paginate(self.layout,doc,ReadingPreferences(size=64),160,160)
++        self.assertGreater(len(plan.pages),2)
++        self.assertTrue(all(page.end>page.start for page in plan.pages))
++        self.assertEqual(''.join(text[p.start:p.end] for p in plan.pages),text)
++
++    def test_cancellation_reaches_native_layout_iteration(self):
++        doc=synthetic_document();calls=0
++        def cancelled():
++            nonlocal calls
++            calls+=1
++            return calls>len(doc.styles)*4+50
++        with self.assertRaises(CancelledError):
++            paginate(self.layout,doc,ReadingPreferences(),350,400,cancelled=cancelled)
++
++    def test_cancelled_sword_operations_do_not_touch_the_reader(self):
++        from bible.sword_provider import Reader
++        reader=object.__new__(Reader)  # No native manager is needed after cancellation.
++        for operation in (reader.discover_books,reader.chapter,
++                          lambda **kwargs:reader.structured_chapter(None,**kwargs)):
++            with self.assertRaises(CancelledError):operation(cancelled=lambda:True)
++
++    def test_book_composition_stops_before_reading_later_chapters(self):
++        from bible.paged_sources import BibleBookPages
++        from bible.sword_provider import Book,Chapter
++        from bible.structured_text import Segment
++        calls=[];stop=Event()
++        class Key:
++            def getOSISBookName(self):return 'Mark'
++            def getBookName(self):return 'Mark'
++            def getChapter(self):return int(calls[-1].split('.')[1])
++        class Reader:
++            def __init__(self):self.books=(Book('Mark','Mark',{7:(1,),8:(1,)}),)
++            def key(self,reference):return Key()
++            def chapter(self,reference,*,cancelled=None):
++                calls.append(reference)
++                return Chapter(reference.rsplit('.',1)[0],((reference,'SYNTHETIC BODY'),),None,None)
++            def structured_chapter(self,chapter,*,cancelled=None):
++                stop.set()
++                return {reference:(Segment(text),) for reference,text in chapter.verses}
++        source=BibleBookPages(Reader(),None)
++        with self.assertRaises(CancelledError):
++            source.document('Mark',ReadingPreferences(),cancelled=stop.is_set)
++        self.assertEqual(calls,['Mark.7.1'])
++
++
++class HeadlessBookStreamTests(unittest.TestCase):
++    def setUp(self):
++        self.source=SyntheticSource()
++        self.stream=BookStream(LayoutContext(96,'en'),self.source,ReadingPreferences())
++        self.addCleanup(self.stream.close)
++
++    def settle(self,predicate):
++        deadline=time.monotonic()+5
++        while time.monotonic()<deadline:
++            self.stream.poll()
++            if predicate():return
++            time.sleep(.005)
++        self.fail('Background preparation did not settle')
++
++    def configure(self,key='Mark',width=350,anchor=None):
++        self.stream.configure(width,600,anchor or Anchor(key+'.7.1'),key)
++        self.settle(lambda:self.stream.cursor is not None)
++
++    def test_reflow_reuses_source_document_but_number_visibility_invalidates_it(self):
++        self.configure();doc=self.stream.plan('Mark').document
++        anchor=doc.anchor(doc.spans[2].body+60)
++        self.stream.preferences.size=32
++        self.configure(width=390,anchor=anchor)
++        self.assertIs(self.stream.plan('Mark').document,doc)
++        self.assertEqual(self.stream.anchor(),anchor)
++        self.assertEqual(self.source.calls.count(('Mark',True,True)),1)
++        self.assertEqual(self.source.clones,1)
++        self.stream.preferences.verse_numbers=False
++        self.configure(width=390,anchor=anchor)
++        self.assertIsNot(self.stream.plan('Mark').document,doc)
++        self.assertEqual(self.source.calls.count(('Mark',True,False)),1)
++
++    def test_identical_reconfiguration_reuses_plan_and_can_restore_cleared_cursor(self):
++        self.configure();plan=self.stream.plan('Mark')
++        self.configure();self.assertIs(self.stream.plan('Mark'),plan)
++        self.stream.cursor=None  # Existing immersion reflow contract.
++        self.configure();self.assertIs(self.stream.plan('Mark'),plan)
++
++    def test_superseded_book_stops_and_never_overwrites_the_new_request(self):
++        self.source.wait_for='Mark'
++        self.stream.configure(350,600,Anchor('Mark.7.1'),'Mark')
++        self.assertTrue(self.source.entered.wait(2))
++        self.stream.configure(360,600,Anchor('John.7.1'),'John')
++        self.settle(lambda:self.stream.cursor is not None)
++        self.assertTrue(self.source.cancelled.is_set())
++        self.assertEqual(self.stream.cursor.key,'John')
++        self.assertNotIn('Mark',self.stream.cache)
++        self.assertIsNone(self.stream.error)
++
++    def test_close_cancels_active_work_and_leaves_no_worker_or_cache(self):
++        self.source.wait_for='Mark'
++        self.stream.configure(350,600,Anchor('Mark.7.1'),'Mark')
++        self.assertTrue(self.source.entered.wait(2))
++        self.stream.close()
++        self.assertTrue(self.source.cancelled.is_set())
++        self.assertFalse(self.stream.futures)
++        self.assertFalse(self.stream.documents)
++        self.assertFalse(self.stream.plans)
++        self.assertIsNone(self.stream.poll())
++        self.assertTrue(all(not t.is_alive() for t in self.stream.executor._threads))
++
++    def test_reflow_cancels_before_waiting_for_geometry_to_settle(self):
++        self.source.wait_for='Mark'
++        self.stream.configure(350,600,Anchor('Mark.7.1'),'Mark')
++        self.assertTrue(self.source.entered.wait(2))
++        self.stream.cancel_pending()
++        self.assertTrue(self.source.cancelled.wait(2))
++        self.assertIsNone(self.stream.pending)
++        self.assertFalse(self.stream.futures)
++        self.assertIsNone(self.stream.poll())
++        self.assertIsNone(self.stream.cursor)
++        self.source.release.set()
++        self.configure()
++        self.assertEqual(self.stream.cursor.key,'Mark')
++
++    def test_navigation_prunes_obsolete_prefetch_and_all_caches_are_bounded(self):
++        self.configure()
++        for key in ('Luke','John','Acts','Rom'):
++            self.configure(key)
++            self.settle(lambda:not self.stream.futures)
++            self.assertLessEqual(len(self.stream.documents),3)
++            self.assertLessEqual(len(self.stream.plans),3)
++            self.assertLessEqual(len(self.stream.cache),3)
++            retained={key,self.source.neighbour(key,-1),self.source.neighbour(key,1)}
++            self.assertTrue(set(self.stream.cache)<=retained)
++            self.assertTrue({sig[0] for sig in self.stream.documents}<=retained)
++            self.assertTrue({sig[0][0] for sig in self.stream.plans}<=retained)
++
++    def test_revisiting_initial_configuration_after_turn_repositions_the_cursor(self):
++        self.configure();initial=self.stream.plan('Mark')
++        self.settle(lambda:'Luke' in self.stream.cache)
++        from bible.paged_sources import PageAddress
++        self.stream.cursor=PageAddress('Luke',0);self.stream.requested_anchor=None
++        self.configure()
++        self.assertEqual(self.stream.cursor.key,'Mark')
++        self.assertIs(self.stream.plan('Mark'),initial)
++
++
++if __name__=='__main__':unittest.main()
+diff --git a/tools/check_book_preparation.py b/tools/check_book_preparation.py
+new file mode 100644
+index 0000000..b286769
+--- /dev/null
++++ b/tools/check_book_preparation.py
+@@ -0,0 +1,107 @@
++"""Offline read-only SWORD/Pango checks on an existing TEST profile.
++
++Run from /tmp with /app/lib/bible-python before the checkout on PYTHONPATH for
++--require-packaged. No downloads, installation, window/session or preference
++writes are performed. Output distinguishes source from installed-package code.
++"""
++import argparse
++import hashlib
++import inspect
++import json
++from pathlib import Path
++import re
++import time
++from unittest.mock import patch
++
++
++def main():
++    parser=argparse.ArgumentParser()
++    parser.add_argument('profile');parser.add_argument('--resource',default='FreSegond1910')
++    parser.add_argument('--references',nargs='+',default=['Gen.1.1','Mark.7.1','Luke.13.1'])
++    parser.add_argument('--require-packaged',action='store_true');parser.add_argument('--output')
++    args=parser.parse_args()
++    from bible.book_stream import BookStream,LayoutContext
++    from bible.paged_sources import BibleBookPages
++    from bible.pagination import Anchor,Document,StyleSpan,heading_groups,paginate
++    from bible.preferences import ReadingPreferences
++    from bible.sword_provider import Reader
++    from gi.repository import Pango
++    imports={kind.__name__:inspect.getfile(kind) for kind in
++             (BookStream,BibleBookPages,Document,ReadingPreferences,Reader)}
++    packaged=all(Path(path).is_relative_to('/app/lib/bible-python/bible') for path in imports.values())
++    if args.require_packaged:assert packaged,imports
++    profile=Path(args.profile)
++    source=BibleBookPages(Reader(profile/'translations'/args.resource,args.resource),None)
++    preferences=ReadingPreferences()
++    context=LayoutContext(96,'en');stream=BookStream(context,source,preferences)
++    report={'code':'installed-package' if packaged else 'source', 'imports':imports,
++            'resource':args.resource,'pango':Pango.version_string(),'network':'forbidden',
++            'gui_validation':False,'books':[]}
++
++    def settle():
++        deadline=time.monotonic()+60;ticks=[]
++        while time.monotonic()<deadline:
++            ticks.append(time.monotonic());stream.poll()
++            if stream.error:raise AssertionError(stream.error)
++            if stream.cursor:
++                return len(ticks),max((b-a for a,b in zip(ticks,ticks[1:])),default=0)
++            time.sleep(.005)
++        raise AssertionError('Book preparation timed out')
++
++    with patch('socket.create_connection',side_effect=AssertionError('Offline check')), \
++         patch('urllib.request.urlopen',side_effect=AssertionError('Offline check')):
++        try:
++            for reference in args.references:
++                key=source.key(reference);anchor=Anchor(reference)
++                preferences.size=14;started=time.monotonic()
++                stream.configure(450,700,anchor,key);ticks,gap=settle()
++                elapsed=time.monotonic()-started;plan=stream.plan(key);document=plan.document
++                assert ''.join(document.text[p.start:p.end] for p in plan.pages)==document.text
++                copy=document.copy(0,len(document.text))
++                assert ''.join(document.copy(p.start,p.end) for p in plan.pages)==copy
++                # Independent direct SWORD text for every actually present verse.
++                for span in document.spans:
++                    source.reader.module.setKey(source.reader.key(span.reference))
++                    plain=source.reader.module.stripText()
++                    if not isinstance(plain,str):plain=plain.c_str()
++                    normalize=lambda text:re.sub(r'\s+','',text)
++                    assert normalize(document.copy(span.body,span.end))==normalize(plain),span.reference
++                groups=heading_groups(document);checked=0
++                for first,last in groups:
++                    styles=tuple(StyleSpan(s.kind,max(first,s.start)-first,min(last,s.end)-first)
++                                 for s in document.styles if s.end>first and s.start<last)
++                    probe=Document('group',document.text[first:last],(),styles)
++                    if len(paginate(context,probe,preferences,450,700).pages)==1:
++                        assert plan.containing(first)==plan.containing(last-1),(key,first,last)
++                        checked+=1
++                target=document.anchor(plan.pages[len(plan.pages)//2].start)
++                preferences.size=19;started=time.monotonic()
++                stream.configure(400,650,target,key);settle()
++                assert stream.plan(key).document is document,'Typography re-read the source book'
++                assert stream.anchor()==target
++                reflow=time.monotonic()-started
++                cached=stream.plan(key)
++                stream.configure(400,650,target,key);settle()
++                assert stream.plan(key) is cached
++                report['books'].append(dict(key=key,pages=len(plan.pages),characters=len(document.text),
++                    sha256=hashlib.sha256(copy.encode()).hexdigest(),source_verses=len(document.spans),
++                    kept_heading_groups=checked,exact_partition=True,exact_source_words=True,
++                    preparation_seconds=elapsed,reflow_seconds=reflow,document_reused=True,plan_reused=True,
++                    poll_heartbeat_ticks=ticks,largest_poll_gap_seconds=gap))
++            # Supersede active/prefetched layout work with a final known request.
++            for size in (20,24,32,14):
++                preferences.size=size;stream.configure(450,700,anchor,key)
++            settle();assert stream.cursor.key==key and stream.anchor()==anchor
++            assert len(stream.cache)<=3 and len(stream.documents)<=3 and len(stream.plans)<=3
++            report['superseded_requests']=True
++        finally:
++            started=time.monotonic();stream.close()
++            report['close_seconds']=time.monotonic()-started
++            assert all(not thread.is_alive() for thread in stream.executor._threads)
++            report['worker_joined']=True
++    payload=json.dumps(report,ensure_ascii=False,indent=2)+'\n'
++    if args.output:Path(args.output).write_text(payload)
++    print(payload,end='')
++
++
++if __name__=='__main__':main()
+diff --git a/tools/check_continuous_books.py b/tools/check_continuous_books.py
+index c29581f..c93dffd 100644
+--- a/tools/check_continuous_books.py
++++ b/tools/check_continuous_books.py
+@@ -6,7 +6,10 @@ from unittest.mock import patch
+ 
+ 
+ def main():
+-    parser=argparse.ArgumentParser();parser.add_argument('profile');parser.add_argument('--screenshot');args=parser.parse_args()
++    parser=argparse.ArgumentParser();parser.add_argument('profile');parser.add_argument('--screenshot')
++    parser.add_argument('--require-packaged',action='store_true');args=parser.parse_args()
++    import bible
++    if args.require_packaged:assert bible.__file__.startswith('/app/lib/bible-python/'),bible.__file__
+     from bible.ui import Application,Window,Gtk,GLib
+     from bible.library import Library
+     from bible.paged_sources import PageAddress
