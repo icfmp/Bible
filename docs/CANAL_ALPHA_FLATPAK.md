@@ -108,13 +108,20 @@ ce même client et comparaison des commits installés. Les preuves publiques son
 conservées dans `alpha-public-verification`. Les clés privées restent uniquement
 dans le secret et un dossier temporaire du runner, nettoyé même en cas d’échec.
 
-Les deltas statiques complets et incrémentaux sont générés. Les anciens objets
-ne sont pas supprimés automatiquement ; les clients anciens peuvent encore
-récupérer les objets nécessaires. Le site est limité à **512 Mio**, sous la limite
-Pages de 1 Go : dépasser ce seuil interrompt la nouvelle publication, sans
-supprimer le dernier dépôt. Une rétention plus élaborée demandera une revue
-explicite. Le canal alpha reste soumis aux quotas de stockage, bande passante
-et exécution GitHub ; il ne constitue pas une soumission à Flathub.
+Static full and incremental deltas are generated. Published objects and all
+corresponding-source archives remain available, including archives required by
+older installations. No automatic pruning is performed.
+
+The staged site has a **768 MiB** safety limit, below GitHub Pages' 1 GiB
+published-site limit. Crossing it aborts preparation before either persistence
+or deployment, leaving the last served repository intact. The former 512 MiB
+limit blocked the notes-preview correction because the retained source archives
+alone occupied about 468 MiB. Raising the conservative limit preserves those
+sources and every old update path; it does not change signing, the remote, user
+data, or GitHub administration. This is additional capacity, not a retention
+policy: continued growth needs a separately reviewed archival solution that
+preserves corresponding-source availability. The alpha channel remains subject
+to GitHub storage, bandwidth and execution quotas, and is not a Flathub submission.
 
 ## Passage depuis un ancien bundle
 
