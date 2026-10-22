@@ -18,7 +18,9 @@ BRANCH = 'alpha'
 REMOTE = 'bible-alpha'
 REF = f'app/{APP_ID}/x86_64/{BRANCH}'
 RUNTIME_REPO = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
-MAX_SITE_BYTES = 512 * 1024 * 1024
+# Keep every published object and corresponding-source archive. This remains
+# below GitHub Pages' 1 GiB site limit; exceeding it aborts before persistence.
+MAX_SITE_BYTES = 768 * 1024 * 1024
 
 
 def run(*args):
@@ -128,7 +130,7 @@ def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revis
     render(site, provenance)
     for path in site.rglob('*'):
         assert not path.is_symlink(), f'Pages cannot publish symlinks: {path}'
-    assert sum(p.stat().st_size for p in site.rglob('*') if p.is_file()) < MAX_SITE_BYTES, 'Site exceeds the 512 MiB publishing limit; last deployment must be kept'
+    assert sum(p.stat().st_size for p in site.rglob('*') if p.is_file()) < MAX_SITE_BYTES, 'Site exceeds the 768 MiB publishing limit; last deployment must be kept'
     return provenance
 
 
