@@ -1,0 +1,14 @@
+commit f876b328b4777182cdb499dd7cb617d328cdb30a6ada042f7a3f15560aea3294
+Parent:  52e7a07c2630302b7862fd87a77b1fbb42ae902d9331eba987fe4f0e6d26583d
+ContentChecksum:  58a0ca53d908c9ef9fb70c66ff995a41350373bef6fee2082d71188dc3fe8545
+Date:  2026-10-22 10:19:28 +0000
+
+    Bible alpha 87b9803eebf5 revision 39762295612-2
+
+    Source 87b9803eebf56fbd3acaa1e3c6b9cfd8f5d60d0b; verified CI 39761313126; packaging revision 39762295612-2
+
+Found 1 signature:
+
+  Signature made Thu Oct 22 10:22:04 2026 using RSA key ID 20EB9FFCCECAFD8F
+  Good signature from "Bible alpha repository <icfmp@users.noreply.github.com>"
+  Key expires Wed Oct 18 21:13:19 2028

@@ -1,0 +1,42 @@
+[
+  {
+    "issue": 24,
+    "summary": "Continuous-book pagination, chapter/book transitions, reflow anchors, immersive controls and commentary return are implemented and verified.",
+    "state": "closed"
+  },
+  {
+    "issue": 27,
+    "summary": "Persistent passage highlights, colors, hide/show without deletion, lookup and backup/restore are implemented and verified.",
+    "state": "closed"
+  },
+  {
+    "issue": 31,
+    "summary": "The top reference field, footer cleanup, installed-version access and reference validation are implemented and verified.",
+    "state": "closed"
+  },
+  {
+    "issue": 46,
+    "summary": "The contextual Copy/Note/Highlight/Compare bar, exact partial copying and target/lifecycle preservation are implemented and verified.",
+    "state": "closed"
+  },
+  {
+    "issue": 53,
+    "summary": "The right study drawer uses a continuous native secondary surface, preserving its controls and following.",
+    "state": "closed"
+  },
+  {
+    "issue": 54,
+    "summary": "One shared Aa control is available in the main Header Bar, including revealed immersive controls; preferences and popup lifecycle are verified.",
+    "state": "closed"
+  },
+  {
+    "issue": 55,
+    "summary": "Round chapter/page controls are positioned beside the reading text below the midpoint, with adaptive safe margins.",
+    "state": "closed"
+  },
+  {
+    "issue": 52,
+    "summary": "The client has accepted the published alpha after successful GNOME functional testing. Previously outstanding functional release checks are accepted; known remaining work remains tracked in its dedicated issues, including #56/#57 and the future study tools.",
+    "state": "closed"
+  }
+]

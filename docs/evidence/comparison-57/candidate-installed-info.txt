@@ -1,0 +1,14 @@
+          ID: io.github.icfmp.Bible
+         Ref: app/io.github.icfmp.Bible/x86_64/validation-57
+        Arch: x86_64
+      Branch: validation-57
+      Origin: bible1-origin
+  Collection: 
+Installation: user
+   Installed: 44.4?MB
+     Runtime: org.gnome.Platform/x86_64/49
+         Sdk: org.gnome.Sdk/x86_64/49
+
+      Commit: a8ece5d7da4fd0610b2a787fe18ea07e42cd36fb961001dd7b06d07bc121b764
+     Subject: Export io.github.icfmp.Bible
+        Date: 2026-10-22 11:34:40 +0000

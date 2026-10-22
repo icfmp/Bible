@@ -1,5 +1,23 @@
 # Dépendances et contenus
 
+## JSword versification data (LGPL-2.1-or-later)
+
+The expanded reference-only tables in `bible/versification_data` derive from
+AndBible/JSword revision `6ebd10a005fa7761e611c048ececea1430e22546`.
+Copyright CrossWire Bible Society and the individual JSword authors, including
+Chris Burrell; original per-file notices are preserved in the complete upstream
+source archive under `third_party/jsword`. The data retains LGPL 2.1 or later;
+Bible's own GPL-2.0-only license is unchanged. No Scripture text is included.
+
+`tools/versification/export.py` executes the original parser to expand its canon,
+forward/reverse maps, verse-part qualifiers and absent sections into JSON.
+The source archive, transformation source, dependency checksum lock and full
+LGPL 2.1 text are included in this repository and the corresponding-source
+distribution. See `third_party/jsword/provenance.json` for the immutable URL and
+archive checksum. The installed Flatpak includes these JSON tables and the
+license/provenance under `/app/share/licenses/jsword`. They can be replaced in
+a local rebuild; no Java runtime or online mapping service is needed.
+
 ## Approved GNOME symbolic icons
 
 The notebook and library SVG assets are the original 16 px GNOME Icon

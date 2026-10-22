@@ -1,0 +1,90 @@
+{
+  "archive_sha256": "a1687b8ade230d9b30a9991b76c12920daac865f1c25bd4be3cb897b90f007d9",
+  "files": {
+    "src/mgr/versificationmgr.cpp": "c8b264c16596b24249f0eb9c78edff2b2b314d18cbdee5174c502ebe12e12085",
+    "include/canon_luther.h": "a5d122ee795b76f04c93cef27ab922d573cee61480396b167017c07942400496",
+    "include/canon_segond.h": "cd232348a14742a8aa4d32f64ffb7885976ea903b6ff9ac9710942687dbbecf7"
+  },
+  "registrations": [
+    {
+      "system": "KJV",
+      "arguments": "otbooks, ntbooks, vm"
+    },
+    {
+      "system": "Leningrad",
+      "arguments": "otbooks_leningrad, ntbooks_null, vm_leningrad"
+    },
+    {
+      "system": "MT",
+      "arguments": "otbooks_mt, ntbooks_null, vm_mt"
+    },
+    {
+      "system": "KJVA",
+      "arguments": "otbooks_kjva, ntbooks, vm_kjva"
+    },
+    {
+      "system": "NRSV",
+      "arguments": "otbooks, ntbooks, vm_nrsv, mappings_nrsv"
+    },
+    {
+      "system": "NRSVA",
+      "arguments": "otbooks_nrsva, ntbooks, vm_nrsva"
+    },
+    {
+      "system": "Synodal",
+      "arguments": "otbooks_synodal, ntbooks_synodal, vm_synodal, mappings_synodal"
+    },
+    {
+      "system": "SynodalProt",
+      "arguments": "otbooks_synodalProt, ntbooks_synodal, vm_synodalProt"
+    },
+    {
+      "system": "Vulg",
+      "arguments": "otbooks_vulg, ntbooks_vulg, vm_vulg, mappings_vulg"
+    },
+    {
+      "system": "German",
+      "arguments": "otbooks_german, ntbooks, vm_german"
+    },
+    {
+      "system": "Luther",
+      "arguments": "otbooks_luther, ntbooks_luther, vm_luther"
+    },
+    {
+      "system": "Catholic",
+      "arguments": "otbooks_catholic, ntbooks, vm_catholic"
+    },
+    {
+      "system": "Catholic2",
+      "arguments": "otbooks_catholic2, ntbooks, vm_catholic2"
+    },
+    {
+      "system": "LXX",
+      "arguments": "otbooks_lxx, ntbooks, vm_lxx"
+    },
+    {
+      "system": "Orthodox",
+      "arguments": "otbooks_orthodox, ntbooks, vm_orthodox"
+    },
+    {
+      "system": "Calvin",
+      "arguments": "otbooks, ntbooks, vm_calvin, mappings_calvin"
+    },
+    {
+      "system": "DarbyFr",
+      "arguments": "otbooks, ntbooks, vm_darbyfr, mappings_darbyfr"
+    },
+    {
+      "system": "Segond",
+      "arguments": "otbooks, ntbooks, vm_segond, mappings_segond"
+    }
+  ],
+  "forward_no_mapping_return_lines": [
+    535,
+    539
+  ],
+  "reverse_no_mapping_return_lines": [
+    459,
+    462
+  ]
+}

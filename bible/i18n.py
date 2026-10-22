@@ -3,6 +3,8 @@ import locale
 import os
 
 FR = {
+    'Automatic following unavailable. Reading independently.': 'Suivi automatique indisponible. Lecture indépendante.',
+    'Independent reading': 'Lecture indépendante',
     'Preparing reading pages…': 'Préparation des pages de lecture…',
     'Highlight actions': 'Actions de surlignage',
     'Highlights unavailable. The original file is preserved.': 'Surlignages indisponibles. Le fichier d’origine est conservé.',

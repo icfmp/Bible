@@ -34,7 +34,7 @@ class CommentaryTests(unittest.TestCase):
             self.assertIsNone(reader.entry('John.3.17', 'KJV'))
             self.assertIsNone(reader.entry('John.3.18', 'KJV'))
             with self.assertRaises(VersificationMismatch):
-                reader.entry('John.3.16', 'Catholic')
+                reader.entry('John.3.16', 'LXX')
             with self.assertRaises(ValueError):
                 Reader(root, 'Notes')
 

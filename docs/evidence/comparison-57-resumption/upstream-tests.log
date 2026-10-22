@@ -1,0 +1,12 @@
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /tmp/bible-57/jsword-6ebd10a005fa7761e611c048ececea1430e22546/src/main/java/org/crosswire/common/util/CWClassLoader.java uses or overrides a deprecated API that is marked for removal.
+Note: Recompile with -Xlint:removal for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+JUnit version 4.13
+.......................................
+Time: 0.128
+
+OK (39 tests)
+

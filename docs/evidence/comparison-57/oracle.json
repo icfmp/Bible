@@ -1,0 +1,25 @@
+{
+  "rows": 604575,
+  "empty_results": 37311,
+  "unsupported_qualified_ranges": 21,
+  "qualified_intermediates": 2990,
+  "differences": [],
+  "seconds": 1.1530954480003857,
+  "oracle_sha256": "b07eed65d03d23b88773fcbb61783f4f25458753441ee29a79b93c707e0b6ec6",
+  "canon_match": {
+    "Catholic": true,
+    "Catholic2": true,
+    "German": true,
+    "KJV": true,
+    "KJVA": true,
+    "Leningrad": true,
+    "Luther": true,
+    "MT": true,
+    "NRSV": true,
+    "NRSVA": true,
+    "Segond": true,
+    "Synodal": true,
+    "SynodalProt": true,
+    "Vulg": true
+  }
+}

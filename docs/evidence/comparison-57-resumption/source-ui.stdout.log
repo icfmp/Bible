@@ -1,0 +1,58 @@
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+{
+  "code": "source-candidate",
+  "window_import": "/src/bible/ui.py",
+  "base_source_commit": "87b9803eebf56fbd3acaa1e3c6b9cfd8f5d60d0b",
+  "network": "unshare --net",
+  "checks": [
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_characters": 4225,
+      "comparison_characters": 0,
+      "status": "Segond / Luther"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_characters": 4335,
+      "comparison_characters": 0,
+      "status": "Luther / Segond"
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_characters": 4318,
+      "comparison_characters": 4225,
+      "status": ""
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_characters": 4225,
+      "comparison_characters": 4318,
+      "status": ""
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_characters": 4287,
+      "comparison_characters": 0,
+      "status": "NRSVA / Segond"
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_characters": 4334,
+      "comparison_characters": 0,
+      "status": "German / Segond"
+    }
+  ],
+  "status": "Reproduces open #57; not correction acceptance"
+}

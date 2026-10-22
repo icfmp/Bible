@@ -1,0 +1,1007 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "resources": {
+    "FreSegond1910": {
+      "system": "Segond",
+      "driver": "zText",
+      "version": "4.0"
+    },
+    "KJV": {
+      "system": "KJV",
+      "driver": "zText",
+      "version": "3.1"
+    },
+    "FreLSN1872": {
+      "system": "Calvin",
+      "driver": "zText",
+      "version": "1.0.1"
+    },
+    "ebible~frajnd2024eb": {
+      "system": "Luther",
+      "driver": "zText",
+      "version": "2.17"
+    },
+    "ebible~fraLSG1910eb": {
+      "system": "NRSV",
+      "driver": "zText",
+      "version": "99.0"
+    },
+    "ebible~frasbl2022eb": {
+      "system": "NRSVA",
+      "driver": "zText",
+      "version": "170.0"
+    },
+    "GerBoLut": {
+      "system": "German",
+      "driver": "zText",
+      "version": "3.0"
+    }
+  },
+  "matrix": [
+    {
+      "primary": "FreSegond1910",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "KJV",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "ebible~fraLSG1910eb",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "FreSegond1910",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 32,
+        "direct_sword_sha256": "10aec853dd7ee60fa2ef8b873eb21ae5022ece341362842aa4ec441ec62f3125"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "KJV",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 30,
+        "direct_sword_sha256": "f17201e5547a6aa5b43c3d6935a43552efe5ee8acef2167a4620859e526aaabd"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "FreLSN1872",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 36,
+        "direct_sword_sha256": "42691d2b2b4925af8a95b2ec78042b2755314f28e22f9993bc92f02fe8584a52"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "2f1c07e8326adb0058cf7c989d88881c8420dbdacd1dcbeb230c32641b73dd82"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "ebible~fraLSG1910eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 28,
+        "direct_sword_sha256": "972dd7b9153a586d5c8d51974ca8a57f751d3fe44e853626983133e5239ce0b3"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "ebible~frasbl2022eb",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 27,
+        "direct_sword_sha256": "9fc35d18a20696b006a4ab399d428c1533a73dbc7cd32ee15addff7603a90d29"
+      }
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "GerBoLut",
+      "reference": "John.3.16",
+      "primary_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      },
+      "comparison_fidelity": {
+        "verses": 36,
+        "byte_identical": 35,
+        "direct_sword_sha256": "85fa401dd77181a58c716ad8c8216c5b7561d4d9375b9ac446db5084dec5768f"
+      }
+    }
+  ],
+  "boundaries": [
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "reference": "Gen.32.1",
+      "primary_fidelity": {
+        "verses": 33,
+        "byte_identical": 23,
+        "direct_sword_sha256": "b3b894d149a1b0039fcb5db6dc3cc4d68592b2edb5c74e493b247a8c6ffa6e16"
+      },
+      "comparison_fidelity": {
+        "verses": 55,
+        "byte_identical": 51,
+        "direct_sword_sha256": "915e36c3d2355856cf16ec9f613cb1d19a93ecb78e8e4ccaa415630fbeefe698"
+      },
+      "expected_target": "Gen.31.55"
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Gen.31.55",
+      "primary_fidelity": {
+        "verses": 55,
+        "byte_identical": 51,
+        "direct_sword_sha256": "915e36c3d2355856cf16ec9f613cb1d19a93ecb78e8e4ccaa415630fbeefe698"
+      },
+      "comparison_fidelity": {
+        "verses": 33,
+        "byte_identical": 23,
+        "direct_sword_sha256": "b3b894d149a1b0039fcb5db6dc3cc4d68592b2edb5c74e493b247a8c6ffa6e16"
+      },
+      "expected_target": "Gen.32.1"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "reference": "Ps.3.2",
+      "primary_fidelity": {
+        "verses": 9,
+        "byte_identical": 2,
+        "direct_sword_sha256": "3fadb5c2370c68130df39738133967a740ec217efa4b9315e174a56d3216c9d2"
+      },
+      "comparison_fidelity": {
+        "verses": 8,
+        "byte_identical": 8,
+        "direct_sword_sha256": "8627264ba9b71946b0114caf2ef9d3de4ab4afa0588b20b7752a9075f2769ccf"
+      },
+      "expected_target": "Ps.3.1"
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Ps.3.1",
+      "primary_fidelity": {
+        "verses": 8,
+        "byte_identical": 8,
+        "direct_sword_sha256": "8627264ba9b71946b0114caf2ef9d3de4ab4afa0588b20b7752a9075f2769ccf"
+      },
+      "comparison_fidelity": {
+        "verses": 9,
+        "byte_identical": 2,
+        "direct_sword_sha256": "3fadb5c2370c68130df39738133967a740ec217efa4b9315e174a56d3216c9d2"
+      },
+      "expected_target": "Ps.3.2"
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Ps.3.2",
+      "primary_fidelity": {
+        "verses": 9,
+        "byte_identical": 9,
+        "direct_sword_sha256": "889805d0b38f541ea56fde9a3059de482ccc70d551f2fd63606eb3489889e723"
+      },
+      "comparison_fidelity": {
+        "verses": 9,
+        "byte_identical": 2,
+        "direct_sword_sha256": "3fadb5c2370c68130df39738133967a740ec217efa4b9315e174a56d3216c9d2"
+      },
+      "expected_target": "Ps.3.2"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreSegond1910",
+      "reference": "Ps.3.2",
+      "primary_fidelity": {
+        "verses": 9,
+        "byte_identical": 2,
+        "direct_sword_sha256": "3fadb5c2370c68130df39738133967a740ec217efa4b9315e174a56d3216c9d2"
+      },
+      "comparison_fidelity": {
+        "verses": 9,
+        "byte_identical": 9,
+        "direct_sword_sha256": "889805d0b38f541ea56fde9a3059de482ccc70d551f2fd63606eb3489889e723"
+      },
+      "expected_target": "Ps.3.2"
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "reference": "Acts.19.40",
+      "primary_fidelity": {
+        "verses": 40,
+        "byte_identical": 35,
+        "direct_sword_sha256": "b150f14087b44aed4a5ae1d147687dd15ccba8f0f426cec8008208875d341d68"
+      },
+      "comparison_fidelity": {
+        "verses": 41,
+        "byte_identical": 39,
+        "direct_sword_sha256": "d982a35590174c4ab699cd33fedaa242e9e5fcb85ad6fc7aa9fdc9b418148fe3"
+      },
+      "expected_target": "Acts.19.40–Acts.19.41"
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Acts.19.41",
+      "primary_fidelity": {
+        "verses": 41,
+        "byte_identical": 39,
+        "direct_sword_sha256": "d982a35590174c4ab699cd33fedaa242e9e5fcb85ad6fc7aa9fdc9b418148fe3"
+      },
+      "comparison_fidelity": {
+        "verses": 40,
+        "byte_identical": 35,
+        "direct_sword_sha256": "b150f14087b44aed4a5ae1d147687dd15ccba8f0f426cec8008208875d341d68"
+      },
+      "expected_target": "Acts.19.40"
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Acts.19.40",
+      "primary_fidelity": {
+        "verses": 40,
+        "byte_identical": 39,
+        "direct_sword_sha256": "13e77a8f08fd214f412cc753bbf53943b61a5f5fde7d000b7d7b142ab4092110"
+      },
+      "comparison_fidelity": {
+        "verses": 40,
+        "byte_identical": 35,
+        "direct_sword_sha256": "b150f14087b44aed4a5ae1d147687dd15ccba8f0f426cec8008208875d341d68"
+      },
+      "expected_target": "Acts.19.40"
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "reference": "Ps.51.3",
+      "primary_fidelity": {
+        "verses": 21,
+        "byte_identical": 21,
+        "direct_sword_sha256": "7c8742a19e5a1581f9647f3d9ddd4c600ec57dd1463248e2baf2c5517ff87644"
+      },
+      "comparison_fidelity": {
+        "verses": 21,
+        "byte_identical": 3,
+        "direct_sword_sha256": "070ede86cb3d6fb993a6be5ec121c2795a1fed8a11a9bdb1b80c354244d0fd6c"
+      },
+      "expected_target": "Ps.51.2–Ps.51.3"
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "KJV",
+      "reference": "3John.1.14",
+      "primary_fidelity": {
+        "verses": 14,
+        "byte_identical": 8,
+        "direct_sword_sha256": "539b4d118b4fe3f9535826e8ec0702ec04ffa0991bd1d0c317990f695cba1f7e"
+      },
+      "comparison_fidelity": {
+        "verses": 14,
+        "byte_identical": 14,
+        "direct_sword_sha256": "9ae114b1fdcec1821e5e8e594b33646275009f6ab289e839113a73ccf8cbdf8b"
+      },
+      "expected_target": "3John.1.14"
+    }
+  ],
+  "input": [
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "bidirectional_native_wheel": true,
+      "exact_partial_clipboard": true,
+      "selection_reflow": true,
+      "history_unchanged": true
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "bidirectional_native_wheel": true,
+      "exact_partial_clipboard": true,
+      "selection_reflow": true,
+      "history_unchanged": true
+    },
+    {
+      "primary": "FreLSN1872",
+      "comparison": "ebible~frajnd2024eb",
+      "bidirectional_native_wheel": true,
+      "exact_partial_clipboard": true,
+      "selection_reflow": true,
+      "history_unchanged": true
+    },
+    {
+      "primary": "ebible~frasbl2022eb",
+      "comparison": "FreSegond1910",
+      "bidirectional_native_wheel": true,
+      "exact_partial_clipboard": true,
+      "selection_reflow": true,
+      "history_unchanged": true
+    },
+    {
+      "primary": "GerBoLut",
+      "comparison": "KJV",
+      "bidirectional_native_wheel": true,
+      "exact_partial_clipboard": true,
+      "selection_reflow": true,
+      "history_unchanged": true
+    }
+  ],
+  "accessibility": "Deferred; not tested",
+  "fresh_install": false,
+  "unsupported_heading": {
+    "status_before_deliberate_input": "Automatic following unavailable. Reading independently. Invalid reference: Ps.3.0",
+    "heading": "King James Version (1769) with Strongs Numbers and Morphology  and CatchWords — CrossWire · John.3.13 · Independent reading",
+    "readable": true,
+    "status_after_verified_input": ""
+  },
+  "status": "PASS",
+  "tab_switch": true
+}

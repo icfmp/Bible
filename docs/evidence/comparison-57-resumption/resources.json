@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ebible~frajnd2024eb",
+    "provider": "ebible",
+    "driver": "zText",
+    "versification": "Luther",
+    "license": "Public Domain",
+    "conditions": "copyright: PUBLIC DOMAIN\ncopyrightnotes: This work is not copyrighted. It is in the Public Domain. You may copy and publish this work freely, but you may not claim copyright on it.\nshortcopyright: PUBLIC DOMAIN\ntextsource: https://eBible.org/Scriptures/",
+    "version": "2.17"
+  },
+  {
+    "id": "ebible~fraLSG1910eb",
+    "provider": "ebible",
+    "driver": "zText",
+    "versification": "NRSV",
+    "license": "Public Domain",
+    "conditions": "copyright: PUBLIC DOMAIN\ncopyrightnotes: This work is not copyrighted. It is in the Public Domain. You may copy and publish this work freely, but you may not claim copyright on it.\nshortcopyright: PUBLIC DOMAIN\ntextsource: https://eBible.org/Scriptures/",
+    "version": "99.0"
+  },
+  {
+    "id": "ebible~frasbl2022eb",
+    "provider": "ebible",
+    "driver": "zText",
+    "versification": "NRSVA",
+    "license": "Public Domain",
+    "conditions": "copyright: PUBLIC DOMAIN\ncopyrightnotes: This work is not copyrighted. It is in the Public Domain. You may copy and publish this work freely, but you may not claim copyright on it.\nshortcopyright: PUBLIC DOMAIN\ntextsource: https://eBible.org/Scriptures/",
+    "version": "170.0"
+  },
+  {
+    "id": "FreLSN1872",
+    "provider": "crosswire",
+    "driver": "zText",
+    "versification": "Calvin",
+    "license": "Copyrighted; Permission to distribute granted to CrossWire",
+    "conditions": "copyright: Public Domain\ncopyrightholder: Nouveau Testament numérisé par Yves Pétrakian http://www.123-bible.com - Ancien Testament numérisé avec la participation de Philippe Lacombe http://sites.google.com/view/bibledelausanne\ncopyrightnotes: Copying and sharing is allowed, as long as the original translation is unchanged.\ncopyrightcontactemail: http://sites.google.com/view/bibledelausanne\ntextsource: Nouveau Testament numérisé par Yves Pétrakian http://www.123-bible.com - Ancien Testament numérisé avec la participation de Philippe Lacombe http://sites.google.com/view/bibledelausanne",
+    "version": "1.0.1"
+  },
+  {
+    "id": "GerBoLut",
+    "provider": "crosswire",
+    "driver": "zText",
+    "versification": "German",
+    "license": "Public Domain",
+    "conditions": "textsource: https://archive.org/stream/1545MartinLutherUebersetzung/1545%20Martin%20Luther%20Uebersetzung_djvu.txt",
+    "version": "3.0"
+  }
+]
