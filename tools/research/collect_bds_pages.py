@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect public BDS pages into a resumable, local research ZIP (Python 3.10+).
+"""Collect a Bible.com version into a resumable, local research ZIP (Python 3.10+).
 
 Standard library only. No account, API key, browser, authentication workaround
 or SWORD conversion. Up to ten transfers; globally spaced request starts. Source content
@@ -23,8 +23,31 @@ import zipfile
 
 
 INDEX = 'https://www.bible.com/fr/versions/21'
-REF = re.compile(r'^/fr/bible/21/([A-Z0-9]{3})\.([1-9][0-9]*|INTRO[0-9]+)\.BDS/?$')
+REF = re.compile(r'^/(?:[A-Za-z]{2,3}(?:-[A-Za-z0-9]+)*/)?bible/([0-9]+)/([A-Z0-9]{3})\.([1-9][0-9]*|INTRO[0-9]+)\.([A-Za-z0-9_-]+)/?$')
 MAX_BYTES = 12 * 1024 * 1024
+
+
+def source_from_url(value):
+    """Accept a chapter or version URL; never follow arbitrary hosts/credentials."""
+    url = urlsplit(value.strip())
+    if (url.scheme != 'https' or url.hostname not in {'www.bible.com', 'bible.com'}
+            or url.username or url.password or url.port):
+        raise ValueError('Use an https://www.bible.com/ chapter or version URL')
+    parts = url.path.strip('/').split('/')
+    locale = ''
+    if parts[0] not in {'bible', 'versions'}:
+        locale = parts.pop(0)
+        if not re.fullmatch(r'[A-Za-z]{2,3}(?:-[A-Za-z0-9]+)*', locale):
+            raise ValueError('Unrecognized Bible.com language prefix')
+    if len(parts) < 2 or parts[0] not in {'bible', 'versions'}:
+        raise ValueError('Use a chapter or Bible version URL')
+    version = re.fullmatch(r'([1-9][0-9]*)(?:-[A-Za-z0-9_-]+)?', parts[1])
+    if not version or (parts[0] == 'versions' and len(parts) != 2):
+        raise ValueError('Unrecognized Bible version identifier')
+    if parts[0] == 'bible' and (len(parts) > 3 or (len(parts) == 3 and not REF.fullmatch(url.path))):
+        raise ValueError('Unrecognized chapter URL')
+    prefix = '/'+locale if locale else ''
+    return int(version[1]), 'https://www.bible.com'+prefix+'/versions/'+version[1]
 
 
 def now():
@@ -42,32 +65,39 @@ def save_json(path, value):
 
 
 class IndexParser(HTMLParser):
-    def __init__(self):
+    def __init__(self, index_url=INDEX):
         super().__init__(convert_charrefs=True)
         self.pages = {}
+        self.abbreviations = set()
+        self.version_id, self.index_url = source_from_url(index_url)
 
     def handle_starttag(self, tag, attrs):
         if tag != 'a':
             return
-        url = urlsplit(urljoin(INDEX, dict(attrs).get('href', '')))
-        if url.scheme != 'https' or url.hostname != 'www.bible.com':
+        url = urlsplit(urljoin(self.index_url, dict(attrs).get('href', '')))
+        if (url.scheme != 'https' or url.hostname not in {'www.bible.com', 'bible.com'}
+                or url.username or url.password or url.port):
             return
         match = REF.fullmatch(url.path)
-        if match:
-            reference = match[1]+'.'+match[2]
+        if match and int(match[1]) == self.version_id:
+            reference = match[2]+'.'+match[3]
+            self.abbreviations.add(match[4])
             self.pages.setdefault(reference, 'https://www.bible.com'+url.path)
 
 
-def discover(data):
-    parser = IndexParser()
+def discover(data, index_url=INDEX):
+    parser = IndexParser(index_url)
     parser.feed(data.decode('utf-8', errors='strict'))
     books = {}
     for ref in parser.pages:
         book, chapter = ref.split('.')
         if chapter.isdigit():
             books.setdefault(book, []).append(int(chapter))
-    # Guard against a blocked/promotional/truncated response mistaken for an index.
-    if len(books) != 66 or sum(map(len, books.values())) < 1000:
+    # Other editions may be NT-only or have additional books. Check the actual
+    # linked inventory instead of imposing BDS's canon on every translation.
+    if not books or len(parser.abbreviations) != 1:
+        raise ValueError('Missing or ambiguous chapter index; response may be an error page')
+    if parser.version_id == 21 and (len(books) != 66 or sum(map(len, books.values())) < 1000):
         raise ValueError('Incomplete BDS index: expected 66 books and over 1000 chapter links')
     for book, chapters in books.items():
         if sorted(chapters) != list(range(1, max(chapters)+1)):
@@ -113,13 +143,15 @@ class Fetcher:
             self.request_slot()
             try:
                 request = Request(url, headers={
-                    'User-Agent': 'Bible-BDS-Research/0.1 (local HTML collection)',
-                    'Accept': 'text/html', 'Accept-Language': 'fr',
+                    'User-Agent': 'Bible-HTML-Research/0.2 (local HTML collection)',
+                    'Accept': 'text/html',
                 })
                 with urlopen(request, timeout=30) as response:
                     final = urlsplit(response.url)
                     if final.hostname != 'www.bible.com' or final.scheme != 'https':
                         raise ValueError('Unexpected redirect away from the public Bible site')
+                    if source_from_url(url)[0] != source_from_url(response.url)[0]:
+                        raise ValueError('Redirect to a different Bible version')
                     if response.status != 200 or 'text/html' not in response.headers.get('Content-Type', ''):
                         raise ValueError('Unexpected response status or content type')
                     data = response.read(MAX_BYTES+1)
@@ -235,7 +267,8 @@ def archive(directory, manifest):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=Path('bds-pages'))
+    parser.add_argument('--url', default=INDEX, help='Bible.com chapter or version URL (default: BDS)')
+    parser.add_argument('--output', type=Path, help='Separate output directory; automatic per version by default')
     parser.add_argument('--workers', type=int, default=4, help='Concurrent transfers, 1 to 10')
     parser.add_argument('--delay', type=float, default=0.5,
                         help='Minimum GLOBAL interval between request starts, seconds (>= 0.5)')
@@ -243,27 +276,32 @@ def main():
     args = parser.parse_args()
     if args.delay < 0.5 or not 1 <= args.workers <= 10 or (args.limit is not None and args.limit < 1):
         parser.error('Delay must be >= 0.5; workers 1..10; limit positive')
-    directory = args.output.resolve()
+    version_id, index_url = source_from_url(args.url)
+    default_directory = 'bds-pages' if version_id == 21 else f'bible-{version_id}-pages'
+    directory = (args.output or Path(default_directory)).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     (directory/'pages').mkdir(exist_ok=True)
     saved = directory/'manifest.json'
     manifest = json.loads(saved.read_text(encoding='utf-8')) if saved.exists() else {
-        'schema': 1, 'version_id': 21, 'edition': 'BDS', 'index_url': INDEX,
+        'schema': 1, 'version_id': version_id, 'index_url': index_url,
         'created_at': now(), 'pages': {}, 'errors': [],
     }
-    if (manifest.get('schema'), manifest.get('version_id'), manifest.get('edition')) != (1, 21, 'BDS'):
-        raise ValueError('Output directory belongs to another collection/schema')
+    if (manifest.get('schema'), manifest.get('version_id')) != (1, version_id):
+        raise ValueError('Output directory belongs to another version/schema; choose a separate --output directory')
     fetcher = Fetcher(args.delay)
     index_path = directory/'index.html'
     receipt = manifest.get('index_receipt', {})
     if not index_path.exists() or sha(index_path.read_bytes()) != receipt.get('sha256'):
-        print('Loading BDS chapter/introduction index...', flush=True)
-        data, receipt = fetcher.fetch(INDEX)
-        pages = discover(data)  # Validate BEFORE replacing the cached index.
+        print(f'Loading version {version_id} chapter/introduction index...', flush=True)
+        data, receipt = fetcher.fetch(index_url)
+        pages = discover(data, index_url)  # Validate BEFORE replacing the cached index.
         index_path.write_bytes(data)
         manifest['index_receipt'] = receipt
     else:
-        pages = discover(index_path.read_bytes())
+        pages = discover(index_path.read_bytes(), index_url)
+    manifest['edition'] = REF.fullmatch(urlsplit(next(iter(pages.values()))).path)[4]
+    manifest['index_url'] = index_url
+    manifest['inventory_scope'] = 'All pages linked by the saved version index; not a proof of edition-wide text completeness'
     manifest['index_pages'] = pages
     # Verify saved files; never trust an old Installed-like receipt blindly.
     valid = {}
