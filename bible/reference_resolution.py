@@ -1,8 +1,4 @@
-"""Resolve verses with SWORD 1.9's native VerseKey mapping, never text reparsing.
-
-Only systems for which SWORD ships mapping data (or the KJV base) are
-accepted across systems. Other pairs keep an explicit local limitation.
-"""
+"""Resolve verified native/table capabilities without guessing verse identities."""
 from dataclasses import dataclass
 
 
@@ -25,8 +21,6 @@ def resolve(reference, source_system, target_reader, require_entry=True):
     from .book_names import canonical_input
     reference=canonical_input(reference)
     target_system = target_reader.versification
-    if source_system != target_system and not {source_system, target_system} <= MAPPED_SYSTEMS:
-        raise VersificationMismatch(f'{source_system} / {target_system}')
     source = Sword.VerseKey()
     source.setVersificationSystem(source_system)
     if source.getVersificationSystem() != source_system:
@@ -35,6 +29,34 @@ def resolve(reference, source_system, target_reader, require_entry=True):
     source.setText(reference)
     if source.popError() != '\x00':
         raise ValueError(f'Invalid source reference: {reference}')
+    if source_system != target_system and not {source_system, target_system} <= MAPPED_SYSTEMS:
+        from .versification_mapping import to_base, from_base
+        reference = source.getOSISRef()
+        intermediate = to_base(reference, source_system)
+        if intermediate is None and source_system in MAPPED_SYSTEMS:
+            intermediate = _native_refs(source, 'KJVA')
+        if not intermediate:
+            raise VersificationMismatch(f'No verified alignment: {source_system} {reference} / {target_system}')
+        references = []
+        for qualified in intermediate:
+            mapped = from_base(qualified, target_system)
+            if mapped is None and target_system in MAPPED_SYSTEMS and not qualified.startswith('?') and '!' not in qualified:
+                base = Sword.VerseKey()
+                base.setVersificationSystem('KJVA'); base.setAutoNormalize(False); base.setText(qualified)
+                mapped = _native_refs(base, target_system)
+            # A partially mapped result is not an exact alignment either.
+            if not mapped:
+                raise VersificationMismatch(f'No verified alignment: {source_system} {reference} / {target_system}')
+            references.extend(mapped)
+        try:
+            ordered = sorted(set(references), key=lambda ref: target_reader.key(ref).getIndex())
+            if _span(ordered[0], ordered[-1], target_system) != ordered:
+                raise VersificationMismatch(f'Non-contiguous alignment: {source_system} {reference} / {target_system}')
+        except ValueError as error:
+            raise VersificationMismatch(str(error)) from error
+        if require_entry and any(not target_reader.has_reference(ref) for ref in ordered):
+            raise ValueError(f'Passage unavailable: {ordered[0]}–{ordered[-1]}')
+        return ResolvedPassage(ordered[0], ordered[-1])
     target = Sword.VerseKey()
     target.setVersificationSystem(target_system)
     target.setAutoNormalize(False)
@@ -49,3 +71,29 @@ def resolve(reference, source_system, target_reader, require_entry=True):
     if require_entry and (not target_reader.has_reference(start) or not target_reader.has_reference(end)):
         raise ValueError(f'Passage unavailable: {start}' + (f'–{end}' if end != start else ''))
     return ResolvedPassage(start, end)
+
+
+def _span(start, end, system):
+    """Enumerate actual consecutive verses, excluding introductions."""
+    import Sword
+    key = Sword.VerseKey(); key.setVersificationSystem(system); key.setText(start)
+    refs = []
+    for _ in range(100000):
+        reference = key.getOSISRef()
+        refs.append(reference)
+        if reference == end:
+            return refs
+        key.increment()
+        if key.popError() != '\x00':break
+    raise VersificationMismatch(f'Invalid alignment range: {start}–{end}')
+
+
+def _native_refs(source, system):
+    import Sword
+    target = Sword.VerseKey(); target.setVersificationSystem(system); target.setAutoNormalize(False)
+    target.positionFrom(source)
+    if target.popError() != '\x00' or target.getVerse() < 1:
+        return []
+    start = target.getOSISRef()
+    end = target.getUpperBound().getOSISRef() if target.isBoundSet() else start
+    return _span(start, end, system)

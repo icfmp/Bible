@@ -264,10 +264,22 @@ class ReadingTab(Gtk.Box):
             reader = self._comparison_reader
             if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
             from .reference_resolution import resolve
-            resolved = resolve(self.state.reference, self.reader.versification, reader)
-            chapter = reader.chapter(resolved.start)
-            self.comparison_heading.set_text(resource.description+' — '+resource.source+' · '+resolved.start+
-                                             ('–'+resolved.end if resolved.end != resolved.start else ''))
+            alignment_error = None
+            try:
+                resolved = resolve(self.state.reference, self.reader.versification, reader)
+                reference, end = resolved.start, resolved.end
+            except ValueError as error:
+                # Keep this readable resource accessible in its own canon.
+                # Never pass an unmapped printed source reference to it.
+                alignment_error = error
+                same_resource = (getattr(self, '_comparison_signature', None) or (None,))[0] == name
+                reference = self.comparison_visible_reference() if same_resource else None
+                reference = reference or reader.first_reference()
+                end = reference
+            chapter = reader.chapter(reference)
+            self._comparison_heading_base = resource.description+' — '+resource.source+' · '+reference+(
+                '–'+end if end != reference else '')
+            self.set_comparison_alignment(alignment_error)
             signature = (name, chapter.reference, tuple(vars(self.preferences).items()))
             rebuild = signature != getattr(self, '_comparison_signature', None)
             anchor = None
@@ -289,11 +301,21 @@ class ReadingTab(Gtk.Box):
                     buffer.select_range(*(buffer.get_iter_at_offset(self._comparison_document.locate(a)) for a in selected))
             sync = getattr(self, 'comparison_sync', None)
             if not (sync and sync.running and sync.driver == 'comparison'):
-                self.reveal_comparison(resolved.start, anchor=anchor, settle=rebuild)
+                self.reveal_comparison(reference, anchor=anchor, settle=rebuild)
         except Exception as error:
             self.comparison_text.get_buffer().set_text('')
+            self._comparison_reader = None; self._comparison_name = None
             self._comparison_signature = None; self._comparison_offsets = {}
+            self._comparison_document = None; self._comparison_ranges = {}; self._comparison_markers = {}
+            self.comparison_heading.set_text('')
             self.comparison_status.set_text(str(error))
+
+    def set_comparison_alignment(self, error):
+        self._comparison_aligned = error is None
+        self.comparison_status.set_text((tr('Automatic following unavailable. Reading independently.')+' '+str(error))
+                                        if error is not None else '')
+        heading = getattr(self, '_comparison_heading_base', '')
+        self.comparison_heading.set_text(heading+(' · '+tr('Independent reading') if error is not None else ''))
 
     def comparison_visible_reference(self):
         offsets = getattr(self, '_comparison_offsets', {})

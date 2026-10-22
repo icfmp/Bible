@@ -19,7 +19,8 @@ class ResolutionTests(unittest.TestCase):
             self.assertEqual((mapped.start,mapped.end),('Ps.3.1','Ps.3.1'))
             self.assertEqual(reader.entry('Ps.3.2','Segond'),'PSALM TEST')
             self.assertIsNone(reader.entry('Gen.1.26','Segond'))
-            with self.assertRaises(VersificationMismatch):resolve('Gen.1.25','Catholic',reader)
+            self.assertEqual(resolve('Gen.1.25','Catholic',reader).start,'Gen.1.25')
+            with self.assertRaises(VersificationMismatch):resolve('Gen.1.25','LXX',reader)
 
     def test_reverse_mapping_and_unavailable_target(self):
         with tempfile.TemporaryDirectory() as directory:

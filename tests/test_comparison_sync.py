@@ -11,7 +11,7 @@ class ComparisonTests(unittest.TestCase):
         from bible.ui import Application, Window, Library
         app=Application.get_default() or Application();app.register()
         with tempfile.TemporaryDirectory() as directory:
-            installed_fixture(directory,'Unsupported',versification='Luther')
+            installed_fixture(directory,'Unsupported',versification='LXX')
             installed_fixture(directory,'Primary')
             installed_fixture(directory,'Target',entries=[('Gen.1.1','TARGET SOURCE TEXT')])
             window=Window(app,Library(Path(directory)/'translations'));window.present()
@@ -20,7 +20,14 @@ class ComparisonTests(unittest.TestCase):
                 tab.state.comparison='Target';window.sync_comparison()
                 spin(lambda:not tab._restoring_scroll)
                 self.assertTrue(tab.comparison_status.get_text())
-                self.assertFalse(tab.comparison_text.get_buffer().props.text)
+                self.assertIn('TARGET SOURCE TEXT',tab.comparison_text.get_buffer().props.text)
+                self.assertIn('Independent reading',tab.comparison_heading.get_text())
+                before=tab.state.reference;history=list(tab.state.history)
+                for side in ('primary','comparison'):
+                    tab.comparison_sync.intent(side);tab.comparison_sync.synchronize()
+                    self.assertEqual(tab.state.reference,before)
+                    self.assertIn('TARGET SOURCE TEXT',tab.comparison_text.get_buffer().props.text)
+                self.assertEqual(tab.state.history,history)
                 # Same printed reference and comparison resource, new primary.
                 self.assertTrue(tab.navigate('Primary','Gen.1.1'))
                 spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))

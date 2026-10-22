@@ -1,5 +1,11 @@
 # Recovery and installed-package validation — 22 October 2026
 
+**Later acceptance:** PR #61 was merged and published on the existing signed alpha.
+The client subsequently confirmed successful GNOME functional testing and
+authorized closing #24. Accessibility is deferred and was not tested. The
+remaining-gate statements below describe the historical recovery validation,
+not the current issue state. See [the latest validation](COMPARISON_INTEROPERABILITY_57.md).
+
 ## Restoration
 
 The executor could reach GitHub through the inherited proxy (HTTP 200), fetch

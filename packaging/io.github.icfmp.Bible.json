@@ -132,6 +132,8 @@
         "for size in 32 48 64 128 256 512; do install -Dm644 packaging/icons/${size}x${size}/io.github.icfmp.Bible.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.icfmp.Bible.png; done",
         "install -Dm644 LICENSE /app/share/licenses/bible/LICENSE",
         "install -Dm644 THIRD_PARTY_NOTICES.md /app/share/licenses/bible/THIRD_PARTY_NOTICES.md",
+        "install -Dm644 third_party/jsword/COPYING.LESSER /app/share/licenses/jsword/COPYING.LESSER",
+        "install -Dm644 third_party/jsword/provenance.json /app/share/licenses/jsword/provenance.json",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.svg",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.Devel.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.Devel.svg",
         "install -Dm644 packaging/icons/symbolic/apps/io.github.icfmp.Bible-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.icfmp.Bible-symbolic.svg"

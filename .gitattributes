@@ -2,3 +2,6 @@
 docs/evidence/recovery-24/**/*.log -whitespace
 docs/evidence/recovery-24/flatpak/installed-info.txt -whitespace
 docs/evidence/comparison-57-resumption/*.log -whitespace
+
+docs/evidence/comparison-57/*.log -whitespace
+docs/evidence/comparison-57/candidate-installed-info.txt -whitespace

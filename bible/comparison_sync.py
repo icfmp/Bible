@@ -36,6 +36,8 @@ class ComparisonSync(ReadingSync):
         if (self.owner.closed or self.owner.active_tab is not tab or self.owner.immersion
                 or self.running or not tab.state.comparison or not tab._comparison_reader
                 or not tab.text.get_mapped() or not tab.comparison_text.get_mapped()):return False
+        # Queued layout callbacks must not outlive the actual input gesture.
+        if self.driver is None or (self.dragging!=self.driver and time.monotonic()>=self.armed_until):return False
         if tab._restoring_scroll or getattr(tab,'_comparison_positioning',False):
             self.schedule();return False
         view=tab.text if self.driver=='primary' else tab.comparison_text
@@ -46,11 +48,11 @@ class ComparisonSync(ReadingSync):
                 reference=tab.visible_reference()
                 if not reference:return False
                 resolved=resolve(reference,tab.reader.versification,tab._comparison_reader)
-                if getattr(tab,'_comparison_signature',None) is None:
-                    tab._comparison_stamp=None;tab.refresh_comparison()
                 target=('comparison',resolved.start,id(tab._comparison_document))
                 if target!=self.last_target:
                     if reference!=tab.state.reference:tab.select_verse(reference)
+                    if resolved.start not in tab._comparison_offsets:
+                        tab._comparison_stamp=None;tab.refresh_comparison()
                     tab.reveal_comparison(resolved.start)
                     self.last_target=target
             elif self.driver=='comparison':
@@ -66,11 +68,9 @@ class ComparisonSync(ReadingSync):
                         adjustment=tab.scroll.get_vadjustment()
                         adjustment.set_value(adjustment.get_value()+location.y-rect.y)
                     self.last_target=target
+            tab.set_comparison_alignment(None)
         except ValueError as error:
-            tab.comparison_status.set_text(str(error))
-            if self.driver=='primary':
-                tab.comparison_text.get_buffer().set_text('')
-                tab._comparison_offsets={};tab._comparison_signature=None
-                tab._comparison_stamp=None;self.last_target=None
+            tab.set_comparison_alignment(error)
+            self.last_target=None
         finally:self.running=False
         return False

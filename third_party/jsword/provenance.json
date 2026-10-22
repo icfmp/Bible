@@ -1,0 +1,9 @@
+{
+  "project": "AndBible/jsword",
+  "revision": "6ebd10a005fa7761e611c048ececea1430e22546",
+  "source_url": "https://codeload.github.com/AndBible/jsword/tar.gz/6ebd10a005fa7761e611c048ececea1430e22546",
+  "archive_sha256": "e2f0dae32d0b84ad741cd5f878b17c82a79ae6f966c30b9d4bfa906d58d1a556",
+  "license": "LGPL-2.1-or-later",
+  "copyright": "CrossWire Bible Society and individual JSword authors; see original file headers",
+  "transformation": "Expanded forward/reverse mappings, qualified verse parts, absent references and canon dimensions, using the original pinned JSword parser. No Scripture text."
+}
