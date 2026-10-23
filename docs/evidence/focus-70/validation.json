@@ -1,0 +1,13 @@
+{
+  "source_tests": 229,
+  "affected_installed_flatpak_tests": 26,
+  "package_test_execution": "25 ordinary cases plus one native case on a fresh display, BIBLE_TEST_ISOLATED_CLICK=1",
+  "source_system_scale_2": "PASS",
+  "installed_flatpak_system_scale_2": "PASS",
+  "native_mutter_wayland": "PASS: before/after; actual Alt+Tab, Tab/Shift+Tab, selection/copy, F9/F10/F11, tabs and untouched notes",
+  "packaged_files": 84,
+  "canonical_tables": 14,
+  "accessibility": "Deferred; not tested",
+  "personal_client_gnome_session": "Not accessed",
+  "publication": "Pending review, CI, ordered merge and signed ordinary-update proof"
+}

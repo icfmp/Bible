@@ -1,0 +1,79 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "gdk_display": "GdkWaylandDisplay",
+  "surface": "GdkWaylandToplevel",
+  "compositor": "Mutter 48.7 nested Wayland; XTest to outer compositor",
+  "states": [
+    {
+      "stage": "pointer-before",
+      "active": true,
+      "window_focus_visible": false,
+      "view_has_focus": true,
+      "view_visible_focus": false,
+      "state_flags": 16546,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "away",
+      "active": false,
+      "window_focus_visible": true,
+      "view_has_focus": false,
+      "view_visible_focus": false,
+      "state_flags": 194,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "returned",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": true,
+      "view_visible_focus": true,
+      "state_flags": 24738,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "keyboard-tab",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": false,
+      "view_visible_focus": false,
+      "state_flags": 130,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "keyboard-back",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": true,
+      "view_visible_focus": true,
+      "state_flags": 24738,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    }
+  ],
+  "css": "\n.bible-content-139866009966528-surface { background-color: #ffffff; color: #202020; }\n.passage-actions { border-radius: 12px; padding: 3px; }\n.passage-actions button { min-width: 26px; min-height: 26px; padding: 2px; }\ntextview.bible-content-139866009966528, textview.bible-content-139866009966528 text { background-color: #ffffff; color: #202020; }\ntextview.bible-content-139866009966528 text selection { background-color: #004a99; color: #ffffff; }\ntextview.bible-content-139866009966528 text link { color: #003f87; }\ntextview.bible-content-139866009966528.study-reader, textview.bible-content-139866009966528.study-reader text { background-color: transparent; color: @sidebar_fg_color; }\n/* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque\n   background cannot cover the focus mark. Inset shadows do not change layout. */\ntextview.bible-content-139866009966528:focus-visible text { box-shadow: inset 2px 0 0 #003f87; }\ntextview.bible-content-139866009966528:dir(rtl):focus-visible text { box-shadow: inset -2px 0 0 #003f87; }\n",
+  "accessibility": "Deferred; not tested",
+  "personal_gnome_desktop": "Not accessed; actual nested Mutter Wayland app switching",
+  "actual_alt_tab_and_rendered_focus": "PASS",
+  "reference_scroll_allocation_preserved": true,
+  "native_selection_copy": "PASS",
+  "native_F9": "PASS",
+  "native_F10_F11": "PASS",
+  "native_tab_switch": "PASS",
+  "native_note_open_close_preserved_data": "PASS",
+  "status": "PASS"
+}

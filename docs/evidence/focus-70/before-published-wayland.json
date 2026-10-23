@@ -1,0 +1,76 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "gtk_version": "4.20.4",
+  "gdk_display": "GdkWaylandDisplay",
+  "surface": "GdkWaylandToplevel",
+  "compositor": "Mutter 48.7 nested Wayland; XTest to outer compositor",
+  "offline": true,
+  "states": [
+    {
+      "stage": "pointer-before",
+      "active": true,
+      "window_focus_visible": false,
+      "view_has_focus": true,
+      "view_visible_focus": false,
+      "state_flags": 16546,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "away",
+      "active": false,
+      "window_focus_visible": true,
+      "view_has_focus": false,
+      "view_visible_focus": false,
+      "state_flags": 194,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "returned",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": true,
+      "view_visible_focus": true,
+      "state_flags": 24738,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "keyboard-tab",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": false,
+      "view_visible_focus": false,
+      "state_flags": 130,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    },
+    {
+      "stage": "keyboard-back",
+      "active": true,
+      "window_focus_visible": true,
+      "view_has_focus": true,
+      "view_visible_focus": true,
+      "state_flags": 24738,
+      "reference": "Gen.5.11",
+      "scroll": 681,
+      "width": 800,
+      "height": 450
+    }
+  ],
+  "css": "\n.bible-content-139810660907264-surface { background-color: #ffffff; color: #202020; }\n.passage-actions { border-radius: 12px; padding: 3px; }\n.passage-actions button { min-width: 26px; min-height: 26px; padding: 2px; }\ntextview.bible-content-139810660907264, textview.bible-content-139810660907264 text { background-color: #ffffff; color: #202020; }\ntextview.bible-content-139810660907264 text selection { background-color: #004a99; color: #ffffff; }\ntextview.bible-content-139810660907264 text link { color: #003f87; }\ntextview.bible-content-139810660907264.study-reader, textview.bible-content-139810660907264.study-reader text { background-color: transparent; color: @sidebar_fg_color; }\ntextview.bible-content-139810660907264:focus-visible { outline: 2px solid #202020; outline-offset: -2px; }\n",
+  "accessibility": "Deferred; not tested",
+  "personal_gnome_desktop": "Not accessed; actual nested Mutter Wayland app switching",
+  "actual_alt_tab_and_rendered_focus": "PASS",
+  "reference_scroll_allocation_preserved": true,
+  "status": "PASS"
+}
