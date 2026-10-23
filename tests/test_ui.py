@@ -448,6 +448,7 @@ class WindowTests(unittest.TestCase):
             with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
                 dialog = window.open_library()
                 dialog.installed_only.set_active(True)
+                spin(lambda:not dialog.preparing and not dialog._building_rows)
                 self.assertEqual([r.name for r in dialog.filtered_resources], ['Test'])
                 self.assertIn('CrossWire', dialog.metadata.get_text())
                 self.assertIn('Public Domain', dialog.metadata.get_text())

@@ -1,0 +1,19 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "offline": true,
+  "accessibility": "Deferred; not tested",
+  "reported_crash": "Not reproduced; no historical crash mechanism is claimed",
+  "application_constructor_seconds": 0.3614265060023172,
+  "startup_scroll_preparation": true,
+  "constructor_seconds": 2.81418124200718,
+  "first_painted_frame_seconds": 2.881581867011846,
+  "resources": 1941,
+  "languages": 1325,
+  "ready_seconds": 2.9409458440059097,
+  "maximum_heartbeat_gap_seconds": 2.817560103008873,
+  "refresh_running": true,
+  "stages": {},
+  "reopen_constructor_seconds": 0.20723370100313332,
+  "notes_resources_reading_preserved": true,
+  "status": "OBSERVED"
+}

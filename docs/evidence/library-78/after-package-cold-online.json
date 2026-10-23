@@ -1,0 +1,43 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "offline": false,
+  "accessibility": "Deferred; not tested",
+  "reported_crash": "Not reproduced; no historical crash mechanism is claimed",
+  "application_constructor_seconds": 0.11258828500285745,
+  "startup_scroll_preparation": true,
+  "constructor_seconds": 0.03612405799503904,
+  "first_painted_frame_seconds": 0.0736817859869916,
+  "resources": 1941,
+  "languages": 1325,
+  "ready_seconds": 2.747041543989326,
+  "maximum_heartbeat_gap_seconds": 0.34074663900537416,
+  "refresh_running": false,
+  "stages": {
+    "cache_read_seconds": 0.000735961992177181,
+    "installed_scan_seconds": 0.000485636992380023,
+    "language_and_search_seconds": 0.014708747999975458,
+    "andbible-extra": {
+      "network_seconds": 0.6087861609994434,
+      "parse_seconds": 0.023441394994733855
+    },
+    "andbible": {
+      "network_seconds": 0.6886558389960555,
+      "parse_seconds": 0.008389563008677214
+    },
+    "crosswire": {
+      "network_seconds": 1.2263255689904327,
+      "parse_seconds": 0.5079751730081625
+    },
+    "step": {
+      "network_seconds": 1.5242878940043738,
+      "parse_seconds": 0.5018172529962612
+    },
+    "ebible": {
+      "network_seconds": 0.06597662600688636,
+      "parse_seconds": 1.5522311060049105
+    }
+  },
+  "reopen_constructor_seconds": 0.01864154401118867,
+  "notes_resources_reading_preserved": true,
+  "status": "PASS"
+}

@@ -13,7 +13,7 @@ import time
 import urllib.request
 import zipfile
 from dataclasses import dataclass, replace
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from .providers import CROSSWIRE, PROVIDERS, BY_ID, identity, module_name
 
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
@@ -211,7 +211,8 @@ def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
         except Exception as error:
             return cached[0] if cached else [],str(error),timings
     resources, errors = [], {}
-    with ThreadPoolExecutor(max_workers=4, thread_name_prefix='bible-catalogue') as executor:
+    from .metadata_workers import MetadataExecutor
+    with MetadataExecutor(max_workers=4, thread_name_prefix='bible-catalogue') as executor:
         futures={executor.submit(load,provider):provider for provider in providers}
         for future in as_completed(futures):
             provider=futures[future];items,error,timings=future.result()

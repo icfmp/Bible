@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 from babel import Locale, UnknownLocaleError
 from babel.core import get_global
+from babel.localedata import locale_identifiers
 from .i18n import LANGUAGE, tr
 
 
@@ -49,14 +50,23 @@ def language_info(code, interface=None):
         else:qualifiers.append(part)
     if qualifiers:name+=' — '+', '.join(qualifiers)
     native=''
-    try:
-        own=Locale.parse(code.replace('-','_'))
-        native=own.get_display_name(own) or ''
-    except (UnknownLocaleError,ValueError):pass
+    # Babel's missing-locale fallback linearly normalizes its entire locale
+    # inventory several times. Most ISO 639-3 catalogue languages have no CLDR
+    # native locale at all: do not perform that expensive failed lookup.
+    if alias in native_language_codes():
+        try:
+            own=Locale.parse(code.replace('-','_'))
+            native=own.get_display_name(own) or ''
+        except (UnknownLocaleError,ValueError):pass
     return name,native
 
 
 def language_name(code):return language_info(code)[0]
+
+
+@lru_cache(maxsize=1)
+def native_language_codes():
+    return frozenset(identifier.split('_')[0] for identifier in locale_identifiers())
 
 
 def search_terms(code):

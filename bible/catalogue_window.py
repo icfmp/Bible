@@ -14,7 +14,7 @@ from .providers import PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
-from .catalogue_cache import CatalogueCache
+from .catalogue_session import CatalogueSession
 
 
 class ResourceItem(GObject.Object):
@@ -39,13 +39,16 @@ class CatalogueWindow(Adw.Window):
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
-        self.cache=CatalogueCache(library.root.parent/'catalogue-cache')
-        self.provider_resources={p.id:list(value[0]) for p in PROVIDERS if (value:=self.cache.read(p)) is not None}
-        self.resources = sorted([r for items in self.provider_resources.values() for r in items],key=lambda r:(r.language,r.name,r.provider_id))
-        self.timings={};self.catalogue_generation=0
+        existing=getattr(parent,'catalogue_session',None)
+        if not existing:parent.catalogue_session=CatalogueSession(library)
+        self.session=parent.catalogue_session;self.cache=self.session.cache
+        self.resources=[];self.preparing=True
+        self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
+        self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
+        self._pending_resource=None
+        self.timings={}
         self._completed_resource=None
         self._failed_resource=None
-        self.catalogue_executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-refresh')
         self.filtered_resources = []
         self.languages = []
         self.source_ids = [None] + [p.id for p in PROVIDERS]
@@ -123,12 +126,43 @@ class CatalogueWindow(Adw.Window):
         self.refresh_status.add_css_class('dim-label');layout.append(self.refresh_status)
         if self.resources:self.refresh_status.set_text(tr('Saved catalogue — available offline.'))
         self.set_content(layout)
-        self.update_languages()
         self._catalogue_requested=False
+        self.update_languages()
+        self.refresh_status.set_text(tr('Loading saved resources…'))
+        self.session.subscribe(self.snapshot_ready)
+        if existing and self.session.bootstrap_future.done():self.session.reload_installed()
         self.connect('map',lambda *_:GLib.timeout_add(100,self.auto_load))
 
     @property
-    def busy(self):return self._transfer_busy or self.refreshing
+    def busy(self):return self._transfer_busy or self.refreshing or self.preparing or self._building_rows
+
+    def snapshot_ready(self,snapshot):
+        # The service publishes plain immutable snapshots from metadata workers.
+        GLib.idle_add(self.apply_snapshot,snapshot)
+
+    def apply_snapshot(self,snapshot):
+        if self.closed:return False
+        changed=(self.resources!=list(snapshot.resources) or self._installed_metadata!=snapshot.installed
+                 or self._study_installed!=snapshot.study_installed or self._study_current!=snapshot.study_current
+                 or self._language_records!=snapshot.languages)
+        self.preparing=False;self.resources=list(snapshot.resources)
+        self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
+        self._study_current=snapshot.study_current;self._language_records=snapshot.languages
+        self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
+        if snapshot.generation>=self._refresh_generation:self.refreshing=snapshot.refreshing
+        if changed:self.update_languages()
+        errors=snapshot.errors
+        message=(tr('Refreshing sources… Cached resources remain available.') if self.refreshing else
+            tr('Partial catalogue. Retry to reload unavailable sources.')+' '+tr('Saved results retained.')+'\n'+
+            '\n'.join(f'{name}: {error}' for name,error in errors.items()) if errors else
+            tr('Saved catalogue — available offline.') if self.resources and not self._catalogue_requested else
+            tr('Ready') if self.resources else tr('No supported resource found.'))
+        self.refresh_status.set_text(message);self.refresh_status.set_visible(bool(errors) or self.refreshing or not self.resources)
+        if not self._transfer_busy and self._phase!='error' and self._completed_resource is None:
+            self.status.set_text(message);self.status.set_visible(False)
+        self.refresh_controls()
+        if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
+        return False
 
     def auto_load(self,*_):
         if self.kind.get_selected()==2:return False
@@ -148,7 +182,7 @@ class CatalogueWindow(Adw.Window):
         box=item.get_child();title=box.get_first_child();subtitle=title.get_next_sibling()
         title.set_text(plain(resource.description))
         installed=resource.id in getattr(self,'_installed_ids',set())
-        subtitle.set_text(language_name(resource.language)+' — '+resource.source+(' · '+tr('Installed') if installed else ''))
+        subtitle.set_text(self.language_label(resource.language)+' — '+resource.source+(' · '+tr('Installed') if installed else ''))
         box.set_tooltip_text(resource.name+' · '+resource.language)
 
     def open_details(self,_,index):
@@ -164,10 +198,10 @@ class CatalogueWindow(Adw.Window):
 
     def current_resources(self):
         if self.kind.get_selected()==2:
-            installed=self.study_resources.installed()
+            installed=self._study_installed
             return [r for r in self.study_resources.available()
                     if not self.installed_only.get_active() or r.id in installed]
-        resources = ([self.library.resource(name) for name in self.library.installed()]
+        resources = (list(self._installed_metadata.values())
                      if self.installed_only.get_active() else self.resources)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
         index = self.source_filter.get_selected()
@@ -180,8 +214,8 @@ class CatalogueWindow(Adw.Window):
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
         self.catalogue_button.set_visible(not study)
         self._filtering=True
-        self.languages=['']+sorted({r.language for r in self.current_resources()},key=lambda code:language_name(code).casefold())
-        self.language.set_codes(self.languages)
+        self.languages=['']+sorted({r.language for r in self.current_resources()},key=lambda code:self.language_label(code).casefold())
+        self.language.set_codes(self.languages,self._language_records)
         self._filtering=False
         self.filter_resources()
         if not self.installed_only.get_active() and not self.busy and not self.resources and self.get_mapped():
@@ -199,23 +233,39 @@ class CatalogueWindow(Adw.Window):
         query = normalized(self.search.get_text())
         self.filtered_resources = [r for r in self.current_resources()
                                    if (not language or r.language == language)
-                                   and query in normalized(' '.join((r.name, r.description,
-                                                                    r.language, language_name(r.language))))]
+                                   and query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language)))))]
         self._installed_ids=set(self.installed_ids())
-        self.choice_model.splice(0,self.choice_model.get_n_items(),[ResourceItem(r) for r in self.filtered_resources])
-        self.choices.set_selected(next((i for i,r in enumerate(self.filtered_resources) if r.id==selected_id),0))
-        self.list_scroll.get_vadjustment().set_value(position)
+        self._rows_generation+=1;generation=self._rows_generation
+        rows=self.filtered_resources;target=next((i for i,r in enumerate(rows) if r.id==selected_id),0)
+        self._building_rows=True;self._pending_resource=rows[target] if rows else None
+        self.choices.set_autoselect(False);self.choice_model.remove_all()
+        offset=0
+        def append_rows():
+            nonlocal offset
+            if self.closed or generation!=self._rows_generation:return False
+            last=min(offset+16,len(rows))
+            self.choice_model.splice(self.choice_model.get_n_items(),0,[ResourceItem(r) for r in rows[offset:last]])
+            offset=last
+            if self.choices.get_selected()==Gtk.INVALID_LIST_POSITION and target<offset:self.choices.set_selected(target)
+            if offset<len(rows):return True
+            self._building_rows=False;self._pending_resource=None;self.choices.set_autoselect(True)
+            self.list_scroll.get_vadjustment().set_value(position);self.selection_changed()
+            if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
+            return False
+        if append_rows():GLib.idle_add(append_rows)
         self.empty.set_visible(not self.filtered_resources)
         self.selection_changed()
 
     def selected_resource(self):
         index = self.choices.get_selected()
-        return self.filtered_resources[index] if index < len(self.filtered_resources) else None
+        return self.filtered_resources[index] if index < len(self.filtered_resources) else self._pending_resource if self._building_rows else None
 
-    def installed_ids(self):return [*self.library.installed(),*self.study_resources.installed()]
+    def language_label(self,code):return self._language_records[code][0] if code in self._language_records else language_name(code)
+
+    def installed_ids(self):return [*self._installed_metadata,*self._study_installed]
 
     def installed_resource(self,name):
-        return self.study_resources.resource(name) if name in self.study_resources.stores else self.library.resource(name)
+        return self.study_resources.resource(name) if name in self.study_resources.stores else self._installed_metadata[name]
 
     def selection_changed(self, *_):
         resource = self.selected_resource()
@@ -227,7 +277,7 @@ class CatalogueWindow(Adw.Window):
     def refresh_controls(self):
         resource = self.selected_resource()
         installed=bool(resource and resource.id in self.installed_ids())
-        current=installed and (resource.kind!='study' or self.study_resources.current(resource.id))
+        current=installed and (resource.kind!='study' or resource.id in self._study_current)
         self.installed_state.set_visible(current)
         self.download_button.set_visible(not current)
         self.download_button.set_label(tr('Update') if installed and not current else
@@ -246,10 +296,9 @@ class CatalogueWindow(Adw.Window):
             self.set_visible(False)
             return True
         self.closed = True
-        self.catalogue_generation+=1
+        self._rows_generation+=1;self.language.cancel_pending();self.session.unsubscribe(self.snapshot_ready)
         self.stop_animation()
         self.executor.shutdown(wait=False, cancel_futures=True)
-        self.catalogue_executor.shutdown(wait=False,cancel_futures=True)
         return False
 
     def task(self, message, action, finished, success_text=None, resource=None):
@@ -298,44 +347,11 @@ class CatalogueWindow(Adw.Window):
     def load_catalogue(self, *_, force=True):
         if self.closed or self.refreshing:return
         self._catalogue_requested=True
-        self.refreshing=True;self.catalogue_generation+=1;generation=self.catalogue_generation
+        self.refreshing=True
         self.refresh_status.set_visible(True)
         self.refresh_status.set_text(tr('Refreshing sources… Cached resources remain available.'))
         self.refresh_controls()
-        def progress(provider,items,error,timings):
-            def apply():
-                if self.closed or generation!=self.catalogue_generation:return False
-                started=time.monotonic()
-                self.provider_resources[provider.id]=list(items)
-                self.resources=sorted([r for values in self.provider_resources.values() for r in values],key=lambda r:(r.language,r.name,r.provider_id))
-                self.update_languages()
-                self.timings[provider.id]=dict(timings,ui_seconds=time.monotonic()-started)
-                self.refresh_status.set_text(provider.name+': '+(str(error) if error else tr('Ready')))
-                return False
-            GLib.idle_add(apply)
-        def loaded(result):
-            errors = getattr(result, 'errors', {})
-            resources = getattr(result, 'resources', result)
-            self.resources = list(resources)
-            self.update_languages()
-            message=(
-                tr('Partial catalogue. Retry to reload unavailable sources.') + ' '+tr('Saved results retained.')+'\n' +
-                '\n'.join(f'{name}: {error}' for name, error in errors.items())
-                if errors else tr('Ready') if resources else tr('No supported resource found.'))
-            self.refresh_status.set_text(message)
-            self.refresh_status.set_visible(bool(errors))
-            if not self._transfer_busy and self._completed_resource is None and self._phase!='error':
-                self.status.set_text(message);self.status.set_visible(False)
-        future=self.catalogue_executor.submit(lambda:catalogue(on_provider=progress,cache=self.cache,force=force))
-        def complete():
-            if self.closed or generation!=self.catalogue_generation:return False
-            self.refreshing=False
-            try:loaded(future.result())
-            except Exception as error:
-                self.refresh_status.set_text(str(error))
-                if not self._transfer_busy:self.status.set_text(str(error));self.status.set_visible(True)
-            self.refresh_controls();return False
-        future.add_done_callback(lambda _:GLib.idle_add(complete))
+        self.session.refresh(catalogue,force);self._refresh_generation=self.session.generation
 
     def stop_animation(self):
         if self._pulse_id:
@@ -382,6 +398,7 @@ class CatalogueWindow(Adw.Window):
 
         def installed(_):
             self._completed_resource=resource.id
+            self.preparing=True;self.session.reload_installed()
             self.on_installed(resource.id)
             self.filter_resources()
             self.status.set_text(tr('Installed: {name}').format(name=resource.name))
