@@ -6,6 +6,10 @@ Bible is designed for comfortable reading, including longer sessions. You can cu
 
 Choose the **Aa** button (**Reading appearance**) in the main window to adjust how biblical text is displayed. Changes take effect immediately and are saved locally.
 
+![Reading appearance settings menu](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/appearance-settings.png)
+
+*Adjust fonts, text size, colors and layout from the Aa menu.*
+
 ## Typography and layout
 
 | Setting | Available options |
@@ -40,6 +44,14 @@ You can also select a palette for each appearance:
 | **Paper (sepia)** — warmer, paper-like background | **Black** — black background |
 
 Try different combinations of typography, spacing and palettes to find a comfortable balance.
+
+![Bible reading with the warm paper day palette](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/appearance-day.png)
+
+*The paper palette offers a warmer background for daytime reading.*
+
+![Bible reading in night mode](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/appearance-night.png)
+
+*Night mode provides a darker reading environment.*
 
 ### High-contrast mode
 
