@@ -57,3 +57,12 @@ The user is the client. Communicate with the client in French. Keep implementati
 - Do not add fabricated progress, placeholder translations presented as real, or silent requirement reductions.
 - Do not publish releases, submit to Flathub, spend money or change repository administration without the corresponding task authorization.
 
+
+## Numbered prereleases until the first stable release
+- Standing client authorization (23 October 2026): every completed application delivery batch published to the signed alpha channel must also receive a numbered GitHub prerelease, until the first official stable release. Do not require the client to request this again. This authorization does not cover a stable release, Flathub submission, spending or repository administration.
+- Continue sequential numbering from `0.1.0-alpha.3` to `0.1.0-alpha.4`, etc. Use one prerelease per delivered batch, not per intermediate commit, CI retry, packaging verification revision or documentation/website-only change.
+- Publish only after the relevant review, green CI, successful signed deployment and actual update verification. Failed or incomplete deployments are not releases.
+- Tag the exact verified application source commit and never move published tags. Record matching source/build/publication provenance; preserve the signed channel identity and user data.
+- Include English release notes describing all delivered features, changes and fixes since the previous numbered prerelease, plus installation/update instructions and material known limitations. Exclude planned or unshipped issues. Attach only matching verified packages/sources/checksums, or link clearly to the signed installation channel.
+- A delivery report must include the public GitHub prerelease URL. If publication is blocked, report the exact blocker and explicitly state that the delivery is not yet fully published.
+- Keep continuous Flatpak updates. Do not rebuild or republish the application solely to create release notes for an already verified snapshot.
