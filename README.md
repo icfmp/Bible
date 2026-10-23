@@ -2,7 +2,13 @@
 
 <img src="packaging/icons/128x128/io.github.icfmp.Bible.png" alt="Bible application icon" width="128" height="128">
 
-Read and study the Bible with a native GNOME application built with Python, GTK 4 and libadwaita.
+**A simpler way to read and study Scripture.**
+
+Bible is a native GNOME application built with Python, GTK 4 and libadwaita. It puts readability, usability and a calm, consistent experience first.
+
+### Simplicity over features
+
+Bible is designed to make reading and studying Scripture feel natural, focused and effortless. We don't add features simply because we can: each addition must solve a real need, fit coherently into the existing experience and avoid making the interface or everyday use more complicated. When a feature would compromise clarity or usability, we would rather leave it out.
 
 - Download Bibles and commentaries from SWORD catalogues and read them offline.
 - Open passages in separate tabs.
@@ -79,6 +85,10 @@ To test an actual download and local reading (requires network access):
 ```sh
 /usr/bin/python3 -m tools.check_crosswire
 ```
+
+## Support development
+
+Bible is free and open source. If you find it useful and would like to help sustain its development, you can [support Bible on Patreon](https://www.patreon.com/BibleStudyApp). Support is optional and does not change the project's commitment to a simple, accessible experience.
 
 ## Contributing
 
