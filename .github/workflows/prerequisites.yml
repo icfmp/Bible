@@ -118,7 +118,7 @@ jobs:
       - name: Vérifier les cartes et brouillons dans le Flatpak installé
         run: |
           set -o pipefail
-          dbus-run-session -- xvfb-run -a flatpak run --user --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
