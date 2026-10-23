@@ -169,7 +169,7 @@ class NoteEditor(Adw.Window):
         scroll.set_child(self.body)
         self.stack.add_titled(scroll, 'edit', tr('Write'))
         from .note_preview import NotePreview
-        self.preview = NotePreview()
+        self.preview = NotePreview(owner=owner,system=self.context['versification'],navigation_guard=self.guard_navigation)
         self.tags = self.preview.tags
         preview_scroll = Gtk.ScrolledWindow(vexpand=True)
         preview_scroll.set_child(self.preview)
@@ -192,6 +192,9 @@ class NoteEditor(Adw.Window):
         self._initial = (buffer_text(self.body), tuple(self.labels.values))
         self.body.get_buffer().connect('changed', lambda *_: self.update_preview())
         self.update_preview()
+
+    def guard_navigation(self,action):
+        self.after_close=action;self.close()
 
     def update_preview(self):
         self.preview.set_source(buffer_text(self.body))

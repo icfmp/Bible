@@ -3,6 +3,9 @@ import locale
 import os
 
 FR = {
+    'Bible references: Tab to choose, Enter to preview.':'Références bibliques : Tab pour choisir, Entrée pour prévisualiser.',
+    'No active Bible translation':'Aucune traduction biblique active',
+    'Open an installed Bible translation to preview this reference.':'Ouvrez une traduction biblique installée pour prévisualiser cette référence.',
     'References':'Références', 'Study resources':'Ressources d’étude', 'Bible cross-references':'Renvois bibliques',
     'Update':'Mettre à jour', 'Cross-references':'Références croisées', 'View all':'Tout voir',
     'Passage preview':'Aperçu du passage', 'Local passage text':'Texte local du passage',

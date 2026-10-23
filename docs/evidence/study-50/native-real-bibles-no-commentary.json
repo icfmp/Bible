@@ -1,0 +1,26 @@
+{
+  "app_import": "/validation/checkout50/bible/ui.py",
+  "network_disabled": true,
+  "accessibility": "Deferred; not tested",
+  "native_inline_preview": {
+    "pointer": true,
+    "tab_return_space": true,
+    "escape_focus_return": true,
+    "exact_romans_range": true,
+    "segond_psalm_to_kjv": true,
+    "split_john": true,
+    "reader_history_preserved": true,
+    "stored_note_unchanged": true,
+    "native_drag_selection": true
+  },
+  "my_notes_and_draft_guard": {
+    "shared_preview": true,
+    "native_draft_typing": true,
+    "cancel_keeps_draft": true,
+    "discard_then_explicit_new_tab": true,
+    "original_note_context_unchanged": true
+  },
+  "narrow_and_themes": true,
+  "offline_restart_unchanged_note": true,
+  "status": "PASS"
+}

@@ -68,7 +68,7 @@ class PassageNotes(Gtk.Box):
             edit = Gtk.Button(icon_name='document-edit-symbolic', tooltip_text=tr('Edit note'))
             edit.add_css_class('flat'); edit.connect('clicked', lambda _, value=note:self.owner.edit_note(note=value))
             header.append(edit); row.append(header)
-            preview = NotePreview(vexpand=False); preview.add_css_class('study-note-preview')
+            preview = NotePreview(owner=self.owner,system=note.versification,vexpand=False); preview.add_css_class('study-note-preview')
             preview.set_source(note.body[:2000]+('…' if len(note.body)>2000 else ''))
             viewport = Gtk.ScrolledWindow(max_content_height=180, propagate_natural_height=True, vexpand=False,
                                          hscrollbar_policy=Gtk.PolicyType.NEVER)
