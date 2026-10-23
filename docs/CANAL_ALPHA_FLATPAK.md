@@ -112,16 +112,22 @@ Static full and incremental deltas are generated. Published objects and all
 corresponding-source archives remain available, including archives required by
 older installations. No automatic pruning is performed.
 
-The staged site has a **768 MiB** safety limit, below GitHub Pages' 1 GiB
-published-site limit. Crossing it aborts preparation before either persistence
-or deployment, leaving the last served repository intact. The former 512 MiB
-limit blocked the notes-preview correction because the retained source archives
-alone occupied about 468 MiB. Raising the conservative limit preserves those
-sources and every old update path; it does not change signing, the remote, user
-data, or GitHub administration. This is additional capacity, not a retention
-policy: continued growth needs a separately reviewed archival solution that
-preserves corresponding-source availability. The alpha channel remains subject
-to GitHub storage, bandwidth and execution quotas, and is not a Flathub submission.
+The staged site has an **896 MiB** safety budget (939,524,096 bytes), below
+GitHub Pages' [documented 1 GB published-site limit](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),
+even if GB is interpreted decimally. Crossing it aborts preparation before
+either persistence or deployment, leaving the last served repository intact.
+Errors report the actual staged byte count and budget.
+
+The first attempt to publish #78 stopped safely at the former 768 MiB guard.
+The existing published data tree already occupied 762.4 MiB, including 731.5 MiB
+of retained corresponding-source archives and 30.7 MiB of OSTree repository data.
+A new complete source archive cannot fit in the remaining space. The bounded
+increase allows the combined #78/#70 bug-fix delivery without removing historical
+source archives or objects, changing the signing key/remote, accessing personal
+client data, or changing hosting administration. This is measured additional
+capacity, **not a retention solution**: continued growth still requires a
+separately reviewed archival design preserving corresponding-source availability.
+Storage/bandwidth/execution quotas still apply; this is not a Flathub submission.
 
 ## Passage depuis un ancien bundle
 

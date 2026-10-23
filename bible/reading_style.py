@@ -96,6 +96,7 @@ class ReadingStyle:
                                          self.manager.get_dark(), self.manager.get_high_contrast())
         bg, fg, link, selection, selected = PALETTES[self.palette]
         selector = 'textview.' + self.scope
+        focus_width = 3 if self.manager.get_high_contrast() else 2
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 .passage-actions {{ border-radius: 12px; padding: 3px; }}
@@ -104,7 +105,10 @@ class ReadingStyle:
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
 {selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
-{selector}:focus-visible {{ outline: 2px solid {fg}; outline-offset: -2px; }}
+/* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque
+   background cannot cover the focus mark. Inset shadows do not change layout. */
+{selector}:focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
+{selector}:dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
 '''
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS
