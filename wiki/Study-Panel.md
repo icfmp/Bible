@@ -16,6 +16,10 @@ The panel contains three sections:
 
 Select the section you need. Bible remembers the last selected study tool and the panel width.
 
+![Bible's study panel displaying a commentary beside the biblical text](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/study-panel.png)
+
+*The study panel keeps a commentary alongside Scripture without interrupting reading.*
+
 ## Read a commentary alongside Scripture
 
 1. Open a Bible passage in the main reading area.
@@ -53,6 +57,14 @@ You can also use the commentary's **Read in immersive mode** action for a larger
 Select **Notes** to work with notes associated with your reading. The **References** section provides passage-related reference tools.
 
 These sections are separate from commentaries: you do not need to install a commentary to open them. Some information or actions will depend on the current passage and on the resources available to Bible.
+
+![Notes tab in the study panel](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/study-notes.png)
+
+*Keep passage notes close to the text you are studying.*
+
+![References tab in the study panel](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/study-references.png)
+
+*Explore references related to the selected passage.*
 
 For managing personal notes in greater depth, see [Notes and highlights](Notes-and-Highlights).
 
