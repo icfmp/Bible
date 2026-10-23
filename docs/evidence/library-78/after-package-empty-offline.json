@@ -1,0 +1,27 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "offline": true,
+  "accessibility": "Deferred; not tested",
+  "reported_crash": "Not reproduced; no historical crash mechanism is claimed",
+  "startup_scroll_preparation": true,
+  "constructor_seconds": 0.037507369997911155,
+  "first_painted_frame_seconds": 0.08658879299764521,
+  "resources": 0,
+  "languages": 1,
+  "ready_seconds": 0.10171995000564493,
+  "maximum_heartbeat_gap_seconds": 0.15131492000364233,
+  "refresh_running": false,
+  "stages": {
+    "cache_read_seconds": 0.0007167809962993488,
+    "installed_scan_seconds": 0.0024324139958480373,
+    "language_and_search_seconds": 7.146700227167457e-05,
+    "crosswire": {},
+    "andbible-extra": {},
+    "step": {},
+    "ebible": {},
+    "andbible": {}
+  },
+  "reopen_constructor_seconds": 0.008746507999603637,
+  "notes_resources_reading_preserved": true,
+  "status": "PASS"
+}

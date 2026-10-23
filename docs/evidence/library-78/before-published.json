@@ -1,0 +1,10 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "startup_preparation_running": false,
+  "constructor_seconds": 12.555032157004462,
+  "action_to_first_paint_seconds": 12.859996428000159,
+  "maximum_heartbeat_gap_seconds": 12.558544939005515,
+  "resources": 1941,
+  "languages": 1325,
+  "mapped": true
+}

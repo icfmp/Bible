@@ -816,6 +816,7 @@ class Window(Adw.ApplicationWindow):
             self.notes_store.close()
         if self.catalogue_window is not None and not self.catalogue_window.closed:
             self.catalogue_window.close()
+        if getattr(self,'catalogue_session',None):self.catalogue_session.close()
         return False
 
 

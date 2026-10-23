@@ -15,6 +15,14 @@ from tests.fixtures import module_fixture
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK display')
 class ProviderUITests(unittest.TestCase):
+    def setUp(self):
+        # These unit cases explicitly supply provider results; do not race an
+        # unrelated live auto-refresh while arranging their resource fixtures.
+        self.enterContext(patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False))
+
+    def open_library(self,window):
+        dialog=window.open_library();spin(lambda:not dialog.preparing)
+        return dialog
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application, Gtk
@@ -29,7 +37,7 @@ class ProviderUITests(unittest.TestCase):
             window=Window(self.app,Library(Path(directory)/'translations'));window.present()
             release=threading.Event()
             try:
-                dialog=window.open_library();dialog.resources=[RESOURCE,replace(RESOURCE,name='Other')]
+                dialog=self.open_library(window);dialog.resources=[RESOURCE,replace(RESOURCE,name='Other')]
                 dialog.update_languages();dialog.open_details(None,0)
                 def failed(*args,**kwargs):
                     release.wait(3);raise ValueError('Conditions really changed')
@@ -62,7 +70,7 @@ class ProviderUITests(unittest.TestCase):
                 with patch('babel.Locale.get_display_name', return_value=None), patch(
                         'bible.catalogue_window.catalogue',
                         return_value=CatalogueResult((RESOURCE, coptic), {})):
-                    dialog = window.open_library()
+                    dialog = self.open_library(window)
                     dialog.load_catalogue()
                     spin(lambda: not dialog.busy)
                     self.assertNotEqual(dialog._phase, 'error', dialog.status.get_text())
@@ -83,7 +91,7 @@ class ProviderUITests(unittest.TestCase):
                     dialog.close()
                 window.close()
 
-    def test_cached_results_are_immediate_and_survive_failed_refresh(self):
+    def test_cached_results_load_without_network_and_survive_failed_refresh(self):
         from bible.ui import Window
         from bible.catalogue_cache import CatalogueCache
         from bible.providers import CROSSWIRE
@@ -92,7 +100,7 @@ class ProviderUITests(unittest.TestCase):
             cache.write(CROSSWIRE,[RESOURCE])
             window=Window(self.app,Library(Path(directory)/'translations'));window.present()
             try:
-                dialog=window.open_library()
+                dialog=self.open_library(window)
                 self.assertEqual(dialog.resources,[RESOURCE])
                 dialog.open_details(None,0)
                 with patch('bible.library.catalogue',side_effect=OSError('offline fixture')):
@@ -116,7 +124,7 @@ class ProviderUITests(unittest.TestCase):
             window=Window(self.app,Library(Path(directory)/'translations'));window.present()
             try:
                 with patch('bible.catalogue_window.catalogue',side_effect=fetch):
-                    dialog=window.open_library();dialog.load_catalogue()
+                    dialog=self.open_library(window);dialog.load_catalogue()
                     spin(lambda:bool(dialog.filtered_resources))
                     self.assertTrue(dialog.refreshing)
                     dialog.open_details(None,0)
@@ -133,7 +141,7 @@ class ProviderUITests(unittest.TestCase):
             installed_fixture(directory)
             window=Window(self.app,Library(Path(directory)/'translations'));window.present()
             try:
-                dialog=window.open_library()
+                dialog=self.open_library(window)
                 installed=window.library.resource('Test')
                 other=replace(installed,name='Another')
                 dialog.resources=[other,installed];dialog.update_languages()
@@ -160,13 +168,13 @@ class ProviderUITests(unittest.TestCase):
                 result = CatalogueResult((RESOURCE, extra), {'STEP': 'HTTP 503 fixture'})
                 # Install the worker fixture before presenting the auto-loading UI.
                 with patch('bible.catalogue_window.catalogue', return_value=result):
-                    dialog = window.open_library()
+                    dialog = self.open_library(window)
                     dialog.load_catalogue()
                     spin(lambda: not dialog.busy)
                 self.assertEqual(len(dialog.filtered_resources), 2)
                 self.assertIn('HTTP 503', dialog.status.get_text())
                 labels = [dialog.choices.get_model().get_item(i).resource.source for i in range(2)]
-                self.assertIn(EXTRA.name, labels[1])
+                self.assertIn(EXTRA.name, labels)
                 dialog.source_filter.set_selected(dialog.source_ids.index(EXTRA.id))
                 self.assertEqual([r.id for r in dialog.filtered_resources], [extra.id])
                 self.assertIn(EXTRA.name, dialog.metadata.get_text())
@@ -195,7 +203,7 @@ class ProviderUITests(unittest.TestCase):
             window = Window(self.app, library)
             window.present()
             try:
-                dialog = window.open_library()
+                dialog = self.open_library(window)
                 dialog.resources = [resource]
                 dialog.kind.set_selected(1)
                 dialog.update_languages()

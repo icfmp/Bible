@@ -1,0 +1,13 @@
+[
+  {
+    "status": "PASS",
+    "app_import": "/app/lib/bible-python/bible/ui.py",
+    "real_native_download": "ebible~fraLSG1910eb",
+    "installed_state": true,
+    "language_filter": "fr",
+    "terms_retained": true,
+    "exact_local_sword_reading": "John.3.16",
+    "heartbeat_ticks": 49,
+    "maximum_gap": 0.16563748399494216
+  }
+]

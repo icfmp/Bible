@@ -1,0 +1,44 @@
+[
+  {
+    "id": "ebible~fraLSG1910eb",
+    "language": "fr",
+    "license": "Public Domain",
+    "description": "Louis Segond 1910",
+    "versification": "NRSV"
+  },
+  {
+    "id": "ebible~fraFOB1744eb",
+    "language": "fr",
+    "license": "Public Domain",
+    "description": "La Sainte Bible",
+    "versification": "NRSV"
+  },
+  {
+    "id": "ebible~francl2022eb",
+    "language": "fr",
+    "license": "Creative Commons: by-sa",
+    "description": "Sainte Bible n\u00e9o-Crampon Libre",
+    "versification": "Catholic2"
+  },
+  {
+    "id": "ebible~frajnd2024eb",
+    "language": "fr",
+    "license": "Public Domain",
+    "description": "Bible J.N. Darby",
+    "versification": "Luther"
+  },
+  {
+    "id": "ebible~frasbl2022eb",
+    "language": "fr",
+    "license": "Public Domain",
+    "description": "Sainte Bible libre pour le monde",
+    "versification": "NRSVA"
+  },
+  {
+    "offline": true,
+    "id": "ebible~frajnd2024eb",
+    "reference": "John.3.16",
+    "version": "2.17",
+    "sha256": "0d5882a7e879e2693e30609ab17916fca88625d9e5b8362892e3cb534db2c2f1"
+  }
+]

@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Loading saved resources…':'Chargement des ressources enregistrées…',
     'Topics':'Thèmes', 'Text':'Texte', 'Passage':'Passage', 'Search':'Rechercher',
     'Search topics':'Rechercher un thème', 'Exact phrase in this translation':'Expression exacte dans cette traduction',
     'Download topic data':'Télécharger les thèmes',

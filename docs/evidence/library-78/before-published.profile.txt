@@ -1,0 +1,33 @@
+         46656742 function calls (46479728 primitive calls) in 12.555 seconds
+
+   Ordered by: cumulative time
+   List reduced from 600 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.066    0.066   12.555   12.555 /app/lib/bible-python/bible/ui.py:603(open_library)
+        1    0.005    0.005   12.488   12.488 /app/lib/bible-python/bible/catalogue_window.py:34(__init__)
+        1    0.000    0.000   12.404   12.404 /app/lib/bible-python/bible/catalogue_window.py:178(update_languages)
+     3972    0.037    0.000   12.198    0.003 /app/lib/bible-python/bible/languages.py:30(language_info)
+     4503    0.031    0.000   11.284    0.003 /app/lib/bible-python/babel/core.py:285(parse)
+    17835    0.025    0.000   11.157    0.001 /app/lib/bible-python/babel/core.py:367(_try_load)
+    21807    0.046    0.000   11.150    0.001 /app/lib/bible-python/babel/core.py:178(__init__)
+    39099    0.049    0.000   11.035    0.000 /app/lib/bible-python/babel/localedata.py:63(exists)
+    34584    5.702    0.000   10.723    0.000 /app/lib/bible-python/babel/localedata.py:33(normalize_locale)
+     6939    0.006    0.000    8.831    0.001 /app/lib/bible-python/babel/core.py:373(_try_load_reducing)
+        1    0.000    0.000    7.860    7.860 /app/lib/bible-python/bible/language_picker.py:32(set_codes)
+        2    0.008    0.004    7.860    3.930 /app/lib/bible-python/bible/language_picker.py:47(filter)
+     1324    0.009    0.000    7.805    0.006 /app/lib/bible-python/bible/languages.py:62(search_terms)
+ 42921056    5.006    0.000    5.006    0.000 {method 'lower' of 'str' objects}
+        7    0.002    0.000    4.410    0.630 {built-in method builtins.sorted}
+     1324    0.001    0.000    4.407    0.003 /app/lib/bible-python/bible/catalogue_window.py:183(<lambda>)
+     3423    0.004    0.000    4.407    0.001 /app/lib/bible-python/bible/languages.py:59(language_name)
+     4515    0.003    0.000    0.781    0.000 /app/lib/bible-python/babel/core.py:601(languages)
+     5001    0.005    0.000    0.772    0.000 /app/lib/bible-python/babel/core.py:471(_data)
+4702/4515    0.034    0.000    0.766    0.000 /app/lib/bible-python/babel/localedata.py:120(load)
+      543    0.002    0.000    0.730    0.001 /app/lib/bible-python/babel/core.py:477(get_display_name)
+149668/187    0.286    0.000    0.476    0.003 /app/lib/bible-python/babel/localedata.py:176(merge)
+      189    0.219    0.001    0.238    0.001 {built-in method _pickle.load}
+    34926    0.027    0.000    0.145    0.000 /app/lib/bible-python/babel/localedata.py:47(resolve_locale_filename)
+        1    0.014    0.014    0.135    0.135 /app/lib/bible-python/bible/catalogue_window.py:190(filter_resources)
+
+

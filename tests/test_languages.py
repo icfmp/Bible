@@ -26,3 +26,8 @@ class LanguageTests(unittest.TestCase):
             self.assertTrue(language_info('fr', interface)[1])
         for code in ('zzz', 'sr-Latn', 'pt-BR', 'fra'):
             self.assertIn(code, search_terms(code))
+
+    def test_iso_only_language_does_not_enter_babel_missing_locale_scan(self):
+        with patch('bible.languages.Locale.parse',side_effect=AssertionError('full CLDR scan')):
+            name,native=language_info('aaa','fr')
+        self.assertTrue(name);self.assertEqual(native,'')

@@ -1,0 +1,12 @@
+{
+  "source_tests": 228,
+  "installed_flatpak_tests": 46,
+  "packaged_files": 84,
+  "canonical_mapping_tables": 14,
+  "source_status": "PASS",
+  "installed_flatpak_status": "PASS",
+  "published_status": "Pending exact-head CI, merge, signing and real update; see PR/issue follow-up",
+  "historical_crash": "Not reproduced; no historical crash cause is claimed",
+  "accessibility": "Deferred; not tested",
+  "client_gnome": "Not accessed; native GUI probes use X11/Xvfb"
+}

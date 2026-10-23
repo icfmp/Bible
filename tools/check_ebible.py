@@ -52,6 +52,7 @@ def main():
                 window.active_tab.navigate(name,'John.3.16');spin(lambda:not window.active_tab._restoring_scroll,duration=.3)
                 ImageGrab.grab().save(args.screenshot_prefix+'-reader.png')
                 dialog=window.open_library();dialog._catalogue_requested=True
+                spin(lambda:not dialog.preparing and not dialog._building_rows)
                 dialog.language.set_selected(dialog.language.codes.index('fr'));spin(duration=.3)
                 ImageGrab.grab().save(args.screenshot_prefix+'-catalogue.png')
                 dialog.close()
