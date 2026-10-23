@@ -863,6 +863,7 @@ class Window(Adw.ApplicationWindow):
         self.closed = True
         self.reference_preview.dismiss()
         self.study.references.close()
+        self.study.notes.close()
         self.navigation.close()
         self.study.cancel_reveal()
         self.study.cancel_scroll()

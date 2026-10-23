@@ -105,12 +105,12 @@ class Labels(Gtk.Box):
 
 
 class NoteEditor(Adw.Window):
-    def __init__(self, owner, note=None, context=None, explanation='', embedded=False):
+    def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False):
         super().__init__(transient_for=owner, modal=True, title=tr('Passage note'),
                          default_width=700, default_height=700)
         self.set_size_request(360, 360)
         self.owner, self.note = owner, note
-        self.embedded=embedded
+        self.embedded=embedded;self.compact=compact;self.embedded_host=None
         self.dialog_parent=owner if embedded else self
         self.context = context if context else {
             key: getattr(note, key) for key in ('versification', 'start', 'end', 'origin_translation', 'origin_language')}
@@ -120,7 +120,7 @@ class NoteEditor(Adw.Window):
         self.after_close = None
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        header = Adw.HeaderBar()
+        header = Adw.HeaderBar();self.header=header
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
         header.set_title_widget(Adw.WindowTitle(title=tr('Passage note')))
         self.save_button = Gtk.Button(label=tr('Save'))
@@ -133,7 +133,7 @@ class NoteEditor(Adw.Window):
         layout.append(header)
         reference=Gtk.Label(label=passage_label(self.context['start'],self.context['end'],self.context['versification']),
                             wrap=True,xalign=0,margin_start=20,margin_end=20,margin_top=12)
-        reference.add_css_class('title-2');layout.append(reference)
+        reference.add_css_class('heading' if compact else 'title-2');layout.append(reference)
         origin=self.context['origin_translation']
         try:origin=owner.library.resource(origin).description
         except (ValueError,OSError):pass
@@ -165,7 +165,10 @@ class NoteEditor(Adw.Window):
                                  left_margin=20, right_margin=20, top_margin=16, bottom_margin=20,pixels_inside_wrap=5)
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note in Markdown')])
         self.body.get_buffer().set_text(note.body if note else '')
-        scroll = Gtk.ScrolledWindow(vexpand=True)
+        scroll = Gtk.ScrolledWindow(vexpand=not compact, min_content_height=180 if compact else 0,
+                                    max_content_height=240 if compact else -1,propagate_natural_height=compact)
+        self.body_scroll=scroll
+        self.stack.set_vexpand(not compact)
         scroll.set_child(self.body)
         self.stack.add_titled(scroll, 'edit', tr('Write'))
         from .note_preview import NotePreview
@@ -179,7 +182,9 @@ class NoteEditor(Adw.Window):
         self.labels.set_margin_start(12)
         self.labels.set_margin_end(12)
         self.labels.set_values(note.labels if note else [])
-        layout.append(self.labels)
+        if compact:
+            expander=Gtk.Expander(label=tr('Labels'));expander.set_child(self.labels);layout.append(expander)
+        else:layout.append(self.labels)
         if note:
             menu=Gtk.MenuButton(icon_name='open-menu-symbolic',tooltip_text=tr('Note actions'))
             popover=Gtk.Popover();actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
@@ -264,7 +269,8 @@ class NoteEditor(Adw.Window):
     def close(self):
         if not self.embedded:return super().close()
         if not self.on_close():
-            if getattr(self.owner,'notes_space',None):self.owner.notes_space.editor_closed(self)
+            host=self.embedded_host or getattr(self.owner,'notes_space',None)
+            if host:host.editor_closed(self)
             self.destroy()
 
     def on_close(self, *_):
@@ -285,6 +291,7 @@ class NoteEditor(Adw.Window):
                 dialog.connect('response',response);dialog.present();self._confirmation=dialog
             return True
         self.closed = True
+        if self.embedded_host and not self.embedded:self.embedded_host.editor_closed(self)
         if self.after_close:
             callback,self.after_close=self.after_close,None;callback()
         return False

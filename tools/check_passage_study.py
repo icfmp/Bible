@@ -106,10 +106,10 @@ def main():
         assert divider.get_width()==8
         capture('notes-wide')
         # Real native nested menu, change color then remove the original mark.
-        menu=notes.highlight_list.get_first_child().get_last_child();native.click(menu);spin()
+        menu=next(card for card in notes.cards if hasattr(card,'highlight_key')).actions;native.click(menu);spin()
         colors=menu.get_popover().get_child();native.click(colors.get_first_child())
         assert window.highlights.entries[(tab.reader.versification,'John.1.5')]['color']=='yellow'
-        menu=notes.highlight_list.get_first_child().get_last_child();native.click(menu);spin()
+        menu=next(card for card in notes.cards if hasattr(card,'highlight_key')).actions;native.click(menu);spin()
         native.key('Escape');assert not menu.get_popover().get_visible()
         # Existing editor captures its source; changing the reader cannot
         # silently retarget its unsaved note.

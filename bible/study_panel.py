@@ -90,7 +90,6 @@ class StudyPanel(Gtk.Box):
         self.notes = PassageNotes(owner)
         from .study_references import StudyReferences
         self.references=StudyReferences(owner)
-        self.notes.append(self.references.teaser)
         notes_scroll = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         notes_scroll.set_child(self.notes)
         self.tools.add_titled(notes_scroll, 'notes', tr('Notes'))
