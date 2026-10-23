@@ -443,6 +443,7 @@ class Window(Adw.ApplicationWindow):
 
     def choose_passage(self, direct=False):
         if self.immersion and self.immersion.kind=='commentary':self.leave_immersion()
+        self.navigation.modes.set_visible_child_name('passage')
         button=self.immersion.passage_button if self.immersion else self.passage_button
         if self.immersion:self.immersion.reveal_controls()
         button.set_active(True)
@@ -611,11 +612,12 @@ class Window(Adw.ApplicationWindow):
     def resource_installed(self, name):
         if self.closed:
             return
-        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID
-        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID):
+        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID
+        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID):
             for window in self.get_application().get_windows():
                 if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
                     if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
+                    elif name==TOPIC_RESOURCE_ID:window.navigation.topic_search.refresh()
                     elif getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
             return
         resource = self.library.resource(name)
@@ -804,6 +806,7 @@ class Window(Adw.ApplicationWindow):
         self.closed = True
         self.reference_preview.dismiss()
         self.study.references.close()
+        self.navigation.close()
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()

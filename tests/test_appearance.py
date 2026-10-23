@@ -97,9 +97,12 @@ class AppearanceTests(unittest.TestCase):
                 self.assertFalse(hasattr(window.study,'appearance_button'))
                 window.new_tab();spin()
                 self.assertIs(window.reader_controls.get_parent(),window.active_tab.reading_overlay)
+                window.navigation.modes.set_visible_child_name('topics')
                 window.choose_passage(direct=True);spin()
                 self.assertTrue(window.navigation.direct.get_mapped())
-                self.assertIs(window.navigation.content.get_first_child(),window.navigation.direct)
+                self.assertEqual(window.navigation.modes.get_visible_child_name(),'passage')
+                focus=window.get_focus()
+                self.assertTrue(focus is window.navigation.direct or focus.is_ancestor(window.navigation.direct))
             finally:window.close()
     @classmethod
     def setUpClass(cls):

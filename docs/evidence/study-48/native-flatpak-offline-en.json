@@ -1,0 +1,49 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "network_disabled": true,
+  "accessibility": "Deferred; not tested",
+  "dataset": {
+    "schema": 1,
+    "source": "OpenBible.info",
+    "source_url": "https://www.openbible.info/topics/",
+    "download_url": "https://a.openbible.info/data/topic-scores.zip",
+    "source_date": "2026-10-19",
+    "archive_sha256": "47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "numbering": "OpenBible ESV-style (3 John has 15 verses)",
+    "transformations": "Topic identifiers, reference relationships and supplied quality scores only; no Scripture quotations. Validated local SQLite index; exact ranges deduplicated by maximum score, then canonical order. Only the explicit curated bilingual vocabulary is exposed; community suggestions are not doctrinal conclusions.",
+    "topics": 6712,
+    "relationships": 71358,
+    "supported_topics": 50,
+    "installed_at": "2026-10-23T04:17:06.064795+00:00",
+    "index_seconds": 0.672
+  },
+  "topic_preview": {
+    "exact_installed_French": true,
+    "preserves_reading_and_history": true,
+    "native_pointer_keyboard_escape": true,
+    "explicit_new_tab": true
+  },
+  "literal_search": {
+    "query": "light of the world",
+    "references": [
+      "Matt.5.14",
+      "John.8.12",
+      "John.9.5"
+    ],
+    "seconds": 2.003,
+    "gtk_heartbeat_ticks": 240
+  },
+  "passage_navigation_preserved": true,
+  "verified_french_psalm": {
+    "source": "Ps.34.4",
+    "installed": "Ps.34.5",
+    "exact_text": true
+  },
+  "offline_restart": true,
+  "failed_update_preserves_index": true,
+  "notes_and_modules_preserved": true,
+  "narrow_and_themes": true,
+  "status": "PASS"
+}

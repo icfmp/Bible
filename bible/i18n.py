@@ -3,6 +3,23 @@ import locale
 import os
 
 FR = {
+    'Topics':'Thèmes', 'Text':'Texte', 'Passage':'Passage', 'Search':'Rechercher',
+    'Search topics':'Rechercher un thème', 'Exact phrase in this translation':'Expression exacte dans cette traduction',
+    'Download topic data':'Télécharger les thèmes',
+    'Partial curated vocabulary: {count} topics in French and English. Suggestions are not doctrinal conclusions.':'Vocabulaire partiel relu : {count} thèmes en français et en anglais. Ces suggestions ne sont pas des conclusions doctrinales.',
+    'Literal phrase, ignoring case, in the selected installed translation.':'Expression littérale, sans distinction de casse, dans la traduction installée sélectionnée.',
+    'Enter a phrase and press Enter.':'Saisissez une expression et appuyez sur Entrée.',
+    'Download topic data once to explore it offline.':'Téléchargez les thèmes une fois pour les explorer hors connexion.',
+    'Choose a topic.':'Choisissez un thème.',
+    'No topic in the supported vocabulary. Try a shorter word.':'Aucun thème dans le vocabulaire pris en charge. Essayez un mot plus court.',
+    'Choose an installed translation.':'Choisissez une traduction installée.',
+    'Searching…':'Recherche en cours…',
+    'Showing {count} of {total} results.':'{count} résultats affichés sur {total}.',
+    'No matching passages.':'Aucun passage correspondant.',
+    'Search unavailable. Check the installed resource and try again.':'Recherche indisponible. Vérifiez la ressource installée et réessayez.',
+    'Enter a phrase of 1–200 characters.':'Saisissez une expression de 1 à 200 caractères.',
+    'Source quality score: {score}':'Score de qualité de la source : {score}',
+    'Curated French/English topics':'Thèmes français/anglais relus',
     'Near this location':'À proximité de ce lieu', 'Along this geographical feature':'Le long de cet élément géographique',
     'On this geographical feature':'Sur cet élément géographique', 'Within this area':'À l’intérieur de cette zone',
     'Around this location':'Aux alentours de ce lieu',
