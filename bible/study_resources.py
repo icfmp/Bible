@@ -6,6 +6,7 @@ from .reference_data import (ReferenceData,ReferenceDataError,SOURCE_URL,LICENSE
 
 REFERENCE_RESOURCE_ID='openbible-cross-references'
 PLACE_RESOURCE_ID='openbible-places'
+TOPIC_RESOURCE_ID='openbible-topics'
 
 
 @dataclass(frozen=True)
@@ -31,10 +32,13 @@ class StudyResources:
     def __init__(self,root):
         from .place_data import PlaceData
         self.references=ReferenceData(root);self.places=PlaceData(root)
-        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places}
+        from .topic_data import TopicData
+        self.topics=TopicData(root)
+        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places,TOPIC_RESOURCE_ID:self.topics}
 
     def available(self):
         from . import place_data as places
+        from . import topic_data as topics
         return [StudyResource(description=tr('Bible cross-references')),
                 StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),
                     source_url=places.SOURCE_URL,license='CC BY 4.0; ODbL 1.0; public-domain coastlines',
@@ -43,7 +47,11 @@ class StudyResources:
                         '\nOpenStreetMap — '+places.ODBL_URL+'\nNatural Earth — '+places.MAP_SOURCE+
                         '\nPublic-domain basemap terms — https://www.naturalearthdata.com/about/terms-of-use/',
                     about='OpenBible source: '+places.SOURCE_COMMIT+'\nNatural Earth source: '+places.MAP_COMMIT+
-                        '\n'+places.NOTICE+'\n'+str({k:v[1] for k,v in places.FILES.items()}))]
+                        '\n'+places.NOTICE+'\n'+str({k:v[1] for k,v in places.FILES.items()})),
+                StudyResource(id=TOPIC_RESOURCE_ID,name='OpenBible topics',description=tr('Curated French/English topics'),
+                    source_url=topics.SOURCE_URL,author='OpenBible.info community contributors',
+                    conditions='OpenBible.info — '+topics.SOURCE_URL+'\nCC BY 4.0 — '+topics.LICENSE_URL,
+                    about=topics.SOURCE_DATE+'\nSHA-256: '+topics.ARCHIVE_SHA256+'\n'+topics.TRANSFORMATIONS)]
 
     def resource(self,name):
         return next((r for r in self.available() if r.id==name),None) or self.unknown()
@@ -61,6 +69,9 @@ class StudyResources:
         try:
             metadata=self.stores[name].metadata()
             if name==REFERENCE_RESOURCE_ID:return metadata['archive_sha256']==ARCHIVE_SHA256
+            if name==TOPIC_RESOURCE_ID:
+                from .topic_data import ARCHIVE_SHA256 as TOPIC_SHA
+                return metadata['archive_sha256']==TOPIC_SHA
             from .place_data import REVISION
             return metadata['revision']==REVISION and self.places.has_map()
         except (ReferenceDataError,OSError,KeyError):return False

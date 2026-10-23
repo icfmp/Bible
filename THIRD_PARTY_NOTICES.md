@@ -140,3 +140,17 @@ checksums, exact transformations and limits are documented in
 [PLACE_CARDS_49_DESIGN.md](docs/PLACE_CARDS_49_DESIGN.md). Both datasets are
 optional downloads and contain no imported Scripture quotations. Installed Bible
 excerpts retain their own resource terms.
+
+
+## Optional OpenBible.info topic relationships
+
+Explicit Library download from <https://www.openbible.info/topics/> under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The local SQLite index
+contains supplied English topic identifiers, Bible-reference ranges and quality
+scores; no website ESV quotations are imported. Exact range duplicates retain
+the maximum source score. The application exposes a deliberately partial,
+curated 50-topic French/English vocabulary with authored synonyms, retaining
+source identifiers and credit. Community associations are not doctrinal
+conclusions. Source date, ZIP checksum, schema, transformations and coverage
+are documented in [TOPIC_SEARCH_48.md](docs/TOPIC_SEARCH_48.md). Installed Bible
+excerpts retain their own resource terms.

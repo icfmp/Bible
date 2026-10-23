@@ -1,0 +1,15 @@
+{
+  "source_suite": {
+    "tests": 219,
+    "result": "PASS",
+    "seconds": 70.747
+  },
+  "installed_affected_suite": {
+    "tests": 50,
+    "result": "PASS"
+  },
+  "automated_native": "GTK/Xvfb actual input, source and GNOME49 Flatpak",
+  "deep_accessibility": "Deferred; NOT tested",
+  "client_GNOME_Wayland": "Not tested",
+  "signed_publication": "Pending separate main CI/publication/ordinary update verification"
+}

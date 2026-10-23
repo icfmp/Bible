@@ -30,9 +30,7 @@ class PassagePopover(Gtk.Popover):
                                 width_chars=12,max_width_chars=24,hexpand=True)
         self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
         self.direct.connect('activate',lambda *_:self.commit())
-        self.content.append(self.direct)
         self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
-        self.content.append(self.status)
         top = Gtk.Box(spacing=8)
         top.append(Gtk.Label(label=tr('Version')))
         self.version = self.dropdown('Version', self.version_changed)
@@ -93,14 +91,40 @@ class PassagePopover(Gtk.Popover):
         history_scroll.set_child(self.history_list)
         self.pages.add_titled(history_scroll,'history',tr('History'))
         switcher=Gtk.StackSwitcher(stack=self.pages,halign=Gtk.Align.CENTER)
-        self.content.append(switcher)
-        self.content.append(self.pages)
+        passage=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        passage.append(self.direct);passage.append(self.status);passage.append(switcher);passage.append(self.pages)
+        self.modes=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
+        self.modes.add_titled(passage,'passage',tr('Passage'))
+        from .study_search import StudySearch
+        self.text_search=StudySearch(self,'text');self.topic_search=StudySearch(self,'topics')
+        self.modes.add_titled(self.text_search,'text',tr('Text'));self.modes.add_titled(self.topic_search,'topics',tr('Topics'))
+        self.mode_switcher=Gtk.Box(halign=Gtk.Align.FILL)
+        self.mode_switcher.add_css_class('linked');self.mode_buttons={}
+        first=None
+        for name,label in [('passage','Passage'),('text','Text'),('topics','Topics')]:
+            button=Gtk.ToggleButton(label=tr(label),hexpand=True)
+            if first:button.set_group(first)
+            else:first=button
+            button.connect('toggled',lambda b,n=name:self.modes.set_visible_child_name(n) if b.get_active() else None)
+            self.mode_switcher.append(button);self.mode_buttons[name]=button
+        first.set_active(True)
+        self.content.append(self.mode_switcher);self.content.append(self.modes)
+        self.modes.connect('notify::visible-child-name',lambda *_:self.mode_changed())
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                         propagate_natural_width=True,
+                                         propagate_natural_width=False,
                                          propagate_natural_height=True)
         self.scroll.set_child(self.content)
         self.set_child(self.scroll)
         self.connect('notify::visible', self.visibility_changed)
+        preview_keys=Gtk.EventControllerKey()
+        preview_keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        preview_keys.connect('key-pressed',self.preview_key_pressed)
+        self.add_controller(preview_keys)
+
+    def preview_key_pressed(self,_,key,code,state):
+        if key==Gdk.KEY_Escape and self.owner.reference_preview.popover:
+            self.owner.reference_preview.dismiss();return True
+        return False
 
     def dropdown(self, label, callback):
         dropdown = Gtk.DropDown(enable_search=True, hexpand=True)
@@ -113,6 +137,15 @@ class PassagePopover(Gtk.Popover):
         dropdown.set_list_factory(factory)
         dropdown.connect('notify::selected', callback)
         return dropdown
+
+    def mode_changed(self):
+        self.mode_buttons[self.modes.get_visible_child_name()].set_active(True)
+        self.owner.reference_preview.dismiss()
+        if self.modes.get_visible_child_name()=='topics':self.topic_search.refresh()
+        elif self.modes.get_visible_child_name()=='text':self.text_search.refresh()
+
+    def close(self):
+        self.text_search.close();self.topic_search.close()
 
     def refresh_history(self):
         child=self.history_list.get_first_child()
@@ -147,6 +180,7 @@ class PassagePopover(Gtk.Popover):
         elif self._resize_id:
             GLib.source_remove(self._resize_id)
             self._resize_id = 0
+            self.text_search.invalidate();self.topic_search.invalidate()
 
     def adapt(self):
         if not self.get_visible():
@@ -221,6 +255,7 @@ class PassagePopover(Gtk.Popover):
         self._updating = False
         self.update_direct()
         self.direct.set_sensitive(bool(self.books))
+        self.text_search.refresh();self.topic_search.refresh()
 
     def book_name(self, book):
         return display_name(book.code, book.name, LANGUAGE)

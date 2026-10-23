@@ -1,0 +1,25 @@
+{
+  "samples": 250,
+  "unit": "milliseconds",
+  "median": 0.14590899081667885,
+  "p95": 0.19832800899166614,
+  "maximum": 11.393865002901293,
+  "index": {
+    "schema": 1,
+    "source": "OpenBible.info",
+    "source_url": "https://www.openbible.info/topics/",
+    "download_url": "https://a.openbible.info/data/topic-scores.zip",
+    "source_date": "2026-10-19",
+    "archive_sha256": "47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "numbering": "OpenBible ESV-style (3 John has 15 verses)",
+    "transformations": "Topic identifiers, reference relationships and supplied quality scores only; no Scripture quotations. Validated local SQLite index; exact ranges deduplicated by maximum score, then canonical order. Only the explicit curated bilingual vocabulary is exposed; community suggestions are not doctrinal conclusions.",
+    "topics": 6712,
+    "relationships": 71358,
+    "supported_topics": 50,
+    "installed_at": "2026-10-23T04:05:31.154264+00:00",
+    "index_seconds": 0.399
+  },
+  "environment": "Controlled validation container; timings are observations, not desktop guarantees"
+}
