@@ -99,8 +99,8 @@ class ReadingStyle:
         focus_width = 3 if self.manager.get_high_contrast() else 2
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
-.passage-actions {{ border-radius: 12px; padding: 3px; }}
-.passage-actions button {{ min-width: 26px; min-height: 26px; padding: 2px; }}
+.passage-actions {{ border-radius: 16px; padding: 12px; background-color: @window_bg_color; color: @window_fg_color; }}
+.passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}

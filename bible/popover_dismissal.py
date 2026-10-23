@@ -50,3 +50,18 @@ def install(owner, popovers):
     keys.connect('key-pressed', key)
     owner.add_controller(keys)
     return gesture
+
+
+def fit_reader_popover(popover, owner):
+    """Keep a reader-anchored popup inside a constrained application window."""
+    anchor=popover.get_parent()
+    if not anchor:return
+    found,bounds=anchor.compute_bounds(owner)
+    if not found:return
+    # Native popup allocation includes shadows outside its visible contents.
+    child=popover.get_child()
+    width=child.measure(Gtk.Orientation.HORIZONTAL,-1)[1]+16
+    half=width/2
+    center=bounds.origin.x+bounds.size.width/2
+    target=max(half+4,min(owner.get_width()-half-4,center))
+    popover.set_offset(round(target-center),0)

@@ -96,37 +96,53 @@ class Window(Adw.ApplicationWindow):
         self.menu = Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands,tooltip_text=tr('Notes and commands'))
         self.menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Notes and commands')])
         self.library_button = library_button = Gtk.Button(icon_name='bible-library-symbolic',tooltip_text=tr('Library'),action_name='win.translations')
-        self.my_notes_button=Gtk.Button(icon_name='bible-notes-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
-        self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-symbolic',tooltip_text=tr('Study'))
+        self.my_notes_button=Gtk.Button(icon_name='accessories-text-editor-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
+        self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-right-symbolic',tooltip_text=tr('Study'))
         self.study_button.connect('toggled',self.toggle_study)
         self.immersive_button=Gtk.ToggleButton(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Immersive mode'))
         self.immersive_button.connect('clicked',lambda *_:self.toggle_immersion())
-        self.appearance_button=Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
-        self.appearance_button.add_css_class('flat')
+        self.appearance_button=Gtk.MenuButton(child=Gtk.Label(label='Aa'),tooltip_text=tr('Reading appearance'))
         self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
         self.comparison_button=Gtk.MenuButton(icon_name='view-dual-symbolic',tooltip_text=tr('Compare translations'))
         self.comparison_popover=Gtk.Popover()
         self.comparison_choices=Gtk.DropDown()
+        from .version_chooser import bounded_choices
+        bounded_choices(self.comparison_choices)
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
-        self.comparison_popover.set_child(self.comparison_choices)
+        comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
+        comparison_box.append(self.comparison_choices)
+        self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
+        self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
+        comparison_box.append(self.stop_comparison)
+        self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
-        from .popover_dismissal import install
+        from .popover_dismissal import install, fit_reader_popover
         self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
         self._popover_dismissal = install(self, self._reading_popovers)
+        self.comparison_popover.connect('show',lambda *_:fit_reader_popover(self.comparison_popover,self))
         self._comparison_syncing=False
         # pack_end packs from the outside in: menu is immediately before the
         # native window controls, library before menu, My notes before library.
-        for widget,label in [(self.menu,'Notes and commands'),(self.appearance_button,'Reading appearance'),(library_button,'Library'),
+        for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
                              (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
+        # Explicit native symbolic size leaves Header Bar hit targets untouched.
+        for button in (self.library_button,self.my_notes_button,self.study_button):
+            image=Gtk.Image(icon_name=button.get_icon_name(),pixel_size=16)
+            button.set_child(image)
+        from .version_chooser import VersionChooser
+        self.primary_version=VersionChooser(self)
+        self.compared_version=VersionChooser(self,comparison=True)
         self.reader_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,
                                     margin_top=12,margin_end=12)
-        for widget,label in [(self.comparison_button,'Compare translations'),(self.immersive_button,'Immersive mode')]:
-            widget.add_css_class('flat')
+        self.reader_controls.append(self.primary_version)
+        for widget,label in [(self.comparison_button,'Compare translations'),(self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
+            widget.add_css_class('circular');widget.add_css_class('reader-action')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             self.reader_controls.append(widget)
+        self.reader_controls.add_tick_callback(self.fit_reader_controls)
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
@@ -185,6 +201,8 @@ class Window(Adw.ApplicationWindow):
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
+                           b'.reader-action { min-width: 34px; min-height: 34px; padding: 0; border-radius: 9999px; } '
+                           b'.version-pill > button { border-radius: 9999px; } '
                            b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
                            b'padding: 8px; border-radius: 12px; } '
                            b'popover.passage-selector > contents { border-radius: 18px; }')
@@ -254,6 +272,27 @@ class Window(Adw.ApplicationWindow):
         self.selected_changed()
         self.study_divider.apply()
 
+    def fit_reader_controls(self,*_):
+        tab=self.active_tab
+        if not tab or self.primary_version.get_parent() is not self.reader_controls:return True
+        available=tab.reading_overlay.get_width()-24
+        if available<=0:return True
+        others=[];child=self.reader_controls.get_first_child()
+        while child:
+            if child is not self.primary_version and child.get_visible():others.append(child)
+            child=child.get_next_sibling()
+        widths=tuple(widget.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for widget in others)
+        caption=self.primary_version.caption
+        stamp=(available,widths,caption.get_text(),caption.get_pango_context().get_serial())
+        if stamp==getattr(self,'_reader_controls_geometry',None):return True
+        self._reader_controls_geometry=stamp
+        width=sum(widths)
+        padding=self.primary_version.measure(Gtk.Orientation.HORIZONTAL,-1)[1]-caption.measure(Gtk.Orientation.HORIZONTAL,-1)[1]
+        em=max(1,caption.create_pango_layout('M').get_pixel_size()[0])
+        chars=max(4,min(16,int((available-width-padding-6*len(others))/em)))
+        if caption.get_max_width_chars()!=chars:caption.set_max_width_chars(chars)
+        return True
+
     def copy_passage(self,with_reference=False,reference_only=False):
         from .notes_window import passage_label
         tab=self.active_tab
@@ -278,7 +317,8 @@ class Window(Adw.ApplicationWindow):
 
     def show_comparison(self):
         if self.immersion:self.leave_immersion()
-        self.comparison_button.popup()
+        if self.active_tab and self.active_tab.state.comparison:self.compared_version.popup()
+        else:self.comparison_button.popup()
 
     def toggle_immersion(self):
         if self.immersion:self.leave_immersion()
@@ -468,6 +508,12 @@ class Window(Adw.ApplicationWindow):
         if parent is not tab.reading_overlay:
             if parent:parent.remove_overlay(self.reader_controls)
             tab.reading_overlay.add_overlay(self.reader_controls)
+        right_parent=self.compared_version.get_parent()
+        if right_parent is not tab.comparison_controls:
+            if right_parent:right_parent.remove(self.compared_version)
+            tab.comparison_controls.append(self.compared_version)
+        self.primary_version.sync();self.compared_version.sync()
+        self.immersive_button.set_visible(not bool(tab.state.comparison))
         self.immersive_button.set_sensitive(tab.reader is not None)
         self.lookup_action('immersive').set_enabled(tab.reader is not None)
         for name in ['copy-passage','copy-with-reference','copy-reference']:
@@ -509,13 +555,24 @@ class Window(Adw.ApplicationWindow):
         self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
         self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
         self._comparison_syncing=False
+        self.comparison_choices.set_visible(not bool(tab.state.comparison))
+        self.stop_comparison.set_visible(bool(tab.state.comparison))
+        label=tr('Stop comparison') if tab.state.comparison else tr('Compare translations')
+        self.comparison_button.set_tooltip_text(label)
+        self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
         tab.refresh_comparison()
+        self.primary_version.sync();self.compared_version.sync()
+        self.immersive_button.set_visible(not bool(tab.state.comparison))
+
+    def end_comparison(self):
+        self.active_tab.state.comparison=None
+        self.sync_comparison();self.schedule_save();self.comparison_popover.popdown()
 
     def comparison_selected(self,widget,*_):
         if self._comparison_syncing or not self.active_tab:return
         index=widget.get_selected()
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
-        self.active_tab.refresh_comparison()
+        self.sync_comparison()
         self.schedule_save()
         # Finish the nested GtkDropDown activation before dismissing its parent.
         GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
@@ -810,7 +867,6 @@ class Window(Adw.ApplicationWindow):
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()
-        Gtk.StyleContext.remove_provider_for_display(self.get_display(),self.appearance.swatch_css)
         if self.notes_space:self.notes_space.closed=True
         if self.notes_store:
             self.notes_store.close()

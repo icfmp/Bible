@@ -27,21 +27,20 @@ def main():
                     assert not popover.get_visible()
                     assert window.active_tab.state.reference == reference
                     native.click(button); native.key('Escape'); assert not popover.get_visible()
-            for selected in [1, 0, 1]:
+            for _ in range(3):
                 native.click(window.comparison_button)
                 native.click(window.comparison_choices)
-                native.key('End' if selected else 'Home'); native.key('Return')
-                spin(duration=.2)
-                assert window.active_tab.state.comparison == window._comparison_names[selected]
+                native.key('End');native.key('Return');spin(duration=.2)
+                assert window.active_tab.state.comparison==window._comparison_names[-1]
+                assert not window.comparison_popover.get_visible()
+                native.click(window.compared_version);native.key('Escape')
+                assert not window.compared_version.popover.get_visible()
+                native.click(window.comparison_button);native.click(window.stop_comparison)
+                assert window.active_tab.state.comparison is None
                 assert not window.comparison_popover.get_visible()
             aa = window.appearance
             for index in [0, 1, 2, 3, 0, 3]:
                 native.click(window.appearance_button)
-                # Expand Layout, then operate the nested native spacing chooser.
-                expander = aa.controls.get_first_child()
-                while not isinstance(expander, Gtk.Expander):
-                    expander = expander.get_next_sibling()
-                expander.set_expanded(True); spin(duration=.2)
                 native.click(aa.line_spacing); native.key('Home')
                 for _ in range(index): native.key('Down')
                 native.key('Return'); spin(duration=.2)

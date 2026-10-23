@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "pairs": [
+    {
+      "primary": "FreSegond1910",
+      "comparison": "ebible~frajnd2024eb",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    },
+    {
+      "primary": "FreSegond1910",
+      "comparison": "KJV",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "FreSegond1910",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    },
+    {
+      "primary": "ebible~frajnd2024eb",
+      "comparison": "KJV",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    },
+    {
+      "primary": "KJV",
+      "comparison": "FreSegond1910",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    },
+    {
+      "primary": "KJV",
+      "comparison": "ebible~frajnd2024eb",
+      "real_text_fidelity": true,
+      "native_scroll_both_directions": true
+    }
+  ],
+  "boundary": "Darby Gen.32.1 \u2194 KJV Gen.31.55",
+  "direct_pane_choosers": true,
+  "tabs": true,
+  "immersion": true
+}

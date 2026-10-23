@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Light':'Clair', 'Dark':'Sombre', 'Stop comparison':'Arrêter la comparaison',
     'Loading saved resources…':'Chargement des ressources enregistrées…',
     'Topics':'Thèmes', 'Text':'Texte', 'Passage':'Passage', 'Search':'Rechercher',
     'Search topics':'Rechercher un thème', 'Exact phrase in this translation':'Expression exacte dans cette traduction',
@@ -290,7 +291,7 @@ FR.update({
     'Dark grey':'Gris sombre','Black':'Noir','Layout':'Mise en page',
     'Line spacing':'Interligne','Tight':'Serré','Normal':'Normal','Airy':'Aéré',
     'Text width':'Largeur du texte','Narrow':'Étroite','Wide':'Large',
-    'Reset reading settings':'Rétablir les réglages',
+    'Reset reading settings':'Rétablir l’apparence de lecture',
     'Colors follow the system high contrast setting.':'Les couleurs suivent le contraste élevé du système.',
 })
 

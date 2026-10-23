@@ -32,9 +32,8 @@ class PassagePopover(Gtk.Popover):
         self.direct.connect('activate',lambda *_:self.commit())
         self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
         top = Gtk.Box(spacing=8)
-        top.append(Gtk.Label(label=tr('Version')))
         self.version = self.dropdown('Version', self.version_changed)
-        top.append(self.version)
+        # Kept as an internal source model for navigation/search, not a duplicate chooser.
         self.close_button = Gtk.Button(icon_name='window-close-symbolic', tooltip_text=tr('Close'))
         self.close_button.add_css_class('flat')
         self.close_button.update_property([Gtk.AccessibleProperty.LABEL], [tr('Close')])

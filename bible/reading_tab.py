@@ -75,19 +75,29 @@ class ReadingTab(Gtk.Box):
         self.following = self.chapter_button('go-next-symbolic', 'Next chapter',
                                              'win.next-chapter', Gtk.Align.END)
         self.reading_layout=Gtk.Box(spacing=16,vexpand=True,homogeneous=True)
-        self.reading_layout.append(self.reading_overlay)
+        self.primary_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,vexpand=True,hexpand=True)
+        self.primary_heading=Gtk.Label(wrap=True,yalign=0,margin_top=12,margin_start=12,margin_end=12,visible=False)
+        self.primary_heading.add_css_class('heading')
+        self.primary_box.append(self.primary_heading);self.primary_box.append(self.reading_overlay)
+        self.reading_layout.append(self.primary_box)
         self.comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False,vexpand=True,hexpand=True)
-        self.comparison_heading=Gtk.Label(wrap=True,margin_top=16,margin_start=12,margin_end=12)
+        self.comparison_heading=Gtk.Label(wrap=True,yalign=0,margin_top=12,margin_start=12,margin_end=12)
         self.comparison_heading.add_css_class('heading')
         self.comparison_box.append(self.comparison_heading)
-        self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12)
+        self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12,visible=False)
         self.comparison_box.append(self.comparison_status)
         self.comparison_text=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                           left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
+        self.comparison_scroll.set_margin_top(56)
         self.comparison_overlay.set_child(self.comparison_scroll)
+        self.comparison_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,margin_top=12,margin_end=12)
+        self.comparison_overlay.add_overlay(self.comparison_controls)
+        headings=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        headings.add_widget(self.primary_heading);headings.add_widget(self.comparison_heading)
+        self.heading_size_group=headings
         self.comparison_box.append(self.comparison_overlay)
         self.reading_layout.append(self.comparison_box)
         self.append(self.reading_layout)
@@ -219,7 +229,7 @@ class ReadingTab(Gtk.Box):
         self._reading_geometry=geometry
         orientation=Gtk.Orientation.HORIZONTAL if self.get_width()>=760 else Gtk.Orientation.VERTICAL
         if self.reading_layout.get_orientation()!=orientation:self.reading_layout.set_orientation(orientation)
-        for view,scroll,minimum in [(self.text,self.scroll,56),(self.comparison_text,self.comparison_scroll,56)]:
+        for view,scroll,minimum in [(self.text,self.scroll,66),(self.comparison_text,self.comparison_scroll,66)]:
             margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
             if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
         if self.scroll.get_height()>0:
@@ -254,8 +264,13 @@ class ReadingTab(Gtk.Box):
             self._appearance_anchor = self.position_anchor(iterator.get_offset())
             self._jump_reference = None; self.schedule_scroll_restore()
         self.comparison_box.set_visible(bool(name))
+        self.primary_heading.set_visible(bool(name))
         if not name:return
-        self.comparison_status.set_text('')
+        try:
+            primary=self.library.resource(self.state.resource)
+            self.primary_heading.set_text(primary.description+' — '+primary.source+' · '+self.state.reference if self.reader else '')
+        except ValueError:self.primary_heading.set_text('')
+        self.comparison_status.set_text('');self.comparison_status.set_visible(False)
         try:
             if name not in self.library.installed('bible'):raise ValueError(tr('Comparison translation unavailable.'))
             resource = self.library.resource(name)
@@ -308,10 +323,11 @@ class ReadingTab(Gtk.Box):
             self._comparison_signature = None; self._comparison_offsets = {}
             self._comparison_document = None; self._comparison_ranges = {}; self._comparison_markers = {}
             self.comparison_heading.set_text('')
-            self.comparison_status.set_text(str(error))
+            self.comparison_status.set_text(str(error));self.comparison_status.set_visible(True)
 
     def set_comparison_alignment(self, error):
         self._comparison_aligned = error is None
+        self.comparison_status.set_visible(error is not None)
         self.comparison_status.set_text((tr('Automatic following unavailable. Reading independently.')+' '+str(error))
                                         if error is not None else '')
         heading = getattr(self, '_comparison_heading_base', '')
