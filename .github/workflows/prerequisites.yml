@@ -55,6 +55,7 @@ jobs:
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_passage_actions /tmp/bible-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} /tmp/bible-actions-capture --synthetic --no-screenshots | tee native-actions-results.log
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_reading_ui | tee native-reading-results.log
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_scroll_sync | tee native-scroll-results.log
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_passage_note_cards /tmp/passage-note-cards.json | tee native-note-cards-results.log
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
         env:
@@ -84,6 +85,7 @@ jobs:
             native-actions-results.log
             native-reading-results.log
             native-scroll-results.log
+            native-note-cards-results.log
             affiliated-commentary.log
             affiliated-commentary-result.json
           if-no-files-found: warn
@@ -101,7 +103,7 @@ jobs:
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder elfutils
+          sudo apt-get install -y flatpak flatpak-builder elfutils xvfb xauth dbus-x11
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
       - name: Construire et vérifier SWORD dans le sandbox
@@ -113,6 +115,10 @@ jobs:
           flatpak build-bundle local-repo Bible-alpha.flatpak io.github.icfmp.Bible --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive ./Bible-alpha.flatpak
           flatpak run --user --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible -c 'import Sword; from bible.ui import Window; print("Bundle OK")'
+      - name: Vérifier les cartes et brouillons dans le Flatpak installé
+        run: |
+          set -o pipefail
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
@@ -142,6 +148,7 @@ jobs:
             Bible-alpha.flatpak
             SHA256SUMS
             build-info.json
+            packaged-note-cards-results.log
           if-no-files-found: error
           retention-days: 30
 

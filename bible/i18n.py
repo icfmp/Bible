@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'All my annotations':'Toutes mes annotations', 'No annotations for this passage.':'Aucune annotation pour ce passage.',
+    'Bible excerpt unavailable.':'Extrait biblique indisponible.', 'Empty note':'Note vide',
+    'Open note':'Ouvrir la note', 'Expand note':'Agrandir la note',
+    'Highlight selection':'Surligner la sélection', 'Highlight and annotate…':'Surligner et annoter…',
     'Light':'Clair', 'Dark':'Sombre', 'Stop comparison':'Arrêter la comparaison',
     'Loading saved resources…':'Chargement des ressources enregistrées…',
     'Topics':'Thèmes', 'Text':'Texte', 'Passage':'Passage', 'Search':'Rechercher',

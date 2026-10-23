@@ -34,15 +34,15 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(self):
         from bible.note_preview import NotePreview
+        from bible.annotation_card import AnnotationPreview
         w=self.window;w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh();spin()
         def walk(widget):
-            if isinstance(widget,NotePreview):yield widget
+            if isinstance(widget,(NotePreview,AnnotationPreview)):yield widget
             child=widget.get_first_child()
             while child:yield from walk(child);child=child.get_next_sibling()
         preview=next(walk(w.study.notes.list));self.assertEqual(len(preview.citations),2)
-        bold=preview.get_buffer().get_iter_at_offset(preview.citations[0].begin)
-        weights=[tag.props.weight for tag in bold.get_tags() if tag.props.weight_set]
-        self.assertEqual(weights[-1],700,'Generated links must preserve Markdown bold weight')
+        self.assertIn('<b>Psaumes 3:2</b>',preview.get_label(),
+                      'Generated links must preserve Markdown bold weight')
         before=(w.active_tab.state.reference,list(w.active_tab.state.history),w.view.get_n_pages())
         preview.activate(0);spin()
         self.assertEqual(w.reference_preview.body.get_buffer().props.text,'EXACT PSALM English')

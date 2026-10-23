@@ -1,0 +1,32 @@
+[
+  {
+    "file": "after-light-narrow.png",
+    "scale": 1,
+    "panel_width": 352
+  },
+  {
+    "file": "after-light-default.png",
+    "scale": 1,
+    "panel_width": 422
+  },
+  {
+    "file": "after-light-wide.png",
+    "scale": 1,
+    "panel_width": 552
+  },
+  {
+    "file": "after-dark-narrow.png",
+    "scale": 1,
+    "panel_width": 352
+  },
+  {
+    "file": "after-dark-default.png",
+    "scale": 1,
+    "panel_width": 422
+  },
+  {
+    "file": "after-dark-wide.png",
+    "scale": 1,
+    "panel_width": 552
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "actual_sqlite_note": true,
+  "labels": true,
+  "actual_highlight": true,
+  "explicit_reading_preferences": true,
+  "primary_and_comparison_session": true,
+  "resource_file_digests": 36,
+  "before_source": "044d81ea09b0bbd4eaf1b0f4b88fa24d1f557691",
+  "after_source": "feat/90-passage-note-cards"
+}
