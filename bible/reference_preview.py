@@ -1,5 +1,5 @@
 """One native, non-navigating preview shared by study links and note citations."""
-from gi.repository import Gtk,Pango
+from gi.repository import Gtk,Pango,Adw
 from .i18n import tr
 from .notes_window import passage_label
 from .reference_targets import local_excerpt
@@ -29,6 +29,12 @@ class ReferencePreview:
         handler=getattr(popover,'_reference_anchor_unmap',0)
         if anchor and handler:anchor.disconnect(handler)
         popover._reference_anchor=None;popover._reference_anchor_unmap=0
+        dialog=getattr(popover,'_reference_dialog',None)
+        if dialog:
+            handler=getattr(popover,'_reference_dialog_handler',0)
+            if handler:dialog.disconnect(handler)
+            dialog.set_can_close(popover._reference_dialog_can_close)
+            popover._reference_dialog=None;popover._reference_dialog_handler=0
         if popover.get_parent():popover.unparent()
         if self.popover is popover:self.popover=None;self.target=None
 
@@ -49,6 +55,14 @@ class ReferencePreview:
         root._reading_popovers.append(popover)
         popover._reference_root=root
         popover._reference_unrealize=root.connect('unrealize',lambda *_:self.dismiss())
+        dialog=anchor.get_ancestor(Adw.Dialog)
+        if dialog:
+            # Adwaita's modal Escape action runs before window key controllers.
+            # Let the first close attempt dismiss only this nested preview.
+            popover._reference_dialog=dialog
+            popover._reference_dialog_can_close=dialog.get_can_close()
+            popover._reference_dialog_handler=dialog.connect('close-attempt',lambda *_:self.dismiss())
+            dialog.set_can_close(False)
         popover._reference_anchor=anchor
         popover._reference_anchor_unmap=anchor.connect('unmap',lambda *_:self.dismiss())
         popover.connect('closed',lambda *_:self.detach(popover))

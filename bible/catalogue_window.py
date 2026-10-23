@@ -215,8 +215,7 @@ class CatalogueWindow(Adw.Window):
     def installed_ids(self):return [*self.library.installed(),*self.study_resources.installed()]
 
     def installed_resource(self,name):
-        from .study_resources import REFERENCE_RESOURCE_ID
-        return self.study_resources.resource(name) if name==REFERENCE_RESOURCE_ID else self.library.resource(name)
+        return self.study_resources.resource(name) if name in self.study_resources.stores else self.library.resource(name)
 
     def selection_changed(self, *_):
         resource = self.selected_resource()

@@ -5,6 +5,7 @@ from .reference_data import (ReferenceData,ReferenceDataError,SOURCE_URL,LICENSE
                              SOURCE_DATE,ARCHIVE_SHA256,NUMBERING,TRANSFORMATIONS)
 
 REFERENCE_RESOURCE_ID='openbible-cross-references'
+PLACE_RESOURCE_ID='openbible-places'
 
 
 @dataclass(frozen=True)
@@ -27,23 +28,43 @@ class StudyResource:
 
 
 class StudyResources:
-    def __init__(self,root):self.references=ReferenceData(root)
+    def __init__(self,root):
+        from .place_data import PlaceData
+        self.references=ReferenceData(root);self.places=PlaceData(root)
+        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places}
 
-    def available(self):return [StudyResource(description=tr('Bible cross-references'))]
+    def available(self):
+        from . import place_data as places
+        return [StudyResource(description=tr('Bible cross-references')),
+                StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),
+                    source_url=places.SOURCE_URL,license='CC BY 4.0; ODbL 1.0; public-domain coastlines',
+                    author='OpenBible.info; OpenStreetMap contributors; Natural Earth contributors',
+                    conditions='OpenBible.info — '+places.SOURCE_URL+'\nCC BY 4.0 — '+places.LICENSE_URL+
+                        '\nOpenStreetMap — '+places.ODBL_URL+'\nNatural Earth — '+places.MAP_SOURCE+
+                        '\nPublic-domain basemap terms — https://www.naturalearthdata.com/about/terms-of-use/',
+                    about='OpenBible source: '+places.SOURCE_COMMIT+'\nNatural Earth source: '+places.MAP_COMMIT+
+                        '\n'+places.NOTICE+'\n'+str({k:v[1] for k,v in places.FILES.items()}))]
 
     def resource(self,name):
-        if name!=REFERENCE_RESOURCE_ID:raise ValueError('Unknown study resource')
-        return self.available()[0]
+        return next((r for r in self.available() if r.id==name),None) or self.unknown()
+
+    def unknown(self):raise ValueError('Unknown study resource')
 
     def installed(self):
-        try:self.references.metadata();return [REFERENCE_RESOURCE_ID]
-        except (ReferenceDataError,OSError):return []
+        result=[]
+        for name,store in self.stores.items():
+            try:store.metadata();result.append(name)
+            except (ReferenceDataError,OSError):pass
+        return result
 
     def current(self,name):
-        if name!=REFERENCE_RESOURCE_ID:return False
-        try:return self.references.metadata()['archive_sha256']==ARCHIVE_SHA256
+        try:
+            metadata=self.stores[name].metadata()
+            if name==REFERENCE_RESOURCE_ID:return metadata['archive_sha256']==ARCHIVE_SHA256
+            from .place_data import REVISION
+            return metadata['revision']==REVISION and self.places.has_map()
         except (ReferenceDataError,OSError,KeyError):return False
 
     def install(self,resource,progress,installing):
-        if resource.id!=REFERENCE_RESOURCE_ID:raise ValueError('Unknown study resource')
-        return self.references.install(progress,installing)
+        if resource.id not in self.stores:raise ValueError('Unknown study resource')
+        return self.stores[resource.id].install(progress,installing)

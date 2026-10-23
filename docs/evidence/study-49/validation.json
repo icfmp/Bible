@@ -1,0 +1,19 @@
+{
+  "source_full_suite": {
+    "tests": 212,
+    "result": "PASS",
+    "before_final_map_presentation_refinements": true
+  },
+  "final_affected_source": {
+    "tests": 24,
+    "result": "PASS"
+  },
+  "final_affected_installed_flatpak": {
+    "tests": 32,
+    "result": "PASS"
+  },
+  "automated_native_inputs": "real GTK/Xvfb pointer and keyboard",
+  "deep_accessibility": "Deferred; NOT tested",
+  "client_GNOME_Wayland": "Not tested",
+  "signed_publication": "Pending separate main CI/publication/update verification"
+}
