@@ -180,15 +180,15 @@ class PassageNotes(Gtk.Box):
     def expand_editor(self):
         # Finish the activating key event before moving focus to a new window;
         # otherwise Space can also be inserted into the editor's buffer.
-        GLib.idle_add(self._expand_editor)
+        GLib.idle_add(self._expand_editor,self.editor)
 
-    def _expand_editor(self):
-        editor=self.editor
-        if not editor or editor.closed or not editor.embedded:return
+    def _expand_editor(self,editor):
+        if not editor or self.editor is not editor or editor.closed or not editor.embedded:return
         self.editor_panel.remove(editor.embedded_content);self.editor_panel.set_visible(False)
         editor.stack.set_vexpand(True);editor.body_scroll.set_min_content_height(0)
         editor.body_scroll.set_max_content_height(-1);editor.body_scroll.set_propagate_natural_height(False);editor.body_scroll.set_vexpand(True)
-        editor.embedded=False;editor.header.set_visible(True);editor.set_content(editor.embedded_content);editor.present()
+        editor.embedded=False;editor.dialog_parent=editor
+        editor.header.set_visible(True);editor.set_content(editor.embedded_content);editor.present()
 
     def editor_closed(self,editor):
         if editor.embedded_content.get_parent() is self.editor_panel:self.editor_panel.remove(editor.embedded_content)

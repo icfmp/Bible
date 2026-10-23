@@ -57,6 +57,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.w.study_button.set_active(True);self.w.study.tools.set_visible_child_name('notes')
         panel.expand_editor();spin(lambda:not editor.embedded)
         self.assertIs(editor.body.get_buffer(),original_buffer);self.assertFalse(editor.embedded)
+        self.assertIs(editor.dialog_parent,editor)
         with patch.object(self.w.notes_store,'save',side_effect=OSError('Test write failure')):
             self.assertFalse(editor.save());self.assertIn('Unsaved',buffer_text(editor.body));self.assertFalse(editor.closed)
         editor.close();spin();self.assertTrue(editor._confirmation.get_visible())
