@@ -15,6 +15,10 @@ The Library has two tabs:
 
 The catalogue can contain resources in many languages, so filtering is often the easiest place to start.
 
+![Library Explore tab with search and resource filters](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/library-explore.png)
+
+*Browse available resources and narrow the catalogue using the filters.*
+
 ## 2. Find a translation or commentary
 
 In **Explore**, use the controls above the resource list:
@@ -37,9 +41,17 @@ Each list entry shows a resource name and identifying information, including its
 3. Review its description, attribution and license.
 4. Use the available download action to install it.
 
+![Selected library resource with its details and download controls](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/library-resource-details.png)
+
+*Check a resource's information before downloading it.*
+
 The exact detail and download controls may change while Bible is in alpha. Only download resources whose terms you accept.
 
 To check what is available locally, switch to **Installed resources**.
+
+![Library Installed resources tab](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/library-installed.png)
+
+*Find resources already available on your computer.*
 
 ## 4. Read and study offline
 
