@@ -592,6 +592,13 @@ class Window(Adw.ApplicationWindow):
         self._syncing_study = False
         self.schedule_save()
 
+    def open_places(self):
+        if getattr(self,'place_dialog',None) is None or self.place_dialog.closed:
+            from .place_cards import PlaceCards
+            self.place_dialog=PlaceCards(self)
+        self.place_dialog.present(self)
+        return self.place_dialog
+
     def open_library(self, kind=None):
         if self.immersion:self.leave_immersion()
         if self.catalogue_window is None or self.catalogue_window.closed:
@@ -604,11 +611,12 @@ class Window(Adw.ApplicationWindow):
     def resource_installed(self, name):
         if self.closed:
             return
-        from .study_resources import REFERENCE_RESOURCE_ID
-        if name==REFERENCE_RESOURCE_ID:
+        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID
+        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID):
             for window in self.get_application().get_windows():
                 if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
-                    window.study.references.invalidate()
+                    if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
+                    elif getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
             return
         resource = self.library.resource(name)
         if resource.kind == 'commentary':

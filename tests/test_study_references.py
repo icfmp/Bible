@@ -79,7 +79,7 @@ class StudyReferenceTests(unittest.TestCase):
         with patch('bible.catalogue_window.catalogue',side_effect=AssertionError('Study data needs no SWORD refresh')):
             dialog=self.window.open_library('study');spin(duration=.2)
             self.assertFalse(dialog._catalogue_requested)
-            self.assertEqual([r.id for r in dialog.filtered_resources],[REFERENCE_RESOURCE_ID])
+            self.assertEqual(dialog.filtered_resources[0].id,REFERENCE_RESOURCE_ID)
             dialog.open_details(None,0)
             self.assertIn(reference_data.LICENSE_URL,dialog.metadata.get_text())
             self.install();self.window.resource_installed(REFERENCE_RESOURCE_ID);dialog.filter_resources()

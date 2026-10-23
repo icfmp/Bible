@@ -1,8 +1,8 @@
-# Proposed contextual place cards (#49)
+# Contextual place cards (#49)
 
-This PR first records the concrete source/map/dependency approach for review.
-The following is a proposal and source audit, not a claim that place cards are
-implemented. It follows the shared References and note-preview deliveries.
+The source/map/dependency proposal was committed and reviewed in PR #77 before
+implementation. The implementation follows that reviewed approach and the shared
+References and note-preview deliveries; publication remains a separate gate.
 
 ## Audited inputs and coverage
 
@@ -123,3 +123,52 @@ review, exact-head CI, merge and the existing signed alpha with a real ordinary
 update/profile-preservation check. Client GNOME/Wayland acceptance and in-depth
 assistive technologies remain deferred and must not be claimed as tested.
 Bible.com/BDS, full atlas features and photos remain outside this increment.
+
+Source/CI dependency detail: native Ubuntu checks explicitly install the existing
+Cairo Python/foreign-converter packages (`python3-cairo`, `python3-gi-cairo`).
+The GNOME 49 application runtime already provides these bindings; the Flatpak
+manifest and runtime/dependency versions are unchanged.
+
+## Implemented behavior and current verification
+
+The on-demand study action captures its actual verse/range and installed
+translation. The adaptive dialog preserves this context until closed, queries a
+separate optional SQLite resource and lists actual relationships. A card uses
+curated conventional French names (approximately 80 entries), with publisher
+names/aliases retained under source detail. This is partial name localization,
+not a complete translated gazetteer. Scores and candidates remain source facts.
+The deterministic status uses no coordinates → Unknown; multiple credible modern
+IDs → Disputed; a single credible ID with path score >=500 → Known; otherwise
+positive supplied confidence tags → Probable, else Disputed. Rejected and unknown
+alternatives remain listed. Scores are explicitly not probabilities.
+
+Native Cairo draws the audited coastlines and numbered candidates with an
+aspect-correct regional extent. Nearby marker groups retain their numbers (or
+an explicit alternative count); candidates, coordinate roles, source modifiers
+and uncertainty radii remain individually readable below. No map pin is invented
+for unknown locations. Missing map/binding/data leaves factual metadata and
+references available. Context references are prioritized before canonical order;
+View all uses virtualized results. Exact excerpts and navigation reuse #47/#50,
+including the note-save guard. Escape dismisses a preview before its containing
+Adw.Dialog; the dialog's original close policy is restored on dismissal.
+
+The importer bounds all five hash-pinned inputs, validates IDs, references,
+finite coordinates and candidate evidence, retains original license/manifest in
+the resource, builds an integrity-checked staged database and atomically replaces
+only that resource. Failed updates leave the old database unchanged. No note,
+highlight, session or module migration is introduced.
+
+Real-source checks imported 1,342 ancient places, 1,596 modern locations and 442
+bibliographic sources in 0.549 s in the validation container. Actual native
+Library download completed in 9.881 s. Real pointer/keyboard source checks pass
+online and in an isolated network namespace: Jerusalem, all six Emmaus candidates,
+unknown Nod, actual source coordinates, exact installed KJV text, French
+FreSegond Ps 42:7 resolved from source Ps 42:6, preview/current/new tab, Escape,
+failed-update retention, narrow/light/dark/emulated-high-contrast and restart.
+Source tests: 212 pass before final presentation refinements; the final affected
+suites pass 24 source / 32 installed tests. All 78 packaged application files
+match source, with 14 verified canonical mappings and required notices. Actual
+Flatpak Library download (9.956 s) and network-isolated restart/native checks
+pass; committed receipts and captures record these separately from publication.
+These are automated native GTK/Xvfb checks. Deep accessibility and personal
+GNOME/Wayland acceptance have not been tested.

@@ -1,0 +1,63 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "network_disabled": true,
+  "accessibility": "Deferred; not tested",
+  "dataset": {
+    "schema": 1,
+    "source_url": "https://www.openbible.info/geo/",
+    "source_commit": "7eb18a5ee62f27b9b93bd6689ea272d76dd23b8f",
+    "map_commit": "ca96624a56bd078437bca8184e78163e5039ad19",
+    "revision": "0756c7ad3f909f5c0e232aafebb0c19eb5c80e9e530ad5c3b3339889a35c8aa0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "odbl_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "map_source": "https://www.naturalearthdata.com/",
+    "notice": "OpenBible.info place data: CC BY 4.0. OpenStreetMap-derived components: ODbL 1.0; \u00a9 OpenStreetMap contributors. Natural Earth 1:50m coastline: public domain. Transformed into a validated local index of supplied verse relationships, candidate coordinates/roles and source evidence; simplified coastline overview. No images, OSM polygons, Scripture quotations or historical boundaries imported.",
+    "files": {
+      "ancient": {
+        "url": "https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/7eb18a5ee62f27b9b93bd6689ea272d76dd23b8f/data/ancient.jsonl",
+        "sha256": "b8187aa4737e8517ccc090f765d2be11da4c548cd2a59d3cdcb62e952cb8c0f2"
+      },
+      "modern": {
+        "url": "https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/7eb18a5ee62f27b9b93bd6689ea272d76dd23b8f/data/modern.jsonl",
+        "sha256": "da731f6e110bac4ea66a9f037a0a31cfb11c4f1efc1206aa9e109092b2c60087"
+      },
+      "sources": {
+        "url": "https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/7eb18a5ee62f27b9b93bd6689ea272d76dd23b8f/data/source.jsonl",
+        "sha256": "b93709cfd947430a3befe3a02a82787ef589c3223c903f4f234adaa46727856a"
+      },
+      "license": {
+        "url": "https://raw.githubusercontent.com/openbibleinfo/Bible-Geocoding-Data/7eb18a5ee62f27b9b93bd6689ea272d76dd23b8f/license.txt",
+        "sha256": "f5b745ef98087f531e719ee8ca6a96809444573ecc7173c6fa68eaad39b3cc3f"
+      },
+      "coastline": {
+        "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_50m_coastline.geojson",
+        "sha256": "271f1c4c1908312bac6b29d158ea1356544beafc129f260005300913aa5ea283"
+      }
+    },
+    "places": 1342,
+    "modern_locations": 1596,
+    "bibliographic_sources": 442,
+    "installed_at": "2026-10-23T03:59:01.669400+00:00"
+  },
+  "preview_navigation": {
+    "native_pointer_and_keyboard": true,
+    "escape": true,
+    "exact_installed_text": true,
+    "preview_preserves_history": true,
+    "explicit_new_tab_keeps_original": true,
+    "explicit_current_tab": true
+  },
+  "real_place_evidence": {
+    "jerusalem": "known, one modern point",
+    "emmaus": "disputed, six supplied candidates",
+    "nod": "unknown, no invented coordinates",
+    "coordinates_equal_pinned_source": true,
+    "french_psalm_source": "Ps.42.6",
+    "french_psalm_target": "Ps.42.7"
+  },
+  "failed_update_preserves_index": true,
+  "narrow_and_themes": true,
+  "offline_restart_with_local_map": true,
+  "notes_and_bible_resources_preserved": true,
+  "status": "PASS"
+}

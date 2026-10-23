@@ -121,3 +121,22 @@ checksum, numbering limits and transformations are documented in
 [OPENBIBLE_REFERENCES_47.md](docs/OPENBIBLE_REFERENCES_47.md). This optional dataset
 is not part of the application bundle. Installed Bible excerpts retain their
 own resource terms.
+
+
+## Optional OpenBible.info geographical data and Natural Earth coastlines
+
+On explicit Library installation, Bible downloads the pinned OpenBible
+[Bible-Geocoding-Data](https://github.com/openbibleinfo/Bible-Geocoding-Data)
+(CC BY 4.0), with OpenStreetMap-derived components credited to © OpenStreetMap
+contributors under [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+No images, thumbnail payloads or OSM polygons are imported. Candidate coordinates,
+reference associations and identification evidence are validated and transformed
+into a local SQLite resource; source notices are retained in that resource.
+
+The separate [Natural Earth](https://www.naturalearthdata.com/) 1:50m modern
+coastline is public domain. Its vectors supply a simplified offline overview,
+not historical boundaries or a street atlas. Attribution, source commits,
+checksums, exact transformations and limits are documented in
+[PLACE_CARDS_49_DESIGN.md](docs/PLACE_CARDS_49_DESIGN.md). Both datasets are
+optional downloads and contain no imported Scripture quotations. Installed Bible
+excerpts retain their own resource terms.
