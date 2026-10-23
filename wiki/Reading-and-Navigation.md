@@ -13,9 +13,17 @@ You can also use:
 
 The selected passage is shown in the reading area.
 
+![Passage selector showing books, chapters and a reference field](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/reading-selector.png)
+
+*Choose a Bible book and chapter, or enter a reference directly.*
+
 ## Move through the text
 
-Move naturally from one chapter to another while reading. Bible also provides keyboard commands for precise navigation:
+Move naturally from one chapter to another while reading.
+
+![Bible's standard reading view with chapter navigation and highlighted passages](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/reading-normal.png)
+
+*Read Scripture with clear typography, highlighted passages and chapter navigation.* Bible also provides keyboard commands for precise navigation:
 
 | Shortcut | Action |
 | --- | --- |
@@ -44,11 +52,19 @@ Bible can use different downloaded translations. Open **Library** (`Ctrl+L`) to 
 
 A **Compare translations** control is available in the reader. It helps you view an additional translation alongside the current passage. Its presentation and behavior may continue to evolve during alpha.
 
+![Parallel Bible reading with two translations side by side](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/reading-parallel.png)
+
+*Compare two translations of the same passage side by side.*
+
 For more on available texts, see [Downloading Bibles and commentaries](Downloading-Resources).
 
 ## Focus on reading
 
 Use **Immersive mode** (`F11`) when you want to concentrate on the text. This is Bible's dedicated distraction-reduced reading experience, rather than merely a generic window-fullscreen command.
+
+![Immersive Bible reading with a spacious two-column layout](https://raw.githubusercontent.com/icfmp/Bible/main/wiki/images/reading-immersive.png)
+
+*Immersive reading keeps the biblical text at the center of the screen.*
 
 You can also open the **Reading appearance** control (`Aa`) to adjust the presentation of the text. See [Appearance and accessibility](Appearance-and-Accessibility) for details.
 
