@@ -1,0 +1,52 @@
+name: Publish GitHub Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - '.github/workflows/publish-wiki.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bible-wiki-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ vars.BIBLE_WIKI_SYNC_ENABLED == '1' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out documentation source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Publish pages to GitHub Wiki
+        env:
+          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${WIKI_PUSH_TOKEN}" ]]; then
+            echo "::error::Set repository secret WIKI_PUSH_TOKEN before enabling wiki publishing."
+            exit 1
+          fi
+          git config --global user.name "Bible wiki publisher"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=$WIKI_PUSH_TOKEN"; }; f'
+          git clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" published-wiki
+          # Only manage Markdown pages that are tracked in wiki/; preserve unrelated wiki files.
+          find wiki -maxdepth 1 -type f -name '*.md' -print0 | while IFS= read -r -d '' page; do
+            cp "$page" "published-wiki/$(basename "$page")"
+          done
+          cd published-wiki
+          git add -- '*.md'
+          if git diff --cached --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+          git commit -m "docs: synchronize Bible wiki from main"
+          git push origin HEAD
