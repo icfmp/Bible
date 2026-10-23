@@ -70,3 +70,10 @@ comparison, an open study commentary and immersion. Each retains native focus an
 its position through real Alt+Tab; the shared reader surfaces visibly render the
 leading mark. The separately styled study commentary remains native. Its absence
 of the project reader scope is intentional, preserving the required typography.
+
+The same delivery also unblocks the signed release of #78: its initial
+publication stopped before deployment at the former 768 MiB site guard. The
+bounded 896 MiB budget remains below GitHub Pages’ documented 1 GB limit and
+retains every historical corresponding-source archive and object. See
+`CANAL_ALPHA_FLATPAK.md` for measured occupancy and the explicit archival limit.
+No failed attempt is presented as an available update.
