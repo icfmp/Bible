@@ -21,8 +21,8 @@ RUNTIME_REPO = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 # Keep every published object and corresponding-source archive. This remains
 # below GitHub Pages' documented 1 GB limit (also if interpreted decimally).
 # Exceeding this bounded staging budget aborts before persistence/deployment.
-# Leave 10 MB below the stricter decimal interpretation of the host limit.
-MAX_SITE_BYTES = 990_000_000
+# Leave 1 MB below the stricter decimal interpretation of the host limit.
+MAX_SITE_BYTES = 999_000_000
 
 
 def run(*args):
@@ -52,7 +52,14 @@ def source_archive(site, source):
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary) / f'Bible-{source}-sources'
         root.mkdir()
-        subprocess.run(['git', 'archive', '--format=tar', '-o', str(root / 'Bible-source.tar'), source], check=True)
+        from tools.project_sources import create_project_archive,EVIDENCE_PATHS
+        create_project_archive(root / 'Bible-source.tar',source)
+        (root / 'SOURCE_LAYOUT.txt').write_text(
+            f'Exact project source commit: {source}\n'
+            'Application code, build scripts, original assets, third-party sources, licenses and tests retain their paths.\n'
+            'Historical GUI validation output is omitted: '+', '.join(EVIDENCE_PATHS)+'.\n'
+            f'Full repository and historical evidence: https://github.com/icfmp/Bible/tree/{source}\n'
+            'Existing published source archives are unchanged.\n')
         manifest = json.loads(run('git', 'show', f'{source}:packaging/{APP_ID}.json'))
         dependencies = root / 'dependencies'
         dependencies.mkdir()

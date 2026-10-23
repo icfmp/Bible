@@ -1,0 +1,527 @@
+[
+  {
+    "file": "before-light-acts-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-light-acts-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-light-acts-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-light-acts-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-light-acts-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 10
+  },
+  {
+    "file": "before-light-genesis-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-light-genesis-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-light-genesis-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-light-genesis-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-light-genesis-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 62
+  },
+  {
+    "file": "before-light-john-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-light-john-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-light-john-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-light-john-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-light-john-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 8
+  },
+  {
+    "file": "before-light-small-window.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "panel_width": 350,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-light-small-large-text.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "panel_width": 350,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-acts-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-acts-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-acts-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-acts-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-acts-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Acts.1.22",
+      "Acts.1.22"
+    ],
+    "total": 10,
+    "shown": 10
+  },
+  {
+    "file": "before-dark-genesis-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-genesis-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-genesis-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-genesis-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-genesis-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "Gen.1.1",
+      "Gen.1.1"
+    ],
+    "total": 62,
+    "shown": 62
+  },
+  {
+    "file": "before-dark-john-narrow.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 352,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-john-default.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-john-wide.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 552,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-john-large-text.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-john-expanded.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 8
+  },
+  {
+    "file": "before-dark-small-window.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "panel_width": 350,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-dark-small-large-text.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "panel_width": 350,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  },
+  {
+    "file": "before-high-contrast.png",
+    "scale": 1,
+    "window": [
+      1430,
+      990
+    ],
+    "panel_width": 422,
+    "source": [
+      "John.1.5",
+      "John.1.5"
+    ],
+    "total": 8,
+    "shown": 5
+  }
+]

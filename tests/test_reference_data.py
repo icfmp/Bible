@@ -90,6 +90,13 @@ class ReferenceDataTests(unittest.TestCase):
 
 
 class ReferenceNumberingTests(unittest.TestCase):
+    def test_complete_targets_do_not_use_excerpt_end_or_require_module_text(self):
+        from bible.reference_targets import Canon,local_target_ranges
+        self.assertEqual(local_target_ranges(Canon('Segond'),'Ps.3.1','Ps.3.2'),(('Ps.3.2','Ps.3.3'),))
+        self.assertEqual(local_target_ranges(Canon('KJV'),'John.3.16','John.3.18'),(('John.3.16','John.3.18'),))
+        self.assertEqual(local_target_ranges(Canon('KJV'),'3John.1.14','3John.1.15'),(('3John.1.14','3John.1.14'),))
+        self.assertEqual(local_target_ranges(Canon('Segond'),'John.1.51','John.2.2'),(('John.1.51','John.2.2'),))
+
     def test_verified_psalm_and_split_john_boundaries_in_both_directions(self):
         from bible.reference_targets import Canon,destination,source_references
         from bible.reference_resolution import resolve
