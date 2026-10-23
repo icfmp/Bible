@@ -82,7 +82,7 @@ class Immersion(Gtk.Overlay):
             owner.passage_button.popdown();owner.passage_button.set_popover(None)
             self.passage_button.set_popover(owner.navigation)
         header.set_title_widget(self.passage_button)
-        self.aa=Gtk.MenuButton(label='Aa',tooltip_text=tr('Reading appearance'))
+        self.aa=Gtk.MenuButton(child=Gtk.Label(label='Aa'),tooltip_text=tr('Reading appearance'))
         owner.appearance_button.popdown();owner.appearance_button.set_popover(None)
         self.aa.set_popover(owner.appearance)
         commands=Gio.Menu()
@@ -93,6 +93,12 @@ class Immersion(Gtk.Overlay):
             commands.append(tr('Open this passage in the Bible'),'win.immersive-open-bible')
         self.menu=Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands)
         header.pack_start(self.menu);header.pack_end(self.aa);header.pack_end(self.leave_button)
+        self.header=header
+        if self.kind=='bible':
+            owner.reader_controls.remove(owner.primary_version)
+            header.pack_end(owner.primary_version)
+        for button in (self.aa,self.leave_button):
+            button.add_css_class('circular');button.add_css_class('reader-action')
         if self.kind=='commentary':
             self.entry_previous=Gtk.Button(icon_name='go-previous-symbolic')
             self.entry_next=Gtk.Button(icon_name='go-next-symbolic')
@@ -463,6 +469,9 @@ class Immersion(Gtk.Overlay):
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0
         self.owner.appearance.popdown();self.aa.set_popover(None);self.owner.appearance_button.set_popover(self.owner.appearance)
         if self.kind=='bible':
+            self.owner.primary_version.popdown()
+            self.header.remove(self.owner.primary_version)
+            self.owner.reader_controls.prepend(self.owner.primary_version)
             self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         if hasattr(self.stream,'close'):self.stream.close()

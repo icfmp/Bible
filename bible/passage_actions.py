@@ -56,30 +56,41 @@ class PassageActions:
     def __init__(self,owner):
         self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0
         self.clearance=None;self.intent=0
-        self.bar=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
+        self.bar=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
-        self.bar.add_css_class('toolbar');self.bar.add_css_class('osd')
+        self.bar.add_css_class('card')
         self.bar.add_css_class('passage-actions')
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
-        self.label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,width_chars=1,max_width_chars=18)
-        self.bar.append(self.label)
+        identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
+        self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
+        self.label.add_css_class('heading')
+        self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
+        self.version_label.add_css_class('dim-label')
+        identity.append(self.label);identity.append(self.version_label);self.bar.append(identity)
+        self.bar.append(Gtk.Separator())
+        self.actions=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER)
+        self.actions.add_css_class('toolbar');self.bar.append(self.actions)
         self.copy_button=self.button('edit-copy-symbolic','Copy selected text',lambda *_:self.copy())
         self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy options'))
-        self.bar.append(self.copy_options)
+        self.copy_options.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy options')])
+        self.actions.append(self.copy_options)
         self.copy_popover=self.menu(self.copy_options,[(label,lambda *_,mode=mode:self.copy(mode))
             for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
                                ('Copy verses with reference','reference'),('Copy reference','label')]])
-        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.highlight_button=None
         if hasattr(owner,'highlights'):
             from .highlights import COLORS
             self.highlight_button=Gtk.MenuButton(icon_name='color-select-symbolic',tooltip_text=tr('Highlight'))
             self.highlight_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight')])
-            self.bar.append(self.highlight_button)
+            self.actions.append(self.highlight_button)
             self.highlight_popover=self.menu(self.highlight_button,[(label,lambda *_,c=color:self.highlight(c))
                 for color,(_,label) in COLORS.items()]+[('Remove highlight',lambda *_:self.highlight(None))])
+        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.compare_button=self.button('view-dual-symbolic','Compare translations',lambda *_:self.compare())
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
+        for button in (self.copy_options,self.highlight_button):
+            if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
+        self.bar.add_tick_callback(self.adapt)
         owner.view.connect('notify::selected-page',lambda *_:self.dismiss())
         gesture=Gtk.GestureClick(button=1);gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         def outside(controller,_,x,y):
@@ -99,7 +110,8 @@ class PassageActions:
     def button(self,icon,label,callback):
         button=Gtk.Button(icon_name=icon,tooltip_text=tr(label))
         button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
-        button.connect('clicked',callback);self.bar.append(button);return button
+        button.set_child(Gtk.Image(icon_name=icon,pixel_size=20))
+        button.connect('clicked',callback);self.actions.append(button);return button
 
     def menu(self,button,choices):
         popover=Gtk.Popover(autohide=False);box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,
@@ -172,31 +184,51 @@ class PassageActions:
         if parent is not source.parent:
             if parent:parent.remove_overlay(self.bar)
             source.parent.add_overlay(self.bar)
-        label=passage_label(value.references[0],value.references[-1],source.reader.versification)+' · '+module_name(source.resource)
+        label=passage_label(value.references[0],value.references[-1],source.reader.versification)
+        resource=self.owner.library.resource(source.resource)
+        version=resource.description+' — '+resource.source
         self.label.set_text(label);self.label.set_tooltip_text(label)
+        self.version_label.set_text(version);self.version_label.set_tooltip_text(version)
+        self.bar.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+version])
         self.copy_button.set_tooltip_text(tr('Copy selected text') if value.native_selection else tr('Copy verses without numbers'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)
         self.compare_button.set_sensitive(source.tab.reader is not None)
-        frames=[0]
-        def keep_clear(*_):
-            frames[0]+=1
-            if self.target is not value or not view.get_mapped():return False
-            if frames[0]<2:return True
-            if source.side=='immersion':return False
-            location=view.get_iter_location(view.get_buffer().get_iter_at_offset(value.anchor))
-            visible=view.get_visible_rect()
-            safe=visible.y+visible.height-self.bar.get_height()-20
-            if visible.y<=location.y<visible.y+visible.height and location.y+location.height>safe:
-                original=view.get_bottom_margin();margin=max(original,self.bar.get_height()+32)
-                if margin!=original:self.clearance=(view,original,margin);view.set_bottom_margin(margin)
-                adjustment=view.get_vadjustment()
-                adjustment.set_value(adjustment.get_value()+min(self.bar.get_height()+20,location.y+location.height-safe))
-            return False
-        self.bar.add_tick_callback(keep_clear)
         if not self.timer:self.timer=GLib.timeout_add(100,self.watch)
         return False
+
+    def adapt(self,*_):
+        value=self.target
+        if not value:return True
+        parent=value.source.parent
+        available=max(1,parent.get_width()-48)
+        # Pango wrapping gives the reference priority; secondary metadata ellipsizes.
+        em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
+        chars=max(8,min(38,available//em))
+        self.label.set_max_width_chars(chars);self.version_label.set_max_width_chars(chars)
+        margin_bottom=12
+        from gi.repository import Graphene
+        buffer=value.view.get_buffer()
+        bounds=buffer.get_selection_bounds() if value.native_selection else ()
+        positions=bounds or (buffer.get_iter_at_offset(value.anchor),)
+        lines=[]
+        for iterator in positions:
+            location=value.view.get_iter_location(iterator)
+            x,y=value.view.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,location.x,location.y)
+            ok,point=value.view.compute_point(parent,Graphene.Point().init(float(x),float(y)))
+            if ok:lines.append((point.y,point.y+location.height))
+        if lines:
+            start=min(y for y,_ in lines);end=max(y for _,y in lines)
+            bottom=parent.get_height()-12
+            bar_top=bottom-self.bar.get_height()
+            if end>bar_top and start<bottom:
+                # Move the bar above a lower selection without moving the reader.
+                margin=int(parent.get_height()-start+12)
+                if parent.get_height()-margin-self.bar.get_height()>=8:
+                    margin_bottom=margin
+        if self.bar.get_margin_bottom()!=margin_bottom:self.bar.set_margin_bottom(margin_bottom)
+        return True
 
     def valid(self):
         value=self.target

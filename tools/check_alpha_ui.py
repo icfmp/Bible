@@ -172,7 +172,7 @@ def main():
                 assert window.preferences.value.mode == 'system'
                 inputs.click(aa.mode);inputs.key('End');inputs.key('Return')
                 assert window.preferences.value.mode == 'night'
-                aa.verse_numbers.grab_focus();inputs.key('space')
+                aa.verse_numbers.grab_focus();inputs.key('Return')
                 assert not window.preferences.value.verse_numbers
                 inputs.key('Escape')
                 assert not aa.get_visible()

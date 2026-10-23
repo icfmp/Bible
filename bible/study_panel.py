@@ -133,7 +133,7 @@ class StudyPanel(Gtk.Box):
         self.pages.add_named(self.scroll,'reading')
         self.empty = Adw.StatusPage(title=tr('Choose a commentary'),
                                     description=tr('Choose or download a commentary.'),icon_name='accessories-dictionary-symbolic')
-        self.download = Gtk.Button(label=tr('Download a commentary'),halign=Gtk.Align.CENTER)
+        self.download = Gtk.Button(child=Gtk.Label(label=tr('Download a commentary'),wrap=True),halign=Gtk.Align.CENTER)
         self.download.connect('clicked',lambda *_:self.open_library())
         self.empty.set_child(self.download);self.pages.add_named(self.empty,'empty')
         self.pages.set_visible_child_name('empty');self.commentaries.append(self.pages)

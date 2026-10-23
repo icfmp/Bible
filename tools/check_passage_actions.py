@@ -94,7 +94,7 @@ def main():
             capture(args.prefix+'-comparison.png')
             native.click(actions.compare_button)
             assert tab.state.resource==primary and tab.state.reference=='Gen.1.2'
-            assert window.comparison_popover.get_visible();native.key('Escape')
+            assert window.compared_version.popover.get_visible();native.key('Escape')
             actions.dismiss();tab.state.comparison=None;tab.refresh_comparison()
             tab.navigate(primary,'Gen.1.1');spin(lambda:not tab._restoring_scroll)
             assert window.enter_immersion('bible');spin(lambda:window.immersion.layout_ready)
