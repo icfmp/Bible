@@ -93,13 +93,17 @@ def main():
         native.key('Escape');search.entry.set_text('unrepresentedzzz');spin(duration=.3)
         assert search.topic_model.get_n_items()==0 and search.model.get_n_items()==0
         search.entry.set_text('pardon');spin(duration=.3);choose('forgiving others')
-        ticks=[0];timer=GLib.timeout_add(10,lambda:ticks.__setitem__(0,ticks[0]+1) or True)
+        ticks=[0];last=[time.monotonic()];gaps=[]
+        def heartbeat():
+            now=time.monotonic();gaps.append(now-last[0]);last[0]=now;ticks[0]+=1;return True
+        timer=GLib.timeout_add(10,heartbeat)
         mode('Text');text=nav.text_search;text.entry.set_text('light of the world');spin(duration=.3)
-        text.entry.grab_focus();started=time.monotonic();native.key('Return');wait(lambda:not text.pending)
+        text.entry.grab_focus();ticks[0]=0;gaps.clear();last[0]=time.monotonic()
+        started=time.monotonic();native.key('Return');wait(lambda:not text.pending)
         GLib.source_remove(timer)
         assert [r.start for r in text.rows]==['Matt.5.14','John.8.12','John.9.5'],text.status.get_text()
-        assert ticks[0]>=10,ticks
-        report['literal_search']=dict(query='light of the world',references=[r.start for r in text.rows],seconds=round(time.monotonic()-started,3),gtk_heartbeat_ticks=ticks[0])
+        assert ticks[0]>=10 and max(gaps)<.5,(ticks,max(gaps))
+        report['literal_search']=dict(query='light of the world',references=[r.start for r in text.rows],seconds=round(time.monotonic()-started,3),gtk_heartbeat_ticks=ticks[0],maximum_heartbeat_gap_seconds=round(max(gaps),3))
         button=first_result(text);native.click(button);spin();assert w.reference_preview.target==('KJV','Matt.5.14')
         assert w.reference_preview.body.get_buffer().props.text==local_excerpt(nav.reader,'Matt.5.14',source_system='KJV').text
         native.key('Escape');text.entry.set_text('[not a regex]');text.entry.grab_focus();native.key('Return');wait(lambda:not text.pending)

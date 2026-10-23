@@ -89,7 +89,8 @@ literal phrase/metacharacter handling, failed-update retention and restart.
 Actual FreSegond Psalm 34:5 is verified from source Psalm 34:4. Both installed
 literal searches for “light of the world” / “lumière du monde” return Matthew
 5:14, John 8:12 and John 9:5. A 10 ms GLib heartbeat continues during the native
-search (approximately 247 callbacks during the measured interaction).
+search; the strengthened packaged check resets sampling at submission and records
+188 callbacks with a maximum gap of 0.049 s during a 2.049 s interaction.
 
 Observed indexing: 0.399 s directly, 0.513 s source Library run, 0.672 s packaged.
 Actual packaged Library download/index completed in 2.961 s. Of 250 representative
