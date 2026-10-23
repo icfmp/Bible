@@ -37,12 +37,20 @@ class X11Input:
         self.x11.XKeysymToKeycode.argtypes = [pointer, ulong]
         self.x11.XKeysymToKeycode.restype = ctypes.c_ubyte
         self.x11.XFlush.argtypes = [pointer]
+        self.x11.XSetInputFocus.argtypes = [pointer, ulong, integer, ulong]
         self.xtest.XTestFakeMotionEvent.argtypes = [pointer, integer, integer, integer, ulong]
         self.xtest.XTestFakeButtonEvent.argtypes = [pointer, ctypes.c_uint, integer, ulong]
         self.xtest.XTestFakeKeyEvent.argtypes = [pointer, ctypes.c_uint, integer, ulong]
         self.display = self.x11.XOpenDisplay(os.environ['DISPLAY'].encode())
         if not self.display:
             raise RuntimeError('Requires an X11 display (use xvfb-run)')
+
+    def activate(self, window):
+        """Supply the window manager's focus handoff in a bare Xvfb session."""
+        assert window.get_mapped()
+        self.x11.XSetInputFocus(self.display, window.get_surface().get_xid(), 2, 0)
+        self.x11.XFlush(self.display)
+        spin(lambda: window.is_active())
 
     def key(self, name):
         symbol = self.x11.XStringToKeysym(name.encode())

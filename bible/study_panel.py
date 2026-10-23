@@ -77,21 +77,32 @@ class StudyPanel(Gtk.Box):
         self.append(self.header)
         self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
         switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)
+        switcher.add_css_class('study-tools')
         layout = switcher.get_layout_manager()
         if isinstance(layout, Gtk.BoxLayout):layout.set_homogeneous(False)
         switcher.set_margin_start(12); switcher.set_margin_end(12)
         self.append(switcher)
         from .passage_notes import PassageNotes
         self.notes = PassageNotes(owner)
+        from .study_references import StudyReferences
+        self.references=StudyReferences(owner)
+        self.notes.append(self.references.teaser)
         notes_scroll = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         notes_scroll.set_child(self.notes)
         self.tools.add_titled(notes_scroll, 'notes', tr('Notes'))
+        self.tools.add_titled(self.references,'references',tr('References'))
         self.commentaries = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.choices.set_margin_start(12); self.choices.set_margin_end(12)
         self.commentaries.append(self.choices)
         self.tools.add_titled(self.commentaries, 'commentaries', tr('Commentaries'))
         tool = owner.study_settings.tool
-        self.tools.set_visible_child_name(tool if tool in ('notes','commentaries') else 'commentaries')
+        self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries') else 'commentaries')
+        def compact_labels(widget):
+            if isinstance(widget,Gtk.Label):widget.set_ellipsize(Pango.EllipsizeMode.END);widget.set_width_chars(1)
+            if isinstance(widget,Gtk.ToggleButton) and isinstance(widget.get_child(),Gtk.Label):widget.set_tooltip_text(widget.get_child().get_text())
+            child=widget.get_first_child()
+            while child:compact_labels(child);child=child.get_next_sibling()
+        compact_labels(switcher)
         self.append(self.tools)
         self.tools.connect('notify::visible-child-name', self.tool_changed)
         self.popovers = [actions,info]
@@ -142,7 +153,7 @@ class StudyPanel(Gtk.Box):
         coordinator=getattr(self.owner,'reading_sync',None)
         if coordinator:
             coordinator.driver=None; coordinator.needs_sync=False; coordinator.forced_position=None
-        if self.tool=='notes':self.notes.refresh()
+        if self.tool=='notes':self.notes.refresh();self.references.refresh()
         else:self.refresh(force=True)
         self.update_indicator()
 
@@ -175,6 +186,7 @@ class StudyPanel(Gtk.Box):
             return
         if self.tool!='commentaries':
             if self.tool=='notes':self.notes.refresh(force=force)
+            self.references.refresh(force=force)
             return
         installed = self.owner.library.installed('commentary')
         stamp = (id(tab), tab.state.commentary, tab.state.reference,

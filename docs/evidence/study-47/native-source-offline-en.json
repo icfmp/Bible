@@ -1,0 +1,84 @@
+{
+  "app_import": "/src/bible/ui.py",
+  "network_disabled": true,
+  "accessibility": "Deferred; not tested",
+  "dataset": {
+    "schema": 1,
+    "source": "OpenBible.info",
+    "source_url": "https://www.openbible.info/labs/cross-references/",
+    "download_url": "https://a.openbible.info/data/cross-references.zip",
+    "source_date": "2026-10-19",
+    "archive_sha256": "5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "numbering": "OpenBible ESV-style (3 John has 15 verses)",
+    "transformations": "Reference relationships and community scores only; no Scripture quotations. Validated and indexed in SQLite; directed links retained. Range results deduplicate identical destination ranges, ranked by maximum community score, then canonical destination order. No reciprocal links added.",
+    "relationships": 344799,
+    "installed_at": "2026-10-22T19:47:05.520206+00:00",
+    "index_seconds": 2.604
+  },
+  "native_preview_navigation": {
+    "preview_keeps_passage_history": true,
+    "keyboard_and_escape": true,
+    "outside_dismissal": true,
+    "new_tab_preserves_original": true,
+    "current_tab_explicit": true
+  },
+  "selected_range": {
+    "source_verses": 3,
+    "destinations": 37,
+    "deduplicated": true
+  },
+  "real_numbering_and_source_text": [
+    {
+      "resource": "KJV",
+      "reference": "Gen.1.1",
+      "source_addresses": [
+        "Gen.1.1"
+      ],
+      "relationships": 62,
+      "exact_excerpts_checked": 3
+    },
+    {
+      "resource": "FreSegond1910",
+      "reference": "Ps.3.2",
+      "source_addresses": [
+        "Ps.3.1"
+      ],
+      "relationships": 6,
+      "exact_excerpts_checked": 3
+    },
+    {
+      "resource": "KJV",
+      "reference": "John.1.5",
+      "source_addresses": [
+        "John.1.5"
+      ],
+      "relationships": 8,
+      "exact_excerpts_checked": 3
+    },
+    {
+      "resource": "KJV",
+      "reference": "3John.1.14",
+      "source_addresses": [
+        "3John.1.14",
+        "3John.1.15"
+      ],
+      "relationships": 7,
+      "exact_excerpts_checked": 3
+    },
+    {
+      "resource": "FreSegond1910",
+      "reference": "3John.1.15",
+      "source_addresses": [
+        "3John.1.15"
+      ],
+      "relationships": 1,
+      "exact_excerpts_checked": 1
+    }
+  ],
+  "failed_update_retains_working_index": true,
+  "narrow_long_list_theme": true,
+  "restart_with_installed_relationships": true,
+  "status": "PASS"
+}

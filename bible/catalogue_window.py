@@ -36,6 +36,8 @@ class CatalogueWindow(Adw.Window):
                          default_width=560, default_height=640)
         self.library, self.on_installed = library, on_installed
         self.owner = parent
+        from .study_resources import StudyResources
+        self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
         self.cache=CatalogueCache(library.root.parent/'catalogue-cache')
         self.provider_resources={p.id:list(value[0]) for p in PROVIDERS if (value:=self.cache.read(p)) is not None}
@@ -78,7 +80,7 @@ class CatalogueWindow(Adw.Window):
         self.search.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search resources')])
         self.search.connect('search-changed',self.filter_resources);explorer.append(self.search)
         filters=Gtk.Box(spacing=8,margin_start=12,margin_end=12)
-        self.kind=Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'),tr('Commentaries')]))
+        self.kind=Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'),tr('Commentaries'),tr('Study resources')]))
         self.kind.update_property([Gtk.AccessibleProperty.LABEL],[tr('Resource type')])
         self.kind.connect('notify::selected',self.update_languages)
         filters.append(self.kind)
@@ -129,6 +131,7 @@ class CatalogueWindow(Adw.Window):
     def busy(self):return self._transfer_busy or self.refreshing
 
     def auto_load(self,*_):
+        if self.kind.get_selected()==2:return False
         if not self.closed and not self._catalogue_requested and not self.busy and not self.installed_only.get_active():self.load_catalogue(force=False)
         return False
 
@@ -160,6 +163,10 @@ class CatalogueWindow(Adw.Window):
         self.list_scroll.get_vadjustment().set_value(getattr(self,'_list_position',0))
 
     def current_resources(self):
+        if self.kind.get_selected()==2:
+            installed=self.study_resources.installed()
+            return [r for r in self.study_resources.available()
+                    if not self.installed_only.get_active() or r.id in installed]
         resources = ([self.library.resource(name) for name in self.library.installed()]
                      if self.installed_only.get_active() else self.resources)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
@@ -169,6 +176,9 @@ class CatalogueWindow(Adw.Window):
                 and (provider_id is None or resource.provider_id == provider_id)]
 
     def update_languages(self, *_):
+        study=self.kind.get_selected()==2
+        self.language.set_visible(not study);self.source_filter.set_visible(not study)
+        self.catalogue_button.set_visible(not study)
         self._filtering=True
         self.languages=['']+sorted({r.language for r in self.current_resources()},key=lambda code:language_name(code).casefold())
         self.language.set_codes(self.languages)
@@ -191,7 +201,7 @@ class CatalogueWindow(Adw.Window):
                                    if (not language or r.language == language)
                                    and query in normalized(' '.join((r.name, r.description,
                                                                     r.language, language_name(r.language))))]
-        self._installed_ids=set(self.library.installed())
+        self._installed_ids=set(self.installed_ids())
         self.choice_model.splice(0,self.choice_model.get_n_items(),[ResourceItem(r) for r in self.filtered_resources])
         self.choices.set_selected(next((i for i,r in enumerate(self.filtered_resources) if r.id==selected_id),0))
         self.list_scroll.get_vadjustment().set_value(position)
@@ -202,22 +212,30 @@ class CatalogueWindow(Adw.Window):
         index = self.choices.get_selected()
         return self.filtered_resources[index] if index < len(self.filtered_resources) else None
 
+    def installed_ids(self):return [*self.library.installed(),*self.study_resources.installed()]
+
+    def installed_resource(self,name):
+        from .study_resources import REFERENCE_RESOURCE_ID
+        return self.study_resources.resource(name) if name==REFERENCE_RESOURCE_ID else self.library.resource(name)
+
     def selection_changed(self, *_):
         resource = self.selected_resource()
-        if resource and resource.id in self.library.installed():
-            resource=self.library.resource(resource.id)
+        if resource and resource.id in self.installed_ids():
+            resource=self.installed_resource(resource.id)
         self.metadata.set_text(details(resource) if resource else tr('No matching resource.'))
         self.refresh_controls()
 
     def refresh_controls(self):
         resource = self.selected_resource()
-        installed=bool(resource and resource.id in self.library.installed())
-        self.installed_state.set_visible(installed)
-        self.download_button.set_visible(not installed)
-        self.download_button.set_label(tr('Retry') if resource and resource.id==self._failed_resource else tr('Download'))
+        installed=bool(resource and resource.id in self.installed_ids())
+        current=installed and (resource.kind!='study' or self.study_resources.current(resource.id))
+        self.installed_state.set_visible(current)
+        self.download_button.set_visible(not current)
+        self.download_button.set_label(tr('Update') if installed and not current else
+                                       tr('Retry') if resource and resource.id==self._failed_resource else tr('Download'))
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
-                                               and resource.id not in self.library.installed())
+                                               and not current)
                                            and not self._transfer_busy)
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
@@ -369,8 +387,9 @@ class CatalogueWindow(Adw.Window):
             self.filter_resources()
             self.status.set_text(tr('Installed: {name}').format(name=resource.name))
             self.selection_changed()
+        installer=self.study_resources if resource.kind=='study' else self.library
         self.task(tr('Downloading {name}…').format(name=resource.name),
-                  lambda: self.library.install(resource, self.report_progress,
+                  lambda: installer.install(resource, self.report_progress,
                                                 installing=lambda: self.queue_progress('installing')),
                   installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
 
