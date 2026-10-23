@@ -25,6 +25,10 @@ jobs:
         run: /usr/bin/python3 -m tools.inspect_sources
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
+          # Match the established Flatpak/publication mirror configuration.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
           sudo apt-get update
           sudo apt-get install -y python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6
       - name: Examiner les paquets SWORD disponibles

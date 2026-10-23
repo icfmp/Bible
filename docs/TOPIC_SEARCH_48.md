@@ -105,3 +105,8 @@ result or invented data, and is not suppressed. No visual/user-data failure was
 observed in the real-module probes. Deep accessibility and client GNOME/Wayland
 acceptance have **not** been tested. Signed publication and actual ordinary
 update/profile/study-cache preservation remain separate gates after review/CI.
+
+CI operations: apply the already established official Ubuntu HTTPS mirror choice
+to the native prerequisite installation too; that stage stalled for over five
+minutes in run 39900188166. Full dependency lists, tests, Flatpak runtime, signing
+and channel configuration are unchanged. This is separate from application code.
