@@ -56,20 +56,26 @@ class PassageActions:
     def __init__(self,owner):
         self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0
         self.clearance=None;self.intent=0
-        self.bar=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
+        self.bar=Gtk.Box(spacing=8,halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         self.bar.add_css_class('toolbar');self.bar.add_css_class('osd')
         self.bar.add_css_class('passage-actions')
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
-        self.label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,width_chars=1,max_width_chars=18)
-        self.bar.append(self.label)
+        self.identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0,hexpand=True)
+        self.label=Gtk.Label(xalign=0,ellipsize=Pango.EllipsizeMode.END,max_width_chars=32)
+        self.label.add_css_class('heading')
+        self.resource_label=Gtk.Label(xalign=0,ellipsize=Pango.EllipsizeMode.END,max_width_chars=32)
+        self.resource_label.add_css_class('dim-label');self.resource_label.add_css_class('caption')
+        self.identity.append(self.label);self.identity.append(self.resource_label)
+        self.bar.append(self.identity)
+        separator=Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        self.bar.append(separator)
         self.copy_button=self.button('edit-copy-symbolic','Copy selected text',lambda *_:self.copy())
         self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy options'))
         self.bar.append(self.copy_options)
         self.copy_popover=self.menu(self.copy_options,[(label,lambda *_,mode=mode:self.copy(mode))
             for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
                                ('Copy verses with reference','reference'),('Copy reference','label')]])
-        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.highlight_button=None
         if hasattr(owner,'highlights'):
             from .highlights import COLORS
@@ -78,6 +84,7 @@ class PassageActions:
             self.bar.append(self.highlight_button)
             self.highlight_popover=self.menu(self.highlight_button,[(label,lambda *_,c=color:self.highlight(c))
                 for color,(_,label) in COLORS.items()]+[('Remove highlight',lambda *_:self.highlight(None))])
+        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.compare_button=self.button('view-dual-symbolic','Compare translations',lambda *_:self.compare())
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         owner.view.connect('notify::selected-page',lambda *_:self.dismiss())
@@ -172,8 +179,10 @@ class PassageActions:
         if parent is not source.parent:
             if parent:parent.remove_overlay(self.bar)
             source.parent.add_overlay(self.bar)
-        label=passage_label(value.references[0],value.references[-1],source.reader.versification)+' · '+module_name(source.resource)
+        label=passage_label(value.references[0],value.references[-1],source.reader.versification)
+        resource=module_name(source.resource)
         self.label.set_text(label);self.label.set_tooltip_text(label)
+        self.resource_label.set_text(resource);self.resource_label.set_tooltip_text(resource)
         self.copy_button.set_tooltip_text(tr('Copy selected text') if value.native_selection else tr('Copy verses without numbers'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
