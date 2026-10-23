@@ -112,7 +112,7 @@ Static full and incremental deltas are generated. Published objects and all
 corresponding-source archives remain available, including archives required by
 older installations. No automatic pruning is performed.
 
-The staged site has an **990 MB** safety budget (990,000,000 bytes), below
+The staged site has an **999 MB** safety budget (999,000,000 bytes), below
 GitHub Pages' [documented 1 GB published-site limit](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),
 even if GB is interpreted decimally. Crossing it aborts preparation before
 either persistence or deployment, leaving the last served repository intact.
@@ -141,6 +141,25 @@ from main CI 40013048622; rebuilding the application is unnecessary.
 See `evidence/passage-notes-90/channel-capacity.json` for the measured values.
 The next complete source archive will require the separately reviewed archival
 design described above; this is deliberately not an archival redesign.
+
+## Compact corresponding sources for #95
+
+The new source archive excludes only historical GUI validation output under
+`docs/captures`, `docs/evidence` and `wiki/images`. It retains application code,
+all build/install scripts, original icon sources, third-party preferred sources,
+notices, tests and the pinned dependency source archives in their original paths.
+`SOURCE_LAYOUT.txt` identifies the exact commit, exclusions and full repository.
+CI builds the actual installed Flatpak from this same project source tar layout.
+Previously published source archives, checksums, URLs and OSTree objects are not
+rewritten or pruned. No client data or reference dataset changes.
+
+A measured pre-change archive using this layout is 16,738,727 bytes, versus the
+full repository archive containing years of screenshots and validation output.
+The last published site occupies 979,493,234 bytes. The final staged size must
+still pass the 999,000,000-byte guard before any persistence/deployment, leaving
+a strict 1 MB below the decimal host limit. This is capacity for this batch,
+not a historical source-retention policy. Further publication still needs the
+separate archival design above; no historical files or URLs are removed here.
 
 ## Passage depuis un ancien bundle
 

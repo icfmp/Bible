@@ -101,3 +101,33 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(refs.rows,[])
         self.assertEqual(refs.model.get_n_items(),0)
         self.assertIsNone(refs.context)
+
+    def test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records(self):
+        from bible.study_references import ReferenceItem
+        from bible.reference_data import Relationship
+        from bible.reference_preview import passage_title
+        self.install();refs=self.show();w=self.window
+        item=ReferenceItem(Relationship('John.3.16','John.3.18',20,1),refs.context,refs.generation)
+        button=refs.button();refs.fill(button,item);title,excerpt=button._reference_labels
+        self.assertEqual(title.get_text(),passage_title('John.3.16','John.3.18','KJV'))
+        self.assertNotIn('…',title.get_text());self.assertEqual(excerpt.get_lines(),3)
+        self.assertTrue(excerpt.get_text())  # Missing final verse retains the complete target.
+        self.assertEqual(len(button._reference_labels),2)
+        self.assertEqual(len(refs.rows),2);self.assertFalse(refs.view_all.get_visible())
+
+    def test_inline_footer_exact_total_expand_and_return_preserve_source_and_order(self):
+        from bible.reference_data import Relationship
+        self.install();refs=self.show();w=self.window;tab=w.active_tab
+        rows=[Relationship(f'John.3.{i+1}',f'John.3.{i+1}',99-i,1) for i in range(30)]
+        refs.rows=rows;refs.populate();spin()
+        self.assertEqual(refs.model.get_n_items(),5)
+        self.assertIn('30',refs.view_all.get_label());self.assertTrue(refs.view_all.get_visible())
+        self.assertIs(refs.footer.get_first_child(),refs.view_all)
+        self.assertIsNotNone(refs.footer.get_ancestor(type(refs.list)))
+        before=(tab.state.reference,list(tab.state.history))
+        refs.show_all();spin();self.assertEqual(refs.model.get_n_items(),30)
+        self.assertTrue(refs.return_results.get_visible());self.assertFalse(refs.view_all.get_visible())
+        self.assertEqual(refs.rows,rows)
+        refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),5)
+        self.assertFalse(refs.return_results.get_visible())
+        self.assertEqual((tab.state.reference,tab.state.history),before)

@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'Passage studied':'Passage étudié', 'Back to first references':'Retour aux premiers renvois',
+    'See all {count} references':'Voir les {count} références',
+    'OpenBible target: {reference}':'Cible OpenBible : {reference}',
+    'Community-ranked suggestions; explore the context.':'Suggestions classées par la communauté ; explorez le contexte.',
     'All my annotations':'Toutes mes annotations', 'No annotations for this passage.':'Aucune annotation pour ce passage.',
     'Bible excerpt unavailable.':'Extrait biblique indisponible.', 'Empty note':'Note vide',
     'Open note':'Ouvrir la note', 'Expand note':'Agrandir la note',

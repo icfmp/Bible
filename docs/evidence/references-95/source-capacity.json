@@ -1,0 +1,16 @@
+{
+  "measured_project_commit": "1dc145882f9ba9e207315adc70147a2467c013fe",
+  "measured_complete_archive_bytes": 16738727,
+  "excluded_historical_gui_evidence_paths": [
+    "docs/captures",
+    "docs/evidence",
+    "wiki/images"
+  ],
+  "previous_public_site_bytes": 979493234,
+  "previous_source_archives": 31,
+  "archive_and_object_pruning": false,
+  "old_budget_bytes": 990000000,
+  "new_budget_bytes": 999000000,
+  "decimal_host_limit_bytes": 1000000000,
+  "actual_final_staged_size": "Pending production preparation; the measured-size guard remains mandatory"
+}

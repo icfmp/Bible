@@ -139,6 +139,12 @@ def main():
         native.wheel(refs.list.get_parent(),4);spin()
         assert (tab.state.reference,tab.state.history)==(reference,history)
         capture('references-wide')
+        if hasattr(refs,'show_initial'):
+            native.click(refs.return_results);spin()
+            assert refs.model.get_n_items()==5 and not refs.return_results.get_visible()
+            assert (tab.state.reference,tab.state.history)==(reference,history)
+            assert str(len(refs.rows)) in refs.view_all.get_label()
+            report['expanded_return_and_exact_total']=True
         window.set_default_size(360,800)
         spin(lambda:window.split.get_collapsed() and window.get_width()<=380 and not tab._restoring_scroll,duration=.3)
         if not window.split.get_show_sidebar():native.key('F9')

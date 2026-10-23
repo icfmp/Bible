@@ -108,8 +108,12 @@ jobs:
           flatpak install --user --noninteractive flathub org.gnome.Platform//49 org.gnome.Sdk//49
       - name: Construire et vérifier SWORD dans le sandbox
         run: |
-          /usr/bin/python3 tools/ci_run.py flatpak-builder --user --repo=local-repo --force-clean build-dir packaging/io.github.icfmp.Bible.json
-          flatpak-builder --run build-dir packaging/io.github.icfmp.Bible.json env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; from bible.ui import Window; print(Sword.VerseKey("John.1.1").getOSISRef())'
+          # Build from the same project source layout shipped in the source archive.
+          python3 -m tools.project_sources "$GITHUB_SHA" "$RUNNER_TEMP/Bible-source.tar"
+          mkdir "$RUNNER_TEMP/bible-build-source"
+          tar -xf "$RUNNER_TEMP/Bible-source.tar" -C "$RUNNER_TEMP/bible-build-source"
+          /usr/bin/python3 tools/ci_run.py flatpak-builder --user --repo=local-repo --force-clean build-dir "$RUNNER_TEMP/bible-build-source/packaging/io.github.icfmp.Bible.json"
+          flatpak-builder --run build-dir "$RUNNER_TEMP/bible-build-source/packaging/io.github.icfmp.Bible.json" env PYTHONPATH=/app/lib/bible-python python3 -c 'import Sword; from bible.sword_provider import Reader; from bible.ui import Window; print(Sword.VerseKey("John.1.1").getOSISRef())'
       - name: Créer et installer le paquet alpha pour vérification
         run: |
           flatpak build-bundle local-repo Bible-alpha.flatpak io.github.icfmp.Bible --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -118,7 +122,7 @@ jobs:
       - name: Vérifier les cartes et brouillons dans le Flatpak installé
         run: |
           set -o pipefail
-          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations", "tests.test_study_references", "tests.test_reference_data"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}

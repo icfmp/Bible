@@ -47,14 +47,39 @@ def source_references(reader, start, end):
     return sorted(result,key=reference_key)
 
 
-def destination(reference, reader):
+def destination(reference, reader, *, require_entry=True):
     reference_key(reference)
     if reference.startswith('3John.'):
         from .versification_mapping import table
         if table(reader.versification) is None:
             raise VersificationMismatch('No verified split-verse alignment for '+reader.versification)
-        return resolve(reference,'NRSV',reader)
-    return resolve(reference,'KJV',reader)
+        return resolve(reference,'NRSV',reader,require_entry=require_entry)
+    return resolve(reference,'KJV',reader,require_entry=require_entry)
+
+
+def local_target_ranges(reader,start,end):
+    """Complete verified target, independently of the bounded excerpt preview.
+
+    Coalesce only consecutive mapped addresses, never fill a mapping gap or
+    infer an end from the excerpt. Missing module entries do not erase targets.
+    """
+    ranges=[];seen=set();count=0
+    for reference in reference_span(start,end):
+        count+=1
+        if count>1000:raise ValueError('Reference range exceeds preview limits')
+        mapped=destination(reference,reader,require_entry=False)
+        key=reader.key(mapped.start);last=reader.key(mapped.end).getIndex()
+        while key.getIndex()<=last:
+            target=key.getOSISRef()
+            if target not in seen:
+                previous=reader.key(ranges[-1][1]) if ranges else None
+                if previous:previous.increment()
+                if previous and previous.popError()=='\x00' and previous.getOSISRef()==target:ranges[-1]=(ranges[-1][0],target)
+                else:ranges.append((target,target))
+                seen.add(target)
+            key.increment()
+            if key.popError()!='\x00':break
+    return tuple(ranges)
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "actual_sqlite_note": true,
+  "labels": true,
+  "actual_highlight": true,
+  "explicit_reading_preferences": true,
+  "primary_and_comparison_session": true,
+  "resource_file_digests": 36,
+  "before_source": "1dc145882f9ba9e207315adc70147a2467c013fe",
+  "after_source": "feat/95-readable-references"
+}
