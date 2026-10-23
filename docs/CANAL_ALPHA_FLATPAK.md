@@ -112,7 +112,7 @@ Static full and incremental deltas are generated. Published objects and all
 corresponding-source archives remain available, including archives required by
 older installations. No automatic pruning is performed.
 
-The staged site has an **896 MiB** safety budget (939,524,096 bytes), below
+The staged site has an **990 MB** safety budget (990,000,000 bytes), below
 GitHub Pages' [documented 1 GB published-site limit](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),
 even if GB is interpreted decimally. Crossing it aborts preparation before
 either persistence or deployment, leaving the last served repository intact.
@@ -128,6 +128,19 @@ client data, or changing hosting administration. This is measured additional
 capacity, **not a retention solution**: continued growth still requires a
 separately reviewed archival design preserving corresponding-source availability.
 Storage/bandwidth/execution quotas still apply; this is not a Flathub submission.
+
+The first #90 publication also stopped before persistence/deployment, at
+979,488,368 staged bytes versus the former 896 MiB budget. The retained data
+tree contains 898,168,919 bytes of source archives. The 990,000,000-byte budget
+keeps a strict 10 MB margin below the decimal 1 GB host limit while preserving
+every historical archive and object. Preparation still measures the entire
+staged site and aborts before persistence/deployment if it reaches the budget.
+No source archival policy, signing identity or hosting configuration changes.
+This capacity adjustment reuses the already verified #90 application artifact
+from main CI 40013048622; rebuilding the application is unnecessary.
+See `evidence/passage-notes-90/channel-capacity.json` for the measured values.
+The next complete source archive will require the separately reviewed archival
+design described above; this is deliberately not an archival redesign.
 
 ## Passage depuis un ancien bundle
 

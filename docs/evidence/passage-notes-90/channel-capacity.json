@@ -1,0 +1,18 @@
+{
+  "data_tree": "74bb2688c082b8524c0f077c133daa1e556237ad",
+  "tree_truncated": false,
+  "published_bytes": 930737561,
+  "source_archives": 30,
+  "source_archive_bytes": 898168919,
+  "retained_object_files": 2059,
+  "failed_preparation_actual_bytes": 979488368,
+  "failed_run": 40014369132,
+  "application_source": "acbf17cb6217e7c70c248eff64b91cbaa18e29b7",
+  "verified_application_ci": 40013048622,
+  "old_budget_bytes": 939524096,
+  "new_budget_bytes": 990000000,
+  "documented_host_limit_bytes": 1000000000,
+  "official_limit_url": "https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits",
+  "archive_and_object_pruning": false,
+  "application_rebuild_required": false
+}

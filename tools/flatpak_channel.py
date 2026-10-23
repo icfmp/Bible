@@ -21,7 +21,8 @@ RUNTIME_REPO = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 # Keep every published object and corresponding-source archive. This remains
 # below GitHub Pages' documented 1 GB limit (also if interpreted decimally).
 # Exceeding this bounded staging budget aborts before persistence/deployment.
-MAX_SITE_BYTES = 896 * 1024 * 1024
+# Leave 10 MB below the stricter decimal interpretation of the host limit.
+MAX_SITE_BYTES = 990_000_000
 
 
 def run(*args):
