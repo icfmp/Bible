@@ -9,5 +9,6 @@
   "canonical_tables": 14,
   "accessibility": "Deferred; not tested",
   "personal_client_gnome_session": "Not accessed",
-  "publication": "Pending review, CI, ordered merge and signed ordinary-update proof"
+  "publication": "Pending review, CI, ordered merge and signed ordinary-update proof",
+  "native_comparison_study_immersion": "PASS: actual Mutter/Wayland Alt+Tab; separate native commentary style retained"
 }

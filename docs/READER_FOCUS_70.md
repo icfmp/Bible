@@ -29,8 +29,9 @@ GTK still owns activation, focus-visible and modality. No event handler, focus
 reset, synthetic click, global outline removal or text-focusability change is
 introduced. The inset shadow changes no allocation, padding or text layout.
 Native focus indications on buttons and other controls remain under Adwaita.
-The same existing style decoration covers ordinary reading, comparison,
-commentary/study and immersion. No resource, schema or persisted-data change.
+The same existing style decoration covers ordinary reading, comparison and
+immersion. The study commentary keeps its separate native Adwaita style and
+fixed sans-serif 12 pt typography. No resource, schema or persisted-data change.
 
 ## Validation and limits
 
@@ -63,3 +64,9 @@ existing signed alpha, actual ordinary update of the controlled installation,
 source-byte audit and preservation of notes, highlights, modules, preferences,
 three study indexes and catalogue caches. Those results are recorded publicly
 on the PR/issue only after they pass.
+
+Additional actual installed-package Mutter/Wayland checks at 1600×1000 cover
+comparison, an open study commentary and immersion. Each retains native focus and
+its position through real Alt+Tab; the shared reader surfaces visibly render the
+leading mark. The separately styled study commentary remains native. Its absence
+of the project reader scope is intentional, preserving the required typography.

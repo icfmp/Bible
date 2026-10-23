@@ -28,6 +28,7 @@ def main():
     if args.offline:assert len(Path('/proc/net/route').read_text().splitlines())<=1
     if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
     app=Application();app.register();w=Window(app,Library(args.profile/'translations'));w.maximize();w.present()
+    w.study_button.set_active(False);w.active_tab.state.comparison=None;w.sync_comparison()
     w.appearance.update('mode','day');w.appearance.update('size',14);w.appearance.update('day_palette','white')
     w.active_tab.navigate('FreSegond1910','Gen.5.11');spin(lambda:not w.active_tab._restoring_scroll,duration=.7)
     view=w.active_tab.text;inputs=X11Input()
