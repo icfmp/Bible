@@ -16,6 +16,8 @@ flatpak run io.github.icfmp.Bible//alpha
 
 The alpha comes from the project's signed repository on GitHub Pages. The GNOME runtime is provided through Flathub.
 
+**Bible translations are downloaded separately.** The application does not include Bible texts by default. After installation, open Library to choose and download the translations and study resources you want.
+
 ## Update
 
 Use your software manager, or run:
@@ -25,6 +27,16 @@ flatpak update io.github.icfmp.Bible//alpha
 ```
 
 Automatic updates depend on your software manager settings.
+
+## Uninstall
+
+You can remove the alpha installation through your software manager or by running:
+
+```sh
+flatpak uninstall io.github.icfmp.Bible//alpha
+```
+
+A normal uninstall does not deliberately remove Bible's application data. **Do not use `--delete-data`** if you want to preserve your notes, settings and downloaded resources. Back up important personal notes before making major installation changes.
 
 ## Upgrading from an older bundle
 
