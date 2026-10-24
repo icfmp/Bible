@@ -112,6 +112,7 @@ class Window(Adw.ApplicationWindow):
         from .version_chooser import DirectChoices
         self.comparison_choices=DirectChoices()
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
+        self.comparison_choices.connect('reselected',lambda *_:self.comparison_popover.popdown())
         comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         comparison_box.append(self.comparison_choices)
         self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
@@ -606,7 +607,7 @@ class Window(Adw.ApplicationWindow):
         self._comparison_syncing=True
         self._comparison_names=[None]+[name for name in self.library.installed('bible') if name!=tab.state.resource]
         labels=[tr('No comparison')]+[self.library.resource(name).description for name in self._comparison_names[1:]]
-        # Never replace the dropdown's model recursively from its notification.
+        # Synchronization must not emit another selection for an unchanged row.
         if getattr(self,'_comparison_labels',None)!=labels:
             self.comparison_choices.set_model(Gtk.StringList.new(labels));self._comparison_labels=labels
         self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
@@ -631,7 +632,7 @@ class Window(Adw.ApplicationWindow):
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
         self.sync_comparison()
         self.schedule_save()
-        # Finish the nested GtkDropDown activation before dismissing its parent.
+        # Finish native row activation before dismissing its parent.
         GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):

@@ -30,12 +30,18 @@ class FinishingTests(unittest.TestCase):
 
     def test_one_click_lists_and_canvas_tooltip(self):
         from bible.version_chooser import DirectChoices
-        w=self.window;self.assertIsNone(w.active_tab.text.get_tooltip_text())
+        installed_fixture(self.root,'Other')
+        w=self.window;w.sync_comparison();self.assertIsNone(w.active_tab.text.get_tooltip_text())
         w.primary_version.popup();spin();self.assertTrue(w.primary_version.choices.get_mapped())
         self.assertIsInstance(w.primary_version.choices,DirectChoices)
         self.assertTrue(w.primary_version.choices.list.get_row_at_index(0).get_mapped());w.primary_version.popdown()
         w.comparison_button.popup();spin();self.assertIsInstance(w.comparison_choices,DirectChoices)
-        self.assertTrue(w.comparison_choices.list.get_row_at_index(0).get_mapped());w.comparison_button.popdown()
+        self.assertTrue(w.comparison_choices.list.get_row_at_index(0).get_mapped())
+        for index,expected in ((1,w._comparison_names[1]),(0,None),(0,None)):
+            if not w.comparison_popover.get_visible():w.comparison_button.popup();spin()
+            w.comparison_choices.list.emit('row-activated',w.comparison_choices.list.get_row_at_index(index));spin()
+            self.assertEqual(w.active_tab.state.comparison,expected)
+            self.assertFalse(w.comparison_popover.get_visible())
 
     def test_immersive_turns_cancel_on_resize_and_disabled_animations(self):
         from bible.ui import Gtk

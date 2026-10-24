@@ -21,12 +21,17 @@ def bounded_choices(dropdown):
 
 class DirectChoices(Gtk.ScrolledWindow):
     """One native list, with the same selection contract in every pane."""
+    __gsignals__={'reselected':(GObject.SignalFlags.RUN_LAST,None,())}
     selected=GObject.Property(type=GObject.TYPE_UINT,default=Gtk.INVALID_LIST_POSITION)
     def __init__(self):
         super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=360,propagate_natural_height=True)
         self.list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.list.add_css_class('boxed-list');self.set_child(self.list);self.rows=[]
-        self.list.connect('row-activated',lambda _,row:self.set_selected(row.get_index()))
+        self.list.connect('row-activated',self.activate)
+    def activate(self,_,row):
+        if row.get_index()==self.get_selected():self.emit('reselected')
+        else:self.set_selected(row.get_index())
+
     def set_model(self,model):
         while self.list.get_first_child():self.list.remove(self.list.get_first_child())
         self.rows=[]
@@ -38,7 +43,7 @@ class DirectChoices(Gtk.ScrolledWindow):
     def set_selected(self,index):
         for i,check in enumerate(self.rows):check.set_opacity(1 if i==index else 0)
         self.list.select_row(self.list.get_row_at_index(index) if index<len(self.rows) else None)
-        self.selected=index
+        if self.selected!=index:self.selected=index
 
 
 class VersionChooser(Gtk.MenuButton):
@@ -52,6 +57,7 @@ class VersionChooser(Gtk.MenuButton):
         self.popover=Gtk.Popover(autohide=False)
         self.choices=DirectChoices()
         self.choices.connect('notify::selected',self.selected)
+        self.choices.connect('reselected',lambda *_:self.popover.popdown())
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(self.choices)
         self.download_more=Gtk.Button(label=tr('Download more…'))
