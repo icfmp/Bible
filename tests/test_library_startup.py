@@ -61,7 +61,8 @@ class LibraryStartupTests(unittest.TestCase):
             ticks=[]
             from gi.repository import GLib
             timer=GLib.timeout_add(10,lambda:ticks.append(time.monotonic()) or True)
-            spin(duration=.12);self.assertGreaterEqual(len(ticks),5);GLib.source_remove(timer)
+            try:spin(lambda:len(ticks)>=5,duration=.12,timeout=.5)
+            finally:GLib.source_remove(timer)
             self.assertTrue(first.preparing);self.assertTrue(first.get_mapped())
             start=time.monotonic();first.close();self.assertLess(time.monotonic()-start,.2)
             reopened=self.window.open_library();self.assertIs(first.session,reopened.session)

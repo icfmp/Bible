@@ -770,7 +770,8 @@ class NotesSpace(Gtk.Box):
         resolve(a.start,a.system,reader)
         if a.end!=a.start:resolve(a.end,a.system,reader)
         refs=[]
-        for source in _span(a.start,a.end,a.system):
+        for source in dict.fromkeys(_span(a.start,a.end,a.system)):
+            if source.rsplit('.',1)[-1]=='0':continue
             mapped=resolve(source,a.system,reader)
             for reference in _span(mapped.start,mapped.end,reader.versification):
                 if reference not in refs:refs.append(reference)

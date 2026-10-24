@@ -77,7 +77,7 @@ class Note:
     def covers(self, reference):
         book, chapter, verse = parts(reference)
         first, last = parts(self.start), parts(self.end)
-        return (book, chapter) == first[:2] and first[2] <= verse <= last[2]
+        return book==first[0]==last[0] and first[1:]<=(chapter,verse)<=last[1:]
 
 
 def validate(note):
@@ -85,8 +85,8 @@ def validate(note):
         if str(uuid.UUID(note.id)) != note.id:
             raise ValueError('Invalid note identifier')
         first, last = parts(note.start), parts(note.end)
-        if first[:2] != last[:2] or first[2] > last[2]:
-            raise ValueError('A note passage must be within one chapter')
+        if first[0] != last[0] or first[1:] > last[1:]:
+            raise ValueError('A note passage must be ordered within one book')
         for value in (note.versification, note.origin_translation, note.origin_language):
             if not isinstance(value, str) or not value or len(value) > 128 or any(ord(c) < 32 for c in value):
                 raise ValueError('Invalid origin context')
@@ -208,8 +208,8 @@ class NoteStore:
     def passage(self, versification, start, end=None):
         first, last = parts(start), parts(end or start)
         return [note for note in self.all() if note.versification == versification
-                and parts(note.start)[:2] == first[:2]
-                and parts(note.start)[2] <= last[2] and parts(note.end)[2] >= first[2]]
+                and parts(note.start)[0] == first[0] == last[0] == parts(note.end)[0]
+                and parts(note.start)[1:] <= last[1:] and parts(note.end)[1:] >= first[1:]]
 
     def search(self, query='', labels=(), order='recent'):
         keys = {label_key(value) for value in labels}

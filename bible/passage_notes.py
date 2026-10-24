@@ -1,5 +1,5 @@
 """Passage annotation cards and an inline host for the existing safe note editor."""
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango, GLib, Gdk
 from .i18n import tr
 from .highlights import COLORS
 from .notes import parts
@@ -14,11 +14,10 @@ class PassageNotes(Gtk.Box):
                          margin_start=12,margin_end=12,margin_top=12,margin_bottom=16)
         self.owner=owner;self.annotations=PassageAnnotations()
         self.context=None;self._stamp=None;self.rows=[];self.marks=[];self.cards=[];self.editor=None
-        self.note_limit=20
         self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.append(self.heading)
-        self.add=Gtk.MenuButton(label=tr('Highlight'),halign=Gtk.Align.START)
-        self.add_highlight=self.add  # One creation entry, including standalone notes.
-        self.append(self.add)
+        self.following=True;self._follow_idle=0;self._follow_serial=0;self._card_targets=[]
+        self.resume=Gtk.Button(label=tr('Resume following'),halign=Gtk.Align.START,visible=False)
+        self.resume.add_css_class('flat');self.resume.connect('clicked',lambda *_:self.resume_following())
         self.status=Gtk.Label(xalign=0,wrap=True,visible=False)
         self.status.add_css_class('dim-label')
         self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
@@ -46,6 +45,7 @@ class PassageNotes(Gtk.Box):
         else:self.remove_css_class('annotation-contrast')
 
     def close(self):
+        self.cancel_follow()
         self.owner.reading_style.manager.disconnect(self.contrast_handler)
         Gtk.StyleContext.remove_provider_for_display(self.owner.get_display(),self.css)
 
@@ -64,40 +64,118 @@ class PassageNotes(Gtk.Box):
     def clear(self,box):
         while box.get_first_child():box.remove(box.get_first_child())
 
+    def bind_scroll(self,scroll):
+        self.scroll=scroll
+        wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+        wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        wheel.connect('scroll',lambda *_:self.suspend_following() or False);scroll.add_controller(wheel)
+        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def key(_,value,*args):
+            if value in (Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_space):self.suspend_following()
+            return False
+        keys.connect('key-pressed',key);scroll.add_controller(keys)
+        click=Gtk.GestureClick(button=1);click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        click.connect('pressed',lambda *_:self.suspend_following());scroll.add_controller(click)
+
+    def cancel_follow(self):
+        self._follow_serial+=1
+        if self._follow_idle:GLib.source_remove(self._follow_idle);self._follow_idle=0
+
+    def suspend_following(self):
+        self.following=False;self.resume.set_visible(True);self.cancel_follow()
+
+    def resume_following(self):
+        # Reading intent must never move an active draft out of view.
+        if self.editor and not self.editor.closed:
+            self.suspend_following();return
+        self.following=True;self.resume.set_visible(False)
+        tab=self.owner.active_tab
+        if tab:self.queue_follow(tab.state.reference)
+
     def refresh(self,force=False):
         if self.owner.closed:return
-        tab=self.owner.active_tab
-        reader=tab.reader if tab else None;store=self.owner.notes_store
+        tab=self.owner.active_tab;reader=tab.reader if tab else None;store=self.owner.notes_store
         start,end=tab.selected_passage() if reader else (tab.state.reference,tab.state.reference) if tab else (None,None)
-        stamp=(id(tab),id(reader),start,end,store.generation if store else -1,
-               tuple(tuple(m.values()) for m in self.owner.highlights.entries.values()))
-        if not force and stamp==self._stamp:return
-        self._stamp=stamp
         self.context=(dict(versification=reader.versification,start=start,end=end,origin_translation=tab.state.resource,
                           origin_language=self.owner.library.resource(tab.state.resource).language) if reader else None)
-        self.heading.set_text(tr('Notes on')+' '+passage_label(start,end,reader.versification if reader else None) if start else tr('Passage notes'))
-        self.add.set_sensitive(bool(reader))
+        chapter=parts(tab.state.reference)[:2] if tab else None
+        stamp=(id(tab),id(reader),chapter,store.generation if store else -1,
+               tuple(tuple(m.values()) for m in self.owner.highlights.entries.values()))
+        if not force and stamp==self._stamp:
+            if tab:self.queue_follow(tab.state.reference)
+            return
+        self.cancel_follow();self._stamp=stamp
+        self.heading.set_text(tr('Notes on')+' '+passage_label(f'{chapter[0]}.{chapter[1]}.1',versification=reader.versification if reader else None).rsplit(' ',1)[0]+f' {chapter[1]}' if chapter else tr('Passage notes'))
         if reader:
-            self.rows=self.annotations.notes(reader,start,end,store) if store else []
-            self.marks=self.annotations.highlights(reader,start,end,self.owner.highlights)
+            key=reader.key(tab.state.reference)
+            first=f'{chapter[0]}.{chapter[1]}.1';last=f'{chapter[0]}.{chapter[1]}.{key.getVerseMax()}'
+            self.rows=self.annotations.notes(reader,first,last,store) if store else []
+            self.marks=self.annotations.highlights(reader,first,last,self.owner.highlights)
         else:
-            # Exact original source identity only; never align unavailable canons by printed numbers.
             def original_match(resource,first,last):
-                return bool(tab and resource==tab.state.resource and parts(first)<=parts(start)<=parts(last)
-                            and parts(first)[:2]==parts(start)[:2]==parts(last)[:2])
-            self.rows=[n for n in store.all() if original_match(n.origin_translation,n.start,n.end)] if store else []
-            self.marks=[m for m in self.owner.highlights.entries.values() if original_match(m['resource'],m['reference'],m['reference'])]
+                from .notes import BOOK_ORDER
+                def order(ref):
+                    b,c,v=parts(ref);return BOOK_ORDER.get(b,10000),b,c,v
+                low=f'{chapter[0]}.{chapter[1]}.1';high=f'{chapter[0]}.{chapter[1]}.999'
+                return bool(tab and resource==tab.state.resource and order(first)<=order(high) and order(last)>=order(low))
+            self.rows=[n for n in store.all() if original_match(n.origin_translation,n.start,n.end)] if store and chapter else []
+            self.marks=[m for m in self.owner.highlights.entries.values() if original_match(m['resource'],m['reference'],m['reference'])] if chapter else []
         self.status.set_text(tr('Notes unavailable. The original file has been preserved.') if not store else
-                             tr('No annotations for this passage.') if not self.rows and not self.marks else '')
-        self.clear(self.list);self.cards=[]
-        # No inferred associations: independent stored notes and marks each have one card.
-        for note in self.rows[:self.note_limit]:self.note_card(note,reader)
-        for mark in self.marks:self.highlight_card(mark,reader)
-        if len(self.rows)>self.note_limit:
-            more=Gtk.Button(label=tr('Show more notes'))
-            def show_more(*_):self.note_limit+=20;self.refresh(force=True)
-            more.connect('clicked',show_more);self.list.append(more)
-        self.creation_menu()
+                             tr('No annotations in this chapter.') if not self.rows and not self.marks else '')
+        from .annotation_collection import records,bible_order
+        entries=records(self.rows,self.marks)
+        def targets(a):
+            return self.annotations.positions(reader,a.system,a.start,a.end) if reader else ()
+        mapped={a.key:targets(a) for a in entries}
+        def order(a):
+            spans=mapped[a.key]
+            return (min((left for left,right,_,_ in spans if right>=reader.key(first).getIndex() and left<=reader.key(last).getIndex()),default=0) if reader else 0,bible_order(a))
+        entries.sort(key=order)
+        self.rows=[a.note for a in entries if a.note];self.marks=[a.mark for a in entries if a.mark]
+        self.clear(self.list);self.cards=[];self._card_targets=[];self._chapter_texts={}
+        for a in entries:
+            if a.note:self.note_card(a.note,reader)
+            else:self.highlight_card(a.mark,reader)
+            card=self.cards[-1];card.annotation_key=a.key
+            self._card_targets.append((card,mapped[a.key]))
+        if tab:self.queue_follow(tab.state.reference)
+
+    def queue_follow(self,reference):
+        self.cancel_follow()
+        if not self.following or self.editor or not hasattr(self,'scroll') or not self.owner.split.get_show_sidebar():return
+        tab=self.owner.active_tab;reader=tab.reader if tab else None
+        if not reader or not self._card_targets:return
+        serial=self._follow_serial;stamp=self._stamp;attempts=0
+        def reveal():
+            nonlocal attempts
+            self._follow_idle=0
+            if (self.owner.closed or serial!=self._follow_serial or stamp!=self._stamp or not self.following
+                    or self.editor or self.owner.active_tab is not tab or tab.state.reference!=reference
+                    or self.owner.study.tool!='notes'):return False
+            if not self.get_mapped() or any(card.get_height()==0 for card,_ in self._card_targets):
+                attempts+=1
+                if attempts<30:self._follow_idle=GLib.timeout_add(16,reveal)
+                return False
+            position=reader.key(reference).getIndex()
+            candidates=[(card,spans) for card,spans in self._card_targets if spans]
+            matching=[(card,spans) for card,spans in candidates if any(low<=position<=high for low,high,_,_ in spans)]
+            if matching:card=matching[0][0]
+            else:
+                following=[(card,spans) for card,spans in candidates if min(low for low,_,_,_ in spans)>position]
+                if following:card=following[0][0]
+                elif candidates:
+                    last_start=min(low for low,_,_,_ in candidates[-1][1])
+                    card=next(c for c,spans in candidates if min(low for low,_,_,_ in spans)==last_start)
+                else:return False
+            # Keep the group header visible; a tall card remains freely scrollable.
+            found,bounds=card.compute_bounds(self.scroll)
+            if not found:return False
+            adjustment=self.scroll.get_vadjustment();top=bounds.get_y();bottom=top+min(bounds.get_height(),80)
+            height=self.scroll.get_height()
+            if top<0:adjustment.set_value(adjustment.get_value()+top)
+            elif bottom>height:adjustment.set_value(adjustment.get_value()+bottom-height)
+            return False
+        self._follow_idle=GLib.idle_add(reveal)
 
     def card(self,system,start,end,kind):
         card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
@@ -105,19 +183,33 @@ class PassageNotes(Gtk.Box):
         header=Gtk.Box(spacing=6)
         reference=Gtk.Label(label=passage_label(start,end,system),xalign=0,hexpand=True,wrap=True,
                             wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        reference.add_css_class('caption');header.append(reference)
+        reference.add_css_class('caption')
+        jump=Gtk.Button(child=reference,hexpand=True,tooltip_text=tr('Open in Bible'));jump.add_css_class('flat')
+        jump.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open in Bible')+': '+passage_label(start,end,system)])
+        jump.connect('clicked',lambda *_:self.navigate_annotation(system,start));header.append(jump)
         menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr(kind))
         menu.add_css_class('flat');menu.update_property([Gtk.AccessibleProperty.LABEL],[tr(kind)])
         header.append(menu);card.append(header)
         card.actions=menu;self.list.append(card);self.cards.append(card)
         return card
 
+    def navigate_annotation(self,system,start):
+        tab=self.owner.active_tab;reader=tab.reader if tab else None
+        if not reader:return
+        try:
+            from .reference_resolution import resolve
+            mapped=resolve(start,system,reader)
+            self.owner.navigate_selection(tab.state.resource,mapped.start)
+        except (OSError,ValueError) as error:self.status.set_text(str(error))
+
     def excerpt(self,card,reader,system,start,end):
         texts=[];source=''
         if reader:
             try:
                 for _,_,first,last in self.annotations.positions(reader,system,start,end):
-                    for reference,text in reader.chapter(first).verses:
+                    chapter=parts(first)[:2]
+                    if chapter not in self._chapter_texts:self._chapter_texts[chapter]=reader.chapter(first).verses
+                    for reference,text in self._chapter_texts[chapter]:
                         if reader.key(first).getIndex()<=reader.key(reference).getIndex()<=reader.key(last).getIndex() and text.strip():
                             if (reference,text) not in texts:texts.append((reference,text))
                 source=self.owner.library.resource(reader.name).description
@@ -162,6 +254,7 @@ class PassageNotes(Gtk.Box):
         self.colors(card.actions,mark=dict(mark))
 
     def open_note(self,note=None,context=None,expand=False):
+        self.suspend_following()
         existing=self.owner.note_editor
         if existing and not existing.closed:
             if note and existing.note and existing.note.id==note.id:
@@ -217,22 +310,6 @@ class PassageNotes(Gtk.Box):
         editor=self.open_note(note)
         if editor.note and editor.note.id==note.id:editor.ask_delete()
 
-    def creation_menu(self):
-        popover=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,
-            margin_start=8,margin_end=8,margin_top=8,margin_bottom=8)
-        snapshot=dict(self.context) if self.context else None
-        reader=self.owner.active_tab.reader if snapshot else None
-        def colors(annotate=False):
-            if not snapshot:return
-            popover.popdown()
-            def show():
-                self.colors(self.add,context=snapshot,reader=reader,annotate=annotate);self.add.popup();return False
-            GLib.idle_add(show)
-        for label,callback in [('Highlight selection',lambda *_:colors()),('Highlight and annotate…',lambda *_:colors(True)),
-                               ('Add note',lambda *_:popover.popdown() or self.open_note(context=snapshot) if snapshot else None)]:
-            button=Gtk.Button(label=tr(label));button.connect('clicked',callback);box.append(button)
-        popover.set_child(box);self.add.set_popover(popover)
-
     def colors(self,menu,*,mark=None,context=None,reader=None,annotate=False):
         popover=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,
             margin_start=8,margin_end=8,margin_top=8,margin_bottom=8)
@@ -257,10 +334,3 @@ class PassageNotes(Gtk.Box):
                 except (OSError,ValueError) as error:self.status.set_text(str(error))
             button.connect('clicked',choose);box.append(button)
         popover.set_child(box);menu.set_popover(popover)
-        if menu is self.add:
-            def reset(*_):
-                def restore():
-                    if menu.get_popover() is popover and not self.owner.closed:self.creation_menu()
-                    return False
-                GLib.idle_add(restore)
-            popover.connect('closed',reset)
