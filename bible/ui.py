@@ -76,12 +76,12 @@ class Window(Adw.ApplicationWindow):
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
         self.heading = Adw.WindowTitle(title=tr('Choose a passage'))
         # Bound both title and version even with long affiliated module IDs.
-        def constrain_labels(widget):
+        def constrain_labels(widget,maximum=18):
             if isinstance(widget,Gtk.Label):
-                widget.set_max_width_chars(18);widget.set_width_chars(1);widget.set_ellipsize(Pango.EllipsizeMode.END)
+                widget.set_max_width_chars(maximum);widget.set_width_chars(1);widget.set_ellipsize(Pango.EllipsizeMode.END)
             child=widget.get_first_child()
             while child:
-                constrain_labels(child);child=child.get_next_sibling()
+                constrain_labels(child,maximum);child=child.get_next_sibling()
         constrain_labels(self.heading)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
@@ -91,13 +91,14 @@ class Window(Adw.ApplicationWindow):
         self.navigation = PassagePopover(self)
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
+        from .workspace_selector import WorkspaceSelector
+        self.space_selector=WorkspaceSelector(self);header.pack_start(self.space_selector)
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
         self.new_tab_button=new
         header.pack_start(new)
         from .application_surfaces import application_menu
         self.menu=application_menu()
-        self.my_notes_button=Gtk.Button(icon_name='accessories-text-editor-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
         self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-right-symbolic',tooltip_text=tr('Study'))
         self.study_button.connect('toggled',self.toggle_study)
         self.immersive_button=Gtk.ToggleButton(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Immersive mode'))
@@ -125,14 +126,14 @@ class Window(Adw.ApplicationWindow):
         self._popover_dismissal = install(self, self._reading_popovers)
         self.comparison_popover.connect('show',lambda *_:fit_reader_popover(self.comparison_popover,self))
         self._comparison_syncing=False
-        # pack_end keeps Study, My notes and the global menu in that order.
+        # Notes has a working application-space selector at the top left.
         for widget,label in [(self.menu,'Main menu'),
-                             (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
+                             (self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
         # Explicit native symbolic size leaves Header Bar hit targets untouched.
-        for button in (self.my_notes_button,self.study_button):
+        for button in (self.study_button,):
             image=Gtk.Image(icon_name=button.get_icon_name(),pixel_size=16)
             button.set_child(image)
         from .version_chooser import VersionChooser
@@ -181,6 +182,7 @@ class Window(Adw.ApplicationWindow):
         self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
+        self.main_pages.connect('notify::visible-child-name',lambda *_:self.space_selector.sync())
         self.main_pages.add_named(self.split,'reading')
         self.set_content(self.main_pages)
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
@@ -194,6 +196,18 @@ class Window(Adw.ApplicationWindow):
         # global menu no longer duplicates these reading/workspace commands.
         tiny_header.add_setter(new,'visible',False)
         tiny_header.add_setter(self.tab_new_button,'visible',True)
+        # The real passage chooser stays reachable beside the tabs when the
+        # top-left space selector needs room. There is still one chooser.
+        compact_title=Gtk.Box()
+        def compact(*_):
+            header.set_title_widget(compact_title)
+            self.bar.set_start_action_widget(self.passage_button)
+            constrain_labels(self.heading,8)
+        def expanded(*_):
+            self.bar.set_start_action_widget(None)
+            header.set_title_widget(self.passage_button)
+            constrain_labels(self.heading)
+        tiny_header.connect('apply',compact);tiny_header.connect('unapply',expanded)
         self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
@@ -718,6 +732,10 @@ class Window(Adw.ApplicationWindow):
             window.study._readers.pop(name,None)
             window.study.refresh(force=True)
             window.primary_version.sync();window.compared_version.sync();window.sync_comparison()
+            if window.notes_space:
+                window.notes_space._reader_cache.pop(name,None);window.notes_space._excerpt_cache.clear()
+                window.notes_space.refresh()
+                if window.notes_space.selected_annotation:window.notes_space.update_context(window.notes_space.selected_annotation)
 
     def open_installed_resource(self,name,context=None):
         tab=context[0]() if context else self.active_tab
@@ -749,12 +767,13 @@ class Window(Adw.ApplicationWindow):
         return True
 
     def notes_changed(self):
-        for tab in self.tabs():
-            tab.update_notes(force=True)
-        if self.notes_window and not self.notes_window.closed:
-            self.notes_window.labels.set_suggestions(self.notes_store.labels())
-            self.notes_window.refresh()
-        if self.study.tool=='notes':self.study.notes.refresh()
+        for window in self.get_application().get_windows():
+            if not isinstance(window,Window) or window.closed or window.library.root!=self.library.root or not window.notes_store:continue
+            if window is not self:window.notes_store.generation+=1
+            for tab in window.tabs():tab.update_notes(force=True)
+            if window.notes_window and not window.notes_window.closed:
+                window.notes_window.labels.set_suggestions(window.notes_store.labels());window.notes_window.refresh()
+            if window.study.tool=='notes':window.study.notes.refresh()
 
     def refresh_highlights(self):
         for window in self.get_application().get_windows():
@@ -767,6 +786,7 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:
             self.immersion.capture_selection();self.immersion.render()
         if self.highlights_window and not self.highlights_window.closed:self.highlights_window.refresh()
+        if self.notes_space and not self.notes_space.closed:self.notes_space.refresh()
         if self.study.tool=='notes':self.study.notes.refresh()
 
     def mark_highlight(self,color):
@@ -787,20 +807,21 @@ class Window(Adw.ApplicationWindow):
             tab.status.set_text(str(error));tab.status.set_visible(True)
 
     def open_highlights(self):
-        if self.immersion:self.leave_immersion()
-        from .highlight_ui import HighlightsWindow
-        if self.highlights_window is None or self.highlights_window.closed:self.highlights_window=HighlightsWindow(self)
-        self.highlights_window.refresh();self.highlights_window.present()
-        return self.highlights_window
+        def shown(space):space.set_category('highlights');space.split.set_show_sidebar(True)
+        return self.open_notes(on_open=shown)
 
-    def open_notes(self):
+    def open_notes(self,on_open=None):
         if self.immersion:self.leave_immersion()
         if self.notes_store is None:return
+        editor=self.note_editor
+        if editor and not editor.closed and editor.embedded_host is not self.notes_space:
+            editor.after_close=lambda:self.open_notes(on_open=on_open);editor.close();return
         if self.notes_space is None:
             self.notes_space=NotesSpace(self)
             self.notes_window=self.notes_space
             self.main_pages.add_named(self.notes_space,'notes')
         self.notes_space.refresh();self.notes_space.present()
+        if on_open:on_open(self.notes_space)
         return self.notes_space
 
     def new_note(self, force_new=False):
@@ -834,12 +855,10 @@ class Window(Adw.ApplicationWindow):
             context=dict(versification=reader.versification,start=start,end=end,
                          origin_translation=resource,origin_language=self.library.resource(resource).language)
             return self.edit_note(context=context)
-        window = self.open_notes()
-        window.search.set_text('')
-        window.labels.set_values([])
-        window.passage_filter = (reader.versification, start, end)
-        window.refresh()
-        return window
+        def shown(window):
+            window.search.set_text('');window.labels.set_values([])
+            window.passage_filter=(reader.versification,start,end);window.set_category('all')
+        return self.open_notes(on_open=shown)
 
     def edit_note(self, note=None, context=None, explanation=''):
         if self.note_editor and not self.note_editor.closed:

@@ -103,7 +103,10 @@ def show_about(owner):
 
 
 def welcome_page(owner):
-    view=Adw.ToolbarView();header=Adw.HeaderBar();owner.welcome_menu=application_menu();header.pack_end(owner.welcome_menu);view.add_top_bar(header)
+    view=Adw.ToolbarView();header=Adw.HeaderBar()
+    from .workspace_selector import WorkspaceSelector
+    header.pack_start(WorkspaceSelector(owner))
+    owner.welcome_menu=application_menu();header.pack_end(owner.welcome_menu);view.add_top_bar(header)
     page=Adw.StatusPage(title=tr('Welcome to Bible'),description=tr('Choose a Bible to start reading and studying.'),icon_name='io.github.icfmp.Bible')
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,halign=Gtk.Align.CENTER)
     box.append(Gtk.Label(label=tr('Your downloaded texts stay available offline.'),wrap=True,max_width_chars=34,justify=Gtk.Justification.CENTER))

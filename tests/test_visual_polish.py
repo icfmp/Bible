@@ -22,7 +22,7 @@ class VisualPolishTests(unittest.TestCase):
             w=Window(self.app,library);w.present()
             try:
                 tab=w.active_tab;tab.navigate('Darby','Gen.32.1');tab.state.comparison='KingJames';w.sync_comparison();spin()
-                original_order=[w.study_button,w.my_notes_button]
+                original_order=[w.space_selector,w.study_button]
                 self.assertFalse(hasattr(w,'library_button'))
                 self.assertLess(original_order[0].compute_bounds(w)[1].origin.x,original_order[1].compute_bounds(w)[1].origin.x)
                 self.assertIs(w.appearance_button.get_parent(),w.reader_controls)

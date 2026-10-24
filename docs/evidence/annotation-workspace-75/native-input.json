@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "app_import": "/repo/bible/ui.py",
+  "native_workspace_switch": true,
+  "native_typing_autosaved": true,
+  "actual_sqlite_write_failure_guard": true,
+  "draft_kept_on_cancel": true,
+  "flush_on_workspace_change": true,
+  "library_from_notes": true,
+  "highlight_confirmation_cancel_and_remove": true,
+  "related_note_retained": true,
+  "full_content_search": true,
+  "existing_note_identities_retained": true,
+  "resource_files_unchanged": 36,
+  "manual_client_gnome_validation": false
+}

@@ -9,6 +9,7 @@ from .book_names import display_name
 from .i18n import LANGUAGE, tr
 from .markdown import render
 from .notes import clean_labels, parts
+from .highlights import COLORS
 
 
 def passage_label(start, end=None, versification=None):
@@ -26,7 +27,8 @@ def passage_label(start, end=None, versification=None):
         pass
     result = f'{display_name(code, name, LANGUAGE)} {chapter}:{verse}'
     if end and end != start:
-        result += '–' + str(parts(end)[2])
+        final=parts(end)
+        result+='–'+(str(final[2]) if final[:2]==(code,chapter) else f'{final[1]}:{final[2]}' if final[0]==code else passage_label(end,versification=versification))
     return result
 
 
@@ -118,6 +120,9 @@ class NoteEditor(Adw.Window):
         self._discard = False
         self._confirmation = None
         self.after_close = None
+        self.autosave = False
+        self._autosave_id = 0
+        self._saving = False
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         header = Adw.HeaderBar();self.header=header
@@ -139,7 +144,7 @@ class NoteEditor(Adw.Window):
         except (ValueError,OSError):pass
         from .languages import language_name
         context_text=tr('Note created with')+' '+origin+' — '+language_name(self.context['origin_language'])
-        context_label=Gtk.Label(label=context_text,wrap=True,xalign=0,margin_start=20,margin_end=20)
+        context_label=Gtk.Label(label=context_text,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0,margin_start=20,margin_end=20)
         context_label.add_css_class('dim-label');context_label.set_tooltip_text(self.context['origin_translation']+' · '+self.context['versification'])
         layout.append(context_label)
         self.status = Gtk.Label(label=explanation, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
@@ -230,23 +235,58 @@ class NoteEditor(Adw.Window):
     def dirty(self):
         return (buffer_text(self.body), tuple(self.labels.values)) != self._initial or bool(self.labels.entry.get_text().strip())
 
+    def enable_autosave(self):
+        """Coalesce writes on GTK's owner thread; optimistic revisions still apply."""
+        if self.autosave:return
+        self.autosave=True
+        self.body.get_buffer().connect('changed',lambda *_:self.queue_autosave())
+        self.labels.changed=self.queue_autosave
+        self.labels.entry.connect('changed',lambda *_:self.queue_autosave())
+
+    def cancel_autosave(self):
+        if self._autosave_id:
+            GLib.source_remove(self._autosave_id);self._autosave_id=0
+
+    def queue_autosave(self):
+        if self.closed or self._discard or self._saving:return
+        self.cancel_autosave()
+        self.status.set_text(tr('Saving…'))
+        self._autosave_id=GLib.timeout_add(600,self.autosave_pending)
+
+    def autosave_pending(self):
+        self._autosave_id=0
+        if self.closed or self._discard or not self.dirty:return False
+        # Typing a label is not an implicit Add-label action. Keep the whole
+        # draft and normal leave/save guards until the label is committed.
+        if self.labels.entry.get_text().strip():
+            self.status.set_text(tr('Press Enter to add the label before saving.'));return False
+        self.save(close=False)
+        return False
+
     def save(self, close=True):
+        if self.closed or self._discard:return False
+        self.cancel_autosave()
+        self._saving=True
         if self.labels.entry.get_text().strip():
             self.labels.add()
             if self.labels.error.get_text():
+                self._saving=False
                 return False
         try:
             self.note = self.owner.notes_store.save(buffer_text(self.body), self.labels.values,
                                                     existing=self.note, **self.context)
             self._initial = (self.note.body, tuple(self.labels.values))
+            host=self.embedded_host
+            if host and hasattr(host,'note_saved'):host.note_saved(self)
             self.owner.notes_changed()
             self.status.set_text(tr('Note saved.'))
             if close:
                 self.close()
             return True
         except Exception as error:
-            self.status.set_text(tr(str(error)))
+            self.status.set_text((tr('Unable to save this note. Your draft is kept.')+'\n' if self.autosave else '')+tr(str(error)))
             return False
+        finally:self._saving=False
 
     def ask_delete(self, *_):
         if self.note:
@@ -254,10 +294,11 @@ class NoteEditor(Adw.Window):
                                           'This removes the note and its labels from this passage.', self.delete_confirmed)
 
     def delete_confirmed(self):
+        self.cancel_autosave()
         try:
             self.owner.notes_store.delete(self.note)
-            self.owner.notes_changed()
             self._discard = True
+            self.owner.notes_changed()
             self.close()
         except Exception as error:
             self.status.set_text(tr(str(error)))
@@ -274,6 +315,8 @@ class NoteEditor(Adw.Window):
             self.destroy()
 
     def on_close(self, *_):
+        if self.autosave and self.dirty and not self._discard:
+            self.save(close=False)
         if self.dirty and not self._discard:
             if self._confirmation is None or not self._confirmation.get_visible():
                 dialog=Adw.MessageDialog.new(self.dialog_parent,tr('Unsaved changes'),tr('Save this note before leaving?'))
@@ -290,6 +333,7 @@ class NoteEditor(Adw.Window):
                     else:self.after_close=None
                 dialog.connect('response',response);dialog.present();self._confirmation=dialog
             return True
+        self.cancel_autosave()
         self.closed = True
         if self.embedded_host and not self.embedded:self.embedded_host.editor_closed(self)
         if self.after_close:
@@ -482,6 +526,9 @@ class LabelFilter(Gtk.Box):
         for label in self.existing:
             if normalized(self.entry.get_text()) not in normalized(label):continue
             button=Gtk.CheckButton(label=label,active=label in self.values)
+            caption=button.get_child()
+            if isinstance(caption,Gtk.Label):
+                caption.set_wrap(True);caption.set_wrap_mode(Pango.WrapMode.WORD_CHAR);caption.set_width_chars(1);caption.set_max_width_chars(24)
             def toggle(widget,value=label):
                 if self._updating:return
                 self.values=list(dict.fromkeys(self.values+[value])) if widget.get_active() else [v for v in self.values if v!=value]
@@ -507,77 +554,111 @@ def readable_date(value):
     return label,exact
 
 
+class AnnotationItem(GObject.Object):
+    def __init__(self,annotation):super().__init__();self.annotation=annotation
+
+
 class NotesSpace(Gtk.Box):
-    """Main-window notes workspace; keeps the reader and list context alive."""
+    """Adaptive projection over the existing note database and highlight file."""
     def __init__(self,owner):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.owner=owner;self.closed=False;self.rows=[];self._choosers=[];self.passage_filter=None
-        self.editor=None
+        self.editor=None;self.selected_key=None;self.selected_annotation=None;self.category='all';self._detail_requested=False
+        self._syncing=False;self._wide=None;self._reader_cache={};self._excerpt_cache={};self._version=None
         header=Adw.HeaderBar();header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        self.workspace_title=Gtk.Label(label=tr('My notes'),ellipsize=Pango.EllipsizeMode.END,
-                                       width_chars=1,max_width_chars=18)
+        from .workspace_selector import WorkspaceSelector
+        self.space_selector=WorkspaceSelector(owner,notes=True);header.pack_start(self.space_selector)
+        self.workspace_title=Gtk.Label(label=tr('Notes and highlights'),ellipsize=Pango.EllipsizeMode.END,width_chars=1,max_width_chars=24,visible=owner.get_width()>=760)
         self.workspace_title.add_css_class('heading');header.set_title_widget(self.workspace_title)
-        reading=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back to reading'))
-        reading.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back to reading')])
-        reading.connect('clicked',lambda *_:self.leave());header.pack_start(reading)
-        self.save_button=Gtk.Button(icon_name='document-save-symbolic',tooltip_text=tr('Save'),sensitive=False)
-        self.save_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Save')])
-        self.save_button.add_css_class('suggested-action')
-        self.save_button.connect('clicked',lambda *_:self.editor.save(close=False) if self.editor else None)
-        menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'))
-        popover=Gtk.Popover();commands=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
+        self.filter_button=Gtk.ToggleButton(icon_name='bible-filter-symbolic',tooltip_text=tr('Filters'))
+        self.filter_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Filters')]);self.filter_button.add_css_class('flat')
+        menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Annotation actions'))
+        popover=Gtk.Popover();commands=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
+        self.save_button=Gtk.Button(label=tr('Save'),sensitive=False);self.save_button.add_css_class('flat')
+        self.save_button.connect('clicked',lambda *_:self.editor.save(close=False) if self.editor else None);commands.append(self.save_button)
         for label,callback in [('Back up notes',lambda:self.choose_backup(True)),('Restore notes',lambda:self.choose_backup(False)),
-                               ('Highlights',lambda:owner.open_highlights()),
+                               ('Back up highlights',lambda:self.choose_highlight_backup(False)),('Restore highlights',lambda:self.choose_highlight_backup(True)),
                                ('Delete note…',lambda:self.editor.ask_delete() if self.editor and self.editor.note else None)]:
             button=Gtk.Button(label=tr(label));button.add_css_class('flat');button.connect('clicked',lambda _,fn=callback:fn());commands.append(button)
             if label=='Delete note…':self.delete_button=button;button.set_visible(False)
         popover.set_child(commands);menu.set_popover(popover)
         from .application_surfaces import application_menu
-        self.main_menu=application_menu();header.pack_end(self.main_menu)
-        header.pack_end(menu);header.pack_end(self.save_button);self.append(header)
+        self.main_menu=application_menu();header.pack_end(self.main_menu);header.pack_end(menu);self.append(header)
+        self.filters=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
+        self.categories={}
+        for key,title in [('all','All'),('notes','Notes'),('highlights','Highlights')]:
+            button=Gtk.ToggleButton()
+            if self.categories:button.set_group(next(iter(self.categories.values())))
+            button.connect('clicked',lambda widget,value=key:self.set_category(value) if widget.get_active() else None)
+            self.categories[key]=button;self.filters.append(button)
+        self.categories['all'].set_active(True)
+        self.count_hint=Gtk.Label(label=tr('Each note and each saved verse highlight counts once. Related records stay separate.'),wrap=True,xalign=0,max_width_chars=1)
+        self.count_hint.add_css_class('caption');self.count_hint.add_css_class('dim-label');self.filters.append(self.count_hint)
+        self.books=[''];self.book=Gtk.DropDown(model=Gtk.StringList.new([tr('All books')]))
+        self.book.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book')]);self.book.connect('notify::selected',lambda *_:self.refresh() if not self._syncing else None);self.filters.append(self.book)
+        self.labels=LabelFilter(owner.notes_store.labels(),self.refresh);self.filters.append(self.labels)
+        self.color=Gtk.DropDown(model=Gtk.StringList.new([tr('All colors'),*[tr(label) for _,label in COLORS.values()]]))
+        self.color.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight color')]);self.color.connect('notify::selected',lambda *_:self.refresh() if not self._syncing else None);self.filters.append(self.color)
+        filters_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER);filters_scroll.set_child(self.filters)
         self.side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         tools=Gtk.Box(spacing=6,margin_start=12,margin_end=12,margin_top=12)
-        self.search=Gtk.SearchEntry(placeholder_text=tr('Search notes or references'),hexpand=True)
+        self.search=Gtk.SearchEntry(placeholder_text=tr('Search annotations'),hexpand=True)
         self.search.connect('search-changed',lambda *_:self.refresh());tools.append(self.search)
         self.sort=Gtk.DropDown(model=Gtk.StringList.new([tr('Most recent'),tr('Oldest first'),tr('Bible order')]))
         from .version_chooser import bounded_choices
-        bounded_choices(self.sort)
-        self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort notes')]);self.sort.connect('notify::selected',lambda *_:self.refresh())
-        tools.append(self.sort);self.side.append(tools)
-        self.labels=LabelFilter(owner.notes_store.labels(),self.refresh)
-        self.labels.set_margin_start(12);self.labels.set_margin_end(12);self.side.append(self.labels)
-        new=Gtk.Button(child=Gtk.Label(label=tr('New passage note'),wrap=True),margin_start=12,margin_end=12)
-        new.connect('clicked',lambda *_:self.create_note());self.side.append(new)
-        self.new_button=new
-        self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12)
-        self.side.append(self.status)
-        self.model=Gio.ListStore.new(NoteItem);self.selection=Gtk.SingleSelection(model=self.model)
+        for control in (self.book,self.color,self.sort):bounded_choices(control)
+        self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort annotations')]);self.sort.connect('notify::selected',lambda *_:self.refresh());tools.append(self.sort);tools.append(self.filter_button);self.side.append(tools)
+        self.sort.set_tooltip_text(tr('Date sorting uses note modification dates. Highlights without dates follow in Bible order.'))
+        self.new_button=Gtk.Button(child=Gtk.Label(label=tr('New passage note'),wrap=True),margin_start=12,margin_end=12)
+        self.new_button.connect('clicked',lambda *_:self.create_note());self.side.append(self.new_button)
+        self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12);self.side.append(self.status)
+        self.model=Gio.ListStore.new(AnnotationItem);self.selection=Gtk.SingleSelection(model=self.model,autoselect=False)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.row_setup);factory.connect('bind',self.row_bind)
-        self.list=Gtk.ListView(model=self.selection,factory=factory,single_click_activate=True)
-        self.list.connect('activate',self.activate)
+        self.list=Gtk.ListView(model=self.selection,factory=factory,single_click_activate=True);self.list.connect('activate',self.activate)
         self.scroll=Gtk.ScrolledWindow(vexpand=True);self.scroll.set_child(self.list);self.side.append(self.scroll)
         self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
-        self.detail_back=Gtk.Button(label=tr('Back to notes'),visible=False,halign=Gtk.Align.START,margin_start=12,margin_top=8)
-        self.detail_back.connect('clicked',lambda *_:self.back_to_list());self.editor_panel.append(self.detail_back)
-        self.placeholder=Adw.StatusPage(title=tr('Choose a note'),description=tr('Your notes remain available offline.'),icon_name='bible-notes-symbolic')
-        self.editor_panel.append(self.placeholder)
-        self.split=Adw.OverlaySplitView(sidebar=self.side,content=self.editor_panel,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
-        self.append(self.split)
-        self.add_tick_callback(self.adapt)
-        self.refresh()
+        detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.detail_back=Gtk.Button(label=tr('Back to annotations'),visible=False,halign=Gtk.Align.START,margin_start=12,margin_top=8)
+        self.detail_back.connect('clicked',lambda *_:self.back_to_list());detail.append(self.detail_back)
+        self.detail_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.detail_scroll.set_overflow(Gtk.Overflow.HIDDEN)
+        self.detail_scroll.set_child(self.editor_panel)
+        viewport=self.detail_scroll.get_child()
+        if isinstance(viewport,Gtk.Viewport):viewport.set_scroll_to_focus(True)
+        detail.append(self.detail_scroll)
+        self.context_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_start=12,margin_end=12,margin_top=8,visible=False)
+        self.open_button=Gtk.Button(label=tr('Open in Bible'),halign=Gtk.Align.START);self.open_button.connect('clicked',lambda *_:self.open_passage());self.context_panel.append(self.open_button)
+        self.versions=Gtk.DropDown();bounded_choices(self.versions);self.versions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Excerpt translation')]);self.versions.connect('notify::selected',self.version_changed);self.context_panel.append(self.versions)
+        self.excerpt=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,selectable=True,max_width_chars=1)
+        excerpt_scroll=Gtk.ScrolledWindow(overflow=Gtk.Overflow.HIDDEN,hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=150,propagate_natural_height=True);excerpt_scroll.set_child(self.excerpt);self.context_panel.append(excerpt_scroll)
+        self.related=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        related_scroll=Gtk.ScrolledWindow(overflow=Gtk.Overflow.HIDDEN,hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=150,propagate_natural_height=True);related_scroll.set_child(self.related)
+        self.related_expander=Gtk.Expander(label=tr('Related annotations'),visible=False);self.related_expander.set_child(related_scroll);self.context_panel.append(self.related_expander)
+        self.editor_panel.append(self.context_panel)
+        self.placeholder=Adw.StatusPage(title=tr('Choose an annotation'),description=tr('Your annotations remain available offline.'),icon_name='bible-notes-symbolic');self.editor_panel.append(self.placeholder)
+        self.highlight_detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,visible=False);self.editor_panel.append(self.highlight_detail)
+        self.split=Adw.OverlaySplitView(sidebar=self.side,content=detail,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
+        self.outer=Adw.OverlaySplitView(sidebar=filters_scroll,content=self.split,min_sidebar_width=210,max_sidebar_width=240,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,collapsed=True,show_sidebar=False)
+        self.filter_button.connect('toggled',lambda widget:self.outer.set_show_sidebar(widget.get_active()))
+        self.outer.connect('notify::show-sidebar',lambda *_:self.filter_button.set_active(self.outer.get_show_sidebar()))
+        self.append(self.outer);self.add_tick_callback(self.adapt);self.refresh()
 
     def adapt(self,*_):
-        collapsed=self.get_width()<760
-        self.workspace_title.set_visible(not collapsed)
+        if self.closed:return False
+        wide=self.get_width()>=1120
+        if wide!=self._wide:
+            self._wide=wide;self.outer.set_collapsed(not wide);self.outer.set_show_sidebar(wide)
+        collapsed=self.split.get_width()<760
+        self.workspace_title.set_visible(self.get_width()>=760)
         if self.split.get_collapsed()!=collapsed:
-            self.split.set_collapsed(collapsed);self.split.set_show_sidebar(not self.editor if collapsed else True)
-        self.detail_back.set_visible(collapsed and self.editor is not None)
+            self.split.set_collapsed(collapsed);self.split.set_show_sidebar(not self._detail_requested if collapsed else True)
+        self.detail_back.set_visible(collapsed and (self.editor is not None or self._detail_requested))
         return True
 
     def row_setup(self,_,item):
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12,margin_top=10,margin_bottom=10)
         for index in range(4):
-            label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=36)
+            label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36)
             if index==0:label.add_css_class('heading')
             if index==1:label.set_lines(2);label.set_ellipsize(Pango.EllipsizeMode.END)
             if index>=2:label.add_css_class('dim-label');label.add_css_class('caption')
@@ -585,92 +666,296 @@ class NotesSpace(Gtk.Box):
         item.set_child(box)
 
     def row_bind(self,_,item):
-        note=item.get_item().note
-        date,exact=readable_date(note.modified)
-        strings=[passage_label(note.start,note.end,note.versification),render(note.body)[0][:240].replace('\n',' '),' · '.join(note.labels),date]
+        from .highlights import COLORS
+        a=item.get_item().annotation
+        snippet=render(a.body)[0][:240].replace('\n',' ') if a.note else self.excerpt_for(a,limit=1)[0][:240]
+        kind=tr('Note') if a.note else tr('Highlight annotation')+' · '+tr(COLORS[a.color][1])
+        date,exact=readable_date(a.modified) if a.modified else ('','')
+        strings=[passage_label(a.start,a.end,a.system),snippet,kind+((' · '+' · '.join(a.labels)) if a.labels else ''),date]
         label=item.get_child().get_first_child()
         for value in strings:label.set_text(value);label=label.get_next_sibling()
-        item.get_child().set_tooltip_text(tr('Modified')+': '+exact)
+        item.get_child().set_tooltip_text((tr('Modified')+': '+exact+'\n' if exact else '')+tr('Original source')+': '+a.origin+' · '+a.system)
 
-    def show_all(self):self.passage_filter=None;self.refresh()
+    def set_category(self,key):
+        if self._syncing or key not in self.categories:return
+        self.category=key;self._syncing=True;self.categories[key].set_active(True);self._syncing=False;self.refresh()
+
+    def show_all(self):self.passage_filter=None;self.set_category('all')
+
+    def reveal(self,key):
+        """An explicit passage-to-collection route reveals its actual record."""
+        self._syncing=True;self.passage_filter=None;self.category='all'
+        self.search.set_text('');self.labels.set_values([]);self.book.set_selected(0);self.color.set_selected(0)
+        self.categories['all'].set_active(True);self._syncing=False;self.refresh()
+        current=next((a for a in self.all_records if a.key==key),None)
+        if current:self.open_annotation(current)
+        def scroll():
+            if not self.closed and self.selected_key==key:
+                index=next((i for i,a in enumerate(self.rows) if a.key==key),None)
+                if index is not None:self.list.scroll_to(index,0,None)
+            return False
+        GLib.idle_add(scroll)
 
     def refresh(self):
         if self.closed:return
+        from .annotation_collection import records,filter_records
+        from .highlights import COLORS
+        from .notes import BOOK_ORDER
         try:
-            notes=self.owner.notes_store.search(self.search.get_text(),self.labels.values,['recent','oldest','bible'][min(self.sort.get_selected(),2)])
+            items=records(self.owner.notes_store.all(),self.owner.highlights.entries.values());self.all_records=items
+            if self.selected_key and not any(a.key==self.selected_key for a in items) and (not self.editor or self.editor._discard):
+                self.selected_key=None;self.selected_annotation=None;self._detail_requested=False;self.context_panel.set_visible(False);self.highlight_detail.set_visible(False);self.placeholder.set_visible(True)
+            current_book=self.books[min(self.book.get_selected(),len(self.books)-1)]
+            books=['']+sorted({parts(a.start)[0] for a in items},key=lambda code:(BOOK_ORDER.get(code,10000),code))
+            names={parts(a.start)[0]:passage_label(a.start,versification=a.system).rsplit(' ',1)[0] for a in items}
+            self._syncing=True
+            if books!=self.books:
+                self.books=books;self.book.set_model(Gtk.StringList.new([tr('All books')]+[names[code] for code in books[1:]]));self.book.set_selected(books.index(current_book) if current_book in books else 0)
+            note_count=sum(a.note is not None for a in items)
+            for key,title,count in [('all','All',str(note_count)+' + ?' if self.owner.highlights.error else len(items)),('notes','Notes',note_count),('highlights','Highlights','?' if self.owner.highlights.error else sum(a.mark is not None for a in items))]:
+                self.categories[key].set_child(Gtk.Label(label=f'{tr(title)} ({count})',wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
+            self._syncing=False
             if self.passage_filter:
-                valid={n.id for n in self.owner.notes_store.passage(*self.passage_filter)}
-                notes=[note for note in notes if note.id in valid]
-            self.rows=notes
-            position=self.scroll.get_vadjustment().get_value()
-            self.model.splice(0,self.model.get_n_items(),[NoteItem(n) for n in notes])
-            self.scroll.get_vadjustment().set_value(position)
-            self.status.set_text(tr('No matching note.') if not notes and self.owner.notes_store.all() else tr('No notes yet.') if not notes else '')
+                system,first,last=self.passage_filter
+                items=[a for a in items if a.system==system and parts(a.start)<=parts(last) and parts(a.end)>=parts(first)]
+            rows=filter_records(items,self.search.get_text(),self.labels.values,self.category,self.books[min(self.book.get_selected(),len(self.books)-1)],(['']+list(COLORS))[min(self.color.get_selected(),len(COLORS))],['recent','oldest','bible'][min(self.sort.get_selected(),2)],names)
+            self.refresh_versions()
+            position=self.scroll.get_vadjustment().get_value();self.rows=rows
+            self.model.splice(0,self.model.get_n_items(),[AnnotationItem(a) for a in rows])
+            selected=next((i for i,a in enumerate(rows) if a.key==self.selected_key),Gtk.INVALID_LIST_POSITION);self.selection.set_selected(selected)
+            def restore():
+                if not self.closed:self.scroll.get_vadjustment().set_value(position)
+                return False
+            GLib.idle_add(restore)
+            self.status.set_text(tr('No matching annotations.') if not rows and self.all_records else tr('No annotations yet.') if not rows else '')
+            if self.owner.highlights.error:self.status.set_text(tr('Highlights unavailable. The original file is preserved.')+' '+self.owner.highlights.error)
             self.new_button.set_sensitive(bool(self.owner.active_tab and self.owner.active_tab.reader))
-            self.delete_button.set_visible(bool(self.editor and self.editor.note))
-        except Exception as error:self.status.set_text(str(error))
+            self.delete_button.set_visible(bool(self.editor and self.editor.note));self.refresh_versions()
+        except Exception as error:self._syncing=False;self.status.set_text(str(error))
+
+    def refresh_versions(self):
+        available=self.owner.library.installed('bible')
+        if available==getattr(self,'_available_names',None):return
+        current=self._version or (self.owner.active_tab.state.resource if self.owner.active_tab else None)
+        # Keep an unavailable explicit choice visible, rather than silently
+        # showing a different translation after its removal.
+        self._syncing=True;self._available_names=available
+        names=([current] if current and current not in available else [])+available
+        self.version_names=names;self._version=current or (names[0] if names else None)
+        labels=[self.owner.library.resource(name).description if name in available else name+' ('+tr('Missing translation')+')' for name in names]
+        self.versions.set_model(Gtk.StringList.new(labels or [tr('No installed Bible')]))
+        self.versions.set_selected(names.index(self._version) if self._version else 0);self.versions.set_sensitive(bool(available));self._syncing=False
+
+    def version_changed(self,*_):
+        if self._syncing:return
+        index=self.versions.get_selected()
+        self._version=self.version_names[index] if index<len(self.version_names) else None
+        self._excerpt_cache.clear()
+        if self.selected_annotation:self.update_context(self.selected_annotation)
+        # Rebind visible highlight snippets with the deliberately chosen version.
+        if self.model.get_n_items():self.model.items_changed(0,self.model.get_n_items(),self.model.get_n_items())
+
+    def reader(self):
+        name=self._version
+        if not name or name not in self.owner.library.installed('bible'):return None
+        if name not in self._reader_cache:
+            from .sword_provider import Reader
+            self._reader_cache[name]=Reader(self.owner.library.root/name,name)
+        return self._reader_cache[name]
+
+    def mapped_references(self,a,reader):
+        from .reference_resolution import resolve,_span
+        # Imported annotations can contain structurally valid but unavailable
+        # references. Validate in the established resolver before enumerating.
+        resolve(a.start,a.system,reader)
+        if a.end!=a.start:resolve(a.end,a.system,reader)
+        refs=[]
+        for source in _span(a.start,a.end,a.system):
+            mapped=resolve(source,a.system,reader)
+            for reference in _span(mapped.start,mapped.end,reader.versification):
+                if reference not in refs:refs.append(reference)
+        return refs
+
+    def excerpt_for(self,a,limit=6):
+        key=(self._version,a.system,a.start,a.end,limit)
+        if key in self._excerpt_cache:return self._excerpt_cache[key]
+        try:
+            reader=self.reader()
+            if not reader:raise ValueError(tr('Install a Bible to display this passage. Your annotation is kept.'))
+            refs=self.mapped_references(a,reader);chapters={};text=[]
+            for ref in refs[:limit]:
+                chapter=parts(ref)[:2]
+                if chapter not in chapters:chapters[chapter]=dict(reader.chapter(ref).verses)
+                if ref not in chapters[chapter]:raise ValueError(tr('Passage unavailable in this translation.'))
+                text.append(chapters[chapter][ref])
+            from .reference_resolution import _span
+            mapped_label=(passage_label(refs[0],refs[-1],reader.versification) if _span(refs[0],refs[-1],reader.versification)==refs else '; '.join(passage_label(ref,versification=reader.versification) for ref in refs))
+            description=tr('Displayed in')+' '+self.owner.library.resource(self._version).description+' · '+mapped_label
+            if len(refs)>limit:description+=' · '+tr('Excerpt')
+            result=('\n'.join(text),description,True)
+        except (ValueError,OSError,IndexError) as error:result=(tr('Passage unavailable or no verified alignment.')+' '+str(error),tr('Original source')+': '+a.origin+' · '+a.system,False)
+        self._excerpt_cache[key]=result
+        if len(self._excerpt_cache)>512:self._excerpt_cache.pop(next(iter(self._excerpt_cache)))
+        return result
+
+    def update_context(self,a):
+        if self.selected_key!=a.key:self.related_expander.set_expanded(False)
+        self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(True);self.placeholder.set_visible(False)
+        text,description,available=self.excerpt_for(a);self.excerpt.set_text(description+'\n'+text);self.open_button.set_sensitive(available)
+        while self.related.get_first_child():self.related.remove(self.related.get_first_child())
+        try:reader=self.reader()
+        except (ValueError,OSError):reader=None
+        self.related_expander.set_visible(False)
+        if not reader:return
+        from .passage_annotations import PassageAnnotations
+        matching=PassageAnnotations()
+        try:
+            spans=matching.positions(reader,a.system,a.start,a.end)
+            related=[other for other in self.all_records if other.key!=a.key and any(matching.matches(reader,start,end,other.system,other.start,other.end) for _,_,start,end in spans)]
+        except ValueError:related=[]
+        if related:
+            self.related_expander.set_label(tr('Related annotations')+f' ({len(related)})');self.related_expander.set_visible(True)
+            for other in related[:20]:
+                button=Gtk.Button(child=Gtk.Label(label=passage_label(other.start,other.end,other.system)+' · '+(render(other.body)[0][:80] if other.note else tr('Highlight annotation')),wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0))
+                button.add_css_class('flat');button.connect('clicked',lambda _,value=other:self.open_annotation(value));self.related.append(button)
+            if len(related)>20:self.related.append(Gtk.Label(label=tr('More related records are available in the list.'),wrap=True))
 
     def guard(self,action):
         editor=self.owner.note_editor
-        if editor and not editor.closed:
-            editor.after_close=action;editor.close()
+        if editor and not editor.closed:editor.after_close=action;editor.close()
         else:action()
 
     def activate(self,_,index):
-        if 0<=index<len(self.rows):self.open_note(self.rows[index])
+        if 0<=index<len(self.rows):self.open_annotation(self.rows[index])
+
+    def open_annotation(self,a):
+        if a.note:return self.open_note(a.note)
+        def show():
+            self._detail_requested=True;self.update_context(a);self.highlight_detail.set_visible(True)
+            while self.highlight_detail.get_first_child():self.highlight_detail.remove(self.highlight_detail.get_first_child())
+            from .highlights import COLORS
+            self.highlight_detail.append(Gtk.Label(label=tr('Original source')+': '+a.origin+' · '+a.system,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0))
+            color_group=None
+            for color,(_,title) in COLORS.items():
+                button=Gtk.ToggleButton(label=tr(title))
+                if color_group:button.set_group(color_group)
+                else:color_group=button
+                button.set_active(a.color==color)
+                button.connect('clicked',lambda widget,value=color:self.change_highlight(a,value) if widget.get_active() and value!=a.color else None);self.highlight_detail.append(button)
+            delete=Gtk.Button(label=tr('Remove highlight'));delete.add_css_class('destructive-action');delete.connect('clicked',lambda *_:message(self.owner,'Remove this highlight?','The related notes are kept.',lambda:self.change_highlight(a,None)));self.highlight_detail.append(delete)
+            if self.split.get_collapsed():self.split.set_show_sidebar(False)
+        self.guard(show)
+
+    def change_highlight(self,a,color):
+        try:
+            key=(a.system,a.start)
+            if self.owner.highlights.entries.get(key)!=a.mark:raise ValueError(tr('This highlight changed elsewhere. Reopen it before editing.'))
+            self.owner.highlights.set(a.system,[a.start],color,a.origin);self.owner.refresh_highlights();self.refresh()
+            if color:
+                current=next(item for item in self.all_records if item.key==a.key);self.open_annotation(current)
+            else:
+                self.selected_key=None;self.selected_annotation=None;self._detail_requested=False;self.context_panel.set_visible(False);self.highlight_detail.set_visible(False);self.placeholder.set_visible(True);self.split.set_show_sidebar(True)
+        except (ValueError,OSError) as error:self.status.set_text(str(error))
 
     def open_note(self,note):
-        if self.editor and not self.editor.closed and self.editor.note and self.editor.note.id==note.id:return
-        self.guard(lambda:self.mount(note=note))
+        if self.editor and not self.editor.closed and self.editor.note and self.editor.note.id==note.id:return self.editor
+        self.guard(lambda:self.mount(note=self.owner.notes_store.get(note.id)))
+        return self.editor
 
     def mount(self,note=None,context=None):
-        editor=NoteEditor(self.owner,note=note,context=context,embedded=True)
-        self.editor=editor;self.owner.note_editor=editor
-        self.placeholder.set_visible(False)
-        self.editor_panel.append(editor.embedded_content)
-        passage=Gtk.Button(label=tr('Open passage'),halign=Gtk.Align.START,margin_start=20)
-        passage.connect('clicked',lambda *_:self.open_passage())
-        editor.embedded_content.prepend(passage)
+        if note is None and context is None:return
+        editor=NoteEditor(self.owner,note=note,context=context,embedded=True);editor.embedded_host=self
+        editor.body_scroll.set_min_content_height(180)
+        self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
+        self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.append(editor.embedded_content)
+        if note:
+            from .annotation_collection import records
+            self.update_context(records([note],[])[0])
+        else:self.context_panel.set_visible(False);self.selected_key=None;self.selected_annotation=None
         self.save_button.set_sensitive(True);self.delete_button.set_visible(bool(note))
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
-        return editor
+        def focus():
+            if self.editor is editor and not editor.closed and editor.body.get_mapped():
+                # Start at the detail's context, keeping its first controls
+                # visible instead of scrolling a short window to the editor.
+                (self.detail_back if self.split.get_collapsed() else self.open_button).grab_focus()
+                self.detail_scroll.get_vadjustment().set_value(0)
+            return False
+        GLib.idle_add(focus);return editor
 
     def editor_closed(self,editor):
         parent=editor.embedded_content.get_parent()
         if parent:parent.remove(editor.embedded_content)
         if self.editor is editor:
-            self.editor=None;self.placeholder.set_visible(True);self.save_button.set_sensitive(False);self.delete_button.set_visible(False)
+            self.editor=None;self.save_button.set_sensitive(False);self.delete_button.set_visible(False)
+            if not editor.note:self._detail_requested=False;self.placeholder.set_visible(True)
+
+    def note_saved(self,editor):
+        if self.editor is editor and editor.note:
+            from .annotation_collection import records
+            self.update_context(records([editor.note],[])[0])
 
     def create_note(self):
         def create():
             tab=self.owner.active_tab
             if not tab or not tab.reader:return
-            start,end=tab.selected_passage()
-            self.mount(context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,origin_language=self.owner.library.resource(tab.state.resource).language))
+            start,end=tab.selected_passage();self.mount(context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,origin_language=self.owner.library.resource(tab.state.resource).language))
         self.guard(create)
 
     def leave(self):self.guard(lambda:self.owner.main_pages.set_visible_child_name('reading'))
-
-    def back_to_list(self):self.guard(lambda:self.split.set_show_sidebar(True))
+    def back_to_list(self):
+        def show():self._detail_requested=False;self.split.set_show_sidebar(True)
+        self.guard(show)
 
     def open_passage(self):
-        if not self.editor:return
-        note=self.editor.note
-        if not note:
-            if not self.editor.save(close=False):return
-            note=self.editor.note
+        if not self.selected_annotation:return
+        a=self.selected_annotation
         def go():
-            if self.owner.open_saved_note(note,edit=False):
-                self.owner.main_pages.set_visible_child_name('reading')
-            else:
-                self.status.set_text(tr('No compatible translation installed. The note remains available.'))
-                self.split.set_show_sidebar(True)
+            try:
+                reader=self.reader();refs=self.mapped_references(a,reader)
+                tab=self.owner.active_tab
+                same=tab and tab.state.resource==self._version and tab.state.reference==refs[0]
+                if same or self.owner.navigate_selection(self._version,refs[0],new_tab=True):self.owner.main_pages.set_visible_child_name('reading')
+            except (ValueError,OSError,AttributeError) as error:self.status.set_text(str(error))
         self.guard(go)
 
-    def present(self):self.owner.main_pages.set_visible_child_name('notes');self.owner.present()
+    def present(self):
+        self.owner.main_pages.set_visible_child_name('notes');self.owner.present()
+        if self._detail_requested and self.selected_key and not self.editor:
+            current=next((a for a in self.all_records if a.key==self.selected_key),None)
+            if current:self.open_annotation(current)
     def close(self):self.leave()
     def set_default_size(self,width,height):self.owner.set_default_size(width,height)
-    choose_backup=NotesWindow.choose_backup
-    backup_to=NotesWindow.backup_to
-    restore_from=NotesWindow.restore_from
+    def flush_for_backup(self):
+        if self.editor and not self.editor.closed and self.editor.dirty and not self.editor.save(close=False):
+            self.status.set_text(self.editor.status.get_text());return False
+        return True
+
+    def choose_backup(self,save):
+        if self.flush_for_backup():return NotesWindow.choose_backup(self,save)
+
+    def backup_to(self,path):
+        return bool(self.flush_for_backup() and NotesWindow.backup_to(self,path))
+
+    def restore_from(self,path):
+        return bool(self.flush_for_backup() and NotesWindow.restore_from(self,path))
+
+    def choose_highlight_backup(self,restore):
+        chooser=Gtk.FileChooserNative.new(tr('Restore highlights') if restore else tr('Back up highlights'),self.owner,Gtk.FileChooserAction.OPEN if restore else Gtk.FileChooserAction.SAVE,tr('Open') if restore else tr('Save'),tr('Cancel'))
+        if not restore:chooser.set_current_name('Bible-highlights.json')
+        self._choosers.append(chooser)
+        def response(dialog,result):
+            if result==Gtk.ResponseType.ACCEPT:
+                file=dialog.get_file();path=file.get_path() if file else None
+                def apply():
+                    try:
+                        if not path:raise ValueError(tr('Choose a local file.'))
+                        if restore:self.owner.highlights.restore(path);self.owner.refresh_highlights();self.refresh()
+                        else:self.owner.highlights.backup(path)
+                        self.status.set_text(tr('Done'))
+                    except (ValueError,OSError) as error:self.status.set_text(str(error))
+                if restore:message(self.owner,'Restore highlights?','Merge the backup with existing highlights. Notes and translations are unchanged.',apply)
+                else:apply()
+            dialog.destroy();self._choosers.remove(dialog)
+        chooser.connect('response',response);chooser.show()

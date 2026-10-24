@@ -44,6 +44,7 @@ class VersionChooser(Gtk.MenuButton):
         self.connect('notify::active',lambda *_:self.sync())
 
     def sync(self):
+        if self.owner.closed:return False
         tab=self.owner.active_tab
         if not tab:return
         current=tab.state.comparison if self.comparison else tab.state.resource
@@ -102,4 +103,5 @@ class VersionChooser(Gtk.MenuButton):
             GLib.idle_add(self.sync)
 
     def finish(self):
+        if self.owner.closed:return False
         self.sync();self.popover.popdown();return False
