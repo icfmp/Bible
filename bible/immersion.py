@@ -58,7 +58,11 @@ class Immersion(Gtk.Overlay):
             frame.set_child(view);self.pages.append(frame);self.frames.append(frame);self.views.append(view)
         self.pages.set_halign(Gtk.Align.FILL)
         self.page_clamp=Adw.Clamp(child=self.pages,maximum_size=1200,tightening_threshold=1200,vexpand=True)
-        body.append(self.page_clamp)
+        self.page_stack=Gtk.Stack(transition_duration=200,hhomogeneous=False,vhomogeneous=False,vexpand=True)
+        self.previous_page=Gtk.Picture(can_shrink=True)
+        self.page_stack.add_named(self.page_clamp,'live');self.page_stack.add_named(self.previous_page,'previous')
+        self.page_stack.set_visible_child_name('live');self._slide_serial=0
+        body.append(self.page_stack)
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');body.append(self.footer);self.set_child(body)
         if getattr(source,'book_pages',False):
@@ -177,6 +181,7 @@ class Immersion(Gtk.Overlay):
             self.entry_previous.set_visible(width>=700);self.entry_next.set_visible(width>=700)
             self.open_bible.set_visible(width>=700);self.info.set_visible(width>=500)
         if geometry!=self._geometry:
+            self.cancel_slide()
             anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
             key=self.stream.cursor.key if self.stream.cursor else self.initial_key
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
@@ -206,6 +211,7 @@ class Immersion(Gtk.Overlay):
         return True
 
     def reflow(self):
+        self.cancel_slide()
         if self._closed:return
         self.clicked_reference=None
         self.capture_selection();self._restored_selection=bool(self.selection)
@@ -336,10 +342,28 @@ class Immersion(Gtk.Overlay):
                 buffer=view.get_buffer()
                 buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
 
+    def cancel_slide(self):
+        self._slide_serial+=1
+        self.page_stack.set_transition_type(Gtk.StackTransitionType.NONE)
+        self.page_stack.set_visible_child_name('live');self.previous_page.set_paintable(None)
+
     def turn(self,direction):
+        self.cancel_slide()
+        animated=Gtk.Settings.get_default().get_property('gtk-enable-animations')
+        previous=Gtk.WidgetPaintable.new(self.page_clamp).get_current_image() if animated and self.layout_ready else None
         self.owner.passage_actions.dismiss()
         if self.stream.cursor and self.stream.turn(direction,self.count):
-            self.selection=None;self.render();return True
+            self.selection=None;self.render()
+            if previous:
+                self.previous_page.set_paintable(previous);self.page_stack.set_visible_child_name('previous')
+                serial=self._slide_serial
+                def reveal():
+                    if self._closed or serial!=self._slide_serial:return False
+                    forward=(direction>0)!=self.source.rtl
+                    self.page_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if forward else Gtk.StackTransitionType.SLIDE_RIGHT)
+                    self.page_stack.set_visible_child_name('live');return False
+                GLib.idle_add(reveal)
+            return True
         return False
 
     def go_to_reference(self,reference):
@@ -473,6 +497,7 @@ class Immersion(Gtk.Overlay):
             self.owner.leave_immersion();self.owner.navigate_selection(self.owner.active_tab.state.resource,reference)
 
     def finish(self):
+        self.cancel_slide()
         self._closed=True
         if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0
