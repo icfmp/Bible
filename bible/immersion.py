@@ -26,7 +26,7 @@ class Immersion(Gtk.Overlay):
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
-                           margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
+                           margin_top=48,margin_bottom=48,margin_start=56,margin_end=56)
         self.pages.set_direction(Gtk.TextDirection.LTR if self.kind=='bible' else
                                  Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
         for number in range(2):
@@ -65,7 +65,7 @@ class Immersion(Gtk.Overlay):
             from .book_stream import BookStream
             self.stream=BookStream(self.views[0],source,owner.preferences.value)
         else:self.stream=PagedStream(self.views[0],source,owner.preferences.value)
-        self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN,
+        self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.CROSSFADE,transition_duration=200,
                               valign=Gtk.Align.START,halign=Gtk.Align.FILL)
         controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_start_title_buttons=False,show_end_title_buttons=False)
@@ -123,6 +123,7 @@ class Immersion(Gtk.Overlay):
         self.notification_help.set_revealed(not owner.immersion_hints.disabled and not owner._immersion_help_seen)
         owner._immersion_help_seen=True
         controls.append(self.notification_help);self.top.set_child(controls);self.add_overlay(self.top)
+        self.nav_revealers=[]
         self.back=self.page_button(-1);self.forward=self.page_button(1)
         self.buttons=[self.back,self.forward]
         motion=Gtk.EventControllerMotion();motion.connect('motion',self.pointer_moved);motion.connect('leave',lambda *_:self.pointer_left());self.add_controller(motion)
@@ -145,7 +146,9 @@ class Immersion(Gtk.Overlay):
                           (Gtk.Align.START if self.source.rtl else Gtk.Align.END),margin_start=8,margin_end=8)
         button.add_css_class('circular');button.add_css_class('osd');button.add_css_class('chapter-navigation')
         button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Previous pages') if direction<0 else tr('Next pages')])
-        button.connect('clicked',lambda *_:self.turn(direction));self.add_overlay(button);return button
+        button.connect('clicked',lambda *_:self.turn(direction))
+        reveal=Gtk.Revealer(child=button,reveal_child=True,transition_type=Gtk.RevealerTransitionType.CROSSFADE,transition_duration=200,halign=button.get_halign(),valign=Gtk.Align.CENTER)
+        self.nav_revealers.append(reveal);self.add_overlay(reveal);return button
 
     def adapt(self,*_):
         if self._closed:return False
@@ -160,7 +163,7 @@ class Immersion(Gtk.Overlay):
         last_frame=self.frames[1] if self.count==2 else self.frames[0]
         last_ok,last=last_frame.compute_bounds(self)
         if ok and last_ok:
-            for button in self.buttons:
+            for button in self.nav_revealers:
                 position(button,first.origin.x+self.views[0].get_left_margin(),
                          last.origin.x+last.size.width-self.views[-1].get_right_margin(),
                          first.origin.y,first.size.height,width)
@@ -241,7 +244,7 @@ class Immersion(Gtk.Overlay):
                 number=len(span.reference.rsplit('.',1)[-1])+1 if self.owner.preferences.value.verse_numbers else 0
                 begin=max(first,span.body-number);end=min(last,span.end)
                 if end>begin:ranges.append((span.reference,begin-first,end-first))
-            view.set_study_ranges(self.tab.study_ranges(self.source.reader,ranges))
+            view.set_study_ranges([])  # Clean immersive presentation; ordinary coverage is untouched.
 
     def render(self):
         if not self.stream.cursor:
@@ -297,7 +300,7 @@ class Immersion(Gtk.Overlay):
                 plan=self.stream.plan(address.key);page=plan.pages[address.index]
                 ranges=[(span.reference,max(page.start,span.body)-page.start,min(page.end,span.end)-page.start)
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
-                paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
+                paint(view,self.owner.highlights,self.source.reader.versification,ranges,False,
                       self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
         self.update_study_indicator()
         self.restore_selection()
@@ -416,9 +419,10 @@ class Immersion(Gtk.Overlay):
         self.turn(1 if self._wheel>0 else -1);self._wheel=0;return True
 
     def pointer_moved(self,controller,x,y):
-        self._pointer_top=y<max(90,self.top.get_height() if self.top.get_reveal_child() else 90)
+        self._pointer_top=y<90  # Stable sensor, independent of reveal allocation.
         self._pointer_edge=x<75 or x>self.get_width()-75
-        self.reveal_controls()
+        if self._pointer_top or self._pointer_edge:self.reveal_controls()
+        elif not self._hide_id:self.schedule_hide()
 
     def pointer_left(self):
         self._pointer_top=False;self._pointer_edge=False;self.schedule_hide()
@@ -441,7 +445,8 @@ class Immersion(Gtk.Overlay):
 
     def reveal_controls(self):
         self.top.set_reveal_child(True)
-        for button in self.buttons:button.set_visible(True)
+        for button,reveal in zip(self.buttons,self.nav_revealers):
+            button.set_can_target(True);reveal.set_reveal_child(True)
         self.schedule_hide()
 
     def schedule_hide(self):
@@ -453,7 +458,8 @@ class Immersion(Gtk.Overlay):
         if self.controls_focused() or self.open_popovers() or self._pointer_top:self.schedule_hide();return False
         self.top.set_reveal_child(False)
         if not self._pointer_edge:
-            for button in self.buttons:button.set_visible(False)
+            for button,reveal in zip(self.buttons,self.nav_revealers):
+                button.set_can_target(False);reveal.set_reveal_child(False)
         return False
 
     def hide_help(self):

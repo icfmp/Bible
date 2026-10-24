@@ -166,6 +166,14 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.stream.configure(width,600,anchor or Anchor(key+'.7.1'),key)
         self.settle(lambda:self.stream.cursor is not None)
 
+    def test_entry_anchor_does_not_manufacture_a_short_previous_page(self):
+        self.configure();doc=self.stream.plan('Mark').document
+        anchor=doc.anchor(len(doc.text)//2)
+        natural=tuple(self.stream.plan('Mark').pages)
+        self.configure(anchor=anchor)
+        self.assertEqual(tuple(self.stream.plan('Mark').pages),natural)
+        self.assertEqual(self.stream.anchor(),anchor)
+
     def test_reflow_reuses_source_document_but_number_visibility_invalidates_it(self):
         self.configure();doc=self.stream.plan('Mark').document
         anchor=doc.anchor(doc.spans[2].body+60)
