@@ -16,6 +16,7 @@ class StudyPanel(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.owner = owner
         self.names = []
+        self._download_choice=object()
         self._syncing = False
         self._stamp = None
         self._readers = {}
@@ -181,7 +182,7 @@ class StudyPanel(Gtk.Box):
 
     def open_library(self):
         for popover in self.popovers:popover.popdown()
-        self.owner.open_library('commentary')
+        self.owner.contextual_library('commentary','commentary')
 
     def refresh(self, force=False):
         tab = self.owner.active_tab
@@ -208,6 +209,7 @@ class StudyPanel(Gtk.Box):
                 labels.append(f'{name} — {plain(resource.description)}')
             else:
                 labels.append(f'{name} ({tr("Missing commentary")})')
+        self.names.append(self._download_choice);labels.append(tr('Download more…'))
         if labels != self._labels:
             self.choices.set_model(Gtk.StringList.new(labels))
             self._labels = labels
@@ -475,6 +477,18 @@ class StudyPanel(Gtk.Box):
             return
         index = self.choices.get_selected()
         if index < len(self.names):
+            if self.names[index] is self._download_choice:
+                self._stamp=None
+                tab=self.owner.active_tab
+                context=self.owner.library_context(tab,'commentary')
+                from gi.repository import GLib
+                def open_downloads():
+                    if not self.owner.closed and tab in self.owner.tabs():
+                        self.owner.dismiss_popovers();self.owner.open_library('commentary',context=context)
+                    return False
+                GLib.idle_add(open_downloads)
+                self.refresh(force=True)
+                return
             self.owner.active_tab.state.commentary = self.names[index]
             self.refresh()
             self.owner.schedule_save()

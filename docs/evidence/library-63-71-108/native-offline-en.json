@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "network_disabled": true,
+  "english_welcome_light_dark": true,
+  "first_use_failure_settles": true,
+  "skip_not_replayed_on_restart": true,
+  "existing_readable_resource_precedes_welcome": true,
+  "offline_installed_metadata": true,
+  "explicit_language_restart": true,
+  "notes_global_menu": true,
+  "preferences_shortcuts_about": true,
+  "session_and_history_preserved": true
+}

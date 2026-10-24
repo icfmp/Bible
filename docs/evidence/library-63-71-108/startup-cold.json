@@ -1,0 +1,81 @@
+{
+  "app_import": "/repo/bible/ui.py",
+  "offline": false,
+  "accessibility": "Deferred; not tested",
+  "reported_crash": "Not reproduced; no historical crash mechanism is claimed",
+  "application_constructor_seconds": 0.09314827199978026,
+  "startup_scroll_preparation": true,
+  "constructor_seconds": 0.03489574099967285,
+  "first_painted_frame_seconds": 0.06675291000010475,
+  "first_populated_frame_seconds": 1.9514723199999935,
+  "resources": 1941,
+  "languages": 1322,
+  "filtered_resources": 21,
+  "ready_seconds": 2.0912144369995076,
+  "maximum_heartbeat_gap_seconds": 0.25948913899992476,
+  "refresh_running": false,
+  "stages": {
+    "cache_read_seconds": 0.0009750789995450759,
+    "installed_scan_seconds": 0.0021794659996885457,
+    "language_and_search_seconds": 0.014301479000096151,
+    "andbible": {
+      "requests": 1,
+      "metadata_bytes": 7970,
+      "network_seconds": 0.5536170610002955,
+      "parse_seconds": 0.00536326299970824,
+      "http_status": 200,
+      "validators": {
+        "ETag": "\"6a1ac71c-1f22\"",
+        "Last-Modified": "Sat, 30 May 2026 11:16:44 GMT"
+      }
+    },
+    "andbible-extra": {
+      "requests": 1,
+      "metadata_bytes": 35504,
+      "network_seconds": 0.5660055329999523,
+      "parse_seconds": 0.02361196500078222,
+      "http_status": 200,
+      "validators": {
+        "ETag": "\"65b24627-8ab0\"",
+        "Last-Modified": "Thu, 25 Jan 2024 11:29:43 GMT"
+      }
+    },
+    "crosswire": {
+      "requests": 1,
+      "metadata_bytes": 206218,
+      "network_seconds": 0.935835397000119,
+      "parse_seconds": 0.2863058370003273,
+      "http_status": 200,
+      "validators": {
+        "ETag": "\"3258a-65e7d3712dc14\"",
+        "Last-Modified": "Fri, 23 Oct 2026 07:49:08 GMT"
+      }
+    },
+    "step": {
+      "requests": 1,
+      "metadata_bytes": 194751,
+      "network_seconds": 1.5305316920002952,
+      "parse_seconds": 0.23067945599996165,
+      "http_status": 200,
+      "validators": {
+        "ETag": "\"2f8bf-651924c30a2aa\"",
+        "Last-Modified": "Mon, 11 May 2026 22:30:45 GMT"
+      }
+    },
+    "ebible": {
+      "requests": 1,
+      "metadata_bytes": 600290,
+      "network_seconds": 0.3061782039994796,
+      "parse_seconds": 0.8803045519998705,
+      "http_status": 200,
+      "validators": {
+        "ETag": "\"69cc5962-928e2\"",
+        "Last-Modified": "Tue, 31 Mar 2026 23:31:46 GMT"
+      }
+    }
+  },
+  "native_pointer_reopen": true,
+  "reopen_constructor_seconds": 0.5126907220001158,
+  "notes_resources_reading_preserved": true,
+  "status": "PASS"
+}

@@ -1,0 +1,33 @@
+{
+  "source_import": "/work/library-63-71-108/before/bible/library.py",
+  "seconds": 1.7511876689995916,
+  "resources": 1941,
+  "errors": {},
+  "providers": {
+    "https://andbible.github.io/data/andbible/mods.d.tar.gz": {
+      "requests": 1,
+      "metadata_bytes": 7970,
+      "seconds": 0.6700125229999685
+    },
+    "https://andbible.github.io/andbible-extra/mods.d.tar.gz": {
+      "requests": 1,
+      "metadata_bytes": 35504,
+      "seconds": 0.7089041910003289
+    },
+    "https://ebible.org/sword/mods.d.tar.gz": {
+      "requests": 1,
+      "metadata_bytes": 600290,
+      "seconds": 0.30680266599938477
+    },
+    "https://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz": {
+      "requests": 1,
+      "metadata_bytes": 206218,
+      "seconds": 1.2158313689997158
+    },
+    "https://public.modules.stepbible.org/catalog/mods.d.tar.gz": {
+      "requests": 1,
+      "metadata_bytes": 194751,
+      "seconds": 1.5949030820002008
+    }
+  }
+}

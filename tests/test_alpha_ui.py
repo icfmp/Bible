@@ -110,6 +110,9 @@ class AlphaTests(unittest.TestCase):
         return find(bar)
 
     def start_transfer(self, dialog, resource):
+        test_ui.spin(lambda:dialog.session.bootstrap_future.done() and not dialog.preparing)
+        with dialog.session.lock:
+            dialog.session.providers[resource.provider_id]=(resource,)
         dialog.resources = [resource]
         dialog.kind.set_selected(1 if resource.kind == 'commentary' else 0)
         dialog.update_languages()
@@ -151,6 +154,21 @@ class AlphaTests(unittest.TestCase):
             self.assertIn(resource.name, window.library.installed())
             self.assertEqual(dialog.progress.get_fraction(), 1)
     
+    def test_cancelled_transfer_does_not_publish_a_partial_resource(self):
+        with tempfile.TemporaryDirectory() as directory:
+            window=self.window(directory);dialog=window.open_library()
+            resource,transfer=self.transfer('CancelledBible')
+            with self.local_https(transfer):
+                self.start_transfer(dialog,resource)
+                test_ui.spin(lambda:0<dialog.progress.get_fraction()<.4)
+                dialog.cancel_button.emit('clicked');transfer.release()
+                test_ui.spin(lambda:not dialog.busy)
+            self.assertNotIn(resource.id,window.library.installed())
+            self.assertIsNone(window.active_tab.state.resource)
+            self.assertEqual(dialog._phase,'error')
+            self.assertEqual(dialog._failed_resource,resource.id)
+            self.assertTrue(dialog.download_button.get_sensitive())
+
     def test_unknown_size_commentary_error_and_second_download(self):
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)

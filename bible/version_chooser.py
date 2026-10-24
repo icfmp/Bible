@@ -33,6 +33,9 @@ class VersionChooser(Gtk.MenuButton):
         self.choices.connect('notify::selected',self.selected)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(Gtk.Label(label=tr('Version'),xalign=0));box.append(self.choices)
+        self.download_more=Gtk.Button(label=tr('Download more…'))
+        self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
+        box.append(self.download_more)
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,visible=False);box.append(self.status)
         self.popover.set_child(box);self.set_popover(self.popover)
         from .popover_dismissal import fit_reader_popover

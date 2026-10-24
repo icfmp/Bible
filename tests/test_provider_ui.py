@@ -21,6 +21,7 @@ class ProviderUITests(unittest.TestCase):
         self.enterContext(patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False))
 
     def open_library(self,window):
+        window.application_settings.set('library_language','')
         dialog=window.open_library();spin(lambda:not dialog.preparing)
         return dialog
     @classmethod
@@ -80,7 +81,8 @@ class ProviderUITests(unittest.TestCase):
                         dialog.language.search.set_text(query)
                         dialog.language.filter()
                         self.assertIn('cop', dialog.language.visible_codes)
-                    dialog.language.activate(None, dialog.language.visible_codes.index('cop'))
+                    spin(lambda:dialog.language.strings.get_n_items()==2)
+                    dialog.language.activate(None,1)
                     self.assertEqual(dialog.filtered_resources, [coptic])
                     self.assertEqual(dialog.selected_resource(), coptic)
                     self.assertTrue(dialog.download_button.get_sensitive())
@@ -210,6 +212,8 @@ class ProviderUITests(unittest.TestCase):
                 with patch('bible.library.download', side_effect=lambda url,out,progress: out.write(payload)):
                     dialog.install()
                     spin(lambda: not dialog.busy)
+                self.assertIsNone(window.active_tab.state.commentary)
+                window.open_installed_resource(resource.id)
                 self.assertEqual(window.active_tab.state.commentary, resource.id)
                 window.active_tab.navigate('Test', 'Gen.1.2')
                 window.study.refresh(force=True)

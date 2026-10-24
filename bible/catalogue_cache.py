@@ -8,7 +8,7 @@ import time
 
 
 class CatalogueCache:
-    def __init__(self, root):self.root=Path(root)
+    def __init__(self, root):self.root=Path(root);self.validators={}
 
     def read(self, provider):
         from .library import Resource
@@ -28,17 +28,21 @@ class CatalogueCache:
                         or any(not isinstance(v,str) for k,v in asdict(resource).items() if k!='locked')):return None
                 resource.id  # Validate the provider-specific identity.
                 resources.append(resource)
+            validators=value.get('validators',{})
+            if not isinstance(validators,dict):return None
+            self.validators[provider.id]={k:v for k,v in validators.items()
+                if k in ('ETag','Last-Modified') and isinstance(v,str) and len(v)<512 and '\n' not in v and '\r' not in v}
             return tuple(resources),value['updated']
         except (OSError,ValueError,KeyError,TypeError):return None
 
-    def write(self,provider,resources):
+    def write(self,provider,resources,validators=None):
         self.root.mkdir(parents=True,exist_ok=True)
         temporary=None
         try:
             with tempfile.NamedTemporaryFile('w',dir=self.root,prefix='.'+provider.id,delete=False) as out:
                 temporary=Path(out.name)
                 json.dump(dict(version=1,provider=provider.id,url=provider.catalogue_url,
-                               updated=time.time(),resources=[asdict(r) for r in resources]),out)
+                               updated=time.time(),resources=[asdict(r) for r in resources],validators=validators or {}),out)
                 out.flush();os.fsync(out.fileno())
             os.replace(temporary,self.root/(provider.id+'.json'))
         finally:

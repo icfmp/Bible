@@ -79,6 +79,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
             w=Window(self.app,Library(Path(directory)/'translations'));w.present()
             try:
                 with patch('bible.catalogue_window.catalogue',return_value=[] ) as fetch:
+                    w.application_settings.set('library_language','')
                     dialog=w.open_library();spin(lambda:dialog._catalogue_requested and not dialog.busy,duration=.3)
                     self.assertTrue(fetch.called)
                 dialog.resources=[w.library.resource('Test')];dialog.update_languages()
@@ -89,6 +90,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                 picker=dialog.language;picker.set_codes(['','az','azb','fr','sr-Latn'])
                 picker.search.set_text('azb');picker.filter()
                 self.assertEqual(picker.visible_codes,['','azb'])
+                spin(lambda:picker.strings.get_n_items()==2 and 'azb' in picker.strings.get_string(1))
                 picker.activate(None,1);self.assertEqual(picker.codes[picker.get_selected()],'azb')
                 self.assertIn('français',LanguagePicker.display_language('fr').lower())
                 theme=Gtk.IconTheme.get_for_display(w.get_display())

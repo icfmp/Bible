@@ -10,6 +10,20 @@ from babel.localedata import locale_identifiers
 from .i18n import LANGUAGE, tr
 
 
+@lru_cache(maxsize=4096)
+def canonical_language(code):
+    """Validated aliases only; retain script/region qualifiers exactly."""
+    parts=code.replace('_','-').split('-')
+    base=parts[0].lower()
+    base=get_global('language_aliases').get(base,base).replace('_','-')
+    return '-'.join([base,*[p.title() if len(p)==4 else p.upper() for p in parts[1:]]])
+
+
+@lru_cache(maxsize=1)
+def available_languages():
+    return frozenset(canonical_language(code) for code in iso_languages()) | {'en','fr'}
+
+
 @lru_cache(maxsize=1)
 def iso_languages():
     for root in [Path('/app/share'),Path('/usr/share')]:
@@ -69,6 +83,15 @@ def native_language_codes():
     return frozenset(identifier.split('_')[0] for identifier in locale_identifiers())
 
 
+@lru_cache(maxsize=1)
+def language_aliases():
+    result={}
+    for alias in get_global('language_aliases'):
+        result.setdefault(canonical_language(alias),[]).append(alias)
+    return result
+
+
 def search_terms(code):
     names=language_info(code)
-    return ' '.join((code,*names,language_info(code,'fr')[0],language_info(code,'en')[0]))
+    aliases=' '.join(language_aliases().get(canonical_language(code),()))
+    return ' '.join((code,aliases,*names,language_info(code,'fr')[0],language_info(code,'en')[0]))

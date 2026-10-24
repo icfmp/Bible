@@ -1,0 +1,272 @@
+[
+  {
+    "file": "after-light-normal-bibles.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-light-normal-commentaries.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-light-normal-all-commentaries.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-light-normal-menu.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-normal-version.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-small-bibles.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-light-small-commentaries.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-light-small-all-commentaries.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-light-small-menu.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-small-version.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-welcome.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-welcome-small.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-light-skipped.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-normal-bibles.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-normal-commentaries.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-normal-all-commentaries.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": [
+      550,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-normal-menu.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-normal-version.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-small-bibles.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-small-commentaries.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-small-all-commentaries.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": [
+      350,
+      690
+    ]
+  },
+  {
+    "file": "after-dark-small-menu.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-small-version.png",
+    "scale": 1,
+    "window": [
+      350,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-welcome.png",
+    "scale": 1,
+    "window": [
+      950,
+      790
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-welcome-small.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null
+  },
+  {
+    "file": "after-dark-skipped.png",
+    "scale": 1,
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null
+  }
+]

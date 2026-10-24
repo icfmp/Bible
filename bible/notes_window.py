@@ -517,30 +517,36 @@ class NotesSpace(Gtk.Box):
         self.workspace_title=Gtk.Label(label=tr('My notes'),ellipsize=Pango.EllipsizeMode.END,
                                        width_chars=1,max_width_chars=18)
         self.workspace_title.add_css_class('heading');header.set_title_widget(self.workspace_title)
-        reading=Gtk.Button(label=tr('Reading'),tooltip_text=tr('Back to reading'))
+        reading=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back to reading'))
+        reading.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back to reading')])
         reading.connect('clicked',lambda *_:self.leave());header.pack_start(reading)
         self.save_button=Gtk.Button(icon_name='document-save-symbolic',tooltip_text=tr('Save'),sensitive=False)
         self.save_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Save')])
         self.save_button.add_css_class('suggested-action')
         self.save_button.connect('clicked',lambda *_:self.editor.save(close=False) if self.editor else None)
-        menu=Gtk.MenuButton(icon_name='open-menu-symbolic',tooltip_text=tr('Notes and commands'))
+        menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'))
         popover=Gtk.Popover();commands=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
         for label,callback in [('Back up notes',lambda:self.choose_backup(True)),('Restore notes',lambda:self.choose_backup(False)),
+                               ('Highlights',lambda:owner.open_highlights()),
                                ('Delete note…',lambda:self.editor.ask_delete() if self.editor and self.editor.note else None)]:
             button=Gtk.Button(label=tr(label));button.add_css_class('flat');button.connect('clicked',lambda _,fn=callback:fn());commands.append(button)
             if label=='Delete note…':self.delete_button=button;button.set_visible(False)
         popover.set_child(commands);menu.set_popover(popover)
+        from .application_surfaces import application_menu
+        self.main_menu=application_menu();header.pack_end(self.main_menu)
         header.pack_end(menu);header.pack_end(self.save_button);self.append(header)
         self.side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         tools=Gtk.Box(spacing=6,margin_start=12,margin_end=12,margin_top=12)
         self.search=Gtk.SearchEntry(placeholder_text=tr('Search notes or references'),hexpand=True)
         self.search.connect('search-changed',lambda *_:self.refresh());tools.append(self.search)
         self.sort=Gtk.DropDown(model=Gtk.StringList.new([tr('Most recent'),tr('Oldest first'),tr('Bible order')]))
+        from .version_chooser import bounded_choices
+        bounded_choices(self.sort)
         self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort notes')]);self.sort.connect('notify::selected',lambda *_:self.refresh())
         tools.append(self.sort);self.side.append(tools)
         self.labels=LabelFilter(owner.notes_store.labels(),self.refresh)
         self.labels.set_margin_start(12);self.labels.set_margin_end(12);self.side.append(self.labels)
-        new=Gtk.Button(label=tr('New passage note'),margin_start=12,margin_end=12)
+        new=Gtk.Button(child=Gtk.Label(label=tr('New passage note'),wrap=True),margin_start=12,margin_end=12)
         new.connect('clicked',lambda *_:self.create_note());self.side.append(new)
         self.new_button=new
         self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12)
@@ -555,7 +561,7 @@ class NotesSpace(Gtk.Box):
         self.detail_back.connect('clicked',lambda *_:self.back_to_list());self.editor_panel.append(self.detail_back)
         self.placeholder=Adw.StatusPage(title=tr('Choose a note'),description=tr('Your notes remain available offline.'),icon_name='bible-notes-symbolic')
         self.editor_panel.append(self.placeholder)
-        self.split=Adw.OverlaySplitView(sidebar=self.side,content=self.editor_panel,min_sidebar_width=280,max_sidebar_width=380,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
+        self.split=Adw.OverlaySplitView(sidebar=self.side,content=self.editor_panel,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
         self.append(self.split)
         self.add_tick_callback(self.adapt)
         self.refresh()
