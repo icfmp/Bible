@@ -8,5 +8,6 @@
   "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
   "source_archive": "Bible-8a732ea6d4d02abf701cacca78a8ffff0c12c3eb-sources.tar.gz",
   "source_sha256": "03a58393afd3a0fea9f50bd85cc3e97394ffc3f3574c05c8accf1be466b2e6b7",
-  "bundle_sha256": "472e25b7d6d1962a7501be8caa64a6be6a45bf3a1b8245e85b9b000142cbb91f"
+  "bundle_sha256": "472e25b7d6d1962a7501be8caa64a6be6a45bf3a1b8245e85b9b000142cbb91f",
+  "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-8a732ea6d4d02abf701cacca78a8ffff0c12c3eb-sources.tar.gz"
 }
