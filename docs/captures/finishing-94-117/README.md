@@ -44,6 +44,7 @@ Welcome: [first launch](after-welcome-launch-1.png),
 
 - [Baseline idle, 23 seconds](before-immersion-stability.mp4).
 - [Corrected stable idle, reveal, keyboard/menu and dismissal, 25 seconds](settled-immersion-stability.mp4), with [instrumentation](settled-immersion-stability.json).
+- Wide-window arrow hover and pointer/keyboard lifecycle: [before](wide-controls-before.json), [after](wide-controls-after.json).
 - [Two-page forward/back and rapid turns](after-page-turns.mp4).
 - [One-page forward/back](extra-single-page-turns.mp4).
 - [Chapter boundary](extra-chapter-boundary.mp4), [Acts → Romans](extra-book-boundary.mp4).

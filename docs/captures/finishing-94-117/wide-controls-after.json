@@ -1,0 +1,25 @@
+{
+  "geometry": [
+    564,
+    833,
+    2
+  ],
+  "geometry_after": [
+    564,
+    833,
+    2
+  ],
+  "arrow_bounds": [
+    1571.0,
+    717.0,
+    40.0,
+    40.0
+  ],
+  "pointer_edge": true,
+  "forward_revealed": true,
+  "top_child_height": 93,
+  "after_mouse_idle_top": false,
+  "after_mouse_idle_forward": false,
+  "reader_focus_after_idle": true,
+  "keyboard_turn_after_idle": true
+}

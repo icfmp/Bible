@@ -144,3 +144,22 @@ class FinishingTests(unittest.TestCase):
         self.assertEqual(w.reading_style.palette,'paper')
         w.view.set_selected_page(w.view.get_nth_page(2));spin()
         self.assertEqual(w.reading_style.palette,'black');self.assertEqual(w.active_tab.state.reference,'Gen.1.2')
+
+    def test_wide_immersive_arrows_hold_hover_and_mouse_focus_does_not_pin_chrome(self):
+        from bible.ui import GLib
+        w=self.window;w.set_size_request(1800,700);w.set_default_size(1920,1000);spin()
+        w.enter_immersion('bible');v=w.immersion;spin(lambda:v.layout_ready,timeout=10)
+        geometry=v._geometry;v.views[0].grab_focus();w.set_focus_visible(False);v.reveal_controls();spin()
+        found,bounds=v.nav_revealers[1].compute_bounds(v);self.assertTrue(found)
+        x,y=bounds.origin.x+bounds.size.width/2,bounds.origin.y+bounds.size.height/2
+        self.assertTrue(75<x<v.get_width()-75)
+        def hide():
+            if v._hide_id:GLib.source_remove(v._hide_id);v._hide_id=0
+            v.hide_controls()
+        v.pointer_moved(None,x,y);hide();self.assertTrue(v.nav_revealers[1].get_reveal_child())
+        v.pointer_moved(None,v.get_width()/2,v.get_height()/2);v.forward.grab_focus();w.set_focus_visible(False);hide();spin(duration=.3)
+        self.assertFalse(v.top.get_reveal_child());self.assertFalse(v.nav_revealers[1].get_reveal_child())
+        self.assertIs(w.get_focus(),v.views[0]);self.assertFalse(v.top.get_can_target())
+        v.pointer_moved(None,v.get_width()/2,65);self.assertFalse(v.top.get_reveal_child())
+        v.reveal_controls();v.leave_button.grab_focus();w.set_focus_visible(True);hide()
+        self.assertTrue(v.top.get_reveal_child());self.assertEqual(v._geometry,geometry)

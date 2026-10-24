@@ -21,7 +21,11 @@ The reported repeated vertical jump was **not reproduced** in the baseline idle
 recording. It is not presented as a confirmed allocation-loop diagnosis. The new
 control audit nevertheless removes the moving reveal sensor and slide-down
 header, uses fixed overlay sensors and 200 ms crossfades for header and arrows,
-retains keyboard/menu/focus holds, and keeps equal top/bottom page margins.
+retains keyboard/menu holds, and keeps equal top/bottom page margins. Actual arrow
+rectangles retain hover in wide windows; pointer focus cannot pin the controls
+indefinitely. Hidden controls do not retain hit boxes, and reader focus returns
+to a selected page when pointer-focused controls fade. The hidden header reveals
+at the top edge while its visible hover area uses stable child allocation.
 The 25-second recording holds one page cursor and geometry throughout: hidden
 at 0.7 s, revealed at 17.1 s, hidden again at 21.7 s after focus returns to reading.
 Saved highlight/study decoration is suppressed only in immersion; storage and the

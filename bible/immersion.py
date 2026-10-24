@@ -445,8 +445,15 @@ class Immersion(Gtk.Overlay):
         self.turn(1 if self._wheel>0 else -1);self._wheel=0;return True
 
     def pointer_moved(self,controller,x,y):
-        self._pointer_top=y<90  # Stable sensor, independent of reveal allocation.
+        # Hidden chrome reveals at the edge; visible chrome retains its actual
+        # hover area. Neither sensor depends on the revealer's animated size.
+        controls=self.top.get_child()
+        self._pointer_top=y<24 or (controls.get_mapped() and y<max(90,controls.get_height()))
         self._pointer_edge=x<75 or x>self.get_width()-75
+        for reveal in self.nav_revealers:
+            found,bounds=reveal.compute_bounds(self)
+            if found and bounds.origin.x-16<=x<=bounds.origin.x+bounds.size.width+16 and bounds.origin.y-16<=y<=bounds.origin.y+bounds.size.height+16:
+                self._pointer_edge=True
         if self._pointer_top or self._pointer_edge:self.reveal_controls()
         elif not self._hide_id:self.schedule_hide()
 
@@ -464,15 +471,15 @@ class Immersion(Gtk.Overlay):
         return result
 
     def controls_focused(self):
-        if self.owner.passage_actions.contains(self.owner.get_focus()):return True
         focus=self.owner.get_focus()
-        if not focus:return False
+        if not focus or not self.owner.get_focus_visible():return False
+        if self.owner.passage_actions.contains(focus):return True
         return (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons))
 
     def reveal_controls(self):
-        self.top.set_reveal_child(True)
+        self.top.set_can_target(True);self.top.set_reveal_child(True)
         for button,reveal in zip(self.buttons,self.nav_revealers):
-            button.set_can_target(True);reveal.set_reveal_child(True)
+            button.set_can_target(True);reveal.set_can_target(True);reveal.set_reveal_child(True)
         self.schedule_hide()
 
     def schedule_hide(self):
@@ -482,10 +489,13 @@ class Immersion(Gtk.Overlay):
     def hide_controls(self):
         self._hide_id=0
         if self.controls_focused() or self.open_popovers() or self._pointer_top:self.schedule_hide();return False
-        self.top.set_reveal_child(False)
+        focus=self.owner.get_focus()
+        if focus and not self.owner.get_focus_visible() and (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons)):
+            next((view for view in self.views if view.get_mapped() and view.get_buffer().get_has_selection()),self.views[0]).grab_focus()
+        self.top.set_can_target(False);self.top.set_reveal_child(False)
         if not self._pointer_edge:
             for button,reveal in zip(self.buttons,self.nav_revealers):
-                button.set_can_target(False);reveal.set_reveal_child(False)
+                button.set_can_target(False);reveal.set_can_target(False);reveal.set_reveal_child(False)
         return False
 
     def hide_help(self):

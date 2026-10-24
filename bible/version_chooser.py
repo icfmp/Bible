@@ -121,7 +121,7 @@ class VersionChooser(Gtk.MenuButton):
                 if not self.owner.navigate_selection(name,reference):
                     raise ValueError(tab.status.get_text())
             self.status.set_visible(False)
-            # Finish GtkDropDown's activation before rebuilding any models.
+            # Finish native row activation before rebuilding any models.
             from gi.repository import GLib
             GLib.idle_add(self.finish)
         except Exception as error:
