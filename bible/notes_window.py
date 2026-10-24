@@ -39,6 +39,7 @@ def buffer_text(view):
 
 def message(parent, heading, body, accepted, canceled=None):
     dialog = Adw.MessageDialog.new(parent, tr(heading), tr(body))
+    if hasattr(parent,'reading_style'):dialog.add_css_class(parent.reading_style.scope+'-window')
     dialog.add_response('cancel', tr('Cancel'))
     dialog.add_response('confirm', tr('Confirm'))
     dialog.set_response_appearance('confirm', Adw.ResponseAppearance.DESTRUCTIVE)
@@ -116,6 +117,7 @@ class NoteEditor(Adw.Window):
         self.dialog_parent=owner if embedded else self
         self.context = context if context else {
             key: getattr(note, key) for key in ('versification', 'start', 'end', 'origin_translation', 'origin_language')}
+        if hasattr(owner,'reading_style'):self.add_css_class(owner.reading_style.scope+'-window')
         self.closed = False
         self._discard = False
         self._confirmation = None
@@ -344,6 +346,7 @@ class NoteEditor(Adw.Window):
 class NotesWindow(Adw.Window):
     def __init__(self, owner):
         super().__init__(transient_for=owner, title=tr('My notes'), default_width=720, default_height=700)
+        self.add_css_class(owner.reading_style.scope+'-window')
         self.set_size_request(360, 360)
         self.owner = owner
         self.closed = False
@@ -904,7 +907,7 @@ class NotesSpace(Gtk.Box):
             start,end=tab.selected_passage();self.mount(context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,origin_language=self.owner.library.resource(tab.state.resource).language))
         self.guard(create)
 
-    def leave(self):self.guard(lambda:self.owner.main_pages.set_visible_child_name('reading'))
+    def leave(self):self.guard(self.owner.return_to_reading)
     def back_to_list(self):
         def show():self._detail_requested=False;self.split.set_show_sidebar(True)
         self.guard(show)

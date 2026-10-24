@@ -28,7 +28,7 @@ class VisualPolishTests(unittest.TestCase):
                 self.assertIs(w.appearance_button.get_parent(),w.reader_controls)
                 self.assertIs(w.compared_version.get_parent(),tab.comparison_controls)
                 self.assertFalse(w.immersive_button.get_visible())
-                self.assertFalse(w.comparison_choices.get_visible())
+                self.assertTrue(w.comparison_choices.get_visible())
                 self.assertIn('Gen.32.1',tab.primary_heading.get_text())
                 self.assertIn('Gen.31.55',tab.comparison_heading.get_text())
                 w.compared_version.choices.set_selected(w.compared_version.names.index('Segond'));spin()

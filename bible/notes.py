@@ -174,8 +174,13 @@ class NoteStore:
             self.db.execute('INSERT OR IGNORE INTO labels VALUES (?,?)', (key, label))
             self.db.execute('INSERT INTO note_labels VALUES (?,?)', (note.id, key))
 
+    def ensure_recovered(self):
+        if (self.path.parent/'annotation-restore.pending.json').exists():
+            raise NotesError('Annotation restore recovery is pending. Reopen Bible before editing or exporting annotations.')
+
     def save(self, body, labels, *, existing=None, versification=None, start=None, end=None,
              origin_translation=None, origin_language=None):
+        self.ensure_recovered()
         stamp = now()
         note = (replace(existing, body=body, labels=clean_labels(labels), modified=stamp,
                         revision=existing.revision + 1) if existing else
@@ -195,6 +200,7 @@ class NoteStore:
         return written
 
     def delete(self, note):
+        self.ensure_recovered()
         with self.db:
             if self.db.execute('DELETE FROM notes WHERE id=? AND revision=?',
                                (note.id, note.revision)).rowcount != 1:
@@ -232,6 +238,7 @@ class NoteStore:
         return result
 
     def export(self, destination):
+        self.ensure_recovered()
         destination = Path(destination)
         if destination.resolve() == self.path.resolve() or (destination.exists() and os.path.samefile(destination, self.path)):
             raise NotesError('Choose a backup file different from the notes database')
@@ -252,6 +259,7 @@ class NoteStore:
                 temporary.unlink(missing_ok=True)
 
     def restore(self, source):
+        self.ensure_recovered()
         with Path(source).open('rb') as stream:
             data = stream.read(MAX_BACKUP + 1)
         if len(data) > MAX_BACKUP:

@@ -1,0 +1,1046 @@
+{
+  "seconds": 4.000195738997718,
+  "frames": 80,
+  "states": [
+    {
+      "time": 1.8930004443973303e-06,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.055189981998410076,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.4055843250025646,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.44586105499911355,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.46185699500347255,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.4740489960022387,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.48654992400406627,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=4)",
+      "slide": false
+    },
+    {
+      "time": 0.5050895120002679,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.5694377929976326,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.5836321320020943,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.6012786010032869,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.6158350250043441,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.6317454399977578,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.650080320003326,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.7000918819976505,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.7501350500024273,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 0.8000970279972535,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 0.8501078879999113,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 0.9001072309984011,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 0.9501036200017552,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.000096654999652,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.0501054620035575,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.1001354309992166,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.1501073640029063,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.2001078289977158,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.2501358950030408,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.3001250230008736,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.350132769002812,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.4001217070035636,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.4501080609989003,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 1.5001073540042853,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.550145605004218,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.6001087149998057,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.6501071770035196,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.7001194589975057,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.750106022998807,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": true
+    },
+    {
+      "time": 1.800107470000512,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 1.850092902997858,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 1.9001010590000078,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 1.9501067919991328,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.0001289790016017,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.0502580840038718,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.1001108909986215,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.1501307240032475,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.2000986210041447,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.2501296019981964,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.300098560001061,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.35011828399729,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.400098858997808,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.4501092490027077,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=8)",
+      "slide": false
+    },
+    {
+      "time": 2.5001622210038477,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.550102968001738,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.600096702997689,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.6501168370014057,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.7000912229996175,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.7501066000040737,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": true
+    },
+    {
+      "time": 2.80009415600216,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 2.850113209002302,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 2.900091561001318,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 2.9500938690034673,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.0001114990009228,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.0501106419978896,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.100115287998051,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.150121332000708,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.2000930799986236,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.2501015169982566,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.3001228520006407,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.3501301770011196,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.400100643004407,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.4500952689995756,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.500105919003545,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.5501133740035584,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.6001395729981596,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.650102961997618,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.700099472000147,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.7501126249990193,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.8001101560003008,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.850136619003024,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.90014715900179,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    },
+    {
+      "time": 3.9501706380033283,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=6)",
+      "slide": false
+    }
+  ]
+}

@@ -86,20 +86,21 @@ class LibraryPolishTests(unittest.TestCase):
         w=self.window
         self.assertEqual(w.main_pages.get_visible_child_name(),'welcome')
         self.assertEqual(w.library.installed(),[])
-        w.welcome_skip.emit('clicked');self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
-        self.assertTrue(w.active_tab.download_bible.get_visible())
+        w.welcome_skip.emit('clicked');self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
+        w.return_to_reading();self.assertEqual(w.main_pages.get_visible_child_name(),'welcome')
         w.close()
         from bible.ui import Window
         self.window=w=Window(self.app,w.library);w.present()
-        self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
-        w.active_tab.download_bible.emit('clicked');self.assertEqual(w.catalogue_window.kind.get_selected(),0)
+        self.assertEqual(w.main_pages.get_visible_child_name(),'welcome')
+        w.welcome_choose.emit('clicked');self.assertEqual(w.catalogue_window.kind.get_selected(),0)
 
     def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self):
-        w=self.window;w.welcome_skip.emit('clicked');w.set_default_size(360,700);spin()
-        for button in [w.tab_new_button,w.space_selector,w.study_button]:
+        installed_fixture(self.root)
+        w=self.window;w.navigate_selection('Test','Gen.1.1');w.main_pages.set_visible_child_name('reading');w.set_default_size(360,700);spin()
+        for button in [w.new_tab_button,w.space_selector,w.study_button]:
             self.assertTrue(button.get_visible());self.assertTrue(button.get_mapped())
-        self.assertFalse(w.new_tab_button.get_visible())
-        before=w.view.get_n_pages();w.tab_new_button.emit('clicked');self.assertEqual(w.view.get_n_pages(),before+1)
+        self.assertFalse(w.tab_new_button.get_visible())
+        before=w.view.get_n_pages();w.new_tab_button.emit('clicked');self.assertEqual(w.view.get_n_pages(),before+1)
         w.space_selector.set_selected(1);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
 
     def test_global_menu_preferences_shortcuts_about_and_notes_share_routes(self):
@@ -148,7 +149,7 @@ class LibraryPolishTests(unittest.TestCase):
         spin(lambda:d.language.strings.get_n_items()==2)
         d.language.activate(None,1)
         self.assertEqual(d.language_choice,'azb');self.assertFalse(d.filtered_resources)
-        self.assertTrue(d.empty.get_visible())
+        self.assertEqual(d.result_pages.get_visible_child_name(),'loading')
         d.kind.set_selected(1);self.assertEqual(d.language_choice,'azb')
         d.close();d=w.open_library();self.assertEqual(d.language_choice,'azb')
 
@@ -181,7 +182,7 @@ class LibraryPolishTests(unittest.TestCase):
         d.kind.set_selected(1);spin(lambda:not d.busy)
         self.assertEqual([r.name for r in d.filtered_resources],['Study'])
         d.language.set_selected(d.languages.index('en'));spin(lambda:not d.busy)
-        self.assertEqual(d.filtered_resources,[]);self.assertTrue(d.empty.get_visible())
+        self.assertEqual(d.filtered_resources,[]);self.assertEqual(d.result_pages.get_visible_child_name(),'loading')
         d.kind.set_selected(0);spin(lambda:not d.busy);self.assertEqual([r.name for r in d.filtered_resources],['English'])
         d.close();d=w.open_library();self.assertEqual(d.language_choice,'en')
         d.language.set_selected(0);self.assertEqual(w.application_settings.language,'')

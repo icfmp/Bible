@@ -31,10 +31,12 @@ def effective_palette(preferences, dark, high_contrast):
 class ReadingStyle:
     def __init__(self, owner):
         self.owner = owner
+        self.initial_palette=self.palette_settings()
         from weakref import WeakSet
         self.views = WeakSet()
         self.manager = Adw.StyleManager.get_default()
         self.scope = 'bible-content-' + str(id(owner))
+        owner.add_css_class(self.scope+'-window')
         self.provider = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(owner.get_display(), self.provider,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -42,10 +44,23 @@ class ReadingStyle:
                          for name in ['dark', 'high-contrast']]
         self.apply_mode()
 
+    def palette_settings(self):
+        return {k:getattr(self.owner.preferences.value,k) for k in ('mode','day_palette','night_palette')}
+
+    def remember_tab_palettes(self):
+        for tab in self.owner.tabs():
+            if not tab.state.reading_palette:tab.state.reading_palette=self.palette_settings()
+
+    def activate_tab(self,tab):
+        for key,value in tab.state.reading_palette.items():setattr(self.owner.preferences.value,key,value)
+        self.apply_mode()
+        self.owner.appearance.sync()
+
     def apply_mode(self):
         mode=self.owner.preferences.value.mode
         if mode=='system':
             mode={'light':'day','dark':'night','system':'system'}[self.owner.application_settings.value['interface_appearance']]
+        self.dark = mode=='night' or (mode=='system' and self.manager.get_dark())
         self.manager.set_color_scheme({'system':Adw.ColorScheme.DEFAULT,
                                       'day':Adw.ColorScheme.FORCE_LIGHT,
                                       'night':Adw.ColorScheme.FORCE_DARK}[mode])
@@ -95,14 +110,23 @@ class ReadingStyle:
             if number:configure(number,view,preferences,self.palette)
 
     def changed(self, *_):
-        self.palette = effective_palette(self.owner.preferences.value,
-                                         self.manager.get_dark(), self.manager.get_high_contrast())
+        mode=self.owner.preferences.value.mode
+        base=self.owner.application_settings.value['interface_appearance']
+        self.dark=(mode=='night' or mode=='system' and (base=='dark' or base=='system' and self.manager.get_dark()))
+        self.palette = effective_palette(self.owner.preferences.value,self.dark,self.manager.get_high_contrast())
         bg, fg, link, selection, selected = PALETTES[self.palette]
         selector = 'textview.' + self.scope
         focus_width = 3 if self.manager.get_high_contrast() else 2
+        action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
-.passage-actions {{ border-radius: 16px; padding: 12px; background-color: @window_bg_color; color: @window_fg_color; }}
+.passage-actions {{ border-radius: 16px; padding: 0; background-color: transparent; color: #ffffff; }}
+.passage-actions button {{ color: #ffffff; background: transparent; box-shadow: none; }}
+.passage-actions button:hover {{ background-color: rgba(255,255,255,.12); }}
+.passage-actions button:active {{ background-color: rgba(255,255,255,.22); }}
+.passage-actions button:focus-visible {{ outline: 2px solid #ffffff; outline-offset: -2px; }}
+.passage-actions popover contents {{ background-color: #202020; color: #ffffff; }}
+.passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
@@ -113,6 +137,21 @@ class ReadingStyle:
 {selector}:focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
 {selector}:dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
 '''
+        window='.'+self.scope+'-window'
+        if not self.manager.get_high_contrast():
+            sidebar={'paper':'#e5dcc3','black':'#121212','white':'#f0f0f0','dark':'#303030'}[self.palette]
+            chrome={'paper':'#eee4cb','black':'#080808','white':'#fafafa','dark':'#242424'}[self.palette]
+            # Scope native surfaces to this owner; leave tags, images and semantic
+            # accents to their existing renderers. Transparent controls inherit.
+            self.css+=f"""
+{window}, {window} .background, {window} .view, {window} .card,
+{window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
+{window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
+{window} .sidebar, {window} .sidebar-pane, {window} .study-panel, {window} .study-divider {{ background-color: {sidebar}; color: {fg}; }}
+{window} textview.study-reader, {window} textview.study-reader text {{ color: {fg}; }}
+{window} .passage-actions {{ background-color: transparent; color: white; }}
+{window} .passage-actions popover contents {{ background-color: #202020; color: white; }}
+"""
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS
         for view in self.views:

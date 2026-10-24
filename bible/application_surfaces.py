@@ -65,10 +65,13 @@ def show_preferences(owner):
     row=Adw.SwitchRow(title=tr('Restore tabs at startup'),subtitle=tr('Applies at next launch. Your annotations and downloaded resources are kept.'),active=settings.value['restore_tabs'])
     row.connect('notify::active',lambda widget,*_:save('restore_tabs',widget.get_active()))
     dialog.restore_tabs=row;group.add(row);page.add(group)
-    # Full annotation backup requires its own reviewed integration (#94).
-    # Existing Notes backup routes remain available; do not mislabel their
-    # note-only format as a complete personal-data backup.
-    page.add(Adw.PreferencesGroup(description=tr('Reading appearance stays in Aa. Existing note backups remain available in My notes.')))
+    data=Adw.PreferencesGroup(title=tr('Data and backups'),description=tr('Notes, labels and highlights only. Bibles and credentials are excluded. Exported annotations are not encrypted.'))
+    dialog.backup_actions=[]
+    for title,restoring in [('Export a backup…',False),('Restore a backup…',True)]:
+        button=Gtk.Button(label=tr(title),halign=Gtk.Align.START)
+        button.connect('clicked',lambda _,restore=restoring:choose_personal_backup(owner,status,restore))
+        data.add(button);dialog.backup_actions.append(button)
+    page.add(data)
     feedback=Adw.PreferencesGroup();feedback.add(status);page.add(feedback)
     dialog.add(page);dialog.present(owner);owner.preferences_window=dialog
     return dialog
@@ -76,6 +79,7 @@ def show_preferences(owner):
 
 def show_shortcuts(owner):
     window=Gtk.ShortcutsWindow(transient_for=owner,modal=True,title=tr('Keyboard Shortcuts'))
+    window.add_css_class(owner.reading_style.scope+'-window')
     section=Gtk.ShortcutsSection(section_name='application',title=tr('Bible'))
     group=Gtk.ShortcutsGroup(title=tr('Reading and application'))
     for label,action in [
@@ -97,6 +101,7 @@ def show_about(owner):
         developers=['icfmp'],website='https://github.com/icfmp/Bible',
         issue_url='https://github.com/icfmp/Bible/issues',license_type=Gtk.License.GPL_2_0_ONLY,
         comments=tr('Read and study the Bible. Downloaded resources keep their own licenses.'))
+    window.add_css_class(owner.reading_style.scope+'-window')
     window.add_link(tr('Third-party notices'),'https://github.com/icfmp/Bible/blob/main/THIRD_PARTY_NOTICES.md')
     window.present();owner.about_window=window
     return window
@@ -108,11 +113,46 @@ def welcome_page(owner):
     header.pack_start(WorkspaceSelector(owner))
     owner.welcome_menu=application_menu();header.pack_end(owner.welcome_menu);view.add_top_bar(header)
     page=Adw.StatusPage(title=tr('Welcome to Bible'),description=tr('Choose a Bible to start reading and studying.'),icon_name='io.github.icfmp.Bible')
+    owner.welcome_status=page
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,halign=Gtk.Align.CENTER)
     box.append(Gtk.Label(label=tr('Your downloaded texts stay available offline.'),wrap=True,max_width_chars=34,justify=Gtk.Justification.CENTER))
     choose=Gtk.Button(label=tr('Choose my Bible'));choose.add_css_class('suggested-action');choose.add_css_class('pill')
     choose.connect('clicked',lambda *_:owner.open_library('bible'))
-    skip=Gtk.Button(label=tr('Later'));skip.add_css_class('flat');skip.connect('clicked',lambda *_:owner.main_pages.set_visible_child_name('reading'))
+    skip=Gtk.Button(label=tr('Later'));skip.add_css_class('flat');skip.connect('clicked',lambda *_:owner.open_notes())
     box.append(choose);box.append(skip);page.set_child(box);view.set_content(page)
     owner.welcome_choose=choose;owner.welcome_skip=skip
     return view
+
+
+def choose_personal_backup(owner,status,restoring):
+    from . import personal_backup
+    from .notes_window import message
+    def flush():
+        if owner.notes_store is None:raise ValueError(tr('Notes unavailable. The original file has been preserved.'))
+        for window in owner.get_application().get_windows():
+            if getattr(window,'library',None) and window.library.root==owner.library.root:
+                editor=getattr(window,'note_editor',None)
+                if editor and not editor.closed and editor.dirty and not editor.save(close=False):raise ValueError(editor.status.get_text())
+    chooser=Gtk.FileChooserNative.new(tr('Restore a backup…') if restoring else tr('Export a backup…'),owner,
+        Gtk.FileChooserAction.OPEN if restoring else Gtk.FileChooserAction.SAVE,tr('Open') if restoring else tr('Save'),tr('Cancel'))
+    if not restoring:chooser.set_current_name('Bible-annotations.json')
+    owner._personal_backup_chooser=chooser
+    def response(dialog,result):
+        try:
+            if result!=Gtk.ResponseType.ACCEPT:return
+            file=dialog.get_file();path=file.get_path() if file else None
+            if not path:raise ValueError(tr('Choose a local file.'))
+            if restoring:
+                with open(path,'rb') as f:personal_backup.decode(f.read(personal_backup.LIMIT+1))
+                def apply():
+                    try:
+                        flush();result=personal_backup.restore(owner.notes_store,owner.highlights,path)
+                        owner.notes_changed();owner.refresh_highlights()
+                        status.set_text(tr('Backup restored. Existing annotations kept. Safety backup:')+' '+result['backup'])
+                    except Exception as error:status.set_text(tr('Unable to restore backup.')+' '+str(error))
+                message(owner,'Restore annotations?','Merge notes and highlights. Existing highlights are kept on conflict; differing notes are copied. A verified safety backup is saved first.',apply)
+            else:
+                flush();personal_backup.export(owner.notes_store,owner.highlights,path);status.set_text(tr('Backup exported.'))
+        except Exception as error:status.set_text(tr('Unable to complete backup operation.')+' '+str(error))
+        finally:dialog.destroy();owner._personal_backup_chooser=None
+    chooser.connect('response',response);chooser.show()

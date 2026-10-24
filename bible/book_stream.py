@@ -72,7 +72,9 @@ class BookStream(PagedStream):
             self._remember(self.documents,signature,document,cancelled)
         if self._worker_layout is None:
             self._worker_layout=LayoutContext(self.resolution,self.language)
-        plan=paginate(self._worker_layout,document,preferences,width,height,anchor,cancelled=cancelled)
+        # The requested anchor chooses the containing spread, not an artificial
+        # page break. Keep it separately for exact reflow/exit restoration.
+        plan=paginate(self._worker_layout,document,preferences,width,height,None,cancelled=cancelled)
         checkpoint(cancelled)
         self._remember(self.plans,plan_key,plan,cancelled)
         return plan

@@ -38,7 +38,6 @@ class Window(Adw.ApplicationWindow):
         key=library.root.parent.resolve()
         if key not in app._application_settings:app._application_settings[key]=ApplicationSettings(key)
         self.application_settings=app._application_settings[key]
-        offer_welcome=self.application_settings.first_launch
         self.application_settings.first_launch=False
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
@@ -67,7 +66,10 @@ class Window(Adw.ApplicationWindow):
         self.notes_error = ''
         try:
             self.notes_store = NoteStore(library.root.parent / 'notes.sqlite3')
+            from .personal_backup import recover
+            recover(self.notes_store,self.highlights)
         except Exception as error:
+            if getattr(self,'notes_store',None):self.notes_store.close()
             self.notes_store = None
             self.notes_error = str(error)
         self.connect('close-request', self.on_close)
@@ -107,15 +109,15 @@ class Window(Adw.ApplicationWindow):
         self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
         self.comparison_button=Gtk.MenuButton(icon_name='view-dual-symbolic',tooltip_text=tr('Compare translations'))
         self.comparison_popover=Gtk.Popover()
-        self.comparison_choices=Gtk.DropDown()
-        from .version_chooser import bounded_choices
-        bounded_choices(self.comparison_choices)
+        from .version_chooser import DirectChoices
+        self.comparison_choices=DirectChoices()
         self.comparison_choices.connect('notify::selected',self.comparison_selected)
+        self.comparison_choices.connect('reselected',lambda *_:self.comparison_popover.popdown())
         comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         comparison_box.append(self.comparison_choices)
         self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
         self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
-        comparison_box.append(self.stop_comparison)
+        self.stop_comparison.set_visible(False)
         self.download_comparison=Gtk.Button(label=tr('Download more…'))
         self.download_comparison.connect('clicked',lambda *_:self.contextual_library('bible','comparison'))
         comparison_box.append(self.download_comparison)
@@ -194,17 +196,19 @@ class Window(Adw.ApplicationWindow):
         # adaptive sizing and its single visible set of native window controls.
         # Removing Library frees room for the existing mouse routes; the new
         # global menu no longer duplicates these reading/workspace commands.
-        tiny_header.add_setter(new,'visible',False)
-        tiny_header.add_setter(self.tab_new_button,'visible',True)
+        tiny_header.add_setter(new,'visible',True)
+        tiny_header.add_setter(self.tab_new_button,'visible',False)
         # The real passage chooser stays reachable beside the tabs when the
         # top-left space selector needs room. There is still one chooser.
         compact_title=Gtk.Box()
         def compact(*_):
+            self.space_selector.add_css_class('compact-space')
             header.set_title_widget(compact_title)
-            self.bar.set_start_action_widget(self.passage_button)
+            layout.insert_child_after(self.passage_button,header)
             constrain_labels(self.heading,8)
         def expanded(*_):
-            self.bar.set_start_action_widget(None)
+            self.space_selector.remove_css_class('compact-space')
+            if self.passage_button.get_parent() is layout:layout.remove(self.passage_button)
             header.set_title_widget(self.passage_button)
             constrain_labels(self.heading)
         tiny_header.connect('apply',compact);tiny_header.connect('unapply',expanded)
@@ -213,6 +217,7 @@ class Window(Adw.ApplicationWindow):
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
+                           b'dropdown.compact-space > button { padding-left: 6px; padding-right: 6px; } '
                            b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; } '
@@ -229,6 +234,8 @@ class Window(Adw.ApplicationWindow):
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.view.connect('notify::selected-page', self.selected_changed)
         self.view.connect('page-detached', self.page_detached)
+        self.view.connect('notify::n-pages',lambda *_:self.bar.set_visible(self.view.get_n_pages()>1))
+        self.bar.set_visible(False)
         self.view.connect('page-reordered', lambda *_: self.schedule_save())
         self.add_action_callback('new-tab', lambda *_: self.new_tab())
         self.add_action_callback('close-tab', lambda *_: self.close_tab())
@@ -298,7 +305,19 @@ class Window(Adw.ApplicationWindow):
         self.study_divider.apply()
         from .application_surfaces import welcome_page
         self.welcome=welcome_page(self);self.main_pages.add_named(self.welcome,'welcome')
-        if offer_welcome and not self.active_tab.reader:self.main_pages.set_visible_child_name('welcome')
+        self.startup_resource_error=''
+        readable=False
+        for name in self.library.installed():
+            try:
+                if self.library.resource(name).kind=='bible':
+                    from .sword_provider import Reader
+                    reader=Reader(self.library.root/name,name);first=reader.first_reference()
+                    if not any(text.strip() for _,text in reader.chapter(first).verses):raise ValueError('No readable text in installed Bible')
+                    readable=True;break
+            except (OSError,ValueError) as error:self.startup_resource_error=str(error)
+        if not readable:
+            self.main_pages.set_visible_child_name('welcome')
+            if self.startup_resource_error:self.welcome_status.set_description(GLib.markup_escape_text(tr('Some installed Bibles could not be read. They are preserved. Retry from Library.')+' '+self.startup_resource_error))
         if self.application_settings.error:self.report_session_error(tr('Unable to load application preferences. Original file preserved.'),self.application_settings.error)
 
     def fit_reader_controls(self,*_):
@@ -445,6 +464,8 @@ class Window(Adw.ApplicationWindow):
         return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
 
     def append_tab(self, state, jump_to_reference=False):
+        if not state.reading_palette:
+            state.reading_palette=dict(self.reading_style.initial_palette if self._initializing else self.reading_style.palette_settings())
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
                          self.notes_store, self.reveal_passage_annotations, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
@@ -479,6 +500,10 @@ class Window(Adw.ApplicationWindow):
         page.set_title(tab.title())
         return page
 
+    def return_to_reading(self):
+        readable=any(tab.reader is not None and tab.current is not None for tab in self.tabs())
+        self.main_pages.set_visible_child_name('reading' if readable else 'welcome')
+
     def new_tab(self):
         if self.immersion:self.leave_immersion()
         current = self.active_tab
@@ -486,6 +511,7 @@ class Window(Adw.ApplicationWindow):
         state = TabState(current.state.resource, current.state.reference, current.state.scroll,
                          commentary=current.state.commentary) if current else TabState(
             resource=names[0] if names else None)
+        if current:state.reading_palette=self.reading_style.palette_settings()
         page = self.append_tab(state)
         self.view.set_selected_page(page)
         self.schedule_save()
@@ -581,14 +607,14 @@ class Window(Adw.ApplicationWindow):
         self._comparison_syncing=True
         self._comparison_names=[None]+[name for name in self.library.installed('bible') if name!=tab.state.resource]
         labels=[tr('No comparison')]+[self.library.resource(name).description for name in self._comparison_names[1:]]
-        # Never replace the dropdown's model recursively from its notification.
+        # Synchronization must not emit another selection for an unchanged row.
         if getattr(self,'_comparison_labels',None)!=labels:
             self.comparison_choices.set_model(Gtk.StringList.new(labels));self._comparison_labels=labels
         self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
         self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
         self._comparison_syncing=False
-        self.comparison_choices.set_visible(not bool(tab.state.comparison))
-        self.stop_comparison.set_visible(bool(tab.state.comparison))
+        self.comparison_choices.set_visible(True)
+        self.stop_comparison.set_visible(False)
         label=tr('Stop comparison') if tab.state.comparison else tr('Compare translations')
         self.comparison_button.set_tooltip_text(label)
         self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
@@ -606,7 +632,7 @@ class Window(Adw.ApplicationWindow):
         self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
         self.sync_comparison()
         self.schedule_save()
-        # Finish the nested GtkDropDown activation before dismissing its parent.
+        # Finish native row activation before dismissing its parent.
         GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):
@@ -651,6 +677,7 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if tab is None:
             return
+        if hasattr(self,'appearance'):self.reading_style.activate_tab(tab)
         self._syncing_study = True
         self.study_button.set_active(tab.state.study_visible)
         self.split.set_show_sidebar(tab.state.study_visible)

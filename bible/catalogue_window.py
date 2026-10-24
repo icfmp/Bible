@@ -39,6 +39,8 @@ class CatalogueWindow(Adw.Window):
         self.set_size_request(320,320)
         self.library, self.on_installed = library, on_installed
         self.owner = parent
+        self.add_css_class(parent.reading_style.scope+'-window')
+        self._covered=frozenset();self._catalogue_errors={};self._loading_tick=0
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
@@ -118,9 +120,36 @@ class CatalogueWindow(Adw.Window):
         self.resource_list.set_show_separators(True)
         self.resource_list.connect('activate',self.open_details)
         self.list_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        self.list_scroll.set_child(self.resource_list);explorer.append(self.list_scroll)
+        self.list_scroll.set_child(self.resource_list)
+        self.result_pages=Gtk.Stack(vexpand=True)
+        self.result_pages.add_named(self.list_scroll,'rows')
+        self.skeleton=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14,margin_start=20,margin_end=20,margin_top=20)
+        self.loading_phase=Gtk.Label(wrap=True,xalign=0,max_width_chars=40)
+        self.skeleton.append(self.loading_phase)
+        for i in range(5):
+            row=Gtk.Box(spacing=12)
+            icon=Gtk.DrawingArea(width_request=34,height_request=38)
+            def draw(area,cr,w,h):
+                cr.set_source_rgba(.5,.5,.5,.25);cr.rectangle(0,0,w,h);cr.fill()
+            icon.set_draw_func(draw);row.append(icon)
+            lines=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,hexpand=True)
+            for width in (150,220):
+                line=Gtk.DrawingArea(height_request=12,width_request=width,halign=Gtk.Align.START)
+                line.set_draw_func(draw);lines.append(line)
+            row.append(lines);self.skeleton.append(row)
+        self.skeleton.set_can_target(False)
+        self.result_pages.add_named(self.skeleton,'loading')
+        self.empty_page=Adw.StatusPage(icon_name='edit-find-symbolic')
+        empty_actions=Gtk.Box(spacing=8,halign=Gtk.Align.CENTER)
+        clear=Gtk.Button(label=tr('Clear filters'));clear.connect('clicked',self.clear_filters);empty_actions.append(clear)
+        retry=self.result_retry=Gtk.Button(label=tr('Refresh catalogue'));retry.connect('clicked',self.load_catalogue);empty_actions.append(retry)
+        self.empty_page.set_child(empty_actions);self.result_pages.add_named(self.empty_page,'empty')
+        self.result_pages.set_visible_child_name('loading');explorer.append(self.result_pages)
+        self.catalogue_progress=Gtk.ProgressBar(visible=True,margin_start=12,margin_end=12)
+        explorer.append(self.catalogue_progress)
         self.empty=Gtk.Label(label=tr('No matching resource.'),wrap=True,visible=False,margin_top=20,margin_bottom=20)
-        explorer.append(self.empty)
+        # Retain the explanatory label as a queryable compatibility surface;
+        # the centered native status page owns its visible presentation.
         self.pages.add_named(explorer,'list')
         detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=20,margin_end=20,margin_top=12,margin_bottom=12)
         self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,selectable=True,max_width_chars=55)
@@ -163,28 +192,77 @@ class CatalogueWindow(Adw.Window):
         GLib.idle_add(self.apply_snapshot,snapshot)
 
     def apply_snapshot(self,snapshot):
-        if self.closed:return False
+        if self.closed or snapshot.generation<self._refresh_generation:return False
         changed=(self.resources!=list(snapshot.resources) or self._installed_metadata!=snapshot.installed
                  or self._study_installed!=snapshot.study_installed or self._study_current!=snapshot.study_current
                  or self._language_records!=snapshot.languages)
+        self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
         self._study_current=snapshot.study_current;self._language_records=snapshot.languages
         self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
         if snapshot.generation>=self._refresh_generation:self.refreshing=snapshot.refreshing
         if changed:self.update_languages()
-        errors=snapshot.errors
-        message=(tr('Refreshing sources… Cached resources remain available.') if self.refreshing else
-            tr('Partial catalogue. Retry to reload unavailable sources.')+' '+tr('Saved results retained.')+'\n'+
-            '\n'.join(f'{name}: {error}' for name,error in errors.items()) if errors else
-            tr('Saved catalogue — available offline.') if self.resources and not self._catalogue_requested else
-            tr('Ready') if self.resources else tr('No supported resource found.'))
-        self.refresh_status.set_text(message);self.refresh_status.set_visible(bool(errors) or self.refreshing or not self.resources)
-        if not self._transfer_busy and self._phase!='error' and self._completed_resource is None:
-            self.status.set_text(message);self.status.set_visible(False)
+        self.update_result_state()
         self.refresh_controls()
         if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
         return False
+
+    def clear_filters(self,*_):
+        self.search.set_text('');self.source_filter.set_selected(0)
+        self.language.set_selected(0);self.filter_resources()
+
+    def update_result_state(self,rows=None):
+        if not hasattr(self,'refresh_status'):return
+        rows=self.filtered_resources if rows is None else rows
+        study=self.kind.get_selected()==2
+        index=self.source_filter.get_selected()
+        providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
+        complete=study or all(p.id in self._covered for p in providers)
+        names={p.name for p in providers}
+        all_names={p.name for p in PROVIDERS}
+        errors={name:error for name,error in self._catalogue_errors.items() if not index or name in names or name not in all_names}
+        self.result_retry.set_label(tr('Retry') if errors else tr('Refresh catalogue'))
+        pending=self.preparing or self.refreshing or (not self._catalogue_requested and not complete and not errors and self.settings.value['automatic_catalogue_refresh'] and not study)
+        if rows:
+            state='rows'
+            message=(tr('Refreshing sources…') if pending else tr('Partial catalogue. Retry to reload unavailable sources.') if errors else '')
+        elif pending:
+            state='loading';message=tr('Loading catalogue…')
+        else:
+            state='empty'
+            title=tr('Catalogue unavailable') if errors else tr('No Bible found') if complete and self.kind.get_selected()==0 else tr('No matching resource.') if complete else tr('Catalogue not loaded')
+            language=self.language.codes[self.language.get_selected()] if self.language.get_selected()<len(self.language.codes) else ''
+            description=(tr('Retry or open installed resources. No files were removed.') if errors else
+                tr('No resources match the current filters. Clear filters, choose another language or refresh.') if complete else
+                tr('Refresh the catalogue to discover resources.'))
+            if language:description+=' '+tr('Language')+': '+self.language_label(language)
+            if self.search.get_text():description+=' '+tr('Search')+': '+self.search.get_text()
+            if index:description+=' '+tr('Source')+': '+providers[0].name
+            if errors:description+='\n'+'\n'.join(f'{name}: {error}' for name,error in errors.items())
+            self.empty_page.set_title(title);self.empty_page.set_description(GLib.markup_escape_text(description))
+            self.empty.set_text(description);message=title
+        self.loading_phase.set_text(tr('Preparing saved resource metadata…') if self.preparing else tr('Looking for available resources from the selected sources…') if self.refreshing else tr('Preparing Library…'))
+        self.result_pages.set_visible_child_name(state)
+        if errors:message+='\n'+'\n'.join(f'{name}: {error}' for name,error in errors.items())
+        self.refresh_status.set_text(message);self.refresh_status.set_visible(bool(message))
+        if not self._transfer_busy and self._phase!='error' and self._completed_resource is None:
+            self.status.set_text(message);self.status.set_visible(False)
+        self.catalogue_progress.set_visible(pending)
+        if not pending and self._loading_tick:
+            self.catalogue_progress.remove_tick_callback(self._loading_tick);self._loading_tick=0;self.skeleton.set_opacity(1)
+        if pending and not self._loading_tick:
+            def pulse(widget,clock):
+                if self.closed or not self.catalogue_progress.get_visible():
+                    self.skeleton.set_opacity(1);self._loading_tick=0;return False
+                animated=Gtk.Settings.get_default().get_property('gtk-enable-animations')
+                if animated:
+                    import math
+                    self.skeleton.set_opacity(.7+.25*math.sin(clock.get_frame_time()/1000000*3))
+                    self.catalogue_progress.pulse()
+                else:self.skeleton.set_opacity(1)
+                return True
+            self._loading_tick=self.catalogue_progress.add_tick_callback(pulse)
 
     def auto_load(self,*_):
         if self.kind.get_selected()==2:return False
@@ -307,8 +385,7 @@ class CatalogueWindow(Adw.Window):
                                    if (study or not language or canonical_language(r.language) == selected_language)
                                    and (not query or query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language))))))]
         self._installed_ids=set(self.installed_ids())
-        self.empty.set_visible(not rows)
-        self.empty.set_text(tr('No resources in {language}. Choose another language or refresh the selected source.').format(language=self.language_label(language)) if language else tr('No matching resource.'))
+        self.update_result_state(rows)
         if rows==self.filtered_resources:
             self.refresh_rows();self.selection_changed()
             return
@@ -380,6 +457,7 @@ class CatalogueWindow(Adw.Window):
             self.set_visible(False)
             return True
         self.closed = True
+        if self._loading_tick:self.catalogue_progress.remove_tick_callback(self._loading_tick);self._loading_tick=0
         self._rows_generation+=1;self.language.cancel_pending();self.session.unsubscribe(self.snapshot_ready)
         self.stop_animation()
         self.executor.shutdown(wait=False, cancel_futures=True)
@@ -435,7 +513,7 @@ class CatalogueWindow(Adw.Window):
         self._catalogue_requested=True
         self.refreshing=True
         self.refresh_status.set_visible(True)
-        self.refresh_status.set_text(tr('Refreshing sources… Cached resources remain available.'))
+        self.update_result_state()
         self.refresh_controls()
         index=self.source_filter.get_selected()
         providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS

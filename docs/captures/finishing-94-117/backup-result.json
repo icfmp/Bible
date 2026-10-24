@@ -1,0 +1,8 @@
+{
+  "actual_native_file_chooser": true,
+  "backend": "GTK native fallback under Xvfb; GTK_USE_PORTAL=0, not a desktop portal claim",
+  "export_notes": 1,
+  "export_highlights": 1,
+  "confirmed_merge": true,
+  "safety_backups": 1
+}

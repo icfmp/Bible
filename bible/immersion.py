@@ -26,7 +26,7 @@ class Immersion(Gtk.Overlay):
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
-                           margin_top=36,margin_bottom=8,margin_start=56,margin_end=56)
+                           margin_top=48,margin_bottom=48,margin_start=56,margin_end=56)
         self.pages.set_direction(Gtk.TextDirection.LTR if self.kind=='bible' else
                                  Gtk.TextDirection.RTL if source.rtl else Gtk.TextDirection.LTR)
         for number in range(2):
@@ -58,14 +58,18 @@ class Immersion(Gtk.Overlay):
             frame.set_child(view);self.pages.append(frame);self.frames.append(frame);self.views.append(view)
         self.pages.set_halign(Gtk.Align.FILL)
         self.page_clamp=Adw.Clamp(child=self.pages,maximum_size=1200,tightening_threshold=1200,vexpand=True)
-        body.append(self.page_clamp)
+        self.page_stack=Gtk.Stack(transition_duration=200,hhomogeneous=False,vhomogeneous=False,vexpand=True)
+        self.previous_page=Gtk.Picture(can_shrink=True)
+        self.page_stack.add_named(self.page_clamp,'live');self.page_stack.add_named(self.previous_page,'previous')
+        self.page_stack.set_visible_child_name('live');self._slide_serial=0
+        body.append(self.page_stack)
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');body.append(self.footer);self.set_child(body)
         if getattr(source,'book_pages',False):
             from .book_stream import BookStream
             self.stream=BookStream(self.views[0],source,owner.preferences.value)
         else:self.stream=PagedStream(self.views[0],source,owner.preferences.value)
-        self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN,
+        self.top=Gtk.Revealer(reveal_child=True,transition_type=Gtk.RevealerTransitionType.CROSSFADE,transition_duration=200,
                               valign=Gtk.Align.START,halign=Gtk.Align.FILL)
         controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_start_title_buttons=False,show_end_title_buttons=False)
@@ -123,6 +127,7 @@ class Immersion(Gtk.Overlay):
         self.notification_help.set_revealed(not owner.immersion_hints.disabled and not owner._immersion_help_seen)
         owner._immersion_help_seen=True
         controls.append(self.notification_help);self.top.set_child(controls);self.add_overlay(self.top)
+        self.nav_revealers=[]
         self.back=self.page_button(-1);self.forward=self.page_button(1)
         self.buttons=[self.back,self.forward]
         motion=Gtk.EventControllerMotion();motion.connect('motion',self.pointer_moved);motion.connect('leave',lambda *_:self.pointer_left());self.add_controller(motion)
@@ -145,7 +150,9 @@ class Immersion(Gtk.Overlay):
                           (Gtk.Align.START if self.source.rtl else Gtk.Align.END),margin_start=8,margin_end=8)
         button.add_css_class('circular');button.add_css_class('osd');button.add_css_class('chapter-navigation')
         button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Previous pages') if direction<0 else tr('Next pages')])
-        button.connect('clicked',lambda *_:self.turn(direction));self.add_overlay(button);return button
+        button.connect('clicked',lambda *_:self.turn(direction))
+        reveal=Gtk.Revealer(child=button,reveal_child=True,transition_type=Gtk.RevealerTransitionType.CROSSFADE,transition_duration=200,halign=button.get_halign(),valign=Gtk.Align.CENTER)
+        self.nav_revealers.append(reveal);self.add_overlay(reveal);return button
 
     def adapt(self,*_):
         if self._closed:return False
@@ -160,7 +167,7 @@ class Immersion(Gtk.Overlay):
         last_frame=self.frames[1] if self.count==2 else self.frames[0]
         last_ok,last=last_frame.compute_bounds(self)
         if ok and last_ok:
-            for button in self.buttons:
+            for button in self.nav_revealers:
                 position(button,first.origin.x+self.views[0].get_left_margin(),
                          last.origin.x+last.size.width-self.views[-1].get_right_margin(),
                          first.origin.y,first.size.height,width)
@@ -174,6 +181,7 @@ class Immersion(Gtk.Overlay):
             self.entry_previous.set_visible(width>=700);self.entry_next.set_visible(width>=700)
             self.open_bible.set_visible(width>=700);self.info.set_visible(width>=500)
         if geometry!=self._geometry:
+            self.cancel_slide()
             anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
             key=self.stream.cursor.key if self.stream.cursor else self.initial_key
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
@@ -203,6 +211,7 @@ class Immersion(Gtk.Overlay):
         return True
 
     def reflow(self):
+        self.cancel_slide()
         if self._closed:return
         self.clicked_reference=None
         self.capture_selection();self._restored_selection=bool(self.selection)
@@ -241,7 +250,7 @@ class Immersion(Gtk.Overlay):
                 number=len(span.reference.rsplit('.',1)[-1])+1 if self.owner.preferences.value.verse_numbers else 0
                 begin=max(first,span.body-number);end=min(last,span.end)
                 if end>begin:ranges.append((span.reference,begin-first,end-first))
-            view.set_study_ranges(self.tab.study_ranges(self.source.reader,ranges))
+            view.set_study_ranges([])  # Clean immersive presentation; ordinary coverage is untouched.
 
     def render(self):
         if not self.stream.cursor:
@@ -297,7 +306,7 @@ class Immersion(Gtk.Overlay):
                 plan=self.stream.plan(address.key);page=plan.pages[address.index]
                 ranges=[(span.reference,max(page.start,span.body)-page.start,min(page.end,span.end)-page.start)
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
-                paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
+                paint(view,self.owner.highlights,self.source.reader.versification,ranges,False,
                       self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
         self.update_study_indicator()
         self.restore_selection()
@@ -333,19 +342,39 @@ class Immersion(Gtk.Overlay):
                 buffer=view.get_buffer()
                 buffer.select_range(buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
 
+    def cancel_slide(self):
+        self._slide_serial+=1
+        self.page_stack.set_transition_type(Gtk.StackTransitionType.NONE)
+        self.page_stack.set_visible_child_name('live');self.previous_page.set_paintable(None)
+
     def turn(self,direction):
+        self.cancel_slide()
+        animated=Gtk.Settings.get_default().get_property('gtk-enable-animations')
+        previous=Gtk.WidgetPaintable.new(self.page_clamp).get_current_image() if animated and self.layout_ready else None
         self.owner.passage_actions.dismiss()
         if self.stream.cursor and self.stream.turn(direction,self.count):
-            self.selection=None;self.render();return True
+            self.selection=None;self.render()
+            if previous:
+                self.previous_page.set_paintable(previous);self.page_stack.set_visible_child_name('previous')
+                serial=self._slide_serial
+                def reveal():
+                    if self._closed or serial!=self._slide_serial:return False
+                    forward=(direction>0)!=self.source.rtl
+                    self.page_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if forward else Gtk.StackTransitionType.SLIDE_RIGHT)
+                    self.page_stack.set_visible_child_name('live');return False
+                GLib.idle_add(reveal)
+            return True
         return False
 
     def go_to_reference(self,reference):
         if self.kind!='bible':return
+        self.cancel_slide()
         self.clicked_reference=None
         key=self.source.key(reference);self.initial_anchor=Anchor(reference);self.initial_key=key
         self.stream.configure(self.stream.width,self.stream.height,self.initial_anchor,key);self.render()
 
     def change_entry(self,direction):
+        self.cancel_slide()
         key=self.source.entry_neighbour(self.stream.cursor.key,direction)
         if key is None:return
         doc=self.source.document(key,self.owner.preferences.value)
@@ -416,9 +445,17 @@ class Immersion(Gtk.Overlay):
         self.turn(1 if self._wheel>0 else -1);self._wheel=0;return True
 
     def pointer_moved(self,controller,x,y):
-        self._pointer_top=y<max(90,self.top.get_height() if self.top.get_reveal_child() else 90)
+        # Hidden chrome reveals at the edge; visible chrome retains its actual
+        # hover area. Neither sensor depends on the revealer's animated size.
+        controls=self.top.get_child()
+        self._pointer_top=y<24 or (controls.get_mapped() and y<max(90,controls.get_height()))
         self._pointer_edge=x<75 or x>self.get_width()-75
-        self.reveal_controls()
+        for reveal in self.nav_revealers:
+            found,bounds=reveal.compute_bounds(self)
+            if found and bounds.origin.x-16<=x<=bounds.origin.x+bounds.size.width+16 and bounds.origin.y-16<=y<=bounds.origin.y+bounds.size.height+16:
+                self._pointer_edge=True
+        if self._pointer_top or self._pointer_edge:self.reveal_controls()
+        elif not self._hide_id:self.schedule_hide()
 
     def pointer_left(self):
         self._pointer_top=False;self._pointer_edge=False;self.schedule_hide()
@@ -434,14 +471,15 @@ class Immersion(Gtk.Overlay):
         return result
 
     def controls_focused(self):
-        if self.owner.passage_actions.contains(self.owner.get_focus()):return True
         focus=self.owner.get_focus()
-        if not focus:return False
+        if not focus or not self.owner.get_focus_visible():return False
+        if self.owner.passage_actions.contains(focus):return True
         return (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons))
 
     def reveal_controls(self):
-        self.top.set_reveal_child(True)
-        for button in self.buttons:button.set_visible(True)
+        self.top.set_can_target(True);self.top.set_reveal_child(True)
+        for button,reveal in zip(self.buttons,self.nav_revealers):
+            button.set_can_target(True);reveal.set_can_target(True);reveal.set_reveal_child(True)
         self.schedule_hide()
 
     def schedule_hide(self):
@@ -451,9 +489,13 @@ class Immersion(Gtk.Overlay):
     def hide_controls(self):
         self._hide_id=0
         if self.controls_focused() or self.open_popovers() or self._pointer_top:self.schedule_hide();return False
-        self.top.set_reveal_child(False)
+        focus=self.owner.get_focus()
+        if focus and not self.owner.get_focus_visible() and (focus.is_ancestor(self.top) or any(focus is button or focus.is_ancestor(button) for button in self.buttons)):
+            next((view for view in self.views if view.get_mapped() and view.get_buffer().get_has_selection()),self.views[0]).grab_focus()
+        self.top.set_can_target(False);self.top.set_reveal_child(False)
         if not self._pointer_edge:
-            for button in self.buttons:button.set_visible(False)
+            for button,reveal in zip(self.buttons,self.nav_revealers):
+                button.set_can_target(False);reveal.set_can_target(False);reveal.set_reveal_child(False)
         return False
 
     def hide_help(self):
@@ -467,6 +509,7 @@ class Immersion(Gtk.Overlay):
             self.owner.leave_immersion();self.owner.navigate_selection(self.owner.active_tab.state.resource,reference)
 
     def finish(self):
+        self.cancel_slide()
         self._closed=True
         if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0

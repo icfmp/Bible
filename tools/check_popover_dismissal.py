@@ -29,13 +29,14 @@ def main():
                     native.click(button); native.key('Escape'); assert not popover.get_visible()
             for _ in range(3):
                 native.click(window.comparison_button)
-                native.click(window.comparison_choices)
+                assert window.comparison_choices.list.get_mapped()
+                window.comparison_choices.list.get_row_at_index(0).grab_focus()
                 native.key('End');native.key('Return');spin(duration=.2)
                 assert window.active_tab.state.comparison==window._comparison_names[-1]
                 assert not window.comparison_popover.get_visible()
                 native.click(window.compared_version);native.key('Escape')
                 assert not window.compared_version.popover.get_visible()
-                native.click(window.comparison_button);native.click(window.stop_comparison)
+                native.click(window.comparison_button);native.click(window.comparison_choices.list.get_row_at_index(0))
                 assert window.active_tab.state.comparison is None
                 assert not window.comparison_popover.get_visible()
             aa = window.appearance
