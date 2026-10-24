@@ -61,7 +61,7 @@ class PersonalBackupTests(unittest.TestCase):
             import hashlib
             safety=root/'backups'/'before-restore-crash.json';backup.atomic(safety,before)
             backup.atomic(root/'annotation-restore.pending.json',json.dumps(dict(backup=safety.name,sha256=hashlib.sha256(before).hexdigest())).encode())
-            notes.save('Uncommitted restore outcome',(),existing=note)
+            with notes.db:notes.db.execute('UPDATE notes SET body=? WHERE id=?',('Interrupted restore outcome',note.id))
             self.assertTrue(backup.recover(notes,marks));self.assertEqual(backup.snapshot(notes,marks),before)
             self.assertFalse(backup.recover(notes,marks))
 
@@ -74,3 +74,17 @@ class PersonalBackupTests(unittest.TestCase):
             target=root/'target';target.mkdir();other,colors=self.stores(target)
             backup.restore(other,colors,note_file);backup.restore(other,colors,mark_file)
             self.assertEqual(other.get(original.id),original);self.assertEqual(colors.entries,marks.entries)
+
+    def test_failed_recovery_blocks_further_edits_and_exports_until_reopened(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);notes,marks=self.stores(root);original=create(notes)
+            path=root/'incoming.json';backup.export(notes,marks,path)
+            with patch('bible.personal_backup.write_marks',side_effect=OSError('persistent storage failure')):
+                with self.assertRaises(OSError):backup.restore(notes,marks,path)
+            self.assertTrue((root/'annotation-restore.pending.json').exists())
+            for action in (lambda:notes.save('Keep draft',(),existing=original),lambda:notes.delete(original),
+                           lambda:marks.set('KJV',['Gen.1.1'],'green','Test'),lambda:backup.export(notes,marks,root/'unsafe.json'),
+                           lambda:notes.export(root/'unsafe-notes.json'),lambda:marks.backup(root/'unsafe-marks.json')):
+                with self.assertRaises(ValueError):action()
+            self.assertTrue(backup.recover(notes,marks));self.assertEqual(notes.get(original.id),original)
+            backup.export(notes,marks,root/'recovered.json')

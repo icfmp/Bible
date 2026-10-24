@@ -52,7 +52,11 @@ class HighlightStore:
         except FileNotFoundError:pass
         except (OSError,ValueError,TypeError,KeyError,RecursionError) as error:self.error=str(error)
 
+    def ensure_recovered(self):
+        if (self.path.parent/'annotation-restore.pending.json').exists():raise ValueError('Annotation restore recovery is pending. Reopen Bible before editing or exporting annotations.')
+
     def commit(self,marks):
+        self.ensure_recovered()
         if self.error:raise ValueError('Original highlights file preserved; repair it before saving')
         if len(marks)>50000:raise ValueError('Too many highlights')
         write(self.path,marks);self.entries=marks
@@ -68,6 +72,7 @@ class HighlightStore:
         self.commit(marks)
 
     def backup(self,path):
+        self.ensure_recovered()
         if self.error:raise ValueError('Original highlights file preserved; cannot export an incomplete backup')
         write(path,self.entries)
 

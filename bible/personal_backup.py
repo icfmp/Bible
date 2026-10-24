@@ -47,6 +47,7 @@ def decode(data):
 
 
 def snapshot(notes,highlights):
+    notes.ensure_recovered();highlights.ensure_recovered()
     if highlights.error:raise ValueError('Original highlights file preserved; cannot export an incomplete backup')
     with notes.db:
         notes.db.execute('BEGIN IMMEDIATE')
