@@ -67,7 +67,10 @@ class Window(Adw.ApplicationWindow):
         self.notes_error = ''
         try:
             self.notes_store = NoteStore(library.root.parent / 'notes.sqlite3')
+            from .personal_backup import recover
+            recover(self.notes_store,self.highlights)
         except Exception as error:
+            if getattr(self,'notes_store',None):self.notes_store.close()
             self.notes_store = None
             self.notes_error = str(error)
         self.connect('close-request', self.on_close)
