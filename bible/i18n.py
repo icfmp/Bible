@@ -3,6 +3,19 @@ import locale
 import os
 
 FR = {
+    'Notes, labels and highlights only. Bibles and credentials are excluded. Exported annotations are not encrypted.': 'Notes, étiquettes et surlignages uniquement. Les Bibles et les identifiants sont exclus. Les annotations exportées ne sont pas chiffrées.',
+    'Export a backup…': 'Exporter une sauvegarde…',
+    'Restore a backup…': 'Restaurer une sauvegarde…',
+    'Choose a local file.': 'Choisissez un fichier local.',
+    'Backup restored. Existing annotations kept. Safety backup:': 'Sauvegarde restaurée. Annotations existantes conservées. Copie de sécurité :',
+    'Unable to restore backup.': 'Impossible de restaurer la sauvegarde.',
+    'Restore annotations?': 'Restaurer les annotations ?',
+    'Merge notes and highlights. Existing highlights are kept on conflict; differing notes are copied. A verified safety backup is saved first.': 'Fusionner les notes et les surlignages. En cas de conflit, les surlignages existants sont conservés et les notes différentes sont copiées. Une copie de sécurité vérifiée est enregistrée avant la restauration.',
+    'Backup exported.': 'Sauvegarde exportée.',
+    'Unable to complete backup operation.': 'Impossible de terminer la sauvegarde.',
+    'Some installed Bibles could not be read. They are preserved. Retry from Library.': 'Certaines Bibles installées sont illisibles. Elles sont conservées. Réessayez depuis la Bibliothèque.',
+    'Clear filters': 'Effacer les filtres',
+
     'Passage studied':'Passage étudié', 'Back to first references':'Retour aux premiers renvois',
     'See all {count} references':'Voir les {count} références',
     'OpenBible target: {reference}':'Cible OpenBible : {reference}',
