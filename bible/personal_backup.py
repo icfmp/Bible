@@ -91,16 +91,16 @@ def restore(notes,highlights,source):
     marker=notes.path.parent/'annotation-restore.pending.json'
     atomic(marker,json.dumps(dict(backup=backup.name,sha256=hashlib.sha256(original).hexdigest())).encode())
     added=skipped=conflicts=0
-    def signature(n):return {k:v for k,v in asdict(n).items() if k not in ('id','revision')}
+    def signature(n):return json.dumps({k:v for k,v in asdict(n).items() if k not in ('id','revision')},sort_keys=True)
     try:
         with notes.db:
             notes.db.execute('BEGIN IMMEDIATE');existing=notes.all();ids={n.id for n in existing}
-            signatures=[signature(n) for n in existing]
+            signatures={signature(n) for n in existing}
             for note in imported:
                 sign=signature(note)
                 if sign in signatures:skipped+=1;continue
                 if note.id in ids:note=replace(note,id=str(uuid.uuid4()),revision=1);conflicts+=1
-                notes._write(note);ids.add(note.id);signatures.append(sign);added+=1
+                notes._write(note);ids.add(note.id);signatures.add(sign);added+=1
             merged=dict(highlights.entries)
             for key,mark in marks.items():
                 if key in merged and merged[key]!=mark:conflicts+=1
