@@ -13,7 +13,15 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
     minimum = time.monotonic() + duration
     loop = GLib.MainLoop()
     settled = False
+    errors = []
     def check():
+        try:
+            return check_condition()
+        except BaseException as error:
+            errors.append(error)
+            loop.quit()
+            return False
+    def check_condition():
         nonlocal settled
         now = time.monotonic()
         if now >= minimum and until():
@@ -28,6 +36,8 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
     # starve idle completions behind frame/layout events in a full GTK suite.
     GLib.timeout_add(5, check)
     loop.run()
+    if errors:
+        raise errors[0]
     if not settled:
         raise AssertionError('GTK layout/task did not settle')
 
