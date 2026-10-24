@@ -1,0 +1,142 @@
+[
+  {
+    "name": "cold-global",
+    "seconds": 2.0258756309999626,
+    "first_usable_provider_seconds": 0.6326471570000649,
+    "resources": 1941,
+    "errors": {},
+    "providers": {
+      "andbible": {
+        "requests": 1,
+        "metadata_bytes": 7970,
+        "network_seconds": 0.623356118999709,
+        "parse_seconds": 0.005134195000209729,
+        "http_status": 200,
+        "validators": {
+          "ETag": "\"6a1ac71c-1f22\"",
+          "Last-Modified": "Sat, 30 May 2026 11:16:44 GMT"
+        },
+        "resources": 8,
+        "error": null
+      },
+      "andbible-extra": {
+        "requests": 1,
+        "metadata_bytes": 35504,
+        "network_seconds": 0.7895177579998744,
+        "parse_seconds": 0.011886978000347881,
+        "http_status": 200,
+        "validators": {
+          "ETag": "\"65b24627-8ab0\"",
+          "Last-Modified": "Thu, 25 Jan 2024 11:29:43 GMT"
+        },
+        "resources": 22,
+        "error": null
+      },
+      "crosswire": {
+        "requests": 1,
+        "metadata_bytes": 206218,
+        "network_seconds": 1.4212361120003152,
+        "parse_seconds": 0.3244190529999287,
+        "http_status": 200,
+        "validators": {
+          "ETag": "\"3258a-65e7d3712dc14\"",
+          "Last-Modified": "Fri, 23 Oct 2026 07:49:08 GMT"
+        },
+        "resources": 321,
+        "error": null
+      },
+      "step": {
+        "requests": 1,
+        "metadata_bytes": 194751,
+        "network_seconds": 1.6208000149999862,
+        "parse_seconds": 0.2260937539999759,
+        "http_status": 200,
+        "validators": {
+          "ETag": "\"2f8bf-651924c30a2aa\"",
+          "Last-Modified": "Mon, 11 May 2026 22:30:45 GMT"
+        },
+        "resources": 61,
+        "error": null
+      },
+      "ebible": {
+        "requests": 1,
+        "metadata_bytes": 600290,
+        "network_seconds": 0.687857159000032,
+        "parse_seconds": 0.6598544180001227,
+        "http_status": 200,
+        "validators": {
+          "ETag": "\"69cc5962-928e2\"",
+          "Last-Modified": "Tue, 31 Mar 2026 23:31:46 GMT"
+        },
+        "resources": 1529,
+        "error": null
+      }
+    }
+  },
+  {
+    "name": "warm-global",
+    "seconds": 0.03509349600017231,
+    "first_usable_provider_seconds": 0.004555992999939917,
+    "resources": 1941,
+    "errors": {},
+    "providers": {
+      "crosswire": {
+        "cached": true,
+        "updated": 1792817852.353551,
+        "requests": 0,
+        "metadata_bytes": 0,
+        "resources": 321,
+        "error": null
+      },
+      "step": {
+        "cached": true,
+        "updated": 1792817852.4528108,
+        "requests": 0,
+        "metadata_bytes": 0,
+        "resources": 61,
+        "error": null
+      },
+      "andbible": {
+        "cached": true,
+        "updated": 1792817851.2309556,
+        "requests": 0,
+        "metadata_bytes": 0,
+        "resources": 8,
+        "error": null
+      },
+      "andbible-extra": {
+        "cached": true,
+        "updated": 1792817851.4035494,
+        "requests": 0,
+        "metadata_bytes": 0,
+        "resources": 22,
+        "error": null
+      },
+      "ebible": {
+        "cached": true,
+        "updated": 1792817852.581892,
+        "requests": 0,
+        "metadata_bytes": 0,
+        "resources": 1529,
+        "error": null
+      }
+    }
+  },
+  {
+    "name": "explicit-ebible",
+    "seconds": 0.34877597700005936,
+    "first_usable_provider_seconds": 0.3471366680000756,
+    "resources": 1529,
+    "errors": {},
+    "providers": {
+      "ebible": {
+        "requests": 1,
+        "metadata_bytes": 0,
+        "network_seconds": 0.34673219100022834,
+        "http_status": 304,
+        "resources": 1529,
+        "error": null
+      }
+    }
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "actual_ebible_resource": "ebible~frajnd2024eb",
+  "actual_transfer_started": true,
+  "resource_package_bytes": 2024947,
+  "initial_installed_count": 0,
+  "direct_download_did_not_open_details": true,
+  "no_automatic_selection": true,
+  "explicit_read": true,
+  "exact_local_sword_text": true,
+  "primary_context": true,
+  "library_from_notes": true,
+  "maximum_heartbeat_gap_seconds": 0.1884077550002985,
+  "automated_native_x11": true,
+  "keyboard_preferences": true,
+  "keyboard_shortcuts_help": true,
+  "keyboard_library_menu": true,
+  "menu_escape": true
+}

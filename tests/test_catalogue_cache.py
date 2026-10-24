@@ -52,3 +52,22 @@ class CatalogueCacheTests(unittest.TestCase):
             result=catalogues((CROSSWIRE,EXTRA),on_provider=ready)
         self.assertEqual(delivered,[EXTRA.id,CROSSWIRE.id])
         self.assertEqual({r.id for r in result.resources},{RESOURCE.id,extra.id})
+
+    def test_conditional_refresh_keeps_sources_and_records_zero_body_bytes(self):
+        import urllib.error
+        with tempfile.TemporaryDirectory() as directory:
+            cache=CatalogueCache(directory)
+            cache.write(CROSSWIRE,[RESOURCE],validators={'ETag':'"original"','Last-Modified':'Wed, 21 Oct 2026 12:00:00 GMT'})
+            observed=[]
+            def unchanged(provider,timings=None,validators=None):
+                observed.append(validators)
+                raise urllib.error.HTTPError(provider.catalogue_url,304,'Not Modified',{},None)
+            def ready(provider,items,error,timings):
+                self.assertIsNone(error);self.assertEqual(tuple(items),(RESOURCE,))
+                self.assertEqual(timings['metadata_bytes'],0);self.assertEqual(timings['requests'],1)
+                self.assertEqual(timings['http_status'],304)
+            with patch('bible.library.catalogue',side_effect=unchanged):
+                result=catalogues((CROSSWIRE,),cache=cache,force=True,on_provider=ready)
+            self.assertEqual(result.resources,(RESOURCE,));self.assertFalse(result.errors)
+            self.assertEqual(observed[0]['ETag'],'"original"')
+            self.assertEqual(cache.read(CROSSWIRE)[0],(RESOURCE,))

@@ -168,7 +168,7 @@ class ReadingTab(Gtk.Box):
         self.current = None
         self.text.get_buffer().set_text('')
         if not self.state.resource:
-            self.status.set_text(tr('No translation installed. Load the catalogue to choose one.')
+            self.status.set_text(tr('Choose or download a Bible. Downloaded texts are available offline.')
                                  if not self.library.installed('bible') else tr('Choose a translation'))
         elif self.state.resource not in self.library.installed('bible'):
             self.status.set_text(tr('This translation is no longer installed. Download it again or choose another translation.'))

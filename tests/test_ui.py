@@ -79,6 +79,9 @@ class WindowTests(unittest.TestCase):
     def window(self, directory):
         from bible.ui import Library, Window
         window = Window(self.app, Library(Path(directory) / 'translations'))
+        # These regression fixtures cover multiple languages, independently of
+        # the locale-default contract exercised by test_library_polish.
+        window.application_settings.set('library_language','')
         self.addCleanup(lambda: window.close() if not window.closed else None)
         window.present()
         return window
@@ -225,7 +228,7 @@ class WindowTests(unittest.TestCase):
             self.assertIsNone(window.active_tab.state.resource)
             window.close()
 
-    def test_hidden_download_window_finishes_and_refreshes_the_active_empty_tab(self):
+    def test_hidden_download_window_finishes_without_selecting_an_empty_tab(self):
         import threading
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
@@ -242,8 +245,8 @@ class WindowTests(unittest.TestCase):
                 self.assertFalse(dialog.get_visible())
                 release.set()
                 spin(lambda: not dialog.busy)
-                self.assertEqual(window.active_tab.state.resource, 'Test')
-                self.assertIsNotNone(window.active_tab.reader)
+                self.assertIsNone(window.active_tab.state.resource)
+                self.assertIsNone(window.active_tab.reader)
                 self.assertIsNone(first.state.resource)
                 window.view.set_selected_page(window.view.get_nth_page(0))
                 window.choose_passage()
@@ -447,7 +450,7 @@ class WindowTests(unittest.TestCase):
             window = self.window(directory)
             with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
                 dialog = window.open_library()
-                dialog.installed_only.set_active(True)
+                dialog.language.set_selected(0)
                 spin(lambda:not dialog.preparing and not dialog._building_rows)
                 self.assertEqual([r.name for r in dialog.filtered_resources], ['Test'])
                 self.assertIn('CrossWire', dialog.metadata.get_text())
@@ -544,10 +547,14 @@ class WindowTests(unittest.TestCase):
             self.assertIsNone(window.active_tab.state.resource)
             window.resource_installed('Notes')
             self.assertIsNone(window.active_tab.state.resource)
+            self.assertIsNone(window.active_tab.state.commentary)
+            window.open_installed_resource('Notes')
             self.assertEqual(window.active_tab.state.commentary, 'Notes')
             self.assertEqual(self.study_text(window), '')
             installed_fixture(directory)
             window.resource_installed('Test')
+            self.assertIsNone(window.active_tab.state.resource)
+            window.open_installed_resource('Test')
             self.assertEqual(window.active_tab.state.resource, 'Test')
             self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
             window.navigation.sync(force=True)

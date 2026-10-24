@@ -1,0 +1,56 @@
+{
+  "app_import": "/repo/bible/ui.py",
+  "offline": false,
+  "accessibility": "Deferred; not tested",
+  "reported_crash": "Not reproduced; no historical crash mechanism is claimed",
+  "application_constructor_seconds": 0.09454441199977737,
+  "startup_scroll_preparation": true,
+  "constructor_seconds": 0.09272254299958149,
+  "first_painted_frame_seconds": 0.16882549900037702,
+  "first_populated_frame_seconds": 0.4732576059996063,
+  "resources": 1941,
+  "languages": 1322,
+  "filtered_resources": 21,
+  "ready_seconds": 0.5898226159997648,
+  "maximum_heartbeat_gap_seconds": 0.09628594999958295,
+  "refresh_running": false,
+  "stages": {
+    "cache_read_seconds": 0.04137772500052961,
+    "installed_scan_seconds": 0.00029785200058540795,
+    "language_and_search_seconds": 0.014751558999705594,
+    "crosswire": {
+      "cached": true,
+      "updated": 1792819336.6524706,
+      "requests": 0,
+      "metadata_bytes": 0
+    },
+    "andbible-extra": {
+      "cached": true,
+      "updated": 1792819336.1164658,
+      "requests": 0,
+      "metadata_bytes": 0
+    },
+    "andbible": {
+      "cached": true,
+      "updated": 1792819335.5961232,
+      "requests": 0,
+      "metadata_bytes": 0
+    },
+    "step": {
+      "cached": true,
+      "updated": 1792819336.901005,
+      "requests": 0,
+      "metadata_bytes": 0
+    },
+    "ebible": {
+      "cached": true,
+      "updated": 1792819336.635958,
+      "requests": 0,
+      "metadata_bytes": 0
+    }
+  },
+  "native_pointer_reopen": true,
+  "reopen_constructor_seconds": 0.5206095150006149,
+  "notes_resources_reading_preserved": true,
+  "status": "PASS"
+}

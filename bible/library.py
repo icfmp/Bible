@@ -131,12 +131,14 @@ def compatible_notices(expected, actual, section):
     return conditions(expected.conditions,dates[0])==conditions(actual.conditions,dates[1])
 
 
-def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE):
+def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE, headers=None, response_headers=None):
     deadline=time.monotonic()+120
-    request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1',**(headers or {})})
     with urllib.request.urlopen(request, timeout=30) as response:
         if not response.url.startswith('https://'):
             raise ValueError('HTTPS required')
+        if response_headers is not None:
+            response_headers.update({key:response.headers[key] for key in ('ETag','Last-Modified') if response.headers.get(key)})
         try:
             total = max(0, int(response.headers.get('Content-Length', 0)))
         except (TypeError, ValueError):
@@ -161,12 +163,19 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
             raise ValueError('Incomplete download')
 
 
-def catalogue(provider=CROSSWIRE, timings=None):
+def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     started=time.monotonic()
     data = io.BytesIO()
     if provider not in PROVIDERS:
         raise ValueError('Unsupported resource source')
-    download(provider.catalogue_url, data, limit=8 * 1024 * 1024)
+    response_headers={}
+    headers={name:validators[key] for key,name in [('ETag','If-None-Match'),('Last-Modified','If-Modified-Since')]
+             if validators and key in validators}
+    if timings is not None:timings.update(requests=1,metadata_bytes=0)
+    try:
+        download(provider.catalogue_url, data, limit=8 * 1024 * 1024,headers=headers,response_headers=response_headers)
+    finally:
+        if timings is not None:timings.update(metadata_bytes=data.tell(),network_seconds=time.monotonic()-started)
     received=time.monotonic()
     resources = []
     expanded = 0
@@ -186,7 +195,8 @@ def catalogue(provider=CROSSWIRE, timings=None):
                         and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
                              or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
                     resources.append(resource_from_section(name, section, provider))
-    if timings is not None:timings.update(network_seconds=received-started,parse_seconds=time.monotonic()-received)
+    if timings is not None:timings.update(network_seconds=received-started,parse_seconds=time.monotonic()-received,
+                                        metadata_bytes=len(data.getvalue()),http_status=200,validators=response_headers)
     return sorted(resources, key=lambda r: (r.language, r.name))
 
 
@@ -199,16 +209,24 @@ class CatalogueResult:
 def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
     """One unavailable provider must not discard successful catalogues."""
     def load(provider):
+        started=time.monotonic()
         timings={};cached=cache.read(provider) if cache else None
         if cached and not force and time.time()-cached[1]<15*60:
-            return cached[0],None,{'cached':True,'updated':cached[1]}
+            return cached[0],None,{'cached':True,'updated':cached[1],'requests':0,'metadata_bytes':0}
         try:
-            items=catalogue(provider,timings=timings)
+            validators=cache.validators.get(provider.id,{}) if cache and cached else {}
+            items=catalogue(provider,timings=timings,**({'validators':validators} if validators else {}))
             if cache:
-                try:cache.write(provider,items)
+                try:cache.write(provider,items,validators=timings.get('validators'))
                 except OSError as error:timings['cache_error']=str(error)
             return items,None,timings
         except Exception as error:
+            import urllib.error
+            if isinstance(error,urllib.error.HTTPError) and error.code==304 and cached and error.geturl().startswith('https://'):
+                try:cache.write(provider,cached[0],validators=cache.validators.get(provider.id))
+                except OSError as write_error:timings['cache_error']=str(write_error)
+                timings.update(http_status=304,requests=1,metadata_bytes=0,network_seconds=time.monotonic()-started)
+                return cached[0],None,timings
             return cached[0] if cached else [],str(error),timings
     resources, errors = [], {}
     from .metadata_workers import MetadataExecutor

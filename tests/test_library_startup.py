@@ -43,6 +43,7 @@ class LibraryStartupTests(unittest.TestCase):
         from bible.ui import Application,Window
         app=Application.get_default() or Application();app.register()
         self.window=Window(app,Library(self.root/'translations'));self.window.present()
+        self.window.application_settings.set('library_language','en')
         self.enterContext(patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False))
 
     def tearDown(self):
@@ -105,8 +106,9 @@ class LibraryStartupTests(unittest.TestCase):
                 self.assertGreaterEqual(len(ticks),5)
                 self.assertLess(max(b-a for a,b in zip(ticks,ticks[1:])),.5)
                 dialog.choices.set_selected(7999);selected=dialog.selected_resource().id
+                generation=dialog._rows_generation
                 dialog.filter_resources()
-                self.assertTrue(dialog._building_rows);self.assertEqual(dialog.selected_resource().id,selected)
+                self.assertEqual(dialog._rows_generation,generation);self.assertEqual(dialog.selected_resource().id,selected)
         finally:GLib.source_remove(timer)
 
     def test_metadata_failure_is_visible_and_retry_does_not_remain_busy(self):
@@ -133,6 +135,7 @@ class LibraryStartupTests(unittest.TestCase):
         picker=LanguagePicker(lambda:None);changes=[]
         picker.strings.connect('items-changed',lambda _,position,removed,added:changes.append((removed,added)))
         picker.set_codes(['','fr'],{'fr':('French','French (fr)','fr')})
+        picker.filter(force=True)
         codes=['']+[f'fixture{i}' for i in range(2000)]+['fr']
         records={code:(code,code,code) for code in codes if code}
         records['fr']=('French','French (fr)','fr')
@@ -149,7 +152,7 @@ class LibraryStartupTests(unittest.TestCase):
         from tests.test_ui import installed_fixture
         first=self.window.open_library();spin(lambda:not first.busy);first.close()
         installed_fixture(self.root)
-        second=self.window.open_library();second.installed_only.set_active(True)
+        second=self.window.open_library()
         spin(lambda:'Test' in second.installed_ids())
         self.assertEqual(second.selected_resource().id,'Test')
         self.assertIn('Public Domain',second.metadata.get_text())

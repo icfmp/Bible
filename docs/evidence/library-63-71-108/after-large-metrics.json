@@ -1,0 +1,111 @@
+[
+  {
+    "file": "after-light-library-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      350,
+      690
+    ],
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-light-menu-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-light-welcome-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-light-notes-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-dark-library-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      350,
+      690
+    ],
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-dark-menu-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-dark-welcome-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-dark-notes-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "after-high-contrast-menu.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 98304,
+    "scale": 1
+  },
+  {
+    "file": "after-high-contrast-library.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      350,
+      690
+    ],
+    "dpi": 98304,
+    "scale": 1
+  }
+]

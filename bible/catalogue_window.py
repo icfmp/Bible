@@ -1,6 +1,7 @@
 """Catalogue/download UI kept separate from the reading surface."""
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+from threading import Event
 import time
 import gi
 
@@ -15,6 +16,7 @@ from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
 from .catalogue_session import CatalogueSession
+from .languages import canonical_language
 
 
 class ResourceItem(GObject.Object):
@@ -34,6 +36,7 @@ class CatalogueWindow(Adw.Window):
     def __init__(self, parent, library, on_installed):
         super().__init__(transient_for=parent, modal=True, title=tr('Library'),
                          default_width=560, default_height=640)
+        self.set_size_request(320,320)
         self.library, self.on_installed = library, on_installed
         self.owner = parent
         from .study_resources import StudyResources
@@ -46,6 +49,11 @@ class CatalogueWindow(Adw.Window):
         self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
         self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
         self._pending_resource=None
+        self._bound_rows={};self._task_resource=None;self._cancel=Event()
+        self._install_started=False
+        self.open_context=None
+        self.settings=parent.application_settings
+        self.language_choice=self.settings.language
         self.timings={}
         self._completed_resource=None
         self._failed_resource=None
@@ -75,10 +83,12 @@ class CatalogueWindow(Adw.Window):
         self.pages=Gtk.Stack(vexpand=True)
         explorer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_top=16)
         views=Gtk.Box(spacing=0,halign=Gtk.Align.CENTER);views.add_css_class('linked')
-        self.explore_button=Gtk.ToggleButton(label=tr('Explore'),active=True)
-        self.installed_only=Gtk.ToggleButton(label=tr('Installed resources'),group=self.explore_button)
-        self.installed_only.connect('toggled',self.update_languages)
-        views.append(self.explore_button);views.append(self.installed_only);explorer.append(views)
+        self.bibles_button=Gtk.ToggleButton(label=tr('Bibles'),active=True)
+        self.commentaries_button=Gtk.ToggleButton(label=tr('Commentaries'),group=self.bibles_button)
+        self.bibles_button.connect('toggled',lambda button:self.kind.set_selected(0) if button.get_active() else None)
+        self.commentaries_button.connect('toggled',lambda button:self.kind.set_selected(1) if button.get_active() else None)
+        views.append(self.bibles_button);views.append(self.commentaries_button);explorer.append(views)
+        self.type_tabs=views
         self.search=Gtk.SearchEntry(placeholder_text=tr('Search resources'),margin_start=12,margin_end=12)
         self.search.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search resources')])
         self.search.connect('search-changed',self.filter_resources);explorer.append(self.search)
@@ -86,20 +96,26 @@ class CatalogueWindow(Adw.Window):
         self.kind=Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'),tr('Commentaries'),tr('Study resources')]))
         self.kind.update_property([Gtk.AccessibleProperty.LABEL],[tr('Resource type')])
         self.kind.connect('notify::selected',self.update_languages)
-        filters.append(self.kind)
-        self.language=LanguagePicker(self.filter_resources);self.language.set_hexpand(True)
+        self.language=LanguagePicker(self.language_changed);self.language.set_hexpand(True)
+        self.language.prepare_languages=self.session.load_languages
         self.language.update_property([Gtk.AccessibleProperty.LABEL],[tr('Language')]);filters.append(self.language)
         explorer.append(filters)
-        self.source_filter=Gtk.DropDown(model=Gtk.StringList.new([tr('All sources')]+[p.name for p in PROVIDERS]),margin_start=12,margin_end=12)
+        self.source_filter=Gtk.DropDown(model=Gtk.StringList.new([tr('All sources')]+[p.name for p in PROVIDERS]))
+        from .version_chooser import bounded_choices
+        bounded_choices(self.source_filter)
         self.source_filter.update_property([Gtk.AccessibleProperty.LABEL],[tr('Source')])
-        self.source_filter.connect('notify::selected',self.update_languages);explorer.append(self.source_filter)
+        self.source_filter.connect('notify::selected',self.update_languages);filters.append(self.source_filter)
+        narrow=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
+        narrow.add_setter(filters,'orientation',Gtk.Orientation.VERTICAL)
+        self.add_breakpoint(narrow)
         self.choice_model=Gio.ListStore.new(ResourceItem)
         self.choices=Gtk.SingleSelection(model=self.choice_model)
         self.choices.connect('notify::selected',self.selection_changed)
         factory=Gtk.SignalListItemFactory()
         factory.connect('setup',self.setup_resource_row);factory.connect('bind',self.bind_resource_row)
+        factory.connect('unbind',lambda _,item:self._bound_rows.pop(item,None))
         self.resource_list=Gtk.ListView(model=self.choices,factory=factory,single_click_activate=True)
-        self.resource_list.add_css_class('navigation-sidebar')
+        self.resource_list.set_show_separators(True)
         self.resource_list.connect('activate',self.open_details)
         self.list_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.list_scroll.set_child(self.resource_list);explorer.append(self.list_scroll)
@@ -117,9 +133,15 @@ class CatalogueWindow(Adw.Window):
         self.installed_state.append(Gtk.Image(icon_name='emblem-ok-symbolic'))
         self.installed_state.append(Gtk.Label(label=tr('Installed — available offline'),wrap=True))
         detail.append(self.installed_state)
+        self.read_button=Gtk.Button(label=tr('Read'),halign=Gtk.Align.CENTER,visible=False)
+        self.read_button.connect('clicked',lambda *_:self.read_resource(self.selected_resource()))
+        detail.append(self.read_button)
         self.pages.add_named(detail,'detail');layout.append(self.pages)
         self.progress=Gtk.ProgressBar(margin_start=12,margin_end=12,visible=False)
         layout.append(self.progress)
+        self.cancel_button=Gtk.Button(child=Gtk.Label(label=tr('Cancel download'),wrap=True),halign=Gtk.Align.CENTER,visible=False)
+        self.cancel_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cancel download')])
+        self.cancel_button.connect('clicked',self.cancel_download);layout.append(self.cancel_button)
         self.status=Gtk.Label(xalign=0,wrap=True,selectable=True,margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         layout.append(self.status)
         self.refresh_status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12,margin_bottom=8)
@@ -166,24 +188,62 @@ class CatalogueWindow(Adw.Window):
 
     def auto_load(self,*_):
         if self.kind.get_selected()==2:return False
-        if not self.closed and not self._catalogue_requested and not self.busy and not self.installed_only.get_active():self.load_catalogue(force=False)
+        if not self.closed and not self._catalogue_requested and not self.busy and self.settings.value['automatic_catalogue_refresh']:self.load_catalogue(force=False)
         return False
 
     def setup_resource_row(self,_,item):
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12,margin_top=10,margin_bottom=10)
-        title=Gtk.Label(xalign=0,ellipsize=Pango.EllipsizeMode.END,max_width_chars=40,width_chars=1)
-        title.add_css_class('heading');box.append(title)
+        box=Gtk.Box(spacing=10,margin_start=12,margin_end=12,margin_top=10,margin_bottom=10)
+        labels=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,hexpand=True)
+        title=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,lines=2,ellipsize=Pango.EllipsizeMode.END,max_width_chars=40,width_chars=1)
+        title.add_css_class('heading');labels.append(title)
         subtitle=Gtk.Label(xalign=0,wrap=True,max_width_chars=40)
-        subtitle.add_css_class('dim-label');box.append(subtitle)
+        subtitle.add_css_class('dim-label');labels.append(subtitle);box.append(labels)
+        item.title=title;item.subtitle=subtitle
+        item.action=Gtk.Button(icon_name='folder-download-symbolic',valign=Gtk.Align.CENTER)
+        item.action.add_css_class('flat')
+        item.action.connect('clicked',lambda *_:self.row_action(item.get_item().resource) if item.get_item() else None)
+        box.append(item.action)
+        item.state=Gtk.Label(wrap=True,max_width_chars=12,valign=Gtk.Align.CENTER)
+        item.state.add_css_class('caption');box.append(item.state)
         item.set_child(box)
 
     def bind_resource_row(self,_,item):
         resource=item.get_item().resource
-        box=item.get_child();title=box.get_first_child();subtitle=title.get_next_sibling()
-        title.set_text(plain(resource.description))
-        installed=resource.id in getattr(self,'_installed_ids',set())
-        subtitle.set_text(self.language_label(resource.language)+' — '+resource.source+(' · '+tr('Installed') if installed else ''))
-        box.set_tooltip_text(resource.name+' · '+resource.language)
+        self._bound_rows[item]=resource
+        installed=resource.id in getattr(self,'_installed_ids',set()) and (resource.kind!='study' or resource.id in self._study_current)
+        busy=self._transfer_busy and self._task_resource==resource.id
+        stamp=(resource,installed,self._transfer_busy,self._phase if busy else None,
+               self.progress.get_text() if busy else None,self._failed_resource==resource.id)
+        if getattr(item,'_render_stamp',None)==stamp:return
+        item._render_stamp=stamp
+        item.title.set_text(plain(resource.description))
+        item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
+        item.state.set_text(tr('Installing and checking…') if busy and self._phase=='installing' else
+                            self.progress.get_text() or tr('Downloading…') if busy else tr('Installed') if installed else '')
+        item.state.set_visible(busy or installed)
+        item.action.set_icon_name('media-playback-start-symbolic' if installed else 'folder-download-symbolic')
+        label=tr('Read') if installed and resource.kind=='bible' else tr('Open') if installed else tr('Retry') if self._failed_resource==resource.id else tr('Download')
+        item.action.set_tooltip_text(label+' — '+plain(resource.description))
+        item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
+        item.action.set_sensitive(installed or (resource.installable and not self._transfer_busy))
+        item.action.set_visible(not (installed and resource.kind=='study'))
+        item.get_child().set_tooltip_text(resource.name+' · '+resource.language)
+
+    def refresh_rows(self):
+        for item in list(self._bound_rows):
+            if item.get_item():self.bind_resource_row(None,item)
+
+    def row_action(self,resource):
+        if resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current):self.read_resource(resource)
+        else:self.install(resource=resource)
+
+    def read_resource(self,resource):
+        if not resource or resource.id not in self.installed_ids():return
+        try:
+            if self.owner.open_installed_resource(resource.id,self.open_context):self.close();return
+            message=tr('This reading tab is no longer available. Open Library again from the intended tab.')
+        except (OSError,ValueError) as error:message=str(error)
+        self.status.set_text(message);self.status.set_visible(True)
 
     def open_details(self,_,index):
         self._list_position=self.list_scroll.get_vadjustment().get_value()
@@ -198,28 +258,38 @@ class CatalogueWindow(Adw.Window):
 
     def current_resources(self):
         if self.kind.get_selected()==2:
-            installed=self._study_installed
-            return [r for r in self.study_resources.available()
-                    if not self.installed_only.get_active() or r.id in installed]
-        resources = (list(self._installed_metadata.values())
-                     if self.installed_only.get_active() else self.resources)
+            return self.study_resources.available()
+        resources={r.id:r for r in self.resources};resources.update(self._installed_metadata)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
         index = self.source_filter.get_selected()
         provider_id = self.source_ids[index] if index < len(self.source_ids) else None
-        return [resource for resource in resources if resource.kind == kind
+        return [resource for resource in resources.values() if resource.kind == kind
                 and (provider_id is None or resource.provider_id == provider_id)]
 
     def update_languages(self, *_):
         study=self.kind.get_selected()==2
+        self.type_tabs.set_visible(not study)
+        if not study:
+            (self.commentaries_button if self.kind.get_selected()==1 else self.bibles_button).set_active(True)
+        wording=tr('Search resources') if study else tr('Search commentaries') if self.kind.get_selected()==1 else tr('Search Bibles')
+        self.search.set_placeholder_text(wording);self.search.update_property([Gtk.AccessibleProperty.LABEL],[wording])
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
         self.catalogue_button.set_visible(not study)
         self._filtering=True
-        self.languages=['']+sorted({r.language for r in self.current_resources()},key=lambda code:self.language_label(code).casefold())
+        self.languages=['']+sorted(({canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|{'en','fr'})-{''},key=lambda code:self.language_label(code).casefold())
         self.language.set_codes(self.languages,self._language_records)
+        self.language.set_selected(self.languages.index(canonical_language(self.language_choice)) if canonical_language(self.language_choice) in self.languages else 0)
         self._filtering=False
         self.filter_resources()
-        if not self.installed_only.get_active() and not self.busy and not self.resources and self.get_mapped():
+        if not self.busy and not self.resources and self.get_mapped():
             GLib.idle_add(self.auto_load)
+
+    def language_changed(self):
+        if self._filtering:return
+        self.language_choice=self.language.codes[self.language.get_selected()]
+        try:self.settings.set('library_language',self.language_choice)
+        except (OSError,ValueError) as error:self.status.set_text(str(error));self.status.set_visible(True)
+        self.filter_resources()
 
     def filter_resources(self, *_):
         if self.closed:return False
@@ -229,12 +299,20 @@ class CatalogueWindow(Adw.Window):
         selected_id=selected.id if selected else None
         position=self.list_scroll.get_vadjustment().get_value()
         index = self.language.get_selected()
-        language = self.languages[index] if index < len(self.languages) else ''
+        language = self.language.codes[index] if index < len(self.language.codes) else ''
         query = normalized(self.search.get_text())
-        self.filtered_resources = [r for r in self.current_resources()
-                                   if (not language or r.language == language)
-                                   and query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language)))))]
+        study=self.kind.get_selected()==2
+        selected_language=canonical_language(language)
+        rows = [r for r in self.current_resources()
+                                   if (study or not language or canonical_language(r.language) == selected_language)
+                                   and (not query or query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language))))))]
         self._installed_ids=set(self.installed_ids())
+        self.empty.set_visible(not rows)
+        self.empty.set_text(tr('No resources in {language}. Choose another language or refresh the selected source.').format(language=self.language_label(language)) if language else tr('No matching resource.'))
+        if rows==self.filtered_resources:
+            self.refresh_rows();self.selection_changed()
+            return
+        self.filtered_resources=rows
         self._rows_generation+=1;generation=self._rows_generation
         rows=self.filtered_resources;target=next((i for i,r in enumerate(rows) if r.id==selected_id),0)
         self._building_rows=True;self._pending_resource=rows[target] if rows else None
@@ -252,8 +330,9 @@ class CatalogueWindow(Adw.Window):
             self.list_scroll.get_vadjustment().set_value(position);self.selection_changed()
             if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
             return False
-        if append_rows():GLib.idle_add(append_rows)
-        self.empty.set_visible(not self.filtered_resources)
+        # Give GTK a frame between batches instead of filling its entire native
+        # row cache before the first layout of a large multi-script catalogue.
+        if append_rows():GLib.timeout_add(4,append_rows)
         self.selection_changed()
 
     def selected_resource(self):
@@ -279,6 +358,8 @@ class CatalogueWindow(Adw.Window):
         installed=bool(resource and resource.id in self.installed_ids())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
         self.installed_state.set_visible(current)
+        self.read_button.set_visible(current and resource.kind!='study')
+        self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
         self.download_button.set_visible(not current)
         self.download_button.set_label(tr('Update') if installed and not current else
                                        tr('Retry') if resource and resource.id==self._failed_resource else tr('Download'))
@@ -289,6 +370,9 @@ class CatalogueWindow(Adw.Window):
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
         self.progress.set_visible(self._transfer_busy or self._phase=='error')
+        self.cancel_button.set_visible(self._transfer_busy)
+        self.cancel_button.set_sensitive(self._phase=='downloading')
+        self.refresh_rows()
 
 
     def on_close(self, *_):
@@ -305,6 +389,8 @@ class CatalogueWindow(Adw.Window):
         if self._transfer_busy:
             return
         self._transfer_busy = True
+        self._cancel.clear();self._install_started=False;self._task_resource=resource.id if resource else None
+        self._task_caption=plain(resource.description) if resource else ''
         self._task_id += 1
         self._phase = "downloading"
         self._indeterminate = True
@@ -351,7 +437,9 @@ class CatalogueWindow(Adw.Window):
         self.refresh_status.set_visible(True)
         self.refresh_status.set_text(tr('Refreshing sources… Cached resources remain available.'))
         self.refresh_controls()
-        self.session.refresh(catalogue,force);self._refresh_generation=self.session.generation
+        index=self.source_filter.get_selected()
+        providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
+        self.session.refresh(catalogue,force,providers);self._refresh_generation=self.session.generation
 
     def stop_animation(self):
         if self._pulse_id:
@@ -376,7 +464,7 @@ class CatalogueWindow(Adw.Window):
             _, self._phase, done, total = pending
             self._indeterminate = self._phase == 'installing' or not total
             if self._phase == 'installing':
-                self.status.set_text(tr('Installing and checking…'))
+                self.status.set_text(tr('Installing {name} and checking…').format(name=self._task_caption) if self._task_caption else tr('Installing and checking…'))
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr('Installing and checking…'))
             else:
@@ -386,14 +474,27 @@ class CatalogueWindow(Adw.Window):
                                         if total else ' — ' + tr('Size unknown')))
         if self._indeterminate:
             self.progress.pulse()
+        self.cancel_button.set_sensitive(self._phase=='downloading');self.refresh_rows()
         return True
 
     def report_progress(self, done, total):
+        if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
         self.queue_progress('downloading', done, total)
 
-    def install(self, *_):
-        resource = self.selected_resource()
-        if not resource or not resource.installable or self._transfer_busy:
+    def cancel_download(self,*_):
+        with self._progress_lock:
+            if not self._install_started:self._cancel.set()
+        self.cancel_button.set_sensitive(False)
+
+    def begin_installation(self):
+        with self._progress_lock:
+            if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
+            self._install_started=True
+            self._pending_progress=(self._task_id,'installing',0,0)
+
+    def install(self, *_, resource=None):
+        resource = resource or self.selected_resource()
+        if not resource or not resource.installable or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
             return
 
         def installed(_):
@@ -406,6 +507,6 @@ class CatalogueWindow(Adw.Window):
         installer=self.study_resources if resource.kind=='study' else self.library
         self.task(tr('Downloading {name}…').format(name=resource.name),
                   lambda: installer.install(resource, self.report_progress,
-                                                installing=lambda: self.queue_progress('installing')),
+                                                installing=self.begin_installation),
                   installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
 

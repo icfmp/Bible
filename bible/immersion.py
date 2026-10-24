@@ -86,12 +86,15 @@ class Immersion(Gtk.Overlay):
         owner.appearance_button.popdown();owner.appearance_button.set_popover(None)
         self.aa.set_popover(owner.appearance)
         commands=Gio.Menu()
-        commands.append_section(None,owner.menu.get_menu_model())
         if self.kind=='commentary':
             commands.append(tr('Previous available entry'),'win.previous-commentary-entry')
             commands.append(tr('Next available entry'),'win.next-commentary-entry')
             commands.append(tr('Open this passage in the Bible'),'win.immersive-open-bible')
-        self.menu=Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands)
+        from .application_surfaces import application_menu
+        self.menu=application_menu()
+        if self.kind=='commentary':
+            contextual=Gtk.MenuButton(icon_name='view-more-symbolic',menu_model=commands,tooltip_text=tr('Commentary actions'))
+            header.pack_start(contextual)
         header.pack_start(self.menu);header.pack_end(self.aa);header.pack_end(self.leave_button)
         self.header=header
         if self.kind=='bible':

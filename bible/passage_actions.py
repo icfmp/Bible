@@ -84,7 +84,8 @@ class PassageActions:
             self.highlight_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight')])
             self.actions.append(self.highlight_button)
             self.highlight_popover=self.menu(self.highlight_button,[(label,lambda *_,c=color:self.highlight(c))
-                for color,(_,label) in COLORS.items()]+[('Remove highlight',lambda *_:self.highlight(None))])
+                for color,(_,label) in COLORS.items()]+[('Remove highlight',lambda *_:self.highlight(None)),
+                    ('All highlights',lambda *_:owner.open_highlights())])
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.compare_button=self.button('view-dual-symbolic','Compare translations',lambda *_:self.compare())
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())

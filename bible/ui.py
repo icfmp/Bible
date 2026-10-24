@@ -33,6 +33,13 @@ class Window(Adw.ApplicationWindow):
         super().__init__(application=app, title='Bible', default_width=960, default_height=700)
         self.set_size_request(360, 320)
         self.library = library
+        from .application_settings import ApplicationSettings
+        if not hasattr(app,'_application_settings'):app._application_settings={}
+        key=library.root.parent.resolve()
+        if key not in app._application_settings:app._application_settings[key]=ApplicationSettings(key)
+        self.application_settings=app._application_settings[key]
+        offer_welcome=self.application_settings.first_launch
+        self.application_settings.first_launch=False
         self.store = SessionStore(session_path or library.root.parent / 'session.json')
         self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
         from .study_settings import StudySettings
@@ -86,16 +93,10 @@ class Window(Adw.ApplicationWindow):
         header.set_title_widget(self.passage_button)
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
+        self.new_tab_button=new
         header.pack_start(new)
-        commands = Gio.Menu()
-        for label,action in [('Passage note','note'),('My notes','notes'),('Highlights','highlights'),('New tab','new-tab'),
-                             ('Library','translations'),('History back','history-back'),('History forward','history-forward'),
-                             ('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
-                             ('Compare translations','compare'),('Immersive mode','immersive')]:
-            commands.append(tr(label),'win.'+action)
-        self.menu = Gtk.MenuButton(icon_name='open-menu-symbolic',menu_model=commands,tooltip_text=tr('Notes and commands'))
-        self.menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Notes and commands')])
-        self.library_button = library_button = Gtk.Button(icon_name='bible-library-symbolic',tooltip_text=tr('Library'),action_name='win.translations')
+        from .application_surfaces import application_menu
+        self.menu=application_menu()
         self.my_notes_button=Gtk.Button(icon_name='accessories-text-editor-symbolic',tooltip_text=tr('My notes'),action_name='win.notes')
         self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-right-symbolic',tooltip_text=tr('Study'))
         self.study_button.connect('toggled',self.toggle_study)
@@ -114,6 +115,9 @@ class Window(Adw.ApplicationWindow):
         self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
         self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
         comparison_box.append(self.stop_comparison)
+        self.download_comparison=Gtk.Button(label=tr('Download more…'))
+        self.download_comparison.connect('clicked',lambda *_:self.contextual_library('bible','comparison'))
+        comparison_box.append(self.download_comparison)
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
         from .popover_dismissal import install, fit_reader_popover
@@ -121,15 +125,14 @@ class Window(Adw.ApplicationWindow):
         self._popover_dismissal = install(self, self._reading_popovers)
         self.comparison_popover.connect('show',lambda *_:fit_reader_popover(self.comparison_popover,self))
         self._comparison_syncing=False
-        # pack_end packs from the outside in: menu is immediately before the
-        # native window controls, library before menu, My notes before library.
-        for widget,label in [(self.menu,'Notes and commands'),(library_button,'Library'),
+        # pack_end keeps Study, My notes and the global menu in that order.
+        for widget,label in [(self.menu,'Main menu'),
                              (self.my_notes_button,'My notes'),(self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
         # Explicit native symbolic size leaves Header Bar hit targets untouched.
-        for button in (self.library_button,self.my_notes_button,self.study_button):
+        for button in (self.my_notes_button,self.study_button):
             image=Gtk.Image(icon_name=button.get_icon_name(),pixel_size=16)
             button.set_child(image)
         from .version_chooser import VersionChooser
@@ -153,6 +156,8 @@ class Window(Adw.ApplicationWindow):
         layout.append(self.notes_status)
         self.view = Adw.TabView(vexpand=True)
         self.bar = Adw.TabBar(view=self.view, autohide=False)
+        self.tab_new_button=Gtk.Button(icon_name='tab-new-symbolic',tooltip_text=tr('New tab'),action_name='win.new-tab',visible=False)
+        self.tab_new_button.add_css_class('flat');self.bar.set_end_action_widget(self.tab_new_button)
         layout.append(self.bar)
         layout.append(self.view)
         self.header = header
@@ -185,10 +190,10 @@ class Window(Adw.ApplicationWindow):
         tiny_header.add_setter(self.split, 'collapsed', True)
         # Adw breakpoints do not stack: the tiny layout also needs the drawer's
         # adaptive sizing and its single visible set of native window controls.
-        tiny_header.add_setter(library_button, 'visible', False)
-        tiny_header.add_setter(new, 'visible', False)
-        tiny_header.add_setter(self.my_notes_button,'visible',False)
-        tiny_header.add_setter(self.study_button,'visible',False)
+        # Removing Library frees room for the existing mouse routes; the new
+        # global menu no longer duplicates these reading/workspace commands.
+        tiny_header.add_setter(new,'visible',False)
+        tiny_header.add_setter(self.tab_new_button,'visible',True)
         self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
@@ -214,6 +219,12 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('new-tab', lambda *_: self.new_tab())
         self.add_action_callback('close-tab', lambda *_: self.close_tab())
         self.add_action_callback('translations', lambda *_: self.open_library())
+        from .application_surfaces import show_preferences,show_shortcuts,show_about
+        self.add_action_callback('preferences',lambda *_:show_preferences(self))
+        self.add_action_callback('shortcuts',lambda *_:show_shortcuts(self))
+        self.add_action_callback('about',lambda *_:show_about(self))
+        app.set_accels_for_action('win.preferences',['<Control>comma'])
+        app.set_accels_for_action('win.shortcuts',['<Control>question'])
         self.add_action_callback('choose-passage', lambda *_: self.choose_passage())
         self.add_action_callback('reference', lambda *_: self.choose_passage(direct=True))
         self.add_action_callback('previous-chapter', lambda *_: self.step_chapter(-1))
@@ -271,6 +282,10 @@ class Window(Adw.ApplicationWindow):
         self._initializing = False
         self.selected_changed()
         self.study_divider.apply()
+        from .application_surfaces import welcome_page
+        self.welcome=welcome_page(self);self.main_pages.add_named(self.welcome,'welcome')
+        if offer_welcome and not self.active_tab.reader:self.main_pages.set_visible_child_name('welcome')
+        if self.application_settings.error:self.report_session_error(tr('Unable to load application preferences. Original file preserved.'),self.application_settings.error)
 
     def fit_reader_controls(self,*_):
         tab=self.active_tab
@@ -432,6 +447,9 @@ class Window(Adw.ApplicationWindow):
         tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
         self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
         self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
+        tab.download_bible=Gtk.Button(label=tr('Download a Bible'),halign=Gtk.Align.CENTER,visible=tab.reader is None)
+        tab.download_bible.connect('clicked',lambda *_:self.open_library('bible',context=self.library_context(tab,'bible')))
+        tab.insert_child_after(tab.download_bible,tab.status)
         page = self.view.append(tab)
         def selection_changed(*_):
             if self.active_tab is tab and self.study.tool in ('notes','references'):
@@ -591,6 +609,7 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def tab_changed(self, tab):
+        if hasattr(tab,'download_bible'):tab.download_bible.set_visible(tab.reader is None)
         active=self.active_tab
         context=(id(active),id(active.reader),active.state.resource) if active else None
         if context!=getattr(self,'_reference_context',None):
@@ -657,12 +676,25 @@ class Window(Adw.ApplicationWindow):
         self.place_dialog.present(self)
         return self.place_dialog
 
-    def open_library(self, kind=None):
-        if self.immersion:self.leave_immersion()
+    def library_context(self,tab,destination):
+        import weakref
+        return (weakref.ref(tab),destination)
+
+    def contextual_library(self,kind,destination):
+        self.dismiss_popovers()
+        return self.open_library(kind,context=self.library_context(self.active_tab,destination))
+
+    def dismiss_popovers(self):
+        for popover in self._reading_popovers:popover.popdown()
+        for popover in self.study.popovers:popover.popdown()
+
+    def open_library(self, kind=None, context=None):
         if self.catalogue_window is None or self.catalogue_window.closed:
             self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
         if kind is not None:
             self.catalogue_window.kind.set_selected({'commentary':1,'study':2}.get(kind,0))
+        elif self.catalogue_window.kind.get_selected()==2:self.catalogue_window.kind.set_selected(0)
+        self.catalogue_window.open_context=context
         self.catalogue_window.present()
         return self.catalogue_window
 
@@ -677,22 +709,44 @@ class Window(Adw.ApplicationWindow):
                     elif name==TOPIC_RESOURCE_ID:window.navigation.topic_search.refresh()
                     elif getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
             return
-        resource = self.library.resource(name)
-        if resource.kind == 'commentary':
-            self.study._readers.pop(name, None)
-            if self.active_tab:
-                self.active_tab.state.commentary = name
-                self.study_button.set_active(True)
-                self.study.refresh(force=True)
-                self.schedule_save()
-            return
-        for tab in self.tabs():
-            if tab.state.resource is None and tab is self.active_tab:
-                tab.state.resource = name
-            if tab.state.resource == name:
-                tab.load_resource()
-                self.tab_changed(tab)
-        self.update_navigation()
+        # Installation refreshes choices, never the user's selected resource.
+        for window in self.get_application().get_windows():
+            if not isinstance(window,Window) or window.closed or window.library.root!=self.library.root:continue
+            if getattr(window,'catalogue_session',None):window.catalogue_session.reload_installed()
+            for tab in window.tabs():
+                if tab.state.resource==name:tab.load_resource();window.tab_changed(tab)
+            window.study._readers.pop(name,None)
+            window.study.refresh(force=True)
+            window.primary_version.sync();window.compared_version.sync();window.sync_comparison()
+
+    def open_installed_resource(self,name,context=None):
+        tab=context[0]() if context else self.active_tab
+        destination=context[1] if context else 'bible'
+        if tab not in self.tabs():return False
+        resource=self.library.resource(name)
+        def open_now():
+            if self.closed or tab not in self.tabs():return
+            if self.immersion:self.leave_immersion()
+            self.view.set_selected_page(self.view.get_page(tab))
+            if resource.kind=='commentary':
+                tab.state.commentary=name;self.study.tools.set_visible_child_name('commentaries')
+                self.study_button.set_active(True);self.study.refresh(force=True)
+            elif destination=='comparison':
+                tab.state.comparison=name;self.sync_comparison()
+            else:
+                from .sword_provider import Reader
+                from .reference_resolution import resolve
+                reader=Reader(self.library.root/name,name)
+                reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
+                if not self.navigate_selection(name,reference):return
+            self.main_pages.set_visible_child_name('reading');self.schedule_save()
+        if self.main_pages.get_visible_child_name()=='notes':
+            def guarded_open():
+                try:open_now()
+                except (OSError,ValueError) as error:self.report_session_error(tr('Unable to read this passage.'),error)
+            self.notes_space.guard(guarded_open)
+        else:open_now()
+        return True
 
     def notes_changed(self):
         for tab in self.tabs():

@@ -46,7 +46,12 @@ def main():
     def frame(*_):
         frames[0]+=1
         if frames[0]<2:return True
-        report['first_painted_frame_seconds']=time.monotonic()-start;return False
+        report.setdefault('first_painted_frame_seconds',time.monotonic()-start)
+        first=dialog[0].resource_list.get_first_child()
+        if dialog[0].choice_model.get_n_items() and first and first.get_height()>0:
+            report.setdefault('first_populated_frame_seconds',time.monotonic()-start)
+            return False
+        return dialog[0].busy or not dialog[0]._catalogue_requested
     dialog[0].add_tick_callback(frame)
     def finish():
         d=dialog[0]
@@ -60,6 +65,7 @@ def main():
             # Real caches can be stale: keep the cached view interactive while
             # its refresh is running rather than waiting for every provider.
             report.update(resources=len(d.resources),languages=len(d.languages),
+                filtered_resources=len(d.filtered_resources),
                 ready_seconds=time.monotonic()-start,maximum_heartbeat_gap_seconds=max(gaps,default=0),
                 refresh_running=d.refreshing,stages=dict(d.timings))
             before=(window.active_tab.state.reference,list(window.active_tab.state.history))
@@ -69,7 +75,8 @@ def main():
             d.close()
             reopened_at=time.monotonic()
             if native:
-                native.activate(window);native.click(window.library_button);reopened=window.catalogue_window
+                menu=window.welcome_menu if window.main_pages.get_visible_child_name()=='welcome' else window.menu
+                native.activate(window);native.click(menu);native.click(menu.global_actions[0]);reopened=window.catalogue_window
                 report['native_pointer_reopen']=reopened is not d and reopened.get_mapped()
                 assert report['native_pointer_reopen']
             else:reopened=window.open_library()

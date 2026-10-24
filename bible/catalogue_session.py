@@ -6,7 +6,7 @@ from weakref import WeakMethod
 from .metadata_workers import MetadataExecutor
 from .catalogue_cache import CatalogueCache
 from .providers import PROVIDERS
-from .languages import language_info,search_terms
+from .languages import language_info,search_terms,available_languages
 from .book_names import normalized
 from .study_resources import StudyResources
 
@@ -34,6 +34,8 @@ class CatalogueSession:
         self.lock=RLock();self.closed=False;self.listeners=[];self.snapshot=None
         self.providers={};self.installed={};self.study_installed=frozenset();self.study_current=frozenset()
         self.language_records={};self.metrics={};self.errors={};self.refreshing=False
+        self.language_inventory=frozenset()
+        self.language_future=None
         self.refresh_future=None;self.installed_future=None;self.revision=0;self.generation=0
         self.bootstrap_future=self.schedule(self.bootstrap)
 
@@ -83,6 +85,15 @@ class CatalogueSession:
         with self.lock:self.providers=providers;self.metrics['cache_read_seconds']=time.monotonic()-start
         self.scan_installed();self.publish()
 
+    def load_languages(self):
+        """Complete offline ISO choices on demand, independently of catalogue IO."""
+        with self.lock:
+            if self.closed or self.language_future:return self.language_future
+            def prepare():
+                self.language_inventory=available_languages();self.publish()
+            self.language_future=self.schedule(prepare)
+            return self.language_future
+
     def reload_installed(self):
         def work():
             self.scan_installed();self.publish()
@@ -92,17 +103,17 @@ class CatalogueSession:
             self.installed_future=self.schedule(work)
             return self.installed_future
 
-    def refresh(self,fetch,force):
+    def refresh(self,fetch,force,providers=PROVIDERS):
         with self.lock:
             if self.closed:return None
             if self.refresh_future and not self.refresh_future.done():return self.refresh_future
             if self.bootstrap_future.done() and self.bootstrap_future.exception() is not None:
                 self.bootstrap_future=self.schedule(self.bootstrap)
             self.refreshing=True;self.errors={};self.generation+=1
-            self.refresh_future=self.network.submit(self.fetch,fetch,force)
+            self.refresh_future=self.network.submit(self.fetch,fetch,force,tuple(providers))
             return self.refresh_future
 
-    def fetch(self,fetch,force):
+    def fetch(self,fetch,force,providers):
         def provider_ready(provider,items,error,timings):
             with self.lock:
                 if self.closed:return
@@ -113,11 +124,11 @@ class CatalogueSession:
         try:
             self.bootstrap_future.result()
             if self.closed:return
-            result=fetch(on_provider=provider_ready,cache=self.cache,force=force)
+            result=fetch(providers=providers,on_provider=provider_ready,cache=self.cache,force=force)
             resources=getattr(result,'resources',result)
             with self.lock:
                 if self.closed:return
-                self.providers={p.id:tuple(r for r in resources if r.provider_id==p.id) for p in PROVIDERS}
+                self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers})
                 self.errors=dict(getattr(result,'errors',{}))
         except Exception as error:
             with self.lock:self.errors={'Library':str(error)}
@@ -133,7 +144,7 @@ class CatalogueSession:
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
             metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing;generation=self.generation
         start=time.monotonic();all_resources=(*resources,*installed.values(),*self.study.available())
-        languages={r.language for r in all_resources}
+        languages={r.language for r in all_resources}|self.language_inventory
         for code in languages:
             if self.closed:return
             if code not in self.language_records:
@@ -141,7 +152,7 @@ class CatalogueSession:
                 display=name+((' — '+native) if native and native.casefold()!=name.casefold() else '')+f' ({code})'
                 self.language_records[code]=(name,display,normalized(search_terms(code)))
         records={code:self.language_records[code] for code in languages}
-        terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][0]))) for r in all_resources}
+        terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][2]))) for r in all_resources}
         metrics['language_and_search_seconds']=time.monotonic()-start
         snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation)
         with self.lock:

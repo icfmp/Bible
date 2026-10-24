@@ -1,0 +1,91 @@
+[
+  {
+    "file": "before-light-library-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      409,
+      690
+    ],
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-light-menu-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-light-welcome-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-dark-library-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      409,
+      690
+    ],
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-dark-menu-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-dark-welcome-large-text.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 147456,
+    "scale": 1
+  },
+  {
+    "file": "before-high-contrast-menu.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": null,
+    "dpi": 98304,
+    "scale": 1
+  },
+  {
+    "file": "before-high-contrast-library.png",
+    "window": [
+      350,
+      690
+    ],
+    "dialog": [
+      350,
+      690
+    ],
+    "dpi": 98304,
+    "scale": 1
+  }
+]

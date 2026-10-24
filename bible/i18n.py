@@ -321,3 +321,29 @@ FR.update({
     'Copy verses with reference':'Copier les versets avec la référence',
     'Copy reference':'Copier la référence',
 })
+
+FR.update({
+    'Main menu':'Menu principal', 'Preferences':'Paramètres', 'Keyboard Shortcuts':'Raccourcis clavier',
+    'About Bible':'À propos de Bible', 'Reading and application':'Lecture et application',
+    'Preferred resource language':'Langue des ressources par défaut',
+    'Choose which resources appear first. Reading appearance remains in Aa.':'Choisissez les ressources à afficher en premier. L’apparence de lecture reste dans Aa.',
+    'Refresh catalogues automatically':'Actualiser les catalogues automatiquement',
+    'Check metadata when Library opens. Resource texts download only on request.':'Vérifier les catalogues à l’ouverture de la bibliothèque. Les textes sont téléchargés uniquement sur demande.',
+    'Unable to save application preferences.':'Impossible d’enregistrer les paramètres de l’application.',
+    'Read and study the Bible. Downloaded resources keep their own licenses.':'Lire et étudier la Bible. Les ressources téléchargées conservent leurs propres licences.',
+    'Third-party notices':'Mentions des composants tiers',
+    'Welcome to Bible':'Bienvenue dans Bible',
+    'Choose a Bible to start reading and studying.':'Choisissez une Bible pour commencer à lire et à étudier.',
+    'Your downloaded texts stay available offline.':'Vos textes téléchargés restent disponibles hors connexion.',
+    'Choose my Bible':'Choisir ma Bible', 'Later':'Plus tard', 'Download a Bible':'Télécharger une Bible',
+    'Download more…':'Télécharger davantage…', 'Read':'Lire', 'Open':'Ouvrir',
+    'Search Bibles':'Rechercher une Bible', 'Search commentaries':'Rechercher un commentaire',
+    'Downloading…':'Téléchargement…', 'Cancel download':'Annuler le téléchargement',
+    'Download cancelled.':'Téléchargement annulé.',
+    'No resources in {language}. Choose another language or refresh the selected source.':'Aucune ressource en {language}. Choisissez une autre langue ou actualisez la source sélectionnée.',
+    'This reading tab is no longer available. Open Library again from the intended tab.':'Cet onglet de lecture n’est plus disponible. Rouvrez la bibliothèque depuis l’onglet souhaité.',
+})
+FR.update({'Choose or download a Bible. Downloaded texts are available offline.':'Choisissez ou téléchargez une Bible. Les textes téléchargés restent disponibles hors connexion.'})
+FR.update({'Unable to load application preferences. Original file preserved.':'Impossible de charger les paramètres de l’application. Le fichier original est conservé.'})
+FR.update({'All highlights':'Tous les surlignages'})
+FR.update({'Installing {name} and checking…':'Installation et vérification de {name}…'})
