@@ -70,6 +70,7 @@ class AlphaStorageTests(unittest.TestCase):
         from tools.flatpak_channel import REF
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory); repo = site / 'alpha/repo'; content = site / 'content'; content.mkdir()
+            repo.parent.mkdir()
             storage.command('ostree', f'--repo={repo}', 'init', '--mode=archive-z2')
             commits = []
             for n in range(14):
