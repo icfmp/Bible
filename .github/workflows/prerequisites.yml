@@ -54,7 +54,7 @@ jobs:
         run: |
           set -o pipefail
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v | tee test-results.log
-          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui tests.test_workspace_features tests.test_appearance tests.test_immersion tests.test_reading_sync tests.test_pagination tests.test_reading_direction tests.test_library_polish -v | tee ui-fr-results.log
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui tests.test_workspace_features tests.test_appearance tests.test_immersion tests.test_reading_sync tests.test_pagination tests.test_reading_direction tests.test_library_polish tests.test_annotation_workspace -v | tee ui-fr-results.log
       - name: Interactions souris et clavier réelles sous Xvfb
         env:
           LANGUAGE: fr
@@ -67,6 +67,7 @@ jobs:
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_reading_ui | tee native-reading-results.log
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_scroll_sync | tee native-scroll-results.log
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_passage_note_cards /tmp/passage-note-cards.json | tee native-note-cards-results.log
+          /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.check_annotation_workspace | tee native-annotation-workspace-results.log
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
         if: success() || failure()
         env:
@@ -97,6 +98,7 @@ jobs:
             native-reading-results.log
             native-scroll-results.log
             native-note-cards-results.log
+            native-annotation-workspace-results.log
             affiliated-commentary.log
             affiliated-commentary-result.json
           if-no-files-found: warn
@@ -133,7 +135,8 @@ jobs:
       - name: Vérifier les cartes et brouillons dans le Flatpak installé
         run: |
           set -o pipefail
-          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations", "tests.test_study_references", "tests.test_reference_data", "tests.test_library_polish", "tests.test_library_startup"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations", "tests.test_study_references", "tests.test_reference_data", "tests.test_library_polish", "tests.test_library_startup", "tests.test_annotation_workspace"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); from tools.check_annotation_workspace import main; main()' 2>&1 | tee packaged-annotation-workspace-results.log
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
@@ -164,6 +167,7 @@ jobs:
             SHA256SUMS
             build-info.json
             packaged-note-cards-results.log
+            packaged-annotation-workspace-results.log
           if-no-files-found: error
           retention-days: 30
 

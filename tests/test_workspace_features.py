@@ -43,10 +43,13 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                 w.navigate_selection('Test','Gen.2.1');tab=w.active_tab
                 space=w.open_notes();space.create_note();editor=space.editor
                 editor.body.get_buffer().set_text('A local note')
-                space.leave();self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
+                from unittest.mock import patch
+                with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
+                    space.leave()
+                self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
                 editor._confirmation.response('cancel');spin()
                 self.assertFalse(editor.closed);self.assertTrue(editor.dirty)
-                space.leave();editor._confirmation.response('save');spin()
+                space.leave();spin()
                 self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
                 self.assertEqual(w.notes_store.all()[0].body,'A local note')
                 self.assertIs(w.active_tab,tab);self.assertEqual(tab.state.reference,'Gen.2.1')
@@ -62,7 +65,10 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                 # print to stderr while a unittest can still appear to pass.
                 self.assertIn('A local note',visible_labels(space.list))
                 space.open_note(w.notes_store.all()[0]);editor=space.editor
-                editor.body.get_buffer().set_text('Discard me');space.leave();editor._confirmation.response('discard');spin()
+                editor.body.get_buffer().set_text('Discard me')
+                with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
+                    space.leave()
+                editor._confirmation.response('discard');spin()
                 self.assertEqual(w.notes_store.all()[0].body,'A local note')
                 self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
             finally:

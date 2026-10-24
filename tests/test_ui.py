@@ -11,12 +11,35 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
     from bible.ui import GLib
     deadline = time.monotonic() + timeout
     minimum = time.monotonic() + duration
-    while time.monotonic() < deadline:
-        GLib.MainContext.default().iteration(False)
-        if time.monotonic() >= minimum and until():
-            return
-        time.sleep(0.005)
-    raise AssertionError('GTK layout/task did not settle')
+    loop = GLib.MainLoop()
+    settled = False
+    errors = []
+    def check():
+        try:
+            return check_condition()
+        except BaseException as error:
+            errors.append(error)
+            loop.quit()
+            return False
+    def check_condition():
+        nonlocal settled
+        now = time.monotonic()
+        if now >= minimum and until():
+            settled = True
+            loop.quit()
+            return False
+        if now >= deadline:
+            loop.quit()
+            return False
+        return True
+    # Run the native event loop: processing just one event every 5 ms can
+    # starve idle completions behind frame/layout events in a full GTK suite.
+    GLib.timeout_add(5, check)
+    loop.run()
+    if errors:
+        raise errors[0]
+    if not settled:
+        raise AssertionError('GTK layout/task did not settle')
 
 
 def installed_fixture(directory, name='Test', long_text=False, entries=None, versification='KJV', nt_only=False):
@@ -378,9 +401,10 @@ class WindowTests(unittest.TestCase):
             self.assertTrue(window.study.header.get_show_end_title_buttons())
             window.set_default_size(360, 600)
             spin(lambda: window.get_width() <= 380 and window.split.get_collapsed())
-            self.assertGreater(window.passage_button.get_width(), 50)
             self.assertTrue(window.previous.get_visible())
             window.study_button.set_active(False)
+            spin(lambda:window.passage_button.get_mapped())
+            self.assertGreater(window.passage_button.get_width(),50)
             window.lookup_action('choose-passage').activate(None)
             spin(lambda: window.navigation.get_visible())
             self.assertLessEqual(window.navigation.get_width(), 360,
@@ -565,9 +589,9 @@ class WindowTests(unittest.TestCase):
             self.assertIn(tr('No verified alignment for this passage.'),
                           window.study.status.get_text())
             self.assertIn('LXX', window.study.status.get_text())
-            dialog = window.open_library('commentary')
             resources = [window.library.resource(name) for name in window.library.installed()]
             with patch('bible.catalogue_window.catalogue', return_value=resources):
+                dialog = window.open_library('commentary')
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy)
             self.assertEqual({r.name for r in dialog.filtered_resources}, {'CatholicNotes', 'Notes'})
@@ -652,10 +676,10 @@ class WindowTests(unittest.TestCase):
             central.labels.entry.set_text('FOI')
             central.labels.add()
             central.refresh()
-            self.assertEqual([n.id for n in central.rows], [first.id])
+            self.assertEqual([a.note.id for a in central.rows if a.note], [first.id])
             central.search.set_text('Genèse 1:1')
             central.refresh()
-            self.assertEqual([n.id for n in central.rows], [first.id])
+            self.assertEqual([a.note.id for a in central.rows if a.note], [first.id])
             central.list.emit('activate', 0)
             self.assertEqual(window.active_tab.state.reference, 'Gen.2.1')  # Editing in My notes does not navigate the reader.
             self.assertEqual(window.note_editor.note.id, first.id)
@@ -691,7 +715,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(editor.note.labels, ('Keep',))
             editor.close()
             central = window.open_notes()
-            self.assertEqual([n.id for n in central.rows], [note.id])
+            self.assertEqual([a.note.id for a in central.rows if a.note], [note.id])
             window.close()
 
     def test_note_delete_and_unsaved_close_require_confirmation(self):

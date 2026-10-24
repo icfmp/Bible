@@ -56,17 +56,19 @@ class NoteCitationTests(unittest.TestCase):
         self.assertEqual(editor.body.get_buffer().get_iter_at_mark(editor.body.get_buffer().get_insert()).get_offset(),cursor)
         self.assertEqual(w.notes_store.get(self.note.id),self.note)
 
-    def test_dirty_editor_cancel_then_save_guards_explicit_new_tab_without_retargeting_note(self):
+    def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(self):
         from bible.notes_window import buffer_text
         w=self.window;editor=self.editor();editor.body.get_buffer().insert_at_cursor(' unsaved')
         before=(w.active_tab.state.reference,w.view.get_n_pages())
-        editor.preview.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
+        from unittest.mock import patch
+        with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
+            editor.preview.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
         self.assertTrue(editor._confirmation.get_visible())
         self.assertEqual((w.active_tab.state.reference,w.view.get_n_pages()),before)
         editor._confirmation.response('cancel');editor._confirmation.destroy();spin()
         self.assertFalse(editor.closed);self.assertIn('unsaved',buffer_text(editor.body))
         editor.preview.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
-        editor._confirmation.response('save');editor._confirmation.destroy();spin()
+        self.assertTrue(editor.closed)
         self.assertEqual(w.view.get_n_pages(),before[1]+1)
         self.assertEqual(w.active_tab.state.reference,'Ps.3.1');self.assertEqual(w.active_tab.state.resource,'English')
         saved=w.notes_store.get(self.note.id)

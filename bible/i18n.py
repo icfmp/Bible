@@ -371,3 +371,25 @@ FR.update({
     'Applies at next launch. Your annotations and downloaded resources are kept.':'S’applique au prochain démarrage. Vos annotations et ressources téléchargées sont conservées.',
     'Reading appearance stays in Aa. Existing note backups remain available in My notes.':'L’apparence de lecture reste dans Aa. Les sauvegardes de notes existantes restent disponibles dans Mes notes.',
 })
+FR.update({
+    'Notes and highlights':'Notes et surlignages', 'Application space':'Espace de l’application',
+    'Notes':'Notes', 'All':'Tout', 'Filters':'Filtres', 'Annotation actions':'Actions sur les annotations',
+    'Each note and each saved verse highlight counts once. Related records stay separate.':'Chaque note et chaque verset surligné compte une fois. Les éléments associés restent distincts.',
+    'All books':'Tous les livres', 'Book':'Livre', 'All colors':'Toutes les couleurs',
+    'Highlight color':'Couleur du surlignage', 'Search annotations':'Rechercher des annotations',
+    'Sort annotations':'Trier les annotations', 'Back to annotations':'Retour aux annotations',
+    'Open in Bible':'Ouvrir dans la Bible', 'Excerpt translation':'Traduction de l’extrait',
+    'Choose an annotation':'Choisissez une annotation', 'Your annotations remain available offline.':'Vos annotations restent disponibles hors connexion.',
+    'Original source':'Source d’origine', 'No matching annotations.':'Aucune annotation correspondante.',
+    'No annotations yet.':'Aucune annotation pour le moment.', 'No installed Bible':'Aucune Bible installée',
+    'Install a Bible to display this passage. Your annotation is kept.':'Installez une Bible pour afficher ce passage. Votre annotation est conservée.',
+    'Displayed in':'Extrait affiché dans', 'Excerpt':'Extrait',
+    'Passage unavailable or no verified alignment.':'Passage indisponible ou correspondance non vérifiée.',
+    'Related annotations':'Annotations associées', 'More related records are available in the list.':'D’autres éléments associés sont disponibles dans la liste.',
+    'Remove this highlight?':'Supprimer ce surlignage ?', 'The related notes are kept.':'Les notes associées sont conservées.',
+    'This highlight changed elsewhere. Reopen it before editing.':'Ce surlignage a été modifié ailleurs. Rouvrez-le avant de le modifier.',
+    'Saving…':'Enregistrement…', 'Press Enter to add the label before saving.':'Appuyez sur Entrée pour ajouter le label avant d’enregistrer.',
+})
+FR.update({'Highlight annotation':'Surlignage'})
+FR.update({'Date sorting uses note modification dates. Highlights without dates follow in Bible order.':'Le tri par date utilise la modification des notes. Les surlignages sans date suivent dans l’ordre biblique.'})
+FR.update({'Unable to save this note. Your draft is kept.':'Impossible d’enregistrer cette note. Votre brouillon est conservé.'})

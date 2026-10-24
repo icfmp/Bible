@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "actual_sqlite_note": true,
+  "labels": true,
+  "actual_highlight": true,
+  "explicit_reading_preferences": true,
+  "primary_and_comparison_session": true,
+  "resource_file_digests": 36,
+  "before_source": "f69de06e730445da634b5a3866084c3fce97171d",
+  "after_source": "validated feature working tree; final CI records exact commit"
+}

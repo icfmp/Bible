@@ -27,7 +27,8 @@ class PassageNotes(Gtk.Box):
         self.editor_panel.add_css_class('annotation-card');self.editor_panel.add_css_class('card')
         self.append(self.editor_panel)
         self.list=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);self.append(self.list)
-        self.footer=Gtk.Button(label=tr('All my annotations'),halign=Gtk.Align.START,action_name='win.notes')
+        self.footer=Gtk.Button(label=tr('All my annotations'),halign=Gtk.Align.START)
+        self.footer.connect('clicked',lambda *_:self.open_collection())
         self.footer.add_css_class('flat');self.append(self.footer)
         css=Gtk.CssProvider()
         css.load_from_data(b'.annotation-card { padding: 12px; border: 1px solid alpha(currentColor,0.16); border-radius: 12px; } '
@@ -47,6 +48,18 @@ class PassageNotes(Gtk.Box):
     def close(self):
         self.owner.reading_style.manager.disconnect(self.contrast_handler)
         Gtk.StyleContext.remove_provider_for_display(self.owner.get_display(),self.css)
+
+    def open_collection(self):
+        source_editor=self.editor
+        tab=self.owner.active_tab;reader=tab.reader if tab else None
+        start,end=tab.selected_passage() if reader else (None,None)
+        notes=sorted(self.annotations.notes(reader,start,end,self.owner.notes_store),key=lambda note:(note.created,note.id)) if reader and self.owner.notes_store else []
+        marks=self.annotations.highlights(reader,start,end,self.owner.highlights) if reader else []
+        fallback=(('note',notes[0].id) if notes else ('highlight',marks[0]['system'],marks[0]['reference']) if marks else None)
+        def shown(space):
+            key=('note',source_editor.note.id) if source_editor and source_editor.note else fallback
+            if key:space.reveal(key)
+        return self.owner.open_notes(on_open=shown)
 
     def clear(self,box):
         while box.get_first_child():box.remove(box.get_first_child())

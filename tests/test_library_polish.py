@@ -96,11 +96,11 @@ class LibraryPolishTests(unittest.TestCase):
 
     def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self):
         w=self.window;w.welcome_skip.emit('clicked');w.set_default_size(360,700);spin()
-        for button in [w.tab_new_button,w.my_notes_button,w.study_button]:
+        for button in [w.tab_new_button,w.space_selector,w.study_button]:
             self.assertTrue(button.get_visible());self.assertTrue(button.get_mapped())
         self.assertFalse(w.new_tab_button.get_visible())
         before=w.view.get_n_pages();w.tab_new_button.emit('clicked');self.assertEqual(w.view.get_n_pages(),before+1)
-        w.my_notes_button.emit('clicked');self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
+        w.space_selector.set_selected(1);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
 
     def test_global_menu_preferences_shortcuts_about_and_notes_share_routes(self):
         w=self.window
@@ -220,7 +220,8 @@ class LibraryPolishTests(unittest.TestCase):
         w.resource_installed('Other')
         self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
         self.assertEqual(editor.body.get_buffer().props.text,'Actual unsaved draft — keep this text')
-        w.open_installed_resource('Other')
+        with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
+            w.open_installed_resource('Other')
         self.assertEqual(w.active_tab.state.resource,original)
         self.assertTrue(editor._confirmation.get_visible())
         editor._confirmation.response('cancel')

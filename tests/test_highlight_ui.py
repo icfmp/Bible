@@ -65,8 +65,12 @@ class HighlightUITests(unittest.TestCase):
                 self.assertEqual(window.highlights.path.read_bytes(),before)
                 self.assertEqual(len(tab.state.history),history)
                 panel=window.open_highlights();panel.search.set_text('Gen');panel.refresh()
-                self.assertEqual(len(panel.rows),2);panel.activate(None,0)
+                self.assertEqual(len(panel.rows),2)
+                panel.activate(None,next(i for i,a in enumerate(panel.rows) if a.start=='Gen.1.2'))
+                self.assertEqual(window.active_tab.state.reference,'Gen.1.1')
+                panel.open_passage()
                 self.assertEqual(window.active_tab.state.reference,'Gen.1.2')
+                self.assertEqual(tab.state.reference,'Gen.1.1')
             finally:window.close()
 
     def test_missing_system_does_not_open_a_different_passage_or_delete_mark(self):
@@ -79,7 +83,7 @@ class HighlightUITests(unittest.TestCase):
                 panel.activate(None,0)
                 self.assertEqual(window.active_tab.state.reference,reference)
                 self.assertIn(('Segond','Ps.3.2'),window.highlights.entries)
-                self.assertTrue(panel.status.get_text());panel.close()
+                self.assertFalse(panel.open_button.get_sensitive());self.assertTrue(panel.excerpt.get_text());panel.close()
             finally:window.close()
 
     def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self):
