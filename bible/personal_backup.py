@@ -24,6 +24,15 @@ def atomic(path,data):
         if temporary:temporary.unlink(missing_ok=True)
 
 
+def retire(marker):
+    # Persist the highlight rename before retiring the cross-store journal,
+    # then persist its removal before allowing subsequent annotation edits.
+    descriptor=os.open(marker.parent,os.O_RDONLY)
+    try:
+        os.fsync(descriptor);marker.unlink();os.fsync(descriptor)
+    finally:os.close(descriptor)
+
+
 def decode(data):
     if len(data)>LIMIT:raise ValueError('Personal backup exceeds the size limit')
     value=json.loads(data)
@@ -67,6 +76,7 @@ def export(notes,highlights,destination):
 def recover(notes,highlights):
     marker=notes.path.parent/'annotation-restore.pending.json'
     if not marker.exists():return False
+    if highlights.error:raise ValueError('Highlights cannot be validated during recovery. Original file preserved.')
     record=json.loads(marker.read_text())
     if not isinstance(record,dict) or set(record)!={'backup','sha256'} or not isinstance(record['backup'],str) or not record['backup'].startswith('before-restore-') or '/' in record['backup'] or '\\' in record['backup']:raise ValueError('Invalid restore recovery record')
     backup=notes.path.parent/'backups'/record['backup']
@@ -78,7 +88,7 @@ def recover(notes,highlights):
         notes.db.execute('BEGIN IMMEDIATE');notes.db.execute('DELETE FROM notes');notes.db.execute('DELETE FROM labels')
         for note in originals:notes._write(note)
         write_marks(highlights.path,marks)
-    highlights.entries=marks;highlights.error='';marker.unlink();notes.generation+=1;return True
+    highlights.entries=marks;highlights.error='';retire(marker);notes.generation+=1;return True
 
 
 def restore(notes,highlights,source):
@@ -107,7 +117,7 @@ def restore(notes,highlights,source):
                 if key in merged and merged[key]!=mark:conflicts+=1
                 else:merged[key]=mark
             write_marks(highlights.path,merged)
-        highlights.entries=merged;notes.generation+=1;marker.unlink()
+        highlights.entries=merged;notes.generation+=1;retire(marker)
     except Exception:
         # Rollback is repeatable after a process interruption; retain marker
         # until both original stores have been recovered successfully.
