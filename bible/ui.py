@@ -926,9 +926,14 @@ class Window(Adw.ApplicationWindow):
     def on_close(self, *_):
         if self.immersion:self.leave_immersion()
         if self.note_editor and not self.note_editor.closed:
-            self.note_editor.after_close = self.close
+            def close_later():
+                if not self.closed:self.close()
+                return False
+            self.note_editor.after_close = lambda:GLib.idle_add(close_later)
             self.note_editor.close()
-            return True
+            # Synchronous autosave/clean close can finish inside close-request.
+            # Continue this request; a nested Gtk.Window.close is ignored.
+            if not self.note_editor.closed:return True
         if self._save_id:
             GLib.source_remove(self._save_id)
             self._save_id = 0

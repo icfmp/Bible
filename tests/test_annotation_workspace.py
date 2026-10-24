@@ -66,7 +66,8 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(s.editor.note.id,self.second.id);self.assertTrue(editor.closed)
         editor.autosave_pending();self.assertEqual(w.notes_store.get(self.second.id).body,self.second.body)
         s.editor.body.get_buffer().set_text('Flushed at normal shutdown')
-        w.close()
+        w.close();spin(lambda:w.closed)
+        self.assertTrue(w.closed)
         from bible.ui import Window
         self.window=w=Window(self.app,w.library);w.present();spin()
         self.assertEqual(w.notes_store.get(self.second.id).body,'Flushed at normal shutdown')
