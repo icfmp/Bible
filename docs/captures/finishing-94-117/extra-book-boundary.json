@@ -1,0 +1,1046 @@
+{
+  "seconds": 4.000136296002893,
+  "frames": 80,
+  "states": [
+    {
+      "time": 1.5730038285255432e-06,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.05521836100524524,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.39963812300266,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.42518552399997134,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.43973105000623036,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.45289169200259494,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.46396033900236944,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.474184252001578,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.4840328100035549,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": true,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Acts', index=248)",
+      "slide": false
+    },
+    {
+      "time": 0.5081760460016085,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.7127275180027937,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.7388682250020793,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.760550384002272,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.7712861340041854,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.7847379660015577,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.7991868600001908,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.8113029090018244,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.8500958250006079,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.9000996130052954,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 0.9500943780003581,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 1.000096123003459,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.0500884930006578,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.100087088001601,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.150100390004809,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.2001061410046532,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.2501087470009224,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.3001000470030704,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.3500973650006927,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.4001017830014462,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.450090699006978,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 1.5001138860025094,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.5501018810027745,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.600094772002194,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.6500948050015722,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.7000813170016045,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.7500985940059763,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": true
+    },
+    {
+      "time": 1.8001292620028835,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 1.8500975770002697,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 1.9001227520057,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 1.9501105360031943,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.0001229670015164,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.0501118230022257,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.1001171530006104,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.150117556004261,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.20009379300609,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.2501014610024868,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.3001360350026516,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.350106534002407,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.400103752006544,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.450145856004383,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=2)",
+      "slide": false
+    },
+    {
+      "time": 2.500117791001685,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.5501002270029858,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": false,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.600097676004225,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.6501219640049385,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.700117250002222,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.750119716001791,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": true
+    },
+    {
+      "time": 2.800093919002393,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 2.8501011620028294,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 2.90008933700301,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 2.950094818006619,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.000098736003565,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.0501037660069414,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.1000882550069946,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.150098683006945,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.2001368110068142,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.25011945800361,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.300096035003662,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.3500940350058954,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.4001027600024827,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.450111796002602,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.5000938510056585,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.5501199120044475,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.6001227280066814,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.650125605003268,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.7000918370031286,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.750121584002045,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.800108697003452,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.850116670000716,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.9001241639998625,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    },
+    {
+      "time": 3.9501305049998336,
+      "geometry": [
+        547,
+        633,
+        2
+      ],
+      "ready": true,
+      "top": false,
+      "page_height": 657,
+      "cursor": "PageAddress(key='Rom', index=0)",
+      "slide": false
+    }
+  ]
+}

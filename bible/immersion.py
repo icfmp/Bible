@@ -368,11 +368,13 @@ class Immersion(Gtk.Overlay):
 
     def go_to_reference(self,reference):
         if self.kind!='bible':return
+        self.cancel_slide()
         self.clicked_reference=None
         key=self.source.key(reference);self.initial_anchor=Anchor(reference);self.initial_key=key
         self.stream.configure(self.stream.width,self.stream.height,self.initial_anchor,key);self.render()
 
     def change_entry(self,direction):
+        self.cancel_slide()
         key=self.source.entry_neighbour(self.stream.cursor.key,direction)
         if key is None:return
         doc=self.source.document(key,self.owner.preferences.value)

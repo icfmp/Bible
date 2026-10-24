@@ -23,6 +23,7 @@ class CatalogueSnapshot:
     errors: dict
     refreshing: bool
     generation: int
+    covered_providers: frozenset = frozenset()
 
 
 class CatalogueSession:
@@ -117,7 +118,7 @@ class CatalogueSession:
         def provider_ready(provider,items,error,timings):
             with self.lock:
                 if self.closed:return
-                self.providers[provider.id]=tuple(items)
+                if not error or items:self.providers[provider.id]=tuple(items)
                 if error:self.errors[provider.name]=str(error)
                 self.metrics[provider.id]=dict(timings);self.revision+=1;revision=self.revision
             self.schedule(self.publish,revision)
@@ -128,8 +129,8 @@ class CatalogueSession:
             resources=getattr(result,'resources',result)
             with self.lock:
                 if self.closed:return
-                self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers})
                 self.errors=dict(getattr(result,'errors',{}))
+                self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers if p.name not in self.errors})
         except Exception as error:
             with self.lock:self.errors={'Library':str(error)}
         finally:
@@ -142,7 +143,7 @@ class CatalogueSession:
             if self.closed or revision is not None and revision!=self.revision:return
             resources=tuple(sorted((r for rows in self.providers.values() for r in rows),key=lambda r:(r.language,r.name,r.provider_id)))
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
-            metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing;generation=self.generation
+            metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing;generation=self.generation;covered=frozenset(self.providers)
         start=time.monotonic();all_resources=(*resources,*installed.values(),*self.study.available())
         languages={r.language for r in all_resources}|self.language_inventory
         for code in languages:
@@ -154,7 +155,7 @@ class CatalogueSession:
         records={code:self.language_records[code] for code in languages}
         terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][2]))) for r in all_resources}
         metrics['language_and_search_seconds']=time.monotonic()-start
-        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation)
+        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered)
         with self.lock:
             if self.closed:return
             self.snapshot=snapshot;listeners=[ref() for ref in self.listeners if ref() is not None]

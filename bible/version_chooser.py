@@ -1,5 +1,5 @@
 """Pane-local installed Bible choices over the existing tab/session state."""
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, GObject
 from .i18n import tr
 from .providers import module_name
 
@@ -19,6 +19,28 @@ def bounded_choices(dropdown):
     dropdown.set_enable_search(False)
 
 
+class DirectChoices(Gtk.ScrolledWindow):
+    """One native list, with the same selection contract in every pane."""
+    selected=GObject.Property(type=GObject.TYPE_UINT,default=Gtk.INVALID_LIST_POSITION)
+    def __init__(self):
+        super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=360,propagate_natural_height=True)
+        self.list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.list.add_css_class('boxed-list');self.set_child(self.list);self.rows=[]
+        self.list.connect('row-activated',lambda _,row:self.set_selected(row.get_index()))
+    def set_model(self,model):
+        while self.list.get_first_child():self.list.remove(self.list.get_first_child())
+        self.rows=[]
+        for i in range(model.get_n_items()):
+            box=Gtk.Box(spacing=12,margin_top=10,margin_bottom=10,margin_start=12,margin_end=12)
+            text=Gtk.Label(label=model.get_string(i),xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36,hexpand=True)
+            check=Gtk.Image(icon_name='object-select-symbolic',opacity=0);box.append(text);box.append(check);self.list.append(box);self.rows.append(check)
+    def get_selected(self):return self.selected
+    def set_selected(self,index):
+        for i,check in enumerate(self.rows):check.set_opacity(1 if i==index else 0)
+        self.list.select_row(self.list.get_row_at_index(index) if index<len(self.rows) else None)
+        self.selected=index
+
+
 class VersionChooser(Gtk.MenuButton):
     def __init__(self, owner, comparison=False):
         super().__init__(tooltip_text=tr('Version'))
@@ -28,11 +50,10 @@ class VersionChooser(Gtk.MenuButton):
         row=Gtk.Box(spacing=4);row.append(self.caption);row.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
         self.set_child(row)
         self.popover=Gtk.Popover(autohide=False)
-        self.choices=Gtk.DropDown()
-        bounded_choices(self.choices)
+        self.choices=DirectChoices()
         self.choices.connect('notify::selected',self.selected)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
-        box.append(Gtk.Label(label=tr('Version'),xalign=0));box.append(self.choices)
+        box.append(self.choices)
         self.download_more=Gtk.Button(label=tr('Download more…'))
         self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
         box.append(self.download_more)
@@ -80,7 +101,7 @@ class VersionChooser(Gtk.MenuButton):
         if not tab:return
         name=self.names[widget.get_selected()]
         current=tab.state.comparison if self.comparison else tab.state.resource
-        if name==current:return
+        if name==current:self.popover.popdown();return
         self.owner.passage_actions.dismiss()
         try:
             if self.comparison:

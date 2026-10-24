@@ -52,7 +52,6 @@ class ReadingTab(Gtk.Box):
         self._verse_start_tag = self.text.get_buffer().create_tag('verse-start', allow_breaks=False)
         self._heading_tag = self.text.get_buffer().create_tag(None, weight=700, pixels_above_lines=16, pixels_below_lines=12)
         self._chapter_tag = self.text.get_buffer().create_tag(None, weight=700, justification=Gtk.Justification.CENTER, pixels_above_lines=20, pixels_below_lines=20)
-        self.text.set_tooltip_text(tr('Click a verse to select it. Alt+Up/Down selects the previous/next verse.'))
         self._selected_tag = self.text.get_buffer().create_tag(None, weight=700)
         self._annotated_tag = self.text.get_buffer().create_tag(None, underline=1)
         self.verse_click = Gtk.GestureClick(button=1)

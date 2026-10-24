@@ -86,7 +86,8 @@ def config(data):
             pending = ''
     if pending:
         logical_lines.append(pending)
-    parser.read_string('\n'.join(logical_lines))
+    try:parser.read_string('\n'.join(logical_lines))
+    except configparser.Error as error:raise ValueError('Invalid resource configuration: '+str(error)) from error
     # Preserve repeated legal statements; ConfigParser normally keeps only the
     # final occurrence, whereas SWORD permits repeated configuration keys.
     legal, section = {}, None
@@ -254,7 +255,12 @@ class Library:
                       and (p / '.complete').is_file())
         if kind is None:
             return names
-        return [name for name in names if self.resource(name).kind == kind]
+        matching=[];self.discovery_errors={}
+        for name in names:
+            try:
+                if self.resource(name).kind==kind:matching.append(name)
+            except (OSError,ValueError) as error:self.discovery_errors[name]=str(error)
+        return matching
 
     def resource(self, name):
         """Read installed attribution offline, also for pre-existing installations."""
@@ -272,6 +278,7 @@ class Library:
         if (provider is None or identity(provider_id, internal) != name
                 or metadata.get('module_name', internal) != internal):
             raise ValueError('Installed source identity mismatch')
+        if internal not in parser:raise ValueError('Installed module configuration is missing')
         resource = resource_from_section(internal, parser[internal], provider)
         # Read the recorded attribution, not today's registry URL, offline.
         return replace(resource, source=metadata.get('source', resource.source),

@@ -1,0 +1,21 @@
+{
+  "native_api": "Gtk.Snapshot.push_blur / GSK blur node",
+  "renderer": "cairo",
+  "radii": [
+    0,
+    8
+  ],
+  "measured_rectangle": [
+    431,
+    661,
+    759,
+    778
+  ],
+  "different_pixels_inside_surface": 22805,
+  "gtk_version": [
+    4,
+    14,
+    5
+  ],
+  "diagnostic": "Only the internal blur radius was temporarily overridden; full unedited native screenshots."
+}

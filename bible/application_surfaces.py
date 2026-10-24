@@ -79,6 +79,7 @@ def show_preferences(owner):
 
 def show_shortcuts(owner):
     window=Gtk.ShortcutsWindow(transient_for=owner,modal=True,title=tr('Keyboard Shortcuts'))
+    window.add_css_class(owner.reading_style.scope+'-window')
     section=Gtk.ShortcutsSection(section_name='application',title=tr('Bible'))
     group=Gtk.ShortcutsGroup(title=tr('Reading and application'))
     for label,action in [
@@ -100,6 +101,7 @@ def show_about(owner):
         developers=['icfmp'],website='https://github.com/icfmp/Bible',
         issue_url='https://github.com/icfmp/Bible/issues',license_type=Gtk.License.GPL_2_0_ONLY,
         comments=tr('Read and study the Bible. Downloaded resources keep their own licenses.'))
+    window.add_css_class(owner.reading_style.scope+'-window')
     window.add_link(tr('Third-party notices'),'https://github.com/icfmp/Bible/blob/main/THIRD_PARTY_NOTICES.md')
     window.present();owner.about_window=window
     return window
@@ -111,11 +113,12 @@ def welcome_page(owner):
     header.pack_start(WorkspaceSelector(owner))
     owner.welcome_menu=application_menu();header.pack_end(owner.welcome_menu);view.add_top_bar(header)
     page=Adw.StatusPage(title=tr('Welcome to Bible'),description=tr('Choose a Bible to start reading and studying.'),icon_name='io.github.icfmp.Bible')
+    owner.welcome_status=page
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,halign=Gtk.Align.CENTER)
     box.append(Gtk.Label(label=tr('Your downloaded texts stay available offline.'),wrap=True,max_width_chars=34,justify=Gtk.Justification.CENTER))
     choose=Gtk.Button(label=tr('Choose my Bible'));choose.add_css_class('suggested-action');choose.add_css_class('pill')
     choose.connect('clicked',lambda *_:owner.open_library('bible'))
-    skip=Gtk.Button(label=tr('Later'));skip.add_css_class('flat');skip.connect('clicked',lambda *_:owner.main_pages.set_visible_child_name('reading'))
+    skip=Gtk.Button(label=tr('Later'));skip.add_css_class('flat');skip.connect('clicked',lambda *_:owner.open_notes())
     box.append(choose);box.append(skip);page.set_child(box);view.set_content(page)
     owner.welcome_choose=choose;owner.welcome_skip=skip
     return view

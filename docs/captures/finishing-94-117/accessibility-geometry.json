@@ -1,0 +1,30 @@
+[
+  {
+    "file": "narrow-150-percent",
+    "width": 350,
+    "height": 690,
+    "scale": 2,
+    "new_tab_mapped": true
+  },
+  {
+    "file": "high-contrast-day",
+    "width": 1190,
+    "height": 790,
+    "scale": 2,
+    "new_tab_mapped": true
+  },
+  {
+    "file": "high-contrast-night",
+    "width": 1190,
+    "height": 790,
+    "scale": 2,
+    "new_tab_mapped": true
+  },
+  {
+    "file": "preferences-150-percent",
+    "width": 1190,
+    "height": 790,
+    "scale": 2,
+    "new_tab_mapped": true
+  }
+]

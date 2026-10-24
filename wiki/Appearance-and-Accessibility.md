@@ -32,9 +32,9 @@ If you want to return to the defaults, select **Reset reading settings**.
 
 Under **Reading mode**, choose:
 
-- **System** — follow your desktop's light or dark appearance.
-- **Day** — use the light appearance.
-- **Night** — use the dark appearance.
+- **System** — follow **Preferences → Interface appearance**; its System choice follows the desktop.
+- **Light** — explicitly use the light appearance.
+- **Dark** — explicitly use the dark appearance.
 
 You can also select a palette for each appearance:
 
@@ -42,6 +42,8 @@ You can also select a palette for each appearance:
 | --- | --- |
 | **White** — clear white background | **Dark grey** — softer dark background |
 | **Paper (sepia)** — warmer, paper-like background | **Black** — black background |
+
+The active reading tab’s palette also colors the window header, tab strip, menus, comparison, Notes and study drawer. Paper has a slightly darker warm study surface; Black keeps a true-black reader and near-black chrome. Inactive tabs retain their saved palette choices. High contrast takes precedence. Font, spacing and visibility controls keep their existing shared behavior.
 
 Try different combinations of typography, spacing and palettes to find a comfortable balance.
 

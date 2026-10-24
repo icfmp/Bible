@@ -65,7 +65,11 @@ Highlights apply to biblical verses and are kept separately from your notes. The
 
 ## Protect your notes
 
-**The alpha version does not yet provide a user-facing notes backup and restore feature.** Notes are stored locally, so take care to preserve your application data before reinstalling Linux or changing installation methods. Consult the [alpha migration guide](https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md) before migrating.
+Open **Main menu → Preferences → Data and backups** to export or restore personal annotations. The versioned JSON contains notes, labels, passage/source context and highlights. It excludes installed Bibles, settings and credentials; the exported personal annotations are **not encrypted**.
+
+Restore validates the complete file and asks for confirmation before merging. Existing highlights win on conflicts; differing notes with the same identifier are copied, and identical notes are skipped. A verified safety backup is saved first. Original Bible packages are not required to restore annotations. Legacy note-only/highlight-only backups remain supported.
+
+These annotation backups do not replace a full application-data migration. Consult the [alpha migration guide](https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md) before changing installation methods.
 
 ## Delete a note
 

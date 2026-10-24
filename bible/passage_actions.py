@@ -1,9 +1,11 @@
 """Intent-driven passage actions with frozen source/range/copy targets."""
 from dataclasses import dataclass
-from gi.repository import Gdk, GLib, Gtk, Pango
+from gi.repository import Gdk, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
 from .providers import module_name
+
+BACKDROP_BLUR=8
 
 
 @dataclass(frozen=True)
@@ -52,24 +54,69 @@ def target(view,source,factory,clicked=None):
     return Target(source,view,factory,refs,text,tuple(verses),bool(selection),anchor)
 
 
+class Backdrop(Gtk.Widget):
+    """Blur only the underlying reader at this small, clipped action surface."""
+    def do_snapshot(self,snapshot):
+        bounds=Graphene.Rect().init(0,0,self.get_width(),self.get_height())
+        radius=Graphene.Size().init(16,16)
+        rounded=Gsk.RoundedRect().init(bounds,radius,radius,radius,radius)
+        snapshot.push_rounded_clip(rounded)
+        surface=self.get_parent()
+        actions=getattr(surface,'actions_owner',None)
+        target=actions.target if actions else None
+        high=bool(actions and actions.owner.reading_style.manager.get_high_contrast())
+        if target and not high:
+            view=target.view
+            found,point=view.compute_point(self,Graphene.Point().init(0,0))
+            if found:
+                snapshot.push_blur(BACKDROP_BLUR)
+                # Bound the blur input as well as its rounded output: never
+                # allocate an offscreen texture the height of an entire book.
+                sample=Graphene.Rect().init(bounds.origin.x-24,bounds.origin.y-24,bounds.size.width+48,bounds.size.height+48)
+                snapshot.push_clip(sample);snapshot.save();snapshot.translate(point)
+                surface.backdrop.snapshot(snapshot,view.get_width(),view.get_height())
+                snapshot.restore();snapshot.pop();snapshot.pop()
+        snapshot.pop()
+
+
+class ActionSurface(Gtk.Overlay):
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.background=Backdrop(hexpand=True,vexpand=True)
+        self.set_child(self.background)
+
+    def set_backdrop(self,view):
+        import weakref
+        self.backdrop=Gtk.WidgetPaintable.new(view)
+        background=weakref.ref(self.background)
+        def changed(*_):
+            widget=background()
+            if widget:widget.queue_draw()
+        self.backdrop.connect('invalidate-contents',changed)
+        self.backdrop.connect('invalidate-size',changed)
+        self.background.queue_draw()
+
+
 class PassageActions:
     def __init__(self,owner):
         self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0
         self.clearance=None;self.intent=0
-        self.bar=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
+        self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
-        self.bar.add_css_class('card')
+        self.bar.actions_owner=self
         self.bar.add_css_class('passage-actions')
+        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        content.add_css_class('passage-actions-content')
+        self.bar.add_overlay(content);self.bar.set_measure_overlay(content,True)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
         identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
         self.label.add_css_class('heading')
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
         self.version_label.add_css_class('dim-label')
-        identity.append(self.label);identity.append(self.version_label);self.bar.append(identity)
-        self.bar.append(Gtk.Separator())
+        identity.append(self.label);identity.append(self.version_label);content.append(identity)
         self.actions=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER)
-        self.actions.add_css_class('toolbar');self.bar.append(self.actions)
+        self.actions.add_css_class('toolbar');content.append(self.actions)
         self.copy_button=self.button('edit-copy-symbolic','Copy selected text',lambda *_:self.copy())
         self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy options'))
         self.copy_options.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy options')])
@@ -180,7 +227,7 @@ class PassageActions:
         if not source:return False
         value=target(view,source,factory,clicked)
         if not value:self.dismiss();return False
-        self.target=value
+        self.target=value;self.bar.set_backdrop(view)
         parent=self.bar.get_parent()
         if parent is not source.parent:
             if parent:parent.remove_overlay(self.bar)
@@ -266,7 +313,7 @@ class PassageActions:
         self.intent+=1
         self.keyboard=False
         value=self.target;restore=bool(value and self.contains(self.owner.get_focus()))
-        self.target=None;self.bar.set_visible(False)
+        self.target=None;self.bar.backdrop=None;self.bar.set_visible(False)
         if self.clearance:
             view,original,margin=self.clearance
             if view.get_bottom_margin()==margin:view.set_bottom_margin(original)

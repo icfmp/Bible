@@ -74,7 +74,7 @@ Before changing installation methods, check whether you are running an older sta
 
 **Do not run `flatpak uninstall --delete-data` or delete application directories** when attempting to fix an issue. Such actions can permanently remove personal notes, highlights, settings and downloaded resources.
 
-Bible's alpha does not yet offer a confirmed user-facing notes backup and restore workflow. Follow the [alpha migration guide](https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md) and preserve existing application data before reinstalling or migrating.
+Use **Preferences → Data and backups** to export personal notes, labels and highlights before migrating. Exports are unencrypted and exclude resources, settings and credentials. Restore validates the file, confirms a merge and saves a safety backup. If interrupted recovery is reported, keep the application files and safety backup intact and reopen Bible before editing annotations. Follow the [alpha migration guide](https://github.com/icfmp/Bible/blob/main/docs/CANAL_ALPHA_FLATPAK.md) for the rest of your application data.
 
 ## Report a bug or suggest an improvement
 

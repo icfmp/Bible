@@ -122,19 +122,25 @@ class AppearancePopover(Gtk.Popover):
         self.system_status.set_text(tr('Colors follow the system high contrast setting.') if high else '')
         self.system_status.set_visible(high)
         for button in self.palettes.values():button.set_sensitive(not high)
-        dark=self.owner.reading_style.manager.get_dark()
+        dark=self.owner.reading_style.dark
         self.palette_rows['day_palette'].set_visible(not dark)
         self.palette_rows['night_palette'].set_visible(dark)
 
     def reset(self):
         if self._syncing:return
+        self.owner.reading_style.remember_tab_palettes()
         # Retain the shared instance already held by all reading tabs.
         for key,value in vars(ReadingPreferences()).items():setattr(self.owner.preferences.value,key,value)
+        if self.owner.active_tab:self.owner.active_tab.state.reading_palette=self.owner.reading_style.palette_settings()
         self.persist()
 
     def update(self,key,value):
         if self._syncing:return
+        if key in {'mode','day_palette','night_palette'}:
+            self.owner.reading_style.remember_tab_palettes()
         setattr(self.owner.preferences.value,key,value)
+        if key in {'mode','day_palette','night_palette'} and self.owner.active_tab:
+            self.owner.active_tab.state.reading_palette=self.owner.reading_style.palette_settings()
         self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights'})
 
     def persist(self,reflow=True):
