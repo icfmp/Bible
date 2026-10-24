@@ -7,6 +7,13 @@
       "source_commit": "044d81ea09b0bbd4eaf1b0f4b88fa24d1f557691",
       "url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-044d81ea09b0bbd4eaf1b0f4b88fa24d1f557691-sources.tar.gz"
     },
+    "Bible-07af242d523a9fcc92576e2752da71dab9abc107-sources.tar.gz": {
+      "asset_id": 672574814,
+      "bytes": 16787867,
+      "sha256": "b41e556f359ffd8258cfb0b3ca4a4ac951070b9b6a9369cd0a254d2ee79a0544",
+      "source_commit": "07af242d523a9fcc92576e2752da71dab9abc107",
+      "url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-07af242d523a9fcc92576e2752da71dab9abc107-sources.tar.gz"
+    },
     "Bible-08a00d2c3133764fbfd7e70f2ad5350cb0e1c3cf-sources.tar.gz": {
       "asset_id": 671238369,
       "bytes": 22682449,
