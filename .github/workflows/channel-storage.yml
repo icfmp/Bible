@@ -1,0 +1,73 @@
+name: Maintain alpha distribution storage
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bible-alpha-publication
+  cancel-in-progress: false
+jobs:
+  migrate:
+    if: github.ref == 'refs/heads/main' && vars.BIBLE_ALPHA_PAGES_MANAGED == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_URL: ${{ vars.BIBLE_ALPHA_PAGES_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/storage-old-client" >> "$GITHUB_ENV"
+      - name: Restore without modifying the live site
+        run: |
+          python3 -m tools.channel_ci restore
+          cp "$RUNNER_TEMP/bible-alpha-parent" storage-recovery-commit.txt
+          gh api repos/icfmp/Bible/releases --jq '[.[] | select(.tag_name != "alpha-source-archives") | {tag_name,draft,prerelease,published_at}]' > releases-before.json
+      - name: Seed an actual previous alpha installation before pruning
+        run: |
+          python3 -m tools.alpha_storage seed-client --base-url "$BASE_URL" --old-commit 03ccf0726c277655d54433a4e6e94d0238cca34e89f5b69e5b2e4ec47e658e8b
+      - name: Create technical source storage if absent
+        run: |
+          if ! gh release view alpha-source-archives --repo icfmp/Bible >/dev/null 2>&1; then
+            source=$(python3 -c 'import json;print(json.load(open("public/alpha/provenance.json"))["source_commit"])')
+            gh release create alpha-source-archives --repo icfmp/Bible --target "$source" --prerelease --latest=false --title 'Alpha corresponding-source archives (technical storage)' --notes 'Exact corresponding-source archives for signed alpha installations. This is technical archive storage, not a numbered application release. Each filename identifies the source commit. Archives retain their original bytes and SHA-256 digests. Catalogue: https://icfmp.github.io/Bible/alpha/sources.html . Numbered release #87 remains paused.'
+          fi
+      - name: Verify every public source archive then stage bounded retention
+        run: python3 -m tools.alpha_storage migrate
+      - name: Persist the staged site with its recovery history
+        run: python3 -m tools.channel_ci persist
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Deploy the smaller site
+        id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Verify fresh signed installation and previous-alpha update publicly
+        run: python3 -m tools.alpha_storage verify-clients --base-url "$BASE_URL"
+      - name: Verify numbered releases are unchanged
+        run: |
+          gh api repos/icfmp/Bible/releases --jq '[.[] | select(.tag_name != "alpha-source-archives") | {tag_name,draft,prerelease,published_at}]' > releases-after.json
+          diff -u releases-before.json releases-after.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-storage-verification
+          path: |
+            storage-*.json
+            storage-recovery-commit.txt
+            releases-*.json
+            public/alpha/sources.json
+            public/alpha/provenance.json
+          if-no-files-found: warn

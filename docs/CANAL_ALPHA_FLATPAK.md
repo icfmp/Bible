@@ -86,80 +86,89 @@ révision du paquet et CI. Les sources de Bible et les archives originales de
 SWORD/SWIG, vérifiées par SHA-256, sont proposées avec leurs instructions de
 construction ; aucune Bible ni commentaire complet n’est embarqué.
 
-## Déploiements et conservation
+## Publication and storage retention
 
-Après fusion, toute réussite du workflow **Vérifier le socle GNOME** sur main
-peut publier le canal. Le déclenchement manuel de secours demande l’identifiant
-numérique d’une CI verte sur main. Une CI de fork/branche non fusionnée, un
-artefact changé ou un commit antérieur aux corrections est refusé.
+Application deliveries reuse the bundle from green GNOME CI for the exact
+source commit. The workflow checks repository, main ancestry, architecture,
+Flatpak identity and bundle SHA-256. A stable dedicated key signs the alpha
+commits and summaries. The remote, ref, public flatpakref and signing identity
+remain unchanged. Each delivery verifies a fresh public installation and a
+subsequent public update with user-data sentinels.
 
-Une seule publication peut s’exécuter à la fois. L’ascendance du dernier commit
-source empêche les retours en arrière si les CI terminent dans le désordre.
-La branche de données `flatpak-alpha-data` conserve les objets, deltas et sources
-déjà publiés ; une modification concurrente est refusée avant de pousser. Le
-travail se fait sur une copie et Pages déploie un artefact complet. L’échec d’une
-préparation ou d’un déploiement garde le dernier site servi ; un échec de contrôle
-après déploiement est rapporté et ne doit pas être présenté comme une validation.
+### Corresponding sources on GitHub Releases
 
-Chaque publication signe deux révisions contrôlées du même code vérifié :
-publication de la première, installation depuis son URL HTTPS publique sur un
-client de validation neuf, publication de la seconde, puis `flatpak update` sur
-ce même client et comparaison des commits installés. Les preuves publiques sont
-conservées dans `alpha-public-verification`. Les clés privées restent uniquement
-dans le secret et un dossier temporaire du runner, nettoyé même en cas d’échec.
+The public, **non-numbered technical prerelease**
+[alpha-source-archives](https://github.com/icfmp/Bible/releases/tag/alpha-source-archives)
+stores one `Bible-<full-source-commit>-sources.tar.gz` asset per distributed
+source commit. This is storage, not an application milestone; numbered release
+#87 remains paused. No numbered application tag is created or moved.
 
-Static full and incremental deltas are generated. Published objects and all
-corresponding-source archives remain available, including archives required by
-older installations. No automatic pruning is performed.
+Historical archives retain their exact bytes and SHA-256 digests. Every initial
+upload is downloaded again through its public HTTPS URL and verified byte for
+byte before any staged Pages copy is removed. Uploads never overwrite assets.
+Later publications validate previously recorded asset IDs, sizes and digests,
+refusing replacement or corruption. A failed upload or verification leaves all
+local source archives intact and cannot persist/deploy the staged site.
 
-The staged site has an **999 MB** safety budget (999,000,000 bytes), below
-GitHub Pages' [documented 1 GB published-site limit](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits),
-even if GB is interpreted decimally. Crossing it aborts preparation before
-either persistence or deployment, leaving the last served repository intact.
-Errors report the actual staged byte count and budget.
+The [source catalogue](https://icfmp.github.io/Bible/alpha/sources.html) lists
+all archives and checksums; `alpha/sources.json` provides the same machine-readable
+mapping. Current provenance retains `source_archive` and `source_sha256`, adding
+`source_url` for the public asset. The landing page links to the current archive
+and historical catalogue. **Old direct Pages tarball URLs are retired**; use the
+catalogue's Releases URLs. GitHub Pages cannot supply per-file HTTP redirects.
+Previously published numbered-release assets are unchanged.
 
-The first attempt to publish #78 stopped safely at the former 768 MiB guard.
-The existing published data tree already occupied 762.4 MiB, including 731.5 MiB
-of retained corresponding-source archives and 30.7 MiB of OSTree repository data.
-A new complete source archive cannot fit in the remaining space. The bounded
-increase allows the combined #78/#70 bug-fix delivery without removing historical
-source archives or objects, changing the signing key/remote, accessing personal
-client data, or changing hosting administration. This is measured additional
-capacity, **not a retention solution**: continued growth still requires a
-separately reviewed archival design preserving corresponding-source availability.
-Storage/bandwidth/execution quotas still apply; this is not a Flathub submission.
+New archives use the compact layout introduced for #95: omit historical GUI
+validation output (`docs/captures`, `docs/evidence`, `wiki/images`), retaining
+application/build scripts, original icon sources, preferred dependency sources,
+licenses, tests and all pinned dependency archives. CI builds the installed
+Flatpak from this exact project tar layout. Historical archives are not repacked.
 
-The first #90 publication also stopped before persistence/deployment, at
-979,488,368 staged bytes versus the former 896 MiB budget. The retained data
-tree contains 898,168,919 bytes of source archives. The 990,000,000-byte budget
-keeps a strict 10 MB margin below the decimal 1 GB host limit while preserving
-every historical archive and object. Preparation still measures the entire
-staged site and aborts before persistence/deployment if it reaches the budget.
-No source archival policy, signing identity or hosting configuration changes.
-This capacity adjustment reuses the already verified #90 application artifact
-from main CI 40013048622; rebuilding the application is unnecessary.
-See `evidence/passage-notes-90/channel-capacity.json` for the measured values.
-The next complete source archive will require the separately reviewed archival
-design described above; this is deliberately not an archival redesign.
+### Active OSTree repository on Pages
 
-## Compact corresponding sources for #95
+Keep the current alpha commit and its **nine immediate parents**, plus complete
+object trees reachable from every other ref at the same depth. OSTree's
+`prune --refs-only --depth=9` removes only unreachable objects; shared files needed
+by retained trees remain. Run `ostree fsck` after pruning. Remove derived static
+deltas so obsolete deltas do not independently accumulate; clients fetch normal
+signed objects. An older installed client can update directly to the current
+alpha even when its original server-side commit has been pruned. Arbitrary
+historical downgrades beyond the retained window are no longer promised.
 
-The new source archive excludes only historical GUI validation output under
-`docs/captures`, `docs/evidence` and `wiki/images`. It retains application code,
-all build/install scripts, original icon sources, third-party preferred sources,
-notices, tests and the pinned dependency source archives in their original paths.
-`SOURCE_LAYOUT.txt` identifies the exact commit, exclusions and full repository.
-CI builds the actual installed Flatpak from this same project source tar layout.
-Previously published source archives, checksums, URLs and OSTree objects are not
-rewritten or pruned. No client data or reference dataset changes.
+All preparation occurs on a copy. Persistence uses a normal child commit on
+`flatpak-alpha-data`, refusing concurrent changes. Its previous Git history is
+kept as a recovery copy, including migrated archives and pruned OSTree objects;
+no force push or history rewrite occurs. Pages publishes the complete prepared
+site. A **200,000,000-byte** total-site guard stops preparation before persistence
+or deployment, well below the [1 GB Pages limit](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+This does not remove GitHub's other storage/bandwidth/Actions quotas.
 
-A measured pre-change archive using this layout is 16,738,727 bytes, versus the
-full repository archive containing years of screenshots and validation output.
-The last published site occupies 979,493,234 bytes. The final staged size must
-still pass the 999,000,000-byte guard before any persistence/deployment, leaving
-a strict 1 MB below the decimal host limit. This is capacity for this batch,
-not a historical source-retention policy. Further publication still needs the
-separate archival design above; no historical files or URLs are removed here.
+### One-time maintenance and verification
+
+`Maintain alpha distribution storage` is a manual main-only workflow, serialized
+with normal alpha publication. It reuses the already published application:
+no rebuild, new application commit, signing-key change or numbered release.
+Before migration it installs the public alpha, selects the actual #90 commit
+and records independent note/preference/resource sentinels. It uploads/verifies
+all corresponding sources, prunes the staged repository, checks unchanged
+application provenance and signed channel files, then persists and deploys.
+After deployment it verifies a fresh signed installation with GTK startup and
+an actual update of that older client without changing its data. Numbered
+release metadata is compared before and after. Reports, source catalogue,
+provenance and the previous data-branch recovery commit are retained in the
+`alpha-storage-verification` workflow artifact.
+
+The channel regression workflow also installs a signed test Flatpak, generates
+twelve newer revisions, prunes the original server-side commit, and updates the
+original client successfully. This tests the full-object fallback, not merely
+an update where both commits remain on the server. Automated Xvfb startup is
+not manual validation on the client's GNOME desktop.
+
+If a post-deployment public check fails, report that failure; do not claim a
+verified migration. The preceding data-branch commit recorded in the artifact
+provides the full previous site for recovery through a normal new child commit
+and Pages deployment, without moving published application tags or changing
+client data.
 
 ## Passage depuis un ancien bundle
 

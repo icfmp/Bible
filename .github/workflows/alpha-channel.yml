@@ -79,7 +79,7 @@ jobs:
           info = json.loads(Path('incoming/verified.json').read_text())
           prepare('incoming/Bible-alpha.flatpak','public',os.environ['BASE_URL'],
                   Path(os.environ['RUNNER_TEMP'])/'alpha-signing-key',os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'],
-                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-1')
+                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-1', managed_storage=True)
           PYTHON
           python3 -m tools.channel_ci persist
       - uses: actions/upload-pages-artifact@v4
@@ -109,7 +109,7 @@ jobs:
           info = json.loads(Path('incoming/verified.json').read_text())
           prepare('incoming/Bible-alpha.flatpak','public',os.environ['BASE_URL'],
                   Path(os.environ['RUNNER_TEMP'])/'alpha-signing-key',os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'],
-                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-2')
+                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-2', managed_storage=True)
           PYTHON
           python3 -m tools.channel_ci persist
       - uses: actions/upload-pages-artifact@v4
