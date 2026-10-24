@@ -106,7 +106,7 @@ class PassageStudyTests(unittest.TestCase):
                 saved=next(n for n in window.notes_store.all() if n.body=='DRAFT WITH FIXED TARGET')
                 self.assertEqual((saved.versification,saved.start),('Segond','Ps.3.2'))
                 window.active_tab.navigate('Segond','Ps.3.3');spin()
-                self.assertEqual({n.id for n in notes.rows},{first.id,second.id})
+                self.assertEqual({n.id for n in notes.rows},{first.id,second.id,saved.id})
                 self.assertEqual(window.notes_store.get(first.id).body,'FIRST **saved note**')
                 self.assertEqual(window.highlights.entries[('KJV','Ps.3.1')]['color'],'blue')
             finally:window.close()

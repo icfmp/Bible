@@ -41,6 +41,21 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(reopened.search(order='recent')[0].id, second.id)
             self.assertEqual(reopened.search(order='oldest')[0].id, first.id)
 
+    def test_cross_chapter_range_roundtrip_keeps_schema_identity_and_legacy_notes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=self.store(directory);legacy=create(store)
+            crossing=create(store,'Cross-chapter retained body','John.3.36','John.4.2')
+            self.assertTrue(crossing.covers('John.4.1'));self.assertFalse(crossing.covers('John.4.3'))
+            self.assertEqual(store.passage('KJV','John.4.1'),[crossing])
+            self.assertEqual(store.passage('KJV','John.3.1','John.3.36'),[legacy,crossing])
+            self.assertEqual(store.db.execute('PRAGMA user_version').fetchone()[0],1)
+            backup=Path(directory)/'backup.json';store.export(backup)
+            reopened=self.store(directory);self.assertEqual(reopened.get(crossing.id),crossing)
+            self.assertEqual(reopened.get(legacy.id),legacy)
+            target=NoteStore(Path(directory)/'restored.sqlite3');self.addCleanup(target.close)
+            target.restore(backup);self.assertEqual(target.get(crossing.id),crossing)
+            self.assertEqual(target.get(legacy.id),legacy)
+
     def test_future_or_unrelated_database_is_not_modified(self):
         for version, app in [(2, APPLICATION_ID), (1, 0), (0, 0)]:
             with self.subTest(version=version, app=app), tempfile.TemporaryDirectory() as directory:
@@ -166,7 +181,7 @@ class NoteTests(unittest.TestCase):
     def test_invalid_passage_body_labels_and_backup_size(self):
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
-            for start, end in [('John.3.18', 'John.3.16'), ('John.3.16', 'John.4.1'), ('../escape', None)]:
+            for start, end in [('John.3.18', 'John.3.16'), ('John.4.1', 'John.3.16'), ('John.3.16','Acts.1.1'), ('../escape', None)]:
                 with self.assertRaises(NotesError):
                     create(store, start=start, end=end)
             for body in ['', '\x00', 'a' * 200001]:

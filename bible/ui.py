@@ -446,7 +446,7 @@ class Window(Adw.ApplicationWindow):
 
     def append_tab(self, state, jump_to_reference=False):
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
-                         self.notes_store, self.open_passage_notes, self.preferences.value)
+                         self.notes_store, self.reveal_passage_annotations, self.preferences.value)
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
         self.reading_style.decorate(tab.text)
         # The viewport, headers, gutters and empty comparison space belong to
@@ -840,6 +840,11 @@ class Window(Adw.ApplicationWindow):
                        origin_translation=tab.state.resource,
                        origin_language=self.library.resource(tab.state.resource).language)
         return self.edit_note(context=context)
+
+    def reveal_passage_annotations(self):
+        # Intentional inline markers reveal the chapter list, never enter edit.
+        self.study_button.set_active(True);self.study.tools.set_visible_child_name('notes')
+        self.study.notes.refresh();self.study.notes.resume_following()
 
     def open_passage_notes(self, passage=None, *, resource=None, reader=None):
         tab = self.active_tab

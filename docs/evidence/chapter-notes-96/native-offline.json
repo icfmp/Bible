@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "app_import": "/repo/bible/ui.py",
+  "native_bible_wheel_both_directions": true,
+  "native_notes_wheel_suspends_without_navigation": true,
+  "native_resume": true,
+  "stable_cards_and_history": true,
+  "focus_preserved": true,
+  "marker_reveals_without_edit": true,
+  "captured_draft_retained": true,
+  "redundant_controls_absent": true,
+  "manual_client_gnome_validation": false
+}

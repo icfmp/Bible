@@ -393,3 +393,7 @@ FR.update({
 FR.update({'Highlight annotation':'Surlignage'})
 FR.update({'Date sorting uses note modification dates. Highlights without dates follow in Bible order.':'Le tri par date utilise la modification des notes. Les surlignages sans date suivent dans l’ordre biblique.'})
 FR.update({'Unable to save this note. Your draft is kept.':'Impossible d’enregistrer cette note. Votre brouillon est conservé.'})
+
+FR.update({'Resume following':'Reprendre le suivi', 'No annotations in this chapter.':'Aucune annotation dans ce chapitre.'})
+
+FR.update({'A note passage must be ordered within one book':'Le passage d’une note doit être ordonné dans un même livre.'})

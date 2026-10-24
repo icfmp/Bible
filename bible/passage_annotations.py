@@ -11,14 +11,18 @@ class PassageAnnotations:
     def positions(self, reader, system, start, end):
         key = (reader.versification, system, start, end)
         if key in self.cache:return self.cache[key]
-        # Stored notes are bounded to one chapter. Map every source verse;
-        # endpoint-only conversion could fill a discontinuous mapped interval.
-        first, last = parts(start), parts(end)
-        if first[:2] != last[:2]:return ()
+        # Enumerate the source range before mapping: a source chapter can
+        # overlap two target chapters, and legacy ranges must not be reduced
+        # to their printed endpoints. This never changes stored ranges.
         intervals = []
         try:
-            for verse in range(first[2], last[2]+1):
-                mapped = resolve(f'{first[0]}.{first[1]}.{verse}', system, reader, require_entry=False)
+            from .reference_resolution import _span
+            resolve(start, system, reader, require_entry=False)
+            resolve(end, system, reader, require_entry=False)
+            for reference in dict.fromkeys(_span(start, end, system)):
+                # SWORD traversal includes native chapter introductions.
+                if reference.rsplit('.',1)[-1]=='0':continue
+                mapped = resolve(reference, system, reader, require_entry=False)
                 intervals.append((reader.key(mapped.start).getIndex(), reader.key(mapped.end).getIndex(),
                                   mapped.start, mapped.end))
         except ValueError:

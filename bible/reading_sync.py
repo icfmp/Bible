@@ -51,6 +51,7 @@ class ReadingSync:
             # Actual user input overrides an outstanding automatic restore.
             if tab._tick_id:tab.remove_tick_callback(tab._tick_id);tab._tick_id=0
             tab._appearance_anchor=None;tab._jump_reference=None;tab._restoring_scroll=False
+        if side=='bible' and self.owner.study.tool=='notes':self.owner.study.notes.resume_following()
         if side=='commentary':self.owner.study.cancel_reveal()
         self.schedule();return False
 
@@ -61,6 +62,7 @@ class ReadingSync:
         self.dragging=None;self.armed_until=time.monotonic()+.15
 
     def explicit_bible(self):
+        if self.owner.study.tool=='notes':self.owner.study.notes.resume_following()
         self.driver='bible';self.armed_until=0;self.forced_position=None;self.needs_sync=False
 
     def explicit_commentary(self,position):
@@ -84,11 +86,12 @@ class ReadingSync:
         self.pending=False
         owner=self.owner;tab=owner.active_tab;study=owner.study
         if (owner.closed or getattr(owner,'immersion',None) or self.running or not tab
-                or getattr(owner,'_study_resizing',False) or study.tool!='commentaries'
-                or not tab.reader or not owner.split.get_show_sidebar() or not study.reader
-                or not tab.text.get_mapped() or not study.text.get_mapped()):return False
-        if (tab._restoring_scroll or study._positioning
-                or getattr(study.text,'_reader_reflow_tick',0)):
+                or getattr(owner,'_study_resizing',False) or study.tool not in ('commentaries','notes')
+                or not tab.reader or not owner.split.get_show_sidebar()
+                or not tab.text.get_mapped()
+                or (study.tool=='commentaries' and (not study.reader or not study.text.get_mapped()))):return False
+        if (tab._restoring_scroll or (study.tool=='commentaries' and
+                (study._positioning or getattr(study.text,'_reader_reflow_tick',0)))):
             self.schedule();return False
         if self.forced_position is None and not self.needs_sync and self.dragging!=self.driver:return False
         self.needs_sync=False;self.running=True
@@ -96,8 +99,10 @@ class ReadingSync:
             if self.driver=='bible' and not tab.text.get_buffer().get_has_selection():
                 reference=tab.visible_reference()
                 if reference and reference!=tab.state.reference:tab.select_verse(reference)
-                elif reference:study.follow(reference)
-            elif self.driver=='commentary' and not study.text.get_buffer().get_has_selection():
+                elif reference:
+                    if study.tool=='notes':study.notes.queue_follow(reference)
+                    else:study.follow(reference)
+            elif study.tool=='commentaries' and self.driver=='commentary' and not study.text.get_buffer().get_has_selection():
                 position=self.forced_position if self.forced_position is not None else study.visible_section()
                 self.forced_position=None
                 if position is None:return False
