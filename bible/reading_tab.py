@@ -38,11 +38,6 @@ class ReadingTab(Gtk.Box):
         self.status = Gtk.Label(xalign=0, wrap=True, selectable=True,
                                 margin_start=12, margin_end=12)
         self.append(self.status)
-        self.note_button = Gtk.Button(visible=False, halign=Gtk.Align.START,
-                                       margin_start=24, margin_end=24)
-        self.note_button.add_css_class('flat')
-        self.note_button.connect('clicked', lambda *_: self.notes_requested() if self.notes_requested else None)
-        self.append(self.note_button)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         self.scroll.set_margin_top(56)  # Fixed clearance for the reading overlay controls.
         self.text = ContextTextView(editable=False, cursor_visible=False,
@@ -492,10 +487,6 @@ class ReadingTab(Gtk.Box):
                     self._note_refs[reference] = matching
                     buffer.apply_tag(self._annotated_tag, buffer.get_iter_at_offset(offset),
                                      buffer.get_iter_at_offset(offset + len(reference.rsplit('.', 1)[-1])))
-        count = len(self._note_refs.get(self.state.reference, []))
-        self.note_button.set_label(f'{tr("Passage notes")} ({count})')
-        self.note_button.set_tooltip_text(tr('Underlined verse numbers have notes.'))
-        self.note_button.set_visible(count > 0)
 
     def visible_reference(self):
         if not self._verse_offsets:return None

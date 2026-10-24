@@ -53,18 +53,19 @@ def main():
             report['native_citation_preview_and_inline_click']=True
             report['draft_context_buffer_and_expansion_preserved']=True
             w.active_tab.navigate('Test','Acts.1.22');spin();native.activate(w)
-            # Opening creation never creates data; palette is a deliberate second step.
-            native.click(notes.add);spin();initial=notes.add.get_popover()
-            native.click(initial.get_child().get_first_child());spin()
-            palette=notes.add.get_popover();assert palette is not initial
-            native.key('Escape');spin();native.click(notes.add);spin()
-            assert notes.add.get_popover() is not palette,'Cancelled palette must return to creation choices'
-            annotate=notes.add.get_popover().get_child().get_first_child().get_next_sibling()
-            native.click(annotate);spin();palette=notes.add.get_popover()
-            native.click(palette.get_child().get_first_child().get_next_sibling());spin()
-            assert w.highlights.entries[('KJV','Acts.1.22')]['color']=='yellow'
-            assert notes.editor and notes.editor.context==context
-            notes.editor.body.get_buffer().set_text('Independent annotation');assert notes.editor.save();spin()
+            # Creation remains in the real contextual selection toolbar.
+            assert not hasattr(notes,'add') and not hasattr(w.active_tab,'note_button')
+            from tools.check_passage_actions import point
+            tab=w.active_tab;tab.select_verse('Acts.1.23');spin()
+            offset=tab._marker_ends['Acts.1.23']
+            native.click_at(tab.text,*point(tab.text,offset+3));spin(lambda:w.passage_actions.target is not None)
+            actions=w.passage_actions;native.click(actions.highlight_button);native.key('Escape');spin()
+            assert not w.highlights.entries
+            native.click(actions.highlight_button);native.click(actions.highlight_popover.get_child().get_first_child());spin()
+            assert w.highlights.entries[('KJV','Acts.1.23')]['color']=='yellow'
+            native.click(actions.note_button);spin()
+            assert w.note_editor and w.note_editor.context['start']=='Acts.1.23'
+            w.note_editor.body.get_buffer().set_text('Independent annotation');assert w.note_editor.save();spin()
             assert len(notes.rows)==2 and len(notes.marks)==1
             original_notes=w.notes_store.all()
             menu=next(c for c in notes.cards if hasattr(c,'highlight_key')).actions
@@ -72,7 +73,7 @@ def main():
             menu.grab_focus();spin();native.click(menu);spin()
             native.click(menu.get_popover().get_child().get_last_child());spin()
             assert not notes.marks and w.notes_store.all()==original_notes
-            report['native_creation_palette_cancel_annotate_remove_independence']=True
+            report['native_contextual_creation_cancel_note_remove_independence']=True
             w.set_default_size(360,700);spin(lambda:w.split.get_collapsed());spin()
             w.split.set_show_sidebar(True);spin()
             editor=notes.open_note(w.notes_store.get(note.id));spin();assert editor.embedded and notes.editor_panel.get_mapped()

@@ -17,6 +17,10 @@ class ComparisonSync(ReadingSync):
         if self.tab is not self.owner.active_tab or self.running:return False
         if self.driver != side:self.last_target=None
         self.driver=side;self.armed_until=time.monotonic()+.4
+        if self.owner.study.tool=='notes':
+            self.owner.study.notes.resume_following()
+            if side=='comparison':
+                self.owner.reading_sync.driver=None;self.owner.reading_sync.needs_sync=False
         if side=='comparison' and getattr(self.tab,'_comparison_tick',0):
             self.tab.comparison_text.remove_tick_callback(self.tab._comparison_tick)
             self.tab._comparison_tick=0;self.tab._comparison_positioning=False

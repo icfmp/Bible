@@ -1,0 +1,9 @@
+{
+  "native_citation_preview_and_inline_click": true,
+  "draft_context_buffer_and_expansion_preserved": true,
+  "native_contextual_creation_cancel_note_remove_independence": true,
+  "360px_window_and_150_percent_text_editor_commands": true,
+  "status": "PASS",
+  "app_import": "/repo/bible/ui.py",
+  "manual_client_gnome_validation": false
+}
