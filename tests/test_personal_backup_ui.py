@@ -19,6 +19,9 @@ class PersonalBackupUITests(unittest.TestCase):
         from bible import personal_backup
         from bible.ui import Gtk,Gio
         from tests.test_notes import create
+        # Construct the real native chooser and exercise its response boundary.
+        # Do not synthesize portal replies while an IPC request is outstanding.
+        self.enterContext(patch.object(Gtk.NativeDialog,'show',return_value=None))
         w=self.window;create(w.notes_store);w.highlights.set('KJV',['Gen.1.1'],'yellow','Test')
         before=personal_backup.snapshot(w.notes_store,w.highlights);status=Gtk.Label()
         choose_personal_backup(w,status,False);chooser=w._personal_backup_chooser
