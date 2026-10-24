@@ -27,6 +27,8 @@ This does not claim acceptance on the client's GNOME/Wayland desktop.
 | Small window, dark | [Before](before-narrow-night.png) | [After](after-narrow-night.png) |
 | Immersive spread | [Before](before-immersion.png) | [After](after-immersion.png) |
 
+Whole-window palettes with two tabs, comparison and study: [Paper](after-two-tabs-paper.png), [Black](after-two-tabs-black.png).
+
 Whole-window palettes: [Paper](after-palette-paper.png), [Black](after-palette-black.png),
 [Paper comparison + study](after-comparison-study-paper.png),
 [Black comparison + study](after-comparison-study-black.png),

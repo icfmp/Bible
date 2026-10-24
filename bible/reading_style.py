@@ -31,6 +31,7 @@ def effective_palette(preferences, dark, high_contrast):
 class ReadingStyle:
     def __init__(self, owner):
         self.owner = owner
+        self.initial_palette=self.palette_settings()
         from weakref import WeakSet
         self.views = WeakSet()
         self.manager = Adw.StyleManager.get_default()
@@ -146,7 +147,7 @@ class ReadingStyle:
 {window}, {window} .background, {window} .view, {window} .card,
 {window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
 {window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
-{window} .sidebar, {window} .sidebar-pane, {window} .study-panel {{ background-color: {sidebar}; color: {fg}; }}
+{window} .sidebar, {window} .sidebar-pane, {window} .study-panel, {window} .study-divider {{ background-color: {sidebar}; color: {fg}; }}
 {window} textview.study-reader, {window} textview.study-reader text {{ color: {fg}; }}
 {window} .passage-actions {{ background-color: transparent; color: white; }}
 {window} .passage-actions popover contents {{ background-color: #202020; color: white; }}

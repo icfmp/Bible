@@ -124,3 +124,17 @@ class FinishingTests(unittest.TestCase):
                 self.assertGreater(sum(min(c)>220 for c in colors),100)
                 self.assertTrue(actions.bar.get_mapped());self.assertEqual(actions.target.references,('Gen.1.1',))
         finally:native.close()
+
+    def test_reference_opened_tab_keeps_inherited_palette_after_switch_and_restart(self):
+        from bible.ui import Window
+        w=self.window;first=w.active_tab
+        w.appearance.update('mode','day');w.appearance.update('day_palette','paper')
+        w.new_tab();w.appearance.update('mode','night');w.appearance.update('night_palette','black')
+        self.assertTrue(w.navigate_selection('Test','Gen.1.2',new_tab=True))
+        self.assertEqual(w.reading_style.palette,'black')
+        w.view.set_selected_page(w.view.get_page(first));spin()
+        self.assertEqual(w.reading_style.palette,'paper')
+        w.close();self.window=w=Window(self.app,w.library);w.present();spin()
+        self.assertEqual(w.reading_style.palette,'paper')
+        w.view.set_selected_page(w.view.get_nth_page(2));spin()
+        self.assertEqual(w.reading_style.palette,'black');self.assertEqual(w.active_tab.state.reference,'Gen.1.2')
