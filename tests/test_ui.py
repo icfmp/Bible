@@ -7,9 +7,9 @@ import unittest
 from unittest.mock import patch
 
 
-def spin(until=lambda: True, duration=0.1):
+def spin(until=lambda: True, duration=0.1, timeout=4):
     from bible.ui import GLib
-    deadline = time.monotonic() + 4
+    deadline = time.monotonic() + timeout
     minimum = time.monotonic() + duration
     while time.monotonic() < deadline:
         GLib.MainContext.default().iteration(False)

@@ -266,7 +266,7 @@ class Window(Adw.ApplicationWindow):
         app.set_accels_for_action('win.next-chapter', ['<Alt>Page_Down'])
         app.set_accels_for_action('win.history-forward',['<Alt>Right'])
         try:
-            session = self.store.load()
+            session = self.store.load() if self.application_settings.value["restore_tabs"] else Session()
         except (OSError, SessionError) as error:
             self._session_writable = False
             self.report_session_error(tr('Unable to restore the session. The original file has been preserved.') + '\n' + tr('Session saving is disabled to preserve the original file.'), error)

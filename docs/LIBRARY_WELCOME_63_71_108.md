@@ -100,8 +100,16 @@ The shared native menu has exactly Library, Preferences, Keyboard Shortcuts and
 About Bible, in that order, with monochrome symbolic icons and one separator
 before About. Library retains Ctrl+L; Preferences implements Ctrl+,; shortcut help
 implements Ctrl+? and lists accelerators obtained from the actual application.
-Preferences edits real Library language and automatic metadata-refresh settings;
-Aa retains reading appearance. About identifies continuous alpha, GPL-2.0-only,
+Following the clarified #108 contract, Preferences reuses one native
+AdwPreferencesDialog with #94's General controls: persistent application language
+(System/French/English, applied at restart), interface appearance and next-launch
+tab restoration. Library language stays contextual and remains untouched.
+The effective base is Preferences System/Light/Dark; Aa System follows that base
+and an explicit Aa mode retains precedence. This change does not revert #105's
+approved whole-window palette direction; that issue's palette expansion remains
+separate work. #94 stays open: full personal-annotation backup (including
+highlights) needs separate reviewed integration. Existing note-only backups stay
+accessible from My notes and are not advertised as complete backups. About identifies continuous alpha, GPL-2.0-only,
 contributors and project/third-party links.
 
 Removed contextual menu entries do not remove their actions or shortcuts. Notes
@@ -144,3 +152,20 @@ Ordinary update command after verified publication:
 ```sh
 flatpak update io.github.icfmp.Bible//alpha
 ```
+
+## Integration clarification (24 October)
+
+The initial main CI attempt reached 260 tests but failed the four-second test
+wait for cold full-ISO language preparation. Branch CI and prior local runs had
+passed. The wait now allows 30 seconds specifically for that worker result,
+continues processing GTK events and checks the worker exception; the normal
+four-second waits and existing UI responsiveness thresholds remain unchanged.
+This changes no product timeout and does not move ISO processing onto GTK.
+
+The initial application source was not published before incorporating the new
+#108 dependency clarification. Eight additional real French Preferences captures
+cover light/dark, normal/narrow and 150% text. The native PreferencesDialog in libadwaita 1.5 has a 360-pixel client
+minimum. Preferences captures therefore use a 380-pixel decorated host (370-pixel
+client); the other reader/Library narrow captures remain at 360 decorated pixels.
+At a 350-pixel client, libadwaita 1.5 warns about a 10-pixel sheet overrun; no
+private template modifications are used to override that native constraint.
