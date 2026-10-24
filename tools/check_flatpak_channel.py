@@ -134,10 +134,18 @@ def main():
             def second():
                 shutil.rmtree(site)
                 restore()
-                updated = prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866','test-2',allow_loopback=True)
+                # Real old client -> current update after its server-side commit
+                # has been pruned. Shared complete trees remain downloadable.
+                for n in range(12):
+                    updated = prepare(bundle,site,base,gpg,fingerprint,SOURCE,'39315036866',f'test-2-{n}',allow_loopback=True)
+                from tools.alpha_storage import retain_repository
+                retain_repository(site)
+                old_commit = first['flatpak_commit']
+                assert not (site/'alpha/repo/objects'/old_commit[:2]/(old_commit[2:] + '.commit')).exists()
                 persist()
                 return updated
             result = check(base,first,original / 'flatpak-channel-test.json',test_revision=second)
+            result['update_from_pruned_server_commit'] = True
             # A mismatching summary must be rejected by a clean client with GPG enabled.
             # Modern Flatpak reads summary.idx; older clients use summary.
             # Corrupt both and use a fresh client so cache cannot hide the test.

@@ -1,10 +1,10 @@
 name: Vérifier la restauration du canal alpha
 on:
   pull_request:
-    paths: ['tools/*channel*.py', 'tests/test_channel_*.py', '.github/workflows/*channel*.yml']
+    paths: ['tools/*channel*.py', 'tools/alpha_storage.py', 'tests/test_alpha_storage.py', 'tests/test_channel_*.py', 'tools/site_render.py', 'tools/site_assets/index.html', '.github/workflows/*channel*.yml']
   push:
     branches: [main, fix/17-ostree-git-restore]
-    paths: ['tools/*channel*.py', 'tests/test_channel_*.py', '.github/workflows/*channel*.yml']
+    paths: ['tools/*channel*.py', 'tools/alpha_storage.py', 'tests/test_alpha_storage.py', 'tests/test_channel_*.py', 'tools/site_render.py', 'tools/site_assets/index.html', '.github/workflows/*channel*.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,7 +20,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ostree flatpak gnupg xvfb xauth dbus-x11
       - name: Vérifier les gardes et deux publications OSTree via Git
-        run: python3 -m unittest tests.test_channel_gates tests.test_channel_storage -v
+        run: python3 -m unittest tests.test_channel_gates tests.test_channel_storage tests.test_alpha_storage tests.test_site_render -v
       - name: Installation signée et flatpak update après restauration Git
         run: python3 -m tools.check_flatpak_channel
       - uses: actions/upload-artifact@v4

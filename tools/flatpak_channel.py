@@ -18,11 +18,8 @@ BRANCH = 'alpha'
 REMOTE = 'bible-alpha'
 REF = f'app/{APP_ID}/x86_64/{BRANCH}'
 RUNTIME_REPO = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
-# Keep every published object and corresponding-source archive. This remains
-# below GitHub Pages' documented 1 GB limit (also if interpreted decimally).
-# Exceeding this bounded staging budget aborts before persistence/deployment.
-# Leave 1 MB below the stricter decimal interpretation of the host limit.
-MAX_SITE_BYTES = 999_000_000
+# Sources live on Releases; Pages holds a bounded active OSTree repository.
+MAX_SITE_BYTES = 200_000_000
 
 
 def run(*args):
@@ -84,7 +81,7 @@ def source_archive(site, source):
     return archive_path
 
 
-def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revision, allow_loopback=False):
+def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revision, allow_loopback=False, managed_storage=False):
     assert re.fullmatch(r'[0-9a-f]{40}', source), 'Expected a full source commit'
     assert re.fullmatch(r'[0-9A-F]{40,64}', fingerprint), 'Expected the signing fingerprint'
     parsed = urllib.parse.urlsplit(base_url)
@@ -127,12 +124,25 @@ def prepare(bundle, site, base_url, gpg_home, fingerprint, source, ci_run, revis
     (alpha / 'Bible.flatpakref').write_text(
         f'[Flatpak Ref]\nName={APP_ID}\nBranch={BRANCH}\nTitle=Bible — préversion alpha\n'
         f'Url={url}\nIsRuntime=false\nSuggestRemoteName={REMOTE}\nRuntimeRepo={RUNTIME_REPO}\nGPGKey={encoded}\n')
-    sources = source_archive(site, source)
+    source_name = f'Bible-{source}-sources.tar.gz'
+    catalog_path = alpha / 'sources.json'
+    catalog = json.loads(catalog_path.read_text()) if catalog_path.exists() else {'archives': {}}
+    if source_name not in catalog['archives']:
+        source_archive(site, source)
+    if managed_storage:
+        from tools.alpha_storage import archive_sources, retain_repository
+        catalog = archive_sources(site)
+        retain_repository(site)
+        source_record = catalog['archives'][source_name]
+    else:
+        source_record = {'sha256': digest(alpha / source_name)}
     commit = run('ostree', f'--repo={repo}', 'rev-parse', REF)
     provenance = {'source_commit': source, 'ci_run': str(ci_run), 'packaging_revision': str(revision),
                   'flatpak_commit': commit, 'ref': REF, 'remote': REMOTE,
-                  'signing_fingerprint': fingerprint, 'source_archive': sources.name,
-                  'source_sha256': digest(sources), 'bundle_sha256': digest(bundle)}
+                  'signing_fingerprint': fingerprint, 'source_archive': source_name,
+                  'source_sha256': source_record['sha256'], 'bundle_sha256': digest(bundle)}
+    if managed_storage:
+        provenance['source_url'] = source_record['url']
     old.write_text(json.dumps(provenance, indent=2) + '\n')
     (site / '.nojekyll').touch()
     from tools.site_render import render

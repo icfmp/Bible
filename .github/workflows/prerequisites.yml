@@ -3,6 +3,17 @@ name: Vérifier le socle GNOME
 on:
   push:
     branches: [main, 'feat/**']
+    # Distribution-only maintenance reuses the already verified application.
+    paths-ignore:
+      - 'tools/alpha_storage.py'
+      - 'tests/test_alpha_storage.py'
+      - 'tools/flatpak_channel.py'
+      - 'tools/check_flatpak_channel.py'
+      - 'tools/site_render.py'
+      - 'tools/site_assets/index.html'
+      - '.github/workflows/*channel*.yml'
+      - '.github/workflows/prerequisites.yml'
+      - 'docs/CANAL_ALPHA_FLATPAK.md'
   workflow_dispatch:
 
 concurrency:
