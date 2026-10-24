@@ -43,9 +43,12 @@ class ReadingStyle:
         self.apply_mode()
 
     def apply_mode(self):
+        mode=self.owner.preferences.value.mode
+        if mode=='system':
+            mode={'light':'day','dark':'night','system':'system'}[self.owner.application_settings.value['interface_appearance']]
         self.manager.set_color_scheme({'system':Adw.ColorScheme.DEFAULT,
                                       'day':Adw.ColorScheme.FORCE_LIGHT,
-                                      'night':Adw.ColorScheme.FORCE_DARK}[self.owner.preferences.value.mode])
+                                      'night':Adw.ColorScheme.FORCE_DARK}[mode])
         self.changed()
 
     def decorate(self, view):

@@ -18,7 +18,8 @@ class ApplicationSettings:
         self.first_launch = not existing
         self.value = dict(version=1, welcome_seen=True,
                           library_language='fr' if LANGUAGE.startswith('fr') else 'en',
-                          automatic_catalogue_refresh=True)
+                          automatic_catalogue_refresh=True, ui_language="system",
+                          interface_appearance="system", restore_tabs=True)
         try:
             data = self.path.read_bytes()
             if len(data) > 8192: raise ValueError('Application preferences too large')
@@ -28,6 +29,10 @@ class ApplicationSettings:
                     or type(value.get('automatic_catalogue_refresh')) is not bool
                     or not isinstance(value.get('library_language'), str)):
                 raise ValueError('Invalid application preferences')
+            for key,choices in {'ui_language':('system','fr','en'),
+                                'interface_appearance':('system','light','dark')}.items():
+                if value.get(key,'system') not in choices:raise ValueError('Invalid general preferences')
+            if type(value.get('restore_tabs',True)) is not bool:raise ValueError('Invalid tab preference')
             self.value.update(value)
             self.first_launch = False
         except FileNotFoundError:

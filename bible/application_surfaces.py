@@ -33,52 +33,45 @@ def application_menu():
 
 
 def show_preferences(owner):
-    window=Adw.PreferencesWindow(transient_for=owner,modal=True,title=tr('Preferences'),default_width=520,default_height=420)
+    existing=getattr(owner,'preferences_window',None)
+    if existing and existing.get_visible():
+        existing.present(owner);return existing
+    dialog=Adw.PreferencesDialog(title=tr('Preferences'),content_width=520,content_height=560,search_enabled=False)
     page=Adw.PreferencesPage()
-    group=Adw.PreferencesGroup(title=tr('Library'),description=tr('Choose which resources appear first. Reading appearance remains in Aa.'))
-    from .language_picker import LanguagePicker
-    row=Adw.ActionRow(title=tr('Preferred resource language'))
-    def changed():
+    group=Adw.PreferencesGroup(title=tr('General'))
+    status=Gtk.Label(wrap=True,xalign=0)
+    settings=owner.application_settings
+    def save(key,value):
         try:
-            owner.application_settings.set('library_language',picker.codes[picker.get_selected()])
-            dialog=owner.catalogue_window
-            if dialog and not dialog.closed:
-                dialog.language_choice=owner.application_settings.language;dialog.update_languages()
-        except (OSError,ValueError) as error:owner.report_session_error(tr('Unable to save application preferences.'),error)
-    picker=LanguagePicker(changed);picker.set_valign(Gtk.Align.CENTER)
-    # Reuse worker-prepared catalogue names when available. The full ISO inventory
-    # is populated asynchronously through the shared Library service.
-    from .catalogue_session import CatalogueSession
-    if not getattr(owner,'catalogue_session',None):owner.catalogue_session=CatalogueSession(owner.library)
-    session=owner.catalogue_session
-    picker.prepare_languages=session.load_languages
-    picker.set_codes(['',owner.application_settings.language] if owner.application_settings.language else [''])
-    picker.selected=1 if owner.application_settings.language else 0
-    picker.set_label(picker.name(owner.application_settings.language))
-    def apply(snapshot):
-        from gi.repository import GLib
-        def update():
-            if not window.get_visible():return False
-            from .languages import canonical_language
-            current=canonical_language(owner.application_settings.language)
-            codes=['']+sorted(({canonical_language(code) for code in snapshot.languages}|{'en','fr',current})-{''})
-            picker.set_codes(codes,snapshot.languages)
-            picker.selected=codes.index(current);picker.set_label(picker.name(current))
-            return False
-        GLib.idle_add(update)
-    # WeakMethod subscriptions need a bound owner; retain it only for this dialog.
-    class Listener:
-        def ready(self,snapshot):apply(snapshot)
-    listener=Listener();window._language_listener=listener;session.subscribe(listener.ready)
-    window.connect('close-request',lambda *_:session.unsubscribe(listener.ready) or False)
-    row.add_suffix(picker);group.add(row)
-    auto=Adw.SwitchRow(title=tr('Refresh catalogues automatically'),subtitle=tr('Check metadata when Library opens. Resource texts download only on request.'),active=owner.application_settings.value['automatic_catalogue_refresh'])
-    def toggled(widget,*_):
-        try:owner.application_settings.set('automatic_catalogue_refresh',widget.get_active())
-        except (OSError,ValueError) as error:owner.report_session_error(tr('Unable to save application preferences.'),error)
-    auto.connect('notify::active',toggled);group.add(auto);page.add(group);window.add(page)
-    window.present();owner.preferences_window=window
-    return window
+            settings.set(key,value)
+            if key=='interface_appearance':owner.reading_style.apply_mode()
+            status.set_label(tr('Restart Bible to apply the application language.') if key=='ui_language' else '')
+        except (OSError,ValueError) as error:status.set_label(tr('Unable to save application preferences.')+' '+str(error))
+    def choice(title,key,values,description):
+        row=Adw.PreferencesRow(title=tr(title),activatable=False)
+        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
+        box.append(Gtk.Label(label=tr(title),xalign=0,wrap=True))
+        hint=Gtk.Label(label=tr(description),xalign=0,wrap=True,max_width_chars=1)
+        hint.set_max_width_chars(45);hint.add_css_class('dim-label');hint.add_css_class('caption');box.append(hint)
+        control=Gtk.DropDown(model=Gtk.StringList.new([tr(label) for _,label in values]))
+        control.update_property([Gtk.AccessibleProperty.LABEL],[tr(title)])
+        control.set_selected([value for value,_ in values].index(settings.value[key]))
+        control.connect('notify::selected',lambda widget,*_:save(key,values[widget.get_selected()][0]))
+        box.append(control);row.set_child(box);group.add(row);return control
+    dialog.language=choice('Application language','ui_language',[('system','System'),('fr','French'),('en','English')],
+                          'Restart Bible to apply the application language.')
+    dialog.appearance=choice('Interface appearance','interface_appearance',[('system','System'),('light','Light'),('dark','Dark')],
+                            'Aa keeps its explicit reading palette; System follows this appearance.')
+    row=Adw.SwitchRow(title=tr('Restore tabs at startup'),subtitle=tr('Applies at next launch. Your annotations and downloaded resources are kept.'),active=settings.value['restore_tabs'])
+    row.connect('notify::active',lambda widget,*_:save('restore_tabs',widget.get_active()))
+    dialog.restore_tabs=row;group.add(row);page.add(group)
+    # Full annotation backup requires its own reviewed integration (#94).
+    # Existing Notes backup routes remain available; do not mislabel their
+    # note-only format as a complete personal-data backup.
+    page.add(Adw.PreferencesGroup(description=tr('Reading appearance stays in Aa. Existing note backups remain available in My notes.')))
+    feedback=Adw.PreferencesGroup();feedback.add(status);page.add(feedback)
+    dialog.add(page);dialog.present(owner);owner.preferences_window=dialog
+    return dialog
 
 
 def show_shortcuts(owner):

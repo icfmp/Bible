@@ -129,6 +129,20 @@ FR = {
     'No supported resource found.': 'Aucune ressource compatible trouvée.',
 }
 LANGUAGE = os.environ.get('LANGUAGE') or locale.getlocale()[0] or 'en'
+# Read only the real application's saved language before constructing any UI.
+# An explicit Library resource-language choice remains independent.
+def _application_language(system):
+    import json
+    from pathlib import Path
+    path=Path(os.environ.get('XDG_DATA_HOME',str(Path.home()/'.local/share')))/'bible/application-preferences.json'
+    try:
+        with path.open('rb') as stream:data=stream.read(8193)
+        if len(data)>8192:return system
+        value=json.loads(data)
+        selected=value.get('ui_language') if value.get('version')==1 else None
+        return selected if selected in ('fr','en') else system
+    except (OSError,ValueError,TypeError,AttributeError):return system
+LANGUAGE = _application_language(LANGUAGE)
 
 
 def tr(message):
@@ -347,3 +361,13 @@ FR.update({'Choose or download a Bible. Downloaded texts are available offline.'
 FR.update({'Unable to load application preferences. Original file preserved.':'Impossible de charger les paramètres de l’application. Le fichier original est conservé.'})
 FR.update({'All highlights':'Tous les surlignages'})
 FR.update({'Installing {name} and checking…':'Installation et vérification de {name}…'})
+
+FR.update({
+    'General':'Général', 'Application language':'Langue de l’application',
+    'French':'Français', 'English':'Anglais', 'Interface appearance':'Apparence de l’interface',
+    'Restore tabs at startup':'Restaurer les onglets au démarrage',
+    'Restart Bible to apply the application language.':'Redémarrez Bible pour appliquer la langue de l’application.',
+    'Aa keeps its explicit reading palette; System follows this appearance.':'Aa conserve sa palette de lecture explicite ; Système suit cette apparence.',
+    'Applies at next launch. Your annotations and downloaded resources are kept.':'S’applique au prochain démarrage. Vos annotations et ressources téléchargées sont conservées.',
+    'Reading appearance stays in Aa. Existing note backups remain available in My notes.':'L’apparence de lecture reste dans Aa. Les sauvegardes de notes existantes restent disponibles dans Mes notes.',
+})

@@ -36,6 +36,16 @@ class ApplicationSettingsTests(unittest.TestCase):
             with self.assertRaises(ValueError):corrupt.set('library_language','fr')
             self.assertEqual(settings.path.read_bytes(),b'{corrupt original')
 
+    def test_saved_ui_language_is_loaded_at_next_process_start(self):
+        import subprocess,sys
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'bible';root.mkdir()
+            settings=ApplicationSettings(root);settings.set('ui_language','fr');settings.set('library_language','azb')
+            env={**os.environ,'XDG_DATA_HOME':directory,'LANGUAGE':'en'}
+            output=subprocess.check_output([sys.executable,'-c','from bible.i18n import LANGUAGE,tr;print(LANGUAGE,tr("Preferences"))'],env=env,text=True)
+            self.assertEqual(output.strip(),'fr Paramètres')
+            self.assertEqual(ApplicationSettings(root).language,'azb')
+
     def test_language_aliases_do_not_conflate_scripts_or_regions(self):
         self.assertEqual({canonical_language(x) for x in ['fr','fra','fre']},{'fr'})
         self.assertIn('fre',search_terms('fr'));self.assertIn('fra',search_terms('fr'))
@@ -104,10 +114,36 @@ class LibraryPolishTests(unittest.TestCase):
         w.lookup_action('translations').activate(None);self.assertTrue(w.catalogue_window.get_visible())
         self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
 
+    def test_general_preferences_reuse_persist_and_do_not_change_library_or_reader(self):
+        from bible.application_surfaces import show_preferences
+        from bible.ui import Adw,Window
+        w=self.window;settings=w.application_settings
+        settings.set('library_language','azb')
+        p=show_preferences(w)
+        self.assertIsInstance(p,Adw.PreferencesDialog)
+        self.assertIs(show_preferences(w),p)
+        p.language.set_selected(1);p.appearance.set_selected(2)
+        self.assertEqual(settings.language,'azb')
+        self.assertEqual(w.preferences.value.mode,'system')
+        self.assertTrue(w.reading_style.manager.get_dark())
+        w.preferences.value.mode='day';w.apply_appearance(reflow=False)
+        self.assertFalse(w.reading_style.manager.get_dark())
+        p.restore_tabs.set_active(False)
+        count=w.view.get_n_pages();self.assertEqual(w.view.get_n_pages(),count)
+        restored=ApplicationSettings(self.root)
+        self.assertEqual(restored.value['ui_language'],'fr')
+        self.assertFalse(restored.value['restore_tabs'])
+        self.assertEqual(restored.language,'azb')
+        p.close();w.new_tab();w.save_session();w.close()
+        self.window=w=Window(self.app,w.library);w.present()
+        self.assertEqual(w.view.get_n_pages(),1)
+        w.preferences.value.mode='system';settings.set('interface_appearance','system');w.reading_style.apply_mode()
+
     def test_cold_offline_language_inventory_remains_searchable_and_empty_is_truthful(self):
         w=self.window;d=w.open_library();spin(lambda:not d.busy)
         d.language.prepare_languages()
-        spin(lambda:'azb' in d.languages and len(d.languages)>1000)
+        spin(lambda:'azb' in d.languages and len(d.languages)>1000,timeout=30)
+        self.assertIsNone(d.session.language_future.exception())
         d.language.search.set_text('azb');d.language.filter()
         spin(lambda:d.language.strings.get_n_items()==2)
         d.language.activate(None,1)

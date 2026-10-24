@@ -73,3 +73,16 @@ The Library uses real catalogues from the five configured providers (1,941 suppo
 - High contrast uses the existing test-only style-manager override, not a claim of a real client portal setting. Deep specialist accessibility remains deferred. Native focus, symbolic labels and keyboard actions are exercised.
 - Synthetic SWORD text in unit/HTTPS transfer fixtures is test data; it is distinct from the actual resource/capture checks above. Original installation validation, provider identity, notices and package guards are retained.
 - Included harnesses are evidence of how these runs were made; hard-coded `/work` paths refer to disposable test profiles. They are not a user setup procedure. Main CI records the exact final source and installed-package checks.
+
+## Clarified #108 / #94 General preferences integration
+
+These supersede the earlier Library-only settings captures above. One native preferences dialog exposes real general controls; the full Data/backup work in #94 remains open. Preferences use a 380-pixel decorated host to satisfy libadwaita 1.5’s native 360-pixel client minimum; other narrow captures use 360 decorated pixels.
+
+- [integrated-preferences-dark-normal-large](integrated-preferences-dark-normal-large.png)
+- [integrated-preferences-dark-normal](integrated-preferences-dark-normal.png)
+- [integrated-preferences-dark-small-large](integrated-preferences-dark-small-large.png)
+- [integrated-preferences-dark-small](integrated-preferences-dark-small.png)
+- [integrated-preferences-light-normal-large](integrated-preferences-light-normal-large.png)
+- [integrated-preferences-light-normal](integrated-preferences-light-normal.png)
+- [integrated-preferences-light-small-large](integrated-preferences-light-small-large.png)
+- [integrated-preferences-light-small](integrated-preferences-light-small.png)
