@@ -1,0 +1,21 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "network_disabled": false,
+  "real_psalm_comparison": {
+    "rows": 19,
+    "maximum_row_delta_pixels": 0
+  },
+  "continuous_commentary_entries": 36,
+  "real_step": {
+    "greek_tokens": 330,
+    "greek_verses": 317,
+    "hebrew_tokens": 53,
+    "hebrew_verses": 45,
+    "source_words": 7,
+    "shared_occurrence_search": true
+  },
+  "status": "PASS",
+  "notes_unchanged": 1,
+  "module_files_unchanged": 27,
+  "sqlite_schema": 1
+}

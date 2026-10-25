@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "source": "ee256c95cabd5d6ca536101e08598a5bec4cd1f5",
+  "run": 40197604854,
+  "url": "https://github.com/icfmp/Bible/actions/runs/40197604854",
+  "counts": {
+    "source": 313,
+    "french_ui": 140,
+    "installed_suite": 119,
+    "installed_immersion": 11
+  },
+  "artifact_digest": "sha256:09d0f05046247bc4f66574ad6eb40936131d0616dd4f83e58c5fb126b755a58b"
+}

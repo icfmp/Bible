@@ -1,0 +1,20 @@
+[
+  {
+    "resource": "FreLSN1872",
+    "reference": "John.1.1",
+    "selection": "Parole",
+    "lexical_metadata": null,
+    "corpus": "tagnt-na27",
+    "actual_source_tokens": 17,
+    "reader_reference_unchanged": "John.1.1"
+  },
+  {
+    "resource": "FreLSN1872",
+    "reference": "John.1.1",
+    "selection": "Parole",
+    "lexical_metadata": null,
+    "corpus": "tagnt-na27",
+    "actual_source_tokens": 17,
+    "reader_reference_unchanged": "John.1.1"
+  }
+]

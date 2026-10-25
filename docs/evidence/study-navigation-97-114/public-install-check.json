@@ -1,0 +1,13 @@
+{
+  "install_commit": "302c097ab73eccbbcd6018ea450c1bf5ed134fd996b02ebd68551b5e3fdc80e4",
+  "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+  "origin": "bible-alpha",
+  "gpg_commit": true,
+  "gpg_summary": true,
+  "gtk_startup": true,
+  "user_data_snapshot": {
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-lg3v475b/resource.dat": "c2ebe57d716c072d710b0e8c01cd21460ebcd480f821bdee32d854f15c6ebe35",
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-lg3v475b/preferences.json": "9eefa89861cd3067fdbc2307b57c4853fa25252df2f8fe8a400e7d7e52bff708",
+    "/home/runner/.var/app/io.github.icfmp.Bible/data/bible/channel-update-check-lg3v475b/note.txt": "cec9c78bf24ea5917ff4416e35d46b290b01a5d969bef63ca6231616f0e6b91a"
+  }
+}
