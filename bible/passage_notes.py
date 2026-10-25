@@ -66,6 +66,8 @@ class PassageNotes(Gtk.Box):
 
     def bind_scroll(self,scroll):
         self.scroll=scroll
+        from .scroll_motion import ScrollMotion
+        self.motion=ScrollMotion(scroll)
         wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
         wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         wheel.connect('scroll',lambda *_:self.suspend_following() or False);scroll.add_controller(wheel)
@@ -82,6 +84,7 @@ class PassageNotes(Gtk.Box):
         if self._follow_idle:GLib.source_remove(self._follow_idle);self._follow_idle=0
 
     def suspend_following(self):
+        if hasattr(self,'motion'):self.motion.cancel()
         self.following=False;self.resume.set_visible(True);self.cancel_follow()
 
     def resume_following(self):
@@ -172,8 +175,11 @@ class PassageNotes(Gtk.Box):
             if not found:return False
             adjustment=self.scroll.get_vadjustment();top=bounds.get_y();bottom=top+min(bounds.get_height(),80)
             height=self.scroll.get_height()
-            if top<0:adjustment.set_value(adjustment.get_value()+top)
-            elif bottom>height:adjustment.set_value(adjustment.get_value()+bottom-height)
+            target = adjustment.get_value()+top if top<0 else adjustment.get_value()+bottom-height if bottom>height else None
+            if target is not None:
+                self.motion.move(target, valid=lambda: not self.owner.closed and stamp==self._stamp
+                                 and self.owner.active_tab is tab and self.following and not self.editor
+                                 and self.owner.study.tool=='notes' and tab.state.reference==reference)
             return False
         self._follow_idle=GLib.idle_add(reveal)
 

@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import re
+from .providers import RESOURCE_ID
 
 
 class StudySettings:
@@ -10,6 +12,7 @@ class StudySettings:
         self.path = Path(path)
         self.width = 420
         self.tool = 'commentaries'
+        self.last_commentary = None
         self.error = ''
         try:
             if self.path.stat().st_size > 4096:
@@ -20,6 +23,10 @@ class StudySettings:
                     or value.get('tool') not in ('notes', 'commentaries', 'references')):
                 raise ValueError('Unsupported study preferences')
             self.width, self.tool = value['width'], value['tool']
+            choice = value.get('last_commentary')
+            if choice is not None and (not isinstance(choice, str) or not re.fullmatch(RESOURCE_ID, choice)):
+                raise ValueError('Invalid remembered commentary')
+            self.last_commentary = choice
         except FileNotFoundError:
             pass
         except (OSError, ValueError, TypeError) as error:
@@ -33,7 +40,8 @@ class StudySettings:
         try:
             with tempfile.NamedTemporaryFile('w', dir=self.path.parent, prefix='.study-', delete=False) as stream:
                 temporary = Path(stream.name)
-                json.dump(dict(version=1, width=self.width, tool=self.tool), stream)
+                json.dump(dict(version=1, width=self.width, tool=self.tool,
+                               last_commentary=self.last_commentary), stream)
                 stream.flush(); os.fsync(stream.fileno())
             os.replace(temporary, self.path)
         finally:

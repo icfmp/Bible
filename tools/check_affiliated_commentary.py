@@ -54,7 +54,7 @@ def offline_snapshot(directory, commentary):
         assert expected == direct, 'Commentary differs from native SWORD'
         result.append({'reference': reference, 'sha256': hashlib.sha256(actual.encode()).hexdigest()})
     # Kretzmann uses section entries. Never substitute a nearby section for an
-    # exact absent verse or leave the previous commentary visible.
+    # exact absent verse. Keep the chapter stream but clear its active entry.
     missing = None
     for verse in range(1, 37):
         reference = f'John.3.{verse}'
@@ -62,7 +62,10 @@ def offline_snapshot(directory, commentary):
             assert window.active_tab.navigate('KJV', reference)
             window.study.refresh(force=True)
             buffer = window.study.text.get_buffer()
-            assert not buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
+            assert window.study.current_position is None
+            assert not window.study.entry_text
+            assert window.study.loaded, 'Available chapter entries must remain readable'
+            assert buffer.get_char_count() > 0
             assert window.study.status.get_text()
             missing = reference
             break
@@ -73,7 +76,7 @@ def offline_snapshot(directory, commentary):
     assert 'permission' in resource.license.lower()
     window.close()
     assert state.load().tabs[0].commentary == commentary
-    return {'entries': result, 'absent_entry_clears_view': missing, 'provider': resource.provider_id, 'source': resource.source,
+    return {'entries': result, 'absent_entry_clears_active_position_preserves_chapter': missing, 'provider': resource.provider_id, 'source': resource.source,
             'license': resource.license, 'conditions': resource.conditions}
 
 
@@ -105,7 +108,7 @@ def main():
             'driver': resource.driver, 'offline_process': command[:3],
             'checks': expected, 'commit': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
         }, ensure_ascii=False, indent=2) + '\n')
-        print(f'PASS {resource.id}: real HTTPS install; SWORD fidelity; GTK follows two indexed entries and clears an absent verse; isolated offline reopen; attribution and session preserved')
+        print(f'PASS {resource.id}: real HTTPS install; SWORD fidelity; GTK follows two indexed entries and clears the active position for an absent verse while retaining the chapter; isolated offline reopen; attribution and session preserved')
 
 
 if __name__ == '__main__':

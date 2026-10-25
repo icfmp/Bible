@@ -1,0 +1,29 @@
+{
+  "cancel": {
+    "seconds": 1.643636503999005,
+    "observed_bytes": 278528,
+    "no_partial_index": true
+  },
+  "retry": {
+    "seconds": 37.57985732599627,
+    "bytes": 274313216,
+    "metadata_counts": {
+      "tagnt-na27": 137992,
+      "tahot-main": 305465
+    },
+    "complete_progress": [
+      105074789,
+      105074789
+    ]
+  },
+  "gtk": {
+    "ticks": 3639,
+    "maximum_heartbeat_gap": 0.06254259700654075,
+    "mean_heartbeat_gap": 0.01079029400494598
+  },
+  "preserved": {
+    "reference": true,
+    "installed_bibles": true,
+    "notes": true
+  }
+}

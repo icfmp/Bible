@@ -1,0 +1,82 @@
+[
+  {
+    "resource": "FreSegond1910",
+    "versification": "Segond",
+    "source_type": "OSIS",
+    "language": "fr",
+    "examples": [
+      {
+        "reference": "Gen.1.1",
+        "raw_prefix": "Au <w lemma=\"strong:H7225\">commencement</w>, <w lemma=\"strong:H0430\">Dieu</w> <w lemma=\"strong:H1254\">créa</w> les <w lemma=\"strong:H8064\">cieux</w> et la <w lemma=\"strong:H0776\">terre</w>.",
+        "word_tags": 5,
+        "strong_attributes": 5
+      },
+      {
+        "reference": "John.1.1",
+        "raw_prefix": "<w lemma=\"strong:G1722\">Au</w> <w lemma=\"strong:G0746\">commencement</w> <w lemma=\"strong:G1510\">était</w> <w lemma=\"strong:G3588\">la</w> <w lemma=\"strong:G3056\">Parole</w>, <w lemma=\"strong:G2532\">et</w> <w lemma=\"strong:G3588\">la</w> <w lemma=\"strong:G3056\">Parole</w> <w lemma=\"strong:G1510\">était</w> <w lemma=\"strong:G4314\">avec</w> <w lemma=\"strong:G2316\">Dieu</w>, <w lemma=\"strong:G2532\">et</w> <w lemma=\"strong:G3588\">la</w> <w lemma=\"strong:G3056\">Parole</w> <w lemma=\"strong:G1510\">était</w> <w lemma=\"strong:G2316\">Dieu</w>.",
+        "word_tags": 16,
+        "strong_attributes": 16
+      }
+    ]
+  },
+  {
+    "resource": "KJV",
+    "versification": "KJV",
+    "source_type": "OSIS",
+    "language": "en",
+    "examples": [
+      {
+        "reference": "Gen.1.1",
+        "raw_prefix": "<w lemma=\"strong:H07225\">In the beginning</w> <w lemma=\"strong:H0430\">God</w> <w lemma=\"strong:H0853 strong:H01254\" morph=\"strongMorph:TH8804\">created</w> <w lemma=\"strong:H08064\">the heaven</w> <w lemma=\"strong:H0853\">and</w> <w lemma=\"strong:H0776\">the earth</w>.",
+        "word_tags": 6,
+        "strong_attributes": 6
+      },
+      {
+        "reference": "John.1.1",
+        "raw_prefix": "<w lemma=\"strong:G1722 lemma.TR:εν\" morph=\"robinson:PREP\" src=\"1\">In</w> <w lemma=\"strong:G746 lemma.TR:αρχη\" morph=\"robinson:N-DSF\" src=\"2\">the beginning</w> <w lemma=\"strong:G1510 lemma.TR:ην\" morph=\"robinson:V-IAI-3S\" src=\"3\">was</w> <w lemma=\"strong:G3588 strong:G3056 lemma.TR:ο lemma.TR:λογος\" morph=\"robinson:T-NSM robinson:N-NSM\" src=\"4 5\">the Word</w>, <w lemma=\"strong:G2532 lemma.TR:και\" morph=\"robinson:CONJ\" src=\"6\">and</w> <w lemma=\"strong:G3588 strong:G3056 lemma.TR:ο lemma.TR:λογος\" morph=\"robinson:T-NSM robinson:N-NSM\" src=\"7 8\">the Word</w> <w lemma=\"strong:G1510 lemma.TR:ην\" morph=\"robinson:V-IAI-3S\" src=\"9\">was</w> <w lemma=\"strong:G4314 lemma.TR:προς\" morph=\"robinson:PREP\" src=\"10\">with</w> <w lemma=\"strong:G3588 strong:G2316 lemma.TR:τον lemma.TR:θεον\" morph=\"robinson:T-ASM robinson:N-ASM\" src=\"11 12\">God</w>, <w lemma=\"strong:G2532 lemma.TR:και\" morph=\"robinson:CONJ\" src=\"13\">and</w> <w lemma=\"strong:G3588 strong:G3056 lemma.TR:ο lemma.TR:λογος\" morph=\"robinson:T-NSM robinson:N-NSM\" src=\"16 17\">the Word</w> <w lemma=\"strong:G1510 lemma.TR:ην\" morph=\"robinson:V-IAI-3S\" src=\"15\">was</w> <w lemma=\"strong:G2316 lemma.TR:θεος\" morph=\"robinson:N-NSM\" src=\"14\">God</w>.",
+        "word_tags": 13,
+        "strong_attributes": 13
+      }
+    ]
+  },
+  {
+    "resource": "ebible~frajnd2024eb",
+    "versification": "Luther",
+    "source_type": "OSIS",
+    "language": "fr",
+    "examples": [
+      {
+        "reference": "Gen.1.1",
+        "raw_prefix": "Au commencement <seg><divineName>Dieu</divineName></seg> créa les cieux et la terre.  <div eID=\"gen6\" type=\"x-p\"/>",
+        "word_tags": 0,
+        "strong_attributes": 0
+      },
+      {
+        "reference": "John.1.1",
+        "raw_prefix": "Au commencement était la Parole<note osisID=\"John.1.1!note.1\" osisRef=\"John.1.1\" placement=\"foot\" type=\"translation\"><reference osisRef=\"John.1.1\" type=\"source\">1:1 </reference><hi type=\"italic\">ou : </hi>le Verbe<hi type=\"italic\">.</hi></note> ; et la Parole était auprès de <seg><divineName>Dieu</divineName></seg> ; et la Parole était <seg><divineName>Dieu</divineName></seg>.",
+        "word_tags": 0,
+        "strong_attributes": 0
+      }
+    ]
+  },
+  {
+    "resource": "FreLSN1872",
+    "versification": "Calvin",
+    "source_type": "OSIS",
+    "language": "fr",
+    "examples": [
+      {
+        "reference": "Gen.1.1",
+        "raw_prefix": "Au commencement Dieu créa les cieux et la terre.",
+        "word_tags": 0,
+        "strong_attributes": 0
+      },
+      {
+        "reference": "John.1.1",
+        "raw_prefix": "Au commencement était la Parole; et la Parole était auprès de Dieu; et la Parole était Dieu;",
+        "word_tags": 0,
+        "strong_attributes": 0
+      }
+    ]
+  }
+]

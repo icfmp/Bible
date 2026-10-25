@@ -130,18 +130,30 @@ def main():
                 spin(duration=0.4)
                 nav = window.navigation
                 inputs.click(nav.book_rows['1Cor'])
-                assert window.active_tab.state.reference == '1Cor.1.1'
+                assert window.active_tab.state.reference == 'Gen.1.1'
                 inputs.click(nav.chapter_buttons[15])
+                assert window.active_tab.state.reference == 'Gen.1.1'
+                inputs.click(nav.open_chapter)
                 assert window.active_tab.state.reference == '1Cor.15.1'
+                window.choose_passage();spin()
                 nav.chapter_buttons[16].grab_focus()
                 inputs.key('space')
+                assert window.active_tab.state.reference == '1Cor.15.1'
+                nav.open_chapter.grab_focus();inputs.key('space')
                 assert window.active_tab.state.reference == '1Cor.16.1'
+                window.choose_passage();spin()
                 nav.book_rows['Gen'].grab_focus()
                 inputs.key('Return')
+                assert window.active_tab.state.reference == '1Cor.16.1'
+                nav.open_chapter.grab_focus();inputs.key('Return')
                 assert window.active_tab.state.reference == 'Gen.1.1'
+                window.choose_passage();spin()
                 nav.book_rows['Gen'].grab_focus()
                 inputs.key('Down')
+                assert window.active_tab.state.reference == 'Gen.1.1'
+                nav.open_chapter.grab_focus();inputs.key('Return')
                 assert window.active_tab.state.reference == 'Exod.1.1'
+                window.choose_passage();spin()
                 nav.search.grab_focus()
                 for letter in 'cor':
                     inputs.key(letter)

@@ -28,6 +28,7 @@ class ComparisonSync(ReadingSync):
 
     def moved(self,side,view,bar,tab=None):
         if self.running or self.tab is not self.owner.active_tab:return
+        if self.tab.scroll_motion.running:return
         if self.tab._restoring_scroll or getattr(self.tab,'_comparison_positioning',False):return
         geometry=(view.get_width(),view.get_height())
         previous=getattr(view,'_comparison_geometry',geometry);view._comparison_geometry=geometry
@@ -49,6 +50,15 @@ class ComparisonSync(ReadingSync):
         if view.get_buffer().get_has_selection():return False
         self.running=True
         try:
+            if getattr(tab,'_shared_comparison',False):
+                # Native GTK adjusts both panes through the SAME adjustment.
+                # Only semantic study context follows the explicitly used side.
+                if self.driver=='comparison':
+                    reference=tab.comparison_visible_reference()
+                    if reference:
+                        mapped=resolve(reference,tab._comparison_reader.versification,tab.reader)
+                        if mapped.start!=tab.state.reference:tab.select_verse(mapped.start)
+                return False
             if self.driver=='primary':
                 reference=tab.visible_reference()
                 if not reference:return False

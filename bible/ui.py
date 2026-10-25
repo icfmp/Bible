@@ -254,6 +254,7 @@ class Window(Adw.ApplicationWindow):
         self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
         self.add_action_callback('appearance',lambda *_:self.show_appearance())
         self.add_action_callback('compare',lambda *_:self.show_comparison())
+        self.add_action_callback('study-word',lambda *_:self.passage_actions.study_word())
         self.add_action_callback('immersive',lambda *_:self.toggle_immersion())
         self.add_action_callback('previous-commentary-entry',lambda *_:self.immersion.change_entry(-1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(-1))
         self.add_action_callback('next-commentary-entry',lambda *_:self.immersion.change_entry(1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(1))
@@ -546,7 +547,9 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:self.immersion.reveal_controls()
         button.set_active(True)
         self.navigation.sync(force=True)
-        (self.navigation.direct if direct else self.navigation.search).grab_focus()
+        if direct:self.navigation.modes.set_visible_child_name('passage')
+        mode=self.navigation.modes.get_visible_child_name()
+        (self.navigation.text_search.entry if mode=='text' else self.navigation.topic_search.entry if mode=='topics' else self.navigation.direct).grab_focus()
 
     def step_chapter(self, direction):
         tab = self.active_tab
@@ -695,7 +698,9 @@ class Window(Adw.ApplicationWindow):
         self.study.header.set_show_end_title_buttons(visible)
 
     def sidebar_changed(self, *_):
-        if not self.split.get_show_sidebar():self.study.cancel_scroll()
+        if not self.split.get_show_sidebar():
+            self.study.cancel_scroll();self.study.cancel_reveal();self.study.notes.cancel_follow()
+            if self.study.tool=='word':self.study.words.leave()
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
@@ -742,13 +747,17 @@ class Window(Adw.ApplicationWindow):
     def resource_installed(self, name):
         if self.closed:
             return
-        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID
-        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID):
+        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID
+        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID):
             for window in self.get_application().get_windows():
                 if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
                     if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
                     elif name==TOPIC_RESOURCE_ID:window.navigation.topic_search.refresh()
-                    elif getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
+                    elif name==STEP_RESOURCE_ID:
+                        if window.study.tool=='word' and window.study.words.valid():window.study.words.begin()
+                    elif name==PLACE_RESOURCE_ID:
+                        for tab in window.tabs():tab.apply_appearance();tab.refresh_comparison()
+                        if getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
             return
         # Installation refreshes choices, never the user's selected resource.
         for window in self.get_application().get_windows():
@@ -774,8 +783,10 @@ class Window(Adw.ApplicationWindow):
             if self.immersion:self.leave_immersion()
             self.view.set_selected_page(self.view.get_page(tab))
             if resource.kind=='commentary':
+                if self.study.tool=='word':self.study.words.leave()
                 tab.state.commentary=name;self.study.tools.set_visible_child_name('commentaries')
                 self.study_button.set_active(True);self.study.refresh(force=True)
+                self.study.remember_choice(name)
             elif destination=='comparison':
                 tab.state.comparison=name;self.sync_comparison()
             else:
@@ -870,6 +881,7 @@ class Window(Adw.ApplicationWindow):
 
     def reveal_passage_annotations(self):
         # Intentional inline markers reveal the chapter list, never enter edit.
+        if self.study.tool=='word':self.study.words.leave()
         self.study_button.set_active(True);self.study.tools.set_visible_child_name('notes')
         self.study.notes.refresh();self.study.notes.resume_following()
 
@@ -971,9 +983,12 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        if hasattr(self,'_inline_marker_executor'):self._inline_marker_executor.shutdown(wait=False,cancel_futures=True)
+        for tab in self.tabs():tab.inline_markers.executor.shutdown(wait=False,cancel_futures=True)
         self.reference_preview.dismiss()
         self.study.references.close()
         self.study.notes.close()
+        self.study.words.close()
         self.navigation.close()
         self.study.cancel_reveal()
         self.study.cancel_scroll()

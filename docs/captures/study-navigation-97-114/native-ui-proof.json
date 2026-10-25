@@ -1,0 +1,33 @@
+{
+  "phase": "after",
+  "real_resources": [
+    "FreLSN1872",
+    "FreSegond1910",
+    "KJV",
+    "MHC",
+    "Wesley",
+    "ebible~frajnd2024eb"
+  ],
+  "annotation_bodies": "Disposable developer-authored notes; never client data",
+  "checks": [
+    {
+      "palette": "day",
+      "shared_adjustment": true,
+      "maximum_row_delta": 0,
+      "rows": 26
+    },
+    {
+      "palette": "night",
+      "shared_adjustment": true,
+      "maximum_row_delta": 0,
+      "rows": 26
+    }
+  ],
+  "mhc": {
+    "render_seconds": 0.5999440599989612,
+    "heartbeat_max": 0.45581128699996043,
+    "entries": 7,
+    "characters": 99440,
+    "all_loaded_bodies_match": true
+  }
+}

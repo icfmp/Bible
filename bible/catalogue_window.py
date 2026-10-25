@@ -330,6 +330,20 @@ class CatalogueWindow(Adw.Window):
         self.metadata.select_region(0, 0)
         self.back_button.grab_focus()
 
+    def reveal_study_resource(self,identifier):
+        self.back_to_list()
+        self.kind.set_selected(2);self.search.set_text('');self.filter_resources()
+        attempts=[0]
+        def reveal():
+            if self.closed or self.kind.get_selected()!=2 or self.search.get_text() or self.pages.get_visible_child_name()!='list':return False
+            attempts[0]+=1
+            if self.preparing or self._building_rows:
+                return attempts[0]<200
+            index=next((i for i,r in enumerate(self.filtered_resources) if r.id==identifier),None)
+            if index is not None:self.open_details(None,index)
+            return False
+        GLib.timeout_add(16,reveal)
+
     def back_to_list(self,*_):
         self.pages.set_visible_child_name('list');self.back_button.set_visible(False)
         self.list_scroll.get_vadjustment().set_value(getattr(self,'_list_position',0))
@@ -448,7 +462,7 @@ class CatalogueWindow(Adw.Window):
         # captured resource, not the current selection, owns that task.
         self.progress.set_visible(self._transfer_busy or self._phase=='error')
         self.cancel_button.set_visible(self._transfer_busy)
-        self.cancel_button.set_sensitive(self._phase=='downloading')
+        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing'))
         self.refresh_rows()
 
 
@@ -457,6 +471,8 @@ class CatalogueWindow(Adw.Window):
             self.set_visible(False)
             return True
         self.closed = True
+        from .study_resources import STEP_RESOURCE_ID
+        if self._task_resource==STEP_RESOURCE_ID:self._cancel.set()
         if self._loading_tick:self.catalogue_progress.remove_tick_callback(self._loading_tick);self._loading_tick=0
         self._rows_generation+=1;self.language.cancel_pending();self.session.unsubscribe(self.snapshot_ready)
         self.stop_animation()
@@ -540,8 +556,10 @@ class CatalogueWindow(Adw.Window):
             pending, self._pending_progress = self._pending_progress, None
         if pending and pending[0] == self._task_id:
             _, self._phase, done, total = pending
-            self._indeterminate = self._phase == 'installing' or not total
-            if self._phase == 'installing':
+            self._indeterminate = self._phase in ('installing','preparing') or not total
+            if self._phase == 'preparing':
+                self.status.set_text(tr('Preparing study data…'));self.progress.set_text(tr('Preparing study data…'))
+            elif self._phase == 'installing':
                 self.status.set_text(tr('Installing {name} and checking…').format(name=self._task_caption) if self._task_caption else tr('Installing and checking…'))
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr('Installing and checking…'))
@@ -552,7 +570,7 @@ class CatalogueWindow(Adw.Window):
                                         if total else ' — ' + tr('Size unknown')))
         if self._indeterminate:
             self.progress.pulse()
-        self.cancel_button.set_sensitive(self._phase=='downloading');self.refresh_rows()
+        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing'));self.refresh_rows()
         return True
 
     def report_progress(self, done, total):
@@ -560,15 +578,17 @@ class CatalogueWindow(Adw.Window):
         self.queue_progress('downloading', done, total)
 
     def cancel_download(self,*_):
+        from .study_resources import STEP_RESOURCE_ID
         with self._progress_lock:
-            if not self._install_started:self._cancel.set()
+            if not self._install_started or self._task_resource==STEP_RESOURCE_ID:self._cancel.set()
         self.cancel_button.set_sensitive(False)
 
     def begin_installation(self):
+        from .study_resources import STEP_RESOURCE_ID
         with self._progress_lock:
             if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
             self._install_started=True
-            self._pending_progress=(self._task_id,'installing',0,0)
+            self._pending_progress=(self._task_id,'preparing' if self._task_resource==STEP_RESOURCE_ID else 'installing',0,0)
 
     def install(self, *_, resource=None):
         resource = resource or self.selected_resource()
@@ -583,8 +603,10 @@ class CatalogueWindow(Adw.Window):
             self.status.set_text(tr('Installed: {name}').format(name=resource.name))
             self.selection_changed()
         installer=self.study_resources if resource.kind=='study' else self.library
+        def perform():
+            options={'cancelled':self._cancel.is_set} if resource.kind=='study' else {}
+            return installer.install(resource,self.report_progress,installing=self.begin_installation,**options)
         self.task(tr('Downloading {name}…').format(name=resource.name),
-                  lambda: installer.install(resource, self.report_progress,
-                                                installing=self.begin_installation),
+                  perform,
                   installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
 

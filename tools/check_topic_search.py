@@ -47,6 +47,7 @@ def main():
             args.captures.mkdir(parents=True,exist_ok=True);native.move_at(w,2,2);spin();ImageGrab.grab().save(args.captures/(name+'.png'))
     def settled():spin(lambda:not w.active_tab._restoring_scroll,duration=.3)
     def mode(name):
+        if name=='Topics':name='Themes'
         native.click(next(b for b in walk(nav.mode_switcher) if isinstance(b,Gtk.ToggleButton) and b.get_child().get_text()==tr(name)));spin()
     def open_search(resource='FreSegond1910'):
         if w.navigation.get_visible():w.navigation.popdown();spin()
@@ -97,7 +98,7 @@ def main():
         def heartbeat():
             now=time.monotonic();gaps.append(now-last[0]);last[0]=now;ticks[0]+=1;return True
         timer=GLib.timeout_add(10,heartbeat)
-        mode('Text');text=nav.text_search;text.entry.set_text('light of the world');spin(duration=.3)
+        mode('Text');text=nav.text_search;text.source.set_selected(text.search_names.index('KJV'));text.entry.set_text('"light of the world"');spin(duration=.3)
         text.entry.grab_focus();ticks[0]=0;gaps.clear();last[0]=time.monotonic()
         started=time.monotonic();native.key('Return');wait(lambda:not text.pending)
         GLib.source_remove(timer)
@@ -110,7 +111,7 @@ def main():
         assert not text.rows
         mode('Passage');nav.direct.set_text('John 3:16');nav.direct.grab_focus();native.key('Return');settled()
         assert w.active_tab.state.reference=='John.3.16';report['passage_navigation_preserved']=True
-        nav=open_search('FreSegond1910');mode('Text');text.entry.set_text('lumière du monde');spin(duration=.3)
+        nav=open_search('FreSegond1910');mode('Text');text.source.set_selected(text.search_names.index('FreSegond1910'));text.entry.set_text('"lumière du monde"');spin(duration=.3)
         text.entry.grab_focus();native.key('Return');wait(lambda:not text.pending)
         assert {r.start for r in text.rows}=={'Matt.5.14','John.8.12','John.9.5'}
         mode('Topics');search.entry.set_text('peur');spin(duration=.3);choose('fear')

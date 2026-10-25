@@ -87,7 +87,7 @@ def _span(start, end, system):
     refs = []
     for _ in range(100000):
         reference = key.getOSISRef()
-        refs.append(reference)
+        if key.getVerse()>0:refs.append(reference)
         if reference == end:
             return refs
         key.increment()

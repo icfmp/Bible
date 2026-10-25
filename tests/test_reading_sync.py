@@ -85,7 +85,9 @@ class ReadingSyncTests(unittest.TestCase):
             finally:tab._travelling=False
             spin(lambda:not tab._restoring_scroll)
             self.assertEqual(study.entry_text,'')
-            self.assertEqual(study.text.get_buffer().props.text,'')
+            # Missing coverage no longer destroys the continuous chapter stream.
+            self.assertIn('FIRST COMMENT TEST',study.text.get_buffer().props.text)
+            self.assertIsNone(study.current_position)
             from bible.i18n import tr
             self.assertEqual(tr('No commentary for this passage.'),study.status.get_text())
             w.close()
