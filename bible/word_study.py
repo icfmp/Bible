@@ -4,9 +4,8 @@ from .i18n import tr
 from .metadata_workers import MetadataExecutor
 from .step_data import StepData
 from .step_sources import CORPORA,NOTICE,DOWNLOAD_BYTES
-from .word_metadata import selected_metadata
-from .reference_resolution import resolve
-from .reference_targets import Canon,local_excerpt
+from .word_metadata import selected_metadata,source_verse_references
+from .reference_targets import local_excerpt
 from .reference_preview import passage_title
 
 
@@ -152,10 +151,7 @@ class WordStudy(Gtk.Box):
     def explore(self,reference):
         source=self.target.source
         try:
-            mapped=resolve(reference,source.reader.versification,Canon('NRSV'),require_entry=False)
-            # Split mappings are displayed explicitly, never reduced to one verse.
-            from .reference_resolution import _span
-            refs=_span(mapped.start,mapped.end,'NRSV')
+            refs=source_verse_references(reference,source.reader)
         except ValueError:
             self.content.append(self.label(tr('No verified alignment for this passage.')));return
         self.clear();self.content.append(self.label(tr('These are words of the identified source corpus, not a claimed translation of the selected word.')))
@@ -216,11 +212,9 @@ class WordStudy(Gtk.Box):
         occurrence_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         self.content.append(occurrence_rows)
         excluded=set()
-        from .reference_resolution import _span
         for reference in self.target.references:
             try:
-                mapped=resolve(reference,self.target.source.reader.versification,Canon('NRSV'),require_entry=False)
-                excluded.update(_span(mapped.start,mapped.end,'NRSV'))
+                excluded.update(source_verse_references(reference,self.target.source.reader))
             except ValueError:pass
         def show(result):
             counts.set_text(tr('{tokens} source tokens · {verses} distinct verses').format(**result))

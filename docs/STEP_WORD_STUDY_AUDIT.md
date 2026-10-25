@@ -111,3 +111,7 @@ prepared the index in 37.58 seconds including transfer. Maximum GTK heartbeat
 gap was 0.063 seconds. This used a disposable fixture reader and real upstream
 STEP data; reference/resource/empty-note state remained unchanged. Existing-data
 rollback/cancellation and corrupt-update preservation are checked separately.
+
+### Psalm superscriptions and source-word exploration
+
+Native SWORD collapses some numbered Segond Psalm titles onto a body verse (for example, Segond Psalm 51:2 and 51:3 both become NRSV 51:1). This supports a shared comparison group, but does not prove source-word identity. Word exploration now prefers the existing pinned JSword verse-part bridge: `!pv` superscriptions are explicitly unavailable instead of being truncated into body words, while `!v` body mappings retain their actual verse. Segond Psalm 51:3 consequently opens TAHOT NRSV Psalm 51:1; Segond 51:1–2 do not show the following verse's words. Where pinned tables are unavailable, reciprocal and adjacent-reference checks reject native collapsed groups. Generic comparison/reference behavior is preserved. Actual source-data and GTK checks cover this boundary, including the unavailable heading state; no introduction is manufactured as verse 1.

@@ -54,3 +54,47 @@ def selected_metadata(target):
     reader.module.setKey(reader.key(reference));raw=reader.module.getRawEntry()
     raw=raw if isinstance(raw,str) else raw.c_str()
     return aligned_identifiers(raw,document.copy(span.body,span.end),document.copy(span.body,first),document.copy(first,last))
+
+
+def source_verse_references(reference,reader):
+    """Keep Psalm superscriptions separate from a source verse's body words.
+
+    Prefer existing pinned verse-part mappings. Native SWORD can collapse a
+    numbered title onto a body verse; require unambiguous reciprocal coverage
+    when the pinned bridge is unavailable. No introduction becomes verse one.
+    """
+    from .reference_targets import Canon
+    from .reference_resolution import resolve,_span,VersificationMismatch
+    from .versification_mapping import to_base,from_base
+    source=Canon(reader.versification);target=Canon('NRSV')
+    source.key(reference)
+    parts=to_base(reference,reader.versification)
+    if parts is not None:
+        refs=set()
+        for part in parts:
+            # JSword's !pv is a Psalm title; !v denotes the verse body.
+            # A whole-verse fallback must never erase that distinction.
+            if '!pv' in part or part.startswith('?'):
+                raise VersificationMismatch('No source-body alignment for heading: '+reference)
+            mapped=from_base(part,'NRSV')
+            if not mapped:raise VersificationMismatch('No source-verse alignment: '+reference)
+            refs.update(mapped)
+        if not refs:raise VersificationMismatch('No source-verse alignment: '+reference)
+        ordered=sorted(refs,key=lambda ref:target.key(ref).getIndex())
+        if _span(ordered[0],ordered[-1],'NRSV')!=ordered:
+            raise VersificationMismatch('Non-contiguous source-verse alignment: '+reference)
+        return tuple(ordered)
+    mapped=resolve(reference,reader.versification,target,require_entry=False)
+    refs=_span(mapped.start,mapped.end,'NRSV')
+    key=source.key(reference);index=key.getIndex();verse=key.getVerse()
+    for ref in refs:
+        reverse=resolve(ref,'NRSV',source,require_entry=False)
+        if not source.key(reverse.start).getIndex()<=index<=source.key(reverse.end).getIndex():
+            raise VersificationMismatch('No reciprocal source-verse alignment: '+reference)
+    for neighbour in (verse-1,verse+1):
+        if not 1<=neighbour<=key.getVerseMax():continue
+        key.setVerse(neighbour)
+        other=resolve(key.getOSISRef(),reader.versification,target,require_entry=False)
+        if set(refs).intersection(_span(other.start,other.end,'NRSV')):
+            raise VersificationMismatch('Ambiguous source-verse alignment: '+reference)
+    return tuple(refs)
