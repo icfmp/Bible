@@ -68,6 +68,7 @@ class ClientFeedbackTests(unittest.TestCase):
         b.select_range(b.get_iter_at_offset(offset),b.get_iter_at_offset(offset+5));a.capture(t.text,factory,None);spin()
         self.assertTrue(a.bar.get_visible())
         self.assertIs(a.copy_button,a.copy_options)
+        self.assertEqual(a.copy_button.get_child().get_icon_name(),'edit-copy-symbolic')
         self.assertIs(a.actions.get_first_child(),a.copy_button)
         b.place_cursor(b.get_iter_at_offset(offset));spin()
         self.assertFalse(a.bar.get_visible());self.assertIsNone(a.target)

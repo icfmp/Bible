@@ -2,7 +2,7 @@
 
 Related to #75, #94, #99, #98, #102 and #105. All descriptions and comments were reread. The immersion geometry correction was implemented and checked before the keyboard correction. The issues stay OPEN for client acceptance; numbered publication #87 remains paused.
 
-These are actual GTK screenshots, not mockups or retouched images. Before: `7a633f3281d0a6086cb822a1ac9f055beb53445b`. After: the implementation in this PR. The source capture environment is GTK 4.14/libadwaita 1.5, the new OpenGL renderer (`NglRenderer`), Xvfb with an X11 compositor, at scale 1. The compositor is a test dependency only; nothing was added to the application runtime. Disposable profiles contain real downloaded resources. FreBDM1707 is used for the client's Genesis example; no complete Bible module is included here.
+These are actual GTK screenshots, not mockups or retouched images. Before: `7a633f3281d0a6086cb822a1ac9f055beb53445b`. After: the implementation in this PR. The initial source captures use GTK 4.14/libadwaita 1.5 (`NglRenderer`). The corrected action-bar captures and final live recording use the actual Platform 49 GTK 4.20.4 libraries and `GLRenderer`; the installed-before diagnostic is taken from the real Flatpak. All are composited Xvfb at scale 1, and each source/installed distinction is stated below. The compositor is a test dependency only; nothing was added to the application runtime. Disposable profiles contain real downloaded resources. FreBDM1707 is used for the client's Genesis example; no complete Bible module is included here.
 
 The workflow also installs the built Flatpak and captures its actual `/app/` implementation with GNOME Platform 49, OpenGL and composited X11. Its full capture matrix, input/geometry measurements, live-backdrop checks and renderer identity are retained in the `Bible-alpha-linux-x86_64` artifact (`client-feedback/`, `packaged-client-feedback.log`). CI receipts distinguish those installed results from the source results below. This does not establish acceptance on the client's GNOME/Wayland desktop, portal integration or fractional display scaling.
 
@@ -43,7 +43,7 @@ Additional captures: [French backup actions with large type](after-preferences-w
 
 The #125 sustained-input check passes in single, comparison and study modes and with the selection toolbar initially visible: real independent X11 input continues while GTK renders, direction changes are bounded, and there are zero adjustment changes more than 500 ms after input stops. The toolbar still dismisses on wheel input, as before.
 
-[Light live-backdrop recording](white-live-backdrop.mp4) and [dark live-backdrop recording](dark-live-backdrop.mp4) show the actual reader moving both ways beneath the selection surface. This diagnostic drives the reader's existing scrollbar adjustment to keep the selection surface visible; it does not claim that wheel input leaves the bar open. Controls remain a separate sharp overlay, selection is retained, and no video blur was applied.
+[Light/dark GTK 4.20.4 live-backdrop recording](gtk49-live-backdrop.mp4) show the actual reader moving both ways beneath the selection surface. This diagnostic drives the reader's existing scrollbar adjustment to keep the selection surface visible; it does not claim that wheel input leaves the bar open. Controls remain a separate sharp overlay, selection is retained, and no video blur was applied.
 
 The source checks are developer evidence. Installed Flatpak and signed-channel update/preservation outcomes are recorded in the delivery receipt after their actual completion. No data migration, preference schema change, resource removal or persistent feature disable is included.
 
@@ -74,3 +74,26 @@ The subsequent six-second stationary visible-bar diagnostic records **0 backgrou
 The sustained native wheel check now also records the independent input timestamp, synchronous hide/cleanup duration, first actual adjustment change and first GTK `after-paint` after movement. It verifies that cleanup completes before movement and that the bar is absent in the first scroll frame. These native timestamps avoid a screen-readback loop and preserve the real input path. The baseline and initially visible-bar runs are retained separately; a scrollbar-adjustment diagnostic is never presented as a real wheel gesture. GPU/compositor presentation on the client's desktop remains a separate acceptance check.
 
 The installed blur assertion now examines the dark backdrop across the whole bar interior while excluding the sharp light foreground. Its previous narrow fixed band could coincide with different foreground/font geometry between GTK versions. The diagnostic additionally records bar visibility, real GTK/renderer/scale, sampling coordinates, source paintable dimensions and changed pixels; captures are retained even on assertion failure. An installed render is accepted only when visibly open and the actual output establishes blur.
+
+## Established installed-rendering cause
+
+The installed Platform 49 test reproduced sharp glyphs with **GTK 4.20.4 / GLRenderer**, not just a narrow-band metric failure: zero pixels changed between blur 0 and 16 over the whole bar. [Installed before image](installed-gtk49-before-blur.png). The failure was retained rather than accepted as a fallback.
+
+Serializing the actual GSK background exposed corrupted rounded-clip coordinates (for example `0.486084 3.06044e-41 1.23758e+26 5.10426e-05`). `Gsk.RoundedRect().init(...)` returned a borrowed view of a temporary non-boxed struct whose owner was already gone. The corrupted clip discarded the sampled background; increasing blur or changing the renderer could not correct those invalid bounds. The fix retains the owning `Gsk.RoundedRect` instance until `push_rounded_clip` copies it. Sampling now explicitly uses GTK's immutable current paintable image, updated by the existing native invalidation signals.
+
+[After with the same GTK 4.20.4 runtime libraries](source-gtk49-after-blur.png) shows actual frosted reader glyphs with sharp controls. This is source validation against the real runtime libraries; the separate installed Flatpak gate still has to pass on the final source. The source run covers 99 actual captures, all 16 page turns and a stable 15-second immersive reading box. Cairo remains explicit headless GTK/GSK coverage, not an application renderer workaround. No new runtime dependency or manual texture cache was added.
+
+The final Copy icon is constructed only once: replacing a GtkMenuButton child twice had cleared its icon-name property. The icon, its one accessible button and the four-option native menu are all retained in the corrected captures.
+
+The fixed clip passes the same-runtime native matrix: **99 captures, all 16 page turns, stable 15-second immersion, and whole-interior blur edge energy 62007 → 18056**, with 13695 backdrop pixels changed. This identifies actual smoothing of reader glyphs rather than the presence of a blur API call.
+
+[GTK 4.20.4 source performance receipt](gtk49-source-scroll-impact.json), measured sequentially with software OpenGL:
+
+| State | Frame gap p95 | App CPU seconds / 6.1 wall seconds | Background snapshots / invalidations / placement / periodic checks |
+| --- | ---: | ---: | --- |
+| Scrolling without bar | 17.51 ms | 2.13 | 0 / 0 / 0 / 0 |
+| Scrolling with visible bar (scrollbar diagnostic) | 17.44 ms | 7.82 | 354 / 354 / 358 / 0 |
+| Visible bar, unchanged background | 17.52 ms | 0.23 | 0 / 0 / 0 / 0 |
+| Scrolling after dismissal | 17.33 ms | 2.24 | 0 / 0 / 0 / 0 |
+
+CPU time includes software-renderer threads and demonstrates a real cost when the underlying content changes. These are development measurements on the matching runtime libraries, not an installed-package or client-GPU benchmark. The installed gate repeats them on the shipped code. Normal wheel input dismisses the effect before reader movement; the native first-transition receipts also record GTK after-paint, not just adjustment sampling.

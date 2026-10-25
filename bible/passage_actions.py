@@ -61,7 +61,10 @@ class Backdrop(Gtk.Widget):
     def do_snapshot(self,snapshot):
         bounds=Graphene.Rect().init(0,0,self.get_width(),self.get_height())
         radius=Graphene.Size().init(16,16)
-        rounded=Gsk.RoundedRect().init(bounds,radius,radius,radius,radius)
+        # init() returns a borrowed pointer for this non-boxed GSK struct.
+        # Keep its owning Python instance alive until GTK copies the clip.
+        rounded=Gsk.RoundedRect()
+        rounded.init(bounds,radius,radius,radius,radius)
         snapshot.push_rounded_clip(rounded)
         surface=self.get_parent()
         actions=getattr(surface,'actions_owner',None)
@@ -77,7 +80,7 @@ class Backdrop(Gtk.Widget):
                 padding=3*BACKDROP_BLUR
                 sample=Graphene.Rect().init(-padding,-padding,bounds.size.width+2*padding,bounds.size.height+2*padding)
                 snapshot.push_clip(sample);snapshot.save();snapshot.translate(point)
-                surface.backdrop.snapshot(snapshot,view.get_width(),view.get_height())
+                surface.backdrop.get_current_image().snapshot(snapshot,view.get_width(),view.get_height())
                 snapshot.restore();snapshot.pop();snapshot.pop()
         snapshot.pop()
 
@@ -134,7 +137,6 @@ class PassageActions:
         self.actions.add_css_class('toolbar');content.append(self.actions)
         self.copy_button=Gtk.MenuButton(icon_name='edit-copy-symbolic',tooltip_text=tr('Copy'))
         self.copy_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy')])
-        self.copy_button.set_child(Gtk.Image(icon_name='edit-copy-symbolic',pixel_size=20))
         self.actions.append(self.copy_button)
         self.copy_options=self.copy_button  # One widget; retained internal compatibility name.
         self.copy_popover=self.menu(self.copy_button,[(label,lambda *_,mode=mode:self.copy(mode))
