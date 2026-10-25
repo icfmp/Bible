@@ -56,7 +56,7 @@ def main():
     app=Application();app.register();w=Window(app,Library(args.profile/'translations'));w.set_default_size(1280,900);w.present();spin()
     n=X11Input();n.activate(w);screen=Screen(n)
     if args.require_packaged:assert 'GL' in type(w.get_renderer()).__name__,type(w.get_renderer()).__name__
-    report=dict(source_import=inspect.getfile(Window),renderer=type(w.get_renderer()).__name__,language=os.environ.get('LANGUAGE'),baseline=args.baseline,captures=[],keys=[],geometry=[])
+    report=dict(source_import=inspect.getfile(Window),renderer=type(w.get_renderer()).__name__,gtk_version=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],scale=w.get_scale_factor(),language=os.environ.get('LANGUAGE'),baseline=args.baseline,captures=[],keys=[],geometry=[])
     def shot(name):
         n.move_at(w,2,2);spin(duration=.15);path=args.output/(name+'.png');result=screen.grab(path);report['captures'].append(path.name);return result
     def settled():spin(lambda:not w.active_tab._restoring_scroll,duration=.3)
@@ -112,12 +112,26 @@ def main():
             import bible.passage_actions as module
             original=module.BACKDROP_BLUR
             energies={}
+            samples={};diagnostic={}
             for radius in (0,original):
                 module.BACKDROP_BLUR=radius;a.bar.get_child().queue_draw();spin();raw,stride=shot('blur-diagnostic-'+str(radius))
-                x,y=screen.point(a.bar,14,48);width=a.bar.get_width()-28
-                energies[radius]=sum(abs(raw[(y+dy)*stride+(x+dx)*4]-raw[(y+dy)*stride+(x+dx-1)*4]) for dy in range(10) for dx in range(1,width))
+                assert a.target and a.bar.get_mapped(),'Blur diagnostic requires the selection bar to be visibly open'
+                x,y=screen.point(a.bar,16,12);width=a.bar.get_width()-32;height=a.bar.get_height()-24
+                samples[radius]=[tuple(raw[(y+dy)*stride+(x+dx)*4:(y+dy)*stride+(x+dx)*4+3]) for dy in range(height) for dx in range(width)]
+                pairs=[(samples[radius][dy*width+dx-1],samples[radius][dy*width+dx]) for dy in range(1,height-1) for dx in range(1,width-1)]
+                # Exclude the sharp light foreground; inspect the actual dark
+                # backdrop across the whole interior, not a font-dependent band.
+                usable=[(p,q) for p,q in pairs if max(p)<100 and max(q)<100]
+                energies[radius]=sum(abs(p[0]-q[0]) for p,q in usable)
+                diagnostic[radius]=dict(mapped=a.bar.get_mapped(),bar_size=[a.bar.get_width(),a.bar.get_height()],high_contrast=w.reading_style.manager.get_high_contrast(),sample_origin=[x,y],usable_pairs=len(usable),paintable_size=[a.bar.backdrop.get_intrinsic_width(),a.bar.backdrop.get_intrinsic_height()] if a.bar.backdrop else None)
             report['blur_edge_energy']=energies
-            if not args.baseline:assert energies[original]<energies[0]*.6,energies
+            report['blur_diagnostic']=diagnostic
+            report['blur_changed_pixels']=sum(max(abs(a-b) for a,b in zip(p,q))>2 for p,q in zip(samples[0],samples[original]))
+            print(json.dumps(dict(renderer=report['renderer'],blur_edge_energy=energies,blur_diagnostic=diagnostic,changed_pixels=report['blur_changed_pixels'])),flush=True)
+            if not args.baseline:
+                assert not diagnostic[original]['high_contrast'],diagnostic
+                assert report['blur_changed_pixels']>len(samples[0])*.01,(energies,diagnostic)
+                assert energies[original]<energies[0]*.85,(energies,diagnostic)
             module.BACKDROP_BLUR=original;a.bar.get_child().queue_draw();a.dismiss();b.place_cursor(b.get_iter_at_offset(start))
             # Use the client's actual source when available; never manufacture text.
             resource='FreBDM1707' if 'FreBDM1707' in w.library.installed() else 'FreSegond1910'

@@ -87,8 +87,11 @@ class ClientFeedbackTests(unittest.TestCase):
         b.select_range(b.get_iter_at_offset(offset),b.get_iter_at_offset(offset+5))
         a.capture(t.text,lambda:a.ordinary(t),None);spin()
         paintable=a.bar.backdrop;handlers=a.bar._backdrop_signals
-        self.assertIs(paintable.get_widget(),t.text);self.assertTrue(a.timer)
+        self.assertIs(paintable.get_widget(),t.text)
+        a.capture(t.text,lambda:a.ordinary(t),None);spin()
+        self.assertIs(a.bar.backdrop,paintable,'Reuse GTK paintable for an unchanged source')
+        spin(lambda:a.adapt_tick==0,duration=.1)
         a.dismiss()
-        self.assertIsNone(a.bar.backdrop);self.assertIsNone(paintable.get_widget());self.assertEqual((a.timer,a.adapt_tick),(0,0))
+        self.assertIsNone(a.bar.backdrop);self.assertIsNone(paintable.get_widget());self.assertEqual(a.adapt_tick,0)
         self.assertTrue(all(not paintable.handler_is_connected(handler) for handler in handlers))
         self.assertFalse(a.bar.get_visible());self.assertTrue(b.get_has_selection())

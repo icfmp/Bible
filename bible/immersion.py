@@ -203,10 +203,10 @@ class Immersion(Gtk.Overlay):
                 finally:self._updating=False
                 self._selection_restore_pending=False;self.layout_ready=True
         self.center_reading_box()
-        if (self._page_focus_pending and self.stream.cursor and self.views[0].get_mapped()
-                and not self.page_stack.get_transition_running()):
-            if self.owner.is_active() and self.owner.get_focus() is None and not self.open_popovers():
+        if self._page_focus_pending and self.stream.cursor and self.views[0].get_mapped():
+            if self.owner.is_active() and self.owner.get_focus() in (None,self) and not self.open_popovers():
                 self.views[0].grab_focus()
+            if self.owner.get_focus() is not self:self.set_focusable(False)
             self._page_focus_pending=False
         return True
 
@@ -364,6 +364,7 @@ class Immersion(Gtk.Overlay):
 
     def turn(self,direction):
         self._page_focus_pending=True
+        reading_focus=self.owner.get_focus() in (*self.views,self)
         self.cancel_slide()
         animated=Gtk.Settings.get_default().get_property('gtk-enable-animations')
         previous=Gtk.WidgetPaintable.new(self.page_clamp).get_current_image() if animated and self.layout_ready else None
@@ -371,6 +372,9 @@ class Immersion(Gtk.Overlay):
         if self.stream.cursor and self.stream.turn(direction,self.count):
             self.selection=None;self.render()
             if previous:
+                # Keep key events inside immersion while GtkStack briefly
+                # unmaps the focused live page, including rapid reversals.
+                if reading_focus:self.set_focusable(True);self.grab_focus()
                 self.previous_page.set_paintable(previous);self.page_stack.set_visible_child_name('previous')
                 serial=self._slide_serial
                 def reveal():

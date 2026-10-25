@@ -13,12 +13,13 @@ def measure_scroll(window):
     t=w.active_tab;t.navigate('FreSegond1910','Ps.119.1');spin(lambda:not t._restoring_scroll,duration=.5)
     b=t.text.get_buffer();start=t._marker_ends['Ps.119.1'];b.select_range(b.get_iter_at_offset(start),b.get_iter_at_offset(start+20))
     a=w.passage_actions;adj=t.scroll.get_vadjustment();results=[]
-    for phase in ('without_bar','visible_bar','hidden_after_dismiss'):
+    for phase in ('without_bar','visible_bar','visible_idle','hidden_after_dismiss'):
         adj.set_value(0)
-        if phase=='visible_bar':a.capture(t.text,lambda:a.ordinary(t),None)
+        visible=phase in ('visible_bar','visible_idle')
+        if visible:a.capture(t.text,lambda:a.ordinary(t),None)
         else:a.dismiss()
-        spin(duration=.25)
-        if phase!='visible_bar':assert a.bar.backdrop is None and not a.bar._backdrop_signals and a.timer==0
+        spin(duration=.4)
+        if not visible:assert a.bar.backdrop is None and not a.bar._backdrop_signals and a.adapt_tick==0
         frames=[];beats=[];began=time.monotonic();cpu=time.process_time();last=[began];prof=cProfile.Profile()
         def move():
             elapsed=time.monotonic()-began
@@ -29,7 +30,9 @@ def measure_scroll(window):
             now=time.monotonic();beats.append(now-last[0]);last[0]=now
             return now-began<6
         def frame(widget,clock):frames.append(time.monotonic());return True
-        tick=t.text.add_tick_callback(frame);GLib.timeout_add(16,move);GLib.timeout_add(5,beat)
+        tick=t.text.add_tick_callback(frame)
+        if phase!='visible_idle':GLib.timeout_add(16,move)
+        GLib.timeout_add(5,beat)
         prof.enable();spin(duration=6.1,timeout=10);prof.disable();t.text.remove_tick_callback(tick)
         elapsed=time.monotonic()-began;cpu=time.process_time()-cpu
         calls={name:0 for name in ('do_snapshot','changed','adapt','watch')};snapshot_cpu=0
@@ -40,7 +43,7 @@ def measure_scroll(window):
             if code.co_name=='do_snapshot':snapshot_cpu+=entry.inlinetime
         gaps=[y-x for x,y in zip(frames,frames[1:])]
         result=dict(phase=phase,elapsed_seconds=elapsed,cpu_seconds=cpu,cpu_percent=100*cpu/elapsed,frames=len(frames),frame_gap_p95_ms=1000*sorted(gaps)[int(.95*(len(gaps)-1))],main_loop_max_ms=max(beats)*1000,python_calls=calls,snapshot_python_cpu_ms=snapshot_cpu*1000,renderer=type(w.get_renderer()).__name__)
-        assert a.bar.get_visible()==(phase=='visible_bar')
+        assert a.bar.get_visible()==visible
         if phase=='visible_bar':assert calls['do_snapshot']>0
         else:assert calls['do_snapshot']==calls['changed']==calls['adapt']==calls['watch']==0,calls
         results.append(result)

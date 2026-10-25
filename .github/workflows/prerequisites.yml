@@ -164,6 +164,15 @@ jobs:
             dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_sustained_scroll "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/scroll-gl-$initial_bar.json" --require-packaged --check "${toolbar_option[@]}" 2>&1 | tee -a packaged-client-feedback.log
           done
           cp -r "$RUNNER_TEMP/client-feedback" .
+      - name: Retain installed visual diagnostics even if an assertion fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bible-client-feedback-evidence
+          path: |
+            ${{ runner.temp }}/client-feedback/
+            packaged-client-feedback.log
+          if-no-files-found: ignore
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}

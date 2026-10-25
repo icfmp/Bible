@@ -98,19 +98,23 @@ class ActionSurface(Gtk.Overlay):
 
     def set_backdrop(self,view):
         import weakref
+        if self.backdrop and self.backdrop.get_widget() is view:return
         self.clear_backdrop()
         self.backdrop=Gtk.WidgetPaintable.new(view)
         background=weakref.ref(self.background)
         def changed(*_):
             widget=background()
-            if widget and widget.get_mapped():widget.queue_draw()
+            if widget and widget.get_mapped():
+                actions=widget.get_parent().actions_owner
+                if not actions.valid():actions.dismiss();return
+                widget.queue_draw();actions.schedule_adapt()
         self._backdrop_signals=tuple(self.backdrop.connect(signal,changed) for signal in ('invalidate-contents','invalidate-size'))
         self.background.queue_draw()
 
 
 class PassageActions:
     def __init__(self,owner):
-        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0;self.adapt_tick=0
+        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.adapt_tick=0;self._adapt_passes=0
         self.clearance=None;self.intent=0
         self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
@@ -327,11 +331,22 @@ class PassageActions:
         self.copy_button.set_tooltip_text(tr('Copy'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
-        if not self.adapt_tick:self.adapt_tick=self.bar.add_tick_callback(self.adapt)
+        self.schedule_adapt()
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)
         self.compare_button.set_sensitive(source.tab.reader is not None)
-        if not self.timer:self.timer=GLib.timeout_add(100,self.watch)
         return False
+
+    def schedule_adapt(self):
+        if not self.target or not self.bar.get_visible():return
+        # Settle a changed native allocation, then stop. No idle frame polling.
+        self._adapt_passes=2
+        if not self.adapt_tick:self.adapt_tick=self.bar.add_tick_callback(self._adapt_layout)
+
+    def _adapt_layout(self,*_):
+        self.adapt();self._adapt_passes-=1
+        pending=bool(self.target and self._adapt_passes>0)
+        if not pending:self.adapt_tick=0
+        return pending
 
     def adapt(self,*_):
         value=self.target
@@ -362,7 +377,8 @@ class PassageActions:
                 margin=int(parent.get_height()-start+12)
                 if parent.get_height()-margin-self.bar.get_height()>=8:
                     margin_bottom=margin
-        if self.bar.get_margin_bottom()!=margin_bottom:self.bar.set_margin_bottom(margin_bottom)
+        if self.bar.get_margin_bottom()!=margin_bottom:
+            self.bar.set_margin_bottom(margin_bottom);self.bar.background.queue_draw()
         return True
 
     def valid(self):
@@ -380,16 +396,6 @@ class PassageActions:
             if references(current,first,last)!=value.references or current.document.copy(first,last)!=value.text:return False
         return True
 
-    def watch(self):
-        if not self.target:self.timer=0;return False
-        if not self.valid():self.dismiss();self.timer=0;return False
-        value=self.target
-        reflow=value.source.tab._restoring_scroll or (self.owner.immersion and not self.owner.immersion.layout_ready)
-        if not reflow and (not self.bar.get_mapped() or
-                (value.native_selection and not value.view.get_buffer().get_has_selection())):
-            self.dismiss();self.timer=0;return False
-        return True
-
     def key(self,controller,value,*_):
         if value==Gdk.KEY_Escape and self.target:
             if any(p.get_visible() for p in self.owner._reading_popovers):return False
@@ -399,7 +405,6 @@ class PassageActions:
     def dismiss(self):
         self.intent+=1
         self.keyboard=False
-        if self.timer:GLib.source_remove(self.timer);self.timer=0
         if self.adapt_tick:self.bar.remove_tick_callback(self.adapt_tick);self.adapt_tick=0
         value=self.target;restore=bool(value and self.contains(self.owner.get_focus()))
         self.target=None;self.bar.clear_backdrop();self.bar.set_visible(False)
