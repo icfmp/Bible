@@ -1,5 +1,6 @@
 """Full source alignment is required; grouped/partial selections stay honest."""
 import unittest
+import importlib.util
 from bible.word_metadata import aligned_identifiers
 
 
@@ -18,3 +19,17 @@ class WordMetadataTests(unittest.TestCase):
         self.assertEqual(value['identifiers'],('G3588','G3056'))
         self.assertIsNone(aligned_identifiers(raw,'the Word.','the ','Word'))
         self.assertIsNone(aligned_identifiers(raw,'the Word.','','the Word.'))
+
+
+class SourceVerseTests(unittest.TestCase):
+    @unittest.skipUnless(importlib.util.find_spec('Sword'),'Requires SWORD')
+    def test_real_numbered_psalm_titles_never_become_body_verse_words(self):
+        from bible.word_metadata import source_verse_references
+        from bible.reference_targets import Canon
+        source=Canon('Segond')
+        for title in ('Ps.3.1','Ps.51.1','Ps.51.2'):
+            with self.assertRaises(ValueError):source_verse_references(title,source)
+        self.assertEqual(source_verse_references('Ps.3.2',source),('Ps.3.1',))
+        self.assertEqual(source_verse_references('Ps.51.3',source),('Ps.51.1',))
+        self.assertEqual(source_verse_references('Ps.51.4',source),('Ps.51.2',))
+        self.assertEqual(source_verse_references('3John.1.14',Canon('KJV')),('3John.1.14','3John.1.15'))

@@ -58,6 +58,15 @@ def main():
         maximum=max(abs(a-b) for a,b in zip(*starts));assert maximum<=1
         assert tab.scroll.get_vadjustment() is tab.comparison_scroll.get_vadjustment()
         report['real_psalm_comparison']=dict(rows=len(rows.rows),maximum_row_delta_pixels=maximum)
+        from bible.word_metadata import source_verse_references
+        for title in ('Ps.3.1','Ps.51.1','Ps.51.2'):
+            try:source_verse_references(title,tab.reader)
+            except ValueError:pass
+            else:raise AssertionError('Source title was collapsed into body words: '+title)
+        assert source_verse_references('Ps.51.3',tab.reader)==('Ps.51.1',)
+        source_tokens=data.verse('tahot-main','Ps.51.1')
+        assert source_tokens and source_tokens[0]['form'].startswith('חָנֵּ')
+        report['source_psalm_title_guard']=dict(rejected_numbered_titles=3,verified_body_mapping='Segond Ps.51.3 -> NRSV Ps.51.1')
         window.end_comparison();tab.navigate('FreSegond1910','John.1.1');spin(lambda:not tab._restoring_scroll)
         window.study_button.set_active(True);window.study.tools.set_visible_child_name('commentaries')
         window.study.choices.set_selected(window.study.names.index('Wesley'));window.study.refresh(force=True);spin(duration=.3)

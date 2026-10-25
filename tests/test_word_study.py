@@ -53,6 +53,32 @@ class WordStudyTests(unittest.TestCase):
                 editor._discard=True;editor.close()
             finally:close_test_dialogs();window.close()
 
+    def test_numbered_source_heading_is_unavailable_without_changing_reader(self):
+        from bible.ui import Application,Window,Library,Gtk
+        from bible.passage_actions import target
+        from bible.i18n import tr
+        from tests.test_ui import installed_fixture,spin
+        from tests.test_step_data import fixtures
+        from bible import step_data
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            installed_fixture(root,versification='Segond',entries=[('Ps.3.1','TEST source title'),('Ps.3.2','TEST source body')])
+            files,pins=fixtures(root)
+            with patch.object(step_data,'FILES',pins),patch.object(step_data,'EXPECTED_COUNTS',{'tagnt-na27':2,'tahot-main':4}):step_data.StepData(root/'study-data').install_files(files)
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(root/'translations'));window.present();spin()
+            try:
+                tab=window.active_tab;tab.navigate('Test','Ps.3.1');spin(lambda:not tab._restoring_scroll)
+                source=window.passage_actions.ordinary(tab)
+                value=target(tab.text,source,lambda:window.passage_actions.ordinary(tab),tab._marker_ends['Ps.3.1'])
+                history=list(tab.state.history)
+                window.study.words.open(value);spin()
+                self.assertFalse(window.study.words.pending)
+                labels=[c.get_text() for c in window.study.words.children() if isinstance(c,Gtk.Label)]
+                self.assertIn(tr('No verified alignment for this passage.'),labels)
+                self.assertEqual(tab.state.reference,'Ps.3.1');self.assertEqual(tab.state.history,history)
+            finally:window.close()
+
     def test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture(self):
         from bible.ui import Application,Window,Library
         from tests.test_ui import installed_fixture,spin

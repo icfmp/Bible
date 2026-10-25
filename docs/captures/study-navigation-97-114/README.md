@@ -55,10 +55,16 @@ Actual optional download/cancel/retry: 105,074,789 bytes, successful retry plus 
 
 ## Checks and limits
 
-Full French source suite: **312 tests passed** before the final anchor correction; its focused four-test comparison suite passed afterward, including the new stale-anchor regression. CI and installed Flatpak evidence are recorded in the delivery report; do not infer packaging success from these screenshots.
+Full French source suite: **312 tests passed** before the final anchor correction; its focused four-test comparison suite passed afterward, including the new stale-anchor regression. A subsequent source-title guard adds two regressions; final totals and installed Flatpak evidence are recorded in the delivery report; do not infer packaging success from these screenshots.
 
 Native X11 checks covered passage navigation, selection/Aa shortcuts, nested popover dismissal, immersion, wheel input in both panes and long scrollbar drags. Real integrated search: exact French/English phrases, themes, explicit preview/current/new-tab actions, accurate French Psalm mapping, zero results, failed-update preservation and offline restart. Cold KJV indexing/search measured 8.925 s off GTK, maximum heartbeat gap 51 ms. Unquoted terms mean all normalized words in any order; quoted phrases are contiguous under documented language-aware normalization. Original excerpt positions are preserved.
 
 [Native proof](native-ui-proof.json), [search proof](search-final-proof.json), [STEP provider proof](step-provider-audit.json), [installer proof](live-step-proof.json), [module metadata audit](sword-token-audit.json), [word-selection proof](word-ui-proof.json).
 
 Keyboard/mouse checks are developer validation; screen-reader acceptance and the client's GNOME desktop acceptance remain outstanding. Some Xvfb/libadwaita runs emit allocation/portal warnings; these are not presented as a warning-free desktop run. Implementation issues remain OPEN. The client explicitly keeps numbered release task #87 paused; this batch must not silently publish a numbered prerelease.
+
+## Source-heading guard before publication
+
+A final real-data check found that native SWORD collapses Segond Psalm superscriptions onto the following body verse. Word exploration now reuses the pinned verse-part bridge: Segond 3:1 and 51:1–2 remain unavailable rather than displaying body words, while Segond 51:3 opens the actual TAHOT words at NRSV 51:1. The shared comparison grouping is preserved. The initial main pipeline was cancelled before any alpha publication.
+
+Actual GTK: unavailable title [light](heading-guard/heading-unavailable-day.png) / [dark](heading-guard/heading-unavailable-night.png); correctly mapped body words [light](heading-guard/mapped-body-words-day.png) / [dark](heading-guard/mapped-body-words-night.png).
