@@ -85,24 +85,32 @@ class Backdrop(Gtk.Widget):
 class ActionSurface(Gtk.Overlay):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
+        self.backdrop=None;self._backdrop_signals=()
         self.background=Backdrop(hexpand=True,vexpand=True)
         self.set_child(self.background)
+        self.connect('notify::visible',lambda *_:self.clear_backdrop() if not self.get_visible() else None)
+
+    def clear_backdrop(self):
+        if self.backdrop:
+            for handler in self._backdrop_signals:self.backdrop.disconnect(handler)
+            self.backdrop.set_widget(None)
+        self.backdrop=None;self._backdrop_signals=()
 
     def set_backdrop(self,view):
         import weakref
+        self.clear_backdrop()
         self.backdrop=Gtk.WidgetPaintable.new(view)
         background=weakref.ref(self.background)
         def changed(*_):
             widget=background()
-            if widget:widget.queue_draw()
-        self.backdrop.connect('invalidate-contents',changed)
-        self.backdrop.connect('invalidate-size',changed)
+            if widget and widget.get_mapped():widget.queue_draw()
+        self._backdrop_signals=tuple(self.backdrop.connect(signal,changed) for signal in ('invalidate-contents','invalidate-size'))
         self.background.queue_draw()
 
 
 class PassageActions:
     def __init__(self,owner):
-        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0
+        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0;self.adapt_tick=0
         self.clearance=None;self.intent=0
         self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
@@ -143,7 +151,7 @@ class PassageActions:
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
-        self.bar.add_tick_callback(self.adapt)
+        self.bar.connect('notify::visible',lambda *_:self.dismiss() if not self.bar.get_visible() and self.target else None)
         owner.view.connect('notify::selected-page',lambda *_:self.dismiss())
         gesture=Gtk.GestureClick(button=1);gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         def outside(controller,_,x,y):
@@ -319,6 +327,7 @@ class PassageActions:
         self.copy_button.set_tooltip_text(tr('Copy'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
+        if not self.adapt_tick:self.adapt_tick=self.bar.add_tick_callback(self.adapt)
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)
         self.compare_button.set_sensitive(source.tab.reader is not None)
         if not self.timer:self.timer=GLib.timeout_add(100,self.watch)
@@ -390,8 +399,10 @@ class PassageActions:
     def dismiss(self):
         self.intent+=1
         self.keyboard=False
+        if self.timer:GLib.source_remove(self.timer);self.timer=0
+        if self.adapt_tick:self.bar.remove_tick_callback(self.adapt_tick);self.adapt_tick=0
         value=self.target;restore=bool(value and self.contains(self.owner.get_focus()))
-        self.target=None;self.bar.backdrop=None;self.bar.set_visible(False)
+        self.target=None;self.bar.clear_backdrop();self.bar.set_visible(False)
         if self.clearance:
             view,original,margin=self.clearance
             if view.get_bottom_margin()==margin:view.set_bottom_margin(original)

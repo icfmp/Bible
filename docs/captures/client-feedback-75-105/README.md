@@ -46,3 +46,21 @@ The #125 sustained-input check passes in single, comparison and study modes and 
 [Light live-backdrop recording](white-live-backdrop.mp4) and [dark live-backdrop recording](dark-live-backdrop.mp4) show the actual reader moving both ways beneath the selection surface. This diagnostic drives the reader's existing scrollbar adjustment to keep the selection surface visible; it does not claim that wheel input leaves the bar open. Controls remain a separate sharp overlay, selection is retained, and no video blur was applied.
 
 The source checks are developer evidence. Installed Flatpak and signed-channel update/preservation outcomes are recorded in the delivery receipt after their actual completion. No data migration, preference schema change, resource removal or persistent feature disable is included.
+
+## Cairo, rendering cost and hidden-bar lifetime (#102)
+
+Cairo is GTK/GSK's actual software renderer used for headless test coverage (`GSK_RENDERER=cairo`). It is not an application drawing backend or a custom blur implementation. Production does not force a renderer: GTK/GSK renders `Gtk.Snapshot.push_blur` over the bounded reader paintable. The installed visual/performance checks explicitly select the supported new OpenGL renderer. No CPU pixel readback, image processing library, permanent renderer switch or extra compositor is part of the application. The X11 compositor used for evidence is outside the Flatpak, in the test environment.
+
+Closing the bar now immediately removes its placement frame callback and selection timer, disconnects both paintable invalidation handlers, and releases the source widget. This corrects an observed hidden-bar placement callback (360 invocations in a six-second scrolling diagnostic). The native cleanup regression also holds the old paintable alive and verifies that its widget and signal connections have been detached.
+
+A matched six-second forward/back scrollbar-adjustment diagnostic on source GTK 4.14/new OpenGL under composited Xvfb measured:
+
+| State | Frames | Frame gap p95 | App CPU (all threads) | Background snapshots / invalidations / placement / selection checks |
+| --- | ---: | ---: | ---: | --- |
+| No bar | 363 | 17.46 ms | 4.99 CPU s / 6.10 wall s | 0 / 0 / 0 / 0 |
+| Visible bar | 340 | 24.96 ms | 10.71 CPU s / 6.10 wall s | 320 / 320 / 340 / 58 |
+| Hidden after dismissal | 361 | 17.49 ms | 5.74 CPU s / 6.10 wall s | 0 / 0 / 0 / 0 |
+
+These software-graphics development measurements show a measurable visible-rendering cost (+7.50 ms p95 frame gap), not a claim of free blur or a GPU desktop benchmark. After dismissal the effect has no ongoing Python callbacks or background snapshots while the viewport keeps scrolling. The normal real-wheel path dismisses the bar on its first event; the sustained independent X11 input checks separately verify that path without overriding its lifecycle. The installed Platform 49 OpenGL run repeats this diagnostic and retains its own actual numbers in `client-feedback/live/live-report.json`; do not substitute the source numbers for the installed results.
+
+[Source profiling receipt](scroll-impact.json) records the diagnostic method and exact counts. The render sampling remains limited to the bar plus a three-radius margin (48 px per side), with a rounded output clip and separate sharp controls.

@@ -1,0 +1,56 @@
+{
+  "scroll_impact": [
+    {
+      "phase": "without_bar",
+      "elapsed_seconds": 6.103548963001231,
+      "cpu_seconds": 4.989377641000001,
+      "cpu_percent": 81.74551676811042,
+      "frames": 363,
+      "frame_gap_p95_ms": 17.45948099414818,
+      "main_loop_max_ms": 92.49960299348459,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "NglRenderer"
+    },
+    {
+      "phase": "visible_bar",
+      "elapsed_seconds": 6.101730770024005,
+      "cpu_seconds": 10.709536254000003,
+      "cpu_percent": 175.51636834933427,
+      "frames": 340,
+      "frame_gap_p95_ms": 24.957667017588392,
+      "main_loop_max_ms": 97.0510320039466,
+      "python_calls": {
+        "do_snapshot": 320,
+        "changed": 320,
+        "adapt": 340,
+        "watch": 58
+      },
+      "snapshot_python_cpu_ms": 20.098841000000004,
+      "renderer": "NglRenderer"
+    },
+    {
+      "phase": "hidden_after_dismiss",
+      "elapsed_seconds": 6.10042195400456,
+      "cpu_seconds": 5.7429130430000015,
+      "cpu_percent": 94.13960356021151,
+      "frames": 361,
+      "frame_gap_p95_ms": 17.49309099977836,
+      "main_loop_max_ms": 100.65082702203654,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "NglRenderer"
+    }
+  ],
+  "method": "Same 6-second forward/back reader scrollbar adjustment; no wheel lifecycle override. Actual wheel dismisses floating actions on its first event."
+}

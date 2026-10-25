@@ -157,7 +157,7 @@ jobs:
         run: |
           set -o pipefail
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible -m tools.check_client_feedback "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback" --require-packaged 2>&1 | tee packaged-client-feedback.log
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_live_backdrop "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/live" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_live_backdrop "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/live" --require-packaged --measure 2>&1 | tee -a packaged-client-feedback.log
           cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Identifier le paquet et calculer sa somme
         env:

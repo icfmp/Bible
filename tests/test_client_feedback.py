@@ -81,3 +81,14 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertEqual(w.note_editor.context['versification'],'Segond')
         self.assertFalse(w.passage_actions.bar.get_visible());self.assertFalse(b.get_has_selection())
         w.note_editor.close();spin()
+
+    def test_dismiss_releases_backdrop_source_signals_and_selection_timer(self):
+        t=self.w.active_tab;a=self.w.passage_actions;b=t.text.get_buffer();offset=t._marker_ends['Gen.1.1']+3
+        b.select_range(b.get_iter_at_offset(offset),b.get_iter_at_offset(offset+5))
+        a.capture(t.text,lambda:a.ordinary(t),None);spin()
+        paintable=a.bar.backdrop;handlers=a.bar._backdrop_signals
+        self.assertIs(paintable.get_widget(),t.text);self.assertTrue(a.timer)
+        a.dismiss()
+        self.assertIsNone(a.bar.backdrop);self.assertIsNone(paintable.get_widget());self.assertEqual((a.timer,a.adapt_tick),(0,0))
+        self.assertTrue(all(not paintable.handler_is_connected(handler) for handler in handlers))
+        self.assertFalse(a.bar.get_visible());self.assertTrue(b.get_has_selection())
