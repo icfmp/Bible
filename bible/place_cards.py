@@ -21,13 +21,13 @@ class PlaceItem(GObject.Object):
 
 
 class PlaceCards(Adw.Dialog):
-    def __init__(self,owner):
+    def __init__(self,owner,context=None):
         super().__init__(title=tr('Places in this passage'),content_width=640,content_height=720)
         self.owner=owner;self.closed=False;self.generation=0;self.rows=[];self.pending=False
         self.data=PlaceData(owner.library.root.parent/'study-data')
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-places')
         tab=owner.active_tab
-        self.context=(tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None
+        self.context=context or ((tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None)
         self.connect('closed',self.on_closed)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_end_title_buttons=False)
@@ -122,12 +122,15 @@ class PlaceCards(Adw.Dialog):
         self.generation+=1;generation=self.generation;self.current_place=place
         self.pages.set_visible_child_name('card');self.back.set_visible(True);self.title.set_text(place_name(place['name']))
         card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
-        heading=self.label(place_name(place['name']));heading.add_css_class('title-2');card.append(heading)
         card.append(self.label(tr(STATUS[place['status']])))
-        aliases=Gtk.Expander(label=tr('Names in the source'))
-        aliases.set_child(self.label(place['name']+' · '+', '.join(place['aliases']),caption=True));card.append(aliases)
+        technical=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        technical.append(self.label(place['name']+' · '+', '.join(place['aliases']),caption=True))
+        technical_expander=Gtk.Expander(label=tr('Sources and technical details'))
+        technical_expander.set_child(technical)
         map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         located=[c for c in place['candidates'] if c['longitude'] is not None]
+        if located:
+            card.append(self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located))))
         for index,candidate in enumerate(place['candidates']):candidate['number']=index+1
         try:
             if not located:raise ValueError('unknown location')
@@ -156,16 +159,16 @@ class PlaceCards(Adw.Dialog):
                                      tr('Map unavailable; coordinates and references remain available.'),caption=True))
         for candidate in place['candidates']:
             title=self.label(str(candidate['number'])+'. '+(place_name(candidate['name']) if candidate['longitude'] is not None else tr('Unknown location')))
-            title.add_css_class('heading');card.append(title)
+            title.add_css_class('heading');technical.append(title)
             if candidate['longitude'] is not None:
-                card.append(self.label(tr(ROLES[candidate['role']])+'\n'+tr('Latitude, longitude: {latitude}, {longitude}').format(latitude=f'{candidate["latitude"]:.6f}',longitude=f'{candidate["longitude"]:.6f}'),caption=True))
-            if candidate['modifier'] in MODIFIERS:card.append(self.label(tr(MODIFIERS[candidate['modifier']]),caption=True))
-            if candidate['description']:card.append(self.label(candidate['description'],caption=True))
+                technical.append(self.label(tr(ROLES[candidate['role']])+'\n'+tr('Latitude, longitude: {latitude}, {longitude}').format(latitude=f'{candidate["latitude"]:.6f}',longitude=f'{candidate["longitude"]:.6f}'),caption=True))
+            if candidate['modifier'] in MODIFIERS:technical.append(self.label(tr(MODIFIERS[candidate['modifier']]),caption=True))
+            if candidate['description']:technical.append(self.label(candidate['description'],caption=True))
             if candidate['radius_meters'] is not None:
-                card.append(self.label(tr('Source uncertainty radius: {distance} km').format(distance=round(candidate['radius_meters']/1000,1)),caption=True))
+                technical.append(self.label(tr('Source uncertainty radius: {distance} km').format(distance=round(candidate['radius_meters']/1000,1)),caption=True))
             evidence=tr('Source path score: {score}; not a probability.').format(score=candidate['path_score'])
 
-            card.append(self.label(evidence,caption=True))
+            technical.append(self.label(evidence,caption=True))
         self.reference_model=Gio.ListStore.new(PlaceItem)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
         self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
@@ -182,8 +185,8 @@ class PlaceCards(Adw.Dialog):
         all_refs.connect('clicked',show_all);card.append(all_refs)
         bibliography=Gtk.Expander(label=tr('Source evidence and bibliography'))
         detail='\n\n'.join(s['name']+('\n'+str(s['detail'].get('title','')) if s['detail'].get('title') else '') for s in place['sources']) or tr('The dataset records this identification without a detailed bibliography.')
-        bibliography.set_child(self.label(detail,caption=True));card.append(bibliography)
-        credits=Gtk.Expander(label=tr('Credits and licenses'));credits.set_child(self.label(SOURCE_URL+'\n'+NOTICE,caption=True));card.append(credits)
+        bibliography.set_child(self.label(detail,caption=True));technical.append(bibliography)
+        technical.append(self.label(SOURCE_URL+'\n'+NOTICE,caption=True));card.append(technical_expander)
         clamp=Adw.Clamp(maximum_size=700,child=card);self.card_scroll.set_child(clamp)
         self.card_scroll.get_vadjustment().set_value(0)
 

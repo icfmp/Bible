@@ -3,6 +3,12 @@ import locale
 import os
 
 FR = {
+    'Sources and technical details':'Sources et détails techniques',
+    'Proposed modern locations':'Localisations modernes proposées',
+    'Show note indicators':'Afficher les indicateurs de notes',
+    'Show place markers':'Afficher les marqueurs de lieux',
+    'Notes on this verse':'Notes sur ce verset',
+    'Places in this verse':'Lieux de ce verset',
     'No verse in this edition.':'Aucun verset dans cette édition.',
     'Preparing saved resource metadata…':'Préparation des métadonnées des ressources enregistrées…',
     'Looking for available resources from the selected sources…':'Recherche des ressources disponibles auprès des sources sélectionnées…',

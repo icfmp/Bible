@@ -120,6 +120,8 @@ class ReadingStyle:
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
+textview.{self.scope} button.inline-marker {{ min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
+textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions {{ border-radius: 16px; padding: 0; background-color: transparent; color: #ffffff; }}
 .passage-actions button {{ color: #ffffff; background: transparent; box-shadow: none; }}
 .passage-actions button:hover {{ background-color: rgba(255,255,255,.12); }}

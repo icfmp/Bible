@@ -972,6 +972,7 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        for tab in self.tabs():tab.inline_markers.executor.shutdown(wait=False,cancel_futures=True)
         self.reference_preview.dismiss()
         self.study.references.close()
         self.study.notes.close()

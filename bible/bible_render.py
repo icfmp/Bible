@@ -23,8 +23,21 @@ def bind_copy(view, document, base=0):
 
 def render(view, reader, chapter, preferences, document=None):
     document = document or BiblePages(reader, None).document(chapter.reference, preferences)
+    marker_context=getattr(view,'_marker_context',None)
+    if marker_context:
+        from .inline_document import decorate
+        document=decorate(document,marker_context.markers(reader,document))
     buffer = view.get_buffer()
-    buffer.set_text(document.text)
+    inline=getattr(document,'inline',{})
+    buffer.set_text('')
+    previous=0;children=[]
+    for offset,(reference,kind,payload) in inline.items():
+        buffer.insert(buffer.get_end_iter(),document.text[previous:offset])
+        anchor=buffer.create_child_anchor(buffer.get_end_iter())
+        button=marker_context.button(view,reader,reference,kind,payload)
+        view.add_child_at_anchor(button,anchor);children.append(button);previous=offset+1
+    buffer.insert(buffer.get_end_iter(),document.text[previous:])
+    view._inline_buttons=children
     bind_copy(view,document)
     apply_direction(view, reader)
     view.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
@@ -49,6 +62,6 @@ def render(view, reader, chapter, preferences, document=None):
         buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
     offsets, ranges, markers = {}, {}, {}
     for span in document.spans:
-        marker = span.body-(len(span.reference.rsplit('.',1)[-1])+1 if preferences.verse_numbers else 0)
+        marker = span.body-(len(span.reference.rsplit('.',1)[-1])+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
         offsets[span.reference]=marker;ranges[span.reference]=(marker,span.end);markers[span.reference]=span.body
     return document, offsets, ranges, markers

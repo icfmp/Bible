@@ -24,6 +24,9 @@ class ComparisonRows:
             anchors=[getattr(view,'_bible_copy_source',(source,0))[0].anchor(i.get_offset()) for i in buffer.get_selection_bounds()]
             doc,self.bounds[side]=row_document(source,rows,side,tr('No verse in this edition.'))
             values=render(view,reader,tab.current if side==0 else chapter,tab.preferences,doc)
+            if hasattr(values[0],'source_shift'):
+                shift=values[0].source_shift
+                self.bounds[side]=tuple((shift(a),shift(b)) for a,b in self.bounds[side])
             if side==0:tab._document,tab._verse_offsets,tab._verse_ranges,tab._marker_ends=values
             else:tab._comparison_document,tab._comparison_offsets,tab._comparison_ranges,tab._comparison_markers=values
             for tag in self.tags[side]:buffer.get_tag_table().remove(tag)

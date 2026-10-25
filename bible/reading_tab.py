@@ -24,6 +24,8 @@ class ReadingTab(Gtk.Box):
         self._verse_ranges = {}
         self._marker_ends = {}
         self.notes_store, self.notes_requested = notes_store, notes_requested
+        from .inline_markers import InlineMarkers
+        self.inline_markers=InlineMarkers(self)
         self._notes_stamp = None
         self._note_refs = {}
         self._study_coverage = None
@@ -47,6 +49,7 @@ class ReadingTab(Gtk.Box):
                                  left_margin=56, right_margin=56,
                                  top_margin=16, bottom_margin=24)
         self.text.add_css_class('reading')
+        self.text._marker_context=self.inline_markers
         self.text.set_pixels_inside_wrap(5)
         self.text.set_pixels_below_lines(9)
         self._body_tag = self.text.get_buffer().create_tag(None)
@@ -85,6 +88,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_text=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                           left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
+        self.comparison_text._marker_context=self.inline_markers
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
         self.comparison_scroll.set_margin_top(56)
@@ -490,6 +494,11 @@ class ReadingTab(Gtk.Box):
         return self.state.reference, self.state.reference
 
     def update_notes(self, force=False):
+        generation=self.notes_store.generation if self.notes_store else -1
+        if generation!=getattr(self,'_inline_note_generation',generation):
+            self._inline_note_generation=generation
+            self.apply_appearance();self.refresh_comparison()
+        self._inline_note_generation=generation
         stamp = (id(self.reader), self.state.reference,
                  self.notes_store.generation if self.notes_store else -1)
         if not force and stamp == self._notes_stamp:
@@ -505,8 +514,6 @@ class ReadingTab(Gtk.Box):
                 matching = [note for note in notes if note.covers(reference)]
                 if matching:
                     self._note_refs[reference] = matching
-                    buffer.apply_tag(self._annotated_tag, buffer.get_iter_at_offset(offset),
-                                     buffer.get_iter_at_offset(offset + len(reference.rsplit('.', 1)[-1])))
 
     def visible_reference(self):
         if not self._verse_offsets:return None

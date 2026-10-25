@@ -67,7 +67,8 @@ class AppearancePopover(Gtk.Popover):
         self.line_spacing=self.choice(layout_box,'Line spacing','line_spacing',[('tight','Tight'),('normal','Normal'),('airy','Airy'),('very-airy','Very airy')])
         self.column_width=self.choice(layout_box,'Text width','column_width',[('narrow','Narrow'),('normal','Normal'),('wide','Wide')])
         box.append(Gtk.Separator())
-        for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights')]:
+        for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights'),
+                           ('note_indicators','Show note indicators'),('place_markers','Show place markers')]:
             row=Gtk.Box(spacing=12)
             row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True))
             button=Gtk.Switch(valign=Gtk.Align.CENTER)
@@ -115,6 +116,7 @@ class AppearancePopover(Gtk.Popover):
         for key,button in self.palettes.items():button.set_active(key in (p.day_palette,p.night_palette))
         self.chapter_numbers.set_active(p.chapter_numbers);self.verse_numbers.set_active(p.verse_numbers)
         self.show_highlights.set_active(p.show_highlights)
+        self.note_indicators.set_active(p.note_indicators);self.place_markers.set_active(p.place_markers)
         self.sync_system();self._syncing=False
 
     def sync_system(self):

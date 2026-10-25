@@ -78,7 +78,6 @@ class StudyPanel(Gtk.Box):
         self.places_button=Gtk.Button(icon_name='mark-location-symbolic',tooltip_text=tr('Places in this passage'))
         self.places_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Places in this passage')])
         self.places_button.add_css_class('flat');self.places_button.connect('clicked',lambda *_:owner.open_places())
-        self.header.pack_end(self.places_button)
         self.append(self.header)
         self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
         switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)
