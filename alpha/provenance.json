@@ -1,13 +1,13 @@
 {
-  "source_commit": "48b8148e682741d137c2d0c6f189dcdd6bef95c9",
-  "ci_run": "40200868244",
-  "packaging_revision": "40202173987-2",
-  "flatpak_commit": "e75cc75f17fbcca000f1c4f4ea210bc66eb0fb2e2a8928674fc1081b45a5bb64",
+  "source_commit": "7a633f3281d0a6086cb822a1ac9f055beb53445b",
+  "ci_run": "40220519597",
+  "packaging_revision": "40221899923-1",
+  "flatpak_commit": "a4cd021b7954be1dcef0ec4e90f0b2a0b6d3fc4af28fc7c1874930bdc8980d95",
   "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
   "remote": "bible-alpha",
   "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
-  "source_archive": "Bible-48b8148e682741d137c2d0c6f189dcdd6bef95c9-sources.tar.gz",
-  "source_sha256": "c02c74b787927783cc6da5f31d71748a7b0be4f78b48b2b9ee8f0d70176e0ff3",
-  "bundle_sha256": "c8aed3c8372e18ed7fcaffb930c27541b825e1e3729a3aa318ffce7d8e8e7319",
-  "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-48b8148e682741d137c2d0c6f189dcdd6bef95c9-sources.tar.gz"
+  "source_archive": "Bible-7a633f3281d0a6086cb822a1ac9f055beb53445b-sources.tar.gz",
+  "source_sha256": "5f9a8588851b5f86431c14e8cd48ee8e412350f72ebf295d8d1d64774062a36f",
+  "bundle_sha256": "c31ece2a487e61eecb7fbf0d158ce859501b589fffccd8754d2c21f193031a57",
+  "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-7a633f3281d0a6086cb822a1ac9f055beb53445b-sources.tar.gz"
 }
