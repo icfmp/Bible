@@ -1,0 +1,24 @@
+[
+  {
+    "mode": "day",
+    "metadata": {
+      "identifiers": [
+        "G3056"
+      ],
+      "source_lemma": "strong:G3056",
+      "source_morphology": ""
+    },
+    "selection": "Parole"
+  },
+  {
+    "mode": "night",
+    "metadata": {
+      "identifiers": [
+        "G3056"
+      ],
+      "source_lemma": "strong:G3056",
+      "source_morphology": ""
+    },
+    "selection": "Parole"
+  }
+]
