@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Source heading':'Titre dans la source',
     'Source identity':'Identité dans la source',
     'John 3:16 · Jn 3 · Ps 23':'Jean 3:16 · Jn 3 · Ps 23',
     'Source notices':'Mentions des sources',

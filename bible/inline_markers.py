@@ -74,7 +74,9 @@ class InlineMarkers:
         button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'mark-location-symbolic',
                           tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
         button.add_css_class('flat');button.add_css_class('inline-marker')
-        button.update_property([Gtk.AccessibleProperty.LABEL],[title+' · '+ref])
+        from .reference_preview import passage_title
+        button.update_property([Gtk.AccessibleProperty.LABEL],[title+' · '+passage_title(ref,system=reader.versification)])
+        button._marker_reference=ref;button._marker_kind=kind
         def activate(*_):
             owner=self.owner;tab=self.tab
             if not owner or owner.closed or owner.active_tab is not tab:return
@@ -96,6 +98,7 @@ class InlineMarkers:
                     caption=name+'\n'+(modern+' · ' if modern else '')+tr(STATUS[place['status']])
                     if names.count(name)>1:caption+='\n'+tr('Source identity')+': '+place['id']
                     choice=Gtk.Button(child=Gtk.Label(label=caption,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32));choice.add_css_class('flat')
+                    choice._place_id=place['id']
                     choice.connect('clicked',lambda _,p=place:(pop.popdown(),self.place(reader,ref,p)))
                     box.append(choice)
                 scroll=Gtk.ScrolledWindow(max_content_height=300,propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)

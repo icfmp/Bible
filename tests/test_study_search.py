@@ -47,5 +47,22 @@ class StudySearchTests(unittest.TestCase):
         p.search_reader=None;p.entry.set_text('source');p.run_text()
         self.assertFalse(p.pending);self.assertEqual(p.model.get_n_items(),0)
 
+    def test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one(self):
+        from gi.repository import Gtk
+        n=self.navigation;n.owner.choose_passage();n.modes.set_visible_child_name('text')
+        panel=n.text_search;before=(self.window.active_tab.state.reference,list(self.window.active_tab.state.history))
+        panel.launch(lambda:([Relationship('Ps.3.0','Ps.3.0',0,1)],1),'Source heading','NRSV')
+        spin(lambda:not panel.pending,duration=.2)
+        def walk(widget):
+            yield widget
+            child=widget.get_first_child()
+            while child:yield from walk(child);child=child.get_next_sibling()
+        button=next(w for w in walk(panel.results) if isinstance(w,Gtk.Button) and hasattr(w,'_result'))
+        button.emit('clicked');spin()
+        preview=self.window.reference_preview
+        self.assertIsNone(preview.target)
+        self.assertFalse(preview.open_here.get_sensitive());self.assertFalse(preview.open_new.get_sensitive())
+        self.assertEqual((self.window.active_tab.state.reference,self.window.active_tab.state.history),before)
+
 
 if __name__=='__main__':unittest.main()

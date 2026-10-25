@@ -26,6 +26,8 @@ class StudySearch(Gtk.Box):
         self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
         self.entry.connect('search-changed',self.changed);self.append(self.entry)
         self.source=Gtk.DropDown(enable_search=True)
+        from .version_chooser import bounded_choices
+        bounded_choices(self.source);self.source.set_enable_search(True)
         self.source.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search translation')])
         self.source.connect('notify::selected',self.source_changed)
         self.source.set_visible(mode=='text');self.append(self.source)
@@ -258,14 +260,15 @@ class StudySearch(Gtk.Box):
             self.row_cache[key]=result
         caption,text=self.row_cache[key];heading=button.get_child().get_first_child();heading.set_text(caption)
         excerpt=heading.get_next_sibling();excerpt.set_text(text)
+        attributes=Pango.AttrList();attributes.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
+        excerpt.set_attributes(attributes)
         if self.mode=='text' and not self.lemma_query:
             from .search_terms import match_ranges
             try:ranges=match_ranges(text,self.entry.get_text(),self.owner.library.resource(resource).language)
             except ValueError:ranges=()
-            attributes=Pango.AttrList()
             for start,end in ranges:
                 attribute=Pango.attr_weight_new(Pango.Weight.BOLD)
-                attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.insert(attribute)
+                attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.change(attribute)
             excerpt.set_attributes(attributes)
         excerpt.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR);excerpt.set_xalign(1 if reader.rtl else 0)
         score=excerpt.get_next_sibling();score.set_visible(self.mode=='topics')

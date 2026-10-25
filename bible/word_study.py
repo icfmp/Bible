@@ -255,7 +255,9 @@ class WordStudy(Gtk.Box):
     def preview(self,reference):
         source=self.target.source
         button=next((c for c in self.children() if getattr(c,'_word_reference',None)==reference),None)
-        if button:self.owner.reference_preview.show(button,source.resource,source.reader,reference,source_system='NRSV',provenance=NOTICE)
+        from .step_sources import SOURCE_URL
+        if button:self.owner.reference_preview.show(button,source.resource,source.reader,reference,source_system='NRSV',
+            provenance='STEPBible / Tyndale House · CC BY 4.0\n'+SOURCE_URL)
 
     def children(self):
         def walk(parent):

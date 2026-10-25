@@ -9,6 +9,12 @@ from .reading_style import apply_direction
 
 def passage_title(start,end=None,system=None):
     end=end or start
+    if start==end and start.endswith('.0'):
+        import re
+        from .book_names import display_name
+        from .i18n import LANGUAGE
+        match=re.fullmatch(r'([1-4]?[A-Za-z][A-Za-z0-9]{0,15})\.([1-9][0-9]{0,2})\.0',start)
+        if match:return f'{display_name(match[1],match[1],LANGUAGE)} {int(match[2])} — '+tr('Source heading')
     if start.rsplit('.',1)[0]==end.rsplit('.',1)[0]:return passage_label(start,end,system)
     return passage_label(start,versification=system)+' – '+passage_label(end,versification=system)
 

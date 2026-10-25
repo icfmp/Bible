@@ -130,7 +130,8 @@ class PlaceCards(Adw.Dialog):
         map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         located=[c for c in place['candidates'] if c['longitude'] is not None]
         if located:
-            card.append(self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located))))
+            modern=self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located)))
+            card.insert_child_after(modern,card.get_first_child())
         for index,candidate in enumerate(place['candidates']):candidate['number']=index+1
         try:
             if not located:raise ValueError('unknown location')
