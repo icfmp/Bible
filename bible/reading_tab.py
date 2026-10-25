@@ -200,6 +200,7 @@ class ReadingTab(Gtk.Box):
         self.scroll_motion.cancel()
         if not restore and not self._travelling and hasattr(self,'sync_coordinator'):self.sync_coordinator.explicit_bible()
         self._appearance_anchor = None
+        self._layout_anchor = None
         if not self.reader or not reference:
             return
         try:
@@ -609,6 +610,8 @@ class ReadingTab(Gtk.Box):
         adjustment = self.scroll.get_vadjustment()
         maximum = max(0, adjustment.get_upper() - adjustment.get_page_size())
         desired = self.state.scroll * maximum
+        if self._appearance_anchor and self._appearance_anchor[0] not in self._verse_ranges:
+            self._appearance_anchor = None
         if self._appearance_anchor:
             iterator = self.text.get_buffer().get_iter_at_offset(self.anchor_offset(self._appearance_anchor))
             target = self.text.get_iter_location(iterator)

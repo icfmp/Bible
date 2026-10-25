@@ -53,6 +53,26 @@ class ComparisonRowsTests(unittest.TestCase):
                 self.assertEqual(tab._document.copy(0,len(tab._document.text)),ordinary)
             finally:window.close()
 
+    def test_chapter_navigation_discards_previous_reflow_anchor(self):
+        from bible.ui import Application,Window,Library
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory,entries=[('Gen.1.1','First chapter'),('Gen.2.1','Second chapter')])
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(Path(directory)/'translations'));window.present();spin()
+            try:
+                tab=window.active_tab;tab.navigate('Test','Gen.1.1');spin(lambda:not tab._restoring_scroll)
+                tab._layout_anchor=('Gen.1.1',3)
+                tab.navigate('Test','Gen.2.1')
+                self.assertIsNone(tab._layout_anchor)
+                # A pending layout callback from the former document is inert.
+                tab._appearance_anchor=('Gen.1.1',3)
+                window.set_default_size(540,730)
+                spin(lambda:not tab._restoring_scroll)
+                self.assertEqual(tab.state.reference,'Gen.2.1')
+                self.assertIsNone(tab._appearance_anchor)
+            finally:window.close()
+
     def test_split_mapping_groups_and_known_absence_preserve_every_source_verse(self):
         from bible.comparison_layout import correspondences
         from bible.sword_provider import Reader
