@@ -141,6 +141,13 @@ jobs:
           dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=BIBLE_TEST_ISOLATED_CLICK=1 --command=python3 io.github.icfmp.Bible -m unittest tests.test_immersion -v 2>&1 | tee -a packaged-note-cards-results.log
           dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); from tools.check_annotation_workspace import main; main()' 2>&1 | tee packaged-annotation-workspace-results.log
           dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); from tools.check_chapter_notes import main; main()' 2>&1 | tee packaged-chapter-notes-results.log
+      - name: Vérifier les vraies ressources d’étude puis rouvrir sans réseau
+        run: |
+          set -o pipefail
+          study_profile="$RUNNER_TEMP/study-navigation-real"
+          dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_study_navigation "$study_profile" "$RUNNER_TEMP/packaged-study-online.json" --prepare --require-packaged 2>&1 | tee packaged-study-navigation.log
+          dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_study_navigation "$study_profile" "$RUNNER_TEMP/packaged-study-offline.json" --offline --require-packaged 2>&1 | tee -a packaged-study-navigation.log
+          cp "$RUNNER_TEMP/packaged-study-online.json" "$RUNNER_TEMP/packaged-study-offline.json" .
       - name: Identifier le paquet et calculer sa somme
         env:
           PREREQUISITES_RESULT: ${{ needs.prerequisites.result }}
@@ -173,6 +180,9 @@ jobs:
             packaged-note-cards-results.log
             packaged-annotation-workspace-results.log
             packaged-chapter-notes-results.log
+            packaged-study-navigation.log
+            packaged-study-online.json
+            packaged-study-offline.json
           if-no-files-found: error
           retention-days: 30
 
