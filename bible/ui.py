@@ -468,7 +468,8 @@ class Window(Adw.ApplicationWindow):
         if not state.reading_palette:
             state.reading_palette=dict(self.reading_style.initial_palette if self._initializing else self.reading_style.palette_settings())
         tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
-                         self.notes_store, self.reveal_passage_annotations, self.preferences.value)
+                         self.notes_store, self.reveal_passage_annotations, self.preferences.value,
+                         position_changed=lambda _tab:self.schedule_save())
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
         self.reading_style.decorate(tab.text)
         # The viewport, headers, gutters and empty comparison space belong to
