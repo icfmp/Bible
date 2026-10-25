@@ -33,8 +33,10 @@ class Target:
 
 def references(source,first,last):
     numbers=source.tab.preferences.verse_numbers
+    inline=getattr(source.document,'inline',{})
     return tuple(s.reference for s in source.document.spans
-                 if s.end>first and s.body-(len(s.reference.rsplit('.',1)[-1])+1 if numbers else 0)<last)
+                 if s.end>first and s.body-(len(s.reference.rsplit('.',1)[-1])+1 if numbers else 0)
+                 -sum(reference==s.reference for reference,_,_ in inline.values())<last)
 
 
 def target(view,source,factory,clicked=None):
@@ -135,6 +137,7 @@ class PassageActions:
                     ('All highlights',lambda *_:owner.open_highlights())])
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.compare_button=self.button('view-dual-symbolic','Compare translations',lambda *_:self.compare())
+        self.word_button=self.button('accessories-dictionary-symbolic','Study word',lambda *_:self.study_word())
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
@@ -154,6 +157,23 @@ class PassageActions:
         wheel.connect('scroll',lambda *_:self.dismiss() or False);owner.add_controller(wheel)
 
     def contains(self,widget):return bool(widget and (widget is self.bar or widget.is_ancestor(self.bar)))
+
+    def study_word(self):
+        value=self.target
+        if value is None:
+            tab=self.owner.active_tab
+            if not tab or not tab.reader:return
+            view=self.owner.get_focus()
+            comparison=view is tab.comparison_text
+            view=tab.comparison_text if comparison else tab.text
+            factory=lambda:self.ordinary(tab,comparison)
+            source=factory()
+            value=target(view,source,factory) if source else None
+            if value is None:
+                offset=tab._verse_offsets.get(tab.state.reference)
+                source=self.ordinary(tab)
+                if offset is not None:value=target(tab.text,source,lambda:self.ordinary(tab),offset)
+        if value:self.owner.study.words.offer(value,self.word_button if self.word_button.get_mapped() else self.owner.study_button)
 
     def button(self,icon,label,callback):
         button=Gtk.Button(icon_name=icon,tooltip_text=tr(label))
@@ -188,6 +208,10 @@ class PassageActions:
         click=Gtk.GestureClick(button=1);click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         pending=[None]
         def pressed(controller,count,x,y):
+            widget=view.pick(x,y,Gtk.PickFlags.DEFAULT)
+            while widget and widget is not view:
+                if widget.has_css_class('inline-marker'):return
+                widget=widget.get_parent()
             event=controller.get_current_event()
             if event and getattr(self.owner,'_popup_dismissed_event_time',None)==event.get_time():return
             source=factory()

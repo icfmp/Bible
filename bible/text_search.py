@@ -8,7 +8,7 @@ import subprocess
 import sys
 import os
 import tempfile
-from .search_terms import normalized,terms
+from .search_terms import normalized,terms,UNSEGMENTED_LANGUAGES
 
 
 def search(root,name,query,scope='all',book=None,offset=0,limit=100):
@@ -26,12 +26,14 @@ def search(root,name,query,scope='all',book=None,offset=0,limit=100):
 def index(root,name,reader):
     files=sorted((str(p.relative_to(reader.root)),p.stat().st_size,p.stat().st_mtime_ns)
                  for p in reader.root.rglob('*') if p.is_file())
-    signature=hashlib.sha256(json.dumps([2,files]).encode()).hexdigest()
+    signature=hashlib.sha256(json.dumps([3,files]).encode()).hexdigest()
     cache=Path(root).parent/'search-indexes';cache.mkdir(exist_ok=True)
     path=cache/(name+'.sqlite3')
     try:
         with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True)) as db:
-            if db.execute('SELECT signature FROM metadata').fetchone()==(signature,):return path
+            if db.execute('SELECT signature FROM metadata').fetchone()==(signature,):
+                db.execute('SELECT reference,normalized FROM verses LIMIT 1').fetchone()
+                if db.execute('PRAGMA quick_check').fetchone()[0]=='ok':return path
     except sqlite3.Error:pass
     language=reader.module.getConfigEntry('Lang') or 'und'
     with tempfile.TemporaryDirectory(prefix='.search-',dir=cache) as temp:
@@ -58,7 +60,9 @@ def query_index(path,query,scope='all',book=None,offset=0,limit=100):
     with closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro',uri=True)) as db:
         language=db.execute('SELECT language FROM metadata').fetchone()[0]
         filters=[];parameters=[]
-        for term in terms(query,language):filters.append('instr(normalized,?)>0');parameters.append(' '+term+' ')
+        for term in terms(query,language):
+            filters.append('instr(normalized,?)>0')
+            parameters.append(term if language.split('-')[0] in UNSEGMENTED_LANGUAGES else ' '+term+' ')
         if scope in ('ot','nt'):filters.append('testament=?');parameters.append(1 if scope=='ot' else 2)
         elif scope=='book':filters.append('book=?');parameters.append(book)
         where=' AND '.join(filters)

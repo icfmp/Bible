@@ -3,13 +3,18 @@ import re
 import unicodedata
 
 LATIN_LANGUAGES={'en','fr','de','es','pt','it','la','nl','ro','ca'}
+UNSEGMENTED_LANGUAGES={'zh','ja','th','lo','km','my'}
 
 
 def normalized(value,language='und',offsets=False):
     latin=language.split('-')[0] in LATIN_LANGUAGES
     characters=[];positions=[]
+    clusters=[]
     for index,char in enumerate(value):
-        for part in unicodedata.normalize('NFD',char.casefold()) if latin else char.casefold():
+        if unicodedata.combining(char) and clusters:clusters[-1][1]+=char
+        else:clusters.append([index,char])
+    for index,cluster in clusters:
+        for part in unicodedata.normalize('NFD',cluster.casefold()):
             if latin and unicodedata.combining(part):continue
             if part.isalnum() or unicodedata.combining(part):
                 characters.append(part);positions.append(index)
@@ -32,6 +37,11 @@ def terms(query,language='und'):
 def match_ranges(text,query,language='und'):
     value,offsets=normalized(text,language,True);ranges=[]
     for term in terms(query,language):
-        for match in re.finditer(r'(?<!\w)'+re.escape(term)+r'(?!\w)',value):
-            if match.end():ranges.append((offsets[match.start()],offsets[match.end()-1]+1))
+        pattern=re.escape(term)
+        if language.split('-')[0] not in UNSEGMENTED_LANGUAGES:pattern=r'(?<!\w)'+pattern+r'(?!\w)'
+        for match in re.finditer(pattern,value):
+            if match.end():
+                end=offsets[match.end()-1]+1
+                while end<len(text) and unicodedata.combining(text[end]):end+=1
+                ranges.append((offsets[match.start()],end))
     return tuple(sorted(set(ranges)))

@@ -69,6 +69,18 @@ def lexicon_rows(path):
                        category=fields[5],gloss=fields[6],definition=fields[7],language='grc')
 
 
+def source_header(path):
+    lines=[];size=0
+    with Path(path).open(encoding='utf-8-sig') as stream:
+        for line in stream:
+            first=line.split('\t',1)[0]
+            if ROW.fullmatch(first) or re.fullmatch(r'G\d{4,5}',first):break
+            size+=len(line)
+            if size>256*1024:raise ValueError('STEP source header exceeds safe limits')
+            lines.append(line)
+    return ''.join(lines)
+
+
 class StepData:
     def __init__(self,root):
         self.root=Path(root);self.path=self.root/'step-word-study.sqlite3'
@@ -136,7 +148,8 @@ class StepData:
                         for tag,form,gloss in token.get('lexical',[]):db.execute('INSERT OR IGNORE INTO hebrew_glosses VALUES(?,?,?)',(tag,form,gloss))
                         counts[corpus]=counts.get(corpus,0)+1
                 if counts!=EXPECTED_COUNTS:raise ValueError('Incomplete STEP corpus')
-                metadata=dict(schema=1,commit=COMMIT,files=FILES,notice=NOTICE,counts=counts,corpora=CORPORA)
+                metadata=dict(schema=1,commit=COMMIT,files=FILES,notice=NOTICE,counts=counts,corpora=CORPORA,
+                              headers={name:source_header(path) for name,path in files.items()})
                 db.execute('INSERT INTO metadata VALUES(?)',(json.dumps(metadata),))
                 if db.execute('PRAGMA quick_check').fetchone()[0]!='ok':raise ValueError('Invalid STEP index')
             checkpoint(cancelled)
@@ -185,5 +198,6 @@ class StepData:
             total=db.execute('SELECT count(*) FROM token_lemmas WHERE corpus=? AND lemma=?',parameters).fetchone()[0]
             query='FROM tokens t JOIN token_lemmas l USING(corpus,source_key) WHERE t.corpus=? AND l.lemma=?'
             verses=db.execute('SELECT count(DISTINCT t.reference) '+query+' AND t.reference NOT LIKE ?',parameters+('%.0',)).fetchone()[0]
+            addresses=db.execute('SELECT count(DISTINCT t.reference) '+query,parameters).fetchone()[0]
             rows=db.execute('SELECT t.reference,min(t.position) '+query+' GROUP BY t.reference ORDER BY min(t.position),t.reference LIMIT ? OFFSET ?',parameters+(limit,offset)).fetchall()
-        return dict(tokens=total,verses=verses,references=[r[0] for r in rows],corpus=corpus,lemma=identifier)
+        return dict(tokens=total,verses=verses,addresses=addresses,references=[r[0] for r in rows],corpus=corpus,lemma=identifier)

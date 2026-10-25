@@ -203,7 +203,7 @@ class AlphaTests(unittest.TestCase):
                 test_ui.spin(lambda: not dialog.busy)
             self.assertIn(resource.name, window.library.installed('bible'))
 
-    def test_book_search_chapter_grid_and_immediate_independent_selection(self):
+    def test_book_search_grid_and_explicit_chapter_or_verse_open_keep_other_tabs(self):
         from bible.ui import Gtk
         from bible.i18n import tr
         with tempfile.TemporaryDirectory() as directory:
@@ -219,10 +219,10 @@ class AlphaTests(unittest.TestCase):
             window.choose_passage()
             nav = window.navigation
             nav.book_list.emit('row-activated', nav.book_rows['1Cor'])
-            self.assertEqual(second.state.reference, '1Cor.1.1')
+            self.assertEqual(second.state.reference, 'Gen.1.1')
             self.assertEqual(len(nav.chapter_buttons), 16)
             nav.chapter_buttons[15].emit('clicked')
-            self.assertEqual(second.state.reference, '1Cor.15.1')
+            self.assertEqual(second.state.reference, 'Gen.1.1')
             self.assertTrue(nav.get_visible())
             self.assertTrue(nav.chapter_buttons[15].get_active())
             self.assertTrue(nav.chapter_buttons[15].has_css_class('suggested-action'))
@@ -231,6 +231,7 @@ class AlphaTests(unittest.TestCase):
             self.assertFalse(hasattr(nav, 'new_button'))
             self.assertFalse(hasattr(nav, 'open_button'))
             nav.verse.set_selected(nav.verses.index(8))
+            nav.open_verse.emit('clicked')
             self.assertEqual(second.state.reference, '1Cor.15.8')
             nav.version.set_selected(nav.names.index('Other'))
             self.assertEqual(second.state.resource, 'Other')
@@ -258,6 +259,8 @@ class AlphaTests(unittest.TestCase):
             test_ui.spin(lambda: nav.get_width() <= 360)
             self.assertLessEqual(nav.get_width(), 360)
             nav.chapter_buttons[16].emit('clicked')
+            self.assertEqual(second.state.reference,'1Cor.15.8')
+            nav.open_chapter.emit('clicked')
             self.assertEqual(second.state.reference, '1Cor.16.1')
 
     def test_version_rejects_missing_passage_and_different_versification(self):
@@ -276,14 +279,17 @@ class AlphaTests(unittest.TestCase):
             self.assertEqual(window.active_tab.state.reference, 'Gen.2.1')
             self.assertIn(tr('This passage is not available in this translation.'), nav.status.get_text())
             self.assertEqual(nav.selected_resource(), 'Limited')
-            self.assertFalse(any(button.get_active() for button in nav.chapter_buttons.values()))
+            self.assertTrue(nav.open_chapter.get_sensitive())
             nav.chapter_buttons[1].emit('clicked')
+            self.assertEqual(window.active_tab.state.resource,'Test')
+            nav.open_chapter.emit('clicked')
             self.assertEqual(window.active_tab.state.resource, 'Limited')
             self.assertEqual(window.active_tab.state.reference, 'John.1.1')
             nav.version.set_selected(nav.names.index('Catholic'))
             self.assertEqual(window.active_tab.state.resource, 'Limited')
             self.assertIn(tr('Different versifications. Automatic alignment is unavailable.'), nav.status.get_text())
             nav.chapter_buttons[1].emit('clicked')
+            nav.open_chapter.emit('clicked')
             self.assertEqual(window.active_tab.state.resource, 'Catholic')
             self.assertEqual(window.active_tab.reader.versification, 'Catholic')
 

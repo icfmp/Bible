@@ -7,6 +7,7 @@ from .reference_data import (ReferenceData,ReferenceDataError,SOURCE_URL,LICENSE
 REFERENCE_RESOURCE_ID='openbible-cross-references'
 PLACE_RESOURCE_ID='openbible-places'
 TOPIC_RESOURCE_ID='openbible-topics'
+STEP_RESOURCE_ID='step-word-study'
 
 
 @dataclass(frozen=True)
@@ -34,11 +35,14 @@ class StudyResources:
         self.references=ReferenceData(root);self.places=PlaceData(root)
         from .topic_data import TopicData
         self.topics=TopicData(root)
-        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places,TOPIC_RESOURCE_ID:self.topics}
+        from .step_data import StepData
+        self.step=StepData(root)
+        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places,TOPIC_RESOURCE_ID:self.topics,STEP_RESOURCE_ID:self.step}
 
     def available(self):
         from . import place_data as places
         from . import topic_data as topics
+        from . import step_sources as step
         return [StudyResource(description=tr('Bible cross-references')),
                 StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),
                     source_url=places.SOURCE_URL,license='CC BY 4.0; ODbL 1.0; public-domain coastlines',
@@ -51,7 +55,13 @@ class StudyResources:
                 StudyResource(id=TOPIC_RESOURCE_ID,name='OpenBible topics',description=tr('Curated French/English topics'),
                     source_url=topics.SOURCE_URL,author='OpenBible.info community contributors',
                     conditions='OpenBible.info — '+topics.SOURCE_URL+'\nCC BY 4.0 — '+topics.LICENSE_URL,
-                    about=topics.SOURCE_DATE+'\nSHA-256: '+topics.ARCHIVE_SHA256+'\n'+topics.TRANSFORMATIONS)]
+                    about=topics.SOURCE_DATE+'\nSHA-256: '+topics.ARCHIVE_SHA256+'\n'+topics.TRANSFORMATIONS),
+                StudyResource(id=STEP_RESOURCE_ID,name='STEP word study',description=tr('Greek and Hebrew word study'),
+                    source='STEPBible / Tyndale House',source_url=step.SOURCE_URL,author='STEPBible / Tyndale House, Cambridge',
+                    language='mul',provider_id='stepbible',license='CC BY 4.0',
+                    conditions=step.NOTICE+'\n'+step.LICENSE_URL,
+                    about=tr('Download: {size} MB. Local index: about 275 MB; additional temporary update space is required.').format(size=f'{step.DOWNLOAD_BYTES/1000000:.1f}')+'\n'+str({name:values[1] for name,values in step.FILES.items()}),
+                    versification='NRSV (supplied STEP reference convention)')]
 
     def resource(self,name):
         return next((r for r in self.available() if r.id==name),None) or self.unknown()
@@ -62,20 +72,24 @@ class StudyResources:
         result=[]
         for name,store in self.stores.items():
             try:store.metadata();result.append(name)
-            except (ReferenceDataError,OSError):pass
+            except (ValueError,OSError):pass
         return result
 
     def current(self,name):
         try:
             metadata=self.stores[name].metadata()
+            if name==STEP_RESOURCE_ID:
+                from .step_sources import COMMIT
+                return metadata['commit']==COMMIT
             if name==REFERENCE_RESOURCE_ID:return metadata['archive_sha256']==ARCHIVE_SHA256
             if name==TOPIC_RESOURCE_ID:
                 from .topic_data import ARCHIVE_SHA256 as TOPIC_SHA
                 return metadata['archive_sha256']==TOPIC_SHA
             from .place_data import REVISION
             return metadata['revision']==REVISION and self.places.has_map()
-        except (ReferenceDataError,OSError,KeyError):return False
+        except (ValueError,OSError,KeyError):return False
 
-    def install(self,resource,progress,installing):
+    def install(self,resource,progress,installing,cancelled=None):
         if resource.id not in self.stores:raise ValueError('Unknown study resource')
+        if resource.id==STEP_RESOURCE_ID:return self.step.install(progress,installing,cancelled)
         return self.stores[resource.id].install(progress,installing)

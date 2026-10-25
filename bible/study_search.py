@@ -20,7 +20,7 @@ class StudySearch(Gtk.Box):
         self.navigation=navigation;self.owner=navigation.owner;self.mode=mode
         self.data=TopicData(self.owner.library.root.parent/'study-data')
         self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-search')
-        self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0
+        self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
         self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
@@ -54,7 +54,7 @@ class StudySearch(Gtk.Box):
                                    hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.results);self.append(scroll);self.result_scroll=scroll
         self.more=Gtk.Button(label=tr('More results'),visible=False)
-        self.more.connect('clicked',lambda *_:self.run_text(append=True));self.append(self.more)
+        self.more.connect('clicked',lambda *_:self.run_lemma(append=True) if self.lemma_query else self.run_text(append=True));self.append(self.more)
         self.credit=Gtk.Label(label=tr('OpenBible.info · CC BY 4.0. Community suggestions; explore the context.'),xalign=0,wrap=True)
         self.credit.add_css_class('caption');self.credit.set_visible(mode=='topics');self.credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.append(self.credit)
         self.refresh()
@@ -120,9 +120,14 @@ class StudySearch(Gtk.Box):
             labels={'all':'Whole Bible','ot':'Old Testament','nt':'New Testament','book':'Current Book'}
             self.scope.set_model(Gtk.StringList.new([tr(labels[s]) for s in self.scope_names]))
             self.scope.set_selected(self.scope_names.index(old_scope) if old_scope in self.scope_names else 0)
+            if self.lemma_query:self.run_lemma()
         except (OSError,ValueError) as error:self.status.set_text(str(error))
 
     def changed(self,*_):
+        if getattr(self,'_setting_lemma',False):return
+        if self.mode=='text' and self.lemma_query and self.entry.get_text()==getattr(self,'_lemma_caption',None):return
+        self.lemma_query=None
+        if self.mode=='text':self.scope.set_visible(True)
         self.invalidate()
         if self.mode=='text':self.status.set_text(tr('Enter a phrase and press Enter.'));return
         entries=suggestions(self.entry.get_text())
@@ -192,6 +197,7 @@ class StudySearch(Gtk.Box):
 
     def run_text(self,*_,append=False):
         if self.mode!='text':return
+        if self.lemma_query:return self.run_lemma(append=append)
         if not self.capture_context():return
         resource,reader=self.context;query=self.entry.get_text().strip()
         if not query or len(query)>200 or any(ord(c)<32 for c in query):
@@ -208,6 +214,27 @@ class StudySearch(Gtk.Box):
             value=search(root,resource,query,scope,book,offset)
             return [Relationship(ref,ref,0,1) for ref in value['references']],value['total']
         self.launch(operation,query,reader.versification,append=append)
+
+    def show_lemma(self,corpus,identifier,caption,resource):
+        if resource in self.search_names:self.source.set_selected(self.search_names.index(resource))
+        self._setting_lemma=True
+        self.lemma_query=(corpus,identifier);self._lemma_caption=caption
+        self.entry.set_text(caption);self._setting_lemma=False
+        self.scope.set_visible(False)
+        self.run_lemma()
+
+    def run_lemma(self,append=False):
+        if not self.lemma_query:return
+        corpus,identifier=self.lemma_query
+        from .step_data import StepData
+        from .step_sources import CORPORA
+        data=StepData(self.owner.library.root.parent/'study-data')
+        offset=len(self.rows) if append else 0
+        def operation():
+            result=data.occurrences(corpus,identifier,offset=offset)
+            return [Relationship(ref,ref,0,1) for ref in result['references']],result['addresses']
+        self.explanation.set_text(tr('Lemma occurrences in')+' '+CORPORA[corpus]+' · '+tr('English lexical content'))
+        self.launch(operation,self._lemma_caption,'NRSV',append=append)
 
     def result_setup(self,_,item):
         button=Gtk.Button();button.add_css_class('flat')
@@ -231,7 +258,7 @@ class StudySearch(Gtk.Box):
             self.row_cache[key]=result
         caption,text=self.row_cache[key];heading=button.get_child().get_first_child();heading.set_text(caption)
         excerpt=heading.get_next_sibling();excerpt.set_text(text)
-        if self.mode=='text':
+        if self.mode=='text' and not self.lemma_query:
             from .search_terms import match_ranges
             try:ranges=match_ranges(text,self.entry.get_text(),self.owner.library.resource(resource).language)
             except ValueError:ranges=()

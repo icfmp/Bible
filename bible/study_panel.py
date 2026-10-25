@@ -81,6 +81,7 @@ class StudyPanel(Gtk.Box):
         self.append(self.header)
         self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
         switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)
+        self.tools_switcher=switcher
         switcher.add_css_class('study-tools')
         layout = switcher.get_layout_manager()
         if isinstance(layout, Gtk.BoxLayout):layout.set_homogeneous(False)
@@ -110,7 +111,9 @@ class StudyPanel(Gtk.Box):
             child=widget.get_first_child()
             while child:compact_labels(child);child=child.get_next_sibling()
         compact_labels(switcher)
-        self.append(self.tools)
+        self.content_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+        self.content_pages.add_named(self.tools,'tools')
+        self.append(self.content_pages)
         self.tools.connect('notify::visible-child-name', self.tool_changed)
         self.popovers = [actions,info]
         for popover in self.popovers:
@@ -146,16 +149,25 @@ class StudyPanel(Gtk.Box):
         self._layout_geometry = None;self._layout_anchor = None
         self.add_tick_callback(self.adapt)
         self.sidebar_preferences = None
+        from .word_study import WordStudy
+        self.words=WordStudy(owner)
+        self.content_pages.add_named(self.words,'word')
+        self.content_pages.connect('notify::visible-child-name',self.tool_changed)
         self.tool_controls()
 
     @property
-    def tool(self):return self.tools.get_visible_child_name()
+    def tool(self):
+        return 'word' if hasattr(self,'content_pages') and self.content_pages.get_visible_child_name()=='word' else self.tools.get_visible_child_name()
 
     def tool_controls(self):
+        self.tools_switcher.set_visible(self.tool!='word')
         for widget in (self.more,self.immersive_button):widget.set_visible(self.tool=='commentaries')
 
     def tool_changed(self, *_):
         self.tool_controls()
+        if self.tool=='word':
+            self.cancel_reveal();self.notes.cancel_follow();self.update_indicator()
+            return
         self.owner.study_settings.tool = self.tool
         try:self.owner.study_settings.save()
         except (OSError,ValueError) as error:self.owner.report_session_error(tr('Unable to save study preferences.'),error)
@@ -193,6 +205,8 @@ class StudyPanel(Gtk.Box):
         tab = self.owner.active_tab
         if tab is None:
             return
+        if self.tool=='word':
+            self.words.refresh();return
         if self.tool!='commentaries':
             if self.tool=='notes':self.notes.refresh(force=force)
             self.references.refresh(force=force)
@@ -289,27 +303,33 @@ class StudyPanel(Gtk.Box):
             self.clear_content();self.status.set_text(tr('No verified alignment for this passage.')+f' {error}')
             self.entry_controls();return
         reference=resolved.start
-        chapter_key=self.reader.key(reference)
-        chapter_context=(id(self.reader),chapter_key.getOSISBookName(),chapter_key.getChapter())
-        replaced=chapter_context!=getattr(self,'_chapter_context',None)
-        if replaced:
-            first=self.reader.key(f'{chapter_context[1]}.{chapter_context[2]}.1').getIndex()
-            last=self.reader.key(f'{chapter_context[1]}.{chapter_context[2]}.{chapter_key.getVerseMax()}').getIndex()
-            self.loaded=[i for i,s in enumerate(self.reader.index.sections)
-                         if s.index<=last and s.last_index>=first and self.reader.index.text(i).strip()]
-            self._chapter_context=chapter_context
-            self.current_position=None
-            self.rebuild()
+        replaced=self.ensure_chapter(reference)
         position=self.reader.index.locate(reference)
         if position is None or not self.reader.index.text(position).strip():
             self.cancel_reveal();self.current_position=None
             self.owner.active_tab.mark_commentary_range(None,None)
             self._missing_near=self.reader.index.near(reference)
+            self.passage.set_text(self.owner.active_tab.passage_title())
             self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
         self.status.set_text('');self.current_position=position
         self.passage.set_text(self.reader.index.label(position))
         self.reveal(position,force=replaced,animate=not replaced);self.entry_controls()
         self.update_indicator()
+
+    def ensure_chapter(self,reference):
+        key=self.reader.key(reference)
+        context=(id(self.reader),key.getOSISBookName(),key.getChapter())
+        if context==getattr(self,'_chapter_context',None):return False
+        key.setVerse(1);first=key.getIndex();key.setVerse(key.getVerseMax());last=key.getIndex()
+        key.setIntros(True);key.setVerse(0);intros={key.getIndex()}
+        if key.getChapter()==1:
+            key.setChapter(0);key.setVerse(0);intros.add(key.getIndex())
+        self.loaded=[i for i,s in enumerate(self.reader.index.sections)
+                     if (s.index<=last and s.last_index>=first or s.introduction and s.index in intros)
+                     and self.reader.index.text(i).strip()]
+        self._chapter_context=context;self.current_position=None
+        self.rebuild()
+        return True
 
     def update_indicator(self):
         tab=self.owner.active_tab
@@ -485,14 +505,24 @@ class StudyPanel(Gtk.Box):
         self.current_position=position
         self.passage.set_text(self.reader.index.label(position));self.update_indicator()
         if position not in self.loaded:
-            self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)));self.rebuild()
+            section=self.reader.index.sections[position]
+            if not section.introduction:self.ensure_chapter(section.start)
+            else:
+                self._chapter_context=None
+                self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)));self.rebuild()
+            self.current_position=position
         self.reveal(position,force=True);self.entry_controls()
         self.owner.reading_sync.explicit_commentary(position)
 
     def resume(self,position,anchor):
         if not self.reader:return
         self.current_position=position
-        self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
+        section=self.reader.index.sections[position]
+        if not section.introduction:self.ensure_chapter(section.start)
+        else:
+            self._chapter_context=None
+            self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
+        self.current_position=position
         from .paged_sources import CommentaryPages
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
         doc=source.document(position,self.owner.preferences.value)
@@ -527,7 +557,7 @@ class StudyPanel(Gtk.Box):
     def remember_choice(self, name):
         # Only a deliberate, successfully opened source establishes a default.
         # A missing entry is still a valid selected commentary.
-        if not name or not self.reader or self.owner.active_tab.state.commentary != name:
+        if not name or not self.reader or self.reader.name!=name or self.owner.active_tab.state.commentary != name:
             return
         settings = self.owner.study_settings
         settings.last_commentary = name

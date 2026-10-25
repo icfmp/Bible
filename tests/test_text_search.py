@@ -10,6 +10,8 @@ class SearchTermsTests(unittest.TestCase):
         self.assertEqual(terms('"grâce de Dieu" amour','fr'),('grace de dieu','amour'))
         self.assertEqual(terms("l'homme",'fr'),('l homme',))
         self.assertNotEqual(normalized('ἄνθρωπος','el'),normalized('ανθρωπος','el'))
+        self.assertEqual(normalized('ά','el'),normalized('α\u0301','el'))
+        self.assertEqual(match_ranges('gra\u0302ce','grace','fr'),((0,6),))
         text='La grâce, l’amour et la GRÂCE.'
         self.assertEqual([text[a:b] for a,b in match_ranges(text,'grace','fr')],['grâce','GRÂCE'])
         with self.assertRaises(ValueError):terms('"unfinished','fr')

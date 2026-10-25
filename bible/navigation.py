@@ -26,7 +26,7 @@ class PassagePopover(Gtk.Popover):
         self.book_index, self.chapter_number = 0, None
         self.book_rows, self.chapter_buttons = {}, {}
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self.direct = Gtk.Entry(placeholder_text=tr('Reference (e.g. John 1:1)'),
+        self.direct = Gtk.Entry(placeholder_text=tr('John 3:16 · Jn 3 · Ps 23'),
                                 width_chars=12,max_width_chars=24,hexpand=True)
         self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
         self.direct.connect('activate',lambda *_:self.commit())
@@ -384,6 +384,7 @@ class PassagePopover(Gtk.Popover):
                 book=self.books[self.book_index]
                 reference=f'{book.code}.{self.chapter_number}.{book.chapters[self.chapter_number][0]}'
             self.apply_reference(reference);self.popdown()
+            self.owner.active_tab.text.grab_focus()
         except (ValueError,IndexError) as error:self.message(str(error))
 
     def apply_reference(self, reference):
@@ -473,6 +474,7 @@ class PassagePopover(Gtk.Popover):
             self.apply_reference(self.direct.get_text())
             self.sync(force=True)
             self.message()
+            self.popdown();self.owner.active_tab.text.grab_focus()
         except Exception as error:
             self.message(f'{tr("Unable to read this passage.")} {error}')
 

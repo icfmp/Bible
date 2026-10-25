@@ -1,5 +1,5 @@
 """Local, source-aware note and place affordances in ordinary Bible prose."""
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Pango
 from .i18n import tr
 from .reference_resolution import resolve
 from .metadata_workers import MetadataExecutor
@@ -40,6 +40,10 @@ class InlineMarkers:
 
     def load_places(self,key,data,reader,refs):
         from .reference_targets import source_references
+        owner=self.owner
+        if not hasattr(owner,'_inline_marker_executor'):
+            owner._inline_marker_executor=MetadataExecutor(thread_name_prefix='bible-inline-places')
+        self.executor=owner._inline_marker_executor
         # SWORD handles stay on their owner thread; the worker uses SQLite only.
         origins={}
         for ref in refs:
@@ -80,16 +84,30 @@ class InlineMarkers:
                 tab.select_verse(reference);owner.reveal_passage_annotations()
             elif len(payload)==1:self.place(reader,ref,payload[0])
             else:
-                pop=Gtk.Popover();pop.set_parent(button)
+                pop=Gtk.Popover(autohide=False);pop.set_parent(button)
+                owner._reading_popovers.append(pop)
                 box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
                 from .place_names import place_name
+                from .place_cards import STATUS
+                names=[place_name(p['name']) for p in payload]
                 for place in {p['id']:p for p in payload}.values():
-                    choice=Gtk.Button(label=place_name(place['name']));choice.add_css_class('flat')
+                    name=place_name(place['name'])
+                    modern='; '.join(dict.fromkeys(place_name(c['name']) for c in place['candidates'] if c['longitude'] is not None))
+                    caption=name+'\n'+(modern+' · ' if modern else '')+tr(STATUS[place['status']])
+                    if names.count(name)>1:caption+='\n'+tr('Source identity')+': '+place['id']
+                    choice=Gtk.Button(child=Gtk.Label(label=caption,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32));choice.add_css_class('flat')
                     choice.connect('clicked',lambda _,p=place:(pop.popdown(),self.place(reader,ref,p)))
                     box.append(choice)
                 scroll=Gtk.ScrolledWindow(max_content_height=300,propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
                 scroll.set_child(box);pop.set_child(scroll)
-                pop.connect('closed',lambda *_:GLib.idle_add(lambda:pop.unparent() or False));pop.popup()
+                unmap=button.connect('unmap',lambda *_:pop.popdown())
+                def closed(*_):
+                    if pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
+                    if button.handler_is_connected(unmap):button.disconnect(unmap)
+                    GLib.idle_add(lambda:pop.unparent() or False)
+                pop.connect('closed',closed)
+                from .popover_dismissal import fit_reader_popover
+                pop.connect('show',lambda *_:fit_reader_popover(pop,owner));pop.popup()
         button.connect('clicked',activate)
         return button
 

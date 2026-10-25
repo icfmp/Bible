@@ -54,6 +54,7 @@ class ScrollMotion:
             if begun is None:
                 begun = now
             progress = min(1, (now - begun) / 200000)
+            if not settings.get_property('gtk-enable-animations'):progress=1
             adjustment.set_value(start + (target - start) * (1 - (1 - progress) ** 3))
             if progress >= 1:
                 self.tick = 0; self.target = None

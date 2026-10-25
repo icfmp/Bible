@@ -111,6 +111,7 @@ class ReadingTab(Gtk.Box):
         self.add_tick_callback(self.adapt_comparison)
         context=Gio.Menu()
         context.append(tr('Add a passage note'),'win.note')
+        context.append(tr('Study word'),'win.study-word')
         context.append(tr('Copy verses without numbers'),'win.copy-passage')
         context.append(tr('Copy verses with reference'),'win.copy-with-reference')
         context.append(tr('Copy reference'),'win.copy-reference')
@@ -118,6 +119,7 @@ class ReadingTab(Gtk.Box):
             context.append(tr('Highlight')+': '+tr(label),'win.highlight-'+color)
         context.append(tr('Remove highlight'),'win.highlight-remove')
         self.text.set_extra_menu(context)
+        self.comparison_text.set_extra_menu(context)
         self.scroll.get_vadjustment().connect('value-changed', self.scroll_changed)
         self.connect('map', self.on_map)
         self.load_resource(jump_to_reference)
@@ -282,6 +284,7 @@ class ReadingTab(Gtk.Box):
             self.primary_heading.set_text(primary.description+' — '+primary.source+' · '+self.state.reference if self.reader else '')
         except ValueError:self.primary_heading.set_text('')
         self.comparison_status.set_text('');self.comparison_status.set_visible(False)
+        self._comparison_layout_error=None
         try:
             if name not in self.library.installed('bible'):raise ValueError(tr('Comparison translation unavailable.'))
             resource = self.library.resource(name)
@@ -292,7 +295,7 @@ class ReadingTab(Gtk.Box):
             from .reference_resolution import resolve
             alignment_error = None
             try:
-                resolved = resolve(self.state.reference, self.reader.versification, reader)
+                resolved = resolve(self.state.reference, self.reader.versification, reader,require_entry=False)
                 reference, end = resolved.start, resolved.end
             except ValueError as error:
                 # Keep this readable resource accessible in its own canon.
@@ -326,7 +329,11 @@ class ReadingTab(Gtk.Box):
                 if selected and old.key == chapter.reference:
                     buffer.select_range(*(buffer.get_iter_at_offset(self._comparison_document.locate(a)) for a in selected))
             if alignment_error is None:
-                self.comparison_rows.build(chapter)
+                try:self.comparison_rows.build(chapter)
+                except ValueError as error:
+                    self.comparison_rows.leave()
+                    self._comparison_layout_error=error
+                    self.set_comparison_alignment(error)
             else:self.comparison_rows.leave()
             sync = getattr(self, 'comparison_sync', None)
             if not (sync and sync.running and sync.driver == 'comparison'):
@@ -341,6 +348,7 @@ class ReadingTab(Gtk.Box):
             self.comparison_status.set_text(str(error));self.comparison_status.set_visible(True)
 
     def set_comparison_alignment(self, error):
+        error=error or getattr(self,'_comparison_layout_error',None)
         self._comparison_aligned = error is None
         self.comparison_status.set_visible(error is not None)
         self.comparison_status.set_text((tr('Automatic following unavailable. Reading independently.')+' '+str(error))
@@ -469,6 +477,10 @@ class ReadingTab(Gtk.Box):
         return True
 
     def verse_clicked(self, gesture, count, x, y):
+        widget=self.text.pick(x,y,Gtk.PickFlags.DEFAULT)
+        while widget and widget is not self.text:
+            if widget.has_css_class('inline-marker'):return
+            widget=widget.get_parent()
         if self.text.get_buffer().get_has_selection():
             return
         bx, by = self.text.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, int(x), int(y))

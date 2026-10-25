@@ -64,7 +64,8 @@ A basic `H1254` lookup yields explicit alternatives `H1254A` (to create) and
 Using the exact seven files and the provider's `install_files`:
 
 - **137,992 Greek source tokens**, **305,465 Hebrew/Aramaic source tokens**.
-- Index preparation: **10.80 seconds**, local SQLite **274,202,624 bytes** in
+- Index preparation: **10.88 seconds**, local SQLite **274,313,216 bytes**, including
+  the original input-file headers/notices, in
   the managed developer container. Download total is the sum of pinned sizes
   in `step_sources.DOWNLOAD_BYTES`; allow additional temporary update space.
 - `G3056`: supplied lemma **λόγος**, transliteration **logos**, gloss **word**;
@@ -97,3 +98,16 @@ inflected form. English lexical content remains explicitly English in French UI.
 Developer evidence is reproducible with `StepData.install_files`, `lookup`,
 `verse` and `occurrences`. These findings do not constitute client GNOME desktop
 acceptance, a delivered UI or permission to expand the selected datasets.
+
+Basic Hebrew/Aramaic noun/verb labels were checked against the pinned repository's
+`Morphology codes/TEHMC - Translators Expansion of Hebrew Morphology Codes - STEPBible.org CC BY.txt`
+(394,580 bytes; SHA-256 `78779bea824b31d4467dec0161d547481c86f266bc39def12cd11dc7dcbe6da7`).
+Only those basic function labels are used; raw source grammar remains available
+in Details, without inferring tense or a passage-specific lexical sense.
+
+Actual native GTK installation proof: cancelled after 278,528 bytes without a
+partial installed index; retry downloaded all 105,074,789 pinned bytes and
+prepared the index in 37.58 seconds including transfer. Maximum GTK heartbeat
+gap was 0.063 seconds. This used a disposable fixture reader and real upstream
+STEP data; reference/resource/empty-note state remained unchanged. Existing-data
+rollback/cancellation and corrupt-update preservation are checked separately.

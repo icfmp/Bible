@@ -7,6 +7,19 @@ import unittest
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK')
 class ComparisonRowsTests(unittest.TestCase):
+    def test_split_final_john_verses_form_one_correspondence_group(self):
+        from bible.comparison_layout import correspondences
+        from bible.sword_provider import Reader
+        from tests.test_ui import installed_fixture
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory,'Base',entries=[('3John.1.14','BASE ENTIRE VERSE')])
+            installed_fixture(directory,'NRSV',versification='NRSV',entries=[('3John.1.14','FIRST SOURCE PART'),('3John.1.15','SECOND SOURCE PART')])
+            root=Path(directory)/'translations'
+            left=Reader(root/'Base','Base');right=Reader(root/'NRSV','NRSV')
+            rows=correspondences(left,right,['3John.1.14'],['3John.1.14','3John.1.15'])
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0].secondary,('3John.1.14','3John.1.15'))
+
     def test_wrapped_rows_stay_aligned_reflow_and_single_prose_restore(self):
         from bible.ui import Application,Window,Library
         from tests.test_ui import installed_fixture,spin
