@@ -76,10 +76,18 @@ class PassagePopover(Gtk.Popover):
                                                  propagate_natural_height=True, vexpand=True)
         self.chapter_scroll.set_child(self.chapter_grid)
         right.append(self.chapter_scroll)
-        verse_expander = Gtk.Expander(label=tr('Verse'))
         self.verse = self.dropdown('Verse', self.verse_changed)
-        verse_expander.set_child(self.verse)
-        right.append(verse_expander)
+        verse_row=Gtk.Box(spacing=6)
+        verse_row.append(Gtk.Label(label=tr('Verse')));verse_row.append(self.verse)
+        self.open_verse=Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Open verse'))
+        self.open_verse.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open verse')])
+        self.open_verse.connect('clicked',lambda *_:self.open_selected())
+        verse_row.append(self.open_verse)
+        self.open_chapter=Gtk.Button(label=tr('Open chapter'))
+        self.open_chapter.add_css_class('suggested-action')
+        self.open_chapter.connect('clicked',lambda *_:self.open_selected(chapter=True))
+        right.insert_child_after(self.open_chapter,self.book_title)
+        right.insert_child_after(verse_row,self.open_chapter)
         self.columns.append(right)
         self.pages=Gtk.Stack()
         books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -89,18 +97,23 @@ class PassagePopover(Gtk.Popover):
         history_scroll=Gtk.ScrolledWindow(min_content_height=220,max_content_height=380,propagate_natural_height=True)
         history_scroll.set_child(self.history_list)
         self.pages.add_titled(history_scroll,'history',tr('History'))
-        switcher=Gtk.StackSwitcher(stack=self.pages,halign=Gtk.Align.CENTER)
         passage=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        passage.append(self.direct);passage.append(self.status);passage.append(switcher);passage.append(self.pages)
+        reference_row=Gtk.Box(spacing=6)
+        reference_row.append(self.direct)
+        self.history_button=Gtk.ToggleButton(icon_name='document-open-recent-symbolic',tooltip_text=tr('History'))
+        self.history_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('History')])
+        self.history_button.connect('toggled',lambda b:self.pages.set_visible_child_name('history' if b.get_active() else 'books'))
+        reference_row.append(self.history_button)
+        passage.append(reference_row);passage.append(self.status);passage.append(self.pages)
         self.modes=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
         self.modes.add_titled(passage,'passage',tr('Passage'))
         from .study_search import StudySearch
         self.text_search=StudySearch(self,'text');self.topic_search=StudySearch(self,'topics')
-        self.modes.add_titled(self.text_search,'text',tr('Text'));self.modes.add_titled(self.topic_search,'topics',tr('Topics'))
+        self.modes.add_titled(self.text_search,'text',tr('Text'));self.modes.add_titled(self.topic_search,'topics',tr('Themes'))
         self.mode_switcher=Gtk.Box(halign=Gtk.Align.FILL)
         self.mode_switcher.add_css_class('linked');self.mode_buttons={}
         first=None
-        for name,label in [('passage','Passage'),('text','Text'),('topics','Topics')]:
+        for name,label in [('passage','Passage'),('text','Text'),('topics','Themes')]:
             button=Gtk.ToggleButton(label=tr(label),hexpand=True)
             if first:button.set_group(first)
             else:first=button
@@ -138,6 +151,8 @@ class PassagePopover(Gtk.Popover):
         return dropdown
 
     def mode_changed(self):
+        for name,panel in [('text',self.text_search),('topics',self.topic_search)]:
+            if self.modes.get_visible_child_name()!=name:panel.pause()
         self.mode_buttons[self.modes.get_visible_child_name()].set_active(True)
         self.owner.reference_preview.dismiss()
         if self.modes.get_visible_child_name()=='topics':self.topic_search.refresh()
@@ -170,6 +185,7 @@ class PassagePopover(Gtk.Popover):
     def visibility_changed(self, *_):
         if self.get_visible():
             self.pages.set_visible_child_name('books')
+            self.history_button.set_active(False)
             self.refresh_history()
             self.search.set_text('')
             self.sync(force=True)
@@ -179,7 +195,7 @@ class PassagePopover(Gtk.Popover):
         elif self._resize_id:
             GLib.source_remove(self._resize_id)
             self._resize_id = 0
-            self.text_search.invalidate();self.topic_search.invalidate()
+            self.text_search.pause();self.topic_search.pause()
 
     def adapt(self):
         if not self.get_visible():
@@ -324,7 +340,7 @@ class PassagePopover(Gtk.Popover):
         self.chapters = list(book.chapters) if book else []
         self.chapter_number = preferred if preferred in self.chapters else (self.chapters[0] if self.chapters else None)
         for chapter in self.chapters:
-            button = Gtk.ToggleButton(label=str(chapter), height_request=42)
+            button = Gtk.ToggleButton(label=str(chapter), height_request=32)
             button.update_property([Gtk.AccessibleProperty.LABEL], [f'{tr("Chapter")} {chapter}'])
             button.connect('clicked', lambda _, number=chapter: self.chapter_changed(number))
             self.chapter_buttons[chapter] = button
@@ -337,8 +353,7 @@ class PassagePopover(Gtk.Popover):
         tab = self.owner.active_tab
         code = self.books[self.book_index].code if self.books else ''
         for chapter, button in self.chapter_buttons.items():
-            selected = bool(tab and tab.state.resource == self.selected_resource() and
-                            tab.state.reference.rsplit('.', 1)[0] == f'{code}.{chapter}')
+            selected = chapter==self.chapter_number
             button.set_active(selected)
             if selected:
                 button.add_css_class('suggested-action')
@@ -358,7 +373,18 @@ class PassagePopover(Gtk.Popover):
         return ''
 
     def update_direct(self):
-        self.direct.set_text(self.selected_reference())
+        from .reference_preview import passage_title
+        reference=self.selected_reference()
+        self.direct.set_text(passage_title(reference,system=self.reader.versification) if reference and self.reader else '')
+
+    def open_selected(self,chapter=False):
+        try:
+            reference=self.selected_reference()
+            if chapter:
+                book=self.books[self.book_index]
+                reference=f'{book.code}.{self.chapter_number}.{book.chapters[self.chapter_number][0]}'
+            self.apply_reference(reference);self.popdown()
+        except (ValueError,IndexError) as error:self.message(str(error))
 
     def apply_reference(self, reference):
         if not self.reader or not self.reader.has_reference(reference):
@@ -423,7 +449,7 @@ class PassagePopover(Gtk.Popover):
             self.book_index = row.book_index
             self.populate_chapters()
             self._updating = False
-            self.apply_selected()
+            self.update_direct()
 
     def book_key_released(self, _, keyval, keycode, state):
         if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End,
@@ -436,11 +462,11 @@ class PassagePopover(Gtk.Popover):
             self.chapter_number = number
             self.populate_verses()
             self._updating = False
-            self.apply_selected()
+            self.mark_chapter();self.update_direct()
 
     def verse_changed(self, *_):
         if not self._updating:
-            self.apply_selected()
+            self.update_direct()
 
     def commit(self):
         try:

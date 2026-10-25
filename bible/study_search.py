@@ -1,5 +1,5 @@
 """Topics and literal text in the existing passage selector, with local previews."""
-from concurrent.futures import ThreadPoolExecutor
+from .metadata_workers import MetadataExecutor
 from gi.repository import Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr
 from .topic_vocabulary import VOCABULARY,suggestions,title
@@ -19,11 +19,20 @@ class StudySearch(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.navigation=navigation;self.owner=navigation.owner;self.mode=mode
         self.data=TopicData(self.owner.library.root.parent/'study-data')
-        self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-search')
+        self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-search')
+        self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
-        self.entry=Gtk.SearchEntry(placeholder_text=tr('Search topics' if mode=='topics' else 'Exact phrase in this translation'))
-        self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search topics' if mode=='topics' else 'Exact phrase in this translation')])
+        self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
+        self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
         self.entry.connect('search-changed',self.changed);self.append(self.entry)
+        self.source=Gtk.DropDown(enable_search=True)
+        self.source.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search translation')])
+        self.source.connect('notify::selected',self.source_changed)
+        self.source.set_visible(mode=='text');self.append(self.source)
+        self.scope=Gtk.DropDown();self.scope_names=['all']
+        self.scope.connect('notify::selected',lambda *_:self.changed())
+        self.scope.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search scope')])
+        self.scope.set_visible(mode=='text');self.append(self.scope)
         self.submit=Gtk.Button(label=tr('Search'));self.submit.connect('clicked',self.run_text)
         self.entry.connect('activate',self.run_text if mode=='text' else self.activate_first)
         self.submit.set_visible(mode=='text');self.append(self.submit)
@@ -43,26 +52,75 @@ class StudySearch(Gtk.Box):
         self.results=Gtk.ListView(model=Gtk.NoSelection(model=self.model),factory=factory)
         scroll=Gtk.ScrolledWindow(min_content_height=100,max_content_height=280,propagate_natural_height=True,
                                    hscrollbar_policy=Gtk.PolicyType.NEVER)
-        scroll.set_child(self.results);self.append(scroll)
+        scroll.set_child(self.results);self.append(scroll);self.result_scroll=scroll
+        self.more=Gtk.Button(label=tr('More results'),visible=False)
+        self.more.connect('clicked',lambda *_:self.run_text(append=True));self.append(self.more)
         self.credit=Gtk.Label(label=tr('OpenBible.info · CC BY 4.0. Community suggestions; explore the context.'),xalign=0,wrap=True)
         self.credit.add_css_class('caption');self.credit.set_visible(mode=='topics');self.credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.append(self.credit)
         self.refresh()
 
     def close(self):self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
 
+    def pause(self):
+        self.epoch+=1
+        if self.future:self.future.cancel()
+        self.pending=False
+
     def invalidate(self):
+        if hasattr(self,'more'):self.more.set_visible(False)
         if self.future:self.future.cancel();self.future=None
         self.generation+=1;self.pending=False;self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
         if hasattr(self.owner,'reference_preview'):self.owner.reference_preview.dismiss()
         self.heading.set_text('');self.status.set_tooltip_text(None)
 
     def refresh(self):
+        names=self.owner.library.installed('bible')
+        revision=self.data.revision if self.mode=='topics' else None
+        active=self.owner.active_tab if hasattr(self.owner,'view') else None
+        stamp=(tuple(names),revision,bool(active))
+        if stamp==self._refresh_stamp:return
+        self._refresh_stamp=stamp
         self.invalidate()
         self.explanation.set_text(tr('Partial curated vocabulary: {count} topics in French and English. Suggestions are not doctrinal conclusions.').format(count=len(VOCABULARY)) if self.mode=='topics' else
-                                  tr('Literal phrase, ignoring case, in the selected installed translation.'))
+                                  tr('All words, in any order. Use double quotes for a contiguous phrase. Latin accents are ignored for supported languages.'))
+        if self.mode=='text':
+            previous=self.search_names[self.source.get_selected()] if self.source.get_selected()<len(self.search_names) else None
+            self.search_names=names
+            self._source_syncing=True
+            self.source.set_model(Gtk.StringList.new([self.owner.library.resource(n).description for n in names]))
+            if active and not getattr(self,'_had_active_context',False):previous=active.state.resource
+            self._had_active_context=bool(active)
+            selected=previous if previous in names else active.state.resource if active and active.state.resource in names else names[0] if names else None
+            self.source.set_selected(names.index(selected) if selected in names else Gtk.INVALID_LIST_POSITION)
+            self._source_syncing=False;self.source_changed()
         self.download.set_visible(self.mode=='topics' and self.data.revision is None)
         if self.mode=='topics':self.changed()
         else:self.status.set_text(tr('Enter a phrase and press Enter.'))
+
+    def source_changed(self,*_):
+        if self.mode!='text' or getattr(self,'_source_syncing',False):return
+        self.invalidate();self.search_reader=None
+        index=self.source.get_selected()
+        if index>=len(self.search_names):return
+        from .sword_provider import Reader
+        name=self.search_names[index]
+        try:
+            self.search_reader=Reader(self.owner.library.root/name,name)
+            old_scope=self.scope_names[self.scope.get_selected()] if self.scope.get_selected()<len(self.scope_names) else 'all'
+            testaments=set()
+            for book in self.search_reader.books:
+                chapter=next(iter(book.chapters));verse=book.chapters[chapter][0]
+                value=self.search_reader.key(f'{book.code}.{chapter}.{verse}').getTestament()
+                testaments.add(ord(value) if isinstance(value,str) else int(value))
+            self.scope_names=['all']
+            if {1,2}<=testaments:self.scope_names+=['ot','nt']
+            active=self.owner.active_tab if hasattr(self.owner,'view') else None
+            code=active.state.reference.split('.')[0] if active else None
+            if code in {b.code for b in self.search_reader.books}:self.scope_names.append('book')
+            labels={'all':'Whole Bible','ot':'Old Testament','nt':'New Testament','book':'Current Book'}
+            self.scope.set_model(Gtk.StringList.new([tr(labels[s]) for s in self.scope_names]))
+            self.scope.set_selected(self.scope_names.index(old_scope) if old_scope in self.scope_names else 0)
+        except (OSError,ValueError) as error:self.status.set_text(str(error))
 
     def changed(self,*_):
         self.invalidate()
@@ -92,22 +150,32 @@ class StudySearch(Gtk.Box):
         if self.topic_model.get_n_items():self.choose(self.topic_model.get_item(0).value)
 
     def capture_context(self):
-        reader=self.navigation.reader;resource=self.navigation.selected_resource()
+        if self.mode=='text':
+            index=self.source.get_selected()
+            resource=self.search_names[index] if index<len(self.search_names) else None
+            reader=self.search_reader
+        else:reader=self.navigation.reader;resource=self.navigation.selected_resource()
         if not reader or resource not in self.owner.library.installed('bible'):
             self.status.set_text(tr('Choose an installed translation.'));return False
         self.context=(resource,reader);return True
 
-    def launch(self,operation,caption,source_system):
-        self.invalidate()
+    def launch(self,operation,caption,source_system,append=False):
+        if not append:self.invalidate()
         if not self.capture_context():return
         self.source_system=source_system;self.pending=True;self.status.set_text(tr('Searching…'));self.heading.set_text(caption)
-        generation=self.generation;future=self.executor.submit(operation);self.future=future
+        generation=self.generation;epoch=self.epoch;future=self.executor.submit(operation);self.future=future
         def complete():
-            if self.owner.closed or generation!=self.generation:return False
+            if self.owner.closed or generation!=self.generation or epoch!=self.epoch:return False
             self.pending=False
             try:
-                self.rows,total=future.result()
-                self.model.splice(0,self.model.get_n_items(),[SearchItem((row,generation)) for row in self.rows])
+                rows,total=future.result();self.total=total
+                if append:
+                    self.rows.extend(rows)
+                    self.model.splice(self.model.get_n_items(),0,[SearchItem((row,generation)) for row in rows])
+                else:
+                    self.rows=rows
+                    self.model.splice(0,self.model.get_n_items(),[SearchItem((row,generation)) for row in self.rows])
+                self.more.set_visible(self.mode=='text' and len(self.rows)<total)
                 self.status.set_text(tr('Showing {count} of {total} results.').format(count=len(self.rows),total=total) if self.rows else tr('No matching passages.'))
             except Exception as error:
                 self.status.set_text(tr('Search unavailable. Check the installed resource and try again.'));self.status.set_tooltip_text(str(error))
@@ -122,18 +190,24 @@ class StudySearch(Gtk.Box):
             rows=self.data.query(entry[0]);return rows,len(rows)
         self.launch(operation,title(entry),'openbible')
 
-    def run_text(self,*_):
+    def run_text(self,*_,append=False):
         if self.mode!='text':return
         if not self.capture_context():return
         resource,reader=self.context;query=self.entry.get_text().strip()
         if not query or len(query)>200 or any(ord(c)<32 for c in query):
             self.invalidate();self.status.set_text(tr('Enter a phrase of 1–200 characters.'));return
         from .text_search import search
+        from .search_terms import terms
+        try:terms(query,self.owner.library.resource(resource).language)
+        except ValueError as error:self.status.set_text(tr(str(error)));return
         root=self.owner.library.root
+        scope=self.scope_names[self.scope.get_selected()] if self.scope.get_selected()<len(self.scope_names) else 'all'
+        book=self.owner.active_tab.state.reference.split('.')[0] if self.owner.active_tab else None
+        offset=len(self.rows) if append else 0
         def operation():
-            value=search(root,resource,query)
+            value=search(root,resource,query,scope,book,offset)
             return [Relationship(ref,ref,0,1) for ref in value['references']],value['total']
-        self.launch(operation,query,reader.versification)
+        self.launch(operation,query,reader.versification,append=append)
 
     def result_setup(self,_,item):
         button=Gtk.Button();button.add_css_class('flat')
@@ -157,6 +231,15 @@ class StudySearch(Gtk.Box):
             self.row_cache[key]=result
         caption,text=self.row_cache[key];heading=button.get_child().get_first_child();heading.set_text(caption)
         excerpt=heading.get_next_sibling();excerpt.set_text(text)
+        if self.mode=='text':
+            from .search_terms import match_ranges
+            try:ranges=match_ranges(text,self.entry.get_text(),self.owner.library.resource(resource).language)
+            except ValueError:ranges=()
+            attributes=Pango.AttrList()
+            for start,end in ranges:
+                attribute=Pango.attr_weight_new(Pango.Weight.BOLD)
+                attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.insert(attribute)
+            excerpt.set_attributes(attributes)
         excerpt.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR);excerpt.set_xalign(1 if reader.rtl else 0)
         score=excerpt.get_next_sibling();score.set_visible(self.mode=='topics')
         score.set_text(tr('Source quality score: {score}').format(score=row.score))

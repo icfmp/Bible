@@ -44,7 +44,7 @@ class StudySearchTests(unittest.TestCase):
     def test_unavailable_translation_and_invalid_phrase_do_not_launch_worker(self):
         p=self.navigation.text_search;p.entry.set_text('x'*201);p.run_text()
         self.assertFalse(p.pending);self.assertIsNone(p.future)
-        self.navigation.reader=None;p.entry.set_text('source');p.run_text()
+        p.search_reader=None;p.entry.set_text('source');p.run_text()
         self.assertFalse(p.pending);self.assertEqual(p.model.get_n_items(),0)
 
 

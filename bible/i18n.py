@@ -3,6 +3,19 @@ import locale
 import os
 
 FR = {
+    'Themes':'Thèmes',
+    'A word or phrase…':'Un mot ou une expression…',
+    'Search for a theme…':'Rechercher un thème…',
+    'Search translation':'Traduction de la recherche',
+    'Search scope':'Périmètre de recherche',
+    'Whole Bible':'Bible entière',
+    'Current Book':'Livre actuel',
+    'More results':'Plus de résultats',
+    'Open chapter':'Ouvrir le chapitre',
+    'Open verse':'Ouvrir le verset',
+    'All words, in any order. Use double quotes for a contiguous phrase. Latin accents are ignored for supported languages.':'Tous les mots, dans un ordre quelconque. Utilisez des guillemets doubles pour une expression continue. Les accents latins sont ignorés pour les langues prises en charge.',
+    'Close the quoted phrase before searching.':'Fermez les guillemets avant de rechercher.',
+    'Enter a word or phrase.':'Saisissez un mot ou une expression.',
     'Sources and technical details':'Sources et détails techniques',
     'Proposed modern locations':'Localisations modernes proposées',
     'Show note indicators':'Afficher les indicateurs de notes',
