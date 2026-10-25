@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "ci": 40220519597,
+  "build": {
+    "commit": "7a633f3281d0a6086cb822a1ac9f055beb53445b",
+    "architecture": "x86_64",
+    "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master",
+    "prerequisites": "success",
+    "ci": "https://github.com/icfmp/Bible/actions/runs/40220519597",
+    "sha256": "c31ece2a487e61eecb7fbf0d158ce859501b589fffccd8754d2c21f193031a57"
+  },
+  "input_scenarios": [
+    {
+      "case": "packaged-scroll-comparison",
+      "frames": 660,
+      "heartbeat_ms": 14.8,
+      "max_reversal_ms": 10.8,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-single",
+      "frames": 681,
+      "heartbeat_ms": 13.7,
+      "max_reversal_ms": 11.2,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-study",
+      "frames": 172,
+      "heartbeat_ms": 150.1,
+      "max_reversal_ms": 132.9,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-toolbar",
+      "frames": 685,
+      "heartbeat_ms": 13.3,
+      "max_reversal_ms": 9.8,
+      "late_moves": 0
+    }
+  ]
+}

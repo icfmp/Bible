@@ -1,0 +1,47 @@
+{
+  "source": "a6f83d3c9392c4fd1354a1b67446b2e1b499d0a3",
+  "ci": 40218163238,
+  "status": "PASS",
+  "source_tests": 316,
+  "french_tests": 143,
+  "installed_tests": 122,
+  "installed_immersion": 11,
+  "input_scenarios": [
+    {
+      "case": "packaged-scroll-comparison",
+      "frames": 672,
+      "heartbeat_ms": 19.5,
+      "max_reversal_ms": 9.4,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-single",
+      "frames": 629,
+      "heartbeat_ms": 17.6,
+      "max_reversal_ms": 9.1,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-study",
+      "frames": 257,
+      "heartbeat_ms": 146.6,
+      "max_reversal_ms": 90.5,
+      "late_moves": 0
+    },
+    {
+      "case": "packaged-scroll-toolbar",
+      "frames": 675,
+      "heartbeat_ms": 17.8,
+      "max_reversal_ms": 9.6,
+      "late_moves": 0
+    }
+  ],
+  "build": {
+    "commit": "a6f83d3c9392c4fd1354a1b67446b2e1b499d0a3",
+    "architecture": "x86_64",
+    "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master",
+    "prerequisites": "success",
+    "ci": "https://github.com/icfmp/Bible/actions/runs/40218163238",
+    "sha256": "1b5c679fb139efc424721954faf6826a120ccf558b514d246e60296ad01fb952"
+  }
+}
