@@ -50,6 +50,15 @@ class ComparisonSync(ReadingSync):
         if view.get_buffer().get_has_selection():return False
         self.running=True
         try:
+            if getattr(tab,'_shared_comparison',False):
+                # Native GTK adjusts both panes through the SAME adjustment.
+                # Only semantic study context follows the explicitly used side.
+                if self.driver=='comparison':
+                    reference=tab.comparison_visible_reference()
+                    if reference:
+                        mapped=resolve(reference,tab._comparison_reader.versification,tab.reader)
+                        if mapped.start!=tab.state.reference:tab.select_verse(mapped.start)
+                return False
             if self.driver=='primary':
                 reference=tab.visible_reference()
                 if not reference:return False

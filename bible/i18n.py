@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'No verse in this edition.':'Aucun verset dans cette édition.',
     'Preparing saved resource metadata…':'Préparation des métadonnées des ressources enregistrées…',
     'Looking for available resources from the selected sources…':'Recherche des ressources disponibles auprès des sources sélectionnées…',
     'Preparing Library…':'Préparation de la Bibliothèque…',

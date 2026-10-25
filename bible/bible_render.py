@@ -21,8 +21,8 @@ def bind_copy(view, document, base=0):
         view._bible_copy_handler=view.connect('copy-clipboard',copy_selection)
 
 
-def render(view, reader, chapter, preferences):
-    document = BiblePages(reader, None).document(chapter.reference, preferences)
+def render(view, reader, chapter, preferences, document=None):
+    document = document or BiblePages(reader, None).document(chapter.reference, preferences)
     buffer = view.get_buffer()
     buffer.set_text(document.text)
     bind_copy(view,document)
@@ -31,13 +31,14 @@ def render(view, reader, chapter, preferences):
     view.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','number','verse-start']:
+    for kind in ['body','chapter','heading','number','verse-start','hidden']:
         name = 'verse-'+kind if kind != 'verse-start' else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
         if kind=='body':tag.props.family=preferences.font;tag.props.size_points=preferences.size
         elif kind=='number':configure(tag,view,preferences,getattr(view,'_reading_palette','white'))
         elif kind=='verse-start':tag.props.allow_breaks=False
+        elif kind=='hidden':tag.props.style=2
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
             tag.props.pixels_above_lines=20 if kind=='chapter' else 16
