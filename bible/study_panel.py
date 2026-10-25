@@ -133,6 +133,8 @@ class StudyPanel(Gtk.Box):
         self.text.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary text')])
         self.scroll = Gtk.ScrolledWindow(vexpand=True,hexpand=True)
         self.scroll.set_child(self.text)
+        from .scroll_motion import ScrollMotion
+        self.motion=ScrollMotion(self.scroll)
         self.pages = Gtk.Stack(vexpand=True)
         self.pages.add_named(self.scroll,'reading')
         self.empty = Adw.StatusPage(title=tr('Choose a commentary'),
@@ -197,6 +199,10 @@ class StudyPanel(Gtk.Box):
             self.references.refresh(force=force)
             return
         installed = self.owner.library.installed('commentary')
+        if not getattr(tab, '_commentary_default_applied', False):
+            tab._commentary_default_applied = True
+            if tab.state.commentary is None:
+                tab.state.commentary = self.owner.study_settings.last_commentary
         stamp = (id(tab), tab.state.commentary, tab.state.reference,
                  tab.state.resource, id(tab.reader), tuple(installed))
         if not force and stamp == self._stamp:
@@ -222,6 +228,7 @@ class StudyPanel(Gtk.Box):
         self.render(tab, installed)
 
     def clear_content(self):
+        self._chapter_context=None
         self.cancel_scroll()
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
         self._layout_anchor=None
@@ -283,16 +290,26 @@ class StudyPanel(Gtk.Box):
             self.clear_content();self.status.set_text(tr('No verified alignment for this passage.')+f' {error}')
             self.entry_controls();return
         reference=resolved.start
+        chapter_key=self.reader.key(reference)
+        chapter_context=(id(self.reader),chapter_key.getOSISBookName(),chapter_key.getChapter())
+        replaced=chapter_context!=getattr(self,'_chapter_context',None)
+        if replaced:
+            first=self.reader.key(f'{chapter_context[1]}.{chapter_context[2]}.1').getIndex()
+            last=self.reader.key(f'{chapter_context[1]}.{chapter_context[2]}.{chapter_key.getVerseMax()}').getIndex()
+            self.loaded=[i for i,s in enumerate(self.reader.index.sections)
+                         if s.index<=last and s.last_index>=first and self.reader.index.text(i).strip()]
+            self._chapter_context=chapter_context
+            self.current_position=None
+            self.rebuild()
         position=self.reader.index.locate(reference)
         if position is None or not self.reader.index.text(position).strip():
-            self.clear_content();self._missing_near=self.reader.index.near(reference)
+            self.cancel_reveal();self.current_position=None
+            self.owner.active_tab.mark_commentary_range(None,None)
+            self._missing_near=self.reader.index.near(reference)
             self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
         self.status.set_text('');self.current_position=position
         self.passage.set_text(self.reader.index.label(position))
-        if position not in self.loaded:
-            self.loaded=list(range(max(0,position-1),min(len(self.reader.index.sections),position+3)))
-            self.rebuild()
-        self.reveal(position);self.entry_controls()
+        self.reveal(position,force=replaced,animate=not replaced);self.entry_controls()
         self.update_indicator()
 
     def update_indicator(self):
@@ -360,10 +377,11 @@ class StudyPanel(Gtk.Box):
         else:self.reveal(self.current_position,force=True)
 
     def cancel_reveal(self):
+        self.motion.cancel()
         if self._reveal_tick:self.text.remove_tick_callback(self._reveal_tick);self._reveal_tick=0
         self._positioning=False
 
-    def reveal(self,position,offset=0,force=False):
+    def reveal(self,position,offset=0,force=False,animate=False):
         if position not in self.ranges:return
         buffer=self.text.get_buffer();start,body,end=self.ranges[position]
         visible=self.text.get_visible_rect()
@@ -381,13 +399,22 @@ class StudyPanel(Gtk.Box):
             first,begin,last=self.ranges[position]
             iterator=buffer.get_iter_at_offset(min(last,begin+offset) if offset else first)
             target=self.text.get_iter_location(iterator);rect=self.text.get_visible_rect()
-            adjustment=self.scroll.get_vadjustment();adjustment.set_value(adjustment.get_value()+target.y-rect.y)
+            adjustment=self.scroll.get_vadjustment()
+            destination=adjustment.get_value()+target.y-rect.y
+            if animate:
+                self._positioning=False;self._reveal_tick=0
+                context=self._display_context;chapter=self._chapter_context
+                self.motion.move(destination,valid=lambda: not self.owner.closed and context==self._display_context
+                                 and chapter==self._chapter_context and self.tool=='commentaries'
+                                 and self.current_position==position)
+                return False
+            adjustment.set_value(destination)
             if frames[0]<5:return True
             self._positioning=False;self._reveal_tick=0;return False
         self._reveal_tick=self.text.add_tick_callback(restore)
 
     def scrolled(self,*_):
-        if (self._positioning or not self.loaded or not self.reader or self.owner.closed
+        if (self._positioning or self.motion.running or not self.loaded or not self.reader or self.owner.closed
                 or not self.owner.split.get_show_sidebar()):return
         if getattr(self.text,'_reader_reflow_tick',0):return
         # Read layout/anchors after GTK finishes the adjustment notification;
@@ -410,7 +437,7 @@ class StudyPanel(Gtk.Box):
         try:
             self.remember_position()
             adjustment=self.scroll.get_vadjustment()
-            if not self._loading:
+            if not self._loading and not getattr(self,'_chapter_context',None):
                 before=adjustment.get_value()<100 and self.loaded[0]>0
                 after=adjustment.get_value()+adjustment.get_page_size()>adjustment.get_upper()-180 and self.loaded[-1]+1<len(self.reader.index.sections)
                 if before or after:
@@ -495,4 +522,17 @@ class StudyPanel(Gtk.Box):
                 return
             self.owner.active_tab.state.commentary = self.names[index]
             self.refresh()
+            self.remember_choice(self.names[index])
             self.owner.schedule_save()
+
+    def remember_choice(self, name):
+        # Only a deliberate, successfully opened source establishes a default.
+        # A missing entry is still a valid selected commentary.
+        if not name or not self.reader or self.owner.active_tab.state.commentary != name:
+            return
+        settings = self.owner.study_settings
+        settings.last_commentary = name
+        try:
+            settings.save()
+        except (OSError, ValueError) as error:
+            self.owner.report_session_error(tr('Unable to save study preferences.'), error)

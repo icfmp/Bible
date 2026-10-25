@@ -776,6 +776,7 @@ class Window(Adw.ApplicationWindow):
             if resource.kind=='commentary':
                 tab.state.commentary=name;self.study.tools.set_visible_child_name('commentaries')
                 self.study_button.set_active(True);self.study.refresh(force=True)
+                self.study.remember_choice(name)
             elif destination=='comparison':
                 tab.state.comparison=name;self.sync_comparison()
             else:

@@ -34,7 +34,7 @@ class ChapterNotesTests(unittest.TestCase):
         self.assertTrue(p.heading.get_text().endswith('1'));self.assertNotIn(':',p.heading.get_text())
         self.assertFalse(hasattr(p,'add'));self.assertFalse(hasattr(tab,'note_button'))
         for verse in [8,9,15,26,2,1]:
-            tab.select_verse(f'Acts.1.{verse}');spin()
+            tab.select_verse(f'Acts.1.{verse}');spin(lambda:not p.motion.running,duration=.3)
             self.assertEqual(p.cards,cards);self.assertEqual(tab.state.history,history)
             candidates=[(c,spans) for c,spans in p._card_targets if any(a<=tab.reader.key(tab.state.reference).getIndex()<=b for a,b,_,_ in spans)]
             if candidates:

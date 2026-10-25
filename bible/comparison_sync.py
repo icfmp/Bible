@@ -28,6 +28,7 @@ class ComparisonSync(ReadingSync):
 
     def moved(self,side,view,bar,tab=None):
         if self.running or self.tab is not self.owner.active_tab:return
+        if self.tab.scroll_motion.running:return
         if self.tab._restoring_scroll or getattr(self.tab,'_comparison_positioning',False):return
         geometry=(view.get_width(),view.get_height())
         previous=getattr(view,'_comparison_geometry',geometry);view._comparison_geometry=geometry

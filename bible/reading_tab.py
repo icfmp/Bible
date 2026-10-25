@@ -39,6 +39,8 @@ class ReadingTab(Gtk.Box):
                                 margin_start=12, margin_end=12)
         self.append(self.status)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+        from .scroll_motion import ScrollMotion
+        self.scroll_motion=ScrollMotion(self.scroll)
         self.scroll.set_margin_top(56)  # Fixed clearance for the reading overlay controls.
         self.text = ContextTextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
@@ -184,6 +186,7 @@ class ReadingTab(Gtk.Box):
             self.status.set_visible(True)
 
     def show(self, reference, restore=False):
+        self.scroll_motion.cancel()
         if not restore and not self._travelling and hasattr(self,'sync_coordinator'):self.sync_coordinator.explicit_bible()
         self._appearance_anchor = None
         if not self.reader or not reference:
@@ -498,6 +501,7 @@ class ReadingTab(Gtk.Box):
         return preceding[-1] if preceding else starts[0][0]
 
     def reveal_reference(self, reference):
+        same_document=reference in self._verse_offsets
         if reference not in self._verse_offsets:
             self._travelling=True
             try:self.show(reference)
@@ -508,7 +512,12 @@ class ReadingTab(Gtk.Box):
             iterator=self.text.get_buffer().get_iter_at_offset(offset)
             target=self.text.get_iter_location(iterator);visible=self.text.get_visible_rect()
             if not visible.y<=target.y<visible.y+visible.height:
-                self.text.scroll_to_iter(iterator,.05,True,0,.1)
+                if same_document:
+                    document=self.current
+                    adjustment=self.scroll.get_vadjustment()
+                    self.scroll_motion.move(adjustment.get_value()+target.y-visible.y-visible.height*.1,
+                        valid=lambda:self.get_mapped() and self.current is document and self.state.reference==reference)
+                else:self.text.scroll_to_iter(iterator,.05,True,0,.1)
 
     def mark_commentary_range(self,start,end):
         self._study_coverage=(self.reader.versification,start,end) if start and end and self.reader else None

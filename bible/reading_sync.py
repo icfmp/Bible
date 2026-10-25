@@ -70,6 +70,8 @@ class ReadingSync:
 
     def moved(self,side,view,bar,tab):
         if self.running or (tab is not None and tab is not self.owner.active_tab):return
+        if side=='commentary' and self.owner.study.motion.running:return
+        if tab and tab.scroll_motion.running:return
         if getattr(view,'_reader_reflow_tick',0) or (tab and tab._restoring_scroll) or (side=='commentary' and self.owner.study._positioning):return
         geometry=(view.get_width(),view.get_height())
         previous=getattr(view,'_sync_geometry',geometry);view._sync_geometry=geometry
