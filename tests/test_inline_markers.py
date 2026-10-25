@@ -70,5 +70,5 @@ class InlineMarkerTests(unittest.TestCase):
                     window.place_dialog.close();spin()
                 window.appearance.update('place_markers',False);spin()
                 self.assertEqual(len(tab.text._inline_buttons),1)
-                self.assertIsNone(window.study.places_button.get_parent())
+                self.assertFalse(hasattr(window.study,'places_button'))
             finally:close_test_dialogs();window.close()

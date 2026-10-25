@@ -38,6 +38,8 @@ class WordStudyTests(unittest.TestCase):
                 self.assertTrue(buttons)
                 buttons[0].emit('clicked');spin(lambda:not words.pending,duration=.3)
                 self.assertEqual(words.entry['id'],'G3056')
+                samples=[c._word_reference for c in words.children() if hasattr(c,'_word_reference')]
+                self.assertEqual(samples,['Acts.1.1'])
                 self.assertEqual(window.active_tab.state.reference,reference)
                 self.assertEqual(window.active_tab.state.history,history)
                 words.all_occurrences('tagnt-na27',words.entry)

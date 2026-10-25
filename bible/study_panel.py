@@ -75,9 +75,6 @@ class StudyPanel(Gtk.Box):
         actions.set_child(action_box);self.more.set_popover(actions)
         for widget in [self.more,self.immersive_button]:
             widget.add_css_class('flat');self.header.pack_end(widget)
-        self.places_button=Gtk.Button(icon_name='mark-location-symbolic',tooltip_text=tr('Places in this passage'))
-        self.places_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Places in this passage')])
-        self.places_button.add_css_class('flat');self.places_button.connect('clicked',lambda *_:owner.open_places())
         self.append(self.header)
         self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
         switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)

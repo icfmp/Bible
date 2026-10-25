@@ -215,9 +215,16 @@ class WordStudy(Gtk.Box):
         counts=self.label(tr('Loading occurrences…'));self.content.append(counts)
         occurrence_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         self.content.append(occurrence_rows)
+        excluded=set()
+        from .reference_resolution import _span
+        for reference in self.target.references:
+            try:
+                mapped=resolve(reference,self.target.source.reader.versification,Canon('NRSV'),require_entry=False)
+                excluded.update(_span(mapped.start,mapped.end,'NRSV'))
+            except ValueError:pass
         def show(result):
             counts.set_text(tr('{tokens} source tokens · {verses} distinct verses').format(**result))
-            for ref in result['references']:
+            for ref in [r for r in result['references'] if r not in excluded][:4]:
                 try:
                     excerpt=local_excerpt(self.target.source.reader,ref,source_system='NRSV',limit=1)
                     caption=passage_title(excerpt.start,excerpt.end,self.target.source.reader.versification)+'\n'+excerpt.text
@@ -232,7 +239,7 @@ class WordStudy(Gtk.Box):
                 content.append(body_label);button.set_child(content)
                 button._word_reference=ref
             self.button(tr('View all occurrences'),lambda:self.all_occurrences(corpus,entry),parent=occurrence_rows)
-        self.request(lambda:self.data.occurrences(corpus,entry['id'],limit=4),show)
+        self.request(lambda:self.data.occurrences(corpus,entry['id'],limit=min(200,4+len(excluded))),show)
         details=Gtk.Expander(label=tr('Details'))
         text=entry['id']+'\n'+(entry.get('category') or '')+'\n'+(token['morphology'] if token else '')
         if self.lexical_metadata:text+='\n'+self.lexical_metadata['source_lemma']+'\n'+self.lexical_metadata['source_morphology']
