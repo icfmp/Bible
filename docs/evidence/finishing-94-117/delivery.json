@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "source": "88098507179d2b1bea7905a979c5819bdc716517",
+  "ci_run": "40133005609",
+  "publication_run": "40133978397",
+  "provenance": {
+    "source_commit": "88098507179d2b1bea7905a979c5819bdc716517",
+    "ci_run": "40133005609",
+    "packaging_revision": "40133978397-2",
+    "flatpak_commit": "3d18b234856f485aa8c2cc45bc1b25d16db7406b68d4be966f42712c9624682a",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-88098507179d2b1bea7905a979c5819bdc716517-sources.tar.gz",
+    "source_sha256": "48a0292766402505e7bad27541ff72d77dce68dd1e27c60c3bf098c12be9678e",
+    "bundle_sha256": "02aef04bd69bd0c143a9ab513d446ab98cf659e812772424c0259a800fc146f7",
+    "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-88098507179d2b1bea7905a979c5819bdc716517-sources.tar.gz"
+  },
+  "site_bytes": 15281247,
+  "historical_source_records_unchanged": 35,
+  "current_source_records": 36,
+  "corresponding_project_files_verified": 307,
+  "original_dependency_sources_verified": 3,
+  "numbered_releases_unchanged": true,
+  "signed_public_install_and_update": true,
+  "user_data_preserved": true,
+  "main_pr": "https://github.com/icfmp/Bible/pull/122",
+  "backup_review_pr": "https://github.com/icfmp/Bible/pull/121",
+  "checks": {
+    "source": 294,
+    "french": 118,
+    "installed_flatpak": 108,
+    "python_tracebacks": 0
+  },
+  "issues_open": [
+    94,
+    98,
+    99,
+    101,
+    102,
+    105,
+    109,
+    110,
+    116,
+    117
+  ],
+  "client_acceptance": "pending",
+  "numbered_publication_87": "paused",
+  "project_status": "In review; project API refused: Resource not accessible by integration",
+  "gtk_evidence": "https://github.com/icfmp/Bible/blob/main/docs/captures/finishing-94-117/README.md"
+}
