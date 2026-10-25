@@ -39,7 +39,8 @@ class FinishingTests(unittest.TestCase):
         self.assertTrue(w.comparison_choices.list.get_row_at_index(0).get_mapped())
         for index,expected in ((1,w._comparison_names[1]),(0,None),(0,None)):
             if not w.comparison_popover.get_visible():w.comparison_button.popup();spin()
-            w.comparison_choices.list.emit('row-activated',w.comparison_choices.list.get_row_at_index(index));spin()
+            w.comparison_choices.list.emit('row-activated',w.comparison_choices.list.get_row_at_index(index))
+            spin(lambda:not w.comparison_popover.get_visible())
             self.assertEqual(w.active_tab.state.comparison,expected)
             self.assertFalse(w.comparison_popover.get_visible())
 
