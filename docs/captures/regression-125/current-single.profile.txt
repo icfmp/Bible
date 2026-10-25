@@ -1,0 +1,43 @@
+         30080340 function calls (30073280 primitive calls) in 13.017 seconds
+
+   Ordered by: cumulative time
+   List reduced from 282 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.137    0.137   13.017   13.017 /usr/lib/python3/dist-packages/gi/overrides/GLib.py:494(run)
+      168    0.003    0.000   12.855    0.077 /repo/bible/reading_tab.py:644(scroll_changed)
+      168    0.005    0.000   12.852    0.076 /repo/bible/ui.py:654(tab_changed)
+      168    0.058    0.000   12.736    0.076 /repo/bible/ui.py:562(update_navigation)
+    10248    0.147    0.000   11.579    0.001 /repo/bible/library.py:265(resource)
+11592/4536    0.031    0.000    8.763    0.002 /repo/bible/library.py:252(installed)
+      672    0.201    0.000    8.053    0.012 /repo/bible/version_chooser.py:73(sync)
+    10248    0.961    0.000    6.016    0.001 /repo/bible/library.py:73(config)
+      168    0.055    0.000    5.819    0.035 /repo/bible/ui.py:608(sync_comparison)
+    10248    0.026    0.000    3.418    0.000 /usr/lib/python3.12/configparser.py:707(read_string)
+    10248    0.019    0.000    3.392    0.000 /usr/lib/python3.12/configparser.py:692(read_file)
+    10248    1.553    0.000    3.373    0.000 /usr/lib/python3.12/configparser.py:974(_read)
+    11592    0.028    0.000    2.351    0.000 {built-in method builtins.sorted}
+    81144    0.131    0.000    2.323    0.000 /repo/bible/library.py:253(<genexpr>)
+   497448    0.182    0.000    1.771    0.000 {method 'join' of 'str' objects}
+    10248    0.069    0.000    1.733    0.000 /repo/bible/library.py:58(resource_from_section)
+   159600    0.042    0.000    1.569    0.000 /usr/lib/python3.12/pathlib.py:837(stat)
+   159600    0.390    0.000    1.527    0.000 {built-in method posix.stat}
+    33432    0.110    0.000    1.324    0.000 /repo/bible/library.py:61(<genexpr>)
+    79800    0.053    0.000    1.266    0.000 /usr/lib/python3.12/pathlib.py:888(is_file)
+   314664    0.083    0.000    1.163    0.000 <frozen _collections_abc>:892(__iter__)
+      168    0.001    0.000    1.162    0.007 /repo/bible/navigation.py:217(sync)
+   201936    0.082    0.000    1.160    0.000 /usr/lib/python3.12/pathlib.py:447(__fspath__)
+      168    0.002    0.000    1.154    0.007 /repo/bible/study_panel.py:201(refresh)
+   281736    0.171    0.000    1.086    0.000 /usr/lib/python3.12/pathlib.py:437(__str__)
+   304416    0.182    0.000    1.040    0.000 /usr/lib/python3.12/configparser.py:1222(__getitem__)
+   386400    0.315    0.000    0.860    0.000 /usr/lib/python3.12/configparser.py:743(get)
+   169848    0.085    0.000    0.848    0.000 /usr/lib/python3.12/pathlib.py:551(drive)
+    90048    0.111    0.000    0.763    0.000 /usr/lib/python3.12/pathlib.py:407(_load_parts)
+    10248    0.071    0.000    0.756    0.000 /usr/lib/python3.12/configparser.py:582(__init__)
+   190344    0.140    0.000    0.691    0.000 /usr/lib/python3.12/pathlib.py:380(with_segments)
+    10248    0.151    0.000    0.546    0.000 /usr/lib/python3.12/configparser.py:1287(__init__)
+    81144    0.030    0.000    0.540    0.000 /usr/lib/python3.12/pathlib.py:1052(iterdir)
+  1605912    0.531    0.000    0.531    0.000 {method 'match' of 're.Pattern' objects}
+   110544    0.032    0.000    0.521    0.000 /usr/lib/python3.12/pathlib.py:719(__truediv__)
+
+

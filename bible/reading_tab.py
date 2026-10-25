@@ -16,9 +16,10 @@ from .context_indicator import ContextTextView
 
 
 class ReadingTab(Gtk.Box):
-    def __init__(self, library, state, changed, jump_to_reference=False, notes_store=None, notes_requested=None, preferences=None):
+    def __init__(self, library, state, changed, jump_to_reference=False, notes_store=None, notes_requested=None, preferences=None, position_changed=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, vexpand=True)
         self.library, self.state, self.changed = library, state, changed
+        self.position_changed = position_changed or changed
         self.preferences = preferences or ReadingPreferences()
         self._travelling = False
         self._verse_ranges = {}
@@ -648,4 +649,6 @@ class ReadingTab(Gtk.Box):
         maximum = adjustment.get_upper() - adjustment.get_page_size()
         if maximum > 0:
             self.state.scroll = max(0.0, min(1.0, adjustment.get_value() / maximum))
-            self.changed(self)
+            # A viewport position is session state, not a source/passage change.
+            # Keep resource discovery and dependent UI work off native input.
+            self.position_changed(self)
