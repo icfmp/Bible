@@ -48,7 +48,7 @@ def main():
                 from PIL import ImageGrab
                 Path(screens).mkdir(parents=True,exist_ok=True);spin();ImageGrab.grab().save(Path(screens)/('native-workspace-'+name+'.png'))
         def choose(widget,last):
-            native.click(widget);native.key('End' if last else 'Home');native.key('Return');spin()
+            native.click(widget.buttons[1 if last else 0]);spin()
         def chord(modifier,key):
             code=native.x11.XKeysymToKeycode(native.display,native.x11.XStringToKeysym(modifier.encode()))
             native.xtest.XTestFakeKeyEvent(native.display,code,True,0);native.key(key);native.xtest.XTestFakeKeyEvent(native.display,code,False,0);native.x11.XFlush(native.display);spin()

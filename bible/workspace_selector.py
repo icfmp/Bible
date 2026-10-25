@@ -1,15 +1,17 @@
 """The same real Bible/Notes space switch in each native application header."""
 from gi.repository import Gtk
 from .i18n import tr
+from .segmented_choice import SegmentedChoice
 
 
-class WorkspaceSelector(Gtk.DropDown):
+class WorkspaceSelector(SegmentedChoice):
     def __init__(self,owner,notes=False):
-        super().__init__(model=Gtk.StringList.new([tr('Bible'),tr('Notes')]))
+        super().__init__([tr('Bible'),tr('Notes')],1 if notes else 0)
+        self.add_css_class('workspace-selector')
         self.owner=owner;self.syncing=False
         self.set_selected(1 if notes else 0)
         self.update_property([Gtk.AccessibleProperty.LABEL],[tr('Application space')])
-        self.connect('notify::selected',self.changed)
+        self.connect('changed',self.changed)
         if hasattr(owner,'main_pages'):owner.main_pages.connect('notify::visible-child-name',lambda *_:self.sync())
 
     def sync(self):

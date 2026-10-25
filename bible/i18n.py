@@ -3,6 +3,11 @@ import locale
 import os
 
 FR = {
+    'Copy':'Copier',
+    'Data and backups':'Données et sauvegardes',
+    'Choose the interface theme.':'Choisissez le thème de l’interface.',
+    'Notes, labels and highlights only. Bibles and credentials are excluded.':'Notes, étiquettes et surlignages uniquement. Les Bibles et les identifiants sont exclus.',
+    'Exported annotations are not encrypted.':'Les annotations exportées ne sont pas chiffrées.',
     'Source heading':'Titre dans la source',
     'Source identity':'Identité dans la source',
     'John 3:16 · Jn 3 · Ps 23':'Jean 3:16 · Jn 3 · Ps 23',

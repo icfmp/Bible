@@ -23,6 +23,7 @@ class Immersion(Gtk.Overlay):
         self._gesture_turned=False;self._pointer_top=False;self._pointer_edge=False;self._updating=False;self.selection=None;self.addresses=[]
         self.views=[];self.frames=[];self.count=2;self._closed=False
         self.clicked_reference=None
+        self._page_focus_pending=True
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
@@ -45,14 +46,6 @@ class Immersion(Gtk.Overlay):
             gesture.connect('released',lambda g,n,x,y,v=view:self.clicked(v,x,y));view.add_controller(gesture)
             view.get_buffer().connect('mark-set',lambda *_,v=view:self.selection_changed(v))
             view.connect('copy-clipboard',self.copy_selection)
-            if self.kind=='bible':
-                menu=Gio.Menu();menu.append(tr('Add a passage note'),'win.note')
-                menu.append(tr('Copy verses without numbers'),'win.copy-passage')
-                menu.append(tr('Copy verses with reference'),'win.copy-with-reference')
-                menu.append(tr('Copy reference'),'win.copy-reference');view.set_extra_menu(menu)
-                for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]:
-                    menu.append(tr('Highlight')+': '+tr(label),'win.highlight-'+color)
-                menu.append(tr('Remove highlight'),'win.highlight-remove')
             frame=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.EXTERNAL,vscrollbar_policy=Gtk.PolicyType.EXTERNAL,
                                      min_content_height=0,propagate_natural_height=False,hexpand=True,vexpand=True)
             frame.set_child(view);self.pages.append(frame);self.frames.append(frame);self.views.append(view)
@@ -64,7 +57,8 @@ class Immersion(Gtk.Overlay):
         self.page_stack.set_visible_child_name('live');self._slide_serial=0
         body.append(self.page_stack)
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
-        self.footer.add_css_class('dim-label');body.append(self.footer);self.set_child(body)
+        self.footer.add_css_class('dim-label');self.footer.set_valign(Gtk.Align.END)
+        self.set_child(body);self.add_overlay(self.footer)
         if getattr(source,'book_pages',False):
             from .book_stream import BookStream
             self.stream=BookStream(self.views[0],source,owner.preferences.value)
@@ -208,7 +202,28 @@ class Immersion(Gtk.Overlay):
                 try:self.restore_selection()
                 finally:self._updating=False
                 self._selection_restore_pending=False;self.layout_ready=True
+        self.center_reading_box()
+        if (self._page_focus_pending and self.stream.cursor and self.views[0].get_mapped()
+                and not self.page_stack.get_transition_running()):
+            if self.owner.is_active() and self.owner.get_focus() is None and not self.open_popovers():
+                self.views[0].grab_focus()
+            self._page_focus_pending=False
         return True
+
+    def center_reading_box(self):
+        # The shaped trailing-line reserve is buffer safety, not reading space.
+        # Center the same nominal body budget for both columns; never center a
+        # short final column or a book-end blank independently.
+        if not self.stream.cursor:return
+        plan=self.stream.plan(self.stream.cursor.key)
+        if not plan:return
+        capacity=plan.capacity or self.stream.height
+        ok,bounds=self.frames[0].compute_bounds(self)
+        if not ok:return
+        top=max(12,round((self.get_height()-capacity)/2-bounds.origin.y))
+        for view in self.views:
+            if view.get_top_margin()!=top:view.set_top_margin(top)
+        self.reading_box=(round(bounds.origin.y+top),capacity)
 
     def reflow(self):
         self.cancel_slide()
@@ -348,6 +363,7 @@ class Immersion(Gtk.Overlay):
         self.page_stack.set_visible_child_name('live');self.previous_page.set_paintable(None)
 
     def turn(self,direction):
+        self._page_focus_pending=True
         self.cancel_slide()
         animated=Gtk.Settings.get_default().get_property('gtk-enable-animations')
         previous=Gtk.WidgetPaintable.new(self.page_clamp).get_current_image() if animated and self.layout_ready else None
@@ -415,6 +431,7 @@ class Immersion(Gtk.Overlay):
     def any_selection(self):return any(view.get_buffer().get_has_selection() for view in self.views)
 
     def key_pressed(self,controller,key,code,state):
+        control_focus=self.controls_focused()
         self.owner.set_focus_visible(True)
         if state&Gdk.ModifierType.SHIFT_MASK and key in (Gdk.KEY_Left,Gdk.KEY_Right,Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down):
             return False
@@ -424,10 +441,11 @@ class Immersion(Gtk.Overlay):
             self.owner.leave_immersion();return True
         if key==Gdk.KEY_F10:
             self.reveal_controls();self.leave_button.grab_focus();return True
-        if self.controls_focused() or self.any_selection() or state&Gdk.ModifierType.CONTROL_MASK:return False
+        if control_focus or self.open_popovers() or self.any_selection() or state&Gdk.ModifierType.CONTROL_MASK:return False
         if key in (Gdk.KEY_Page_Down,Gdk.KEY_Page_Up,Gdk.KEY_space,Gdk.KEY_Left,Gdk.KEY_Right):
             direction=-1 if key==Gdk.KEY_Page_Up or (key==Gdk.KEY_space and state&Gdk.ModifierType.SHIFT_MASK) else 1
             if key in (Gdk.KEY_Left,Gdk.KEY_Right):direction=(1 if key==Gdk.KEY_Right else -1)*(-1 if self.source.rtl else 1)
+            self.views[0].grab_focus()
             self.turn(direction);return True
         return False
 

@@ -1,11 +1,11 @@
 """Intent-driven passage actions with frozen source/range/copy targets."""
 from dataclasses import dataclass
-from gi.repository import Gdk, GLib, Gtk, Pango, Graphene, Gsk
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
 from .providers import module_name
 
-BACKDROP_BLUR=8
+BACKDROP_BLUR=16
 
 
 @dataclass(frozen=True)
@@ -74,7 +74,8 @@ class Backdrop(Gtk.Widget):
                 snapshot.push_blur(BACKDROP_BLUR)
                 # Bound the blur input as well as its rounded output: never
                 # allocate an offscreen texture the height of an entire book.
-                sample=Graphene.Rect().init(bounds.origin.x-24,bounds.origin.y-24,bounds.size.width+48,bounds.size.height+48)
+                padding=3*BACKDROP_BLUR
+                sample=Graphene.Rect().init(-padding,-padding,bounds.size.width+2*padding,bounds.size.height+2*padding)
                 snapshot.push_clip(sample);snapshot.save();snapshot.translate(point)
                 surface.backdrop.snapshot(snapshot,view.get_width(),view.get_height())
                 snapshot.restore();snapshot.pop();snapshot.pop()
@@ -119,11 +120,12 @@ class PassageActions:
         identity.append(self.label);identity.append(self.version_label);content.append(identity)
         self.actions=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER)
         self.actions.add_css_class('toolbar');content.append(self.actions)
-        self.copy_button=self.button('edit-copy-symbolic','Copy selected text',lambda *_:self.copy())
-        self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy options'))
-        self.copy_options.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy options')])
-        self.actions.append(self.copy_options)
-        self.copy_popover=self.menu(self.copy_options,[(label,lambda *_,mode=mode:self.copy(mode))
+        self.copy_button=Gtk.MenuButton(icon_name='edit-copy-symbolic',tooltip_text=tr('Copy'))
+        self.copy_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy')])
+        self.copy_button.set_child(Gtk.Image(icon_name='edit-copy-symbolic',pixel_size=20))
+        self.actions.append(self.copy_button)
+        self.copy_options=self.copy_button  # One widget; retained internal compatibility name.
+        self.copy_popover=self.menu(self.copy_button,[(label,lambda *_,mode=mode:self.copy(mode))
             for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
                                ('Copy verses with reference','reference'),('Copy reference','label')]])
         self.highlight_button=None
@@ -191,6 +193,54 @@ class PassageActions:
         popover.parent_dismissed=lambda widget:self.dismiss() if not self.contains(widget) else None
         self.owner._reading_popovers.append(popover);return popover
 
+    def context_menu(self,view,factory):
+        """Native text menu with deliberate, source-specific passage commands."""
+        context=[None]
+        def capture(x=None,y=None):
+            source=factory()
+            if not source:return
+            if x is None:offset=view.get_buffer().get_iter_at_mark(view.get_buffer().get_insert()).get_offset()
+            else:
+                bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
+                found,iterator=view.get_iter_at_location(bx,by)
+                offset=iterator.get_offset() if found else None
+            context[0]=target(view,source,factory,offset)
+        pointer=Gtk.GestureClick(button=3);pointer.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        pointer.connect('pressed',lambda _,n,x,y:capture(x,y));view.add_controller(pointer)
+        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def key(_,value,code,state):
+            if value==Gdk.KEY_Menu or value==Gdk.KEY_F10 and state&Gdk.ModifierType.SHIFT_MASK:capture()
+            return False
+        keys.connect('key-pressed',key);view.add_controller(keys)
+        group=Gio.SimpleActionGroup();menu=Gio.Menu()
+        def execute(command):
+            value=context[0]
+            if value is None:capture();value=context[0]
+            source=factory()
+            if (not value or not source or source.tab is not self.owner.active_tab
+                    or source.reader is not value.source.reader or source.resource!=value.source.resource
+                    or source.document.key!=value.source.document.key):return
+            if command=='note':
+                self.owner.open_passage_notes((value.references[0],value.references[-1]),resource=source.resource,reader=source.reader)
+            elif command=='word':self.owner.study.words.offer(value,view)
+            elif command.startswith('highlight:'):
+                self.owner.highlights.set(source.reader.versification,value.references,(None if command=='highlight:remove' else command.split(':')[1]),source.resource)
+                self.owner.refresh_highlights()
+            else:
+                label=passage_label(value.references[0],value.references[-1],source.reader.versification)+' — '+module_name(source.resource)
+                text=label if command=='label' else (label+'\n' if command=='reference' else '')+'\n'.join(value.verses)
+                self.owner.get_clipboard().set(text)
+        choices=[('Add a passage note','note'),('Copy verses without numbers','verses'),
+                 ('Copy verses with reference','reference'),('Copy reference','label'),('Study word','word')]
+        choices += [(tr('Highlight')+': '+tr(label),'highlight:'+color) for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]]
+        choices.append(('Remove highlight','highlight:remove'))
+        for index,(label,command) in enumerate(choices):
+            name='action'+str(index);action=Gio.SimpleAction.new(name,None)
+            action.connect('activate',lambda _,parameter,c=command:execute(c));group.add_action(action)
+            menu.append(tr(label),'passage.'+name)
+        view.insert_action_group('passage',group);view.set_extra_menu(menu)
+        view._passage_context=group
+
     def ordinary(self,tab,comparison=False):
         reader=tab._comparison_reader if comparison else tab.reader
         doc=getattr(tab,'_comparison_document' if comparison else '_document',None)
@@ -205,6 +255,10 @@ class PassageActions:
         return Source(reading.tab,reading.source.resource.id,reading.source.reader,page[0],page[1],reading,'immersion')
 
     def bind(self,view,factory):
+        self.context_menu(view,factory)
+        def selection_changed(*_):
+            if self.target and self.target.view is view and not view.get_buffer().get_has_selection():self.dismiss()
+        view.get_buffer().connect('notify::has-selection',selection_changed)
         click=Gtk.GestureClick(button=1);click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         pending=[None]
         def pressed(controller,count,x,y):
@@ -250,7 +304,7 @@ class PassageActions:
         source=factory()
         if not source:return False
         value=target(view,source,factory,clicked)
-        if not value:self.dismiss();return False
+        if not value or not value.native_selection or not value.text.strip():self.dismiss();return False
         self.target=value;self.bar.set_backdrop(view)
         parent=self.bar.get_parent()
         if parent is not source.parent:
@@ -262,7 +316,7 @@ class PassageActions:
         self.label.set_text(label);self.label.set_tooltip_text(label)
         self.version_label.set_text(version);self.version_label.set_tooltip_text(version)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+version])
-        self.copy_button.set_tooltip_text(tr('Copy selected text') if value.native_selection else tr('Copy verses without numbers'))
+        self.copy_button.set_tooltip_text(tr('Copy'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)

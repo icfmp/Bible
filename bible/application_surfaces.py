@@ -47,30 +47,34 @@ def show_preferences(owner):
             if key=='interface_appearance':owner.reading_style.apply_mode()
             status.set_label(tr('Restart Bible to apply the application language.') if key=='ui_language' else '')
         except (OSError,ValueError) as error:status.set_label(tr('Unable to save application preferences.')+' '+str(error))
-    def choice(title,key,values,description):
+    def choice(title,key,values,description,segmented=False):
         row=Adw.PreferencesRow(title=tr(title),activatable=False)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
         box.append(Gtk.Label(label=tr(title),xalign=0,wrap=True))
         hint=Gtk.Label(label=tr(description),xalign=0,wrap=True,max_width_chars=1)
         hint.set_max_width_chars(45);hint.add_css_class('dim-label');hint.add_css_class('caption');box.append(hint)
-        control=Gtk.DropDown(model=Gtk.StringList.new([tr(label) for _,label in values]))
+        from .segmented_choice import SegmentedChoice
+        control=(SegmentedChoice([tr(label) for _,label in values]) if segmented else Gtk.DropDown(model=Gtk.StringList.new([tr(label) for _,label in values])))
         control.update_property([Gtk.AccessibleProperty.LABEL],[tr(title)])
         control.set_selected([value for value,_ in values].index(settings.value[key]))
-        control.connect('notify::selected',lambda widget,*_:save(key,values[widget.get_selected()][0]))
+        control.connect('changed' if segmented else 'notify::selected',lambda widget,*_:save(key,values[widget.get_selected()][0]))
         box.append(control);row.set_child(box);group.add(row);return control
     dialog.language=choice('Application language','ui_language',[('system','System'),('fr','French'),('en','English')],
                           'Restart Bible to apply the application language.')
     dialog.appearance=choice('Interface appearance','interface_appearance',[('system','System'),('light','Light'),('dark','Dark')],
-                            'Aa keeps its explicit reading palette; System follows this appearance.')
+                            'Choose the interface theme.',segmented=True)
     row=Adw.SwitchRow(title=tr('Restore tabs at startup'),subtitle=tr('Applies at next launch. Your annotations and downloaded resources are kept.'),active=settings.value['restore_tabs'])
     row.connect('notify::active',lambda widget,*_:save('restore_tabs',widget.get_active()))
     dialog.restore_tabs=row;group.add(row);page.add(group)
-    data=Adw.PreferencesGroup(title=tr('Data and backups'),description=tr('Notes, labels and highlights only. Bibles and credentials are excluded. Exported annotations are not encrypted.'))
+    data=Adw.PreferencesGroup(title=tr('Data and backups'),description=tr('Notes, labels and highlights only. Bibles and credentials are excluded.'))
     dialog.backup_actions=[]
     for title,restoring in [('Export a backup…',False),('Restore a backup…',True)]:
-        button=Gtk.Button(label=tr(title),halign=Gtk.Align.START)
-        button.connect('clicked',lambda _,restore=restoring:choose_personal_backup(owner,status,restore))
-        data.add(button);dialog.backup_actions.append(button)
+        row=Adw.ActionRow(title=tr(title),activatable=True)
+        row.add_suffix(Gtk.Image(icon_name='go-next-symbolic'))
+        row.connect('activated',lambda _,restore=restoring:choose_personal_backup(owner,status,restore))
+        data.add(row);dialog.backup_actions.append(row)
+    notice=Adw.ActionRow(title=tr('Exported annotations are not encrypted.'))
+    data.add(notice)
     page.add(data)
     feedback=Adw.PreferencesGroup();feedback.add(status);page.add(feedback)
     dialog.add(page);dialog.present(owner);owner.preferences_window=dialog
