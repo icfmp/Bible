@@ -642,7 +642,11 @@ class Window(Adw.ApplicationWindow):
         previous, following = tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
         self.lookup_action('previous-chapter').set_enabled(previous is not None)
         self.lookup_action('next-chapter').set_enabled(following is not None)
-        self.navigation.sync()
+        # Tab/source changes keep the initial model ready for direct commands.
+        # Hidden verse following must not rebuild book/chapter/search widgets;
+        # opening the passage menu always performs a forced fresh sync.
+        stamp=self.navigation._stamp
+        if self.navigation.get_visible() or stamp is None or stamp[:2]!=(id(tab),tab.state.resource):self.navigation.sync()
         self.sync_comparison()
         self.lookup_action('history-back').set_enabled(tab.state.history_index>0)
         self.lookup_action('history-forward').set_enabled(tab.state.history_index+1<len(tab.state.history))

@@ -8,6 +8,25 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ScrollPositionTests(unittest.TestCase):
+    def test_followed_verses_do_not_rebuild_hidden_passage_menu_and_opening_refreshes_it(self):
+        from bible.ui import Application,Window,Library
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);installed_fixture(root,long_text=True)
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(root/'translations'));window.present();spin()
+            try:
+                tab=window.active_tab;menu=window.navigation
+                self.assertFalse(menu.get_visible())
+                with patch.object(menu,'load_version',wraps=menu.load_version) as load:
+                    for reference in ['Gen.1.2','Gen.1.1','Gen.1.2']:tab.select_verse(reference)
+                    spin();load.assert_not_called()
+                    self.assertEqual(tab.state.reference,'Gen.1.2')
+                    window.choose_passage();spin(lambda:menu.get_visible())
+                    self.assertTrue(load.called)
+                    self.assertEqual(menu.selected_reference(),'Gen.1.2')
+            finally:window.close()
+
     def test_native_adjustment_only_persists_position_but_passage_change_still_updates(self):
         from bible.ui import Application,Window,Library
         from bible.session import SessionStore
