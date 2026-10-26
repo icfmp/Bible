@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "source": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+  "ci_run": "40265503566",
+  "publication_run": "40267227219",
+  "provenance": {
+    "source_commit": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+    "ci_run": "40265503566",
+    "packaging_revision": "40267227219-2",
+    "flatpak_commit": "d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-758fb1600b00027b47ac0f4998f34bed6806d8e5-sources.tar.gz",
+    "source_sha256": "c4f7726608a553335c3f1a97167361550d679e8bf0525fc4ea2083a93906cc55",
+    "bundle_sha256": "d8d5eeb9ca0e9349d2b7fe36dfc7ebe8a96e4993997678e6437c0f396b5f3b87",
+    "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-758fb1600b00027b47ac0f4998f34bed6806d8e5-sources.tar.gz"
+  },
+  "site_bytes": 15381415,
+  "historical_source_records_unchanged": 38,
+  "current_source_records": 39,
+  "corresponding_project_files_verified": 335,
+  "original_dependency_sources_verified": 3,
+  "numbered_releases_unchanged": true,
+  "signed_public_install_and_update": true,
+  "user_data_preserved": true
+}

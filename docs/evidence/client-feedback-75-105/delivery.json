@@ -1,0 +1,173 @@
+{
+  "status": "SIGNED_ALPHA_VERIFIED_NUMBERED_RELEASE_PAUSED",
+  "source": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+  "candidate_source": "bce5a17549d0dcafd5a91ab08088fd5c8e73f862",
+  "pull_request": "https://github.com/icfmp/Bible/pull/132",
+  "ci_run": "40265503566",
+  "publication_run": "40267227219",
+  "verification": {
+    "status": "PASS",
+    "source": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+    "ci_run": "40265503566",
+    "publication_run": "40267227219",
+    "provenance": {
+      "source_commit": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+      "ci_run": "40265503566",
+      "packaging_revision": "40267227219-2",
+      "flatpak_commit": "d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce",
+      "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+      "remote": "bible-alpha",
+      "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+      "source_archive": "Bible-758fb1600b00027b47ac0f4998f34bed6806d8e5-sources.tar.gz",
+      "source_sha256": "c4f7726608a553335c3f1a97167361550d679e8bf0525fc4ea2083a93906cc55",
+      "bundle_sha256": "d8d5eeb9ca0e9349d2b7fe36dfc7ebe8a96e4993997678e6437c0f396b5f3b87",
+      "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-758fb1600b00027b47ac0f4998f34bed6806d8e5-sources.tar.gz"
+    },
+    "site_bytes": 15381415,
+    "historical_source_records_unchanged": 38,
+    "current_source_records": 39,
+    "corresponding_project_files_verified": 335,
+    "original_dependency_sources_verified": 3,
+    "numbered_releases_unchanged": true,
+    "signed_public_install_and_update": true,
+    "user_data_preserved": true
+  },
+  "checks": {
+    "source_tests": 322,
+    "french_checks": 143,
+    "installed_tests": 141,
+    "native_captures": 99,
+    "native_page_turns": 16,
+    "all_page_turns_changed": true,
+    "stable_15_second_geometry": true,
+    "source_import": "/app/lib/bible-python/bible/ui.py",
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "GLRenderer",
+    "scale": 1,
+    "blur_edge_energy": {
+      "0": 62007,
+      "16": 18056
+    },
+    "blur_changed_pixels": 13695,
+    "scroll_impact": [
+      {
+        "phase": "without_bar",
+        "elapsed_seconds": 6.104282534000049,
+        "cpu_seconds": 1.9874608009999974,
+        "cpu_percent": 32.558466780167905,
+        "frames": 366,
+        "frame_gap_p95_ms": 17.182552999997824,
+        "main_loop_max_ms": 9.203604000049381,
+        "python_calls": {
+          "do_snapshot": 0,
+          "changed": 0,
+          "adapt": 0,
+          "watch": 0
+        },
+        "snapshot_python_cpu_ms": 0,
+        "renderer": "GLRenderer"
+      },
+      {
+        "phase": "visible_bar",
+        "elapsed_seconds": 6.10059675399998,
+        "cpu_seconds": 10.653885519000003,
+        "cpu_percent": 174.63677650902866,
+        "frames": 366,
+        "frame_gap_p95_ms": 17.351367999935974,
+        "main_loop_max_ms": 19.92195700006505,
+        "python_calls": {
+          "do_snapshot": 359,
+          "changed": 359,
+          "adapt": 360,
+          "watch": 0
+        },
+        "snapshot_python_cpu_ms": 26.046246000000004,
+        "renderer": "GLRenderer"
+      },
+      {
+        "phase": "visible_idle",
+        "elapsed_seconds": 6.102509944999952,
+        "cpu_seconds": 0.16141163199999653,
+        "cpu_percent": 2.6450039976132773,
+        "frames": 366,
+        "frame_gap_p95_ms": 17.483553999909418,
+        "main_loop_max_ms": 7.430094999904213,
+        "python_calls": {
+          "do_snapshot": 0,
+          "changed": 0,
+          "adapt": 0,
+          "watch": 0
+        },
+        "snapshot_python_cpu_ms": 0,
+        "renderer": "GLRenderer"
+      },
+      {
+        "phase": "hidden_after_dismiss",
+        "elapsed_seconds": 6.100567081999998,
+        "cpu_seconds": 1.9763685080000002,
+        "cpu_percent": 32.3964720235823,
+        "frames": 366,
+        "frame_gap_p95_ms": 17.219237000063004,
+        "main_loop_max_ms": 8.09963599999719,
+        "python_calls": {
+          "do_snapshot": 0,
+          "changed": 0,
+          "adapt": 0,
+          "watch": 0
+        },
+        "snapshot_python_cpu_ms": 0,
+        "renderer": "GLRenderer"
+      }
+    ],
+    "first_bar_transition": {
+      "input_to_dismiss_start_seconds": 0.00016346200004591083,
+      "dismiss_duration_seconds": 0.0002488469999661902,
+      "dismiss_end_to_first_motion_seconds": 0.0004126149999592599,
+      "start": 671.663984549,
+      "end": 671.664233396,
+      "backdrop_released": true,
+      "placement_stopped": true
+    },
+    "first_motion_seconds": 0.0008249239999713609,
+    "first_gtk_paint_seconds": 0.01910877500006336,
+    "bar_visible_at_first_scroll_paint": false,
+    "late_backlog_count": 0
+  },
+  "artifacts": {
+    "main_ci": {
+      "id": 12627085705,
+      "zip_sha256": "3f9a28fbcfca22d1f34b0f10040f96d78d19865a3b3b86e9976804f5c9228b62"
+    },
+    "publication": {
+      "id": 12627001376,
+      "zip_sha256": "4580df3a715f341e8aa67b04ae4a56c6ecb20ac43796402568507abce195b97b"
+    }
+  },
+  "publication_test_scope": "Actual signed HTTPS installation of packaging revision 1, then flatpak update to packaging revision 2 of the same application source; hashes of note/preferences/resource sentinels in a disposable app profile preserved. Separate source and installed tests cover actual annotation/resource persistence and offline behavior. This is not access to the client profile.",
+  "authorization": {
+    "explicit_client_approval": true,
+    "merged": true,
+    "merge_commit": "758fb1600b00027b47ac0f4998f34bed6806d8e5",
+    "historical_preapproval_receipt": "review-ready.json",
+    "previous_authorization_blocker_resolved": true
+  },
+  "issues": {
+    "numbers": [
+      75,
+      94,
+      99,
+      98,
+      102,
+      105
+    ],
+    "all_open": true,
+    "manual_project_status": "In review",
+    "project_error": "Resource not accessible by integration",
+    "numbered_release_87_paused": true
+  },
+  "client_desktop_acceptance": false
+}
