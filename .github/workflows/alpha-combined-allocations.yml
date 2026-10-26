@@ -1,7 +1,5 @@
 name: Profile installed combined native allocations
 on:
-  push:
-    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read
