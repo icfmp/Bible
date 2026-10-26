@@ -98,6 +98,8 @@ def main():
     if args.stop_layout_polling:
         Gtk.Widget.add_tick_callback=original_tick
         for widget,tick in layout_ticks:widget.remove_tick_callback(tick)
+    rendered_buffers={name:dict(characters=view.get_buffer().get_char_count(),lines=view.get_buffer().get_line_count())
+                      for name,view in [('primary',tab.text),('comparison',tab.comparison_text),('commentary',window.study.text)]}
     # No screenshot/tick observer, queue_draw, forced GC or memory trim in a consumption run.
     first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];adjustments=[];menu_visibility=[];last=[time.monotonic()]
     window.passage_actions.bar.connect('notify::visible',lambda bar,*_:menu_visibility.append([time.monotonic(),bar.get_visible()]))
@@ -145,6 +147,7 @@ def main():
                 logical_cpus=os.cpu_count(),resource=args.resource,reference=args.reference,mode=args.mode,
                 comparison=tab.state.comparison,study_open=window.split.get_show_sidebar(),study_tool=window.study.tool,
                 scale_factor=scale,
+                startup_rendered_buffers=rendered_buffers,
                 input_kind=args.input_kind,scrollbar_geometry=bar_geometry,
                 preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
