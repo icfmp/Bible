@@ -501,7 +501,7 @@ class ReadingTab(Gtk.Box):
         if self.state.reference in self._verse_offsets:
             start = self._verse_offsets[self.state.reference]
             buffer.apply_tag(self._selected_tag, buffer.get_iter_at_offset(start),
-                             buffer.get_iter_at_offset(start + len(self.state.reference.rsplit('.', 1)[-1])))
+                             buffer.get_iter_at_offset(start+len(getattr(self.text,'_verse_labels',{}).get(self.state.reference,self.state.reference.rsplit('.',1)[-1]))))
         self.text.update_property([Gtk.AccessibleProperty.LABEL], [self.passage_title()])
 
     def select_verse(self, reference):
@@ -529,7 +529,7 @@ class ReadingTab(Gtk.Box):
                 reference = candidates[-1]
                 self.select_verse(reference)
                 if (reference in self._note_refs and self.notes_requested
-                        and iterator.get_offset() < self._verse_offsets[reference] + len(reference.rsplit('.', 1)[-1])):
+                        and iterator.get_offset() < self._verse_offsets[reference]+len(getattr(self.text,'_verse_labels',{}).get(reference,reference.rsplit('.',1)[-1]))):
                     self.notes_requested()
 
     def selected_passage(self):
@@ -540,7 +540,9 @@ class ReadingTab(Gtk.Box):
                         if first < end and last > start]
             if selected:
                 return selected[0], selected[-1]
-        return self.state.reference, self.state.reference
+        document=getattr(self,'_document',None)
+        span=next((s for s in document.spans if self.state.reference in s.members),None) if document else None
+        return (span.members[0],span.members[-1]) if span else (self.state.reference,self.state.reference)
 
     def update_notes(self, force=False):
         generation=self.notes_store.generation if self.notes_store else -1

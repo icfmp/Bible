@@ -406,7 +406,8 @@ class Window(Adw.ApplicationWindow):
         else:
             start,end=reader.key(first).getIndex(),reader.key(last).getIndex()
             chapter=reader.chapter(first)
-            value='\n'.join(text for ref,text in chapter.verses if start<=reader.key(ref).getIndex()<=end)
+            refs=[ref for ref,_ in chapter.verses if start<=reader.key(ref).getIndex()<=end]
+            value='\n'.join(text for _,text in chapter.unique_verses(refs))
             if with_reference:value=label+'\n'+value
         self.get_clipboard().set(value)
 

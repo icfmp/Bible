@@ -26,7 +26,7 @@ def search(root,name,query,scope='all',book=None,offset=0,limit=100):
 def index(root,name,reader):
     files=sorted((str(p.relative_to(reader.root)),p.stat().st_size,p.stat().st_mtime_ns)
                  for p in reader.root.rglob('*') if p.is_file())
-    signature=hashlib.sha256(json.dumps([3,files]).encode()).hexdigest()
+    signature=hashlib.sha256(json.dumps([4,files]).encode()).hexdigest()
     cache=Path(root).parent/'search-indexes';cache.mkdir(exist_ok=True)
     path=cache/(name+'.sqlite3')
     try:
@@ -45,7 +45,7 @@ def index(root,name,reader):
             for book in reader.books:
                 for chapter,verses in book.chapters.items():
                     if not verses:continue
-                    for reference,text in reader.chapter(f'{book.code}.{chapter}.{verses[0]}').verses:
+                    for reference,text in reader.chapter(f'{book.code}.{chapter}.{verses[0]}').unique_verses():
                         key=reader.key(reference);testament=key.getTestament()
                         testament=ord(testament) if isinstance(testament,str) else int(testament)
                         db.execute('INSERT INTO verses VALUES(?,?,?,?,?)',(key.getIndex(),reference,book.code,testament,' '+normalized(text,language).strip()+' '))

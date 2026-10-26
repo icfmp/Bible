@@ -60,8 +60,11 @@ def render(view, reader, chapter, preferences, document=None):
     buffer.apply_tag(tags['body'],buffer.get_start_iter(),buffer.get_end_iter())
     for style in document.styles:
         buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
-    offsets, ranges, markers = {}, {}, {}
+    offsets,ranges,markers,labels = {},{},{},{}
     for span in document.spans:
-        marker = span.body-(len(span.reference.rsplit('.',1)[-1])+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
-        offsets[span.reference]=marker;ranges[span.reference]=(marker,span.end);markers[span.reference]=span.body
+        marker=span.body-(len(span.number)+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
+        for reference in span.members:
+            offsets[reference]=marker;ranges[reference]=(marker,span.end);markers[reference]=span.body
+            labels[reference]=span.number
+    view._verse_labels=labels
     return document, offsets, ranges, markers

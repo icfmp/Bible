@@ -34,9 +34,9 @@ class Target:
 def references(source,first,last):
     numbers=source.tab.preferences.verse_numbers
     inline=getattr(source.document,'inline',{})
-    return tuple(s.reference for s in source.document.spans
-                 if s.end>first and s.body-(len(s.reference.rsplit('.',1)[-1])+1 if numbers else 0)
-                 -sum(reference==s.reference for reference,_,_ in inline.values())<last)
+    return tuple(ref for s in source.document.spans
+                 if s.end>first and s.body-(len(s.number)+1 if numbers else 0)
+                 -sum(reference==s.reference for reference,_,_ in inline.values())<last for ref in s.members)
 
 
 def target(view,source,factory,clicked=None):
@@ -46,11 +46,8 @@ def target(view,source,factory,clicked=None):
     else:return None
     refs=references(source,first,last)
     if not refs:return None
-    chapters={};verses=[]
-    for reference in refs:
-        key=reference.rsplit('.',1)[0]
-        if key not in chapters:chapters[key]=dict(source.reader.chapter(reference).verses)
-        verses.append(chapters[key][reference])
+    from .sword_provider import passage_verses
+    verses=[text for _,text in passage_verses(source.reader,refs)]
     text=source.document.copy(first,last) if selection else '\n'.join(verses)
     anchor=view.get_buffer().get_iter_at_mark(view.get_buffer().get_insert()).get_offset() if selection else clicked
     return Target(source,view,factory,refs,text,tuple(verses),bool(selection),anchor)

@@ -20,7 +20,7 @@ class BiblePages:
         title=display_name(native.getOSISBookName(),native.getBookName(),LANGUAGE)
         if preferences.chapter_numbers:title+=' '+str(native.getChapter())
         pieces=[title+'\n\n'];styles=[StyleSpan('chapter',0,len(title))];spans=[];offset=len(pieces[0])
-        for reference,plain in chapter.verses:
+        for reference,plain in chapter.unique_verses():
             checkpoint(cancelled)
             start=offset if spans else 0
             segments=structured[reference]
@@ -31,12 +31,14 @@ class BiblePages:
             body=''.join(s.text for s in segments if s.kind!='heading')
             leading=body[:len(body)-len(body.lstrip())]
             if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
-            number=reference.rsplit('.',1)[-1]+' ' if preferences.verse_numbers else ''
+            members=chapter.members(reference)
+            label=chapter.label(reference) if len(members)>1 else None
+            number=(label or reference.rsplit('.',1)[-1])+' ' if preferences.verse_numbers else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
             pieces.append(body);offset+=len(body)
             if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
-            spans.append(PassageSpan(reference,start,body_start,offset))
+            spans.append(PassageSpan(reference,start,body_start,offset,members[1:],label))
             if not body.endswith('\n'):pieces.append(' ');offset+=1
         original=''.join(pieces)
         display=list(original)

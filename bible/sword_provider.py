@@ -14,6 +14,40 @@ class Chapter:
     verses: tuple[tuple[str, str], ...]
     previous: str | None
     following: str | None
+    links: tuple[tuple[str,str], ...] = ()
+
+    @cached_property
+    def primary_references(self):
+        return dict(self.links)
+
+    @cached_property
+    def text_by_reference(self):
+        return dict(self.verses)
+
+    def primary(self,reference):
+        return self.primary_references.get(reference,reference) if self.links else reference
+
+    def members(self,reference):
+        if not self.links:return (reference,)
+        primary=self.primary(reference)
+        return (primary,*(alias for alias,target in self.links if target==primary))
+
+    def unique_verses(self,references=None):
+        """One native linked entry, preserving genuinely repeated source text."""
+        if references is None and not self.links:return self.verses
+        rows=self.verses if references is None else ((ref,self.text_by_reference[ref]) for ref in references)
+        seen=set();result=[]
+        for ref,text in rows:
+            primary=self.primary(ref)
+            if primary not in seen:result.append((ref,text));seen.add(primary)
+        return tuple(result)
+
+    def label(self,reference):
+        members=self.members(reference)
+        values=[int(ref.rsplit('.',1)[-1]) for ref in members]
+        if len(values)==1:return str(values[0])
+        if values==list(range(values[0],values[-1]+1)):return f'{values[0]}–{values[-1]}'
+        return ','.join(str(v) for v in values)
 
 
 @dataclass(frozen=True)
@@ -21,6 +55,23 @@ class Book:
     code: str
     name: str
     chapters: dict[int, tuple[int, ...]]
+
+
+def passage_verses(reader,references,chapter_cache=None):
+    """Resolve every requested reference, emitting each native linked unit once."""
+    chapters={} if chapter_cache is None else chapter_cache
+    seen=set();result=[]
+    for reference in references:
+        name=reference.rsplit('.',1)[0]
+        if name not in chapters:
+            chapters[name]=reader.chapter(reference)
+            if len(chapters)>64:chapters.pop(next(iter(chapters)))
+        chapter=chapters[name];identity=chapter.primary(reference)
+        if identity in seen:continue
+        value=chapter.text_by_reference.get(reference)
+        if value is None:raise ValueError('Passage unavailable: '+reference)
+        result.append((reference,value));seen.add(identity)
+    return tuple(result)
 
 
 class Reader:
@@ -125,17 +176,23 @@ class Reader:
         key.setVerse(1)
         first = key.getOSISRef()
         verses = []
+        links=[];previous_entry=None;primary=None;previous_text=None
         for verse in range(1, key.getVerseMax() + 1):
             checkpoint(cancelled)
             key.setVerse(verse)
             if not self.module.hasEntry(key):
                 continue
             self.module.setKey(key)
+            reference=key.getOSISRef()
+            if previous_entry is not None and self.module.isLinked(previous_entry,key):
+                links.append((reference,primary));verses.append((reference,previous_text))
+                continue
             # SWORD strips source markup. GTK receives plain text only.
             text = self.module.stripText()
             if not isinstance(text, str):
                 text = text.c_str()
-            verses.append((key.getOSISRef(), text))
+            verses.append((reference,text))
+            previous_entry=self.sword.VerseKey(key);primary=reference;previous_text=text
         key.setText(first)
         key.decrement()
         previous = key.getOSISRef() if key.popError() == '\x00' else None
@@ -146,7 +203,7 @@ class Reader:
         key.setVerse(key.getVerseMax())
         key.increment()
         following = key.getOSISRef() if key.popError() == '\x00' else None
-        return Chapter(first.rsplit('.', 1)[0], tuple(verses), previous, following)
+        return Chapter(first.rsplit('.', 1)[0],tuple(verses),previous,following,tuple(links))
 
 
     def structured_chapter(self, chapter, *, cancelled=None):
@@ -155,12 +212,13 @@ class Reader:
         checkpoint(cancelled)
         source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
         result = {}
-        for reference, plain in chapter.verses:
+        for reference, plain in chapter.unique_verses():
             checkpoint(cancelled)
             self.module.setKey(self.key(reference))
             raw = self.module.getRawEntry()
             raw = raw if isinstance(raw,str) else raw.c_str()
             result[reference] = extract(raw,plain,source_type)
+        for alias,primary in chapter.links:result[alias]=result[primary]
         return result
 
 

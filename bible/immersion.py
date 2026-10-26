@@ -262,7 +262,7 @@ class Immersion(Gtk.Overlay):
             document,first,last=context
             ranges=[]
             for span in document.spans:
-                number=len(span.reference.rsplit('.',1)[-1])+1 if self.owner.preferences.value.verse_numbers else 0
+                number=len(span.number)+1 if self.owner.preferences.value.verse_numbers else 0
                 begin=max(first,span.body-number);end=min(last,span.end)
                 if end>begin:ranges.append((span.reference,begin-first,end-first))
             view.set_study_ranges([])  # Clean immersive presentation; ordinary coverage is untouched.

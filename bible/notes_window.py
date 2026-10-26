@@ -786,12 +786,9 @@ class NotesSpace(Gtk.Box):
         try:
             reader=self.reader()
             if not reader:raise ValueError(tr('Install a Bible to display this passage. Your annotation is kept.'))
-            refs=self.mapped_references(a,reader);chapters={};text=[]
-            for ref in refs[:limit]:
-                chapter=parts(ref)[:2]
-                if chapter not in chapters:chapters[chapter]=dict(reader.chapter(ref).verses)
-                if ref not in chapters[chapter]:raise ValueError(tr('Passage unavailable in this translation.'))
-                text.append(chapters[chapter][ref])
+            refs=self.mapped_references(a,reader)
+            from .sword_provider import passage_verses
+            text=[value for _,value in passage_verses(reader,refs[:limit])]
             from .reference_resolution import _span
             mapped_label=(passage_label(refs[0],refs[-1],reader.versification) if _span(refs[0],refs[-1],reader.versification)==refs else '; '.join(passage_label(ref,versification=reader.versification) for ref in refs))
             description=tr('Displayed in')+' '+self.owner.library.resource(self._version).description+' · '+mapped_label

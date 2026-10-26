@@ -14,7 +14,7 @@ class InlineMarkers:
         return getattr(getattr(self.tab,'sync_coordinator',None),'owner',None)
 
     def markers(self,reader,document):
-        tab=self.tab;result={};refs={s.reference for s in document.spans}
+        tab=self.tab;result={};primary={ref:s.reference for s in document.spans for ref in s.members};refs=set(primary)
         if tab.preferences.note_indicators and tab.notes_store:
             for note in tab.notes_store.all():
                 if not note.body.strip():continue
@@ -24,7 +24,7 @@ class InlineMarkers:
                     reference=next((r for r in _span(mapped.start,mapped.end,reader.versification) if reader.has_reference(r)),None)
                 except ValueError:continue
                 if reference in refs:
-                    entry=result.setdefault(reference,{})
+                    entry=result.setdefault(primary[reference],{})
                     entry.setdefault('note',[]).append(note.id)
         if tab.preferences.place_markers:
             owner=self.owner
@@ -35,7 +35,10 @@ class InlineMarkers:
                 if data.revision and key not in self.geo and key not in self.pending:
                     self.load_places(key,data,reader,refs)
                 for ref,places in self.geo.get(key,{}).items():
-                    if ref in refs:result.setdefault(ref,{})['place']=places
+                    if ref in refs:
+                        values=result.setdefault(primary[ref],{}).setdefault('place',[])
+                        seen={p['id'] for p in values}
+                        values.extend(p for p in places if p['id'] not in seen)
         return {ref:tuple((kind,payload) for kind,payload in sorted(values.items())) for ref,values in result.items()}
 
     def load_places(self,key,data,reader,refs):

@@ -73,7 +73,7 @@ def main():
             loaded=reader.chapter(chapter)
             expected,_=dom_verses((args.output/(ref+'.html')).read_bytes(),ref)
             expected={canonical_unit(key).split()[0]:value for key,value in expected.items()}
-            assert {key:normalized(text) for key,text in loaded.verses}==expected,'Application text readback mismatch'
+            assert {key:normalized(text) for key,text in loaded.unique_verses()}==expected,'Application text readback mismatch'
             result['application_all_verses_match']=True
             result['application_structure_kinds']=sorted({s.kind for parts in reader.structured_chapter(loaded).values() for s in parts})
         result['module']=name;result['scoped_versification']=system
@@ -118,11 +118,17 @@ def main():
                 spin(lambda:not tab._restoring_scroll)
                 buffer=tab.text.get_buffer()
                 visible=normalized(buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True)).replace(' ','')
+                document=tab._document
+                expected_units={canonical_unit(key).split()[0]:text for key,text in expected.items()}
+                actual_units={s.reference:normalized(document.copy(s.body,s.end)) for s in document.spans}
+                assert actual_units==expected_units,'GTK document unit count/text differs from the independent source'
+                assert buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True)==document.text,'GTK buffer differs from its source document'
                 for text in expected.values():
                     assert normalized(text).replace(' ','') in visible,'GTK omitted source text'
                     visible_units+=1
             report['gtk_visible_units_checked']=visible_units
             report['gtk_offline_readback']=True
+            report['gtk_exact_unit_text']=True
             report['gtk_source_import']=inspect.getfile(Window)
         finally:window.close()
         report['limitations']=[s for s in report['limitations'] if not s.startswith('This local check')]
