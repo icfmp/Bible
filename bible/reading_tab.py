@@ -113,9 +113,9 @@ class ReadingTab(Gtk.Box):
         self.connect('map',self.queue_adapt)
         self.connect('unmap',self.cancel_adapt)
         for scroll in (self.scroll,self.comparison_scroll):
-            for adjustment in (scroll.get_hadjustment(),scroll.get_vadjustment()):
-                adjustment.connect('changed',self.queue_adapt)
-        self.comparison_scroll.get_vadjustment().connect('value-changed',lambda *_:self.queue_adapt(frames=1))
+            scroll.get_hadjustment().connect('changed',self.queue_adapt)
+            scroll.connect('notify::vadjustment',self.watch_layout_adjustment)
+            self.watch_layout_adjustment(scroll)
         context=Gio.Menu()
         context.append(tr('Add a passage note'),'win.note')
         context.append(tr('Study word'),'win.study-word')
@@ -235,6 +235,18 @@ class ReadingTab(Gtk.Box):
             self.status.set_text(f'{tr("Unable to read this passage.")} {error}')
             self.status.set_visible(True)
             return False
+
+    def watch_layout_adjustment(self,scroll,*_):
+        # Comparison mode swaps between a shared and an independent adjustment.
+        previous=getattr(scroll,'_layout_adjustment',None)
+        if previous:
+            adjustment,handlers=previous
+            for handler in handlers:adjustment.disconnect(handler)
+        adjustment=scroll.get_vadjustment()
+        handlers=[adjustment.connect('changed',self.queue_adapt)]
+        if scroll is self.comparison_scroll:
+            handlers.append(adjustment.connect('value-changed',lambda *_:self.queue_adapt(frames=1)))
+        scroll._layout_adjustment=(adjustment,handlers)
 
     def queue_adapt(self,*_,frames=8):
         if not self.get_mapped():return
