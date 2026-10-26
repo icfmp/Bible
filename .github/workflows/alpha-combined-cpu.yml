@@ -108,7 +108,7 @@ jobs:
           perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
           test -n "$perf_bin"
           for version in current candidate; do
-            flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
+            if [ "$version" = candidate ]; then flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"; fi
             flatpak info --user --show-commit io.github.icfmp.Bible//master > "reports/$version-native-cpu.commit"
             timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-native-cpu.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 2 --input-kind scrollbar > "reports/$version-native-cpu.log" 2>&1 &
             task_pid=$!
