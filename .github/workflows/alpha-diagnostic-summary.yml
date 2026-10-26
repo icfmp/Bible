@@ -1,0 +1,51 @@
+name: Read performance diagnostic receipts
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  receipts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-combined-accessibility
+          run-id: 40344271694
+          github-token: ${{ github.token }}
+          path: accessibility
+      - name: Read the failed accessibility diagnostic
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          for p in sorted(Path('accessibility').glob('*')):
+              if p.name.endswith('-status.txt'):
+                  print(p.name,p.read_text())
+              if p.suffix=='.log':
+                  lines=p.read_text().splitlines()
+                  if any('Traceback' in line or 'Error' in line for line in lines):
+                      print(p.name,'\n'.join(line for line in lines[-35:] if '://' not in line))
+              if p.suffix=='.json' and '-a11y-' in p.name and '.input.' not in p.name:
+                  x=json.loads(p.read_text())
+                  print(p.name,json.dumps({k:x[k] for k in ['startup_ready_memory','phases','first_scroll_latency_seconds','after_stop'] if k in x}))
+          PY
+      - name: Obtain the completed single-reader repeat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run watch 40347119859 --repo '${{ github.repository }}' --exit-status --interval 20
+          gh run download 40347119859 --repo '${{ github.repository }}' --name alpha-single-wait-repeat --dir single
+      - name: Summarize uninstrumented waits without exposing fixture content
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          for p in sorted(Path('single').glob('*-repeat.json')):
+              x=json.loads(p.read_text());inputs=json.loads(p.with_suffix('.input.json').read_text())
+              print(p.name,json.dumps({k:x[k] for k in ['startup_ready_memory','phases','first_scroll_latency_seconds','after_stop']}))
+              for when,gap in x['measurements']['beats']:
+                  if gap>.5:
+                      print('WAIT',when,gap,[s for s in inputs['samples'] if when-gap-.3<s['time']<when+.3])
+          PY
