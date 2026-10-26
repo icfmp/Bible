@@ -22,13 +22,14 @@ import time
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--mode',choices=['single','comparison','study'],default='single')
+    p.add_argument('--mode',choices=['single','comparison','study','combined'],default='single')
     p.add_argument('--resource',default='FreSegond1910');p.add_argument('--reference',default='Ps.119.1')
     p.add_argument('--cycles',type=int,default=4);p.add_argument('--toolbar',action='store_true')
     p.add_argument('--backdrop',choices=['native','radius-zero','disabled'],default='native')
     p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
     p.add_argument('--input-interpreter',nargs='+',default=[sys.executable],help='Local runtime loader plus Python only; installed runs use their own Python')
     p.add_argument('--stop-layout-polling',action='store_true',help='Diagnostic ablation at fixed geometry only')
+    p.add_argument('--cache-resource-metadata',action='store_true',help='Diagnostic ablation with unchanged test resources only')
     p.add_argument('--input-kind',choices=['wheel','scrollbar'],default='wheel')
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     started=time.monotonic();import_started=time.monotonic()
@@ -38,6 +39,9 @@ def main():
     import bible.passage_actions as actions
     from tools.alpha_performance_input import sample
     if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    if args.cache_resource_metadata:
+        from functools import lru_cache
+        Library.resource=lru_cache(maxsize=128)(Library.resource)
     diagnostic_calls={}
     layout_ticks=[];original_tick=Gtk.Widget.add_tick_callback
     if args.stop_layout_polling:
@@ -63,8 +67,8 @@ def main():
     tab=window.active_tab;tab.state.comparison=None;window.sync_comparison();window.study_button.set_active(False)
     assert tab.navigate(args.resource,args.reference)
     spin(lambda:not tab._restoring_scroll,duration=.6)
-    if args.mode=='comparison':tab.state.comparison='KJV';window.sync_comparison();spin(duration=.5)
-    if args.mode=='study':
+    if args.mode in ('comparison','combined'):tab.state.comparison='KJV';window.sync_comparison();spin(duration=.5)
+    if args.mode in ('study','combined'):
         window.study_button.set_active(True);window.study.tools.set_visible_child_name('commentaries')
         window.study.choices.set_selected(window.study.names.index('Wesley'));window.study.refresh(force=True);spin(duration=.5)
     if hasattr(tab,'inline_markers'):spin(lambda:not tab.inline_markers.pending,duration=.3)
@@ -139,12 +143,14 @@ def main():
                 passage_actions_sha256=hashlib.sha256(Path(inspect.getfile(actions)).read_bytes()).hexdigest(),
                 renderer=type(window.get_renderer()).__name__,renderer_env=os.environ.get('GSK_RENDERER'),
                 logical_cpus=os.cpu_count(),resource=args.resource,reference=args.reference,mode=args.mode,
+                comparison=tab.state.comparison,study_open=window.split.get_show_sidebar(),study_tool=window.study.tool,
                 scale_factor=scale,
                 input_kind=args.input_kind,scrollbar_geometry=bar_geometry,
                 preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
                 initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
                 diagnostic_layout_ticks_removed=len(layout_ticks),
+                diagnostic_resource_cache=args.cache_resource_metadata,
                 phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions,adjustments=adjustments,menu_visibility=menu_visibility),
                 menu_final_visible=window.passage_actions.bar.get_visible(),
                 backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,

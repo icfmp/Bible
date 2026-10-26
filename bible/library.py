@@ -13,6 +13,7 @@ import time
 import urllib.request
 import zipfile
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from concurrent.futures import as_completed
 from .providers import CROSSWIRE, PROVIDERS, BY_ID, identity, module_name
 
@@ -269,8 +270,21 @@ class Library:
         files = list((self.root / name / 'mods.d').glob('*.conf'))
         if len(files) != 1:
             raise ValueError('Expected one resource configuration')
-        parser = config(files[0].read_bytes())
         metadata_path = self.root / name / '.source.json'
+        def revision(path):
+            try:info=path.stat()
+            except FileNotFoundError:return None
+            return info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns
+        return self._read_resource(name,files[0],metadata_path,
+                                   (revision(files[0]),revision(metadata_path)))
+
+    @staticmethod
+    @lru_cache(maxsize=128)
+    def _read_resource(name,configuration,metadata_path,revision):
+        # Cache immutable attribution only, never Readers or library instances.
+        # Native file revisions invalidate both configuration and provenance;
+        # installation checks above still reject missing/removed resources.
+        parser = config(configuration.read_bytes())
         metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
         provider_id = metadata.get('provider_id', 'crosswire')
         provider = BY_ID.get(provider_id)

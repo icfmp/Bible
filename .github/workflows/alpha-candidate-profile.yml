@@ -59,7 +59,7 @@ jobs:
               assert info['commit']==source and (digest is None or info['sha256']==digest)
               assert hashlib.sha256((folder/'Bible-alpha.flatpak').read_bytes()).hexdigest()==info['sha256']
               receipt[name]=info
-          pathlib.Path('reports/ci-input-verification.json').write_text(json.dumps(dict(inputs=receipt,limitation='Baseline is the exact verified CI bundle imported into signed alpha; candidate is a tested feature-branch CI master ref. Candidate is not yet published on the signed channel.'),indent=2))
+          pathlib.Path('reports/ci-input-verification.json').write_text(json.dumps(dict(inputs=receipt,limitation='Baseline is the exact verified CI bundle imported into signed alpha; candidate is a tested feature-branch CI master ref. Candidate is not yet published on the signed channel. Application imports must be packaged.'),indent=2))
           PYTHON
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
@@ -82,6 +82,10 @@ jobs:
           from bible.place_data import PlaceData
           StepData(root/'study-data').install()
           PlaceData(root/'study-data').install()
+          from bible.reference_data import ReferenceData
+          from bible.topic_data import TopicData
+          ReferenceData(root/'study-data').install()
+          TopicData(root/'study-data').install()
           preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
           receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
           (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
@@ -91,21 +95,27 @@ jobs:
           set -euo pipefail
           run_case() {
             local label="$1"; shift
+            local renderer=()
+            if [ -n "${PERF_RENDERER:-}" ]; then renderer=(--env=GSK_RENDERER="$PERF_RENDERER"); fi
             flatpak info --user --show-commit io.github.icfmp.Bible//master > "reports/$label.commit"
-            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreSegond1910 --reference Ps.119.1 "$@" > "reports/$label.log" 2>&1
+            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none "${renderer[@]}" --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreSegond1910 --reference Ps.119.1 "$@" > "reports/$label.log" 2>&1
           }
           for version in current candidate; do
             flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
             run_case "$version-scrollbar" --input-kind scrollbar --cycles 8
             run_case "$version-wheel" --cycles 2
+            run_case "$version-combined-scrollbar" --mode combined --input-kind scrollbar --cycles 8
+            run_case "$version-combined-wheel" --mode combined --cycles 4
+            PERF_RENDERER=gl run_case "$version-combined-gl" --mode combined --input-kind scrollbar --cycles 2
+            run_case "$version-combined-cache-ablation" --mode combined --cache-resource-metadata --input-kind scrollbar --cycles 2
             run_case "$version-comparison" --mode comparison --cycles 2
             run_case "$version-study" --mode study --cycles 2
             run_case "$version-toolbar-native" --toolbar --cycles 2
             run_case "$version-toolbar-disabled" --toolbar --backdrop disabled --cycles 2
-            run_case "$version-python" --instrument --input-kind scrollbar --cycles 2
+            run_case "$version-python" --instrument --mode combined --input-kind scrollbar --cycles 2
             perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
             test -n "$perf_bin"
-            run_case "$version-native-cpu" --input-kind scrollbar --cycles 2 &
+            run_case "$version-native-cpu" --input-kind scrollbar --mode combined --cycles 2 &
             task_pid=$!
             sudo python3 tools/sample_alpha_cpu.py "$perf_bin" "$PWD/reports/$version-native-cpu.json" "$RUNNER_TEMP/perf-symbols-$version"
             wait "$task_pid"
