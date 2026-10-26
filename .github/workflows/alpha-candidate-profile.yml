@@ -64,9 +64,13 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
           flatpak info --user io.github.icfmp.Bible//master > reports/installation.txt
+      - name: Obtain frozen previously validated optional topic data
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/openbible-topics.sqlite3.gz" https://raw.githubusercontent.com/icfmp/Bible/1c82609a0947822908fdfab7d3b42f7b79146265/docs/evidence/alpha-performance/fixtures/openbible-topics.sqlite3.gz
+          echo "f8d8ebe33c339f3f910c930fef1af5713ee9a154bdbb363d7abf1844452a8c2e  $RUNNER_TEMP/openbible-topics.sqlite3.gz" | sha256sum --check
       - name: Prepare real resources and persistent annotations once
         run: |
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" <<'PY'
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
           import json,sys,hashlib
           from pathlib import Path
           from dataclasses import asdict
@@ -85,7 +89,15 @@ jobs:
           from bible.reference_data import ReferenceData
           from bible.topic_data import TopicData
           ReferenceData(root/'study-data').install()
-          TopicData(root/'study-data').install()
+          # Reuse an attributed, validated installed index. Today's weekly upstream
+          # archive differs from the source pinned by the published application.
+          import gzip
+          topic_bytes=gzip.decompress(Path(sys.argv[2]).read_bytes())
+          assert len(topic_bytes)==4964352 and hashlib.sha256(topic_bytes).hexdigest()=='90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209'
+          topics=TopicData(root/'study-data')
+          if topics.path.exists():assert topics.path.read_bytes()==topic_bytes
+          else:topics.path.write_bytes(topic_bytes)
+          assert topics.metadata()['archive_sha256']=='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
           preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
           receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
           (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
