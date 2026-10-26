@@ -27,13 +27,16 @@ def normalized(value):
                    if not unicodedata.combining(char) and char.isalnum())
 
 
+# Input aliases are static metadata; do not normalize the entire table for each verse.
+_INPUT_ALIASES = {normalized(label): code for code, label in FRENCH.items()}
+
+
 def canonical_input(reference):
     """Resolve full French names; let SWORD resolve its own names and abbreviations."""
     match = re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*(?:[.:][1-9][0-9]*)?)', reference.strip())
     if match:
         name, numbers = match.groups()
-        aliases = {normalized(label): code for code, label in FRENCH.items()}
-        code = aliases.get(normalized(name))
+        code = _INPUT_ALIASES.get(normalized(name))
         if code:
             return f'{code}.{numbers}'
     return reference.strip()

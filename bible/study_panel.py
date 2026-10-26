@@ -144,7 +144,13 @@ class StudyPanel(Gtk.Box):
         self.pages.set_visible_child_name('empty');self.commentaries.append(self.pages)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
         self._layout_geometry = None;self._layout_anchor = None
-        self.add_tick_callback(self.adapt)
+        self._adapt_tick=0;self._adapt_frames=0
+        self.text.connect('map',self.queue_adapt)
+        self.text.connect('unmap',self.cancel_adapt)
+        for adjustment in (self.scroll.get_hadjustment(),self.scroll.get_vadjustment()):
+            adjustment.connect('changed',self.queue_adapt)
+        self.scroll.get_vadjustment().connect('value-changed',lambda *_:self.queue_adapt(frames=1))
+        owner.split.connect('notify::show-sidebar',lambda *_:self.queue_adapt() if owner.split.get_show_sidebar() else self.cancel_adapt())
         self.sidebar_preferences = None
         from .word_study import WordStudy
         self.words=WordStudy(owner)
@@ -183,6 +189,22 @@ class StudyPanel(Gtk.Box):
         if tag is None:tag=buffer.create_tag('reader-typography')
         tag.props.family='sans-serif'; tag.props.size_points=12; tag.props.line_height=1.5
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
+
+    def queue_adapt(self,*_,frames=8):
+        if self.owner.closed or not self.text.get_mapped() or not self.owner.split.get_show_sidebar():return
+        self._adapt_frames=max(self._adapt_frames,frames)
+        if not self._adapt_tick:self._adapt_tick=self.add_tick_callback(self._settle_layout)
+
+    def cancel_adapt(self,*_):
+        if self._adapt_tick:self.remove_tick_callback(self._adapt_tick)
+        self._adapt_tick=0;self._adapt_frames=0
+
+    def _settle_layout(self,*_):
+        self._adapt_frames-=1
+        self.adapt()
+        if self._adapt_frames>0:return True
+        self._adapt_tick=0
+        return False
 
     def adapt(self,*_):
         geometry=(self.scroll.get_width(),self.scroll.get_height())

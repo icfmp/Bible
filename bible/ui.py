@@ -148,7 +148,16 @@ class Window(Adw.ApplicationWindow):
             widget.add_css_class('circular');widget.add_css_class('reader-action')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             self.reader_controls.append(widget)
-        self.reader_controls.add_tick_callback(self.fit_reader_controls)
+        self._controls_tick=0;self._controls_frames=0
+        self._layout_surface=None;self._layout_surface_handlers=[]
+        self.reader_controls.connect('map',self.queue_controls)
+        self.reader_controls.connect('unmap',self.cancel_controls)
+        self.primary_version.caption.connect('notify::label',self.queue_controls)
+        self.connect('map',self.watch_layout_surface)
+        self.connect('unmap',self.unwatch_layout_surface)
+        settings=Gtk.Settings.get_default()
+        self._layout_settings_handlers=[settings.connect('notify::'+name,self.queue_layout)
+            for name in ('gtk-font-name','gtk-theme-name','gtk-xft-dpi')]
         layout.append(header)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
@@ -322,6 +331,46 @@ class Window(Adw.ApplicationWindow):
             if self.startup_resource_error:self.welcome_status.set_description(GLib.markup_escape_text(tr('Some installed Bibles could not be read. They are preserved. Retry from Library.')+' '+self.startup_resource_error))
         if self.application_settings.error:self.report_session_error(tr('Unable to load application preferences. Original file preserved.'),self.application_settings.error)
 
+    def watch_layout_surface(self,*_):
+        surface=self.get_surface()
+        if surface is not self._layout_surface:
+            self.unwatch_layout_surface()
+            self._layout_surface=surface
+            self._layout_surface_handlers=[surface.connect('notify::'+name,self.queue_layout)
+                for name in ('width','height','scale-factor','scale')]
+        self.queue_layout()
+
+    def unwatch_layout_surface(self,*_):
+        if self._layout_surface:
+            for handler in self._layout_surface_handlers:self._layout_surface.disconnect(handler)
+        self._layout_surface=None;self._layout_surface_handlers=[]
+        self.cancel_controls()
+        if hasattr(self,'study_divider'):self.study_divider.cancel_adapt()
+        if hasattr(self,'study'):self.study.cancel_adapt()
+
+    def queue_layout(self,*_):
+        if not self.get_mapped() or self.closed:return
+        self.queue_controls()
+        if hasattr(self,'study_divider'):self.study_divider.queue_adapt()
+        if hasattr(self,'study'):self.study.queue_adapt()
+        if hasattr(self,'view'):
+            for tab in self.tabs():tab.queue_adapt()
+
+    def queue_controls(self,*_):
+        if self.closed or not self.reader_controls.get_mapped():return
+        self._controls_frames=3
+        if not self._controls_tick:self._controls_tick=self.reader_controls.add_tick_callback(self._settle_controls)
+
+    def cancel_controls(self,*_):
+        if self._controls_tick:self.reader_controls.remove_tick_callback(self._controls_tick)
+        self._controls_tick=0;self._controls_frames=0
+
+    def _settle_controls(self,*_):
+        self.fit_reader_controls();self._controls_frames-=1
+        if self._controls_frames>0:return True
+        self._controls_tick=0
+        return False
+
     def fit_reader_controls(self,*_):
         tab=self.active_tab
         if not tab or self.primary_version.get_parent() is not self.reader_controls:return True
@@ -472,6 +521,8 @@ class Window(Adw.ApplicationWindow):
                          self.notes_store, self.reveal_passage_annotations, self.preferences.value,
                          position_changed=lambda _tab:self.schedule_save())
         self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
+        for scroll in (tab.scroll,tab.comparison_scroll):
+            scroll.get_hadjustment().connect('changed',self.queue_controls)
         self.reading_style.decorate(tab.text)
         # The viewport, headers, gutters and empty comparison space belong to
         # the same reading palette as the text, not the native window surface.
@@ -562,6 +613,7 @@ class Window(Adw.ApplicationWindow):
                 tab.show(reference)
 
     def update_navigation(self):
+        self.queue_layout()
         tab = self.active_tab
         if not tab:
             return
@@ -592,7 +644,11 @@ class Window(Adw.ApplicationWindow):
         previous, following = tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
         self.lookup_action('previous-chapter').set_enabled(previous is not None)
         self.lookup_action('next-chapter').set_enabled(following is not None)
-        self.navigation.sync()
+        # Tab/source changes keep the initial model ready for direct commands.
+        # Hidden verse following must not rebuild book/chapter/search widgets;
+        # opening the passage menu always performs a forced fresh sync.
+        stamp=self.navigation._stamp
+        if self.navigation.get_visible() or stamp is None or stamp[:2]!=(id(tab),tab.state.resource):self.navigation.sync()
         self.sync_comparison()
         self.lookup_action('history-back').set_enabled(tab.state.history_index>0)
         self.lookup_action('history-forward').set_enabled(tab.state.history_index+1<len(tab.state.history))
@@ -985,6 +1041,10 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        self.unwatch_layout_surface()
+        settings=Gtk.Settings.get_default()
+        for handler in self._layout_settings_handlers:settings.disconnect(handler)
+        self._layout_settings_handlers=[]
         if hasattr(self,'_inline_marker_executor'):self._inline_marker_executor.shutdown(wait=False,cancel_futures=True)
         for tab in self.tabs():tab.inline_markers.executor.shutdown(wait=False,cancel_futures=True)
         self.reference_preview.dismiss()

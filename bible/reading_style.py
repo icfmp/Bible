@@ -110,6 +110,7 @@ class ReadingStyle:
             if number:configure(number,view,preferences,self.palette)
 
     def changed(self, *_):
+        if hasattr(self.owner,'queue_layout'):self.owner.queue_layout()
         mode=self.owner.preferences.value.mode
         base=self.owner.application_settings.value['interface_appearance']
         self.dark=(mode=='night' or mode=='system' and (base=='dark' or base=='system' and self.manager.get_dark()))

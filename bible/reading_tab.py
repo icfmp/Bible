@@ -109,7 +109,13 @@ class ReadingTab(Gtk.Box):
         self.comparison_rows=ComparisonRows(self)
         self._comparison_reader=None
         self._comparison_name=None
-        self.add_tick_callback(self.adapt_comparison)
+        self._adapt_id=0;self._adapt_frames=0
+        self.connect('map',self.queue_adapt)
+        self.connect('unmap',self.cancel_adapt)
+        for scroll in (self.scroll,self.comparison_scroll):
+            scroll.get_hadjustment().connect('changed',self.queue_adapt)
+            scroll.connect('notify::vadjustment',self.watch_layout_adjustment)
+            self.watch_layout_adjustment(scroll)
         context=Gio.Menu()
         context.append(tr('Add a passage note'),'win.note')
         context.append(tr('Study word'),'win.study-word')
@@ -229,6 +235,35 @@ class ReadingTab(Gtk.Box):
             self.status.set_text(f'{tr("Unable to read this passage.")} {error}')
             self.status.set_visible(True)
             return False
+
+    def watch_layout_adjustment(self,scroll,*_):
+        # Comparison mode swaps between a shared and an independent adjustment.
+        previous=getattr(scroll,'_layout_adjustment',None)
+        if previous:
+            adjustment,handlers=previous
+            for handler in handlers:adjustment.disconnect(handler)
+        adjustment=scroll.get_vadjustment()
+        handlers=[adjustment.connect('changed',self.queue_adapt)]
+        if scroll is self.comparison_scroll:
+            handlers.append(adjustment.connect('value-changed',lambda *_:self.queue_adapt(frames=1)))
+        scroll._layout_adjustment=(adjustment,handlers)
+
+    def queue_adapt(self,*_,frames=8):
+        if not self.get_mapped():return
+        self._adapt_frames=max(self._adapt_frames,frames)
+        if not self._adapt_id:self._adapt_id=self.add_tick_callback(self._settle_layout)
+
+    def cancel_adapt(self,*_):
+        if self._adapt_id:self.remove_tick_callback(self._adapt_id)
+        self._adapt_id=0;self._adapt_frames=0
+
+    def _settle_layout(self,*_):
+        self._adapt_frames-=1
+        self.adapt_comparison()
+        rows_pending=getattr(self,'_shared_comparison',False) and self.comparison_rows.settling>0
+        if self._adapt_frames>0 or rows_pending:return True
+        self._adapt_id=0
+        return False
 
     def adapt_comparison(self,*_):
         geometry=(self.scroll.get_width(),self.scroll.get_height(),self.preferences.column_width)
@@ -532,12 +567,23 @@ class ReadingTab(Gtk.Box):
     def visible_reference(self):
         if not self._verse_offsets:return None
         rect=self.text.get_visible_rect()
-        starts=[(reference,self.text.get_iter_location(self.text.get_buffer().get_iter_at_offset(offset)).y)
-                for reference,offset in self._verse_offsets.items()]
-        visible=[ref for ref,y in starts if rect.y <= y < rect.y+rect.height]
-        if visible:return visible[0]
-        preceding=[ref for ref,y in starts if y<=rect.y]
-        return preceding[-1] if preceding else starts[0][0]
+        _,top=self.text.get_iter_at_location(rect.x,rect.y)
+        if not self.text.starts_display_line(top):self.text.backward_display_line_start(top)
+        # Resolve only starts at the viewport, without forcing GTK to shape
+        # every offscreen verse on each synchronization event. Display-line
+        # starts keep logical order for RTL and mixed-direction text as well.
+        from bisect import bisect_left
+        entries=list(self._verse_offsets.items())
+        index=bisect_left([offset for _,offset in entries],top.get_offset())
+        buffer=self.text.get_buffer()
+        while index<len(entries):
+            reference,offset=entries[index]
+            y=self.text.get_iter_location(buffer.get_iter_at_offset(offset)).y
+            if y>=rect.y:
+                if y<rect.y+rect.height:return reference
+                break
+            index+=1
+        return entries[max(0,index-1)][0]
 
     def reveal_reference(self, reference):
         same_document=reference in self._verse_offsets
@@ -643,6 +689,8 @@ class ReadingTab(Gtk.Box):
         return False
 
     def scroll_changed(self, *_):
+        # Viewport anchors follow input frames, without a permanent idle tick.
+        self.queue_adapt(frames=1)
         if self._restoring_scroll or not self.get_mapped():
             return
         adjustment = self.scroll.get_vadjustment()
