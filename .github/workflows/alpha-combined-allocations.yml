@@ -1,5 +1,7 @@
 name: Profile installed combined native allocations
 on:
+  push:
+    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 120); do
-            run=$(gh api 'repos/${{ github.repository }}/actions/runs?head_sha=f74b09267f3b02850095af674d3a35ac5791829f&per_page=100' --jq '.workflow_runs[] | select(.name=="Vérifier le socle GNOME" and .event=="workflow_dispatch") | [.id,.status,(.conclusion // "pending")] | @tsv' | head -1)
+            run=$(gh api 'repos/${{ github.repository }}/actions/runs?head_sha=f6754e1087d2366d10cedf1f2ba9b9a7c4afe79d&per_page=100' --jq '.workflow_runs[] | select(.name=="Vérifier le socle GNOME" and .event=="workflow_dispatch") | [.id,.status,(.conclusion // "pending")] | @tsv' | head -1)
             if [ -n "$run" ]; then
               read -r build_run status conclusion <<< "$run"
               if [ "$status" = completed ]; then test "$conclusion" = success; break; fi
@@ -50,7 +52,7 @@ jobs:
           import os
           root=pathlib.Path(sys.argv[1]);expected={
             'current-bundle':('758fb1600b00027b47ac0f4998f34bed6806d8e5','d8d5eeb9ca0e9349d2b7fe36dfc7ebe8a96e4993997678e6437c0f396b5f3b87'),
-            'candidate-bundle':('f74b09267f3b02850095af674d3a35ac5791829f',None)}
+            'candidate-bundle':('f6754e1087d2366d10cedf1f2ba9b9a7c4afe79d',None)}
           receipt={}
           for name,(source,digest) in expected.items():
               folder=root/name;info=json.loads((folder/'build-info.json').read_text())
