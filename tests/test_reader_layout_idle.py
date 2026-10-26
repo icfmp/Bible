@@ -23,7 +23,26 @@ class ReaderLayoutIdleTests(unittest.TestCase):
 
     def settled(self):
         w=self.window;t=self.tab
-        return not (t._restoring_scroll or t._adapt_id or w._controls_tick or w.study_divider._adapt_id)
+        return not (t._restoring_scroll or t._adapt_id or w._controls_tick or w.study_divider._adapt_id or w.study._adapt_tick)
+
+    def test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries(self):
+        from tests.test_commentary import commentary_fixture
+        commentary_fixture(self.root,entries=[(f'Gen.1.{v}',f'ENTRY {v} '+('long test content '*50)) for v in range(1,20)])
+        w=self.window;s=w.study
+        w.study_button.set_active(True);s.tools.set_visible_child_name('commentaries');s.refresh(force=True)
+        s.choices.set_selected(s.names.index('Notes'))
+        spin(lambda:self.settled() and not s._positioning,duration=.5)
+        with patch.object(s,'anchor',wraps=s.anchor) as anchor:
+            spin(duration=.4);anchor.assert_not_called()
+            adj=s.scroll.get_vadjustment();adj.set_value((adj.get_upper()-adj.get_page_size())*.6)
+            spin(self.settled,duration=.3);self.assertTrue(anchor.called)
+            before=s.anchor()
+            w.set_default_size(700,600)
+            spin(lambda:self.settled() and not s._positioning,duration=.4)
+            self.assertEqual(s.anchor()[0],before[0])
+            anchor.reset_mock();spin(duration=.4);anchor.assert_not_called()
+            w.study_button.set_active(False);spin(duration=.3)
+            anchor.reset_mock();spin(duration=.3);anchor.assert_not_called()
 
     def test_idle_has_no_geometry_or_caption_polling(self):
         w=self.window;t=self.tab

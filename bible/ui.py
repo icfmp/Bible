@@ -346,11 +346,13 @@ class Window(Adw.ApplicationWindow):
         self._layout_surface=None;self._layout_surface_handlers=[]
         self.cancel_controls()
         if hasattr(self,'study_divider'):self.study_divider.cancel_adapt()
+        if hasattr(self,'study'):self.study.cancel_adapt()
 
     def queue_layout(self,*_):
         if not self.get_mapped() or self.closed:return
         self.queue_controls()
         if hasattr(self,'study_divider'):self.study_divider.queue_adapt()
+        if hasattr(self,'study'):self.study.queue_adapt()
         if hasattr(self,'view'):
             for tab in self.tabs():tab.queue_adapt()
 
