@@ -1,0 +1,11 @@
+{
+  "validated": 1255,
+  "total": 1255,
+  "errors": {},
+  "examples": {},
+  "elapsed_seconds": 6.797774181992281,
+  "schema_hashes": {
+    "xml.xsd": "61960fb3131e38022caad5360e2f33a3382578ab3c80cd58bd74320ede61b20c",
+    "osisCore.2.1.1.xsd": "f3122ca8c1054429dfc9711254268d78df4efb6fdabeeb93cd7ccd6d2ba48202"
+  }
+}

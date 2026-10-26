@@ -1,0 +1,22 @@
+--- a/src/modules/filters/osisheadings.cpp
++++ b/src/modules/filters/osisheadings.cpp
+@@ -76,6 +76,8 @@
+ 
+ OSISHeadings::OSISHeadings() : SWOptionFilter(oName, oTip, oValues()) {
+ 	setPassThruUnknownToken(true);
++	// Preserve XML entities for the subsequent rendering/plain-text filter.
++	setPassThruUnknownEscapeString(true);
+ }
+ 
+ 
+--- a/utilities/osis2mod.cpp
++++ b/utilities/osis2mod.cpp
+@@ -1679,6 +1679,8 @@
+ 				}
+ 				else {
+ 					text.append(entityToken);
++					// An entity is text between the surrounding whitespace runs.
++					inWhitespace = false;
+ 				}
+ 
+ 				if (curChar == ';') {

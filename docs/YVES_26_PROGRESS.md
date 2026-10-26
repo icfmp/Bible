@@ -1,0 +1,37 @@
+# ZIP/YVES conversion and packaged SWORD proof — issue #26
+
+Status: **research/proof branch, not a complete in-app installer or a delivered #26 feature**. This resumes the preserved work after the performance correction in signed alpha 40355737256-2. Numbered release #87 remains paused. No production profile, note, preference or downloaded translation is changed by these probes.
+
+## Implemented and checked
+
+The independent bounded adapter consumes edition JSON and its returned HTTPS offline URL, decodes YVES with strict UTF-8, and retains the original ordered tree and fragment references. ZIP handling checks every member before reading, rejects traversal, duplicates, links and encrypted entries, and enforces byte/count/depth/node limits. It never extracts archive paths into the filesystem. Unknown structures fail explicitly.
+
+The semantic writer preserves paragraphs, poetry levels, section titles, additions, divine-name and Jesus-word markers, emphasis, foreign/transliterated words, quoted book titles, ordinal suffixes, list levels, embedded/no-break paragraphs, blank lines and footnote quotation/verse-number roles. Mappings follow the reviewed [USFM character](https://ubsicap.github.io/usfm/characters/index.html), [footnote](https://ubsicap.github.io/usfm/notes_basic/fnotes.html), [paragraph](https://ubsicap.github.io/usfm/paragraphs/index.html), [introduction](https://ubsicap.github.io/usfm/introductions/index.html) and [list](https://ubsicap.github.io/usfm/lists/index.html) definitions. It retains unknown data instead of silently flattening it or inventing wording/languages/list parents.
+
+Explicit plus-joined verse units preserve each enumerated identifier with one text stream and one paired OSIS milestone. Missing verses are not manufactured. A verse can continue across a section heading without reopening/duplicating it. Notes in headings retain their body/printed locator and an actual following source anchor; note bodies never become Scripture text. Genuinely out-of-order units and unreviewed suffix/range syntax still fail.
+
+Two independently reproduced SWORD 1.9.0 entity-fidelity defects need the small accompanying patch: OSISHeadings drops XML entities unless escape strings pass through, and osis2mod carries whitespace state across a text entity and drops the following separator. The package enables the standard SWORD utilities so `/app/bin/osis2mod` is available inside the same Flatpak as the bindings. No new application dependency is introduced; lxml is an isolated research oracle only.
+
+## Actual local results
+
+- **24 synthetic tests pass:** binary vectors/all byte pairs/odd tails, malformed Unicode/HTML, edition identity, returned URL restrictions, archive attacks/CRC/limits, source ordering, fragment/bridge/heading-note behavior and reviewed roles.
+- The existing privately acquired BDS archive has 4,478,762 bytes, SHA-256 `1351a23ef1ea6e2d010f4f7ae48beec6c09bf56ba9743191ae6d1b1eed31040a`. All **1,255 indexed entries** decode and convert: 1,189 chapters and 66 introductions, **31,112 source verse units**, **24 explicit bridges**, **7,363 notes**. XML unit identifiers, paired milestones and note counts match the source. This improves the pre-pause 741-entry coverage; no source chapter is silently skipped.
+- All **1,255 individual documents validate** against OSIS 2.1.1 with local-only W3C schema resolution. Schema SHA-256 `f3122ca8c1054429dfc9711254268d78df4efb6fdabeeb93cd7ccd6d2ba48202`; W3C XML schema `61960fb3131e38022caad5360e2f33a3382578ab3c80cd58bd74320ede61b20c`.
+- Independent DOM → OSIS → patched SWORD checks pass on **eight actual chapters, 206 verse units and 47 notes**, including EXO.27's bridge, 1CH.25's long bridge, EXO.36's heading notes, GEN.35's split verse, JOL.4 and NUM.17. Text comparisons normalize only NFC/semantic whitespace; case, punctuation and words are retained. Bridge aliases are verified with native `isLinked`, not deduplicated by comparing strings.
+- Actual local GTK reads all **60 units** of John 1/Psalm 3 offline. Complete John introduction preservation and editorial-note bodies/locators are checked at raw SWORD level. This local GTK proof is not installed-Flatpak or client-GNOME validation, and the application does not yet expose book introductions/editorial notes through its GUI.
+
+[Counts, hashes and scoped proof receipts](evidence/youversion-yves-26/). No source HTML, full archive, generated OSIS, compiled module or Scripture/note body is committed or uploaded.
+
+## Important measured gaps
+
+**Numbering:** comparison with all 18 native SWORD systems rejects assigning KJV or Segond to the edition. Segond's bounds cannot contain 109 actual identifiers in 27 chapters, including JOL.4. MT/Leningrad match the 929 OT chapter maxima but contain no NT. German/Luther contain all actual references, with two extra maxima (2Kgs.15 and Neh.7); this is an index-fit result, not proof of semantic cross-edition alignment. The extended proof uses explicitly scoped storage systems and makes no edition-wide alignment claim. The apparent TreeKey registration overload in SWORD 1.9.0 is an empty implementation; its exposed signature is not a usable registration solution.
+
+**Linked verses:** in the current application reader, EXO.27 returns 21 entries for 20 source units, displaying the shared 14–15 text twice. Raw SWORD stores/links it correctly. Ordinary/parallel/paginated rendering, direct alias navigation, copy/search/excerpts and annotations must be coordinated before a complete resource can be called usable. Identical but independently stored verses must never be discarded. No application workaround or data migration has been introduced in this proof commit.
+
+**Installed proof:** `.github/workflows/yves-proof.yml` waits for the exact feature commit's ordinary checks/package, verifies its hash, imports application/bindings only from `/app`, then runs the synthetic and real sample probes without network. The acquisition step is separate and uses only the current returned URL. Only statistics receipts are public artifacts; raw material remains in runner temporary storage. Installed results are pending until that workflow actually succeeds.
+
+## Boundaries and next work
+
+The client has assigned authorization checks to each user. This is recorded separately from provider approval, which has not been obtained/asserted. Source fields `require_email_agreement`, `agreement_version`, `allow_redownload` and `always_allow_updates` remain intact; the probe does not submit an agreement or claim the user has fulfilled it. It uses no extracted key, cookies, app impersonation, website scraping, guessed archive suffix or access-control workaround, and stops on HTTP refusal. The observed legacy metadata/ZIP interfaces are not represented as a supported public API contract.
+
+Complete the actual packaged proof, establish safe edition numbering/alignment behavior, fix linked-unit behavior and expose preserved introductions/editorial notes, then implement the separate in-Library installer with bounded acquisition/conversion, cancellation/resumption, source identity/attribution, complete coverage/readback and atomic registration. Partial conversion must never appear installed. Preserve the existing notes/session/resource contracts and perform offline installed verification before completing #26. This branch/issue does not authorize a beta or automatic #26 publication. Leave #26 OPEN for client validation.

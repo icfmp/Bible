@@ -1,0 +1,11 @@
+{
+  "retrieved": "2026-10-26",
+  "source_base": "https://ubsicap.github.io/usfm/",
+  "html_sha256": {
+    "footnotes.html": "293fdd82f54e443bf92f0a38be8a47b430885918da3b9b7c3e27b9a4df112bff",
+    "paragraphs.html": "e4cf7943e4e3e00939f355892f1c2cd24ac994af6e32362d1b389cf8727b7571",
+    "characters.html": "c31b4acfa450b4cf141555c8c636b35181ede8662fb6861d4bcde9f877f1a7db",
+    "introductions.html": "119b20c1b7bdfb487fcad5c6e008fcf7b57501eb22d153be24767c6ecc637110",
+    "lists.html": "74a3b072620de2ae647239dcd3468f6f29e1433b36ebae9ba6d78992b3043aa6"
+  }
+}

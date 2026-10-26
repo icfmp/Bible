@@ -36,7 +36,7 @@
       "config-opts": [
         "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
         "-DCMAKE_CXX_STANDARD=17",
-        "-DSWORD_BUILD_UTILS=No",
+        "-DSWORD_BUILD_UTILS=Yes",
         "-DSWORD_BUILD_TESTS=OFF",
         "-DSWORD_NO_CURL=Yes",
         "-DSWORD_SWIG_BINDINGS=OFF",
@@ -58,6 +58,10 @@
         {
           "type": "patch",
           "path": "sword-system-zlib.patch"
+        },
+        {
+          "type": "patch",
+          "path": "sword-osis-fidelity.patch"
         }
       ],
       "builddir": true
