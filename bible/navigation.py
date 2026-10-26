@@ -66,6 +66,9 @@ class PassagePopover(Gtk.Popover):
         self.book_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=22)
         self.book_title.add_css_class('title-1')
         right.append(self.book_title)
+        self.introduction_button=Gtk.Button(label=tr('Book introduction'),halign=Gtk.Align.START)
+        self.introduction_button.connect('clicked',self.open_introduction)
+        right.append(self.introduction_button)
         self.chapter_grid = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
                                          min_children_per_line=2, max_children_per_line=5,
                                          column_spacing=8, row_spacing=8,
@@ -336,6 +339,7 @@ class PassagePopover(Gtk.Popover):
             self.chapter_grid.remove(child.get_child())
         self.chapter_buttons = {}
         book = self.books[self.book_index] if self.book_index < len(self.books) else None
+        self.introduction_button.set_sensitive(bool(book and self.reader))
         self.book_title.set_text(self.book_name(book) if book else tr('Choose a passage'))
         self.chapters = list(book.chapters) if book else []
         self.chapter_number = preferred if preferred in self.chapters else (self.chapters[0] if self.chapters else None)
@@ -348,6 +352,12 @@ class PassagePopover(Gtk.Popover):
         self.populate_verses(verse)
         self.mark_chapter()
         self.reveal_book()
+
+    def open_introduction(self,*_):
+        if self.reader and self.book_index<len(self.books):
+            from .editorial_view import show_introduction
+            reader,book=self.reader,self.books[self.book_index].code
+            self.popdown();show_introduction(self.owner,reader,book)
 
     def mark_chapter(self):
         tab = self.owner.active_tab

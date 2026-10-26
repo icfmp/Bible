@@ -1,0 +1,174 @@
+"""Synthetic acquisition failures/resume and source identity; no publisher text."""
+from dataclasses import replace
+import io
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+import urllib.error
+import urllib.request
+
+from bible.library import Library,catalogue
+from bible.providers import YOUVERSION
+from bible.youversion_install import (acknowledgement,cached_download,
+    resource_from_metadata,SourceRedirect,run_conversion)
+from bible.youversion_content import parse,project
+from tools.research.test_yves_source import metadata
+
+
+def edition_metadata():
+    value=metadata();value.update(id=21,vrs='org')
+    value['offline']['url']='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+    return value
+
+
+class Response(io.BytesIO):
+    def __init__(self,body,url,status=200,headers=None):
+        super().__init__(body);self.url=url;self.status=status
+        self.headers=headers or {'Content-Length':str(len(body)),'ETag':'"test-1"'}
+
+
+class AcquisitionTests(unittest.TestCase):
+    def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
+        data=edition_metadata();payload=json.dumps(data).encode();requests=[]
+        def fetch(url,out,**options):requests.append(url);out.write(payload)
+        with patch('bible.library.download',side_effect=fetch):resource,=catalogue(YOUVERSION)
+        self.assertEqual(requests,[YOUVERSION.catalogue_url])
+        self.assertEqual(resource.id,'youversion~YV21')
+        self.assertEqual(resource.versification,'Original')
+        self.assertEqual(json.loads(resource.acquisition),data)
+        self.assertNotIn('provider_approval',resource.acquisition)
+        changed=edition_metadata();changed['offline']['agreement_version']=3
+        self.assertNotEqual(acknowledgement(resource),acknowledgement(resource_from_metadata(changed)))
+
+    def test_unknown_numbering_and_no_returned_package(self):
+        data=edition_metadata();data['vrs']='unknown'
+        with self.assertRaises(ValueError):resource_from_metadata(data)
+        data=edition_metadata();data['offline']=None
+        self.assertFalse(resource_from_metadata(data).installable)
+
+    def test_retained_complete_download_never_requests_redownload(self):
+        url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+        with tempfile.TemporaryDirectory() as directory:
+            calls=[]
+            def opener(request,**kw):calls.append(request);return Response(b'SYNTHETIC ZIP BYTES',url)
+            path=cached_download(url,Path(directory),lambda *x:None,lambda:False,opener=opener)
+            self.assertEqual(cached_download(url,Path(directory),lambda *x:None,lambda:False,
+                opener=lambda *a,**k:self.fail('Unexpected redownload')),path)
+            self.assertEqual(len(calls),1)
+
+    def test_interrupted_transfer_resumes_with_validator_and_exact_range(self):
+        url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+        with tempfile.TemporaryDirectory() as directory:
+            cache=Path(directory)
+            class Interrupted(Response):
+                def read1(self,size):
+                    if self.tell():raise OSError('Interrupted connection')
+                    return self.read(3)
+            with self.assertRaises(OSError):
+                cached_download(url,cache,lambda *x:None,lambda:False,
+                    opener=lambda *a,**k:Interrupted(b'abcdef',url))
+            def resumed(request,**kw):
+                self.assertEqual(request.get_header('Range'),'bytes=3-')
+                self.assertEqual(request.get_header('If-range'),'"test-1"')
+                return Response(b'def',url,206,{'Content-Range':'bytes 3-5/6','Content-Length':'3','ETag':'"test-1"'})
+            self.assertEqual(cached_download(url,cache,lambda *x:None,lambda:False,opener=resumed).read_bytes(),b'abcdef')
+
+    def test_cancel_and_oversize_never_mark_download_complete(self):
+        url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(OSError):cached_download(url,Path(directory),lambda *x:None,lambda:True)
+            with self.assertRaises(ValueError):
+                cached_download(url,Path(directory),lambda *x:None,lambda:False,
+                    opener=lambda *a,**k:Response(b'',url,headers={'Content-Length':str(33*1024*1024)}))
+            self.assertFalse(list(Path(directory).glob('*.json')))
+
+    def test_redirect_cannot_move_to_http_or_another_host(self):
+        request=urllib.request.Request('https://offline-bibles-cdn.youversionapi.com/source')
+        for url in ['http://offline-bibles-cdn.youversionapi.com/source','https://example.invalid/source']:
+            with self.assertRaises(ValueError):SourceRedirect().redirect_request(request,None,302,'',{},url)
+
+    def test_authentication_refusal_is_not_retried_or_bypassed(self):
+        url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+        for code in (401,403):
+            with tempfile.TemporaryDirectory() as directory:
+                with patch('urllib.request.OpenerDirector.open',side_effect=urllib.error.HTTPError(url,code,'Refused',{},None)) as opened:
+                    with self.assertRaises(urllib.error.HTTPError):cached_download(url,Path(directory),lambda *x:None,lambda:False)
+                    self.assertEqual(opened.call_count,1)
+
+    def test_rate_limit_honours_retry_after_and_long_wait_is_reported(self):
+        from bible.youversion_install import open_response
+        request=urllib.request.Request('https://example.invalid/source')
+        limited=urllib.error.HTTPError(request.full_url,429,'Wait',{'Retry-After':'0'},None)
+        with patch('urllib.request.urlopen',side_effect=[limited,'response']) as opened:
+            self.assertEqual(open_response(opened,request,lambda:False),'response')
+            self.assertEqual(opened.call_count,2)
+        limited=urllib.error.HTTPError(request.full_url,429,'Wait',{'Retry-After':'120'},None)
+        with patch('urllib.request.urlopen',side_effect=limited) as opened:
+            with self.assertRaises(urllib.error.HTTPError):open_response(opened,request,lambda:False)
+            self.assertEqual(opened.call_count,1)
+
+    def test_failed_conversion_does_not_register_or_modify_existing_data(self):
+        resource=resource_from_metadata(edition_metadata())
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);library=Library(root/'translations')
+            notes=root/'notes.sqlite3';notes.write_bytes(b'PERSONAL DATA')
+            original=root/'preferences.json';original.write_bytes(b'ORIGINAL SETTINGS')
+            def fetch(url,out,**kw):out.write(resource.acquisition.encode())
+            archive=root/'source.zip';archive.write_bytes(b'Synthetic retained archive')
+            with patch('bible.library.download',side_effect=fetch),patch('bible.youversion_install.cached_download',return_value=archive),patch('bible.youversion_install.run_conversion',side_effect=ValueError('Failed')):
+                with self.assertRaises(ValueError):library.install(resource,permission=acknowledgement(resource))
+            self.assertEqual(library.installed(),[])
+            self.assertEqual(list(library.root.iterdir()),[])
+            self.assertEqual(notes.read_bytes(),b'PERSONAL DATA');self.assertEqual(original.read_bytes(),b'ORIGINAL SETTINGS')
+            self.assertTrue(archive.exists())
+
+    def test_permission_and_changed_metadata_stop_before_acquisition(self):
+        resource=resource_from_metadata(edition_metadata())
+        with tempfile.TemporaryDirectory() as directory:
+            library=Library(directory)
+            with patch('bible.library.download') as fetch:
+                with self.assertRaises(ValueError):library.install(resource)
+                fetch.assert_not_called()
+            changed=json.loads(resource.acquisition);changed['offline']['agreement_version']=5
+            with patch('bible.library.download',side_effect=lambda url,out,**kw:out.write(json.dumps(changed).encode())),patch('bible.youversion_install.cached_download') as acquired:
+                with self.assertRaises(ValueError):library.install(resource,permission=acknowledgement(resource))
+                acquired.assert_not_called()
+
+    def test_commit_is_atomic_provenance_is_offline_and_repeat_is_noop(self):
+        resource=resource_from_metadata(edition_metadata())
+        with tempfile.TemporaryDirectory() as directory:
+            library=Library(Path(directory)/'translations');events=[]
+            def converted(archive,metadata,target,*args):
+                self.assertEqual(library.installed(),[])
+                (target/'mods.d').mkdir(parents=True)
+                (target/'mods.d/yv21.conf').write_text('[YV21]\nModDrv=RawText\nVersification=Original\nDescription=Synthetic\n')
+            with patch('bible.library.download',side_effect=lambda url,out,**kw:out.write(resource.acquisition.encode())),patch('bible.youversion_install.cached_download',return_value=Path(directory)/'cache.zip'),patch('bible.youversion_install.run_conversion',side_effect=converted):
+                library.install(resource,installing=lambda:events.append('commit'),permission=acknowledgement(resource))
+            self.assertEqual(events,['commit']);self.assertEqual(library.installed(),[resource.id])
+            installed=library.resource(resource.id)
+            self.assertEqual(installed.acquisition,resource.acquisition)
+            recorded=json.loads((library.root/resource.id/'.source.json').read_text())
+            self.assertFalse(recorded['provider_agreement_submitted'])
+            with patch('bible.library.download',side_effect=AssertionError('Offline')):library.install(resource)
+
+
+class EditorialTests(unittest.TestCase):
+    def test_native_fragments_notes_headings_and_inline_words(self):
+        root=parse('<root><?source-unit John.1.1?><list><item>Premier <hi type="italic">mot</hi><?source-unit John.1.2?>suite<note n="1.2" osisRef="John.1.2" type="study">Note &amp; fin</note></item></list><title>Titre<note n="1.3">Note du titre</note></title></root>')
+        bodies,notes,titles=project(root)
+        self.assertEqual(bodies,{'John.1.1':'Premier mot','John.1.2':'suite'})
+        self.assertEqual([note.text for note in notes],['Note & fin','Note du titre'])
+        self.assertEqual(titles,('Titre',));self.assertEqual(notes[0].reference,'John.1.2')
+        with self.assertRaises(ValueError):parse('<!DOCTYPE root [<!ENTITY x "bad">]><root>&x;</root>')
+
+    def test_original_reference_data_is_reproducible_and_boundaries_are_explicit(self):
+        from tools.versification.original import build,ROOT
+        data=build();self.assertEqual(data,json.loads((ROOT/'bible/versification_data/Original.json').read_text()))
+        self.assertEqual(data['forward']['Joel.4.1'],['Joel.3.1'])
+        self.assertEqual(data['forward']['Neh.7.72'],['Neh.7.73'])
+        self.assertEqual(data['forward']['Neh.7.68'],['Neh.7.68','Neh.7.69'])
+        self.assertEqual(data['forward']['Ps.3.9'],['Ps.3.8'])
+        self.assertEqual(data['forward']['Num.25.19'],[])
+        self.assertEqual(data['forward']['3John.1.15'],['3John.1.14!b'])

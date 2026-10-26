@@ -212,14 +212,49 @@ class Reader:
         checkpoint(cancelled)
         source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
         result = {}
+        parser=None;prefix=()
+        if source_type=='OSIS' and self.versification=='Original':
+            from .structured_text import SourceParser,checked_segments
+            parser=SourceParser()
+            key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
+            key.setIntros(True);key.setAutoNormalize(False);key.setText(chapter.reference+'.0')
+            self.module.setKey(key);raw=self.module.getRawEntry()
+            parser.feed(raw if isinstance(raw,str) else raw.c_str())
+            prefix=tuple(segment for segment in parser.segments if segment.kind=='heading')
+            parser.segments=[]
         for reference, plain in chapter.unique_verses():
             checkpoint(cancelled)
             self.module.setKey(self.key(reference))
             raw = self.module.getRawEntry()
             raw = raw if isinstance(raw,str) else raw.c_str()
-            result[reference] = extract(raw,plain,source_type)
+            if parser is None:result[reference] = extract(raw,plain,source_type)
+            else:
+                parser.feed(raw)
+                result[reference]=prefix+checked_segments(parser.segments,plain)
+                prefix=();parser.segments=[]
         for alias,primary in chapter.links:result[alias]=result[primary]
         return result
+
+    def introduction(self, book):
+        """Actual book introduction, outside canonical passage/personal-note IDs."""
+        if not re.fullmatch(r'[1-4]?[A-Za-z]+',book):raise ValueError('Invalid book')
+        from .youversion_content import parse
+        key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
+        key.setIntros(True);key.setAutoNormalize(False);key.setText(book+'.0.0')
+        if key.popError()!='\x00' or not self.module.hasEntry(key):return None
+        self.module.setKey(key);raw=self.module.getRawEntry()
+        raw=raw if isinstance(raw,str) else raw.c_str()
+        return parse('<root>'+raw+'</root>') if raw.strip() else None
+
+    def editorial_notes(self, reference):
+        """Only the requested chapter; no corpus scan or persistent native cache."""
+        if self.module.getConfigEntry('SourceType')!='OSIS':return ()
+        from .youversion_content import native_chapter,project
+        chapter=self.chapter(reference)
+        key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
+        key.setIntros(True);key.setAutoNormalize(False)
+        root=native_chapter(self.module,key,chapter.reference,[ref for ref,_ in chapter.unique_verses()])
+        return project(root)[1]
 
 
 class CommentaryReader(Reader):

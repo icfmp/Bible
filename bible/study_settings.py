@@ -20,7 +20,7 @@ class StudySettings:
             value = json.loads(self.path.read_text())
             if (not isinstance(value, dict) or value.get('version') != 1
                     or type(value.get('width')) is not int or not 280 <= value['width'] <= 2000
-                    or value.get('tool') not in ('notes', 'commentaries', 'references')):
+                    or value.get('tool') not in ('notes', 'commentaries', 'references','translation-notes')):
                 raise ValueError('Unsupported study preferences')
             self.width, self.tool = value['width'], value['tool']
             choice = value.get('last_commentary')

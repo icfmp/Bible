@@ -36,6 +36,14 @@ class BiblePages:
             number=(label or reference.rsplit('.',1)[-1])+' ' if preferences.verse_numbers else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
+            position=0
+            for segment in segments:
+                if segment.kind=='heading':continue
+                first=max(position,len(leading))-len(leading)
+                last=position+len(segment.text)-len(leading)
+                if last>first:
+                    styles.extend(StyleSpan(kind,body_start+first,body_start+last) for kind in segment.styles)
+                position+=len(segment.text)
             pieces.append(body);offset+=len(body)
             if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
             spans.append(PassageSpan(reference,start,body_start,offset,members[1:],label))

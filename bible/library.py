@@ -41,6 +41,7 @@ class Resource:
     category: str = 'Biblical Texts'
     versification: str = 'KJV'
     provider_id: str = 'crosswire'
+    acquisition: str = ''
 
     @property
     def id(self):
@@ -52,6 +53,10 @@ class Resource:
 
     @property
     def installable(self):
+        if self.provider_id=='youversion':
+            try:
+                if not (json.loads(self.acquisition).get('offline') or {}).get('url'):return False
+            except (ValueError,TypeError,AttributeError):return False
         return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
                 and self.category not in {'Images', 'Maps'})
 
@@ -179,6 +184,12 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     finally:
         if timings is not None:timings.update(metadata_bytes=data.tell(),network_seconds=time.monotonic()-started)
     received=time.monotonic()
+    if provider.id == 'youversion':
+        from .youversion_install import resource_from_metadata
+        resources = [resource_from_metadata(json.loads(data.getvalue()))]
+        if timings is not None:timings.update(parse_seconds=time.monotonic()-received,
+                http_status=200,validators=response_headers)
+        return resources
     resources = []
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data.getvalue()), mode='r:gz') as archive:
@@ -296,9 +307,12 @@ class Library:
         resource = resource_from_section(internal, parser[internal], provider)
         # Read the recorded attribution, not today's registry URL, offline.
         return replace(resource, source=metadata.get('source', resource.source),
-                       source_url=metadata.get('url', resource.source_url))
+                       source_url=metadata.get('url', resource.source_url),
+                       acquisition=metadata.get('acquisition', ''))
 
-    def install(self, resource, progress=lambda done, total: None, installing=lambda: None):
+    def install(self, resource, progress=lambda done, total: None, installing=lambda: None,
+                *, cancelled=lambda: False, phase=lambda name,done,total: None,
+                permission=None):
         provider = BY_ID.get(resource.provider_id)
         if provider is None or resource.source_url != provider.url or resource.source != provider.name:
             raise ValueError('Unsupported resource source')
@@ -308,6 +322,9 @@ class Library:
             raise ValueError('Invalid resource name')
         if resource.id in self.installed():
             return
+        if resource.provider_id == 'youversion':
+            from .youversion_install import install
+            return install(self,resource,progress,installing,cancelled,phase,permission)
         with tempfile.TemporaryDirectory(prefix='.install-', dir=self.root) as temporary:
             stage = Path(temporary)
             archive_path = stage / 'download.zip'

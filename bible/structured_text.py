@@ -8,6 +8,7 @@ import re
 class Segment:
     text: str
     kind: str = 'text'
+    styles: tuple[str,...] = ()
 
 
 class SourceParser(HTMLParser):
@@ -17,11 +18,19 @@ class SourceParser(HTMLParser):
         self.hidden = 0
         self.heading = 0
         self.divisions = []
+        self.inline = []
 
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
         if tag in {'script','style','note'}:self.hidden += 1
         if self.hidden:return
+        styles=[]
+        if tag=='hi':
+            styles={'italic':['italic'],'bold':['bold'],'bolditalic':['bold','italic'],
+                    'small-caps':['small-caps'],'super':['superscript']}.get(attrs.get('type'),[])
+        elif tag=='transchange' and attrs.get('type')=='added':styles=['italic']
+        elif tag=='divinename':styles=['small-caps']
+        if tag in ('hi','transchange','divinename'):self.inline.append((tag,tuple(styles)))
         if tag in {'title','h1','h2','h3','h4'}:
             self.heading += 1
         if tag == 'div':
@@ -36,6 +45,9 @@ class SourceParser(HTMLParser):
     def handle_endtag(self,tag):
         if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1);return
         if self.hidden:return
+        if tag in ('hi','transchange','divinename'):
+            for index in range(len(self.inline)-1,-1,-1):
+                if self.inline[index][0]==tag:del self.inline[index:];break
         if tag in {'title','h1','h2','h3','h4'}:
             self.heading=max(0,self.heading-1);self.segments.append(Segment('\n','break'))
         paragraph = self.divisions.pop() if tag == 'div' and self.divisions else tag in {'p','lg'}
@@ -49,7 +61,8 @@ class SourceParser(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_data(self,text):
-        if not self.hidden:self.segments.append(Segment(text,'heading' if self.heading else 'text'))
+        if not self.hidden:self.segments.append(Segment(text,'heading' if self.heading else 'text',
+            tuple(dict.fromkeys(style for _,styles in self.inline for style in styles))))
 
 
 def extract(raw,plain,source_type):
@@ -62,14 +75,18 @@ def extract(raw,plain,source_type):
     parser=SourceParser()
     try:parser.feed(raw);parser.close()
     except Exception:return (Segment(plain),)
-    body=''.join(s.text for s in parser.segments if s.kind=='text')
+    return checked_segments(parser.segments,plain)
+
+
+def checked_segments(segments,plain):
+    body=''.join(s.text for s in segments if s.kind=='text')
     normalize=lambda v: re.sub(r'\s+','',v)
     if normalize(body)!=normalize(plain):
         # Some StripText filters retain editorial titles. Do not guess which
         # words belong to verses; use the original plain output in that case.
         return (Segment(plain),)
     result = []
-    for segment in parser.segments:
+    for segment in segments:
         if segment.kind in {'break','poetry'} and result and result[-1].kind in {'break','poetry'}:
             previous = result.pop()
             segment = Segment('\n\n' if 'break' in {previous.kind,segment.kind} else '\n',

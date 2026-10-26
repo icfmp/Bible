@@ -100,8 +100,12 @@ class StudyPanel(Gtk.Box):
         self.choices.set_margin_start(12); self.choices.set_margin_end(12)
         self.commentaries.append(self.choices)
         self.tools.add_titled(self.commentaries, 'commentaries', tr('Commentaries'))
+        from .editorial_view import TranslationNotes
+        self.translation_notes=TranslationNotes(owner)
+        source_notes_page=self.tools.add_titled(self.translation_notes,'translation-notes',tr('Translation notes'))
+        source_notes_page.set_icon_name('dialog-information-symbolic')
         tool = owner.study_settings.tool
-        self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries') else 'commentaries')
+        self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries','translation-notes') else 'commentaries')
         def compact_labels(widget):
             if isinstance(widget,Gtk.Label):widget.set_ellipsize(Pango.EllipsizeMode.END);widget.set_width_chars(1)
             if isinstance(widget,Gtk.ToggleButton) and isinstance(widget.get_child(),Gtk.Label):widget.set_tooltip_text(widget.get_child().get_text())
@@ -226,6 +230,8 @@ class StudyPanel(Gtk.Box):
             return
         if self.tool=='word':
             self.words.refresh();return
+        if self.tool=='translation-notes':
+            self.translation_notes.refresh(force=force);return
         if self.tool!='commentaries':
             if self.tool=='notes':self.notes.refresh(force=force)
             self.references.refresh(force=force)

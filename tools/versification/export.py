@@ -76,7 +76,7 @@ def main():
     command = ['java', '-Duser.language=en', '-Duser.country=US', '-cp', classpath]
     subprocess.run(command+['org.junit.runner.JUnitCore']+
                    ['org.crosswire.jsword.versification.'+name for name in selected], check=True)
-    systems = sorted(path.stem for path in (ROOT/'bible/versification_data').glob('*.json'))
+    systems = sorted(path.stem for path in (ROOT/'bible/versification_data').glob('*.json') if path.stem!='Original')
     output = subprocess.check_output(command+['ExportMappings']+systems, text=True)
     for name, row in json.loads(output).items():
         path = ROOT/'bible/versification_data'/(name+'.json'); expected = serialize(row)

@@ -20,3 +20,18 @@
  				}
  
  				if (curChar == ';') {
+--- a/src/mgr/versificationmgr.cpp
++++ b/src/mgr/versificationmgr.cpp
+@@ -73,0 +74,12 @@
++		// SIL Original (BHS OT / UBS GNT), verified chapter maxima. Reference
++		// mappings are handled by Bible's pinned, conservative reference tables.
++		// Preserve German unchanged; Original has two fewer native index slots.
++		int vm_original[sizeof(vm_german) / sizeof(vm_german[0])];
++		memcpy(vm_original, vm_german, sizeof(vm_german));
++		int originalOffset = 0;
++		for (const sbook *book = otbooks_german; book->chapmax; ++book) {
++			if (!strcmp(book->osis, "2Kgs")) vm_original[originalOffset + 14] = 38;
++			if (!strcmp(book->osis, "Neh")) vm_original[originalOffset + 6] = 72;
++			originalOffset += book->chapmax;
++		}
++		systemVersificationMgr->registerVersificationSystem("Original", otbooks_german, ntbooks, vm_original);

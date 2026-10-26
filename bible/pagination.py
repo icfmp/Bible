@@ -144,6 +144,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         elif span.kind=='italic':attrs=[Pango.attr_style_new(Pango.Style.ITALIC)]
         elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
         elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
+        elif span.kind=='superscript':attrs=[Pango.attr_rise_new(int((preferences.size if preferences else 16)*Pango.SCALE*.35)),Pango.attr_scale_new(.75)]
         elif span.kind=='hidden':
             rectangle=Pango.Rectangle()
             attrs=[Pango.attr_shape_new(rectangle,rectangle)]

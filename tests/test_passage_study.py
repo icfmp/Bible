@@ -95,7 +95,8 @@ class PassageStudyTests(unittest.TestCase):
                 self.assertEqual(len(notes.marks),1)
                 self.assertEqual(notes.marks[0]['reference'],'Ps.3.1')
                 self.assertFalse(window.study.immersive_button.get_visible())
-                self.assertEqual(window.study.tools.get_pages().get_n_items(),3)
+                self.assertEqual([window.study.tools.get_pages().get_item(i).get_name() for i in range(4)],
+                                 ['notes','references','commentaries','translation-notes'])
                 notes.add_note();editor=window.note_editor
                 editor.body.get_buffer().set_text('DRAFT WITH FIXED TARGET')
                 captured=dict(editor.context)

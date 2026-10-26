@@ -2,7 +2,7 @@
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
 from .verse_typography import configure
-from gi.repository import Gtk
+from gi.repository import Gtk,Pango
 from gi.repository import GObject
 
 
@@ -44,7 +44,7 @@ def render(view, reader, chapter, preferences, document=None):
     view.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','number','verse-start','hidden']:
+    for kind in ['body','chapter','heading','number','verse-start','hidden','italic','bold','small-caps','superscript']:
         name = 'verse-'+kind if kind != 'verse-start' else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
@@ -52,6 +52,10 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='number':configure(tag,view,preferences,getattr(view,'_reading_palette','white'))
         elif kind=='verse-start':tag.props.allow_breaks=False
         elif kind=='hidden':tag.props.style=2
+        elif kind=='italic':tag.props.style=Pango.Style.ITALIC
+        elif kind=='bold':tag.props.weight=Pango.Weight.BOLD
+        elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
+        elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
             tag.props.pixels_above_lines=20 if kind=='chapter' else 16
