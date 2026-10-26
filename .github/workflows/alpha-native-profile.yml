@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   compare:
     runs-on: ubuntu-24.04
@@ -20,17 +21,42 @@ jobs:
           sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
-      - name: Install actual signed public alpha
+      - name: Download previous verified CI bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          run-id: 40220519597
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/previous-bundle
+      - name: Download current verified CI bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          run-id: 40265503566
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/current-bundle
+      - name: Verify exact published build inputs and install an isolated CI ref
         run: |
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
           mkdir reports
-          flatpak info --user io.github.icfmp.Bible//alpha > reports/installation.txt
-          flatpak remote-info --user bible-alpha io.github.icfmp.Bible//alpha > reports/remote.txt
-          curl --fail --silent --show-error https://icfmp.github.io/Bible/alpha/provenance.json > reports/provenance.json
+          python3 - "$RUNNER_TEMP" <<'PYTHON'
+          import hashlib,json,pathlib,sys
+          root=pathlib.Path(sys.argv[1]);expected={
+            'previous-bundle':('7a633f3281d0a6086cb822a1ac9f055beb53445b','c31ece2a487e61eecb7fbf0d158ce859501b589fffccd8754d2c21f193031a57'),
+            'current-bundle':('758fb1600b00027b47ac0f4998f34bed6806d8e5','d8d5eeb9ca0e9349d2b7fe36dfc7ebe8a96e4993997678e6437c0f396b5f3b87')}
+          receipt={}
+          for name,(source,digest) in expected.items():
+              folder=root/name;info=json.loads((folder/'build-info.json').read_text())
+              assert info['commit']==source and info['sha256']==digest
+              assert hashlib.sha256((folder/'Bible-alpha.flatpak').read_bytes()).hexdigest()==digest
+              receipt[name]=info
+          pathlib.Path('reports/ci-input-verification.json').write_text(json.dumps(dict(inputs=receipt,limitation='Native tracing uses installed CI master refs from the exact bundles imported into the published signed alpha. Initial signed-alpha A/B is recorded separately; public Pages pull returned HTTP 503 twice.'),indent=2))
+          PYTHON
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
+          flatpak info --user io.github.icfmp.Bible//master > reports/installation.txt
       - name: Prepare real resources and persistent annotations once
         run: |
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" <<'PY'
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" <<'PY'
           import json,sys,hashlib
           from pathlib import Path
           from dataclasses import asdict
@@ -60,26 +86,26 @@ jobs:
           set -euo pipefail
           run_case() {
             local label="$1"; shift
-            flatpak info --user --show-commit io.github.icfmp.Bible//alpha > "reports/$label.commit"
-            timeout 270s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreBDM1707 --reference Gen.6.1 "$@" > "reports/$label.log" 2>&1
+            flatpak info --user --show-commit io.github.icfmp.Bible//master > "reports/$label.commit"
+            timeout 270s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreBDM1707 --reference Gen.6.1 "$@" > "reports/$label.log" 2>&1
           }
           previous=56d9a5cb2c52d41f7218ec4345aca46530787b5b5974bb56c652cdad7a9013b6
           current=d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce
-          flatpak update --user --noninteractive --commit="$previous" io.github.icfmp.Bible//alpha
+          flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/previous-bundle/Bible-alpha.flatpak"
           run_case previous-large-extended --cycles 12
-          flatpak update --user --noninteractive --commit="$current" io.github.icfmp.Bible//alpha
+          flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
           run_case current-large-extended --cycles 12
           run_case current-no-layout-polling --stop-layout-polling --cycles 4
           run_case current-large-profile --instrument --cycles 2
-          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --env=ALPHA_NATIVE_TRACE="$RUNNER_TEMP/native-trace.bin" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_native "$PERF_PROFILE" "$PWD/reports/native-allocation-run.json" --require-packaged --cycles 1 --resource FreBDM1707 --reference Gen.6.1 > reports/native-allocation-run.log 2>&1
-          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --command=python3 io.github.icfmp.Bible//alpha -m tools.summarize_alpha_native "$RUNNER_TEMP/native-trace.bin" "$PWD/reports/native-allocations.json"
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --env=ALPHA_NATIVE_TRACE="$RUNNER_TEMP/native-trace.bin" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_native "$PERF_PROFILE" "$PWD/reports/native-allocation-run.json" --require-packaged --cycles 1 --resource FreBDM1707 --reference Gen.6.1 > reports/native-allocation-run.log 2>&1
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --command=python3 io.github.icfmp.Bible//master -m tools.summarize_alpha_native "$RUNNER_TEMP/native-trace.bin" "$PWD/reports/native-allocations.json"
       - name: Sample native CPU stacks on the installed process
         if: always()
         run: |
           set -euo pipefail
           perf_bin=$(find /usr/lib/linux-tools -type f -name perf | head -1)
           test -n "$perf_bin"
-          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/native-cpu-run.json" --require-packaged --cycles 2 --resource FreBDM1707 --reference Gen.6.1 > reports/native-cpu-run.log 2>&1 &
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/native-cpu-run.json" --require-packaged --cycles 2 --resource FreBDM1707 --reference Gen.6.1 > reports/native-cpu-run.log 2>&1 &
           task_pid=$!
           app_pid=''
           for attempt in $(seq 1 100); do
@@ -95,7 +121,7 @@ jobs:
       - name: Verify retained profile data and translations
         if: always()
         run: |
-          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
           import json,sys,hashlib
           from pathlib import Path
           from dataclasses import asdict

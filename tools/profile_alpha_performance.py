@@ -27,7 +27,7 @@ def main():
     p.add_argument('--cycles',type=int,default=4);p.add_argument('--toolbar',action='store_true')
     p.add_argument('--backdrop',choices=['native','radius-zero','disabled'],default='native')
     p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
-    p.add_argument('--input-interpreter',default=sys.executable,help='Local runtime-loader wrapper only; installed runs use their own Python')
+    p.add_argument('--input-interpreter',nargs='+',default=[sys.executable],help='Local runtime loader plus Python only; installed runs use their own Python')
     p.add_argument('--stop-layout-polling',action='store_true',help='Diagnostic ablation at fixed geometry only')
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     started=time.monotonic();import_started=time.monotonic()
@@ -42,7 +42,9 @@ def main():
     if args.stop_layout_polling:
         def register_tick(widget,callback,*data):
             tick=original_tick(widget,callback,*data)
-            if getattr(callback,'__name__','') in ('adapt_comparison','fit_reader_controls'):
+            name=getattr(callback,'__name__','')
+            owner=type(getattr(callback,'__self__',None)).__name__
+            if name in ('adapt_comparison','fit_reader_controls') or name=='adapt' and owner=='StudyDivider':
                 layout_ticks.append((widget,tick))
             return tick
         Gtk.Widget.add_tick_callback=register_tick
@@ -87,7 +89,7 @@ def main():
         allocation_before=tracemalloc.take_snapshot();prof.enable()
     loop=GLib.MainLoop();sid=GLib.timeout_add(50,beat)
     inputfile=args.output.with_suffix('.input.json')
-    child=subprocess.Popen([args.input_interpreter,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
+    child=subprocess.Popen([*args.input_interpreter,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
     loop.run();assert child.wait()==0,'Independent input/sampler process failed';clock.disconnect(paint)
     if args.instrument:
         prof.disable();prof.dump_stats(str(args.output.with_suffix('.prof')))
