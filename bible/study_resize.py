@@ -26,7 +26,22 @@ class StudyDivider(Gtk.Box):
         owner.split.connect('notify::collapsed', lambda *_: self.apply())
         owner.split.connect('notify::show-sidebar', self.sidebar_changed)
         self.geometry = None
-        owner.add_tick_callback(self.adapt)
+        self._adapt_id=0;self._adapt_frames=0
+
+    def queue_adapt(self,*_):
+        if not self.owner.get_mapped():return
+        self._adapt_frames=3
+        if not self._adapt_id:self._adapt_id=self.owner.add_tick_callback(self._settle_layout)
+
+    def cancel_adapt(self,*_):
+        if self._adapt_id:self.owner.remove_tick_callback(self._adapt_id)
+        self._adapt_id=0;self._adapt_frames=0
+
+    def _settle_layout(self,*_):
+        self.adapt();self._adapt_frames-=1
+        if self._adapt_frames>0:return True
+        self._adapt_id=0
+        return False
 
     def adapt(self, *_):
         geometry = (self.owner.get_width(), self.owner.split.get_collapsed())

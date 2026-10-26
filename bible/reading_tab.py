@@ -109,7 +109,13 @@ class ReadingTab(Gtk.Box):
         self.comparison_rows=ComparisonRows(self)
         self._comparison_reader=None
         self._comparison_name=None
-        self.add_tick_callback(self.adapt_comparison)
+        self._adapt_id=0;self._adapt_frames=0
+        self.connect('map',self.queue_adapt)
+        self.connect('unmap',self.cancel_adapt)
+        for scroll in (self.scroll,self.comparison_scroll):
+            for adjustment in (scroll.get_hadjustment(),scroll.get_vadjustment()):
+                adjustment.connect('changed',self.queue_adapt)
+        self.comparison_scroll.get_vadjustment().connect('value-changed',lambda *_:self.queue_adapt(frames=1))
         context=Gio.Menu()
         context.append(tr('Add a passage note'),'win.note')
         context.append(tr('Study word'),'win.study-word')
@@ -229,6 +235,23 @@ class ReadingTab(Gtk.Box):
             self.status.set_text(f'{tr("Unable to read this passage.")} {error}')
             self.status.set_visible(True)
             return False
+
+    def queue_adapt(self,*_,frames=8):
+        if not self.get_mapped():return
+        self._adapt_frames=max(self._adapt_frames,frames)
+        if not self._adapt_id:self._adapt_id=self.add_tick_callback(self._settle_layout)
+
+    def cancel_adapt(self,*_):
+        if self._adapt_id:self.remove_tick_callback(self._adapt_id)
+        self._adapt_id=0;self._adapt_frames=0
+
+    def _settle_layout(self,*_):
+        self._adapt_frames-=1
+        self.adapt_comparison()
+        rows_pending=getattr(self,'_shared_comparison',False) and self.comparison_rows.settling>0
+        if self._adapt_frames>0 or rows_pending:return True
+        self._adapt_id=0
+        return False
 
     def adapt_comparison(self,*_):
         geometry=(self.scroll.get_width(),self.scroll.get_height(),self.preferences.column_width)
@@ -643,6 +666,8 @@ class ReadingTab(Gtk.Box):
         return False
 
     def scroll_changed(self, *_):
+        # Viewport anchors follow input frames, without a permanent idle tick.
+        self.queue_adapt(frames=1)
         if self._restoring_scroll or not self.get_mapped():
             return
         adjustment = self.scroll.get_vadjustment()

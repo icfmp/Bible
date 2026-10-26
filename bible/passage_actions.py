@@ -407,6 +407,9 @@ class PassageActions:
     def dismiss(self):
         self.intent+=1
         self.keyboard=False
+        # Still invalidate a pending selection capture, but do no native popup
+        # or backdrop work for each wheel event when everything is already hidden.
+        if self.target is None and not self.adapt_tick and self.clearance is None and not self.bar.get_visible():return
         if self.adapt_tick:self.bar.remove_tick_callback(self.adapt_tick);self.adapt_tick=0
         value=self.target;restore=bool(value and self.contains(self.owner.get_focus()))
         self.target=None;self.bar.clear_backdrop();self.bar.set_visible(False)

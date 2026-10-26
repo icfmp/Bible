@@ -95,7 +95,8 @@ def main():
         Gtk.Widget.add_tick_callback=original_tick
         for widget,tick in layout_ticks:widget.remove_tick_callback(tick)
     # No screenshot/tick observer, queue_draw, forced GC or memory trim in a consumption run.
-    first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];adjustments=[];last=[time.monotonic()]
+    first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];adjustments=[];menu_visibility=[];last=[time.monotonic()]
+    window.passage_actions.bar.connect('notify::visible',lambda bar,*_:menu_visibility.append([time.monotonic(),bar.get_visible()]))
     tab.scroll.get_vadjustment().connect('value-changed',lambda adj:adjustments.append([time.monotonic(),adj.get_value()]))
     paint=clock.connect('after-paint',lambda *_:paints.append(time.monotonic()))
     def beat():
@@ -144,7 +145,7 @@ def main():
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
                 initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
                 diagnostic_layout_ticks_removed=len(layout_ticks),
-                phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions,adjustments=adjustments),
+                phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions,adjustments=adjustments,menu_visibility=menu_visibility),
                 menu_final_visible=window.passage_actions.bar.get_visible(),
                 backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,
                 placement_tick=getattr(window.passage_actions,'adapt_tick',None),
@@ -154,6 +155,15 @@ def main():
     first_paint=next((when for when in paints if first_move and when>=first_move),None)
     report['first_scroll_latency_seconds']=first_move-first_input if first_move else None
     report['first_paint_latency_seconds']=first_paint-first_input if first_paint else None
+    first_hide=next((when for when,visible in menu_visibility if when>=first_input and not visible),None)
+    report['first_menu_hide_latency_seconds']=first_hide-first_input if first_hide else None
+    stops=[]
+    for index,phase in enumerate(inputs['phases']):
+        if phase['name']!='after_scroll_idle':continue
+        stop=phase['start'];end=inputs['phases'][index+1]['start'] if index+1<len(inputs['phases']) else inputs['end']
+        late=[when-stop for when,value in adjustments if stop+.5<when<end]
+        stops.append(dict(cycle=phase['cycle'],adjustments_later_than_500ms=len(late),last_late_seconds=max(late,default=0)))
+    report['after_stop']=stops
     if args.instrument:
         report.update(python_profile=top,menu_profile=diagnostic_calls,python_allocation_changes=allocations,
                       python_traced_current=python_current,python_traced_peak=python_peak)
