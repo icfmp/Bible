@@ -98,6 +98,7 @@ class Page:
 class PagePlan:
     document: Document
     pages: tuple[Page,...]
+    capacity: float = 0
 
     def containing(self,offset):
         return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
@@ -179,6 +180,9 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
         if start<split<end:split=start
     while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
+    metrics=widget.get_pango_context().get_metrics(Pango.FontDescription(f'{preferences.font} {preferences.size}'),None)
+    reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
+    capacity=max(1,height-reserve-2)
     pages=[]
     for first,last in boundaries:
         checkpoint(cancelled)
@@ -205,9 +209,6 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
         # A trailing newline creates an additional GTK paragraph line in a page
         # buffer. Reserve a shaped font line, including paragraph spacing, so
         # separators remain copied verbatim without clipping the last glyph.
-        metrics=widget.get_pango_context().get_metrics(layout.get_font_description(),None)
-        reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
-        capacity=max(1,height-reserve-2)
         starts=[first+line[0] for line in lines]
         # Treat a heading and the first shaped body line as one block when it
         # fits. Oversized titles still make progress one line at a time.
@@ -239,4 +240,4 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     checkpoint(cancelled)
     assert pages[0].start==0 and pages[-1].end==len(document.text)
     assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
-    return PagePlan(document,tuple(pages))
+    return PagePlan(document,tuple(pages),capacity)

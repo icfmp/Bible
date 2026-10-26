@@ -1,11 +1,11 @@
 """Intent-driven passage actions with frozen source/range/copy targets."""
 from dataclasses import dataclass
-from gi.repository import Gdk, GLib, Gtk, Pango, Graphene, Gsk
+from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
 from .providers import module_name
 
-BACKDROP_BLUR=8
+BACKDROP_BLUR=16
 
 
 @dataclass(frozen=True)
@@ -61,7 +61,10 @@ class Backdrop(Gtk.Widget):
     def do_snapshot(self,snapshot):
         bounds=Graphene.Rect().init(0,0,self.get_width(),self.get_height())
         radius=Graphene.Size().init(16,16)
-        rounded=Gsk.RoundedRect().init(bounds,radius,radius,radius,radius)
+        # init() returns a borrowed pointer for this non-boxed GSK struct.
+        # Keep its owning Python instance alive until GTK copies the clip.
+        rounded=Gsk.RoundedRect()
+        rounded.init(bounds,radius,radius,radius,radius)
         snapshot.push_rounded_clip(rounded)
         surface=self.get_parent()
         actions=getattr(surface,'actions_owner',None)
@@ -74,9 +77,10 @@ class Backdrop(Gtk.Widget):
                 snapshot.push_blur(BACKDROP_BLUR)
                 # Bound the blur input as well as its rounded output: never
                 # allocate an offscreen texture the height of an entire book.
-                sample=Graphene.Rect().init(bounds.origin.x-24,bounds.origin.y-24,bounds.size.width+48,bounds.size.height+48)
+                padding=3*BACKDROP_BLUR
+                sample=Graphene.Rect().init(-padding,-padding,bounds.size.width+2*padding,bounds.size.height+2*padding)
                 snapshot.push_clip(sample);snapshot.save();snapshot.translate(point)
-                surface.backdrop.snapshot(snapshot,view.get_width(),view.get_height())
+                surface.backdrop.get_current_image().snapshot(snapshot,view.get_width(),view.get_height())
                 snapshot.restore();snapshot.pop();snapshot.pop()
         snapshot.pop()
 
@@ -84,24 +88,36 @@ class Backdrop(Gtk.Widget):
 class ActionSurface(Gtk.Overlay):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
+        self.backdrop=None;self._backdrop_signals=()
         self.background=Backdrop(hexpand=True,vexpand=True)
         self.set_child(self.background)
+        self.connect('notify::visible',lambda *_:self.clear_backdrop() if not self.get_visible() else None)
+
+    def clear_backdrop(self):
+        if self.backdrop:
+            for handler in self._backdrop_signals:self.backdrop.disconnect(handler)
+            self.backdrop.set_widget(None)
+        self.backdrop=None;self._backdrop_signals=()
 
     def set_backdrop(self,view):
         import weakref
+        if self.backdrop and self.backdrop.get_widget() is view:return
+        self.clear_backdrop()
         self.backdrop=Gtk.WidgetPaintable.new(view)
         background=weakref.ref(self.background)
         def changed(*_):
             widget=background()
-            if widget:widget.queue_draw()
-        self.backdrop.connect('invalidate-contents',changed)
-        self.backdrop.connect('invalidate-size',changed)
+            if widget and widget.get_mapped():
+                actions=widget.get_parent().actions_owner
+                if not actions.valid():actions.dismiss();return
+                widget.queue_draw();actions.schedule_adapt()
+        self._backdrop_signals=tuple(self.backdrop.connect(signal,changed) for signal in ('invalidate-contents','invalidate-size'))
         self.background.queue_draw()
 
 
 class PassageActions:
     def __init__(self,owner):
-        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.timer=0
+        self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.adapt_tick=0;self._adapt_passes=0
         self.clearance=None;self.intent=0
         self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
@@ -119,11 +135,11 @@ class PassageActions:
         identity.append(self.label);identity.append(self.version_label);content.append(identity)
         self.actions=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER)
         self.actions.add_css_class('toolbar');content.append(self.actions)
-        self.copy_button=self.button('edit-copy-symbolic','Copy selected text',lambda *_:self.copy())
-        self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy options'))
-        self.copy_options.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy options')])
-        self.actions.append(self.copy_options)
-        self.copy_popover=self.menu(self.copy_options,[(label,lambda *_,mode=mode:self.copy(mode))
+        self.copy_button=Gtk.MenuButton(icon_name='edit-copy-symbolic',tooltip_text=tr('Copy'))
+        self.copy_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy')])
+        self.actions.append(self.copy_button)
+        self.copy_options=self.copy_button  # One widget; retained internal compatibility name.
+        self.copy_popover=self.menu(self.copy_button,[(label,lambda *_,mode=mode:self.copy(mode))
             for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
                                ('Copy verses with reference','reference'),('Copy reference','label')]])
         self.highlight_button=None
@@ -141,7 +157,7 @@ class PassageActions:
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
-        self.bar.add_tick_callback(self.adapt)
+        self.bar.connect('notify::visible',lambda *_:self.dismiss() if not self.bar.get_visible() and self.target else None)
         owner.view.connect('notify::selected-page',lambda *_:self.dismiss())
         gesture=Gtk.GestureClick(button=1);gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         def outside(controller,_,x,y):
@@ -191,6 +207,54 @@ class PassageActions:
         popover.parent_dismissed=lambda widget:self.dismiss() if not self.contains(widget) else None
         self.owner._reading_popovers.append(popover);return popover
 
+    def context_menu(self,view,factory):
+        """Native text menu with deliberate, source-specific passage commands."""
+        context=[None]
+        def capture(x=None,y=None):
+            source=factory()
+            if not source:return
+            if x is None:offset=view.get_buffer().get_iter_at_mark(view.get_buffer().get_insert()).get_offset()
+            else:
+                bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
+                found,iterator=view.get_iter_at_location(bx,by)
+                offset=iterator.get_offset() if found else None
+            context[0]=target(view,source,factory,offset)
+        pointer=Gtk.GestureClick(button=3);pointer.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        pointer.connect('pressed',lambda _,n,x,y:capture(x,y));view.add_controller(pointer)
+        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def key(_,value,code,state):
+            if value==Gdk.KEY_Menu or value==Gdk.KEY_F10 and state&Gdk.ModifierType.SHIFT_MASK:capture()
+            return False
+        keys.connect('key-pressed',key);view.add_controller(keys)
+        group=Gio.SimpleActionGroup();menu=Gio.Menu()
+        def execute(command):
+            value=context[0]
+            if value is None:capture();value=context[0]
+            source=factory()
+            if (not value or not source or source.tab is not self.owner.active_tab
+                    or source.reader is not value.source.reader or source.resource!=value.source.resource
+                    or source.document.key!=value.source.document.key):return
+            if command=='note':
+                self.owner.open_passage_notes((value.references[0],value.references[-1]),resource=source.resource,reader=source.reader)
+            elif command=='word':self.owner.study.words.offer(value,view)
+            elif command.startswith('highlight:'):
+                self.owner.highlights.set(source.reader.versification,value.references,(None if command=='highlight:remove' else command.split(':')[1]),source.resource)
+                self.owner.refresh_highlights()
+            else:
+                label=passage_label(value.references[0],value.references[-1],source.reader.versification)+' — '+module_name(source.resource)
+                text=label if command=='label' else (label+'\n' if command=='reference' else '')+'\n'.join(value.verses)
+                self.owner.get_clipboard().set(text)
+        choices=[('Add a passage note','note'),('Copy verses without numbers','verses'),
+                 ('Copy verses with reference','reference'),('Copy reference','label'),('Study word','word')]
+        choices += [(tr('Highlight')+': '+tr(label),'highlight:'+color) for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]]
+        choices.append(('Remove highlight','highlight:remove'))
+        for index,(label,command) in enumerate(choices):
+            name='action'+str(index);action=Gio.SimpleAction.new(name,None)
+            action.connect('activate',lambda _,parameter,c=command:execute(c));group.add_action(action)
+            menu.append(tr(label),'passage.'+name)
+        view.insert_action_group('passage',group);view.set_extra_menu(menu)
+        view._passage_context=group
+
     def ordinary(self,tab,comparison=False):
         reader=tab._comparison_reader if comparison else tab.reader
         doc=getattr(tab,'_comparison_document' if comparison else '_document',None)
@@ -205,6 +269,10 @@ class PassageActions:
         return Source(reading.tab,reading.source.resource.id,reading.source.reader,page[0],page[1],reading,'immersion')
 
     def bind(self,view,factory):
+        self.context_menu(view,factory)
+        def selection_changed(*_):
+            if self.target and self.target.view is view and not view.get_buffer().get_has_selection():self.dismiss()
+        view.get_buffer().connect('notify::has-selection',selection_changed)
         click=Gtk.GestureClick(button=1);click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         pending=[None]
         def pressed(controller,count,x,y):
@@ -250,7 +318,7 @@ class PassageActions:
         source=factory()
         if not source:return False
         value=target(view,source,factory,clicked)
-        if not value:self.dismiss();return False
+        if not value or not value.native_selection or not value.text.strip():self.dismiss();return False
         self.target=value;self.bar.set_backdrop(view)
         parent=self.bar.get_parent()
         if parent is not source.parent:
@@ -262,13 +330,25 @@ class PassageActions:
         self.label.set_text(label);self.label.set_tooltip_text(label)
         self.version_label.set_text(version);self.version_label.set_tooltip_text(version)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+version])
-        self.copy_button.set_tooltip_text(tr('Copy selected text') if value.native_selection else tr('Copy verses without numbers'))
+        self.copy_button.set_tooltip_text(tr('Copy'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
         self.bar.set_visible(True)
+        self.schedule_adapt()
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)
         self.compare_button.set_sensitive(source.tab.reader is not None)
-        if not self.timer:self.timer=GLib.timeout_add(100,self.watch)
         return False
+
+    def schedule_adapt(self):
+        if not self.target or not self.bar.get_visible():return
+        # Settle a changed native allocation, then stop. No idle frame polling.
+        self._adapt_passes=2
+        if not self.adapt_tick:self.adapt_tick=self.bar.add_tick_callback(self._adapt_layout)
+
+    def _adapt_layout(self,*_):
+        self.adapt();self._adapt_passes-=1
+        pending=bool(self.target and self._adapt_passes>0)
+        if not pending:self.adapt_tick=0
+        return pending
 
     def adapt(self,*_):
         value=self.target
@@ -299,7 +379,8 @@ class PassageActions:
                 margin=int(parent.get_height()-start+12)
                 if parent.get_height()-margin-self.bar.get_height()>=8:
                     margin_bottom=margin
-        if self.bar.get_margin_bottom()!=margin_bottom:self.bar.set_margin_bottom(margin_bottom)
+        if self.bar.get_margin_bottom()!=margin_bottom:
+            self.bar.set_margin_bottom(margin_bottom);self.bar.background.queue_draw()
         return True
 
     def valid(self):
@@ -317,16 +398,6 @@ class PassageActions:
             if references(current,first,last)!=value.references or current.document.copy(first,last)!=value.text:return False
         return True
 
-    def watch(self):
-        if not self.target:self.timer=0;return False
-        if not self.valid():self.dismiss();self.timer=0;return False
-        value=self.target
-        reflow=value.source.tab._restoring_scroll or (self.owner.immersion and not self.owner.immersion.layout_ready)
-        if not reflow and (not self.bar.get_mapped() or
-                (value.native_selection and not value.view.get_buffer().get_has_selection())):
-            self.dismiss();self.timer=0;return False
-        return True
-
     def key(self,controller,value,*_):
         if value==Gdk.KEY_Escape and self.target:
             if any(p.get_visible() for p in self.owner._reading_popovers):return False
@@ -336,8 +407,9 @@ class PassageActions:
     def dismiss(self):
         self.intent+=1
         self.keyboard=False
+        if self.adapt_tick:self.bar.remove_tick_callback(self.adapt_tick);self.adapt_tick=0
         value=self.target;restore=bool(value and self.contains(self.owner.get_focus()))
-        self.target=None;self.bar.backdrop=None;self.bar.set_visible(False)
+        self.target=None;self.bar.clear_backdrop();self.bar.set_visible(False)
         if self.clearance:
             view,original,margin=self.clearance
             if view.get_bottom_margin()==margin:view.set_bottom_margin(original)

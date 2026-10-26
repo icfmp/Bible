@@ -1,0 +1,73 @@
+{
+  "scroll_impact": [
+    {
+      "phase": "without_bar",
+      "elapsed_seconds": 6.102707841026131,
+      "cpu_seconds": 2.1286784160000014,
+      "cpu_percent": 34.88088355942135,
+      "frames": 366,
+      "frame_gap_p95_ms": 17.51361001515761,
+      "main_loop_max_ms": 13.120265997713432,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "visible_bar",
+      "elapsed_seconds": 6.10400361099164,
+      "cpu_seconds": 7.824843656999999,
+      "cpu_percent": 128.19198931844662,
+      "frames": 364,
+      "frame_gap_p95_ms": 17.442734009819105,
+      "main_loop_max_ms": 47.02092899242416,
+      "python_calls": {
+        "do_snapshot": 354,
+        "changed": 354,
+        "adapt": 358,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 29.511998000000002,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "visible_idle",
+      "elapsed_seconds": 6.103641196008539,
+      "cpu_seconds": 0.22569542900000172,
+      "cpu_percent": 3.697717833538359,
+      "frames": 366,
+      "frame_gap_p95_ms": 17.520116991363466,
+      "main_loop_max_ms": 11.569077003514394,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "hidden_after_dismiss",
+      "elapsed_seconds": 6.101864736003336,
+      "cpu_seconds": 2.24419846,
+      "cpu_percent": 36.77889558512123,
+      "frames": 364,
+      "frame_gap_p95_ms": 17.331798997474834,
+      "main_loop_max_ms": 45.46143297920935,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    }
+  ],
+  "method": "Same 6-second forward/back reader scrollbar adjustment; no wheel lifecycle override. Actual wheel dismisses floating actions on its first event."
+}

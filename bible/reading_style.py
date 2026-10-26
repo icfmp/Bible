@@ -127,7 +127,7 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions button:hover {{ background-color: rgba(255,255,255,.12); }}
 .passage-actions button:active {{ background-color: rgba(255,255,255,.22); }}
 .passage-actions button:focus-visible {{ outline: 2px solid #ffffff; outline-offset: -2px; }}
-.passage-actions popover contents {{ background-color: #202020; color: #ffffff; }}
+.passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}
 .passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
@@ -146,13 +146,17 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
             # Scope native surfaces to this owner; leave tags, images and semantic
             # accents to their existing renderers. Transparent controls inherit.
             self.css+=f"""
-{window}, {window} .background, {window} .view, {window} .card,
+{window}, {window} .background:not(popover), {window} .view, {window} .card,
 {window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
 {window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
 {window} .sidebar, {window} .sidebar-pane, {window} .study-panel, {window} .study-divider {{ background-color: {sidebar}; color: {fg}; }}
 {window} textview.study-reader, {window} textview.study-reader text {{ color: {fg}; }}
+{window} .study-drawer headerbar, {window} .study-drawer headerbar .title,
+{window} .study-drawer headerbar .start, {window} .study-drawer headerbar .end {{ background-color: {sidebar}; color: {fg}; }}
+{window} popover {{ background: transparent; }}
+{window} popover arrow {{ background-color: {bg}; }}
 {window} .passage-actions {{ background-color: transparent; color: white; }}
-{window} .passage-actions popover contents {{ background-color: #202020; color: white; }}
+{window} .passage-actions popover contents, {window} .passage-actions popover arrow {{ background-color: #202020; color: white; }}
 """
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS

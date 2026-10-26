@@ -108,7 +108,9 @@ class FinishingTests(unittest.TestCase):
         from tools.check_alpha_ui import X11Input
         w=self.window;w.set_default_size(800,600);w.appearance.update('mode','day');spin()
         tab=w.active_tab;actions=w.passage_actions
-        actions.capture(tab.text,lambda:actions.ordinary(tab),tab._marker_ends['Gen.1.1']+3);spin()
+        first=tab._marker_ends['Gen.1.1']+3;buffer=tab.text.get_buffer()
+        buffer.select_range(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+12))
+        actions.capture(tab.text,lambda:actions.ordinary(tab),None);spin()
         native=X11Input();x=native.x11;pointer=ctypes.c_void_p;ulong=ctypes.c_ulong
         x.XGetImage.argtypes=[pointer,ulong,ctypes.c_int,ctypes.c_int,ctypes.c_uint,ctypes.c_uint,ulong,ctypes.c_int];x.XGetImage.restype=pointer
         x.XGetPixel.argtypes=[pointer,ctypes.c_int,ctypes.c_int];x.XGetPixel.restype=ulong

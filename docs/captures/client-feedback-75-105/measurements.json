@@ -1,0 +1,710 @@
+{
+  "before": {
+    "source_import": "/work/feedback-75-105/before/bible/ui.py",
+    "renderer": "NglRenderer",
+    "language": "fr",
+    "baseline": true,
+    "keys": [
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=48)",
+        "after": "PageAddress(key='Gen', index=50)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=50)",
+        "after": "PageAddress(key='Gen', index=50)",
+        "turned": false
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=50)",
+        "after": "PageAddress(key='Gen', index=48)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=48)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": false
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": false
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=42)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=42)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=42)",
+        "turned": true
+      }
+    ],
+    "study_colors": {
+      "white": {
+        "header": [
+          [
+            250,
+            250,
+            250
+          ],
+          [
+            250,
+            250,
+            250
+          ],
+          [
+            250,
+            250,
+            250
+          ]
+        ],
+        "body": [
+          240,
+          240,
+          240
+        ]
+      },
+      "dark": {
+        "header": [
+          [
+            36,
+            36,
+            36
+          ],
+          [
+            36,
+            36,
+            36
+          ],
+          [
+            36,
+            36,
+            36
+          ]
+        ],
+        "body": [
+          48,
+          48,
+          48
+        ]
+      },
+      "paper": {
+        "header": [
+          [
+            238,
+            228,
+            203
+          ],
+          [
+            238,
+            228,
+            203
+          ],
+          [
+            238,
+            228,
+            203
+          ]
+        ],
+        "body": [
+          229,
+          220,
+          195
+        ]
+      },
+      "black": {
+        "header": [
+          [
+            8,
+            8,
+            8
+          ],
+          [
+            8,
+            8,
+            8
+          ],
+          [
+            8,
+            8,
+            8
+          ]
+        ],
+        "body": [
+          18,
+          18,
+          18
+        ]
+      },
+      "contrast-day": {
+        "header": [
+          [
+            235,
+            235,
+            235
+          ],
+          [
+            235,
+            235,
+            235
+          ],
+          [
+            235,
+            235,
+            235
+          ]
+        ],
+        "body": [
+          235,
+          235,
+          235
+        ]
+      },
+      "contrast-night": {
+        "header": [
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ]
+        ],
+        "body": [
+          48,
+          48,
+          48
+        ]
+      }
+    },
+    "blur_edge_energy": {
+      "0": 13411,
+      "8": 1752
+    },
+    "idle_frames": 900,
+    "geometry_changes": 1
+  },
+  "after": {
+    "source_import": "/repo/bible/ui.py",
+    "renderer": "NglRenderer",
+    "language": "fr",
+    "baseline": false,
+    "keys": [
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=48)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=48)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": true,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=48)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=48)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      },
+      {
+        "key": "Right",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=44)",
+        "after": "PageAddress(key='Gen', index=46)",
+        "turned": true
+      },
+      {
+        "key": "Left",
+        "animations": false,
+        "before": "PageAddress(key='Gen', index=46)",
+        "after": "PageAddress(key='Gen', index=44)",
+        "turned": true
+      }
+    ],
+    "study_colors": {
+      "white": {
+        "header": [
+          [
+            240,
+            240,
+            240
+          ],
+          [
+            240,
+            240,
+            240
+          ],
+          [
+            240,
+            240,
+            240
+          ]
+        ],
+        "body": [
+          240,
+          240,
+          240
+        ]
+      },
+      "dark": {
+        "header": [
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ]
+        ],
+        "body": [
+          48,
+          48,
+          48
+        ]
+      },
+      "paper": {
+        "header": [
+          [
+            229,
+            220,
+            195
+          ],
+          [
+            229,
+            220,
+            195
+          ],
+          [
+            229,
+            220,
+            195
+          ]
+        ],
+        "body": [
+          229,
+          220,
+          195
+        ]
+      },
+      "black": {
+        "header": [
+          [
+            18,
+            18,
+            18
+          ],
+          [
+            18,
+            18,
+            18
+          ],
+          [
+            18,
+            18,
+            18
+          ]
+        ],
+        "body": [
+          18,
+          18,
+          18
+        ]
+      },
+      "contrast-day": {
+        "header": [
+          [
+            235,
+            235,
+            235
+          ],
+          [
+            235,
+            235,
+            235
+          ],
+          [
+            235,
+            235,
+            235
+          ]
+        ],
+        "body": [
+          235,
+          235,
+          235
+        ]
+      },
+      "contrast-night": {
+        "header": [
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ],
+          [
+            48,
+            48,
+            48
+          ]
+        ],
+        "body": [
+          48,
+          48,
+          48
+        ]
+      }
+    },
+    "blur_edge_energy": {
+      "0": 12969,
+      "16": 507
+    },
+    "idle_frames": 900,
+    "geometry_changes": 1
+  },
+  "scroll-single": {
+    "app_import": "/repo/bible/ui.py",
+    "mode": "single",
+    "resource": "FreSegond1910",
+    "chapter": "Ps.119",
+    "geometry": [
+      1170,
+      770
+    ],
+    "preferences": {
+      "font": "DejaVu Serif",
+      "size": 14,
+      "chapter_numbers": true,
+      "verse_numbers": true,
+      "mode": "system",
+      "day_palette": "white",
+      "night_palette": "dark",
+      "line_spacing": "very-airy",
+      "column_width": "narrow",
+      "show_highlights": true,
+      "note_indicators": true,
+      "place_markers": true
+    },
+    "animations": true,
+    "renderer": "cairo",
+    "study_visible": false,
+    "comparison": null,
+    "toolbar_visible": false,
+    "heartbeat": {
+      "count": 1122,
+      "maximum": 0.016199941019294783,
+      "over_100ms": 0
+    },
+    "last_adjustment_change": 142808.280284791,
+    "changes_during_input": 740,
+    "changes_after_500ms": 0,
+    "duration": 12.008331920020282,
+    "reversal_latency_seconds": [
+      0.0038980779936537147,
+      0.005807301989989355,
+      0.0054063950083218515,
+      0.008876866981154308,
+      0.003969935001805425,
+      0.007426791999023408,
+      0.00903324902174063,
+      0.007339962990954518,
+      0.005359430011594668,
+      0.007980820024386048,
+      0.00806678700610064,
+      0.007987940014572814,
+      0.006737914984114468,
+      0.008096459991065785,
+      0.0029100349929649383
+    ]
+  },
+  "scroll-comparison": {
+    "app_import": "/repo/bible/ui.py",
+    "mode": "comparison",
+    "resource": "FreSegond1910",
+    "chapter": "Ps.119",
+    "geometry": [
+      1170,
+      770
+    ],
+    "preferences": {
+      "font": "DejaVu Serif",
+      "size": 14,
+      "chapter_numbers": true,
+      "verse_numbers": true,
+      "mode": "system",
+      "day_palette": "white",
+      "night_palette": "dark",
+      "line_spacing": "very-airy",
+      "column_width": "narrow",
+      "show_highlights": true,
+      "note_indicators": true,
+      "place_markers": true
+    },
+    "animations": true,
+    "renderer": "cairo",
+    "study_visible": false,
+    "comparison": "KJV",
+    "toolbar_visible": false,
+    "heartbeat": {
+      "count": 1122,
+      "maximum": 0.022550813999259844,
+      "over_100ms": 0
+    },
+    "last_adjustment_change": 142824.384225634,
+    "changes_during_input": 744,
+    "changes_after_500ms": 0,
+    "duration": 12.001326655008597,
+    "reversal_latency_seconds": [
+      0.005458676983835176,
+      0.0002858119842130691,
+      0.0018289849977008998,
+      0.004597295977873728,
+      0.004605917987646535,
+      0.006970036978600547,
+      0.004723571008071303,
+      0.012213947018608451,
+      0.005360462004318833,
+      0.003923341020708904,
+      0.0004634929937310517,
+      0.009700547001557425,
+      0.007793261989718303,
+      0.006460064003476873,
+      0.008810213999822736
+    ]
+  },
+  "scroll-study": {
+    "app_import": "/repo/bible/ui.py",
+    "mode": "study",
+    "resource": "FreSegond1910",
+    "chapter": "Ps.119",
+    "geometry": [
+      1170,
+      770
+    ],
+    "preferences": {
+      "font": "DejaVu Serif",
+      "size": 14,
+      "chapter_numbers": true,
+      "verse_numbers": true,
+      "mode": "system",
+      "day_palette": "white",
+      "night_palette": "dark",
+      "line_spacing": "very-airy",
+      "column_width": "narrow",
+      "show_highlights": true,
+      "note_indicators": true,
+      "place_markers": true
+    },
+    "animations": true,
+    "renderer": "cairo",
+    "study_visible": true,
+    "comparison": null,
+    "toolbar_visible": false,
+    "heartbeat": {
+      "count": 657,
+      "maximum": 0.16337192201172002,
+      "over_100ms": 45
+    },
+    "last_adjustment_change": 142840.76390672,
+    "changes_during_input": 296,
+    "changes_after_500ms": 0,
+    "duration": 12.001443365006708,
+    "reversal_latency_seconds": [
+      0.13138776901178062,
+      0.17420923101599328,
+      0.03947581799002364,
+      0.03120797802694142,
+      0.07768733199918643,
+      0.06654621299821883,
+      0.017200762988068163,
+      0.13276678998954594,
+      0.005338664021110162,
+      0.0944466749788262,
+      0.0046177640033420175,
+      0.06385161701473407,
+      0.013433418003842235,
+      0.08006368597852997,
+      0.1327600250078831
+    ]
+  },
+  "scroll-toolbar": {
+    "app_import": "/repo/bible/ui.py",
+    "mode": "single",
+    "resource": "FreSegond1910",
+    "chapter": "Ps.119",
+    "geometry": [
+      1170,
+      770
+    ],
+    "preferences": {
+      "font": "DejaVu Serif",
+      "size": 14,
+      "chapter_numbers": true,
+      "verse_numbers": true,
+      "mode": "system",
+      "day_palette": "white",
+      "night_palette": "dark",
+      "line_spacing": "very-airy",
+      "column_width": "narrow",
+      "show_highlights": true,
+      "note_indicators": true,
+      "place_markers": true
+    },
+    "animations": true,
+    "renderer": "cairo",
+    "study_visible": false,
+    "comparison": null,
+    "toolbar_visible": false,
+    "heartbeat": {
+      "count": 829,
+      "maximum": 0.04276111099170521,
+      "over_100ms": 0
+    },
+    "last_adjustment_change": 142951.128933821,
+    "changes_during_input": 479,
+    "changes_after_500ms": 0,
+    "duration": 12.008876332023647,
+    "reversal_latency_seconds": [
+      0.04260674299439415,
+      0.01338123599998653,
+      0.010330633987905458,
+      0.01047400600509718,
+      0.01066142600029707,
+      0.017067445995053276,
+      0.021789327001897618,
+      0.005006168998079374,
+      0.011059773998567834,
+      0.0047059069911483675,
+      0.008863537979777902,
+      0.004879551997873932,
+      0.01698351200320758,
+      0.008134984993375838,
+      0.014301285002147779
+    ]
+  }
+}

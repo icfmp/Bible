@@ -58,7 +58,11 @@ def main():
             from tools.check_passage_actions import point
             tab=w.active_tab;tab.select_verse('Acts.1.23');spin()
             offset=tab._marker_ends['Acts.1.23']
-            native.click_at(tab.text,*point(tab.text,offset+3));spin(lambda:w.passage_actions.target is not None)
+            native.click_at(tab.text,*point(tab.text,offset+3));spin()
+            assert w.passage_actions.target is None
+            from tools.check_passage_actions import hold
+            hold(native,'Shift_L',True);native.key('Right');hold(native,'Shift_L',False)
+            spin(lambda:w.passage_actions.target is not None)
             actions=w.passage_actions;native.click(actions.highlight_button);native.key('Escape');spin()
             assert not w.highlights.entries
             native.click(actions.highlight_button);native.click(actions.highlight_popover.get_child().get_first_child());spin()

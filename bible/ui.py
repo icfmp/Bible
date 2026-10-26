@@ -217,7 +217,8 @@ class Window(Adw.ApplicationWindow):
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
-                           b'dropdown.compact-space > button { padding-left: 6px; padding-right: 6px; } '
+                           b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
+                           b'.compact-space button { padding-left: 6px; padding-right: 6px; } '
                            b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; } '

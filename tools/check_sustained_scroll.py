@@ -23,6 +23,21 @@ def main():
         buffer=t.text.get_buffer();buffer.select_range(buffer.get_iter_at_offset(span.body),buffer.get_iter_at_offset(span.body+5))
         w.passage_actions.capture(t.text,lambda:w.passage_actions.ordinary(t),None);spin(duration=.2)
     assert w.passage_actions.bar.get_visible()==args.toolbar
+    dismissals=[];original_dismiss=w.passage_actions.dismiss
+    def observed_dismiss():
+        visible=w.passage_actions.bar.get_visible();began=time.monotonic()
+        result=original_dismiss()
+        if visible:dismissals.append(dict(start=began,end=time.monotonic(),backdrop_released=w.passage_actions.bar.backdrop is None,placement_stopped=w.passage_actions.adapt_tick==0))
+        return result
+    w.passage_actions.dismiss=observed_dismiss
+    adjustment_events=[];adjustment=t.scroll.get_vadjustment();last_value=[adjustment.get_value()]
+    def adjustment_changed(adj):
+        value=adj.get_value()
+        if abs(value-last_value[0])>.5:adjustment_events.append([time.monotonic(),value])
+        last_value[0]=value
+    adjustment.connect('value-changed',adjustment_changed)
+    paints=[];frame_clock=t.text.get_frame_clock()
+    paint_handler=frame_clock.connect('after-paint',lambda *_:paints.append([time.monotonic(),w.passage_actions.bar.get_visible()]))
     rows=[];beats=[];frames=[];last=[time.monotonic()];prof=cProfile.Profile();start=time.monotonic();loop=GLib.MainLoop();inputfile=args.output.with_suffix('.input.json')
     def beat():
      now=time.monotonic();beats.append(now-last[0]);last[0]=now
@@ -37,7 +52,7 @@ def main():
     if args.cpu:
      prof.disable();prof.dump_stats(str(args.output.with_suffix('.prof')))
      out=io.StringIO();pstats.Stats(prof,stream=out).sort_stats('cumulative').print_stats(35);args.output.with_suffix('.profile.txt').write_text(out.getvalue())
-    t.text.remove_tick_callback(fid);child.wait();inputs=json.loads(inputfile.read_text());event_end=inputs['end'];changes=[r for a,r in zip(rows,rows[1:]) if abs(a[1]-r[1])>.5]
+    t.text.remove_tick_callback(fid);frame_clock.disconnect(paint_handler);child.wait();inputs=json.loads(inputfile.read_text());event_end=inputs['end'];changes=[r for a,r in zip(rows,rows[1:]) if abs(a[1]-r[1])>.5]
     report=dict(app_import=inspect.getfile(Window),mode=args.mode,resource='FreSegond1910',chapter='Ps.119',geometry=[w.get_width(),w.get_height()],preferences=vars(t.preferences),animations=Gtk.Settings.get_default().get_property('gtk-enable-animations'),renderer=__import__('os').environ.get('GSK_RENDERER'),study_visible=w.split.get_show_sidebar(),comparison=t.state.comparison,toolbar_visible=w.passage_actions.bar.get_visible(),input=inputs,heartbeat=dict(count=len(beats),maximum=max(beats),over_100ms=sum(x>.1 for x in beats)),frames=frames,samples=rows,last_adjustment_change=changes[-1][0] if changes else None,changes_during_input=sum(inputs['start']<=r[0]<=event_end for r in changes),changes_after_500ms=sum(r[0]>event_end+.5 for r in changes),duration=time.monotonic()-start)
     reversals=[]
     for previous,event in zip(inputs['events'],inputs['events'][1:]):
@@ -46,6 +61,16 @@ def main():
         moves=[r[0]-event[0] for a,r in zip(rows,rows[1:]) if r[0]>=event[0] and r[0]<event[0]+.5 and (r[1]-a[1])*sign>1]
         reversals.append(min(moves) if moves else None)
     report['reversal_latency_seconds']=reversals
+    first_input=inputs['events'][0][0]
+    first_change=next((r[0] for r in adjustment_events if r[0]>=first_input),None)
+    report['first_scroll_latency_seconds']=first_change-first_input if first_change else None
+    report['bar_dismissals']=dismissals
+    report['adjustment_events']=adjustment_events
+    first_paint=next((p for p in paints if first_change and p[0]>=first_change),None)
+    report['first_gtk_paint_latency_seconds']=first_paint[0]-first_input if first_paint else None
+    report['bar_visible_at_first_scroll_paint']=first_paint[1] if first_paint else None
+    if dismissals:
+     d=dismissals[0];report['first_bar_transition']=dict(input_to_dismiss_start_seconds=d['start']-first_input,dismiss_duration_seconds=d['end']-d['start'],dismiss_end_to_first_motion_seconds=first_change-d['end'] if first_change else None,**d)
     args.output.write_text(json.dumps(report,indent=2))
     if args.check:
      during=[x for x in frames if inputs['start']<=x<=event_end]
@@ -53,6 +78,12 @@ def main():
      assert len(during)>=80,('Reader frames starved during sustained input',len(during))
      assert report['changes_after_500ms']==0,('Late event backlog',report['changes_after_500ms'])
      assert max(beats)<.5,('GTK main-loop stall',max(beats))
-    args.output.write_text(json.dumps(report,indent=2));print(json.dumps({k:v for k,v in report.items() if k not in ('samples','input','frames')},indent=2));w.close();native.close()
+     assert first_change and first_change-first_input<.25,('First scroll delayed',report['first_scroll_latency_seconds'])
+     assert first_paint and first_paint[0]-first_input<.25,('First GTK paint delayed',report['first_gtk_paint_latency_seconds'])
+     if args.toolbar:
+      assert dismissals and dismissals[0]['end']<=first_change,dismissals
+      assert dismissals[0]['backdrop_released'] and dismissals[0]['placement_stopped'],dismissals
+      assert not first_paint[1],'Bar remained visible in the first scroll frame'
+    args.output.write_text(json.dumps(report,indent=2));print(json.dumps({k:v for k,v in report.items() if k not in ('samples','input','frames','adjustment_events')},indent=2));w.close();native.close()
 
 if __name__=='__main__':main()
