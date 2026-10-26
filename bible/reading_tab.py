@@ -567,12 +567,23 @@ class ReadingTab(Gtk.Box):
     def visible_reference(self):
         if not self._verse_offsets:return None
         rect=self.text.get_visible_rect()
-        starts=[(reference,self.text.get_iter_location(self.text.get_buffer().get_iter_at_offset(offset)).y)
-                for reference,offset in self._verse_offsets.items()]
-        visible=[ref for ref,y in starts if rect.y <= y < rect.y+rect.height]
-        if visible:return visible[0]
-        preceding=[ref for ref,y in starts if y<=rect.y]
-        return preceding[-1] if preceding else starts[0][0]
+        _,top=self.text.get_iter_at_location(rect.x,rect.y)
+        if not self.text.starts_display_line(top):self.text.backward_display_line_start(top)
+        # Resolve only starts at the viewport, without forcing GTK to shape
+        # every offscreen verse on each synchronization event. Display-line
+        # starts keep logical order for RTL and mixed-direction text as well.
+        from bisect import bisect_left
+        entries=list(self._verse_offsets.items())
+        index=bisect_left([offset for _,offset in entries],top.get_offset())
+        buffer=self.text.get_buffer()
+        while index<len(entries):
+            reference,offset=entries[index]
+            y=self.text.get_iter_location(buffer.get_iter_at_offset(offset)).y
+            if y>=rect.y:
+                if y<rect.y+rect.height:return reference
+                break
+            index+=1
+        return entries[max(0,index-1)][0]
 
     def reveal_reference(self, reference):
         same_document=reference in self._verse_offsets
