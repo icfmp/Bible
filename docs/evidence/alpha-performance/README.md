@@ -1,6 +1,6 @@
 # Installed-alpha CPU and memory investigation — 26 October 2026
 
-Status: investigation and candidate validation, **not a delivered or client-accepted fix**. Graphical finishing and issue #26 are paused; numbered release #87 is paused. Client data is not available in the cloud environment and has not been reset or changed.
+Status: a targeted correction is delivered in signed alpha **40355737256-2**, source `67d741f989da6d6a227af47e5296a93da6f5b33e`; the severe client-specific regression is **not yet fully reproduced or accepted as resolved**. Graphical finishing and numbered release #87 remain paused. The client has requested resuming #26 after this verified delivery, separately. Client data is not available in the cloud environment and has not been reset or changed.
 
 The client reports approximately 700–762 MB at startup, a logical CPU saturated after the first mouse-wheel or native scrollbar gesture, later 1.91 GB, and a temporary GNOME unresponsive warning. Their startup configuration is one tab with comparison and Study open together, with maps/references/other optional study resources installed. They cannot currently confirm the selected Study tool. Translation, passage, scale, GPU/driver and exact installed commit remain unconfirmed.
 
@@ -64,7 +64,7 @@ The final combined scenario includes STEP words, places/maps, OpenBible cross-re
 
 ## Final candidate and normal installed results
 
-Candidate [PR #133](https://github.com/icfmp/Bible/pull/133), source **`93c4f3766af03936d2637bf89fb307a01c59dadf`**. [Application CI 40335461969](https://github.com/icfmp/Bible/actions/runs/40335461969) is green: **330 source tests, 144 French UI tests, 138 installed-Flatpak tests and 11 installed immersion tests** (overlapping suites), plus installed OpenGL captures, sustained input, real resources/offline and study checks. No signed correction has been published.
+Candidate [PR #133](https://github.com/icfmp/Bible/pull/133), source **`93c4f3766af03936d2637bf89fb307a01c59dadf`**. [Application CI 40335461969](https://github.com/icfmp/Bible/actions/runs/40335461969) is green: **330 source tests, 144 French UI tests, 138 installed-Flatpak tests and 11 installed immersion tests** (overlapping suites), plus installed OpenGL captures, sustained input, real resources/offline and study checks. The identical application code is now delivered at merge source `67d741f989da6d6a227af47e5296a93da6f5b33e`; see the signed delivery below.
 
 The later native trace identified a fourth permanent callback in Study: `adapt → anchor → visible_section → gtk_text_layout_get_iter_location`, retaining tens of MiB of offscreen text layouts. Study now settles only after actual geometry/content/adjustment changes and cancels synchronously when hidden. Reader viewport following similarly resolves the top display line and adjacent verse starts instead of requesting positions for every offscreen verse. GTK oracle tests compare the original first-visible/fallback behavior across wrapped/partial lines, LTR/RTL and two widths. The final native peak report no longer contains the former large Study/visible-reference layout stacks among its 30 largest groups.
 
@@ -144,7 +144,29 @@ Broad, extended, historical, CPU/native and single-repeat jobs pass preservation
 
 Native perf raw stack files remain private to the runner temporary directory; public artifacts contain symbolized reports and summaries. A receipt-only baseline assertion failure, rejected live upstream checksum, profiling setup failures and the isolated normal-run wait are explicitly distinguished from usable measurements.
 
-**Outstanding:** review/merge decision; signed alpha publication and actual channel update/preservation verification; client GNOME/Wayland/driver/fractional-scale validation. No source is described as delivered before those delivery steps. Numbered release #87 and issue #26 stay paused, and issues remain OPEN. Project 5 access remains refused (`Resource not accessible by integration`); applicable status changes require manual action, not closing issues.
+## Signed delivery and actual old-to-new update
+
+[Main CI 40350367815](https://github.com/icfmp/Bible/actions/runs/40350367815) passes the same 330/144/138+11 suites and installed visual/native/resource checks. [Signed publication 40355737256](https://github.com/icfmp/Bible/actions/runs/40355737256) is green; canonical alpha **40355737256-2**, source `67d741f989da6d6a227af47e5296a93da6f5b33e`, OSTree `49e1338d582f849bcee75aa2c025294955aba2d9f5aef985f300620995ca5445`. The application/test/tool/package files are identical to tested candidate `93c4f37`.
+
+[Cross-version signed update 40350780587](https://github.com/icfmp/Bible/actions/runs/40350780587) actually installs old signed `d0d8a630…`, prepares real data once, measures it, then uses ordinary `flatpak update` to install new signed `49e1338d…` with the same profile. Origin `bible-alpha`, ref and fingerprint `47A17230403EA4953745E6E020EB9FFCCECAFD8F` are unchanged. No CI bundle is substituted for this delivery check.
+
+| Actual signed-channel case | Startup → final RSS | Scroll CPU (% of one core) | Mean post-stop CPU | Max heartbeat |
+| --- | ---: | --- | ---: | ---: |
+| Old alpha, combined scrollbar, four cycles | 399.7 → 475.0 MiB | 107.4–110.8 | 13.0% | 210.3 ms |
+| Updated alpha, same combined case | 381.1 → 423.0 MiB | 110.6–113.3 | 6.3% | 106.4 ms |
+| Updated alpha, single wheel, two cycles | 358.8 → 362.7 MiB | 102.8–103.9 | 4.6% | 66.1 ms |
+| Updated alpha, comparison wheel, two cycles | 367.7 → 394.3 MiB | 113.0–113.1 | 5.6% | **416.2 ms** |
+| Updated alpha, Study wheel, two cycles | 380.0 → 453.9 MiB | 112.7–116.2 | 7.6% | 156.6 ms |
+
+First combined movement / GTK after-paint improves from 12.77/29.67 to 3.05/5.12 ms. All five cases have zero adjustment changes later than 500 ms after release. Comparison's 416 ms heartbeat is retained explicitly; these tests do not prove uniformly imperceptible latency. Combined scrolling still uses approximately one logical CPU on software Vulkan. These are bounded improvements, not proof that the client's 700 MB/1.91 GB or GNOME warning is cured.
+
+The same actual signed-upgrade profile preserves its note, reading preferences, all 37 module files and all four study database hashes (no differences). Independent delivery verification also checks the public signed install/update receipts, exact package hash, all **347 corresponding project files**, three original dependency-source hashes, all **39 historical source records unchanged** (40 now), and no numbered-release change. [Delivery receipt with phase data and limits](delivery.json).
+
+The first publication run `40353650158` failed its public install with HTTP 503. Its retry then failed because Pages found duplicate same-named deployment artifacts across attempts. A fresh publication reused the already verified package and passed all checks; neither failure is counted as a complete delivery. No application rebuild or disabled verification was used for the retry.
+
+Update: `flatpak update --user io.github.icfmp.Bible//alpha`. [Installation channel](https://icfmp.github.io/Bible/alpha/Bible.flatpakref).
+
+Remaining acceptance: the client's actual GNOME/Wayland/driver/fractional-scale session, unexplained startup/long-session discrepancy and isolated waiting interval. Numbered release #87 stays paused, and issues remain OPEN. Project 5 access remains refused (`Resource not accessible by integration`); retain **In review** under the existing paused-numbered-publication workflow, with no Done/closure. The next functional task #26 resumes separately at the client's request; this delivery makes no assertion of completed #26 work.
 
 ## Optional client-side read-only capture
 

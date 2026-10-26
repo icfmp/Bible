@@ -1,0 +1,1120 @@
+{
+  "status": "SIGNED_ALPHA_VERIFIED_CLIENT_REGRESSION_NOT_FULLY_REPRODUCED",
+  "source": "67d741f989da6d6a227af47e5296a93da6f5b33e",
+  "candidate_source": "93c4f3766af03936d2637bf89fb307a01c59dadf",
+  "pull_request": "https://github.com/icfmp/Bible/pull/133",
+  "verification": {
+    "status": "PASS",
+    "source": "67d741f989da6d6a227af47e5296a93da6f5b33e",
+    "ci_run": "40350367815",
+    "publication_run": "40355737256",
+    "provenance": {
+      "source_commit": "67d741f989da6d6a227af47e5296a93da6f5b33e",
+      "ci_run": "40350367815",
+      "packaging_revision": "40355737256-2",
+      "flatpak_commit": "49e1338d582f849bcee75aa2c025294955aba2d9f5aef985f300620995ca5445",
+      "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+      "remote": "bible-alpha",
+      "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+      "source_archive": "Bible-67d741f989da6d6a227af47e5296a93da6f5b33e-sources.tar.gz",
+      "source_sha256": "bb0b0bd0a909f5b4df491c78bef4c5531697f59f5cf78293e8b7c7b046409db2",
+      "bundle_sha256": "d0ce6dc263adc68d2283ce10529d2e5c28f7c4f9cc6d662845105f755872b1ff",
+      "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-67d741f989da6d6a227af47e5296a93da6f5b33e-sources.tar.gz"
+    },
+    "site_bytes": 15242723,
+    "historical_source_records_unchanged": 39,
+    "current_source_records": 40,
+    "corresponding_project_files_verified": 347,
+    "original_dependency_sources_verified": 3,
+    "numbered_releases_unchanged": true,
+    "signed_public_install_and_update": true,
+    "user_data_preserved": true
+  },
+  "checks": {
+    "source_tests": 330,
+    "french_ui_tests": 144,
+    "installed_tests": 138,
+    "installed_immersion_tests": 11
+  },
+  "signed_cross_version_update": {
+    "run": 40350780587,
+    "artifact": 12667080230,
+    "artifact_sha256": "eeb0f2c27ebb4b29aa014242197a9941d31838240e02bcf29d49aaa50b6295a4",
+    "update": {
+      "before": {
+        "origin": "bible-alpha",
+        "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+        "commit": "d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce"
+      },
+      "after": {
+        "origin": "bible-alpha",
+        "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+        "commit": "49e1338d582f849bcee75aa2c025294955aba2d9f5aef985f300620995ca5445"
+      },
+      "updated": true
+    },
+    "preserved": true,
+    "notes": 1,
+    "module_files": 37,
+    "study_databases": 4,
+    "cases": {
+      "candidate-signed-combined.json": {
+        "app_import": "/app/lib/bible-python/bible/ui.py",
+        "gtk": [
+          4,
+          20,
+          4
+        ],
+        "app_ui_sha256": "521563f5bb78ca8495089f975cccaaaeeba1322c81a604a867a3f56e7996a344",
+        "passage_actions_sha256": "8001b7b1717d5b46d86fe219abcf576271aedc0e9a1f3508515a5203c097565b",
+        "renderer": "VulkanRenderer",
+        "renderer_env": null,
+        "logical_cpus": 4,
+        "resource": "FreSegond1910",
+        "reference": "Ps.119.1",
+        "mode": "combined",
+        "comparison": "KJV",
+        "study_open": true,
+        "study_tool": "commentaries",
+        "scale_factor": 2,
+        "startup_rendered_buffers": {
+          "primary": {
+            "characters": 13993,
+            "lines": 179
+          },
+          "comparison": {
+            "characters": 14349,
+            "lines": 205
+          },
+          "commentary": {
+            "characters": 8411,
+            "lines": 223
+          }
+        },
+        "input_kind": "scrollbar",
+        "scrollbar_geometry": {
+          "x": 733,
+          "top": 368,
+          "bottom": 1482
+        },
+        "preferences": {
+          "font": "DejaVu Serif",
+          "size": 24,
+          "chapter_numbers": true,
+          "verse_numbers": true,
+          "mode": "system",
+          "day_palette": "white",
+          "night_palette": "dark",
+          "line_spacing": "very-airy",
+          "column_width": "narrow",
+          "show_highlights": true,
+          "note_indicators": true,
+          "place_markers": true
+        },
+        "geometry": [
+          1180,
+          780
+        ],
+        "startup_to_ready_seconds": 4.972072468999841,
+        "startup_ready_memory": {
+          "time": 2004.031791878,
+          "cpu_seconds": 4.4,
+          "rss_bytes": 399597568,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 398962688,
+          "private_clean_bytes": 127696896,
+          "private_dirty_bytes": 269991936,
+          "anonymous_bytes": 206696448,
+          "swap_bytes": 0
+        },
+        "initially_visible_toolbar": false,
+        "diagnostic_backdrop": "native",
+        "instrumented": false,
+        "diagnostic_layout_ticks_removed": 0,
+        "diagnostic_resource_cache": false,
+        "phases": [
+          {
+            "phase": "startup_idle",
+            "cycle": null,
+            "seconds": 5.828141546999859,
+            "cpu_one_core_percent": 9.09380796135309,
+            "rss_begin": 399597568,
+            "rss_end": 399597568,
+            "rss_peak": 399597568,
+            "pss_begin": 394633216,
+            "pss_end": 394682368,
+            "anonymous_end": 206749696,
+            "main_loop_max_ms": 56.3867210000808,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 137
+          },
+          {
+            "phase": "scroll",
+            "cycle": 0,
+            "seconds": 7.839052463000144,
+            "cpu_one_core_percent": 112.25846543999383,
+            "rss_begin": 399597568,
+            "rss_end": 437035008,
+            "rss_peak": 437035008,
+            "pss_begin": 394702848,
+            "pss_end": 432152576,
+            "anonymous_end": 241508352,
+            "main_loop_max_ms": 106.39598700004171,
+            "main_loop_over_100ms": 2,
+            "actual_paints": 296
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 0,
+            "seconds": 5.827341853999997,
+            "cpu_one_core_percent": 6.692588315070198,
+            "rss_begin": 437428224,
+            "rss_end": 437559296,
+            "rss_peak": 437559296,
+            "pss_begin": 432586752,
+            "pss_end": 432668672,
+            "anonymous_end": 242024448,
+            "main_loop_max_ms": 60.85068200013666,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 71
+          },
+          {
+            "phase": "scroll",
+            "cycle": 1,
+            "seconds": 7.844648950999954,
+            "cpu_one_core_percent": 113.32565747083933,
+            "rss_begin": 437559296,
+            "rss_end": 437952512,
+            "rss_peak": 437952512,
+            "pss_begin": 432680960,
+            "pss_end": 432996352,
+            "anonymous_end": 242216960,
+            "main_loop_max_ms": 83.14475699989998,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 299
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 1,
+            "seconds": 5.825659268999971,
+            "cpu_one_core_percent": 5.14963176093027,
+            "rss_begin": 437952512,
+            "rss_end": 437952512,
+            "rss_peak": 437952512,
+            "pss_begin": 432992256,
+            "pss_end": 432992256,
+            "anonymous_end": 242216960,
+            "main_loop_max_ms": 58.3389220000754,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 67
+          },
+          {
+            "phase": "scroll",
+            "cycle": 2,
+            "seconds": 7.6424397010000575,
+            "cpu_one_core_percent": 110.56678666230454,
+            "rss_begin": 437952512,
+            "rss_end": 441491456,
+            "rss_peak": 441491456,
+            "pss_begin": 433008640,
+            "pss_end": 436551680,
+            "anonymous_end": 245776384,
+            "main_loop_max_ms": 76.16374400004133,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 291
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 2,
+            "seconds": 5.826608077999936,
+            "cpu_one_core_percent": 7.379936907436602,
+            "rss_begin": 441491456,
+            "rss_end": 441491456,
+            "rss_peak": 441491456,
+            "pss_begin": 436559872,
+            "pss_end": 436551680,
+            "anonymous_end": 245776384,
+            "main_loop_max_ms": 69.47642399995857,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 75
+          },
+          {
+            "phase": "scroll",
+            "cycle": 3,
+            "seconds": 7.84101725499977,
+            "cpu_one_core_percent": 111.08252560528585,
+            "rss_begin": 441491456,
+            "rss_end": 443588608,
+            "rss_peak": 443588608,
+            "pss_begin": 436551680,
+            "pss_end": 438599680,
+            "anonymous_end": 247820288,
+            "main_loop_max_ms": 76.21096999992005,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 302
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 3,
+            "seconds": 5.8289915820000715,
+            "cpu_one_core_percent": 6.004469127744181,
+            "rss_begin": 443588608,
+            "rss_end": 443588608,
+            "rss_peak": 443588608,
+            "pss_begin": 438616064,
+            "pss_end": 438616064,
+            "anonymous_end": 247836672,
+            "main_loop_max_ms": 58.77548900025431,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 69
+          }
+        ],
+        "menu_final_visible": false,
+        "backdrop_released": true,
+        "placement_tick": 0,
+        "process_end": {
+          "time": 2066.106314878,
+          "cpu_seconds": 42.45,
+          "rss_bytes": 444243968,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 443678720,
+          "private_clean_bytes": 127741952,
+          "private_dirty_bytes": 314662912,
+          "anonymous_bytes": 248565760,
+          "swap_bytes": 0
+        },
+        "data_profile_reused": "/home/runner/work/_temp/performance-profile",
+        "first_scroll_latency_seconds": 0.0030484059998343582,
+        "first_paint_latency_seconds": 0.005121945999917443,
+        "first_menu_hide_latency_seconds": null,
+        "after_stop": [
+          {
+            "cycle": 0,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 1,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 2,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 3,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          }
+        ]
+      },
+      "candidate-signed-single.json": {
+        "app_import": "/app/lib/bible-python/bible/ui.py",
+        "gtk": [
+          4,
+          20,
+          4
+        ],
+        "app_ui_sha256": "521563f5bb78ca8495089f975cccaaaeeba1322c81a604a867a3f56e7996a344",
+        "passage_actions_sha256": "8001b7b1717d5b46d86fe219abcf576271aedc0e9a1f3508515a5203c097565b",
+        "renderer": "VulkanRenderer",
+        "renderer_env": null,
+        "logical_cpus": 4,
+        "resource": "FreSegond1910",
+        "reference": "Ps.119.1",
+        "mode": "single",
+        "comparison": null,
+        "study_open": false,
+        "study_tool": "commentaries",
+        "scale_factor": 2,
+        "startup_rendered_buffers": {
+          "primary": {
+            "characters": 13817,
+            "lines": 3
+          },
+          "comparison": {
+            "characters": 0,
+            "lines": 1
+          },
+          "commentary": {
+            "characters": 8411,
+            "lines": 223
+          }
+        },
+        "input_kind": "wheel",
+        "scrollbar_geometry": null,
+        "preferences": {
+          "font": "DejaVu Serif",
+          "size": 24,
+          "chapter_numbers": true,
+          "verse_numbers": true,
+          "mode": "system",
+          "day_palette": "white",
+          "night_palette": "dark",
+          "line_spacing": "very-airy",
+          "column_width": "narrow",
+          "show_highlights": true,
+          "note_indicators": true,
+          "place_markers": true
+        },
+        "geometry": [
+          1180,
+          780
+        ],
+        "startup_to_ready_seconds": 3.7382518679996792,
+        "startup_ready_memory": {
+          "time": 2070.317810581,
+          "cpu_seconds": 2.68,
+          "rss_bytes": 376262656,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 376156160,
+          "private_clean_bytes": 125210624,
+          "private_dirty_bytes": 250044416,
+          "anonymous_bytes": 187805696,
+          "swap_bytes": 0
+        },
+        "initially_visible_toolbar": false,
+        "diagnostic_backdrop": "native",
+        "instrumented": false,
+        "diagnostic_layout_ticks_removed": 0,
+        "diagnostic_resource_cache": false,
+        "phases": [
+          {
+            "phase": "startup_idle",
+            "cycle": null,
+            "seconds": 5.82847510099964,
+            "cpu_one_core_percent": 5.490286815244638,
+            "rss_begin": 376262656,
+            "rss_end": 376262656,
+            "rss_peak": 376262656,
+            "pss_begin": 371843072,
+            "pss_end": 371838976,
+            "anonymous_end": 187805696,
+            "main_loop_max_ms": 59.64760500000921,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 89
+          },
+          {
+            "phase": "scroll",
+            "cycle": 0,
+            "seconds": 7.848440390000178,
+            "cpu_one_core_percent": 102.82297627286708,
+            "rss_begin": 376262656,
+            "rss_end": 379146240,
+            "rss_peak": 379146240,
+            "pss_begin": 371843072,
+            "pss_end": 374476800,
+            "anonymous_end": 189263872,
+            "main_loop_max_ms": 66.13643699984095,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 458
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 0,
+            "seconds": 5.823064688999693,
+            "cpu_one_core_percent": 4.465002775791994,
+            "rss_begin": 379146240,
+            "rss_end": 379146240,
+            "rss_peak": 379146240,
+            "pss_begin": 374476800,
+            "pss_end": 374476800,
+            "anonymous_end": 189263872,
+            "main_loop_max_ms": 50.15185199999905,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 61
+          },
+          {
+            "phase": "scroll",
+            "cycle": 1,
+            "seconds": 7.846003742999983,
+            "cpu_one_core_percent": 103.8745362219746,
+            "rss_begin": 379146240,
+            "rss_end": 380194816,
+            "rss_peak": 380194816,
+            "pss_begin": 374480896,
+            "pss_end": 375660544,
+            "anonymous_end": 190447616,
+            "main_loop_max_ms": 66.1325979999674,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 451
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 1,
+            "seconds": 5.827880477000235,
+            "cpu_one_core_percent": 4.804491119970961,
+            "rss_begin": 380194816,
+            "rss_end": 380325888,
+            "rss_peak": 380325888,
+            "pss_begin": 375664640,
+            "pss_end": 375693312,
+            "anonymous_end": 190480384,
+            "main_loop_max_ms": 60.2094560003934,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 61
+          }
+        ],
+        "menu_final_visible": false,
+        "backdrop_released": true,
+        "placement_tick": 0,
+        "process_end": {
+          "time": 2104.424081507,
+          "cpu_seconds": 20.15,
+          "rss_bytes": 380588032,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 380321792,
+          "private_clean_bytes": 125231104,
+          "private_dirty_bytes": 254189568,
+          "anonymous_bytes": 190795776,
+          "swap_bytes": 0
+        },
+        "data_profile_reused": "/home/runner/work/_temp/performance-profile",
+        "first_scroll_latency_seconds": 0.0014220680000107677,
+        "first_paint_latency_seconds": 0.016440979999970295,
+        "first_menu_hide_latency_seconds": null,
+        "after_stop": [
+          {
+            "cycle": 0,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 1,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          }
+        ]
+      },
+      "candidate-signed-comparison.json": {
+        "app_import": "/app/lib/bible-python/bible/ui.py",
+        "gtk": [
+          4,
+          20,
+          4
+        ],
+        "app_ui_sha256": "521563f5bb78ca8495089f975cccaaaeeba1322c81a604a867a3f56e7996a344",
+        "passage_actions_sha256": "8001b7b1717d5b46d86fe219abcf576271aedc0e9a1f3508515a5203c097565b",
+        "renderer": "VulkanRenderer",
+        "renderer_env": null,
+        "logical_cpus": 4,
+        "resource": "FreSegond1910",
+        "reference": "Ps.119.1",
+        "mode": "comparison",
+        "comparison": "KJV",
+        "study_open": false,
+        "study_tool": "commentaries",
+        "scale_factor": 2,
+        "startup_rendered_buffers": {
+          "primary": {
+            "characters": 13993,
+            "lines": 179
+          },
+          "comparison": {
+            "characters": 14349,
+            "lines": 205
+          },
+          "commentary": {
+            "characters": 8411,
+            "lines": 223
+          }
+        },
+        "input_kind": "wheel",
+        "scrollbar_geometry": null,
+        "preferences": {
+          "font": "DejaVu Serif",
+          "size": 24,
+          "chapter_numbers": true,
+          "verse_numbers": true,
+          "mode": "system",
+          "day_palette": "white",
+          "night_palette": "dark",
+          "line_spacing": "very-airy",
+          "column_width": "narrow",
+          "show_highlights": true,
+          "note_indicators": true,
+          "place_markers": true
+        },
+        "geometry": [
+          1180,
+          780
+        ],
+        "startup_to_ready_seconds": 4.539597769000011,
+        "startup_ready_memory": {
+          "time": 2109.403406662,
+          "cpu_seconds": 3.5,
+          "rss_bytes": 385519616,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 384688128,
+          "private_clean_bytes": 127627264,
+          "private_dirty_bytes": 255733760,
+          "anonymous_bytes": 192761856,
+          "swap_bytes": 0
+        },
+        "initially_visible_toolbar": false,
+        "diagnostic_backdrop": "native",
+        "instrumented": false,
+        "diagnostic_layout_ticks_removed": 0,
+        "diagnostic_resource_cache": false,
+        "phases": [
+          {
+            "phase": "startup_idle",
+            "cycle": null,
+            "seconds": 5.822783542000252,
+            "cpu_one_core_percent": 4.98043586728245,
+            "rss_begin": 385519616,
+            "rss_end": 385519616,
+            "rss_peak": 385519616,
+            "pss_begin": 380305408,
+            "pss_end": 380301312,
+            "anonymous_end": 192761856,
+            "main_loop_max_ms": 59.91303400014658,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 88
+          },
+          {
+            "phase": "scroll",
+            "cycle": 0,
+            "seconds": 7.841060603000187,
+            "cpu_one_core_percent": 113.12245178421546,
+            "rss_begin": 385519616,
+            "rss_end": 412278784,
+            "rss_peak": 412278784,
+            "pss_begin": 380329984,
+            "pss_end": 407048192,
+            "anonymous_end": 215748608,
+            "main_loop_max_ms": 416.2105509999492,
+            "main_loop_over_100ms": 1,
+            "actual_paints": 389
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 0,
+            "seconds": 5.840183756999977,
+            "cpu_one_core_percent": 6.164189603940246,
+            "rss_begin": 412278784,
+            "rss_end": 412278784,
+            "rss_peak": 412278784,
+            "pss_begin": 407048192,
+            "pss_end": 407048192,
+            "anonymous_end": 215748608,
+            "main_loop_max_ms": 52.844824999738194,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 112
+          },
+          {
+            "phase": "scroll",
+            "cycle": 1,
+            "seconds": 7.839242733999981,
+            "cpu_one_core_percent": 113.0211207974571,
+            "rss_begin": 412278784,
+            "rss_end": 413458432,
+            "rss_peak": 413458432,
+            "pss_begin": 407076864,
+            "pss_end": 408158208,
+            "anonymous_end": 216858624,
+            "main_loop_max_ms": 64.20915599983346,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 423
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 1,
+            "seconds": 5.822911579999982,
+            "cpu_one_core_percent": 4.9803263541913525,
+            "rss_begin": 413458432,
+            "rss_end": 413458432,
+            "rss_peak": 413458432,
+            "pss_begin": 408158208,
+            "pss_end": 408186880,
+            "anonymous_end": 216887296,
+            "main_loop_max_ms": 59.984488999816676,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 61
+          }
+        ],
+        "menu_final_visible": false,
+        "backdrop_released": true,
+        "placement_tick": 0,
+        "process_end": {
+          "time": 2143.473640751,
+          "cpu_seconds": 22.64,
+          "rss_bytes": 413851648,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 412893184,
+          "private_clean_bytes": 129818624,
+          "private_dirty_bytes": 281747456,
+          "anonymous_bytes": 217210880,
+          "swap_bytes": 0
+        },
+        "data_profile_reused": "/home/runner/work/_temp/performance-profile",
+        "first_scroll_latency_seconds": 0.0007821710000825988,
+        "first_paint_latency_seconds": 0.01782540100020924,
+        "first_menu_hide_latency_seconds": null,
+        "after_stop": [
+          {
+            "cycle": 0,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 1,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          }
+        ]
+      },
+      "candidate-signed-study.json": {
+        "app_import": "/app/lib/bible-python/bible/ui.py",
+        "gtk": [
+          4,
+          20,
+          4
+        ],
+        "app_ui_sha256": "521563f5bb78ca8495089f975cccaaaeeba1322c81a604a867a3f56e7996a344",
+        "passage_actions_sha256": "8001b7b1717d5b46d86fe219abcf576271aedc0e9a1f3508515a5203c097565b",
+        "renderer": "VulkanRenderer",
+        "renderer_env": null,
+        "logical_cpus": 4,
+        "resource": "FreSegond1910",
+        "reference": "Ps.119.1",
+        "mode": "study",
+        "comparison": null,
+        "study_open": true,
+        "study_tool": "commentaries",
+        "scale_factor": 2,
+        "startup_rendered_buffers": {
+          "primary": {
+            "characters": 13817,
+            "lines": 3
+          },
+          "comparison": {
+            "characters": 0,
+            "lines": 1
+          },
+          "commentary": {
+            "characters": 8411,
+            "lines": 223
+          }
+        },
+        "input_kind": "wheel",
+        "scrollbar_geometry": null,
+        "preferences": {
+          "font": "DejaVu Serif",
+          "size": 24,
+          "chapter_numbers": true,
+          "verse_numbers": true,
+          "mode": "system",
+          "day_palette": "white",
+          "night_palette": "dark",
+          "line_spacing": "very-airy",
+          "column_width": "narrow",
+          "show_highlights": true,
+          "note_indicators": true,
+          "place_markers": true
+        },
+        "geometry": [
+          1180,
+          780
+        ],
+        "startup_to_ready_seconds": 4.190901769999982,
+        "startup_ready_memory": {
+          "time": 2148.141155439,
+          "cpu_seconds": 3.2,
+          "rss_bytes": 398491648,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 398479360,
+          "private_clean_bytes": 125349888,
+          "private_dirty_bytes": 272408576,
+          "anonymous_bytes": 209653760,
+          "swap_bytes": 0
+        },
+        "initially_visible_toolbar": false,
+        "diagnostic_backdrop": "native",
+        "instrumented": false,
+        "diagnostic_layout_ticks_removed": 0,
+        "diagnostic_resource_cache": false,
+        "phases": [
+          {
+            "phase": "startup_idle",
+            "cycle": null,
+            "seconds": 5.827251932999843,
+            "cpu_one_core_percent": 8.065551402340791,
+            "rss_begin": 398622720,
+            "rss_end": 398622720,
+            "rss_peak": 398622720,
+            "pss_begin": 394149888,
+            "pss_end": 394145792,
+            "anonymous_end": 209653760,
+            "main_loop_max_ms": 59.524964000047476,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 127
+          },
+          {
+            "phase": "scroll",
+            "cycle": 0,
+            "seconds": 7.840053291999993,
+            "cpu_one_core_percent": 116.19818974057056,
+            "rss_begin": 398622720,
+            "rss_end": 423026688,
+            "rss_peak": 423682048,
+            "pss_begin": 394149888,
+            "pss_end": 418631680,
+            "anonymous_end": 230424576,
+            "main_loop_max_ms": 86.75062200018147,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 232
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 0,
+            "seconds": 5.837377142999685,
+            "cpu_one_core_percent": 6.681082795338955,
+            "rss_begin": 423026688,
+            "rss_end": 423026688,
+            "rss_peak": 423026688,
+            "pss_begin": 418635776,
+            "pss_end": 418664448,
+            "anonymous_end": 230457344,
+            "main_loop_max_ms": 83.69460999983858,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 77
+          },
+          {
+            "phase": "scroll",
+            "cycle": 1,
+            "seconds": 7.842103427999973,
+            "cpu_one_core_percent": 112.7248585938955,
+            "rss_begin": 423026688,
+            "rss_end": 475979776,
+            "rss_peak": 475979776,
+            "pss_begin": 418697216,
+            "pss_end": 471625728,
+            "anonymous_end": 283283456,
+            "main_loop_max_ms": 156.57910099980654,
+            "main_loop_over_100ms": 1,
+            "actual_paints": 229
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 1,
+            "seconds": 5.837352457999714,
+            "cpu_one_core_percent": 8.565526985008116,
+            "rss_begin": 475979776,
+            "rss_end": 475979776,
+            "rss_peak": 475979776,
+            "pss_begin": 471633920,
+            "pss_end": 471633920,
+            "anonymous_end": 283291648,
+            "main_loop_max_ms": 58.224404999691615,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 93
+          }
+        ],
+        "menu_final_visible": false,
+        "backdrop_released": true,
+        "placement_tick": 0,
+        "process_end": {
+          "time": 2182.242519214,
+          "cpu_seconds": 23.09,
+          "rss_bytes": 476241920,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 476172288,
+          "private_clean_bytes": 127475712,
+          "private_dirty_bytes": 347975680,
+          "anonymous_bytes": 283500544,
+          "swap_bytes": 0
+        },
+        "data_profile_reused": "/home/runner/work/_temp/performance-profile",
+        "first_scroll_latency_seconds": 0.0013096600000608305,
+        "first_paint_latency_seconds": 0.01712101499970231,
+        "first_menu_hide_latency_seconds": null,
+        "after_stop": [
+          {
+            "cycle": 0,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 1,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          }
+        ]
+      },
+      "current-signed-combined.json": {
+        "app_import": "/app/lib/bible-python/bible/ui.py",
+        "gtk": [
+          4,
+          20,
+          4
+        ],
+        "app_ui_sha256": "0d436d94f655d1c60ae5a794d6c69b4e020b07da26ec004adaa2652a5893e80c",
+        "passage_actions_sha256": "7b72c4440565e989cc627330c8e6a2d91c8dad1eef0df5fa936b35b44b2ec05e",
+        "renderer": "VulkanRenderer",
+        "renderer_env": null,
+        "logical_cpus": 4,
+        "resource": "FreSegond1910",
+        "reference": "Ps.119.1",
+        "mode": "combined",
+        "comparison": "KJV",
+        "study_open": true,
+        "study_tool": "commentaries",
+        "scale_factor": 2,
+        "startup_rendered_buffers": {
+          "primary": {
+            "characters": 13993,
+            "lines": 179
+          },
+          "comparison": {
+            "characters": 14349,
+            "lines": 205
+          },
+          "commentary": {
+            "characters": 8411,
+            "lines": 223
+          }
+        },
+        "input_kind": "scrollbar",
+        "scrollbar_geometry": {
+          "x": 733,
+          "top": 368,
+          "bottom": 1482
+        },
+        "preferences": {
+          "font": "DejaVu Serif",
+          "size": 24,
+          "chapter_numbers": true,
+          "verse_numbers": true,
+          "mode": "system",
+          "day_palette": "white",
+          "night_palette": "dark",
+          "line_spacing": "very-airy",
+          "column_width": "narrow",
+          "show_highlights": true,
+          "note_indicators": true,
+          "place_markers": true
+        },
+        "geometry": [
+          1180,
+          780
+        ],
+        "startup_to_ready_seconds": 7.7086169119999965,
+        "startup_ready_memory": {
+          "time": 147.9778758,
+          "cpu_seconds": 6.3,
+          "rss_bytes": 419086336,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 418385920,
+          "private_clean_bytes": 129351680,
+          "private_dirty_bytes": 287744000,
+          "anonymous_bytes": 223604736,
+          "swap_bytes": 0
+        },
+        "initially_visible_toolbar": false,
+        "diagnostic_backdrop": "native",
+        "instrumented": false,
+        "diagnostic_layout_ticks_removed": 0,
+        "diagnostic_resource_cache": false,
+        "phases": [
+          {
+            "phase": "startup_idle",
+            "cycle": null,
+            "seconds": 5.8245803199999955,
+            "cpu_one_core_percent": 11.331288500456298,
+            "rss_begin": 419086336,
+            "rss_end": 419086336,
+            "rss_peak": 419086336,
+            "pss_begin": 414050304,
+            "pss_end": 414099456,
+            "anonymous_end": 223657984,
+            "main_loop_max_ms": 60.84080700000527,
+            "main_loop_over_100ms": 0,
+            "actual_paints": 350
+          },
+          {
+            "phase": "scroll",
+            "cycle": 0,
+            "seconds": 7.83830309199999,
+            "cpu_one_core_percent": 109.59004645746877,
+            "rss_begin": 419086336,
+            "rss_end": 486817792,
+            "rss_peak": 486817792,
+            "pss_begin": 414103552,
+            "pss_end": 481875968,
+            "anonymous_end": 290320384,
+            "main_loop_max_ms": 209.51525099999913,
+            "main_loop_over_100ms": 32,
+            "actual_paints": 164
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 0,
+            "seconds": 5.8297795219999955,
+            "cpu_one_core_percent": 13.551112816852763,
+            "rss_begin": 487211008,
+            "rss_end": 489046016,
+            "rss_peak": 489046016,
+            "pss_begin": 482318336,
+            "pss_end": 484120576,
+            "anonymous_end": 292245504,
+            "main_loop_max_ms": 135.20980600000598,
+            "main_loop_over_100ms": 1,
+            "actual_paints": 337
+          },
+          {
+            "phase": "scroll",
+            "cycle": 1,
+            "seconds": 7.842456937000009,
+            "cpu_one_core_percent": 110.80711146785336,
+            "rss_begin": 489046016,
+            "rss_end": 489730048,
+            "rss_peak": 489730048,
+            "pss_begin": 484132864,
+            "pss_end": 484960256,
+            "anonymous_end": 292773888,
+            "main_loop_max_ms": 208.37118499997587,
+            "main_loop_over_100ms": 30,
+            "actual_paints": 182
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 1,
+            "seconds": 5.825217453999983,
+            "cpu_one_core_percent": 12.531721017534439,
+            "rss_begin": 489730048,
+            "rss_end": 489861120,
+            "rss_peak": 489861120,
+            "pss_begin": 484960256,
+            "pss_end": 484976640,
+            "anonymous_end": 292790272,
+            "main_loop_max_ms": 151.09251399999835,
+            "main_loop_over_100ms": 1,
+            "actual_paints": 341
+          },
+          {
+            "phase": "scroll",
+            "cycle": 2,
+            "seconds": 7.643366447000005,
+            "cpu_one_core_percent": 107.5442353444446,
+            "rss_begin": 489861120,
+            "rss_end": 492482560,
+            "rss_peak": 492482560,
+            "pss_begin": 484976640,
+            "pss_end": 487647232,
+            "anonymous_end": 295460864,
+            "main_loop_max_ms": 207.52685100001145,
+            "main_loop_over_100ms": 31,
+            "actual_paints": 166
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 2,
+            "seconds": 5.824557287000005,
+            "cpu_one_core_percent": 13.73494946621162,
+            "rss_begin": 492744704,
+            "rss_end": 494579712,
+            "rss_peak": 494579712,
+            "pss_begin": 487802880,
+            "pss_end": 489609216,
+            "anonymous_end": 297422848,
+            "main_loop_max_ms": 139.83402100001285,
+            "main_loop_over_100ms": 2,
+            "actual_paints": 335
+          },
+          {
+            "phase": "scroll",
+            "cycle": 3,
+            "seconds": 7.850156367000011,
+            "cpu_one_core_percent": 107.38639596323837,
+            "rss_begin": 494579712,
+            "rss_end": 496021504,
+            "rss_peak": 496021504,
+            "pss_begin": 489609216,
+            "pss_end": 491186176,
+            "anonymous_end": 298999808,
+            "main_loop_max_ms": 210.3409240000076,
+            "main_loop_over_100ms": 33,
+            "actual_paints": 159
+          },
+          {
+            "phase": "after_scroll_idle",
+            "cycle": 3,
+            "seconds": 5.826870278999991,
+            "cpu_one_core_percent": 12.356547606609247,
+            "rss_begin": 496283648,
+            "rss_end": 498118656,
+            "rss_peak": 498118656,
+            "pss_begin": 491489280,
+            "pss_end": 493340672,
+            "anonymous_end": 301146112,
+            "main_loop_max_ms": 184.60999300000935,
+            "main_loop_over_100ms": 2,
+            "actual_paints": 330
+          }
+        ],
+        "menu_final_visible": false,
+        "backdrop_released": true,
+        "placement_tick": 0,
+        "process_end": {
+          "time": 210.052978313,
+          "cpu_seconds": 45.15,
+          "rss_bytes": 498774016,
+          "process_state": "R",
+          "wait_channel": "0",
+          "pss_bytes": 498311168,
+          "private_clean_bytes": 129359872,
+          "private_dirty_bytes": 367661056,
+          "anonymous_bytes": 301780992,
+          "swap_bytes": 0
+        },
+        "data_profile_reused": "/home/runner/work/_temp/performance-profile",
+        "first_scroll_latency_seconds": 0.01277242800000522,
+        "first_paint_latency_seconds": 0.029671184000022777,
+        "first_menu_hide_latency_seconds": null,
+        "after_stop": [
+          {
+            "cycle": 0,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 1,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 2,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          },
+          {
+            "cycle": 3,
+            "adjustments_later_than_500ms": 0,
+            "last_late_seconds": 0
+          }
+        ]
+      }
+    }
+  },
+  "limits": [
+    "Client startup 700 MB / later 1.91 GB and GNOME warning remain unreproduced.",
+    "One isolated normal candidate single-reader 4.238 s wait did not recur in sixteen-cycle repeat; cause remains unknown.",
+    "Software Vulkan scrolling still consumes approximately one logical CPU.",
+    "Actual signed comparison-only case has a 416 ms max heartbeat; no late adjustment catch-up.",
+    "Virtual composited X11/software Mesa is not client GNOME/Wayland/driver/fractional-scale acceptance."
+  ],
+  "numbered_release_87": "PAUSED",
+  "issue_26": "Next requested task after this verified delivery; separate branch and no automatic publication implied."
+}
