@@ -1,5 +1,7 @@
 name: Compare combined scrolling with active native accessibility
 on:
+  push:
+    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,7 +18,7 @@ jobs:
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic at-spi2-core
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
       - name: Wait for successful exact-head GNOME checks and obtain candidate
