@@ -22,7 +22,7 @@ import time
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--mode',choices=['single','comparison','study'],default='single')
+    p.add_argument('--mode',choices=['single','comparison','study','combined'],default='single')
     p.add_argument('--resource',default='FreSegond1910');p.add_argument('--reference',default='Ps.119.1')
     p.add_argument('--cycles',type=int,default=4);p.add_argument('--toolbar',action='store_true')
     p.add_argument('--backdrop',choices=['native','radius-zero','disabled'],default='native')
@@ -63,8 +63,8 @@ def main():
     tab=window.active_tab;tab.state.comparison=None;window.sync_comparison();window.study_button.set_active(False)
     assert tab.navigate(args.resource,args.reference)
     spin(lambda:not tab._restoring_scroll,duration=.6)
-    if args.mode=='comparison':tab.state.comparison='KJV';window.sync_comparison();spin(duration=.5)
-    if args.mode=='study':
+    if args.mode in ('comparison','combined'):tab.state.comparison='KJV';window.sync_comparison();spin(duration=.5)
+    if args.mode in ('study','combined'):
         window.study_button.set_active(True);window.study.tools.set_visible_child_name('commentaries')
         window.study.choices.set_selected(window.study.names.index('Wesley'));window.study.refresh(force=True);spin(duration=.5)
     if hasattr(tab,'inline_markers'):spin(lambda:not tab.inline_markers.pending,duration=.3)
@@ -139,6 +139,7 @@ def main():
                 passage_actions_sha256=hashlib.sha256(Path(inspect.getfile(actions)).read_bytes()).hexdigest(),
                 renderer=type(window.get_renderer()).__name__,renderer_env=os.environ.get('GSK_RENDERER'),
                 logical_cpus=os.cpu_count(),resource=args.resource,reference=args.reference,mode=args.mode,
+                comparison=tab.state.comparison,study_open=window.split.get_show_sidebar(),study_tool=window.study.tool,
                 scale_factor=scale,
                 input_kind=args.input_kind,scrollbar_geometry=bar_geometry,
                 preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
