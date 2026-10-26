@@ -1,7 +1,5 @@
 name: Measure extended combined memory and scroll cycles
 on:
-  push:
-    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read

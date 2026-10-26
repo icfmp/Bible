@@ -1,5 +1,7 @@
 name: Profile installed combined native allocations
 on:
+  push:
+    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read
@@ -112,7 +114,8 @@ jobs:
       - name: Profile combined native allocations in actual installed builds
         run: |
           set -euo pipefail
-          for version in current candidate; do
+          # The published baseline trace is already retained in run 40328445407.
+          for version in candidate; do
             if [ "$version" = candidate ]; then flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"; fi
             flatpak info --user --show-commit io.github.icfmp.Bible//master > "reports/$version-native-allocations.commit"
             timeout 420s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --env=GDK_SCALE=2 --env=GTK_A11Y=none --env=ALPHA_NATIVE_TRACE="$RUNNER_TEMP/$version-native-trace.bin" --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_native "$PERF_PROFILE" "$PWD/reports/$version-native-allocations-run.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 1 --input-kind scrollbar > "reports/$version-native-allocations.log" 2>&1
