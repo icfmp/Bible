@@ -29,6 +29,7 @@ def main():
     p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
     p.add_argument('--input-interpreter',nargs='+',default=[sys.executable],help='Local runtime loader plus Python only; installed runs use their own Python')
     p.add_argument('--stop-layout-polling',action='store_true',help='Diagnostic ablation at fixed geometry only')
+    p.add_argument('--input-kind',choices=['wheel','scrollbar'],default='wheel')
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     started=time.monotonic();import_started=time.monotonic()
     from bible.ui import Application,Window,Library,GLib,Gtk
@@ -67,7 +68,24 @@ def main():
         window.study_button.set_active(True);window.study.tools.set_visible_child_name('commentaries')
         window.study.choices.set_selected(window.study.names.index('Wesley'));window.study.refresh(force=True);spin(duration=.5)
     if hasattr(tab,'inline_markers'):spin(lambda:not tab.inline_markers.pending,duration=.3)
-    native=X11Input();native.activate(window);native.move_at(tab.text,tab.text.get_width()/2,tab.text.get_height()/2)
+    native=X11Input();native.activate(window)
+    scale=window.get_scale_factor()
+    def screen_point(widget,local_x,local_y):
+        found,bounds=widget.compute_bounds(window);assert found
+        x,y,child_window=ctypes.c_int(),ctypes.c_int(),ctypes.c_ulong()
+        native.x11.XTranslateCoordinates(native.display,window.get_surface().get_xid(),native.x11.XDefaultRootWindow(native.display),0,0,ctypes.byref(x),ctypes.byref(y),ctypes.byref(child_window))
+        dx,dy=window.get_surface_transform()
+        return round(x.value+(dx+bounds.origin.x+local_x)*scale),round(y.value+(dy+bounds.origin.y+local_y)*scale)
+    x,y=screen_point(tab.text,tab.text.get_width()/2,tab.text.get_height()/2)
+    native.xtest.XTestFakeMotionEvent(native.display,-1,x,y,0);native.x11.XFlush(native.display)
+    bar_geometry=None
+    if args.input_kind=='scrollbar':
+        track=tab.scroll.get_vscrollbar().get_first_child()
+        low,high=track.get_slider_range();half=(high-low)/2;rect=track.get_range_rect()
+        x,top=screen_point(track,track.get_width()/2,(low+high)/2)
+        _,bottom=screen_point(track,track.get_width()/2,rect.y+rect.height-half-2)
+        assert bottom>top,'No usable native scrollbar travel'
+        bar_geometry=dict(x=x,top=top,bottom=bottom)
     spin(duration=.5)
     if args.toolbar:
         buffer=tab.text.get_buffer();offset=tab._marker_ends[args.reference]
@@ -77,7 +95,8 @@ def main():
         Gtk.Widget.add_tick_callback=original_tick
         for widget,tick in layout_ticks:widget.remove_tick_callback(tick)
     # No screenshot/tick observer, queue_draw, forced GC or memory trim in a consumption run.
-    first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];last=[time.monotonic()]
+    first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];adjustments=[];last=[time.monotonic()]
+    tab.scroll.get_vadjustment().connect('value-changed',lambda adj:adjustments.append([time.monotonic(),adj.get_value()]))
     paint=clock.connect('after-paint',lambda *_:paints.append(time.monotonic()))
     def beat():
         now=time.monotonic();beats.append([now,now-last[0]]);last[0]=now
@@ -89,7 +108,7 @@ def main():
         allocation_before=tracemalloc.take_snapshot();prof.enable()
     loop=GLib.MainLoop();sid=GLib.timeout_add(50,beat)
     inputfile=args.output.with_suffix('.input.json')
-    child=subprocess.Popen([*args.input_interpreter,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
+    child=subprocess.Popen([*args.input_interpreter,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles),args.input_kind,json.dumps(bar_geometry)])
     loop.run();assert child.wait()==0,'Independent input/sampler process failed';clock.disconnect(paint)
     if args.instrument:
         prof.disable();prof.dump_stats(str(args.output.with_suffix('.prof')))
@@ -119,15 +138,22 @@ def main():
                 passage_actions_sha256=hashlib.sha256(Path(inspect.getfile(actions)).read_bytes()).hexdigest(),
                 renderer=type(window.get_renderer()).__name__,renderer_env=os.environ.get('GSK_RENDERER'),
                 logical_cpus=os.cpu_count(),resource=args.resource,reference=args.reference,mode=args.mode,
+                scale_factor=scale,
+                input_kind=args.input_kind,scrollbar_geometry=bar_geometry,
                 preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
                 initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
                 diagnostic_layout_ticks_removed=len(layout_ticks),
-                phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions),
+                phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions,adjustments=adjustments),
                 menu_final_visible=window.passage_actions.bar.get_visible(),
                 backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,
                 placement_tick=getattr(window.passage_actions,'adapt_tick',None),
                 process_end=sample(os.getpid()),data_profile_reused=str(args.profile))
+    first_input=inputs['events'][0][0]
+    first_move=next((when for when,value in adjustments if when>=first_input),None)
+    first_paint=next((when for when in paints if first_move and when>=first_move),None)
+    report['first_scroll_latency_seconds']=first_move-first_input if first_move else None
+    report['first_paint_latency_seconds']=first_paint-first_input if first_paint else None
     if args.instrument:
         report.update(python_profile=top,menu_profile=diagnostic_calls,python_allocation_changes=allocations,
                       python_traced_current=python_current,python_traced_peak=python_peak)

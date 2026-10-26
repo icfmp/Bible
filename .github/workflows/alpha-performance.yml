@@ -1,8 +1,5 @@
 name: Compare signed alpha performance
-on:
-  push:
-    branches: [perf/alpha-responsiveness]
-  workflow_dispatch:
+on: workflow_dispatch
 permissions:
   contents: read
 jobs:

@@ -1,8 +1,5 @@
 name: Trace signed alpha native work
-on:
-  push:
-    branches: [perf/alpha-native-trace]
-  workflow_dispatch:
+on: workflow_dispatch
 permissions:
   contents: read
   actions: read
