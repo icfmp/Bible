@@ -1,7 +1,5 @@
 name: Compare combined scrolling with active native accessibility
 on:
-  push:
-    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read

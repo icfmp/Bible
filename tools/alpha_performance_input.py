@@ -15,7 +15,9 @@ def sample(pid):
     prefix=Path('/proc')/str(pid)
     raw=(prefix/'stat').read_text().rsplit(')',1)[1].split()
     data=dict(time=time.monotonic(),cpu_seconds=(int(raw[11])+int(raw[12]))/os.sysconf('SC_CLK_TCK'),
-              rss_bytes=int(raw[21])*os.sysconf('SC_PAGE_SIZE'))
+              rss_bytes=int(raw[21])*os.sysconf('SC_PAGE_SIZE'),process_state=raw[0])
+    try:data['wait_channel']=(prefix/'wchan').read_text().strip()
+    except OSError:data['wait_channel']=None
     for line in (prefix/'smaps_rollup').read_text().splitlines():
         key,_,value=line.partition(':')
         if key in ('Pss','Private_Clean','Private_Dirty','Anonymous','Swap'):
