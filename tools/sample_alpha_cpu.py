@@ -1,9 +1,36 @@
 """CI-only native CPU sampling of the actual Python process, not Flatpak init."""
 import argparse
+import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
 import time
+
+
+def mappings(pid,phase):
+    groups={};files={};name='';values={}
+    def save():
+        if not values:return
+        category=('anonymous' if not name.startswith('/') else
+                  'study_data_files' if '/study-data/' in name else
+                  'translation_files' if '/translations/' in name else
+                  'shared_buffers' if name.startswith(('/memfd:','/dev/shm/')) else
+                  'runtime_libraries' if name.startswith(('/usr/lib/','/app/lib/')) else 'other_files')
+        row=groups.setdefault(category,dict(rss_bytes=0,pss_bytes=0))
+        for key in row:row[key]+=values.get(key,0)
+        if name.startswith('/'):
+            row=files.setdefault(Path(name).name,dict(rss_bytes=0,pss_bytes=0))
+            for key in row:row[key]+=values.get(key,0)
+    for line in Path('/proc',pid,'smaps').read_text().splitlines():
+        if re.match(r'^[0-9a-f]+-[0-9a-f]+ ',line):
+            save();parts=line.split(maxsplit=5);name=parts[-1] if len(parts)==6 else '';values={}
+        elif line.startswith(('Rss:','Pss:')):
+            key,amount,*_=line.split();values['rss_bytes' if key=='Rss:' else 'pss_bytes']=int(amount)*1024
+    save()
+    return dict(monotonic=time.monotonic(),phase=json.loads(phase.read_text()),groups=groups,
+                largest_mapped_files=sorted((dict(name=name,**row) for name,row in files.items()),key=lambda row:row['rss_bytes'],reverse=True)[:20],
+                limitation='Anonymous includes Python and native heaps. File mappings measure resident pages, not full file sizes. This is a separate CPU-profile run; no memory is trimmed.')
 
 
 def main():
@@ -27,9 +54,12 @@ def main():
     while not phase.exists() and time.monotonic()<deadline:time.sleep(.1)
     assert phase.exists(),'Input sampler not started'
     stem=args.output.with_suffix('');data=stem.with_suffix('.perf.data')
+    before=mappings(pid,phase)
     with stem.with_suffix('.perf.log').open('w') as log:
         subprocess.run([args.perf,'record','-e','cpu-clock:u','-F','99','--call-graph','dwarf',
                         '-p',pid,'-o',str(data),'--','sleep','20'],stdout=log,stderr=log,check=True)
+    after=mappings(pid,phase)
+    stem.with_suffix('.mappings.json').write_text(json.dumps(dict(before=before,after=after),indent=2)+'\n')
     # Resolve the sandbox's DSOs while its process is still alive.
     proc=Path('/proc')/pid
     for line in proc.joinpath('maps').read_text().splitlines():
