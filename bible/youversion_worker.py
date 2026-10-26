@@ -52,7 +52,8 @@ def build(archive,metadata,target,compiler):
             if number.startswith('INTRO'):
                 if number!='INTRO1':raise ValueError('Unsupported multiple book introductions')
                 check=dict(ref=book+'.0.0',intro=True,
-                           expected=digest(normalized(''.join(division.itertext()))))
+                           expected=digest((normalized(''.join(division.itertext())),
+                                            project(division),semantic_roles(division))))
             else:
                 chapter_ref=osis_ref(ref);seen.add(chapter_ref)
                 maximum=canon[book][int(number)-1]
@@ -92,7 +93,8 @@ def build(archive,metadata,target,compiler):
         if check['intro']:
             key.setText(check['ref']);module.setKey(key);raw=module.getRawEntry()
             raw=raw if isinstance(raw,str) else raw.c_str()
-            actual=digest(normalized(''.join(parse('<root>'+raw+'</root>').itertext())))
+            native=parse('<root>'+raw+'</root>')
+            actual=digest((normalized(''.join(native.itertext())),project(native),semantic_roles(native)))
         else:
             units=check['units'];references=[unit[0] for unit in units]
             key.setText(check['ref']+'.1')

@@ -61,7 +61,7 @@ def to_base(reference, system):
         if any('!' in ref and '-' in ref for ref in result):
             return []
         return result
-    return [reference] if not data.get('explicit_only') and valid(reference, base) else []
+    return [reference] if valid(reference, base) else []
 
 
 def from_base(qualified, system):
@@ -76,4 +76,4 @@ def from_base(qualified, system):
         return reverse[whole]
     if qualified.startswith('?') or whole in data.get('absent', ()):
         return []
-    return [whole] if not data.get('explicit_only') and valid(whole, data) else []
+    return [whole] if valid(whole, data) else []

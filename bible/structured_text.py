@@ -22,11 +22,12 @@ class SourceParser(HTMLParser):
 
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
+        if attrs.get('eID'):return
         if tag in {'script','style','note'}:self.hidden += 1
         if self.hidden:return
         styles=[]
         if tag=='hi':
-            styles={'italic':['italic'],'bold':['bold'],'bolditalic':['bold','italic'],
+            styles={'italic':['italic'],'emphasis':['italic'],'bold':['bold'],'bolditalic':['bold','italic'],
                     'small-caps':['small-caps'],'super':['superscript']}.get(attrs.get('type'),[])
         elif tag=='transchange' and attrs.get('type')=='added':styles=['italic']
         elif tag=='divinename':styles=['small-caps']

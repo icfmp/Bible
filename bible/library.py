@@ -138,10 +138,14 @@ def compatible_notices(expected, actual, section):
     return conditions(expected.conditions,dates[0])==conditions(actual.conditions,dates[1])
 
 
-def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE, headers=None, response_headers=None):
+def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE, headers=None, response_headers=None, same_origin=False):
     deadline=time.monotonic()+120
     request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1',**(headers or {})})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    opener=urllib.request.urlopen
+    if same_origin:
+        from .youversion_install import SourceRedirect
+        opener=urllib.request.build_opener(SourceRedirect()).open
+    with opener(request, timeout=30) as response:
         if not response.url.startswith('https://'):
             raise ValueError('HTTPS required')
         if response_headers is not None:
@@ -180,7 +184,8 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
              if validators and key in validators}
     if timings is not None:timings.update(requests=1,metadata_bytes=0)
     try:
-        download(provider.catalogue_url, data, limit=8 * 1024 * 1024,headers=headers,response_headers=response_headers)
+        options={'same_origin':True} if provider.id=='youversion' else {}
+        download(provider.catalogue_url, data, limit=8 * 1024 * 1024,headers=headers,response_headers=response_headers,**options)
     finally:
         if timings is not None:timings.update(metadata_bytes=data.tell(),network_seconds=time.monotonic()-started)
     received=time.monotonic()

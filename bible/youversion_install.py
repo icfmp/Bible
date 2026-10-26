@@ -101,6 +101,7 @@ def cached_download(url, cache, progress, cancelled, *, opener=None):
     try:
         if receipt.stat().st_size<4096:state=json.loads(receipt.read_text())
     except (OSError,ValueError):pass
+    if not isinstance(state,dict):state={}
     if path.is_file() and state.get('complete') and state.get('url')==url:
         if path.stat().st_size<=MAX_ZIP and hashlib.sha256(path.read_bytes()).hexdigest()==state.get('sha256'):
             progress(path.stat().st_size,path.stat().st_size);checkpoint(cancelled);return path
@@ -125,7 +126,8 @@ def cached_download(url, cache, progress, cancelled, *, opener=None):
         else:raise ValueError('Unexpected source HTTP status')
         if total<0 or total>MAX_ZIP:raise ValueError('Download too large')
         etag=response.headers.get('ETag','')
-        if etag.startswith('W/') or len(etag)>512:etag=''
+        import re
+        if len(etag)>512 or not re.fullmatch(r'"[\x21\x23-\x7e\x80-\xff]*"',etag):etag=''
         state={'url':url,'etag':etag,'complete':False}
         receipt.write_text(serialized(state))
         done=start;deadline=time.monotonic()+180
@@ -184,7 +186,7 @@ def install(library,resource,progress,installing,cancelled,phase,permission):
     if resource.name!='YV21' or permission!=acknowledgement(resource):
         raise ValueError('Confirm the source conditions before downloading.')
     checkpoint(cancelled)
-    current=io.BytesIO();download(YOUVERSION.catalogue_url,current,limit=2*1024*1024)
+    current=io.BytesIO();download(YOUVERSION.catalogue_url,current,limit=2*1024*1024,same_origin=True)
     actual=resource_from_metadata(json.loads(current.getvalue()))
     if actual.acquisition!=resource.acquisition:
         raise ValueError('Source conditions or edition changed. Refresh the catalogue and review them again.')

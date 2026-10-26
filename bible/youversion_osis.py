@@ -290,4 +290,3 @@ def convert(doc: Document):
                   blocks=dict(Counter(b.kind for b in doc.blocks)),
                   scope='limited research sample; edition-wide versification unverified')
     return E.tostring(root, encoding='UTF-8', xml_declaration=True), report
-

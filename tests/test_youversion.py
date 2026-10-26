@@ -30,6 +30,20 @@ class Response(io.BytesIO):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_cancellation_terminates_the_isolated_conversion_process(self):
+        import subprocess,sys,time
+        actual_popen=subprocess.Popen;processes=[];cancel=[False]
+        def spawn(command,**options):
+            self.assertTrue(options['start_new_session'])
+            child=actual_popen([sys.executable,'-u','-c',
+                'import time;print(\'{"phase":"converting","done":1,"total":5}\',flush=True);time.sleep(20)'],**options)
+            processes.append(child);return child
+        def phase(*args):cancel[0]=True
+        start=time.monotonic()
+        with patch('bible.youversion_install.subprocess.Popen',side_effect=spawn):
+            with self.assertRaises(OSError):run_conversion(Path('synthetic.zip'),Path('synthetic.json'),Path('synthetic-target'),phase,lambda:cancel[0])
+        self.assertLess(time.monotonic()-start,3)
+        self.assertLess(processes[0].returncode,0)
     def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
         data=edition_metadata();payload=json.dumps(data).encode();requests=[]
         def fetch(url,out,**options):requests.append(url);out.write(payload)
@@ -155,6 +169,11 @@ class AcquisitionTests(unittest.TestCase):
 
 
 class EditorialTests(unittest.TestCase):
+    def test_native_poetry_end_milestones_do_not_duplicate_source_roles(self):
+        from bible.youversion_content import semantic_roles
+        source=parse('<root><l level="1">SOURCE</l></root>')
+        native=parse('<root><l level="1" sID="line1"/>SOURCE<l eID="line1" level="1"/></root>')
+        self.assertEqual(semantic_roles(source),semantic_roles(native))
     def test_native_fragments_notes_headings_and_inline_words(self):
         root=parse('<root><?source-unit John.1.1?><list><item>Premier <hi type="italic">mot</hi><?source-unit John.1.2?>suite<note n="1.2" osisRef="John.1.2" type="study">Note &amp; fin</note></item></list><title>Titre<note n="1.3">Note du titre</note></title></root>')
         bodies,notes,titles=project(root)
@@ -172,3 +191,37 @@ class EditorialTests(unittest.TestCase):
         self.assertEqual(data['forward']['Ps.3.9'],['Ps.3.8'])
         self.assertEqual(data['forward']['Num.25.19'],[])
         self.assertEqual(data['forward']['3John.1.15'],['3John.1.14!b'])
+
+
+def original_available():
+    try:
+        import Sword
+        key=Sword.VerseKey();key.setVersificationSystem('Original')
+        return key.getVersificationSystem()=='Original'
+    except ImportError:return False
+
+
+@unittest.skipUnless(original_available(),'Requires the packaged Original native system')
+class OriginalNativeTests(unittest.TestCase):
+    def test_exact_native_bounds_verified_mapping_and_original_note_roundtrip(self):
+        from tests.test_ui import installed_fixture
+        from bible.sword_provider import Reader
+        from bible.reference_resolution import resolve,VersificationMismatch
+        from bible.versification_mapping import table
+        from bible.notes import NoteStore
+        with tempfile.TemporaryDirectory() as directory:
+            original=Reader(installed_fixture(directory,'OriginalFixture',entries=
+                [('Neh.7.68','SOURCE JOIN'),('Neh.7.72','SOURCE LAST')],versification='Original'),'OriginalFixture')
+            target=Reader(installed_fixture(directory,'BaseFixture',entries=[
+                ('Neh.7.68','BASE FIRST'),('Neh.7.69','BASE SECOND'),('Neh.7.73','BASE LAST')]),'BaseFixture')
+            self.assertIsNotNone(table('Original'))
+            with self.assertRaises(ValueError):original.key('Neh.7.73')
+            with self.assertRaises(ValueError):original.key('2Kgs.15.39')
+            mapped=resolve('Neh.7.68','Original',target)
+            self.assertEqual((mapped.start,mapped.end),('Neh.7.68','Neh.7.69'))
+            self.assertEqual(resolve('Neh.7.72','Original',target).start,'Neh.7.73')
+            with self.assertRaises(VersificationMismatch):resolve('Num.25.19','Original',target)
+            path=Path(directory)/'notes.sqlite3';store=NoteStore(path)
+            saved=store.save('PERSONAL SOURCE NOTE',(),versification='Original',
+                start='Neh.7.68',end='Neh.7.68',origin_translation='OriginalFixture',origin_language='fra')
+            self.assertEqual(list(NoteStore(path).all()),[saved])

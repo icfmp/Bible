@@ -13,6 +13,38 @@ class EditorialUITests(unittest.TestCase):
         from bible.ui import Application
         cls.app=Application.get_default() or Application();cls.app.register()
 
+    def test_library_download_requires_acknowledgement_and_keeps_failure_retryable(self):
+        from bible.ui import Window,Library,Adw,Gtk
+        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from tests.test_youversion import edition_metadata
+        from bible.youversion_install import resource_from_metadata,acknowledgement
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin()
+            library_dialog=None
+            try:
+                with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
+                    library_dialog=window.open_library();spin(lambda:not library_dialog.preparing)
+                item=resource_from_metadata(edition_metadata())
+                before=window.notes_store.all()
+                with patch.object(window.library,'install',side_effect=OSError('Synthetic transfer failure')) as installed:
+                    library_dialog.install(resource=item);spin()
+                    installed.assert_not_called()
+                    confirmation=next(dialog for dialog in Gtk.Window.list_toplevels()
+                                      if isinstance(dialog,Adw.MessageDialog))
+                    confirmation.response('download');confirmation.destroy()
+                    spin(lambda:not library_dialog._transfer_busy)
+                    installed.assert_called_once()
+                    self.assertEqual(installed.call_args.kwargs['permission'],acknowledgement(item))
+                    self.assertIn('cancelled',installed.call_args.kwargs)
+                    self.assertIn('phase',installed.call_args.kwargs)
+                    self.assertEqual(library_dialog._failed_resource,item.id)
+                    self.assertNotIn(item.id,window.library.installed())
+                    self.assertEqual(window.notes_store.all(),before)
+            finally:
+                if library_dialog:library_dialog.close()
+                window.close();close_test_dialogs();spin()
+
     def test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive(self):
         from bible.ui import Window,Library
         from tests.test_ui import installed_fixture,spin,close_test_dialogs

@@ -5,3 +5,5 @@ docs/evidence/comparison-57-resumption/*.log -whitespace
 
 docs/evidence/comparison-57/*.log -whitespace
 docs/evidence/comparison-57/candidate-installed-info.txt -whitespace
+# Preserve the checksum-pinned upstream reference tables verbatim.
+third_party/libpalaso/*.vrs.txt -whitespace

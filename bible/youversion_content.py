@@ -79,6 +79,9 @@ def semantic_roles(root):
     result=[]
     for node in root.iter():
         name=tag(node)
+        # osis2mod turns enclosing poetry/quote elements into start/end
+        # milestones. An end marker does not introduce another semantic role.
+        if node.get('eID'):continue
         if name in accepted or name=='seg' and node.get('type','').startswith(('x-source-','x-transliteration')):
             attrs=tuple(sorted((key,value) for key,value in node.attrib.items()
                                if key in ('type','who','marker','level','osisRef')))
