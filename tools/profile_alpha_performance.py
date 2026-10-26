@@ -29,6 +29,7 @@ def main():
     p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
     p.add_argument('--input-interpreter',nargs='+',default=[sys.executable],help='Local runtime loader plus Python only; installed runs use their own Python')
     p.add_argument('--stop-layout-polling',action='store_true',help='Diagnostic ablation at fixed geometry only')
+    p.add_argument('--cache-resource-metadata',action='store_true',help='Diagnostic ablation with unchanged test resources only')
     p.add_argument('--input-kind',choices=['wheel','scrollbar'],default='wheel')
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     started=time.monotonic();import_started=time.monotonic()
@@ -38,6 +39,9 @@ def main():
     import bible.passage_actions as actions
     from tools.alpha_performance_input import sample
     if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    if args.cache_resource_metadata:
+        from functools import lru_cache
+        Library.resource=lru_cache(maxsize=128)(Library.resource)
     diagnostic_calls={}
     layout_ticks=[];original_tick=Gtk.Widget.add_tick_callback
     if args.stop_layout_polling:
@@ -146,6 +150,7 @@ def main():
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
                 initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
                 diagnostic_layout_ticks_removed=len(layout_ticks),
+                diagnostic_resource_cache=args.cache_resource_metadata,
                 phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions,adjustments=adjustments,menu_visibility=menu_visibility),
                 menu_final_visible=window.passage_actions.bar.get_visible(),
                 backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,
