@@ -79,7 +79,10 @@ jobs:
           from bible.notes import NoteStore
           root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
           after=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
-          assert after==before,'Persistent notes, preferences or translation files changed'
+          after=json.loads(json.dumps(after))
+          differences=[key for key in before if before[key]!=after[key]]
+          Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
+          assert not differences, 'Changed persisted components: '+str(differences)
           Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
           PY
       - uses: actions/upload-artifact@v4

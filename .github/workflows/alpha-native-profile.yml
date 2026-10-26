@@ -1,0 +1,116 @@
+name: Trace signed alpha native work
+on:
+  push:
+    branches: [perf/alpha-native-trace]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install isolated validation tools
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
+          echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
+      - name: Install actual signed public alpha
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+          mkdir reports
+          flatpak info --user io.github.icfmp.Bible//alpha > reports/installation.txt
+          flatpak remote-info --user bible-alpha io.github.icfmp.Bible//alpha > reports/remote.txt
+          curl --fail --silent --show-error https://icfmp.github.io/Bible/alpha/provenance.json > reports/provenance.json
+      - name: Prepare real resources and persistent annotations once
+        run: |
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" <<'PY'
+          import json,sys,hashlib
+          from pathlib import Path
+          from dataclasses import asdict
+          from bible.library import Library,catalogue
+          from bible.notes import NoteStore
+          from bible.preferences import Preferences
+          root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
+          for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
+              if name not in library.installed():library.install(next(r for r in resources if r.name==name))
+          notes=NoteStore(root/'notes.sqlite3')
+          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
+          preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
+          receipt=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
+          (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
+          PY
+      - name: Prepare optional native profilers outside the application
+        run: |
+          python3 -m pip download --only-binary=:all: --python-version 3.13 --implementation cp --abi cp313 --platform manylinux_2_28_x86_64 --platform manylinux2014_x86_64 --dest "$RUNNER_TEMP/native-wheels" memray
+          python3 - "$RUNNER_TEMP" <<'PYTHON'
+          import pathlib,sys,zipfile
+          root=pathlib.Path(sys.argv[1]);target=root/'native-python';target.mkdir()
+          for wheel in (root/'native-wheels').glob('*.whl'):
+              with zipfile.ZipFile(wheel) as z:z.extractall(target)
+          PYTHON
+      - name: Extended cache cycles, fixed-geometry ablation and native traces
+        run: |
+          set -euo pipefail
+          run_case() {
+            local label="$1"; shift
+            flatpak info --user --show-commit io.github.icfmp.Bible//alpha > "reports/$label.commit"
+            timeout 270s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreBDM1707 --reference Gen.6.1 "$@" > "reports/$label.log" 2>&1
+          }
+          previous=56d9a5cb2c52d41f7218ec4345aca46530787b5b5974bb56c652cdad7a9013b6
+          current=d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce
+          flatpak update --user --noninteractive --commit="$previous" io.github.icfmp.Bible//alpha
+          run_case previous-large-extended --cycles 12
+          flatpak update --user --noninteractive --commit="$current" io.github.icfmp.Bible//alpha
+          run_case current-large-extended --cycles 12
+          run_case current-no-layout-polling --stop-layout-polling --cycles 4
+          run_case current-large-profile --instrument --cycles 2
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --env=ALPHA_NATIVE_TRACE="$RUNNER_TEMP/native-trace.bin" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_native "$PERF_PROFILE" "$PWD/reports/native-allocation-run.json" --require-packaged --cycles 1 --resource FreBDM1707 --reference Gen.6.1 > reports/native-allocation-run.log 2>&1
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/native-python" --command=python3 io.github.icfmp.Bible//alpha -m tools.summarize_alpha_native "$RUNNER_TEMP/native-trace.bin" "$PWD/reports/native-allocations.json"
+      - name: Sample native CPU stacks on the installed process
+        if: always()
+        run: |
+          set -euo pipefail
+          perf_bin=$(find /usr/lib/linux-tools -type f -name perf | head -1)
+          test -n "$perf_bin"
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/native-cpu-run.json" --require-packaged --cycles 2 --resource FreBDM1707 --reference Gen.6.1 > reports/native-cpu-run.log 2>&1 &
+          task_pid=$!
+          app_pid=''
+          for attempt in $(seq 1 100); do
+            app_pid=$(flatpak ps --columns=application,child-pid | awk '$1=="io.github.icfmp.Bible" {print $2; exit}')
+            if [ -n "$app_pid" ]; then break; fi
+            sleep .1
+          done
+          if [ -n "$app_pid" ]; then
+            sudo "$perf_bin" record -e cpu-clock:u -F 99 --call-graph dwarf -p "$app_pid" -o "$RUNNER_TEMP/native-cpu.data" -- sleep 20 > reports/native-perf.log 2>&1 || true
+            sudo "$perf_bin" report -i "$RUNNER_TEMP/native-cpu.data" --stdio --no-children --sort comm,tid,dso,symbol > reports/native-perf.txt 2>&1 || true
+          fi
+          wait "$task_pid"
+      - name: Verify retained profile data and translations
+        if: always()
+        run: |
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
+          import json,sys,hashlib
+          from pathlib import Path
+          from dataclasses import asdict
+          from bible.notes import NoteStore
+          root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
+          after=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+          after=json.loads(json.dumps(after))
+          differences=[key for key in before if before[key]!=after[key]]
+          Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
+          assert not differences, 'Changed persisted components: '+str(differences)
+          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-alpha-native-traces
+          path: reports/
+          if-no-files-found: error

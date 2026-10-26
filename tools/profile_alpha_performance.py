@@ -27,6 +27,8 @@ def main():
     p.add_argument('--cycles',type=int,default=4);p.add_argument('--toolbar',action='store_true')
     p.add_argument('--backdrop',choices=['native','radius-zero','disabled'],default='native')
     p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    p.add_argument('--input-interpreter',default=sys.executable,help='Local runtime-loader wrapper only; installed runs use their own Python')
+    p.add_argument('--stop-layout-polling',action='store_true',help='Diagnostic ablation at fixed geometry only')
     args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
     started=time.monotonic();import_started=time.monotonic()
     from bible.ui import Application,Window,Library,GLib,Gtk
@@ -36,6 +38,14 @@ def main():
     from tools.alpha_performance_input import sample
     if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
     diagnostic_calls={}
+    layout_ticks=[];original_tick=Gtk.Widget.add_tick_callback
+    if args.stop_layout_polling:
+        def register_tick(widget,callback,*data):
+            tick=original_tick(widget,callback,*data)
+            if getattr(callback,'__name__','') in ('adapt_comparison','fit_reader_controls'):
+                layout_ticks.append((widget,tick))
+            return tick
+        Gtk.Widget.add_tick_callback=register_tick
     if args.backdrop=='radius-zero':actions.BACKDROP_BLUR=0
     if args.backdrop=='disabled':
         class NoBackdrop(actions.Backdrop):
@@ -61,6 +71,9 @@ def main():
         buffer=tab.text.get_buffer();offset=tab._marker_ends[args.reference]
         buffer.select_range(buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(offset+8))
         window.passage_actions.capture(tab.text,lambda:window.passage_actions.ordinary(tab),None);spin(duration=.3)
+    if args.stop_layout_polling:
+        Gtk.Widget.add_tick_callback=original_tick
+        for widget,tick in layout_ticks:widget.remove_tick_callback(tick)
     # No screenshot/tick observer, queue_draw, forced GC or memory trim in a consumption run.
     first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];last=[time.monotonic()]
     paint=clock.connect('after-paint',lambda *_:paints.append(time.monotonic()))
@@ -74,8 +87,8 @@ def main():
         allocation_before=tracemalloc.take_snapshot();prof.enable()
     loop=GLib.MainLoop();sid=GLib.timeout_add(50,beat)
     inputfile=args.output.with_suffix('.input.json')
-    child=subprocess.Popen([sys.executable,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
-    loop.run();child.wait();clock.disconnect(paint)
+    child=subprocess.Popen([args.input_interpreter,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
+    loop.run();assert child.wait()==0,'Independent input/sampler process failed';clock.disconnect(paint)
     if args.instrument:
         prof.disable();prof.dump_stats(str(args.output.with_suffix('.prof')))
         stats=pstats.Stats(prof)
@@ -85,7 +98,7 @@ def main():
         for key,row in stats.stats.items():
             if key[0].endswith('/bible/passage_actions.py'):diagnostic_calls[f'{key[2]}:{key[1]}']=dict(calls=row[1],self_seconds=row[2],cumulative_seconds=row[3])
         after=tracemalloc.take_snapshot()
-        allocations=[dict(trace=str(item.traceback),bytes=item.size_diff,count=item.count_diff) for item in after.compare_to(allocation_before,'traceback')[:35]]
+        allocations=[dict(trace=item.traceback.format(),bytes=item.size_diff,count=item.count_diff) for item in after.compare_to(allocation_before,'traceback')[:35]]
         python_current,python_peak=tracemalloc.get_traced_memory()
     inputs=json.loads(inputfile.read_text());summaries=[]
     for phase in inputs['phases']:
@@ -107,6 +120,7 @@ def main():
                 preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
                 startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
                 initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
+                diagnostic_layout_ticks_removed=len(layout_ticks),
                 phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions),
                 menu_final_visible=window.passage_actions.bar.get_visible(),
                 backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,
