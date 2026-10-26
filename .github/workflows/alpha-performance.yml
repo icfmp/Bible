@@ -1,0 +1,90 @@
+name: Compare signed alpha performance
+on:
+  push:
+    branches: [perf/alpha-responsiveness]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install isolated validation tools
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
+          echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
+      - name: Install actual signed public alpha
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+          mkdir reports
+          flatpak info --user io.github.icfmp.Bible//alpha > reports/installation.txt
+          flatpak remote-info --user bible-alpha io.github.icfmp.Bible//alpha > reports/remote.txt
+          curl --fail --silent --show-error https://icfmp.github.io/Bible/alpha/provenance.json > reports/provenance.json
+      - name: Prepare real resources and persistent annotations once
+        run: |
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" <<'PY'
+          import json,sys,hashlib
+          from pathlib import Path
+          from dataclasses import asdict
+          from bible.library import Library,catalogue
+          from bible.notes import NoteStore
+          from bible.preferences import Preferences
+          root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
+          for name in ['FreSegond1910','KJV','Wesley']:
+              if name not in library.installed():library.install(next(r for r in resources if r.name==name))
+          notes=NoteStore(root/'notes.sqlite3')
+          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
+          preferences=Preferences(root/'reading-preferences.json');preferences.save()
+          receipt=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
+          (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
+          PY
+      - name: Compare previous, current and previous again in the same installation
+        run: |
+          set -euo pipefail
+          run_case() {
+            local label="$1"; shift
+            flatpak info --user --show-commit io.github.icfmp.Bible//alpha > "reports/$label.commit"
+            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged "$@" > "reports/$label.log" 2>&1
+          }
+          previous=56d9a5cb2c52d41f7218ec4345aca46530787b5b5974bb56c652cdad7a9013b6
+          current=d0d8a6309e3f75d87e1892d23c3f2efd2c99843e44a8c60fffdb1a8a87de33ce
+          flatpak update --user --noninteractive --commit="$previous" io.github.icfmp.Bible//alpha
+          run_case previous-single
+          flatpak update --user --noninteractive --commit="$current" io.github.icfmp.Bible//alpha
+          run_case current-single
+          run_case current-comparison --mode comparison --cycles 2
+          run_case current-study --mode study --cycles 2
+          run_case current-toolbar-native --toolbar --cycles 2
+          run_case current-toolbar-radius-zero --toolbar --backdrop radius-zero --cycles 2
+          run_case current-toolbar-no-backdrop --toolbar --backdrop disabled --cycles 2
+          run_case current-profile --instrument --cycles 2
+          flatpak update --user --noninteractive --commit="$previous" io.github.icfmp.Bible//alpha
+          run_case previous-repeat --cycles 2
+          flatpak update --user --noninteractive --commit="$current" io.github.icfmp.Bible//alpha
+      - name: Verify retained profile data and translations
+        if: always()
+        run: |
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
+          import json,sys,hashlib
+          from pathlib import Path
+          from dataclasses import asdict
+          from bible.notes import NoteStore
+          root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
+          after=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+          assert after==before,'Persistent notes, preferences or translation files changed'
+          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signed-alpha-performance-comparison
+          path: reports/
+          if-no-files-found: error

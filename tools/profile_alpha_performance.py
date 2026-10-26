@@ -1,0 +1,127 @@
+"""Profile an actual installed alpha without adding a frame-clock tick.
+
+Use the same disposable resource/data profile across version switches and cycles.
+Consumption runs and instrumented Python/native-allocation runs are separate.
+Diagnostic blur removal affects this process only, never product preferences.
+"""
+import argparse
+import cProfile
+import ctypes
+import gc
+import hashlib
+import inspect
+import json
+import os
+from pathlib import Path
+import pstats
+import subprocess
+import sys
+import time
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
+    p.add_argument('--mode',choices=['single','comparison','study'],default='single')
+    p.add_argument('--resource',default='FreSegond1910');p.add_argument('--reference',default='Ps.119.1')
+    p.add_argument('--cycles',type=int,default=4);p.add_argument('--toolbar',action='store_true')
+    p.add_argument('--backdrop',choices=['native','radius-zero','disabled'],default='native')
+    p.add_argument('--instrument',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    args=p.parse_args();args.output.parent.mkdir(parents=True,exist_ok=True)
+    started=time.monotonic();import_started=time.monotonic()
+    from bible.ui import Application,Window,Library,GLib,Gtk
+    from tests.test_ui import spin
+    from tools.check_alpha_ui import X11Input
+    import bible.passage_actions as actions
+    from tools.alpha_performance_input import sample
+    if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    diagnostic_calls={}
+    if args.backdrop=='radius-zero':actions.BACKDROP_BLUR=0
+    if args.backdrop=='disabled':
+        class NoBackdrop(actions.Backdrop):
+            def do_snapshot(self,snapshot):pass
+        actions.Backdrop=NoBackdrop
+        actions.ActionSurface.set_backdrop=lambda surface,view:surface.clear_backdrop()
+    if args.instrument:
+        import tracemalloc
+        tracemalloc.start(15)
+    app=Application();app.register();window=Window(app,Library(args.profile/'translations'))
+    window.set_default_size(1180,780);window.present();spin()
+    tab=window.active_tab;tab.state.comparison=None;window.sync_comparison();window.study_button.set_active(False)
+    assert tab.navigate(args.resource,args.reference)
+    spin(lambda:not tab._restoring_scroll,duration=.6)
+    if args.mode=='comparison':tab.state.comparison='KJV';window.sync_comparison();spin(duration=.5)
+    if args.mode=='study':
+        window.study_button.set_active(True);window.study.tools.set_visible_child_name('commentaries')
+        window.study.choices.set_selected(window.study.names.index('Wesley'));window.study.refresh(force=True);spin(duration=.5)
+    if hasattr(tab,'inline_markers'):spin(lambda:not tab.inline_markers.pending,duration=.3)
+    native=X11Input();native.activate(window);native.move_at(tab.text,tab.text.get_width()/2,tab.text.get_height()/2)
+    spin(duration=.5)
+    if args.toolbar:
+        buffer=tab.text.get_buffer();offset=tab._marker_ends[args.reference]
+        buffer.select_range(buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(offset+8))
+        window.passage_actions.capture(tab.text,lambda:window.passage_actions.ordinary(tab),None);spin(duration=.3)
+    # No screenshot/tick observer, queue_draw, forced GC or memory trim in a consumption run.
+    first_sample=sample(os.getpid());clock=window.get_frame_clock();paints=[];beats=[];positions=[];last=[time.monotonic()]
+    paint=clock.connect('after-paint',lambda *_:paints.append(time.monotonic()))
+    def beat():
+        now=time.monotonic();beats.append([now,now-last[0]]);last[0]=now
+        positions.append([now,tab.scroll.get_vadjustment().get_value(),window.passage_actions.bar.get_visible()])
+        if child.poll() is not None:loop.quit();return False
+        return True
+    prof=cProfile.Profile();allocation_before=None
+    if args.instrument:
+        allocation_before=tracemalloc.take_snapshot();prof.enable()
+    loop=GLib.MainLoop();sid=GLib.timeout_add(50,beat)
+    inputfile=args.output.with_suffix('.input.json')
+    child=subprocess.Popen([sys.executable,'-m','tools.alpha_performance_input',str(inputfile),str(os.getpid()),str(args.cycles)])
+    loop.run();child.wait();clock.disconnect(paint)
+    if args.instrument:
+        prof.disable();prof.dump_stats(str(args.output.with_suffix('.prof')))
+        stats=pstats.Stats(prof)
+        top=[]
+        for (file,line,name),(cc,nc,total,cumulative,callers) in sorted(stats.stats.items(),key=lambda item:item[1][3],reverse=True)[:60]:
+            top.append(dict(file=file,line=line,name=name,calls=nc,self_seconds=total,cumulative_seconds=cumulative))
+        for key,row in stats.stats.items():
+            if key[0].endswith('/bible/passage_actions.py'):diagnostic_calls[f'{key[2]}:{key[1]}']=dict(calls=row[1],self_seconds=row[2],cumulative_seconds=row[3])
+        after=tracemalloc.take_snapshot()
+        allocations=[dict(trace=str(item.traceback),bytes=item.size_diff,count=item.count_diff) for item in after.compare_to(allocation_before,'traceback')[:35]]
+        python_current,python_peak=tracemalloc.get_traced_memory()
+    inputs=json.loads(inputfile.read_text());summaries=[]
+    for phase in inputs['phases']:
+        rows=[row for row in inputs['samples'] if row['phase']==phase['name'] and row['cycle']==phase.get('cycle')]
+        begin,end=rows[0],rows[-1];elapsed=end['time']-begin['time']
+        gaps=[gap for when,gap in beats if begin['time']<=when<=end['time']]
+        frames=[x for x in paints if begin['time']<=x<=end['time']]
+        summaries.append(dict(phase=phase['name'],cycle=phase.get('cycle'),seconds=elapsed,
+                              cpu_one_core_percent=100*(end['cpu_seconds']-begin['cpu_seconds'])/elapsed,
+                              rss_begin=begin['rss_bytes'],rss_end=end['rss_bytes'],rss_peak=max(r['rss_bytes'] for r in rows),
+                              pss_begin=begin['pss_bytes'],pss_end=end['pss_bytes'],
+                              anonymous_end=end['anonymous_bytes'],main_loop_max_ms=max(gaps,default=0)*1000,
+                              main_loop_over_100ms=sum(x>.1 for x in gaps),actual_paints=len(frames)))
+    report=dict(app_import=inspect.getfile(Window),gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],
+                app_ui_sha256=hashlib.sha256(Path(inspect.getfile(Window)).read_bytes()).hexdigest(),
+                passage_actions_sha256=hashlib.sha256(Path(inspect.getfile(actions)).read_bytes()).hexdigest(),
+                renderer=type(window.get_renderer()).__name__,renderer_env=os.environ.get('GSK_RENDERER'),
+                logical_cpus=os.cpu_count(),resource=args.resource,reference=args.reference,mode=args.mode,
+                preferences=vars(tab.preferences),geometry=[window.get_width(),window.get_height()],
+                startup_to_ready_seconds=first_sample['time']-started,startup_ready_memory=first_sample,
+                initially_visible_toolbar=args.toolbar,diagnostic_backdrop=args.backdrop,instrumented=args.instrument,
+                phases=summaries,measurements=dict(beats=beats,paints=paints,positions=positions),
+                menu_final_visible=window.passage_actions.bar.get_visible(),
+                backdrop_released=getattr(window.passage_actions.bar,'backdrop',None) is None,
+                placement_tick=getattr(window.passage_actions,'adapt_tick',None),
+                process_end=sample(os.getpid()),data_profile_reused=str(args.profile))
+    if args.instrument:
+        report.update(python_profile=top,menu_profile=diagnostic_calls,python_allocation_changes=allocations,
+                      python_traced_current=python_current,python_traced_peak=python_peak)
+        class MallInfo(ctypes.Structure):
+            _fields_=[(name,ctypes.c_size_t) for name in ('arena','ordblks','smblks','hblks','hblkhd','usmblks','fsmblks','uordblks','fordblks','keepcost')]
+        libc=ctypes.CDLL(None);libc.mallinfo2.restype=MallInfo
+        report['native_malloc_end']={name:getattr(value:=libc.mallinfo2(),name) for name,_ in MallInfo._fields_}
+    args.output.write_text(json.dumps(report,indent=2)+'\n')
+    print(json.dumps({k:v for k,v in report.items() if k not in ('measurements','python_profile','python_allocation_changes')},indent=2),flush=True)
+    window.study_button.set_active(False);tab.state.comparison=None;window.sync_comparison();window.close();native.close()
+
+
+if __name__=='__main__':main()
