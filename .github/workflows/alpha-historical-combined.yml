@@ -1,7 +1,5 @@
 name: Compare previous and current alpha with combined study workload
 on:
-  push:
-    branches: [perf/alpha-client-combined]
   workflow_dispatch:
 permissions:
   contents: read
