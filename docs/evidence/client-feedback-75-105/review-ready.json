@@ -1,0 +1,85 @@
+{
+  "status": "REVIEW_READY_MERGE_AUTHORIZATION_REQUIRED",
+  "source": "bce5a17549d0dcafd5a91ab08088fd5c8e73f862",
+  "pull_request": "https://github.com/icfmp/Bible/pull/132",
+  "ci_run": 40246836190,
+  "ci": "https://github.com/icfmp/Bible/actions/runs/40246836190",
+  "checks": {
+    "source_tests": 322,
+    "french_checks": 143,
+    "installed_tests": 141,
+    "native_captures": 99,
+    "native_page_turns": 16,
+    "all_page_turns_changed": true,
+    "actual_installed_import": "/app/lib/bible-python/bible/ui.py",
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "GLRenderer",
+    "blur_edge_energy": {
+      "0": 62007,
+      "16": 18056
+    },
+    "unchanged_background_zero_callbacks": {
+      "do_snapshot": 0,
+      "changed": 0,
+      "adapt": 0,
+      "watch": 0
+    },
+    "hidden_zero_callbacks": {
+      "do_snapshot": 0,
+      "changed": 0,
+      "adapt": 0,
+      "watch": 0
+    },
+    "first_wheel": {
+      "input_to_dismiss_start_seconds": 0.0001432610000620116,
+      "dismiss_duration_seconds": 0.00023068699999839737,
+      "dismiss_end_to_first_motion_seconds": 0.00043085899994821375,
+      "start": 682.597534717,
+      "end": 682.597765404,
+      "backdrop_released": true,
+      "placement_stopped": true
+    },
+    "first_gtk_paint_seconds": 0.01696899500007021,
+    "late_backlog_count": 0
+  },
+  "artifact": {
+    "id": 12620130615,
+    "zip_sha256": "5796e40f06ca4679de33728e3e6246339836b9b89871ccef85860f641b735734",
+    "bundle_sha256": "ee8ef34b62856d4afbc375acebfc9631ac36b9828aae2447c50c3747355772db",
+    "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master"
+  },
+  "merge": {
+    "performed": false,
+    "automatic_review_rejected": true,
+    "reason": "The user explicitly authorized merging only PR #131; the current issue-review request and delivery goal do not clearly authorize this exact merge.",
+    "risk": "Merging PR #132 changes the default branch and triggers signed-alpha delivery.",
+    "expected_head": "bce5a17549d0dcafd5a91ab08088fd5c8e73f862",
+    "base": "7a633f3281d0a6086cb822a1ac9f055beb53445b",
+    "closing_issues_references": [],
+    "github_merge_state": "CLEAN"
+  },
+  "publication": {
+    "performed": false,
+    "public_update_verified": false,
+    "public_alpha_unchanged": true,
+    "numbered_release_87_paused": true
+  },
+  "issues": {
+    "numbers": [
+      75,
+      94,
+      99,
+      98,
+      102,
+      105
+    ],
+    "all_open": true,
+    "manual_project_status": "In review",
+    "project_error": "Resource not accessible by integration"
+  },
+  "client_desktop_acceptance": false
+}
