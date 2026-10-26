@@ -53,7 +53,8 @@ def main():
     phase=args.output.with_suffix('.input.phase.json')
     while not phase.exists() and time.monotonic()<deadline:time.sleep(.1)
     assert phase.exists(),'Input sampler not started'
-    stem=args.output.with_suffix('');data=stem.with_suffix('.perf.data')
+    # Keep raw stack bytes private; only symbolized reports are uploaded.
+    stem=args.output.with_suffix('');data=args.symbols.parent/(args.output.stem+'.perf.data')
     before=mappings(pid,phase)
     with stem.with_suffix('.perf.log').open('w') as log:
         subprocess.run([args.perf,'record','-e','cpu-clock:u','-F','99','--call-graph','dwarf',
