@@ -1,0 +1,12 @@
+--- a/shumate/shumate-raster-renderer.c
++++ b/shumate/shumate-raster-renderer.c
+@@ -312,6 +312,9 @@
+ 
+   if ((error = shumate_data_source_request_get_error (req)))
+     g_task_return_error (task, g_error_copy (error));
++  else if (shumate_tile_get_paintable (tile) == NULL)
++    g_task_return_new_error (task, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
++                             "Map tile image could not be decoded");
+   else
+     g_task_return_boolean (task, TRUE);
+ }

@@ -35,3 +35,50 @@ Both actions now occupy compact native child-anchor slots after the verse's fina
 The reported silent click was not reproduced in the initial simple native pointer case: Notes opened on the first click with Study closed or showing References. Investigation did reproduce a separate native crash when rebuilding the hovered note anchor while enabling comparison. GDB identifies GTK 4.20 selection invalidation reentering a partly deleted text tree during automatic child unmapping. Explicitly removing old child widgets before deleting text avoids that unsafe sequence; no toolkit setting or feature is disabled.
 
 Seventeen affected source-runtime tests pass, including actual pointer activation across repeated simple/comparison changes, Study initially closed or showing another tab, two notes without arbitrary editing, rebuilding under the pointer, independent visibility, mapped targets, clean copy, canonical round trips, comparison alignment, action selection and scroll persistence. Existing draft checks remain. Actual installed-package/palette captures and the map-detail follow-up are still pending.
+
+## #104: native contextual map and a real transient place window
+
+The detail is now an `Adw.Window` transient/modal to the actual Bible window,
+with a labelled studied passage and the owning reading palette. The Bible is
+not replaced with an opaque dialog host. Closing or closing its owner ends
+the map/provider lifetime. Internal module IDs, coordinate/score dumps and the
+technical expander are removed from the reader flow; stored evidence is kept.
+Excerpts are regular-weight, with two initial related references and the
+existing deliberate View all expansion.
+
+The maintained raster-only libshumate 1.5.5 dependency is pinned to its official
+GNOME archive (SHA-256 `ce27d88537a37cd5c45959c3bb7cc18c1c18b3d2e663d02bcf46fc66f7414a92`),
+with LGPL-2.1-or-later COPYING and corresponding source. Its native downloader,
+cache, renderer, pan and zoom are reused. Three tiny dependency corrections
+make its existing public User-Agent setter effective, propagate native image
+decode failures, and preserve load-completion notification when optional
+Sysprof support is disabled. These were found through actual HTTP/GTK checks;
+there is no replacement tile client, custom image loader or sandbox bypass.
+See THIRD_PARTY_NOTICES.md and the three source patches.
+
+The standard HTTPS OSM service is requested only on intentionally opening the
+visible detail. Native caching keeps a seven-day freshness period, conditional
+ETag/Last-Modified validation and a 100 MB limit. No map prefetch, bulk download
+or offline-package feature is added. The stable app-identifying User-Agent and
+visible linked OpenStreetMap attribution are verified; OpenBible/CC BY and
+OSM-derived ODbL credits remain short visible links. Natural Earth's public
+domain notice is removed from the active footer; its installed data is retained.
+
+Actual source GTK 4.14.5/OpenGL shows regional labelled OSM maps for Shinar and
+Charan in light/dark, supplied candidate points, real Bible references and the
+reading window behind the detail. A second reproduced bug affected multi-place
+popups attached directly to scrolled text child anchors; the chooser now uses
+the stable reading overlay, explicit current bounds and a usable bounded width.
+Nine source tests pass, including native single/multi-place pointer input,
+scrolled chooser targets, source-aware previews, unavailable metadata, local
+synthetic tile HTTP identification, unchanged-region cache reuse, malformed
+image failure, retry availability and no requests after closure. Public tile
+views are limited to the explicitly requested visual cases, never automated
+map scans. Synthetic network tests use localhost only.
+
+The extracted GTK 4.20 source runtime cannot launch its native Glycin image
+sandbox inside this restricted development container. This is an environment
+limit, not an installed-Flatpak result; confinement is preserved. The new
+packaged native-map checks require the bundled dependency and must pass in the
+actual Flatpak before delivery. Final installed light/dark/narrow/palette,
+network-failure, performance and signed-public-update checks remain required.

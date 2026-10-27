@@ -232,6 +232,7 @@ class Window(Adw.ApplicationWindow):
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; } '
                            b'.reference-excerpt { font-weight: normal; } '
+                           b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
@@ -1046,6 +1047,7 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        if getattr(self,'place_dialog',None):self.place_dialog.close()
         self.unwatch_layout_surface()
         settings=Gtk.Settings.get_default()
         for handler in self._layout_settings_handlers:settings.disconnect(handler)

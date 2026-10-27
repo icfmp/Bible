@@ -28,6 +28,48 @@ class MarkerDocumentTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK')
 class InlineMarkerTests(unittest.TestCase):
+    def test_native_multi_place_chooser_after_scrolling_the_anchor(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
+            result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+                                   '-m','unittest',self.id(),'-v'],
+                                  env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
+                                  capture_output=True,text=True,timeout=45)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
+        import json
+        from bible.ui import Application,Window,Library
+        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from tests.test_place_data import inputs,pins
+        from bible import place_data
+        from tools.check_alpha_ui import X11Input
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            installed_fixture(directory,entries=[(f'John.1.{i}','Exact synthetic Scripture sentence. '*12) for i in range(1,20)])
+            files=inputs(root);first=json.loads(files['ancient'].read_text())
+            second=dict(first,id='a654321',friendly_id='Another place',url_slug='another-place')
+            files['ancient'].write_text(json.dumps(first)+'\n'+json.dumps(second)+'\n')
+            with patch.object(place_data,'FILES',pins(files)):place_data.PlaceData(root/'study-data').install_files(files)
+            app=Application.get_default() or Application();app.register()
+            w=Window(app,Library(root/'translations'));w.set_default_size(1180,800);w.present();spin()
+            native=X11Input();native.activate(w)
+            try:
+                t=w.active_tab;t.navigate('Test','John.1.5')
+                spin(lambda:any(b._marker_reference=='John.1.5' for b in t.text._inline_buttons),timeout=10)
+                offset=next(o for o,(r,k,p) in t._document.inline.items() if r=='John.1.5' and k=='place')
+                t.text.scroll_to_iter(t.text.get_buffer().get_iter_at_offset(offset),0,True,0,.4);spin(duration=.3)
+                button=next(b for b in t.text._inline_buttons if b._marker_reference=='John.1.5')
+                native.click(button);spin()
+                pop=next(p for p in w._reading_popovers if p.get_visible())
+                def walk(widget):
+                    yield widget;child=widget.get_first_child()
+                    while child:yield from walk(child);child=child.get_next_sibling()
+                choices=[x for x in walk(pop) if hasattr(x,'_place_id')]
+                self.assertEqual({c._place_id for c in choices},{'a123456','a654321'})
+                with patch.object(t.inline_markers,'place') as open_place:
+                    native.click(next(c for c in choices if c._place_id=='a654321'));spin()
+                    self.assertEqual(open_place.call_args.args[2]['id'],'a654321')
+                self.assertFalse(w.passage_actions.bar.get_visible())
+            finally:native.close();close_test_dialogs();w.close()
+
     def test_native_note_click_and_hovered_marker_rebuild_in_both_readers(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,

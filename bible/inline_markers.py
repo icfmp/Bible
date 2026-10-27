@@ -1,5 +1,5 @@
 """Local, source-aware note and place affordances in ordinary Bible prose."""
-from gi.repository import Gtk, GLib, Pango
+from gi.repository import Gtk, GLib, Pango, Gdk
 from .i18n import tr
 from .reference_resolution import resolve
 from .metadata_workers import MetadataExecutor
@@ -89,7 +89,16 @@ class InlineMarkers:
                 tab.select_verse(reference);owner.reveal_passage_annotations()
             elif len(payload)==1:self.place(reader,ref,payload[0])
             else:
-                pop=Gtk.Popover(autohide=False);pop.set_parent(button)
+                # A child anchor is translated by GtkTextView while scrolling.
+                # Anchor the native popup to the stable reading overlay using
+                # the button's current visible bounds, not its buffer position.
+                anchor=tab.comparison_overlay if view is tab.comparison_text else tab.reading_overlay
+                found,bounds=button.compute_bounds(anchor)
+                if not found:return
+                pop=Gtk.Popover(autohide=False);pop.set_parent(anchor)
+                rect=Gdk.Rectangle();rect.x=round(bounds.origin.x);rect.y=round(bounds.origin.y)
+                rect.width=round(bounds.size.width);rect.height=round(bounds.size.height)
+                pop.set_pointing_to(rect)
                 owner._reading_popovers.append(pop)
                 box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
                 from .place_names import place_name
@@ -99,12 +108,16 @@ class InlineMarkers:
                     name=place_name(place['name'])
                     modern='; '.join(dict.fromkeys(place_name(c['name']) for c in place['candidates'] if c['longitude'] is not None))
                     caption=name+'\n'+(modern+' · ' if modern else '')+tr(STATUS[place['status']])
-                    if names.count(name)>1:caption+='\n'+tr('Source identity')+': '+place['id']
+                    if names.count(name)>1:
+                        caption+='\n'+tr('Related Bible references')+': '+', '.join(passage_title(r) for r in place['references'][:2])
                     choice=Gtk.Button(child=Gtk.Label(label=caption,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32));choice.add_css_class('flat')
                     choice._place_id=place['id']
                     choice.connect('clicked',lambda _,p=place:(pop.popdown(),self.place(reader,ref,p)))
                     box.append(choice)
-                scroll=Gtk.ScrolledWindow(max_content_height=300,propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+                scroll=Gtk.ScrolledWindow(min_content_width=max(160,min(320,owner.get_width()-64)),
+                    max_content_height=max(120,min(300,owner.get_height()-120)),
+                    propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+                scroll.set_size_request(max(160,min(320,owner.get_width()-64)),-1)
                 scroll.set_child(box);pop.set_child(scroll)
                 unmap=button.connect('unmap',lambda *_:pop.popdown())
                 def closed(*_):

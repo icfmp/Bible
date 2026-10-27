@@ -1,83 +1,92 @@
-"""Native Cairo overview of actual coastline/candidate data, without tile requests."""
+"""On-demand native Shumate map; toolkit-owned tiles, cache and navigation."""
 import math
 import gi
 gi.require_version('Gtk','4.0')
-from gi.repository import Gtk,Gdk
+from gi.repository import Gtk
 from .i18n import tr
 
+gi.require_version('Shumate','1.0')
+from gi.repository import Shumate
+if (Shumate.MAJOR_VERSION,Shumate.MINOR_VERSION)<(1,4):
+    raise ImportError('The map requires libshumate 1.4 or later; the Flatpak bundles 1.5.5.')
 
-def extent(candidates,width=700,height=200):
-    located=[c for c in candidates if c['longitude'] is not None]
-    if not located:return None
-    xs=[c['longitude'] for c in located];ys=[c['latitude'] for c in located]
-    lon=(min(xs)+max(xs))/2;lat=(min(ys)+max(ys))/2
-    dx=max(.5 if len(located)>1 else 4,(max(xs)-min(xs))*1.15+.1)
-    dy=max(.4 if len(located)>1 else 3,(max(ys)-min(ys))*1.15+.1)
-    ratio=max(.15,math.cos(math.radians(lat)));aspect=max(1,width)/max(1,height)
-    if dx*ratio/dy<aspect:dx=dy*aspect/ratio
-    else:dy=dx*ratio/aspect
-    dx=min(360,dx);dy=min(180,dy)
-    west=max(-180,min(lon-dx/2,180-dx));south=max(-90,min(lat-dy/2,90-dy))
-    return west,south,west+dx,south+dy
+TILE_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+COPYRIGHT_URL='https://www.openstreetmap.org/copyright'
+USER_AGENT='Bible/0.1-alpha (+https://github.com/icfmp/Bible)'
 
 
-class PlaceMap(Gtk.DrawingArea):
-    def __init__(self):
-        super().__init__(hexpand=True,height_request=220)
-        self.lines=[];self.candidates=[]
-        self.set_draw_func(self.draw)
-        self.update_property([Gtk.AccessibleProperty.LABEL],
-            [tr('Geographical overview. Candidate coordinates and uncertainty are listed below.')])
-        self.set_tooltip_text(tr('Simplified modern coastlines; not a historical or street map.'))
+def region(candidates,width=600,height=260):
+    """Fit supplied candidate points; never infer a site or historical border."""
+    xs=[(c['longitude']+180)/360 for c in candidates]
+    ys=[(1-math.asinh(math.tan(math.radians(max(-85,min(85,c['latitude'])))))/math.pi)/2 for c in candidates]
+    dx,dy=max(xs)-min(xs),max(ys)-min(ys)
+    zoom=min(7,math.log2(min(max(100,width-80)/(256*max(dx,.001)),
+                            max(100,height-80)/(256*max(dy,.001)))))
+    lon=(min(xs)+max(xs))/2*360-180
+    lat=math.degrees(math.atan(math.sinh(math.pi*(1-min(ys)-max(ys)))))
+    return lat,lon,max(2,zoom)
 
-    def set_data(self,lines,candidates):
-        self.lines=lines;self.candidates=[c for c in candidates if c['longitude'] is not None]
-        self.queue_draw()
 
-    def color(self,name,fallback):
-        found,color=self.get_style_context().lookup_color(name)
-        if found:return color
-        found,color=self.get_style_context().lookup_color(fallback)
-        return color if found else self.get_style_context().get_color()
+class PlaceMap(Gtk.Box):
+    def __init__(self,candidates):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=6,hexpand=True)
+        self.candidates=tuple(c for c in candidates if c['longitude'] is not None)
+        self.canvas=None;self.layer=None;self._loaded_handler=0;self.ready=False
+        self.status=Gtk.Label(label=tr('Loading map…'),xalign=0,wrap=True)
+        self.status.add_css_class('caption');self.status.add_css_class('dim-label')
+        self.retry=Gtk.Button(label=tr('Retry'),halign=Gtk.Align.START,visible=False)
+        self.retry.connect('clicked',lambda *_:self.start())
+        self.credit=Gtk.LinkButton(uri=COPYRIGHT_URL,label='© OpenStreetMap contributors',halign=Gtk.Align.START)
+        self.credit.add_css_class('caption')
+        self.append(self.credit);self.append(self.status);self.append(self.retry)
+        self.connect('map',lambda *_:self.start() if self.canvas is None else None)
+        self.connect('unmap',lambda *_:self.stop())
 
-    def draw(self,widget,cr,width,height):
-        # The existing runtime supplies PyCairo/its GI foreign converter.
-        from gi.repository import PangoCairo
-        bounds=extent(self.candidates,width,height)
-        bg=self.color('view_bg_color','window_bg_color');Gdk.cairo_set_source_rgba(cr,bg);cr.paint()
-        if not bounds:return
-        west,south,east,north=bounds
-        def point(lon,lat):return ((lon-west)/(east-west)*width,(north-lat)/(north-south)*height)
-        cr.save();cr.rectangle(0,0,width,height);cr.clip()
-        fg=self.color('view_fg_color','window_fg_color')
-        cr.set_source_rgba(fg.red,fg.green,fg.blue,.12);cr.set_line_width(1)
-        for fraction in (.25,.5,.75):
-            cr.move_to(width*fraction,0);cr.line_to(width*fraction,height)
-            cr.move_to(0,height*fraction);cr.line_to(width,height*fraction)
-        cr.stroke()
-        cr.set_source_rgba(fg.red,fg.green,fg.blue,.55);cr.set_line_width(1)
-        for line in self.lines:
-            first=True;previous=None
-            for lon,lat in line:
-                x,y=point(lon,lat)
-                if first or previous is not None and abs(lon-previous)>180:cr.move_to(x,y)
-                else:cr.line_to(x,y)
-                first=False;previous=lon
-            cr.stroke()
-        # Source roles stay visible in the text list; unlocated alternatives
-        # never acquire a marker. Numbers identify actual candidate records.
-        accent=self.color('accent_bg_color','accent_color');ink=self.color('accent_fg_color','view_bg_color')
-        groups=[]
+    def start(self):
+        self.stop();self.ready=False;self.retry.set_visible(False)
+        self.status.set_text(tr('Loading map…'));self.status.set_visible(True)
+        Shumate.set_user_agent(USER_AGENT)
+        self.canvas=Shumate.SimpleMap(hexpand=True,height_request=260)
+        self.canvas.set_show_zoom_buttons(True)
+        self.canvas.get_license().set_visible(False) # Replaced by the visible linked credit immediately below.
+        self.canvas.update_property([Gtk.AccessibleProperty.LABEL],[tr('Modern map with proposed historical locations')])
+        source=Shumate.RasterRenderer.new_full('bible-osm-standard','OpenStreetMap',
+            '© OpenStreetMap contributors',COPYRIGHT_URL,2,18,256,Shumate.MapProjection.MERCATOR,
+            Shumate.TileDownloader.new(TILE_URL))
+        viewport=self.canvas.get_viewport()
+        viewport.set_reference_map_source(source)
+        lat,lon,zoom=region(self.candidates,max(300,self.get_width()))
+        viewport.set_location(lat,lon);viewport.set_zoom_level(zoom)
+        self.canvas.set_map_source(source)
+        markers=Shumate.MarkerLayer.new(viewport)
         for index,candidate in enumerate(self.candidates):
-            x,y=point(candidate['longitude'],candidate['latitude'])
-            group=next((g for g in groups if math.hypot(g['x']-x,g['y']-y)<24),None)
-            if group is None:groups.append(dict(x=x,y=y,numbers=[candidate.get('number',index+1)]))
-            else:group['numbers'].append(candidate.get('number',index+1))
-        for group in groups:
-            x,y=group['x'],group['y']
-            label=','.join(map(str,group['numbers'])) if len(group['numbers'])<=3 else str(len(group['numbers']))+'×'
-            layout=self.create_pango_layout(label)
-            text_width,text_height=layout.get_pixel_size();radius=max(10,text_width/2+4,text_height/2+2)
-            Gdk.cairo_set_source_rgba(cr,accent);cr.arc(x,y,radius,0,math.tau);cr.fill()
-            Gdk.cairo_set_source_rgba(cr,ink);cr.move_to(x-text_width/2,y-text_height/2);PangoCairo.show_layout(cr,layout)
-        cr.restore()
+            marker=Shumate.Marker();marker.set_location(candidate['latitude'],candidate['longitude'])
+            if len(self.candidates)>1:
+                child=Gtk.Label(label=str(index+1));child.add_css_class('heading');child.add_css_class('accent')
+            else:child=Gtk.Image(icon_name='bible-place-symbolic',pixel_size=24)
+            badge=Gtk.Box();badge.add_css_class('place-map-marker')
+            for side in ('start','end','top','bottom'):getattr(child,'set_margin_'+side)(4)
+            badge.append(child);marker.set_child(badge)
+            from .place_names import place_name
+            marker.set_tooltip_text(place_name(candidate.get('name','')) or tr('Proposed modern locations'))
+            markers.add_marker(marker)
+        self.canvas.add_overlay_layer(markers)
+        self.layer=self.canvas.get_base_map_layer()
+        self._loaded_handler=self.layer.connect('map-loaded',self.loaded)
+        self.prepend(self.canvas)
+
+    def loaded(self,layer,errors):
+        if layer is not self.layer:return
+        self.ready=not errors
+        self.status.set_text(tr('Map unavailable offline or because of a connection error.') if errors else '')
+        self.status.set_visible(bool(errors));self.retry.set_visible(bool(errors))
+
+    def stop(self):
+        if self.layer and self._loaded_handler:self.layer.disconnect(self._loaded_handler)
+        self._loaded_handler=0
+        if self.canvas:
+            # Removing the native layer releases its tiles and pending work;
+            # no custom downloader, periodic timer or background map survives.
+            if self.layer:self.canvas.get_map().remove_layer(self.layer)
+            self.remove(self.canvas)
+        self.canvas=None;self.layer=None

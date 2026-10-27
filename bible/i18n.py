@@ -3,6 +3,12 @@ import locale
 import os
 
 FR = {
+    'Studied passage: {passage}':'Passage étudié : {passage}',
+    'Loading map…':'Chargement de la carte…',
+    'Map unavailable; place information and references remain available.':'Carte indisponible ; les informations sur le lieu et les références restent disponibles.',
+    'Modern map with proposed historical locations':'Carte actuelle et localisations historiques proposées',
+    'Map unavailable offline or because of a connection error.':'Carte indisponible hors connexion ou en cas d’erreur réseau.',
+
     'Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.':'La correspondance automatique des versets avec les autres éditions est indisponible. La lecture en parallèle indépendante reste disponible.',
     'Translation conversion or verification failed. No resource was installed.':'La conversion ou la vérification de la traduction a échoué. Aucune ressource n’a été installée.',
     'Confirm the source conditions before downloading.':'Confirmez les conditions de la source avant le téléchargement.',
