@@ -180,3 +180,50 @@ the required native map HTTP/cache/image-failure tests. The successful source is
 a published signed alpha. Shinar's supplied role is a representative point,
 so its detail explicitly says the area is approximate rather than implying an
 exact historical site. Nonlocated alternatives remain acknowledged.
+
+## #105: one native Study boundary, intact resizing
+
+The actual widget tree has an 8 px interactive StudyDivider containing a
+Gtk.Separator, next to OverlaySplitView's existing full-height boundary. Only
+that redundant decorative child is removed. The native split view, hit area,
+col-resize cursor, focus outline, drag/key controllers, saved width and
+adaptive bounds are retained. No layout replacement or new setting is added.
+
+GTK 4.20.4/OpenGL real Segond/MHC checks in White, Dark, Paper and Black pass:
+actual mouse drags change 420 -> 500 -> 420 px, Left/Right change 32 px each,
+hide/reopen retains the width, and a 560 px window collapses the drawer and
+hides the handle. Measured header/background RGBs match across each header's
+allocated width and the adjacent plain body surface: 240/240/240, 48/48/48,
+229/220/195 and 18/18/18 respectively. Bottom rounded-window shadows are not
+misreported as a header mismatch. Before/after whole native captures are
+retained; actual installed final verification remains required.
+
+## #75: collection editing, distinct panes and editor bands
+
+The global workspace has no New passage note button or equivalent implicit
+creation route. Ctrl+N is disabled there, and direct creation callbacks refuse
+the hidden reading context. Existing-record editing, reader-context creation,
+selection actions and the passage drawer remain. The unused legacy collection
+window also loses its creation button. No data/schema change is made.
+
+Filters, list and editor use scoped native/palette surfaces, a thin native
+list/detail separator, compact inset rows with quiet separators and native
+accent selection. Detail separates displayed excerpt/version from the selected
+note's original source, formatting/writing and labels/related records. Insets
+are aligned; related records follow editing rather than interrupting context.
+Separate excerpt and related-list scrollers are removed. The native text
+editor retains its own caret-following scroll; the outer form scroll remains
+for controls that exceed short/large-type windows, rather than forcing an
+unbounded text widget or adding a custom caret/scroll bridge.
+
+37 affected tests pass with patched GTK 4.14.5. The additional no-global-create
+check and 28 native UI cases pass with the available GTK 4.20.4 source runtime;
+that run's separate language-restart subprocess fails to launch under the
+extracted runtime ABI and is not claimed as passed (the system suite and real
+installed CI cover process startup). Actual native pointer/keyboard checks with
+a copied real-resource profile pass typing/autosave, SQLite write prohibition,
+cancel retaining the draft, workspace flush, Library access, highlight removal
+confirmation/cancel, related-note preservation and full-content search. All 64
+resource files are unchanged. Native source captures include several distinct
+notes/highlights, a long note, four palettes/high contrast, 560 px panes and
+large UI type. Installed-package checks and final publication remain pending.

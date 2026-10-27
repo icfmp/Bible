@@ -190,6 +190,17 @@ class NoteEditor(Adw.Window):
         self.labels.set_margin_start(12)
         self.labels.set_margin_end(12)
         self.labels.set_values(note.labels if note else [])
+        if embedded and not compact:
+            # The collection editor has separate context, writing and label
+            # bands. The drawer's compact editor keeps its existing layout.
+            self.embedded_content = layout
+            for widget in (self.status, commands, self.labels):
+                widget.set_margin_start(20);widget.set_margin_end(20)
+            commands.add_css_class('toolbar')
+            layout.insert_child_after(Gtk.Separator(margin_start=20,margin_end=20), context_label)
+            layout.insert_child_after(Gtk.Separator(margin_start=20,margin_end=20), self.stack)
+            self.status.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
+            self.status.set_visible(bool(self.status.get_text()))
         if compact:
             expander=Gtk.Expander(label=tr('Labels'));expander.set_child(self.labels);layout.append(expander)
         else:layout.append(self.labels)
@@ -362,9 +373,6 @@ class NotesWindow(Adw.Window):
         back = Gtk.Button(icon_name='go-previous-symbolic', tooltip_text=tr('Back to reading'))
         back.connect('clicked', lambda *_: self.close())
         header.pack_start(back)
-        new = Gtk.Button(icon_name='document-new-symbolic', tooltip_text=tr('New passage note'))
-        new.connect('clicked', lambda *_: owner.new_note(force_new=True))
-        header.pack_start(new)
         menu = Gtk.MenuButton(icon_name='open-menu-symbolic', tooltip_text=tr('Backup and restore'))
         popover = Gtk.Popover()
         actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, margin_start=12,
@@ -604,6 +612,7 @@ class NotesSpace(Gtk.Box):
         self.color=Gtk.DropDown(model=Gtk.StringList.new([tr('All colors'),*[tr(label) for _,label in COLORS.values()]]))
         self.color.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight color')]);self.color.connect('notify::selected',lambda *_:self.refresh() if not self._syncing else None);self.filters.append(self.color)
         filters_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER);filters_scroll.set_child(self.filters)
+        filters_scroll.add_css_class('annotation-navigation')
         self.side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         tools=Gtk.Box(spacing=6,margin_start=12,margin_end=12,margin_top=12)
         self.search=Gtk.SearchEntry(placeholder_text=tr('Search annotations'),hexpand=True)
@@ -613,15 +622,15 @@ class NotesSpace(Gtk.Box):
         for control in (self.book,self.color,self.sort):bounded_choices(control)
         self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort annotations')]);self.sort.connect('notify::selected',lambda *_:self.refresh());tools.append(self.sort);tools.append(self.filter_button);self.side.append(tools)
         self.sort.set_tooltip_text(tr('Date sorting uses note modification dates. Highlights without dates follow in Bible order.'))
-        self.new_button=Gtk.Button(child=Gtk.Label(label=tr('New passage note'),wrap=True),margin_start=12,margin_end=12)
-        self.new_button.connect('clicked',lambda *_:self.create_note());self.side.append(self.new_button)
         self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12);self.side.append(self.status)
         self.model=Gio.ListStore.new(AnnotationItem);self.selection=Gtk.SingleSelection(model=self.model,autoselect=False)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.row_setup);factory.connect('bind',self.row_bind)
         self.list=Gtk.ListView(model=self.selection,factory=factory,single_click_activate=True);self.list.connect('activate',self.activate)
+        self.list.add_css_class('annotation-list');self.side.add_css_class('annotation-sidebar')
         self.scroll=Gtk.ScrolledWindow(vexpand=True);self.scroll.set_child(self.list);self.side.append(self.scroll)
         self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
         detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        detail.add_css_class('annotation-detail')
         self.detail_back=Gtk.Button(label=tr('Back to annotations'),visible=False,halign=Gtk.Align.START,margin_start=12,margin_top=8)
         self.detail_back.connect('clicked',lambda *_:self.back_to_list());detail.append(self.detail_back)
         self.detail_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
@@ -630,18 +639,23 @@ class NotesSpace(Gtk.Box):
         viewport=self.detail_scroll.get_child()
         if isinstance(viewport,Gtk.Viewport):viewport.set_scroll_to_focus(True)
         detail.append(self.detail_scroll)
-        self.context_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,margin_start=12,margin_end=12,margin_top=8,visible=False)
+        self.context_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=20,margin_end=20,margin_top=12,visible=False)
         self.open_button=Gtk.Button(label=tr('Open in Bible'),halign=Gtk.Align.START);self.open_button.connect('clicked',lambda *_:self.open_passage());self.context_panel.append(self.open_button)
         self.versions=Gtk.DropDown();bounded_choices(self.versions);self.versions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Excerpt translation')]);self.versions.connect('notify::selected',self.version_changed);self.context_panel.append(self.versions)
         self.excerpt=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,selectable=True,max_width_chars=1)
-        excerpt_scroll=Gtk.ScrolledWindow(overflow=Gtk.Overflow.HIDDEN,hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=150,propagate_natural_height=True);excerpt_scroll.set_child(self.excerpt);self.context_panel.append(excerpt_scroll)
+        self.excerpt_caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,max_width_chars=1)
+        self.excerpt_caption.add_css_class('caption');self.excerpt_caption.add_css_class('dim-label')
+        self.context_panel.append(self.excerpt_caption);self.context_panel.append(self.excerpt)
+        self.context_panel.append(Gtk.Separator(margin_top=4,margin_bottom=4))
         self.related=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        related_scroll=Gtk.ScrolledWindow(overflow=Gtk.Overflow.HIDDEN,hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=150,propagate_natural_height=True);related_scroll.set_child(self.related)
-        self.related_expander=Gtk.Expander(label=tr('Related annotations'),visible=False);self.related_expander.set_child(related_scroll);self.context_panel.append(self.related_expander)
+        self.related_expander=Gtk.Expander(label=tr('Related annotations'),visible=False,margin_start=20,margin_end=20,margin_top=8,margin_bottom=12);self.related_expander.set_child(self.related)
         self.editor_panel.append(self.context_panel)
         self.placeholder=Adw.StatusPage(title=tr('Choose an annotation'),description=tr('Your annotations remain available offline.'),icon_name='bible-notes-symbolic');self.editor_panel.append(self.placeholder)
         self.highlight_detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,visible=False);self.editor_panel.append(self.highlight_detail)
-        self.split=Adw.OverlaySplitView(sidebar=self.side,content=detail,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
+        self.editor_panel.append(self.related_expander)
+        list_pane=Gtk.Box();self.side.set_hexpand(True);list_pane.append(self.side)
+        list_pane.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
+        self.split=Adw.OverlaySplitView(sidebar=list_pane,content=detail,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
         self.outer=Adw.OverlaySplitView(sidebar=filters_scroll,content=self.split,min_sidebar_width=210,max_sidebar_width=240,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,collapsed=True,show_sidebar=False)
         self.filter_button.connect('toggled',lambda widget:self.outer.set_show_sidebar(widget.get_active()))
         self.outer.connect('notify::show-sidebar',lambda *_:self.filter_button.set_active(self.outer.get_show_sidebar()))
@@ -733,7 +747,6 @@ class NotesSpace(Gtk.Box):
             GLib.idle_add(restore)
             self.status.set_text(tr('No matching annotations.') if not rows and self.all_records else tr('No annotations yet.') if not rows else '')
             if self.owner.highlights.error:self.status.set_text(tr('Highlights unavailable. The original file is preserved.')+' '+self.owner.highlights.error)
-            self.new_button.set_sensitive(bool(self.owner.active_tab and self.owner.active_tab.reader))
             self.delete_button.set_visible(bool(self.editor and self.editor.note));self.refresh_versions()
         except Exception as error:self._syncing=False;self.status.set_text(str(error))
 
@@ -803,7 +816,7 @@ class NotesSpace(Gtk.Box):
     def update_context(self,a):
         if self.selected_key!=a.key:self.related_expander.set_expanded(False)
         self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(True);self.placeholder.set_visible(False)
-        text,description,available=self.excerpt_for(a);self.excerpt.set_text(description+'\n'+text);self.open_button.set_sensitive(available)
+        text,description,available=self.excerpt_for(a);self.excerpt.set_text(text);self.excerpt_caption.set_text(description);self.open_button.set_sensitive(available)
         while self.related.get_first_child():self.related.remove(self.related.get_first_child())
         try:reader=self.reader()
         except (ValueError,OSError):reader=None
@@ -864,16 +877,14 @@ class NotesSpace(Gtk.Box):
         self.guard(lambda:self.mount(note=self.owner.notes_store.get(note.id)))
         return self.editor
 
-    def mount(self,note=None,context=None):
-        if note is None and context is None:return
-        editor=NoteEditor(self.owner,note=note,context=context,embedded=True);editor.embedded_host=self
+    def mount(self,note):
+        if note is None:return
+        editor=NoteEditor(self.owner,note=note,embedded=True);editor.embedded_host=self
         editor.body_scroll.set_min_content_height(180)
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
-        self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.append(editor.embedded_content)
-        if note:
-            from .annotation_collection import records
-            self.update_context(records([note],[])[0])
-        else:self.context_panel.set_visible(False);self.selected_key=None;self.selected_annotation=None
+        self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
+        from .annotation_collection import records
+        self.update_context(records([note],[])[0])
         self.save_button.set_sensitive(True);self.delete_button.set_visible(bool(note))
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
@@ -897,13 +908,6 @@ class NotesSpace(Gtk.Box):
         if self.editor is editor and editor.note:
             from .annotation_collection import records
             self.update_context(records([editor.note],[])[0])
-
-    def create_note(self):
-        def create():
-            tab=self.owner.active_tab
-            if not tab or not tab.reader:return
-            start,end=tab.selected_passage();self.mount(context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,origin_language=self.owner.library.resource(tab.state.resource).language))
-        self.guard(create)
 
     def leave(self):self.guard(self.owner.return_to_reading)
     def back_to_list(self):

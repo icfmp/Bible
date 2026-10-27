@@ -73,6 +73,24 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(w.notes_store.get(self.second.id).body,'Flushed at normal shutdown')
         self.assertEqual(w.notes_store.get(self.first.id).body,'Flushed before another record')
 
+    def test_global_workspace_only_edits_existing_notes_and_keeps_reader_creation(self):
+        from tests.test_ui import spin
+        w=self.window;s=self.space;s.open_note(self.first);editor=s.editor
+        buffer=editor.body.get_buffer();buffer.select_range(buffer.get_iter_at_offset(2),buffer.get_iter_at_offset(7))
+        selected=[it.get_offset() for it in buffer.get_selection_bounds()]
+        original=[n.id for n in w.notes_store.all()]
+        self.assertFalse(w.lookup_action('note').get_enabled())
+        self.assertIsNone(w.new_note(force_new=True))
+        self.assertIsNone(w.edit_note(context=dict(editor.context)))
+        w.lookup_action('note').activate(None);spin()
+        self.assertEqual([n.id for n in w.notes_store.all()],original)
+        self.assertIs(s.editor,editor);self.assertEqual([it.get_offset() for it in buffer.get_selection_bounds()],selected)
+        self.assertFalse(hasattr(s,'new_button'));self.assertFalse(hasattr(s,'create_note'))
+        s.leave();spin();self.assertTrue(w.lookup_action('note').get_enabled())
+        reader_editor=w.new_note(force_new=True)
+        self.assertEqual(reader_editor.context['start'],w.active_tab.state.reference)
+        reader_editor._discard=True;reader_editor.close()
+
     def test_write_failure_and_optimistic_conflict_preserve_draft(self):
         from tests.test_ui import spin
         w=self.window;s=self.space;s.open_note(self.first);editor=s.editor
@@ -110,7 +128,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         s.search.set_text('editable');s.refresh();selected=s.selected_key
         s.versions.set_selected(s.version_names.index('KingJames'));spin()
         self.assertIn('KJV ACTUAL MAPPED TEXT',s.excerpt.get_text());self.assertNotIn('LUTHER SOURCE TEXT',s.excerpt.get_text())
-        self.assertIn('31:55',s.excerpt.get_text());self.assertEqual(s.editor.context['start'],'Gen.32.1')
+        self.assertIn('31:55',s.excerpt_caption.get_text());self.assertEqual(s.editor.context['start'],'Gen.32.1')
         self.assertEqual((tab.state.resource,tab.state.reference,list(tab.state.history),tab.state.comparison),before)
         count=w.view.get_n_pages();s.open_passage();spin()
         self.assertEqual(w.view.get_n_pages(),count+1);self.assertEqual(w.active_tab.state.reference,'Gen.31.55')

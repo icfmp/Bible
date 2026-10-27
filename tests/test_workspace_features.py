@@ -41,7 +41,8 @@ class WorkspaceFeaturesTests(unittest.TestCase):
             w=Window(self.app,Library(Path(directory)/'translations'));w.present()
             try:
                 w.navigate_selection('Test','Gen.2.1');tab=w.active_tab
-                space=w.open_notes();space.create_note();editor=space.editor
+                editor=w.new_note(force_new=True);editor.body.get_buffer().set_text('Existing local note');editor.save()
+                space=w.open_notes();space.open_note(w.notes_store.all()[0]);editor=space.editor
                 editor.body.get_buffer().set_text('A local note')
                 from unittest.mock import patch
                 with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):

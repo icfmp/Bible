@@ -160,6 +160,9 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
 {window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
 {window} .sidebar, {window} .sidebar-pane, {window} .study-panel, {window} .study-divider {{ background-color: {sidebar}; color: {fg}; }}
+{window} .annotation-navigation {{ background-color: {sidebar}; color: {fg}; }}
+{window} .annotation-sidebar, {window} .annotation-list {{ background-color: {chrome}; color: {fg}; }}
+{window} .annotation-detail {{ background-color: {bg}; color: {fg}; }}
 {window} textview.study-reader, {window} textview.study-reader text {{ color: {fg}; }}
 {window} .study-drawer headerbar, {window} .study-drawer headerbar .title,
 {window} .study-drawer headerbar .start, {window} .study-drawer headerbar .end {{ background-color: {sidebar}; color: {fg}; }}
