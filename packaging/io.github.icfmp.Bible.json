@@ -13,6 +13,41 @@
   ],
   "modules": [
     {
+      "name": "libshumate",
+      "buildsystem": "meson",
+      "config-opts": [
+        "--libdir=lib",
+        "-Dgtk_doc=false",
+        "-Dvapi=false",
+        "-Ddemos=false",
+        "-Dvector_renderer=false",
+        "-Dsysprof=disabled"
+      ],
+      "post-install": [
+        "install -Dm644 ../COPYING /app/share/licenses/libshumate/COPYING",
+        "test -f /app/lib/girepository-1.0/Shumate-1.0.typelib"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://download.gnome.org/sources/libshumate/1.5/libshumate-1.5.5.tar.xz",
+          "sha256": "ce27d88537a37cd5c45959c3bb7cc18c1c18b3d2e663d02bcf46fc66f7414a92"
+        },
+        {
+          "type": "patch",
+          "path": "shumate-user-agent.patch"
+        },
+        {
+          "type": "patch",
+          "path": "shumate-image-errors.patch"
+        },
+        {
+          "type": "patch",
+          "path": "shumate-load-notification.patch"
+        }
+      ]
+    },
+    {
       "name": "swig",
       "buildsystem": "autotools",
       "config-opts": [

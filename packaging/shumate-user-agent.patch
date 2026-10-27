@@ -1,0 +1,11 @@
+--- a/shumate/shumate-tile-downloader.c
++++ b/shumate/shumate-tile-downloader.c
+@@ -435,7 +435,7 @@
+   if (data->self->soup_session == NULL)
+     {
+       data->self->soup_session =
+-        soup_session_new_with_options ("user-agent", "libshumate/" SHUMATE_VERSION,
++        soup_session_new_with_options ("user-agent", shumate_get_user_agent (),
+                                        "max-conns-per-host", MAX_CONNS_DEFAULT,
+                                        "max-conns", MAX_CONNS_DEFAULT,
+                                        NULL);

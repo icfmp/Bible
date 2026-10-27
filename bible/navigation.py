@@ -24,6 +24,7 @@ class PassagePopover(Gtk.Popover):
         self.names, self.chapters, self.verses = [], [], []
         self.books = ()
         self.book_index, self.chapter_number = 0, None
+        self.verse_number=None
         self.book_rows, self.chapter_buttons = {}, {}
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self.direct = Gtk.Entry(placeholder_text=tr('John 3:16 · Jn 3 · Ps 23'),
@@ -79,18 +80,6 @@ class PassagePopover(Gtk.Popover):
                                                  propagate_natural_height=True, vexpand=True)
         self.chapter_scroll.set_child(self.chapter_grid)
         right.append(self.chapter_scroll)
-        self.verse = self.dropdown('Verse', self.verse_changed)
-        verse_row=Gtk.Box(spacing=6)
-        verse_row.append(Gtk.Label(label=tr('Verse')));verse_row.append(self.verse)
-        self.open_verse=Gtk.Button(icon_name='go-next-symbolic',tooltip_text=tr('Open verse'))
-        self.open_verse.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open verse')])
-        self.open_verse.connect('clicked',lambda *_:self.open_selected())
-        verse_row.append(self.open_verse)
-        self.open_chapter=Gtk.Button(label=tr('Open chapter'))
-        self.open_chapter.add_css_class('suggested-action')
-        self.open_chapter.connect('clicked',lambda *_:self.open_selected(chapter=True))
-        right.insert_child_after(self.open_chapter,self.book_title)
-        right.insert_child_after(verse_row,self.open_chapter)
         self.columns.append(right)
         self.pages=Gtk.Stack()
         books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -372,14 +361,13 @@ class PassagePopover(Gtk.Popover):
 
     def populate_verses(self, preferred=1):
         self.verses = list(self.books[self.book_index].chapters[self.chapter_number]) if self.chapters else []
-        self.verse.set_model(Gtk.StringList.new([str(number) for number in self.verses]))
-        self.verse.set_sensitive(bool(self.verses))
-        self.verse.set_selected(self.verses.index(preferred) if preferred in self.verses else 0)
+        # Preserve the current exact reference for typed input/restoration;
+        # graphical navigation commits a chapter's actual first verse.
+        self.verse_number=preferred if preferred in self.verses else (self.verses[0] if self.verses else None)
 
     def selected_reference(self):
-        verse = self.verse.get_selected()
-        if self.book_index < len(self.books) and self.chapter_number and verse < len(self.verses):
-            return f'{self.books[self.book_index].code}.{self.chapter_number}.{self.verses[verse]}'
+        if self.book_index < len(self.books) and self.chapter_number and self.verse_number is not None:
+            return f'{self.books[self.book_index].code}.{self.chapter_number}.{self.verse_number}'
         return ''
 
     def update_direct(self):
@@ -387,13 +375,9 @@ class PassagePopover(Gtk.Popover):
         reference=self.selected_reference()
         self.direct.set_text(passage_title(reference,system=self.reader.versification) if reference and self.reader else '')
 
-    def open_selected(self,chapter=False):
+    def open_selected(self):
         try:
-            reference=self.selected_reference()
-            if chapter:
-                book=self.books[self.book_index]
-                reference=f'{book.code}.{self.chapter_number}.{book.chapters[self.chapter_number][0]}'
-            self.apply_reference(reference);self.popdown()
+            self.apply_reference(self.selected_reference());self.message();self.popdown()
             self.owner.active_tab.text.grab_focus()
         except (ValueError,IndexError) as error:self.message(str(error))
 
@@ -474,10 +458,7 @@ class PassagePopover(Gtk.Popover):
             self.populate_verses()
             self._updating = False
             self.mark_chapter();self.update_direct()
-
-    def verse_changed(self, *_):
-        if not self._updating:
-            self.update_direct()
+            self.open_selected()
 
     def commit(self):
         try:

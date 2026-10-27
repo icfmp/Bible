@@ -227,6 +227,7 @@ class PassageNotes(Gtk.Box):
         preview=Gtk.Label(label=' '.join(' '.join(text.split()) for _,text in texts) or tr('Bible excerpt unavailable.'),
                           xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,lines=2,
                           ellipsize=Pango.EllipsizeMode.END,width_chars=1)
+        preview.add_css_class('study-content')
         card.append(preview);card.excerpt=preview
         if texts:
             caption=Gtk.Label(label=source,xalign=0,ellipsize=Pango.EllipsizeMode.END,width_chars=1)

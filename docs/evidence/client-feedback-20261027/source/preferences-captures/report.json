@@ -1,0 +1,106 @@
+[
+  {
+    "palette": "white",
+    "narrow": false,
+    "window": [
+      1280,
+      900
+    ],
+    "dialog": [
+      1280,
+      900
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "white",
+    "narrow": true,
+    "window": [
+      560,
+      760
+    ],
+    "dialog": [
+      560,
+      760
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "dark",
+    "narrow": false,
+    "window": [
+      1280,
+      900
+    ],
+    "dialog": [
+      1280,
+      900
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "dark",
+    "narrow": true,
+    "window": [
+      560,
+      760
+    ],
+    "dialog": [
+      560,
+      760
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "paper",
+    "narrow": false,
+    "window": [
+      1280,
+      900
+    ],
+    "dialog": [
+      1280,
+      900
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "paper",
+    "narrow": true,
+    "window": [
+      560,
+      760
+    ],
+    "dialog": [
+      560,
+      760
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "black",
+    "narrow": false,
+    "window": [
+      1280,
+      900
+    ],
+    "dialog": [
+      1280,
+      900
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  },
+  {
+    "palette": "black",
+    "narrow": true,
+    "window": [
+      560,
+      760
+    ],
+    "dialog": [
+      560,
+      760
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  }
+]

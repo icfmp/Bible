@@ -144,7 +144,7 @@ class PagedStream:
     def configure(self,width,height,anchor,key):
         self.width=max(20,width);self.height=max(20,height);self.cache.clear();self.partitions.clear()
         self.partitions[key]=anchor
-        plan=self.plan(key);self.cursor=PageAddress(key,plan.containing(plan.document.locate(anchor)))
+        plan=self.plan(key);self.cursor=PageAddress(key,plan.page_for_anchor(anchor))
 
     def step(self,address,direction):
         plan=self.plan(address.key);index=address.index+direction

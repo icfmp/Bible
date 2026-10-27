@@ -1,8 +1,8 @@
-"""On-demand native passage/place cards; shared previews and no online maps."""
+"""On-demand native place window, shared previews and contextual map."""
 from concurrent.futures import ThreadPoolExecutor
 from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr
-from .place_data import PlaceData,NOTICE,SOURCE_URL
+from .place_data import PlaceData,SOURCE_URL,LICENSE_URL,ODBL_URL
 from .place_names import place_name
 from .reference_targets import source_references,local_excerpt
 from .reference_preview import passage_title
@@ -10,25 +10,24 @@ from .reference_resolution import VersificationMismatch
 
 STATUS={'known':'Known identification','probable':'Probable identification',
         'disputed':'Disputed identification','unknown':'Unknown location'}
-ROLES={'point':'Source point','center':'Center of an approximate area',
-       'representative point':'Representative point for a region or path','settlement':'Somewhere within the settlement'}
-MODIFIERS={'near':'Near this location','along':'Along this geographical feature','on':'On this geographical feature',
-           '<':'Within this area','>':'Around this location'}
 
 
 class PlaceItem(GObject.Object):
     def __init__(self,payload):super().__init__();self.payload=payload
 
 
-class PlaceCards(Adw.Dialog):
+class PlaceCards(Adw.Window):
     def __init__(self,owner,context=None):
-        super().__init__(title=tr('Places in this passage'),content_width=640,content_height=720)
+        super().__init__(title=tr('Places in this passage'),default_width=640,default_height=720,
+                         transient_for=owner,modal=True,destroy_with_parent=True)
+        self.add_css_class(owner.reading_style.scope+'-window')
         self.owner=owner;self.closed=False;self.generation=0;self.rows=[];self.pending=False
         self.data=PlaceData(owner.library.root.parent/'study-data')
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-places')
         tab=owner.active_tab
         self.context=context or ((tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None)
-        self.connect('closed',self.on_closed)
+        self.map_widget=None
+        self.connect('close-request',self.on_closed)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_end_title_buttons=False)
         self.title=Gtk.Label(label=tr('Places in this passage'),ellipsize=Pango.EllipsizeMode.END,width_chars=1)
@@ -41,7 +40,8 @@ class PlaceCards(Adw.Dialog):
         context=Gtk.Label(xalign=0,wrap=True,margin_start=16,margin_end=16,margin_bottom=8)
         if self.context:
             resource,reader,start,end=self.context
-            context.set_text(passage_title(start,end,reader.versification)+' · '+resource)
+            context.set_text(tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification)))
+        context.add_css_class('dim-label');self.passage_context=context
         box.append(context)
         self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False);box.append(self.pages)
         listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12)
@@ -55,16 +55,29 @@ class PlaceCards(Adw.Dialog):
         self.pages.add_named(listing,'list')
         self.card_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.pages.add_named(self.card_scroll,'card')
-        credit=Gtk.Label(label=tr('OpenBible.info · CC BY 4.0. OpenStreetMap contributors · ODbL 1.0. Natural Earth · public domain.'),
-            xalign=0,wrap=True,margin_start=16,margin_end=16,margin_top=8,margin_bottom=12)
-        credit.add_css_class('caption');credit.set_tooltip_text(NOTICE);box.append(credit)
-        self.set_child(box);self.refresh()
+        credit=Gtk.Label(xalign=0,wrap=True,margin_start=16,margin_end=16,margin_top=8,margin_bottom=12)
+        credit.set_markup(f'<a href="{SOURCE_URL}">OpenBible.info</a> · <a href="{LICENSE_URL}">CC BY 4.0</a>'
+                          f' · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>'
+                          f' · <a href="{ODBL_URL}">ODbL</a>')
+        credit.add_css_class('caption');box.append(credit)
+        self.set_content(box);self.refresh()
+
+    def present(self,parent=None):
+        if parent:self.set_transient_for(parent)
+        super().present()
+
+    def stop_map(self):
+        if self.map_widget:self.map_widget.stop();self.map_widget=None
 
     def on_closed(self,*_):
+        if self.closed:return False
+        self.stop_map()
         self.closed=True;self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
         if getattr(self.owner,'place_dialog',None) is self:self.owner.place_dialog=None
+        return False
 
     def show_list(self):
+        self.stop_map()
         self.generation+=1;self.pages.set_visible_child_name('list')
         self.back.set_visible(False);self.title.set_text(tr('Places in this passage'));self.set_title(tr('Places in this passage'))
 
@@ -119,87 +132,82 @@ class PlaceCards(Adw.Dialog):
         return label
 
     def open_place(self,place):
-        self.generation+=1;generation=self.generation;self.current_place=place
+        self.stop_map()
+        self.generation+=1;self.current_place=place
         self.pages.set_visible_child_name('card');self.back.set_visible(True);self.title.set_text(place_name(place['name']))
+        self.set_title(place_name(place['name']))
         card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
         card.append(self.label(tr(STATUS[place['status']])))
-        technical=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        technical.append(self.label(place['name']+' · '+', '.join(place['aliases']),caption=True))
-        technical_expander=Gtk.Expander(label=tr('Sources and technical details'))
-        technical_expander.set_child(technical)
         map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         located=[c for c in place['candidates'] if c['longitude'] is not None]
         if located:
             modern=self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located)))
             card.insert_child_after(modern,card.get_first_child())
-        for index,candidate in enumerate(place['candidates']):candidate['number']=index+1
-        try:
-            if not located:raise ValueError('unknown location')
-            import cairo,gi
-            gi.require_foreign('cairo')
-            from .place_map import PlaceMap,extent
-            canvas=PlaceMap();map_box.append(canvas)
-            map_status=self.label(tr('Loading offline map…'),caption=True);map_box.append(map_status)
-            wide=extent(located,800,180);narrow=extent(located,280,260)
-            bounds=(min(wide[0],narrow[0]),min(wide[1],narrow[1]),max(wide[2],narrow[2]),max(wide[3],narrow[3]))
-            future=self.executor.submit(self.data.coastlines,bounds)
-            def map_complete():
-                if self.closed or self.owner.closed or generation!=self.generation:return False
-                try:
-                    lines=future.result();canvas.set_data(lines,place['candidates'])
-                    map_status.set_text(tr('Natural Earth · public domain. Simplified modern coastlines.')+'\n'+tr('Numbers identify candidates; × counts very close grouped alternatives.'))
-                except Exception as error:
-                    canvas.set_visible(False);map_status.set_text(tr('Map unavailable; coordinates and references remain available.'))
-                    map_status.set_tooltip_text(str(error))
-                return False
-            future.add_done_callback(lambda _:GLib.idle_add(map_complete))
-            self.map_widget=canvas
-        except (ImportError,ValueError):
-            self.map_widget=None
-            map_box.append(self.label(tr('No identified location; no map pin is shown.') if not located else
-                                     tr('Map unavailable; coordinates and references remain available.'),caption=True))
-        for candidate in place['candidates']:
-            title=self.label(str(candidate['number'])+'. '+(place_name(candidate['name']) if candidate['longitude'] is not None else tr('Unknown location')))
-            title.add_css_class('heading');technical.append(title)
-            if candidate['longitude'] is not None:
-                technical.append(self.label(tr(ROLES[candidate['role']])+'\n'+tr('Latitude, longitude: {latitude}, {longitude}').format(latitude=f'{candidate["latitude"]:.6f}',longitude=f'{candidate["longitude"]:.6f}'),caption=True))
-            if candidate['modifier'] in MODIFIERS:technical.append(self.label(tr(MODIFIERS[candidate['modifier']]),caption=True))
-            if candidate['description']:technical.append(self.label(candidate['description'],caption=True))
-            if candidate['radius_meters'] is not None:
-                technical.append(self.label(tr('Source uncertainty radius: {distance} km').format(distance=round(candidate['radius_meters']/1000,1)),caption=True))
-            evidence=tr('Source path score: {score}; not a probability.').format(score=candidate['path_score'])
-
-            technical.append(self.label(evidence,caption=True))
+            if len(located)==1:
+                note=self.location_note(located[0])
+                if note:map_box.append(self.label(note,caption=True))
+        if located:
+            try:
+                from .place_map import PlaceMap
+                self.map_widget=PlaceMap(located);map_box.append(self.map_widget)
+            except (ImportError,ValueError):
+                map_box.append(self.label(tr('Map unavailable; place information and references remain available.'),caption=True))
+        else:
+            map_box.append(self.label(tr('No identified location; no map pin is shown.'),caption=True))
+        if len(located)>1:
+            for index,candidate in enumerate(located):
+                card.append(self.label(str(index+1)+'. '+place_name(candidate['name']),caption=True))
+                note=self.location_note(candidate)
+                if note:card.append(self.label(note,caption=True))
+        if located and any(c['longitude'] is None for c in place['candidates']):
+            card.append(self.label(tr('Other proposed locations have not been identified on the map.'),caption=True))
         self.reference_model=Gio.ListStore.new(PlaceItem)
-        factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
-        self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
-        references_scroll=Gtk.ScrolledWindow(min_content_height=160,max_content_height=280,propagate_natural_height=True,
-                                            hscrollbar_policy=Gtk.PolicyType.NEVER)
-        references_scroll.set_child(self.references);card.append(references_scroll)
         ordered=[ref for ref in place['references'] if ref in self.origins]+[ref for ref in place['references'] if ref not in self.origins]
-        self.reference_model.splice(0,0,[PlaceItem(ref) for ref in ordered[:8]])
-        all_refs=Gtk.Button(label=tr('View all'),visible=len(place['references'])>8)
+        self.reference_model.splice(0,0,[PlaceItem(ref) for ref in ordered[:2]])
+        # The compact preview has natural row heights and shares the card's
+        # outer scroll; an inner fixed viewport would cut a source line in half.
+        self.references=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        for ref in ordered[:2]:
+            button=self.reference_button();self.bind_reference(button,ref);self.references.append(button)
+        card.append(self.references)
+        all_refs=Gtk.Button(label=tr('View all'),visible=len(place['references'])>2)
         def show_all(*_):
-            self.reference_model.splice(0,self.reference_model.get_n_items(),[PlaceItem(ref) for ref in ordered]);all_refs.set_visible(False)
+            self.reference_model.splice(0,self.reference_model.get_n_items(),[PlaceItem(ref) for ref in ordered])
+            card.remove(self.references)
+            factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
+            self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
+            scroll=Gtk.ScrolledWindow(min_content_height=240,max_content_height=400,propagate_natural_height=True,
+                                     hscrollbar_policy=Gtk.PolicyType.NEVER)
+            scroll.set_child(self.references);card.insert_child_after(scroll,reference_title);all_refs.set_visible(False)
         all_refs.connect('clicked',show_all);card.append(all_refs)
-        bibliography=Gtk.Expander(label=tr('Source evidence and bibliography'))
-        detail='\n\n'.join(s['name']+('\n'+str(s['detail'].get('title','')) if s['detail'].get('title') else '') for s in place['sources']) or tr('The dataset records this identification without a detailed bibliography.')
-        bibliography.set_child(self.label(detail,caption=True));technical.append(bibliography)
-        technical.append(self.label(SOURCE_URL+'\n'+NOTICE,caption=True));card.append(technical_expander)
         clamp=Adw.Clamp(maximum_size=700,child=card);self.card_scroll.set_child(clamp)
         self.card_scroll.get_vadjustment().set_value(0)
 
+    def location_note(self,candidate):
+        if candidate.get('role') in ('center','representative point') or candidate.get('radius_meters'):
+            return tr('Approximate area; this point does not identify an exact site.')
+        if candidate.get('role')=='settlement':return tr('The proposed site is somewhere within this modern settlement.')
+        return tr({'near':'Near this location','along':'Along this geographical feature','on':'On this geographical feature',
+                   '<':'Within this area','>':'Around this location'}.get(candidate.get('modifier'),''))
+
     def reference_setup(self,_,item):
-        button=Gtk.Button();button.add_css_class('flat')
+        item.set_child(self.reference_button())
+
+    def reference_button(self):
+        button=Gtk.Button();button.add_css_class('flat');button.add_css_class('place-reference')
         content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         title=self.label('');title.set_selectable(False);title.add_css_class('accent');title.add_css_class('heading');content.append(title)
-        body=self.label('');body.set_selectable(False);body.set_lines(2);body.set_ellipsize(Pango.EllipsizeMode.END);content.append(body)
-        button.set_child(content);button.connect('clicked',self.preview_reference);item.set_child(button)
+        body=self.label('');body.set_selectable(False)
+        attrs=Pango.AttrList();attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL));body.set_attributes(attrs);body.set_lines(3);body.set_ellipsize(Pango.EllipsizeMode.END);content.append(body)
+        button.set_child(content);button.connect('clicked',self.preview_reference);return button
 
     def reference_bind(self,_,item):
-        ref=item.get_item().payload;button=item.get_child();button._reference=ref
+        self.bind_reference(item.get_child(),item.get_item().payload)
+
+    def bind_reference(self,button,ref):
+        button._reference=ref
         resource,reader,_,_=self.context
         if ref not in self.reference_cache:
             try:

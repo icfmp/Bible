@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "edition": 93,
+  "title": "La Sainte Bible par Louis Segond 1910",
+  "installed_entries": 1255,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": null,
+  "source_numbering": "org",
+  "native_numbering": "YouVersion93",
+  "archive_sha256": "64ee1ba4cd914be36e8318e31e3bb93514933eb5502091422ad926926ebd7526",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 0.0030435579999448237,
+  "conversion_child_peak_rss_kib": 0,
+  "phases": {},
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 2,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": false,
+  "actual_archive_download_in_application": false,
+  "transfer": {
+    "bytes": 0,
+    "total": 0,
+    "seconds": 0
+  },
+  "offline_verification_only": true,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

@@ -14,7 +14,10 @@ from bible import place_data
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class PlaceCardTests(unittest.TestCase):
     def setUp(self):
+        from tests.test_place_map import require_native_map
+        require_native_map()
         from bible.ui import Application,Window,Library
+        self.enterContext(patch('bible.place_map.TILE_URL','http://127.0.0.1:1/{z}/{x}/{y}.png'))
         self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
         installed_fixture(self.directory,'French',versification='Segond',entries=[('Ps.3.2','EXACT FRENCH PSALM TEST'),('John.1.5','SOURCE TEST')])
         self.files=inputs(self.root)
@@ -39,7 +42,10 @@ class PlaceCardTests(unittest.TestCase):
         w=self.window;self.install();before=(w.active_tab.state.reference,list(w.active_tab.state.history),w.view.get_n_pages())
         dialog=w.open_places();spin(lambda:not dialog.pending,duration=.2)
         self.assertEqual([p['name'] for p in dialog.rows],['Jerusalem'])
-        dialog.open_place(dialog.rows[0]);spin(lambda:bool(dialog.map_widget.lines),duration=.2)
+        dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
+        self.assertIs(dialog.get_transient_for(),w);self.assertTrue(w.get_mapped())
+        self.assertNotIn('French',dialog.passage_context.get_text())
+        self.assertFalse(any(getattr(x,'get_label',lambda:None)()=='Sources and technical details' for x in self.walk(dialog)))
         self.assertEqual(dialog.current_place['status'],'known')
         button=next(x for x in self.walk(dialog.references) if hasattr(x,'_reference'))
         button.emit('clicked');spin()
@@ -56,13 +62,24 @@ class PlaceCardTests(unittest.TestCase):
         child=widget.get_first_child()
         while child:yield from self.walk(child);child=child.get_next_sibling()
 
-    def test_map_failure_keeps_card_coordinates_and_related_references(self):
+    def test_map_failure_keeps_place_metadata_and_related_references(self):
         store=self.install()
         with sqlite3.connect(store.path) as connection:connection.execute('DROP TABLE coastlines')
         dialog=self.window.open_places();spin(lambda:not dialog.pending,duration=.2)
-        dialog.open_place(dialog.rows[0]);spin(lambda:not dialog.map_widget.get_visible(),duration=.2)
+        dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
+        self.assertFalse(dialog.map_widget.ready)
+        self.assertTrue(dialog.map_widget.status.get_text())
         self.assertTrue(dialog.current_place['candidates']);self.assertEqual(dialog.reference_model.get_n_items(),1)
         self.assertEqual(self.window.active_tab.state.reference,'Ps.3.2')
+
+    def test_region_reference_point_keeps_its_historical_uncertainty_visible(self):
+        from bible.i18n import tr
+        self.install();dialog=self.window.open_places();spin(lambda:not dialog.pending)
+        place=dialog.rows[0];place['candidates'][0]['role']='representative point'
+        dialog.open_place(place);spin()
+        labels=[x.get_text() for x in self.walk(dialog) if hasattr(x,'get_text')]
+        self.assertIn(tr('Approximate area; this point does not identify an exact site.'),labels)
+        self.assertEqual(len(dialog.map_widget.candidates),1)
 
     def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):
         from bible.study_resources import PLACE_RESOURCE_ID

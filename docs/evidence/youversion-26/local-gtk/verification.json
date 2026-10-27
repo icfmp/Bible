@@ -1,0 +1,161 @@
+{
+  "environment": "local source GTK, NOT installed Flatpak",
+  "app_import": "/work/youversion-26/repo/bible/ui.py",
+  "gtk": [
+    4,
+    14,
+    5
+  ],
+  "captures": [
+    {
+      "file": "edition-21-white.png",
+      "edition": 21,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-93-white.png",
+      "edition": 93,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-64-white.png",
+      "edition": 64,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-131-white.png",
+      "edition": 131,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-1-white.png",
+      "edition": 1,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-12-white.png",
+      "edition": 12,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-3034-white.png",
+      "edition": 3034,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-21-white-small.png",
+      "size": [
+        360,
+        600
+      ],
+      "edition": 21
+    },
+    {
+      "file": "edition-21-white-introduction.png",
+      "edition": 21
+    },
+    {
+      "file": "edition-21-dark.png",
+      "edition": 21,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-93-dark.png",
+      "edition": 93,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-64-dark.png",
+      "edition": 64,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-131-dark.png",
+      "edition": 131,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-1-dark.png",
+      "edition": 1,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-12-dark.png",
+      "edition": 12,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-3034-dark.png",
+      "edition": 3034,
+      "size": [
+        1100,
+        760
+      ],
+      "study_notes": true
+    },
+    {
+      "file": "edition-21-dark-small.png",
+      "size": [
+        360,
+        600
+      ],
+      "edition": 21
+    },
+    {
+      "file": "edition-21-dark-introduction.png",
+      "edition": 21
+    }
+  ]
+}

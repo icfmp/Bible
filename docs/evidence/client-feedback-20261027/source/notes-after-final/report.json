@@ -1,0 +1,10 @@
+{
+  "source": "/work/client-feedback-20261027/repo/bible/ui.py",
+  "cases": [
+    "white",
+    "dark",
+    "paper",
+    "black",
+    "contrast"
+  ]
+}

@@ -14,11 +14,13 @@ from .preparation import checkpoint
 
 class LayoutContext:
     """A private worker font map, never a Gtk widget shared across threads."""
-    def __init__(self,resolution,language):
+    def __init__(self,resolution,language,*,round_positions=True,font_options=None):
         self.font_map=PangoCairo.FontMap.new()
         self.font_map.set_resolution(resolution if resolution>0 else 96)
         self.context=self.font_map.create_context()
         self.context.set_language(Pango.Language.from_string(language))
+        self.context.set_round_glyph_positions(round_positions)
+        if font_options is not None:PangoCairo.context_set_font_options(self.context,font_options)
 
     def create_pango_layout(self,text):
         layout=Pango.Layout.new(self.context);layout.set_text(text,-1);return layout
@@ -32,6 +34,10 @@ class BookStream(PagedStream):
         context=widget.get_pango_context()
         self.resolution=PangoCairo.context_get_resolution(context)
         self.language=context.get_language().to_string()
+        self.round_positions=context.get_round_glyph_positions()
+        options=PangoCairo.context_get_font_options(context)
+        # An independent immutable snapshot, never a GTK context in the worker.
+        self.font_options=options.copy() if options is not None else None
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-pages')
         self.futures={};self.errors={};self.error=None;self.pending=None
         self.requested_anchor=None;self.spread_count=2;self.closed=False
@@ -56,7 +62,7 @@ class BookStream(PagedStream):
     def build(self,key,preferences,width,height,anchor,cancelled=None):
         checkpoint(cancelled)
         signature=self.document_signature(key,preferences)
-        plan_key=(signature,preferences.font,preferences.size,preferences.line_spacing,
+        plan_key=(signature,preferences.font,preferences.size,preferences.line_spacing,preferences.line_spacing_px,preferences.alignment,
                   width,height,anchor)
         with self._cache_lock:
             plan=self.plans.get(plan_key)
@@ -71,7 +77,8 @@ class BookStream(PagedStream):
             checkpoint(cancelled)
             self._remember(self.documents,signature,document,cancelled)
         if self._worker_layout is None:
-            self._worker_layout=LayoutContext(self.resolution,self.language)
+            self._worker_layout=LayoutContext(self.resolution,self.language,
+                round_positions=self.round_positions,font_options=self.font_options)
         # The requested anchor chooses the containing spread, not an artificial
         # page break. Keep it separately for exact reflow/exit restoration.
         plan=paginate(self._worker_layout,document,preferences,width,height,None,cancelled=cancelled)
@@ -102,7 +109,7 @@ class BookStream(PagedStream):
         if self.closed:return
         width,height=max(20,width),max(20,height)
         p=self.preferences
-        configuration=(key,width,height,anchor,p.font,p.size,p.line_spacing,p.chapter_numbers,p.verse_numbers)
+        configuration=(key,width,height,anchor,p.font,p.size,p.line_spacing,p.line_spacing_px,p.alignment,p.chapter_numbers,p.verse_numbers)
         if configuration==self._configuration and (self.pending==key or
                 (self.cursor and self.cursor.key==key and self.requested_anchor==anchor)):return
         self._configuration=configuration
@@ -145,7 +152,7 @@ class BookStream(PagedStream):
                 if key==self.pending:self.error=str(error);self.pending=None;changed='current'
                 continue
             if key==self.pending:
-                plan=self.cache[key];index=plan.containing(plan.document.locate(self.requested_anchor))
+                plan=self.cache[key];index=plan.page_for_anchor(self.requested_anchor)
                 if self.spread_count==2:index=index//2*2
                 self.cursor=PageAddress(key,index);self.pending=None;changed='current'
                 # Prefetch after collecting this batch: pruning may otherwise

@@ -12,6 +12,7 @@ from dataclasses import replace
 class ComparisonRows:
     def __init__(self,tab):
         self.tab=tab;self.signature=None;self.tags=[[],[]];self.bounds=[(),()]
+        self.bodies=[(),()];self.bottom_tags=[None,None]
         self.geometry=None;self.settling=0;self.padding=[[],[]]
 
     def build(self,chapter):
@@ -57,15 +58,22 @@ class ComparisonRows:
             if side==0:tab._document,tab._verse_offsets,tab._verse_ranges,tab._marker_ends=values
             else:tab._comparison_document,tab._comparison_offsets,tab._comparison_ranges,tab._comparison_markers=values
             for tag in self.tags[side]:buffer.get_tag_table().remove(tag)
+            if self.bottom_tags[side]:buffer.get_tag_table().remove(self.bottom_tags[side])
             self.tags[side]=[];self.padding[side]=[0]*len(rows)
-            for start,end in self.bounds[side]:
-                tag=buffer.create_tag(None,pixels_below_lines=0)
-                # GTK paragraph properties are taken at the paragraph start,
-                # not at its terminal newline. Preserve internal source breaks.
-                last=buffer.get_iter_at_offset(max(start,end-1))
-                last.set_line_offset(0)
-                buffer.apply_tag(tag,last,buffer.get_iter_at_offset(end))
+            markers=values[3]
+            self.bodies[side]=tuple(next((markers[ref] for ref in (row.primary if side==0 else row.secondary)
+                                         if ref in markers),start) for row,(start,end) in zip(rows,self.bounds[side]))
+            for body in self.bodies[side]:
+                tag=buffer.create_tag(None,pixels_above_lines=0)
+                # Align the verse body, preserving any preceding source titles.
+                # GTK paragraph padding never changes text or copy offsets.
+                first=buffer.get_iter_at_offset(body);first.set_line_offset(0)
+                end=first.copy();end.forward_line()
+                buffer.apply_tag(tag,first,end)
                 self.tags[side].append(tag)
+            self.bottom_tags[side]=buffer.create_tag(None,pixels_below_lines=0)
+            last=buffer.get_iter_at_offset(max(0,buffer.get_char_count()-1));last.set_line_offset(0)
+            buffer.apply_tag(self.bottom_tags[side],last,buffer.get_end_iter())
             if anchors and all(any(a.reference in s.members for s in doc.spans) for a in anchors):
                 buffer.select_range(*(buffer.get_iter_at_offset(doc.locate(a)) for a in anchors))
         self.signature=signature;self.geometry=None;self.settling=8
@@ -83,28 +91,30 @@ class ComparisonRows:
             self.geometry=geometry;self.settling=8
             for side in (0,1):
                 self.padding[side]=[0]*len(self.rows)
-                for tag in self.tags[side]:tag.props.pixels_below_lines=0
+                for tag in self.tags[side]:tag.props.pixels_above_lines=0
+                self.bottom_tags[side].props.pixels_below_lines=0
         if not self.settling:return
         self.settling-=1
         if self.settling:return
-        heights=[]
+        positions=[];ends=[]
         for side,view in enumerate((tab.text,tab.comparison_text)):
-            buffer=view.get_buffer();values=[]
-            for i,(start,end) in enumerate(self.bounds[side]):
-                y=view.get_iter_location(buffer.get_iter_at_offset(start)).y
-                if i+1<len(self.bounds[side]):
-                    next_y=view.get_iter_location(buffer.get_iter_at_offset(self.bounds[side][i+1][0])).y
-                else:
-                    last,height=view.get_line_yrange(buffer.get_iter_at_offset(max(start,end-1)))
-                    next_y=last+height
-                values.append(max(0,next_y-y))
-            heights.append(values)
+            buffer=view.get_buffer()
+            positions.append([view.get_iter_location(buffer.get_iter_at_offset(body)).y for body in self.bodies[side]])
+            last,height=view.get_line_yrange(buffer.get_iter_at_offset(max(0,buffer.get_char_count()-1)))
+            ends.append(last+height)
+        # Read native geometry before changing any tags. Cumulative paragraph
+        # padding aligns corresponding bodies even when headings/poetry differ.
+        added=[0,0]
         for i in range(len(self.rows)):
-            maximum=max(heights[0][i],heights[1][i])
+            target=max(positions[side][i]+added[side] for side in (0,1))
             for side in (0,1):
-                padding=maximum-heights[side][i]
+                padding=target-positions[side][i]-added[side]
                 self.padding[side][i]=padding
-                self.tags[side][i].props.pixels_below_lines=padding
+                added[side]+=padding
+        end=max(ends[side]+added[side] for side in (0,1))
+        for side in (0,1):
+            for tag,padding in zip(self.tags[side],self.padding[side]):tag.props.pixels_above_lines=padding
+            self.bottom_tags[side].props.pixels_below_lines=end-ends[side]-added[side]
 
     def leave(self):
         tab=self.tab

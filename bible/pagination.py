@@ -11,7 +11,7 @@ import gi
 
 gi.require_version('Pango','1.0')
 from gi.repository import Pango
-from .reading_metrics import SPACING
+from .reading_metrics import SPACING, line_spacing
 from .preparation import checkpoint
 
 
@@ -66,6 +66,9 @@ class Document:
         pieces.append(text[position:end]);return ''.join(pieces)
 
     def anchor(self,offset):
+        source=getattr(self,'source_document',None)
+        if source is not None:
+            return source.anchor(offset-sum(position<offset for position in self.inline))
         if not self.spans:return Anchor('',0)
         candidates=[span for span in self.spans if span.start<=offset]
         span=candidates[-1] if candidates else self.spans[0]
@@ -82,6 +85,8 @@ class Document:
         return anchor
 
     def locate(self,anchor):
+        source=getattr(self,'source_document',None)
+        if source is not None:return self.source_shift(source.locate(anchor))
         span=next((s for s in self.spans if anchor.reference in s.members),self.spans[0])
         if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
         remaining=anchor.offset
@@ -107,9 +112,20 @@ class PagePlan:
     document: Document
     pages: tuple[Page,...]
     capacity: float = 0
+    reading_height: float = 0
 
     def containing(self,offset):
         return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
+
+    def page_for_anchor(self,anchor):
+        offset=self.document.locate(anchor) if anchor and self.document.spans else 0
+        if anchor and not anchor.at_body:
+            # A chapter's canonical prefix includes its leading separators.
+            # Display its heading/body rather than a preceding spread whose
+            # only overlap with that chapter is invisible whitespace.
+            span=next((s for s in self.document.spans if anchor.reference in s.members),None)
+            while span and offset<span.body and self.document.text[offset].isspace():offset+=1
+        return self.containing(offset)
 
 
 def attributes(document,start=0,end=None,*,context=None,preferences=None,cancelled=None):
@@ -190,8 +206,15 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
     metrics=widget.get_pango_context().get_metrics(Pango.FontDescription(f'{preferences.font} {preferences.size}'),None)
-    reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
+    line_height=metrics.get_height()/Pango.SCALE
+    spacing=line_spacing(preferences)
+    reserve=line_height+2*spacing
     capacity=max(1,height-reserve-2)
+    # A fixed common body grid, independent of the current page's content.
+    # Fractional unused capacity and trailing-newline safety are not visible
+    # reading space; neither should bias the normal filled pages upward.
+    line_count=max(1,int((capacity+spacing)//(line_height+spacing)))
+    reading_height=line_count*(line_height+spacing)-spacing
     pages=[]
     for first,last in boundaries:
         checkpoint(cancelled)
@@ -201,7 +224,8 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
         layout.set_font_description(Pango.FontDescription(f'{preferences.font} {preferences.size}'))
         layout.set_width(max(20,int(width))*Pango.SCALE)
         layout.set_wrap(Pango.WrapMode.WORD_CHAR)
-        layout.set_spacing(SPACING[preferences.line_spacing]*Pango.SCALE)
+        layout.set_justify(preferences.alignment=='justified')
+        layout.set_spacing(line_spacing(preferences)*Pango.SCALE)
         layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences,
                                          cancelled=cancelled))
         byte_to_char={0:0};n=0
@@ -249,4 +273,4 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     checkpoint(cancelled)
     assert pages[0].start==0 and pages[-1].end==len(document.text)
     assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
-    return PagePlan(document,tuple(pages),capacity)
+    return PagePlan(document,tuple(pages),capacity,reading_height)

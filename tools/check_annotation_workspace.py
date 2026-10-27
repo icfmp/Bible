@@ -82,7 +82,14 @@ def main():
             spin(lambda:w.main_pages.get_visible_child_name()=='reading');assert w.notes_store.get(note.id).body.endswith('xyze')
             choose(w.space_selector,True);spin(lambda:s.editor is not None);assert s.editor.note.id==note.id
             # Browse a highlight, cancel its real confirmation, then confirm.
-            native.click(s.categories['highlights']);spin();native.click_at(s.list,80,24);spin(lambda:s.highlight_detail.get_visible())
+            native.click(s.categories['highlights']);spin()
+            # A retained real profile may contain older highlights before the
+            # sentinel. Activate its actual bound row rather than row zero.
+            index=next(i for i,a in enumerate(s.rows) if (a.system,a.start)==(tab.reader.versification,start))
+            s.list.scroll_to(index,0,None);spin()
+            from bible.notes_window import passage_label
+            label=next(v for v in descendants(s.list) if isinstance(v,Gtk.Label) and v.get_text()==passage_label(start,versification=tab.reader.versification))
+            native.click(label);spin(lambda:s.highlight_detail.get_visible())
             delete=s.highlight_detail.get_last_child();native.click(delete)
             def confirmation():return next((d for d in Gtk.Window.list_toplevels() if isinstance(d,Adw.MessageDialog) and d.get_mapped()),None)
             spin(lambda:confirmation() is not None);dialog=confirmation();native.activate(dialog);native.key('Escape');spin()

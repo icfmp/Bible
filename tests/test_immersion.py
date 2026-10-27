@@ -11,6 +11,33 @@ from tests.test_reading_sync import linked_commentary
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK/Pango under Xvfb')
 class ImmersionTests(unittest.TestCase):
+    def test_worker_pagination_matches_the_native_font_context(self):
+        from bible.ui import Gtk
+        from bible.book_stream import BookStream
+        from bible.pagination import Document,StyleSpan,paginate
+        from bible.preferences import ReadingPreferences
+        text='SYNTHETIC SOURCE HEADING\n\n'+('Exact multilingual words αὐτός שלום — continuation and punctuation. '*120)
+        document=Document('fixture',text,(),(StyleSpan('heading',0,23),))
+        class Source:
+            def clone(self):return self
+            def document(self,*args,**kwargs):return document
+        window=Gtk.Window(default_width=500,default_height=700)
+        view=Gtk.TextView();window.set_child(view);window.present();spin()
+        try:
+            for size,spacing,alignment in [(14,None,'left'),(24,12,'justified'),(48,None,'left')]:
+                preferences=ReadingPreferences(size=size,line_spacing='very-airy',line_spacing_px=spacing,alignment=alignment)
+                expected=paginate(view,document,preferences,330,600)
+                stream=BookStream(view,Source(),preferences)
+                try:
+                    future=stream.executor.submit(stream.build,'fixture',preferences,330,600,None)
+                    spin(lambda:future.done(),timeout=10)
+                    actual=future.result()
+                    self.assertEqual(actual.pages,expected.pages)
+                    self.assertAlmostEqual(actual.capacity,expected.capacity,delta=.01)
+                    self.assertAlmostEqual(actual.reading_height,expected.reading_height,delta=.01)
+                finally:stream.close()
+        finally:window.destroy()
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application,Gtk

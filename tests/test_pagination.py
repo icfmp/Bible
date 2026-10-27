@@ -9,6 +9,16 @@ from bible.immersion_hints import ImmersionHints
 
 
 class HintTests(unittest.TestCase):
+    def test_chapter_anchor_displays_the_chapter_after_its_leading_separator(self):
+        from bible.pagination import Page,PagePlan
+        document=Document('fixture','A\n\nChapter\nB',(
+            PassageSpan('Gen.1.1',0,0,1),PassageSpan('Gen.2.1',1,11,12)))
+        plan=PagePlan(document,(Page(0,3),Page(3,12)))
+        anchor=Anchor('Gen.2.1',0,False)
+        self.assertEqual(document.locate(anchor),1)
+        self.assertEqual(plan.page_for_anchor(anchor),1)
+        self.assertEqual(document.locate(anchor),1)  # Copy/selection offsets stay exact.
+
     def test_notification_hint_is_only_local_and_preserves_bad_original(self):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'hint.json';hints=ImmersionHints(path)
