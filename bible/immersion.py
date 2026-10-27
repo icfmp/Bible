@@ -25,6 +25,7 @@ class Immersion(Gtk.Overlay):
         self.clicked_reference=None
         self._page_focus_pending=True
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
+        self._page_body_height=0
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
                            margin_top=48,margin_bottom=48,margin_start=56,margin_end=56)
@@ -196,12 +197,25 @@ class Immersion(Gtk.Overlay):
                 self._allocation_signature=allocation;self._stable_frames=0;self.layout_ready=False
             else:self._stable_frames+=1
             if self._stable_frames==2:
+                if not all(view.get_mapped() for view in self.views[:self.count]):
+                    self._stable_frames=1;return True
                 # GTK may complete font layout/selection ownership after render.
                 # Reapply canonical bounds only once the allocations are stable.
                 self._updating=True
                 try:self.restore_selection()
                 finally:self._updating=False
                 self._selection_restore_pending=False;self.layout_ready=True
+                # A paragraph sliced at a page boundary can shape its final
+                # punctuation differently. Measure these two displayed pages
+                # once, so an extra actual line never clips. Short final pages
+                # cannot shrink the shared nominal reading area.
+                heights=[]
+                for view in self.views[:self.count]:
+                    end=len(view.get_buffer().props.text.rstrip())
+                    if end:
+                        box=view.get_iter_location(view.get_buffer().get_iter_at_offset(end-1))
+                        heights.append(box.y+box.height)
+                self._page_body_height=max(heights,default=0)
         self.center_reading_box()
         if self._page_focus_pending and self.stream.cursor and self.views[0].get_mapped():
             if self.owner.is_active() and self.owner.get_focus() in (None,self) and not self.open_popovers():
@@ -217,7 +231,7 @@ class Immersion(Gtk.Overlay):
         if not self.stream.cursor:return
         plan=self.stream.plan(self.stream.cursor.key)
         if not plan:return
-        capacity=plan.capacity or self.stream.height
+        capacity=max(plan.reading_height or plan.capacity or self.stream.height,self._page_body_height)
         ok,bounds=self.frames[0].compute_bounds(self)
         if not ok:return
         top=max(12,round((self.get_height()-capacity)/2-bounds.origin.y))
@@ -231,6 +245,7 @@ class Immersion(Gtk.Overlay):
         self.clicked_reference=None
         self.capture_selection();self._restored_selection=bool(self.selection)
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
+        self._page_body_height=0
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         key=self.stream.cursor.key if self.stream.cursor else self.initial_key
         self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
@@ -282,6 +297,7 @@ class Immersion(Gtk.Overlay):
             return
         self.clicked_reference=None
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
+        self._page_body_height=0
         self._updating=True;self.addresses=self.stream.spread(self.count)
         p=self.owner.preferences.value
         for index,view in enumerate(self.views):

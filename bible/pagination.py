@@ -107,9 +107,20 @@ class PagePlan:
     document: Document
     pages: tuple[Page,...]
     capacity: float = 0
+    reading_height: float = 0
 
     def containing(self,offset):
         return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
+
+    def page_for_anchor(self,anchor):
+        offset=self.document.locate(anchor) if anchor and self.document.spans else 0
+        if anchor and not anchor.at_body:
+            # A chapter's canonical prefix includes its leading separators.
+            # Display its heading/body rather than a preceding spread whose
+            # only overlap with that chapter is invisible whitespace.
+            span=next((s for s in self.document.spans if anchor.reference in s.members),None)
+            while span and offset<span.body and self.document.text[offset].isspace():offset+=1
+        return self.containing(offset)
 
 
 def attributes(document,start=0,end=None,*,context=None,preferences=None,cancelled=None):
@@ -190,8 +201,15 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
     metrics=widget.get_pango_context().get_metrics(Pango.FontDescription(f'{preferences.font} {preferences.size}'),None)
-    reserve=metrics.get_height()/Pango.SCALE+2*SPACING[preferences.line_spacing]
+    line_height=metrics.get_height()/Pango.SCALE
+    spacing=SPACING[preferences.line_spacing]
+    reserve=line_height+2*spacing
     capacity=max(1,height-reserve-2)
+    # A fixed common body grid, independent of the current page's content.
+    # Fractional unused capacity and trailing-newline safety are not visible
+    # reading space; neither should bias the normal filled pages upward.
+    line_count=max(1,int((capacity+spacing)//(line_height+spacing)))
+    reading_height=line_count*(line_height+spacing)-spacing
     pages=[]
     for first,last in boundaries:
         checkpoint(cancelled)
@@ -249,4 +267,4 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     checkpoint(cancelled)
     assert pages[0].start==0 and pages[-1].end==len(document.text)
     assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
-    return PagePlan(document,tuple(pages),capacity)
+    return PagePlan(document,tuple(pages),capacity,reading_height)
