@@ -74,7 +74,7 @@ class InlineMarkers:
 
     def button(self,view,reader,ref,kind,payload):
         title=tr('Notes on this verse' if kind=='note' else 'Places in this verse')
-        button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'mark-location-symbolic',
+        button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'bible-place-symbolic',
                           tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
         button.add_css_class('flat');button.add_css_class('inline-marker')
         from .reference_preview import passage_title

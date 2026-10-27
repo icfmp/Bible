@@ -3,11 +3,67 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+import sys
 from unittest.mock import patch
+
+
+class MarkerDocumentTests(unittest.TestCase):
+    def test_end_group_preserves_copy_and_canonical_positions(self):
+        from bible.pagination import Document,PassageSpan
+        from bible.inline_document import decorate
+        text='1 First sentence.\n\n2 Second sentence.'
+        second=text.index('2 Second')
+        source=Document('Gen.1',text,(PassageSpan('Gen.1.1',0,2,second),
+                                      PassageSpan('Gen.1.2',second,second+2,len(text))))
+        marked=decorate(source,{'Gen.1.1':(('note',[1]),('place',[2])),
+                                'Gen.1.2':(('note',[3]),)})
+        self.assertIn('sentence.\ufffc\ufffc\n\n2 Second',marked.text)
+        self.assertEqual(marked.copy(0,len(marked.text)),text)
+        for offset in range(len(text)+1):
+            shifted=marked.source_shift(offset)
+            self.assertEqual(marked.anchor(shifted),source.anchor(offset))
+            self.assertEqual(marked.locate(source.anchor(offset)),marked.source_shift(source.locate(source.anchor(offset))))
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK')
 class InlineMarkerTests(unittest.TestCase):
+    def test_native_note_click_and_hovered_marker_rebuild_in_both_readers(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
+            result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+                                   '-m','unittest',self.id(),'-v'],
+                                  env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
+                                  capture_output=True,text=True,timeout=45)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
+        from bible.ui import Application,Window,Library
+        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from tools.check_alpha_ui import X11Input
+        with tempfile.TemporaryDirectory() as directory:
+            for name in ('Test','Other'):
+                installed_fixture(directory,name,entries=[('Gen.1.1','First exact sentence.'),('Gen.1.2','Second exact sentence.')])
+            app=Application.get_default() or Application();app.register()
+            w=Window(app,Library(Path(directory)/'translations'));w.set_default_size(1280,850);w.present();spin()
+            native=X11Input();native.activate(w)
+            try:
+                t=w.active_tab;t.navigate('Test','Gen.1.1')
+                for body in ('First note','Second note'):
+                    w.notes_store.save(body,[],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Test',origin_language='en')
+                w.notes_changed();spin()
+                for comparison in (False,True,False,True):
+                    t.state.comparison='Other' if comparison else None;w.sync_comparison();spin()
+                    view=t.comparison_text if comparison else t.text
+                    for tool,opened in (('commentaries',False),('references',True)):
+                        w.study.tools.set_visible_child_name(tool);w.study_button.set_active(opened);spin()
+                        button=next(b for b in view._inline_buttons if b._marker_kind=='note')
+                        native.click(button);spin()
+                        self.assertTrue(w.study_button.get_active());self.assertEqual(w.study.tool,'notes',(comparison,tool,opened))
+                        self.assertEqual(len(w.study.notes.rows),2);self.assertIsNone(w.study.notes.editor)
+                        self.assertFalse(w.passage_actions.bar.get_visible())
+                    # Rebuild while the native pointer still hovers the child:
+                    # unmap must happen before deleting the buffer's anchor tree.
+                    w.appearance.update('verse_numbers',not w.preferences.value.verse_numbers);spin()
+            finally:native.close();close_test_dialogs();w.close()
+
     def test_notes_ranges_hidden_numbers_copy_and_live_edits(self):
         from bible.ui import Application,Window,Library
         from tests.test_ui import installed_fixture,spin,close_test_dialogs
@@ -26,6 +82,10 @@ class InlineMarkerTests(unittest.TestCase):
                 self.assertEqual(tab._document.copy(0,len(tab._document.text)),original)
                 self.assertNotIn('\ufffc',tab._document.copy(0,len(tab._document.text)))
                 self.assertEqual(tab.text.get_buffer().get_char_count(),len(tab._document.text))
+                for offset,(reference,kind,_) in tab._document.inline.items():
+                    span=next(s for s in tab._document.spans if s.reference==reference)
+                    self.assertGreater(offset,span.body)
+                    self.assertTrue(tab._document.text[span.body:offset].rstrip().endswith('.'))
                 before=tab.scroll.get_vadjustment().get_value()
                 tab.text._inline_buttons[0].emit('clicked');spin()
                 self.assertEqual(window.study.tool,'notes');self.assertIsNone(window.study.notes.editor)
@@ -63,7 +123,7 @@ class InlineMarkerTests(unittest.TestCase):
                 window.notes_changed();spin(lambda:len(tab.text._inline_buttons)==2,duration=.5)
                 self.assertEqual(len(tab.text._inline_buttons),2)
                 self.assertIn('Exact scripture',tab._document.copy(0,len(tab._document.text)))
-                geographic=next(b for b in tab.text._inline_buttons if b.get_icon_name()=='mark-location-symbolic')
+                geographic=next(b for b in tab.text._inline_buttons if b._marker_kind=='place')
                 with patch('urllib.request.urlopen',side_effect=AssertionError('Offline')):
                     geographic.emit('clicked');spin()
                     self.assertEqual(window.place_dialog.current_place['id'],'a123456')

@@ -118,10 +118,12 @@ class ReadingStyle:
         bg, fg, link, selection, selected = PALETTES[self.palette]
         selector = 'textview.' + self.scope
         focus_width = 3 if self.manager.get_high_contrast() else 2
+        from .verse_typography import NUMBER_COLORS
+        marker_color=NUMBER_COLORS[self.palette]
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
-textview.{self.scope} button.inline-marker {{ min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
+textview.{self.scope} button.inline-marker {{ color: {marker_color}; min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
 textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions {{ border-radius: 16px; padding: 0; background-color: transparent; color: #ffffff; }}
 .passage-actions button {{ color: #ffffff; background: transparent; box-shadow: none; }}

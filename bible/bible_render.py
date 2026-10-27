@@ -29,6 +29,11 @@ def render(view, reader, chapter, preferences, document=None):
         document=decorate(document,marker_context.markers(reader,document))
     buffer = view.get_buffer()
     inline=getattr(document,'inline',{})
+    # Unmap hovered/focused children while the text tree is still intact.
+    # Deleting their anchors inside set_text can reenter GTK's selection
+    # invalidation with a partially deleted tree (GTK 4.20).
+    for button in getattr(view,'_inline_buttons',()):view.remove(button)
+    view._inline_buttons=[]
     buffer.set_text('')
     previous=0;children=[]
     for offset,(reference,kind,payload) in inline.items():
@@ -66,7 +71,7 @@ def render(view, reader, chapter, preferences, document=None):
         buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
     offsets,ranges,markers,labels = {},{},{},{}
     for span in document.spans:
-        marker=span.body-(len(span.number)+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
+        marker=span.body-(len(span.number)+1 if preferences.verse_numbers else 0)
         for reference in span.members:
             offsets[reference]=marker;ranges[reference]=(marker,span.end);markers[reference]=span.body
             labels[reference]=span.number

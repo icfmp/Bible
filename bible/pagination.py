@@ -66,6 +66,9 @@ class Document:
         pieces.append(text[position:end]);return ''.join(pieces)
 
     def anchor(self,offset):
+        source=getattr(self,'source_document',None)
+        if source is not None:
+            return source.anchor(offset-sum(position<offset for position in self.inline))
         if not self.spans:return Anchor('',0)
         candidates=[span for span in self.spans if span.start<=offset]
         span=candidates[-1] if candidates else self.spans[0]
@@ -82,6 +85,8 @@ class Document:
         return anchor
 
     def locate(self,anchor):
+        source=getattr(self,'source_document',None)
+        if source is not None:return self.source_shift(source.locate(anchor))
         span=next((s for s in self.spans if anchor.reference in s.members),self.spans[0])
         if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
         remaining=anchor.offset

@@ -33,10 +33,8 @@ class Target:
 
 def references(source,first,last):
     numbers=source.tab.preferences.verse_numbers
-    inline=getattr(source.document,'inline',{})
     return tuple(ref for s in source.document.spans
-                 if s.end>first and s.body-(len(s.number)+1 if numbers else 0)
-                 -sum(reference==s.reference for reference,_,_ in inline.values())<last for ref in s.members)
+                 if s.end>first and s.body-(len(s.number)+1 if numbers else 0)<last for ref in s.members)
 
 
 def target(view,source,factory,clicked=None):
