@@ -1,6 +1,6 @@
 # Issue 26: Bible.com offline acquisition and fidelity
 
-Source under final validation: `916b35a627fb80848107bc3a5701313c903e9883`, reviewed in [PR 134](https://github.com/icfmp/Bible/pull/134). The exact feature-source CI and installed seven-edition proof pass. Signed-alpha delivery is still pending; this page does not claim publication. Numbered release #87 remains paused, and issue #26 stays open for client acceptance.
+**Delivered:** signed alpha **40456634652-2**, source `d39a99eb44be1c3257a9ba75f60f7f324282b1b1`, merged through [PR 134](https://github.com/icfmp/Bible/pull/134). The application tree is identical to the verified feature source `916b35a627fb80848107bc3a5701313c903e9883`. Numbered release #87 remains paused, and issue #26 stays open for client acceptance.
 
 ## Seven actual editions
 
@@ -48,3 +48,18 @@ The real Semeur introduction exposed stacked paragraph breaks from nested source
 - The current legacy metadata/offline endpoints are observed working, not an official supported third-party API contract. Reachability does not establish provider permission. Actual conditions, email-agreement requirement and attribution are retained; acknowledgement is local and no provider agreement is submitted or asserted.
 - Source text, notes and provenance remain on the installing user's machine. No translation is bundled with the application.
 - Linux/Flatpak and developer Xvfb checks do not prove behavior on the client's GNOME/Wayland hardware, Windows or macOS. Later separately assigned comparison and visual feedback issues are not represented as completed by this delivery.
+
+## Signed delivery and retained-profile update
+
+[Main CI 40454566453](https://github.com/icfmp/Bible/actions/runs/40454566453), [signed publication 40456634652](https://github.com/icfmp/Bible/actions/runs/40456634652) and [old-alpha upgrade 40454817687](https://github.com/icfmp/Bible/actions/runs/40454817687) pass. [Delivery receipt](delivery.json) records exact source, bundle, OSTree commit and stable signing identity. Independent verification matches 378 project files and all three dependency sources; all 40 historical source records remain unchanged (41 now). Numbered releases are unchanged.
+
+The retained real-resource profile updates from source `67d741f` / OSTree `49e1338d…` to `d39a99e` / OSTree `47d14bcb…`, retaining remote `bible-alpha`, the alpha ref and fingerprint `47A17230403EA4953745E6E020EB9FFCCECAFD8F`. Its personal note, reading preferences, 37 module files and all four installed study databases remain unchanged. Combined reading runs four scrollbar cycles before and after; updated single/parallel/study cases run two wheel cycles each. Every case records zero adjustment changes more than 500 ms after input stops. See [bounded reading measurements](signed-reading-summary.json); virtual software-rendering figures are not client-device performance claims. An initial public pull returned HTTP 503; a bounded retry completed the genuine signed installation without weakening verification.
+
+Update: `flatpak update --user io.github.icfmp.Bible//alpha`. Fresh installation: [signed Flatpak reference](https://icfmp.github.io/Bible/alpha/Bible.flatpakref).
+
+Client checks:
+1. In Library, find Semeur 2015, review source conditions and install it; the final verification phase must complete before it is installed.
+2. Reopen without networking, read several books, open the supplied introduction and Translation notes, and check existing personal notes remain separate.
+3. Try one French and one English edition, plus parallel reading. Segond/Ostervald explicitly retain independent reading where cross-edition alignment is unverified.
+
+Issue #26 remains OPEN. Project 5 still returns `Resource not accessible by integration`; under the paused numbered-publication workflow the manual status remains **In review**, not Done. Numbered release #87 stays paused.
