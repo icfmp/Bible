@@ -29,6 +29,14 @@ class PassageSpan:
     start: int
     body: int
     end: int
+    aliases: tuple[str,...] = ()
+    label: str | None = None
+
+    @property
+    def members(self):return (self.reference,*self.aliases)
+
+    @property
+    def number(self):return self.label or self.reference.rsplit('.',1)[-1]
 
 
 @dataclass(frozen=True)
@@ -74,7 +82,7 @@ class Document:
         return anchor
 
     def locate(self,anchor):
-        span=next((s for s in self.spans if s.reference==anchor.reference),self.spans[0])
+        span=next((s for s in self.spans if anchor.reference in s.members),self.spans[0])
         if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
         remaining=anchor.offset
         for pos in range(span.body,span.end):
@@ -85,7 +93,7 @@ class Document:
 
     def selected_passage(self,start,end):
         spans=[s for s in self.spans if s.body<end and s.end>start]
-        return (spans[0].reference,spans[-1].reference) if spans else None
+        return (spans[0].members[0],spans[-1].members[-1]) if spans else None
 
 
 @dataclass(frozen=True)
@@ -136,6 +144,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         elif span.kind=='italic':attrs=[Pango.attr_style_new(Pango.Style.ITALIC)]
         elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
         elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
+        elif span.kind=='superscript':attrs=[Pango.attr_rise_new(int((preferences.size if preferences else 16)*Pango.SCALE*.35)),Pango.attr_scale_new(.75)]
         elif span.kind=='hidden':
             rectangle=Pango.Rectangle()
             attrs=[Pango.attr_shape_new(rectangle,rectangle)]

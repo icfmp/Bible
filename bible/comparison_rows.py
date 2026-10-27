@@ -21,16 +21,17 @@ class ComparisonRows:
         primary=BiblePages(left,None).document(tab.current.reference,tab.preferences)
         chapters={chapter.reference}
         for span in primary.spans:
-            mapped=resolve(span.reference,left.versification,right,require_entry=False)
-            chapters.update(ref.rsplit('.',1)[0] for ref in _span(mapped.start,mapped.end,right.versification))
+            for reference in span.members:
+                mapped=resolve(reference,left.versification,right,require_entry=False)
+                chapters.update(ref.rsplit('.',1)[0] for ref in _span(mapped.start,mapped.end,right.versification))
         key=left.key(tab.current.reference+'.1')
         low=key.getIndex();key.setVerse(key.getVerseMax());high=key.getIndex()
         pieces=[];copies=[];spans=[];styles=[];offset=0
         for name in sorted(chapters,key=lambda ref:right.key(ref+'.1').getIndex()):
             document=BiblePages(right,None).document(name,tab.preferences)
             for index,span in enumerate(document.spans):
-                mapped=resolve(span.reference,right.versification,left,require_entry=False)
-                if left.key(mapped.end).getIndex()<low or left.key(mapped.start).getIndex()>high:continue
+                mapped=[resolve(ref,right.versification,left,require_entry=False) for ref in span.members]
+                if not any(left.key(m.end).getIndex()>=low and left.key(m.start).getIndex()<=high for m in mapped):continue
                 end=document.spans[index+1].start if index+1<len(document.spans) else len(document.text)
                 pieces.append(document.text[span.start:end]);copies.append((document.copy_text or document.text)[span.start:end])
                 spans.append(replace(span,start=offset,body=offset+span.body-span.start,end=offset+span.end-span.start))
@@ -39,7 +40,9 @@ class ComparisonRows:
                     if b>a:styles.append(replace(style,start=offset+a-span.start,end=offset+b-span.start))
                 offset+=end-span.start
         secondary=Document(tuple(chapters),''.join(pieces),tuple(spans),tuple(styles),''.join(copies))
-        rows=correspondences(left,right,[s.reference for s in primary.spans],[s.reference for s in secondary.spans])
+        documents=(primary,secondary)
+        rows=correspondences(left,right,*(tuple(ref for s in doc.spans for ref in s.members) for doc in documents),
+                             linked=tuple(tuple(s.members for s in doc.spans if s.aliases) for doc in documents))
         self.rows=rows
         tab.comparison_text.set_top_margin(tab.text.get_top_margin())
         tab.comparison_text.set_bottom_margin(tab.text.get_bottom_margin())
@@ -63,7 +66,7 @@ class ComparisonRows:
                 last.set_line_offset(0)
                 buffer.apply_tag(tag,last,buffer.get_iter_at_offset(end))
                 self.tags[side].append(tag)
-            if anchors and all(any(s.reference==a.reference for s in doc.spans) for a in anchors):
+            if anchors and all(any(a.reference in s.members for s in doc.spans) for a in anchors):
                 buffer.select_range(*(buffer.get_iter_at_offset(doc.locate(a)) for a in anchors))
         self.signature=signature;self.geometry=None;self.settling=8
         tab.comparison_scroll.set_vadjustment(tab.scroll.get_vadjustment())

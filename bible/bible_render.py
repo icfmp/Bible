@@ -2,7 +2,7 @@
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
 from .verse_typography import configure
-from gi.repository import Gtk
+from gi.repository import Gtk,Pango
 from gi.repository import GObject
 
 
@@ -44,7 +44,7 @@ def render(view, reader, chapter, preferences, document=None):
     view.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','number','verse-start','hidden']:
+    for kind in ['body','chapter','heading','number','verse-start','hidden','italic','bold','small-caps','superscript']:
         name = 'verse-'+kind if kind != 'verse-start' else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
@@ -52,6 +52,10 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='number':configure(tag,view,preferences,getattr(view,'_reading_palette','white'))
         elif kind=='verse-start':tag.props.allow_breaks=False
         elif kind=='hidden':tag.props.style=2
+        elif kind=='italic':tag.props.style=Pango.Style.ITALIC
+        elif kind=='bold':tag.props.weight=Pango.Weight.BOLD
+        elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
+        elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
             tag.props.pixels_above_lines=20 if kind=='chapter' else 16
@@ -60,8 +64,11 @@ def render(view, reader, chapter, preferences, document=None):
     buffer.apply_tag(tags['body'],buffer.get_start_iter(),buffer.get_end_iter())
     for style in document.styles:
         buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
-    offsets, ranges, markers = {}, {}, {}
+    offsets,ranges,markers,labels = {},{},{},{}
     for span in document.spans:
-        marker = span.body-(len(span.reference.rsplit('.',1)[-1])+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
-        offsets[span.reference]=marker;ranges[span.reference]=(marker,span.end);markers[span.reference]=span.body
+        marker=span.body-(len(span.number)+1 if preferences.verse_numbers else 0)-sum(ref==span.reference for ref,_,_ in inline.values())
+        for reference in span.members:
+            offsets[reference]=marker;ranges[reference]=(marker,span.end);markers[reference]=span.body
+            labels[reference]=span.number
+    view._verse_labels=labels
     return document, offsets, ranges, markers

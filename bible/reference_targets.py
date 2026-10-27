@@ -117,13 +117,7 @@ def local_excerpt(reader, start, end=None, *, source_system='openbible', limit=6
             if target.popError()!='\x00':break
         if more:break
     if not refs:raise ValueError('Passage unavailable')
-    chapters={} if chapter_cache is None else chapter_cache;verses=[]
-    for reference in refs:
-        chapter=reference.rsplit('.',1)[0]
-        if chapter not in chapters:
-            chapters[chapter]=dict(reader.chapter(reference).verses)
-            if len(chapters)>64:chapters.pop(next(iter(chapters)))
-        text=chapters[chapter].get(reference)
-        if not text:raise ValueError('Passage unavailable: '+reference)
-        verses.append((reference,text))
-    return LocalExcerpt(refs[0],refs[-1],tuple(verses),more)
+    from .sword_provider import passage_verses
+    verses=passage_verses(reader,refs,chapter_cache)
+    if any(not text for _,text in verses):raise ValueError('Passage unavailable')
+    return LocalExcerpt(refs[0],refs[-1],verses,more)

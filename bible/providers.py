@@ -28,7 +28,9 @@ STEP = Provider('step', 'STEP Bible (Tyndale)', 'https://public.modules.stepbibl
 EBIBLE = Provider('ebible', 'eBible', 'https://ebible.org/sword/',
                   'https://ebible.org/sword/mods.d.tar.gz',
                   'https://ebible.org/sword/zip/')
-PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE)
+YOUVERSION = Provider('youversion', 'YouVersion / Bible.com', 'https://www.bible.com/',
+                      'https://nodejs.bible.com/api/bible/version/3.3?id=21', '')
+PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, YOUVERSION)
 BY_ID = {p.id: p for p in PROVIDERS}
 MODULE_NAME = r'[A-Za-z0-9_-]+'
 RESOURCE_ID = rf'(?:[a-z0-9-]+~)?{MODULE_NAME}'

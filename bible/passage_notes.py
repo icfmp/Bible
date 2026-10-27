@@ -212,12 +212,16 @@ class PassageNotes(Gtk.Box):
         texts=[];source=''
         if reader:
             try:
+                refs=[]
                 for _,_,first,last in self.annotations.positions(reader,system,start,end):
-                    chapter=parts(first)[:2]
-                    if chapter not in self._chapter_texts:self._chapter_texts[chapter]=reader.chapter(first).verses
-                    for reference,text in self._chapter_texts[chapter]:
+                    chapter=first.rsplit('.',1)[0]
+                    if chapter not in self._chapter_texts:self._chapter_texts[chapter]=reader.chapter(first)
+                    if len(self._chapter_texts)>64:self._chapter_texts.pop(next(iter(self._chapter_texts)))
+                    for reference,text in self._chapter_texts[chapter].verses:
                         if reader.key(first).getIndex()<=reader.key(reference).getIndex()<=reader.key(last).getIndex() and text.strip():
-                            if (reference,text) not in texts:texts.append((reference,text))
+                            refs.append(reference)
+                from .sword_provider import passage_verses
+                texts=list(passage_verses(reader,refs,self._chapter_texts))
                 source=self.owner.library.resource(reader.name).description
             except (ValueError,OSError):texts=[]
         preview=Gtk.Label(label=' '.join(' '.join(text.split()) for _,text in texts) or tr('Bible excerpt unavailable.'),

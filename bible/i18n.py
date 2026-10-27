@@ -3,6 +3,23 @@ import locale
 import os
 
 FR = {
+    'Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.':'La correspondance automatique des versets avec les autres éditions est indisponible. La lecture en parallèle indépendante reste disponible.',
+    'Translation conversion or verification failed. No resource was installed.':'La conversion ou la vérification de la traduction a échoué. Aucune ressource n’a été installée.',
+    'Confirm the source conditions before downloading.':'Confirmez les conditions de la source avant le téléchargement.',
+    'Source conditions or edition changed. Refresh the catalogue and review them again.':'L’édition ou les conditions de la source ont changé. Actualisez le catalogue et vérifiez-les à nouveau.',
+    'Numbering supplied by this edition':'Numérotation fournie par cette édition',
+    'No offline package supplied by the source.':'Aucun fichier hors connexion fourni par la source.',
+    'Download from Bible.com?':'Télécharger depuis Bible.com ?',
+    'I have the required permission':'Je dispose de l’autorisation requise',
+    'You are responsible for checking that you have permission to download, convert and use this edition offline. The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing. Bible does not submit an agreement or claim provider approval.':'Il vous appartient de vérifier que vous disposez de l’autorisation de télécharger, convertir et utiliser cette édition hors connexion. La source exige un accord par courriel (version {version}). Acquittez-vous de cette exigence auprès du fournisseur avant de continuer. Bible ne transmet aucun accord et ne prétend pas disposer de l’approbation du fournisseur.',
+    'Converting the translation…':'Conversion de la traduction…',
+    'Preparing the offline translation…':'Préparation de la traduction hors connexion…',
+    'Checking all chapters, introductions and translation notes…':'Vérification des chapitres, introductions et notes de la traduction…',
+    'Translation notes':'Notes de la traduction',
+    'No translation notes in this chapter.':'Aucune note de la traduction dans ce chapitre.',
+    'Translation notes unavailable.':'Notes de la traduction indisponibles.',
+    'Book introduction':'Introduction du livre',
+    'No introduction supplied by this edition.':'Aucune introduction fournie par cette édition.',
     'Copy':'Copier',
     'Data and backups':'Données et sauvegardes',
     'Choose the interface theme.':'Choisissez le thème de l’interface.',

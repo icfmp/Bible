@@ -1,0 +1,479 @@
+{
+  "chapters": 1255,
+  "convertible": 1255,
+  "source_verse_units": 31112,
+  "converted_verse_units": 31112,
+  "converted_notes": 7363,
+  "explicit_bridges": [
+    "EXO.27.14+EXO.27.15",
+    "EXO.38.14+EXO.38.15",
+    "NUM.4.38+NUM.4.39+NUM.4.40+NUM.4.41",
+    "NUM.4.42+NUM.4.43+NUM.4.44+NUM.4.45",
+    "NUM.29.27+NUM.29.28",
+    "NUM.29.29+NUM.29.30+NUM.29.31",
+    "NUM.29.32+NUM.29.33+NUM.29.34",
+    "NUM.31.22+NUM.31.23",
+    "NUM.33.10+NUM.33.11",
+    "NUM.35.17+NUM.35.18",
+    "NUM.35.20+NUM.35.21",
+    "1SA.27.2+1SA.27.3",
+    "2SA.4.6+2SA.4.7",
+    "1KI.6.25+1KI.6.26",
+    "1KI.6.33+1KI.6.34",
+    "1KI.8.38+1KI.8.39",
+    "1CH.4.17+1CH.4.18",
+    "1CH.8.6+1CH.8.7",
+    "1CH.25.10+1CH.25.11+1CH.25.12+1CH.25.13+1CH.25.14+1CH.25.15+1CH.25.16+1CH.25.17+1CH.25.18+1CH.25.19+1CH.25.20+1CH.25.21+1CH.25.22+1CH.25.23+1CH.25.24+1CH.25.25+1CH.25.26+1CH.25.27+1CH.25.28+1CH.25.29+1CH.25.30+1CH.25.31",
+    "2CH.6.29+2CH.6.30",
+    "ROM.1.9+ROM.1.10",
+    "ROM.9.11+ROM.9.12",
+    "1CO.5.3+1CO.5.4",
+    "1CO.6.9+1CO.6.10"
+  ],
+  "problems": {},
+  "first_examples": {},
+  "segond_bounds_overflow": [
+    {
+      "reference": "GEN.32.33",
+      "segond_max": 32
+    },
+    {
+      "reference": "EXO.21.37",
+      "segond_max": 36
+    },
+    {
+      "reference": "NUM.17.14",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.15",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.16",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.17",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.18",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.19",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.20",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.21",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.22",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.23",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.24",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.25",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.26",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.27",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.17.28",
+      "segond_max": 13
+    },
+    {
+      "reference": "NUM.25.19",
+      "segond_max": 18
+    },
+    {
+      "reference": "DEU.13.19",
+      "segond_max": 18
+    },
+    {
+      "reference": "DEU.23.26",
+      "segond_max": 25
+    },
+    {
+      "reference": "DEU.28.69",
+      "segond_max": 68
+    },
+    {
+      "reference": "1SA.21.16",
+      "segond_max": 15
+    },
+    {
+      "reference": "2SA.19.44",
+      "segond_max": 43
+    },
+    {
+      "reference": "1KI.5.19",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.20",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.21",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.22",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.23",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.24",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.25",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.26",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.27",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.28",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.29",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.30",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.31",
+      "segond_max": 18
+    },
+    {
+      "reference": "1KI.5.32",
+      "segond_max": 18
+    },
+    {
+      "reference": "2KI.12.22",
+      "segond_max": 21
+    },
+    {
+      "reference": "1CH.5.27",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.28",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.29",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.30",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.31",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.32",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.33",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.34",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.35",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.36",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.37",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.38",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.39",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.40",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.5.41",
+      "segond_max": 26
+    },
+    {
+      "reference": "1CH.12.41",
+      "segond_max": 40
+    },
+    {
+      "reference": "2CH.1.18",
+      "segond_max": 17
+    },
+    {
+      "reference": "NEH.3.33",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.3.34",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.3.35",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.3.36",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.3.37",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.3.38",
+      "segond_max": 32
+    },
+    {
+      "reference": "NEH.10.40",
+      "segond_max": 39
+    },
+    {
+      "reference": "JOB.38.39",
+      "segond_max": 38
+    },
+    {
+      "reference": "JOB.38.40",
+      "segond_max": 38
+    },
+    {
+      "reference": "JOB.38.41",
+      "segond_max": 38
+    },
+    {
+      "reference": "JOB.40.29",
+      "segond_max": 28
+    },
+    {
+      "reference": "JOB.40.30",
+      "segond_max": 28
+    },
+    {
+      "reference": "JOB.40.31",
+      "segond_max": 28
+    },
+    {
+      "reference": "JOB.40.32",
+      "segond_max": 28
+    },
+    {
+      "reference": "JOB.41.26",
+      "segond_max": 25
+    },
+    {
+      "reference": "ECC.11.9",
+      "segond_max": 8
+    },
+    {
+      "reference": "ECC.11.10",
+      "segond_max": 8
+    },
+    {
+      "reference": "JER.8.23",
+      "segond_max": 22
+    },
+    {
+      "reference": "DAN.3.31",
+      "segond_max": 30
+    },
+    {
+      "reference": "DAN.3.32",
+      "segond_max": 30
+    },
+    {
+      "reference": "DAN.3.33",
+      "segond_max": 30
+    },
+    {
+      "reference": "DAN.6.29",
+      "segond_max": 28
+    },
+    {
+      "reference": "HOS.14.10",
+      "segond_max": 9
+    },
+    {
+      "reference": "JOL.4.1",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.2",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.3",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.4",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.5",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.6",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.7",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.8",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.9",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.10",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.11",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.12",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.13",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.14",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.15",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.16",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.17",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.18",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.19",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.20",
+      "segond_max": null
+    },
+    {
+      "reference": "JOL.4.21",
+      "segond_max": null
+    },
+    {
+      "reference": "ZEC.2.14",
+      "segond_max": 13
+    },
+    {
+      "reference": "ZEC.2.15",
+      "segond_max": 13
+    },
+    {
+      "reference": "ZEC.2.16",
+      "segond_max": 13
+    },
+    {
+      "reference": "ZEC.2.17",
+      "segond_max": 13
+    },
+    {
+      "reference": "MAL.3.19",
+      "segond_max": 18
+    },
+    {
+      "reference": "MAL.3.20",
+      "segond_max": 18
+    },
+    {
+      "reference": "MAL.3.21",
+      "segond_max": 18
+    },
+    {
+      "reference": "MAL.3.22",
+      "segond_max": 18
+    },
+    {
+      "reference": "MAL.3.23",
+      "segond_max": 18
+    },
+    {
+      "reference": "MAL.3.24",
+      "segond_max": 18
+    }
+  ],
+  "elapsed_seconds": 6.984087404009188,
+  "archive_sha256": "1351a23ef1ea6e2d010f4f7ae48beec6c09bf56ba9743191ae6d1b1eed31040a",
+  "limitations": [
+    "XML/source structure checks only; actual SWORD/Flatpak and display fidelity still required.",
+    "Matching bounds does not prove semantic verse alignment; source metadata vrs=org is not assigned to Segond."
+  ]
+}

@@ -36,7 +36,7 @@
       "config-opts": [
         "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
         "-DCMAKE_CXX_STANDARD=17",
-        "-DSWORD_BUILD_UTILS=No",
+        "-DSWORD_BUILD_UTILS=Yes",
         "-DSWORD_BUILD_TESTS=OFF",
         "-DSWORD_NO_CURL=Yes",
         "-DSWORD_SWIG_BINDINGS=OFF",
@@ -58,6 +58,10 @@
         {
           "type": "patch",
           "path": "sword-system-zlib.patch"
+        },
+        {
+          "type": "patch",
+          "path": "sword-osis-fidelity.patch"
         }
       ],
       "builddir": true
@@ -134,6 +138,8 @@
         "install -Dm644 THIRD_PARTY_NOTICES.md /app/share/licenses/bible/THIRD_PARTY_NOTICES.md",
         "install -Dm644 third_party/jsword/COPYING.LESSER /app/share/licenses/jsword/COPYING.LESSER",
         "install -Dm644 third_party/jsword/provenance.json /app/share/licenses/jsword/provenance.json",
+        "install -Dm644 third_party/libpalaso/LICENSE /app/share/licenses/libpalaso/LICENSE",
+        "install -Dm644 third_party/libpalaso/provenance.json /app/share/licenses/libpalaso/provenance.json",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.svg",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.Devel.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.Devel.svg",
         "install -Dm644 packaging/icons/symbolic/apps/io.github.icfmp.Bible-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.icfmp.Bible-symbolic.svg"

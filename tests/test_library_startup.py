@@ -68,7 +68,9 @@ class LibraryStartupTests(unittest.TestCase):
             reopened=self.window.open_library();self.assertIs(first.session,reopened.session)
             self.assertEqual(len(calls),1);release.set();spin(lambda:not reopened.busy)
             self.assertEqual([r.id for r in reopened.resources],[RESOURCE.id])
-            self.assertTrue(all(thread!=owner for _,thread in calls));self.assertEqual(len(calls),5)
+            self.assertTrue(all(thread!=owner for _,thread in calls))
+            from bible.providers import PROVIDERS
+            self.assertEqual(len(calls),len(PROVIDERS))
             self.assertEqual(first.choice_model.get_n_items(),0)
 
     def test_reopen_during_slow_refresh_deduplicates_and_keeps_progressive_results(self):

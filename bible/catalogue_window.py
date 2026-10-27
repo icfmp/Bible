@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from threading import Event
+import json
 import time
 import gi
 
@@ -462,7 +463,7 @@ class CatalogueWindow(Adw.Window):
         # captured resource, not the current selection, owns that task.
         self.progress.set_visible(self._transfer_busy or self._phase=='error')
         self.cancel_button.set_visible(self._transfer_busy)
-        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing'))
+        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
         self.refresh_rows()
 
 
@@ -472,7 +473,7 @@ class CatalogueWindow(Adw.Window):
             return True
         self.closed = True
         from .study_resources import STEP_RESOURCE_ID
-        if self._task_resource==STEP_RESOURCE_ID:self._cancel.set()
+        if self._task_resource==STEP_RESOURCE_ID or str(self._task_resource).startswith('youversion~'):self._cancel.set()
         if self._loading_tick:self.catalogue_progress.remove_tick_callback(self._loading_tick);self._loading_tick=0
         self._rows_generation+=1;self.language.cancel_pending();self.session.unsubscribe(self.snapshot_ready)
         self.stop_animation()
@@ -556,9 +557,15 @@ class CatalogueWindow(Adw.Window):
             pending, self._pending_progress = self._pending_progress, None
         if pending and pending[0] == self._task_id:
             _, self._phase, done, total = pending
-            self._indeterminate = self._phase in ('installing','preparing') or not total
+            self._indeterminate = self._phase in ('installing','preparing','compiling') or not total
             if self._phase == 'preparing':
                 self.status.set_text(tr('Preparing study data…'));self.progress.set_text(tr('Preparing study data…'))
+            elif self._phase in ('converting','compiling','verifying'):
+                label=tr({'converting':'Converting the translation…','compiling':'Preparing the offline translation…',
+                          'verifying':'Checking all chapters, introductions and translation notes…'}[self._phase])
+                self.status.set_text(label)
+                self.progress.set_fraction(min(done/total,1) if total else 0)
+                self.progress.set_text(label+(f' {done}/{total}' if total else ''))
             elif self._phase == 'installing':
                 self.status.set_text(tr('Installing {name} and checking…').format(name=self._task_caption) if self._task_caption else tr('Installing and checking…'))
                 self.progress.set_fraction(0)
@@ -570,7 +577,7 @@ class CatalogueWindow(Adw.Window):
                                         if total else ' — ' + tr('Size unknown')))
         if self._indeterminate:
             self.progress.pulse()
-        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing'));self.refresh_rows()
+        self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'));self.refresh_rows()
         return True
 
     def report_progress(self, done, total):
@@ -590,23 +597,37 @@ class CatalogueWindow(Adw.Window):
             self._install_started=True
             self._pending_progress=(self._task_id,'preparing' if self._task_resource==STEP_RESOURCE_ID else 'installing',0,0)
 
-    def install(self, *_, resource=None):
+    def install(self, *_, resource=None, permission=None):
         resource = resource or self.selected_resource()
         if not resource or not resource.installable or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
             return
+
+        if resource.provider_id=='youversion':
+            from .youversion_install import acknowledgement
+            if permission!=acknowledgement(resource):
+                dialog=Adw.MessageDialog.new(self,tr('Download from Bible.com?'),
+                    tr('You are responsible for checking that you have permission to download, convert and use this edition offline. The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing. Bible does not submit an agreement or claim provider approval.').format(
+                        version=json.loads(resource.acquisition).get('offline',{}).get('agreement_version','?')))
+                dialog.add_response('cancel',tr('Cancel'));dialog.add_response('download',tr('I have the required permission'))
+                dialog.set_close_response('cancel');dialog.set_default_response('cancel')
+                dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
+                dialog.present();return
+        caption=plain(resource.description) if resource.provider_id=='youversion' else resource.name
 
         def installed(_):
             self._completed_resource=resource.id
             self.preparing=True;self.session.reload_installed()
             self.on_installed(resource.id)
             self.filter_resources()
-            self.status.set_text(tr('Installed: {name}').format(name=resource.name))
+            self.status.set_text(tr('Installed: {name}').format(name=caption))
             self.selection_changed()
         installer=self.study_resources if resource.kind=='study' else self.library
         def perform():
             options={'cancelled':self._cancel.is_set} if resource.kind=='study' else {}
+            if resource.provider_id=='youversion':
+                options.update(cancelled=self._cancel.is_set,phase=self.queue_progress,permission=permission)
             return installer.install(resource,self.report_progress,installing=self.begin_installation,**options)
-        self.task(tr('Downloading {name}…').format(name=resource.name),
+        self.task(tr('Downloading {name}…').format(name=caption),
                   perform,
-                  installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
+                  installed, success_text=tr('Installed: {name}').format(name=caption),resource=resource)
 

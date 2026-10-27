@@ -10,7 +10,7 @@ class Correspondence:
     secondary: tuple
 
 
-def correspondences(primary, secondary, left, right):
+def correspondences(primary,secondary,left,right,linked=((),())):
     """Connected mappings preserve merged/split source blocks exactly once.
 
     Both directions are checked. Unavailable mapping raises, rather than being
@@ -19,13 +19,16 @@ def correspondences(primary, secondary, left, right):
     left=tuple(left);right=tuple(right)
     nodes={(0,r):{(0,r)} for r in left}
     nodes.update({(1,r):{(1,r)} for r in right})
-    def connect(side, reference, mapped):
-        own=nodes[(side,reference)]
-        for ref in mapped:
-            other=nodes.get((1-side,ref))
-            if other is not None and other is not own:
-                own.update(other)
-                for n in other:nodes[n]=own
+    def merge(first,second):
+        own=nodes[first];other=nodes.get(second)
+        if other is not None and other is not own:
+            own.update(other)
+            for n in other:nodes[n]=own
+    def connect(side,reference,mapped):
+        for ref in mapped:merge((side,reference),(1-side,ref))
+    for side,groups in enumerate(linked):
+        for members in groups:
+            for reference in members[1:]:merge((side,members[0]),(side,reference))
     for side,reader,target,refs in ((0,primary,secondary,left),(1,secondary,primary,right)):
         for ref in refs:
             mapped=resolve(ref,reader.versification,target,require_entry=False)
@@ -53,7 +56,7 @@ def correspondences(primary, secondary, left, right):
 def row_document(document, rows, side, gap):
     """Reuse source words/styles, add paragraph boundaries only in comparison."""
     pieces=[];copies=[];spans=[];styles=[];bounds=[];offset=0
-    source={s.reference:(i,s) for i,s in enumerate(document.spans)}
+    source={ref:(i,s) for i,s in enumerate(document.spans) for ref in s.members}
     for row in rows:
         start=offset
         refs=row.primary if side==0 else row.secondary
@@ -63,8 +66,11 @@ def row_document(document, rows, side, gap):
             styles.append(StyleSpan('hidden',offset,offset+len(text)))
             offset+=len(text)
         else:
+            emitted=set()
             for ref in refs:
                 index,span=source[ref]
+                if index in emitted:continue
+                emitted.add(index)
                 end=document.spans[index+1].start if index+1<len(document.spans) else len(document.text)
                 text=document.text[span.start:end]
                 pieces.append(text);copies.append((document.copy_text or document.text)[span.start:end])

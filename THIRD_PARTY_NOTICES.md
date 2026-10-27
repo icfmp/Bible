@@ -1,5 +1,19 @@
 # Dépendances et contenus
 
+## SIL Original reference numbering (MIT)
+
+The reference-only files in `third_party/libpalaso` come from SIL Global's
+libpalaso revision `b4f7a6da7b868f9ae909e40fb0708f5fd4efd782`. The original
+MIT license, immutable URLs and checksums are included there and installed under
+`/app/share/licenses/libpalaso`. These files contain no Scripture text.
+`tools/versification/original.py` generates `Original.json`: SIL English/Original
+OT mappings and the existing JSword German UBS/GNT NT mappings (the complete NT
+canon is checked against SIL Original). Unsupported split rules remain unmapped.
+The JSword-derived portion retains LGPL-2.1-or-later as described below.
+The native SWORD patch registers the exact Original chapter bounds separately
+from German; existing systems remain unchanged. Bible does not use native
+implicit identity translation for this new system.
+
 ## JSword versification data (LGPL-2.1-or-later)
 
 The expanded reference-only tables in `bible/versification_data` derive from

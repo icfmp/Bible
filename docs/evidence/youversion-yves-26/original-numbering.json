@@ -1,0 +1,9 @@
+{
+  "source_chapters": 1189,
+  "maxima_matching": 1189,
+  "differences": [],
+  "source_url": "https://github.com/sillsdev/libpalaso/blob/b4f7a6da7b868f9ae909e40fb0708f5fd4efd782/SIL.Scripture/Resources/org.vrs.txt",
+  "source_sha256": "115b8c3a3a862bd5231d9e02a117af8e44cb8234a5f4c0deb6e8fe87a1864aff",
+  "source_vrs": "org",
+  "scope": "All source maxima match SIL Original; no third-party table file is redistributed here."
+}

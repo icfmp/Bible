@@ -1,0 +1,15 @@
+{
+  "revision": "b4f7a6da7b868f9ae909e40fb0708f5fd4efd782",
+  "files": {
+    "org.vrs.txt": {
+      "url": "https://raw.githubusercontent.com/sillsdev/libpalaso/b4f7a6da7b868f9ae909e40fb0708f5fd4efd782/SIL.Scripture/Resources/org.vrs.txt",
+      "sha256": "115b8c3a3a862bd5231d9e02a117af8e44cb8234a5f4c0deb6e8fe87a1864aff"
+    },
+    "eng.vrs.txt": {
+      "url": "https://raw.githubusercontent.com/sillsdev/libpalaso/b4f7a6da7b868f9ae909e40fb0708f5fd4efd782/SIL.Scripture/Resources/eng.vrs.txt",
+      "sha256": "003981c7f43c69b73b60d40a3f35f72e7ee017a686a6fb206f19a1b721157541"
+    }
+  },
+  "license": "MIT",
+  "scope": "Reference numbering only; no Scripture text"
+}

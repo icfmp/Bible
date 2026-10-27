@@ -41,6 +41,7 @@ class Resource:
     category: str = 'Biblical Texts'
     versification: str = 'KJV'
     provider_id: str = 'crosswire'
+    acquisition: str = ''
 
     @property
     def id(self):
@@ -52,6 +53,10 @@ class Resource:
 
     @property
     def installable(self):
+        if self.provider_id=='youversion':
+            try:
+                if not (json.loads(self.acquisition).get('offline') or {}).get('url'):return False
+            except (ValueError,TypeError,AttributeError):return False
         return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
                 and self.category not in {'Images', 'Maps'})
 
@@ -133,10 +138,15 @@ def compatible_notices(expected, actual, section):
     return conditions(expected.conditions,dates[0])==conditions(actual.conditions,dates[1])
 
 
-def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE, headers=None, response_headers=None):
+def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCHIVE, headers=None, response_headers=None, same_origin=False):
     deadline=time.monotonic()+120
     request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1',**(headers or {})})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    opener=urllib.request.urlopen
+    if same_origin:
+        from .youversion_install import SourceRedirect,open_response
+        open_source=urllib.request.build_opener(SourceRedirect()).open
+        opener=lambda request,timeout:open_response(open_source,request,lambda:False)
+    with opener(request, timeout=30) as response:
         if not response.url.startswith('https://'):
             raise ValueError('HTTPS required')
         if response_headers is not None:
@@ -170,6 +180,9 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     data = io.BytesIO()
     if provider not in PROVIDERS:
         raise ValueError('Unsupported resource source')
+    if provider.id=='youversion':
+        from .youversion_install import catalogue as editions
+        return editions(timings)
     response_headers={}
     headers={name:validators[key] for key,name in [('ETag','If-None-Match'),('Last-Modified','If-Modified-Since')]
              if validators and key in validators}
@@ -218,10 +231,14 @@ def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
         try:
             validators=cache.validators.get(provider.id,{}) if cache and cached else {}
             items=catalogue(provider,timings=timings,**({'validators':validators} if validators else {}))
+            edition_errors=timings.get('edition_errors',{})
+            if edition_errors and cached:
+                missing={'YV'+identifier for identifier in edition_errors}
+                items=[*items,*(item for item in cached[0] if item.name in missing)]
             if cache:
                 try:cache.write(provider,items,validators=timings.get('validators'))
                 except OSError as error:timings['cache_error']=str(error)
-            return items,None,timings
+            return items,'; '.join(f'{key}: {value}' for key,value in edition_errors.items()) or None,timings
         except Exception as error:
             import urllib.error
             if isinstance(error,urllib.error.HTTPError) and error.code==304 and cached and error.geturl().startswith('https://'):
@@ -294,11 +311,21 @@ class Library:
             raise ValueError('Installed source identity mismatch')
         if internal not in parser:raise ValueError('Installed module configuration is missing')
         resource = resource_from_section(internal, parser[internal], provider)
+        if provider_id=='youversion':
+            from .youversion_install import resource_from_metadata
+            from .youversion_editions import edition_id
+            original=resource_from_metadata(json.loads(metadata.get('acquisition','')),edition_id(internal))
+            if (resource.driver,resource.versification)!=(original.driver,original.versification):
+                raise ValueError('Installed source configuration mismatch')
+            resource=original
         # Read the recorded attribution, not today's registry URL, offline.
         return replace(resource, source=metadata.get('source', resource.source),
-                       source_url=metadata.get('url', resource.source_url))
+                       source_url=metadata.get('url', resource.source_url),
+                       acquisition=metadata.get('acquisition', ''))
 
-    def install(self, resource, progress=lambda done, total: None, installing=lambda: None):
+    def install(self, resource, progress=lambda done, total: None, installing=lambda: None,
+                *, cancelled=lambda: False, phase=lambda name,done,total: None,
+                permission=None):
         provider = BY_ID.get(resource.provider_id)
         if provider is None or resource.source_url != provider.url or resource.source != provider.name:
             raise ValueError('Unsupported resource source')
@@ -308,6 +335,9 @@ class Library:
             raise ValueError('Invalid resource name')
         if resource.id in self.installed():
             return
+        if resource.provider_id == 'youversion':
+            from .youversion_install import install
+            return install(self,resource,progress,installing,cancelled,phase,permission)
         with tempfile.TemporaryDirectory(prefix='.install-', dir=self.root) as temporary:
             stage = Path(temporary)
             archive_path = stage / 'download.zip'
