@@ -143,3 +143,40 @@ annotation, source-text and navigation regressions (GTK 4.14.5). The current
 map packaging retry corrects the measured `/app/lib64` install to `/app/lib`;
 a successful local source run is not a substitute for that pending installed
 Flatpak verification.
+
+## #102: cancel stale selection completions, keep native selection gestures
+
+A valid native interleaving reproduces a missing bar with a genuinely new
+selection: release Shift after selecting two source characters, then start a
+mouse drag before the queued keyboard idle executes. The old keyboard callback
+has no intent generation; it sees the new drag's temporarily empty selection,
+dismisses it and invalidates its completion. Actual FreBDM1707 Genesis 11,
+GTK 4.20.4/OpenGL with Study → Notes open: old range 163–165 is replaced by
+230–350, but the bar stays hidden. This is a measured lifecycle defect; the
+client screenshots alone do not prove their exact input sequence or cause.
+
+There is now one pending, cancellable main-loop capture. Pointer and keyboard
+completions both carry their intent generation. A new gesture, dismissal,
+scroll/source/tab change or owner closure cancels obsolete work. Escape also
+cancels a completion before its bar appears. Native GTK selection/drag-and-drop,
+gesture handling and scrolling remain; no raw input replacement, polling,
+whole-verse selection, permanent toolbar or new renderer is added. Hidden
+backdrops continue to detach through the existing path.
+
+The same native keyboard → mouse sequence now selects 229–350 (the metadata
+slots moved in #106) and reveals the correct current source actions after
+release. No bar appears mid-drag. Fourteen focused tests pass, including a real
+native input regression, repeated forward/backward replacement, wheel dismissal
+and reopening, Escape cancellation, copy/source identity, hidden-work and idle
+layout checks. The unchanged baseline itself also passes 24 qualified ordinary
+forward/backward new selections. Initial unqualified trials that started inside
+old text selection or outside the viewport are discarded: GTK drag-and-drop
+is not evidence of a newly completed selection. Final installed-package matrix,
+real-resource controls and client GNOME/Wayland acceptance remain required.
+
+Map packaging retry **40492374457** passes the installed Flatpak checks, including
+the required native map HTTP/cache/image-failure tests. The successful source is
+`fb110cc6b9c9a5b2c7797824a24adb9e4a4f5ac2`; this feature-branch package is not yet
+a published signed alpha. Shinar's supplied role is a representative point,
+so its detail explicitly says the area is approximate rather than implying an
+exact historical site. Nonlocated alternatives remain acknowledged.

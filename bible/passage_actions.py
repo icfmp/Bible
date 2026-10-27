@@ -114,6 +114,7 @@ class PassageActions:
     def __init__(self,owner):
         self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.adapt_tick=0;self._adapt_passes=0
         self.clearance=None;self.intent=0
+        self.capture_idle=0
         self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         self.bar.actions_owner=self
@@ -273,7 +274,8 @@ class PassageActions:
         def pressed(controller,count,x,y):
             widget=view.pick(x,y,Gtk.PickFlags.DEFAULT)
             while widget and widget is not view:
-                if widget.has_css_class('inline-marker'):return
+                if widget.has_css_class('inline-marker'):
+                    pending[0]=None;self.dismiss();return
                 widget=widget.get_parent()
             event=controller.get_current_event()
             if event and getattr(self.owner,'_popup_dismissed_event_time',None)==event.get_time():return
@@ -291,7 +293,7 @@ class PassageActions:
             current=factory()
             if (generation==self.intent and current and current.reader is source.reader
                     and current.document.key==source.document.key):
-                GLib.idle_add(self.capture,view,factory,offset,generation)
+                self.schedule_capture(view,factory,offset,generation)
         click.connect('pressed',pressed);click.connect('released',released)
         click.connect('unpaired-release',released);view.add_controller(click)
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -304,8 +306,21 @@ class PassageActions:
             return False
         def released(controller,value,*args):
             if self.keyboard and value in (Gdk.KEY_Shift_L,Gdk.KEY_Shift_R,Gdk.KEY_a,Gdk.KEY_A):
-                self.keyboard=False;GLib.idle_add(self.capture,view,factory,None)
+                self.keyboard=False;self.schedule_capture(view,factory,None,self.intent)
         keys.connect('key-pressed',pressed);keys.connect('key-released',released);view.add_controller(keys)
+
+    def cancel_capture(self):
+        if self.capture_idle:GLib.source_remove(self.capture_idle);self.capture_idle=0
+
+    def schedule_capture(self,view,factory,clicked,generation):
+        # A newer gesture/dismissal owns the selection. An old keyboard idle
+        # must never inspect a new mouse drag and cancel its completion.
+        self.cancel_capture()
+        self.capture_idle=GLib.idle_add(self.capture_pending,view,factory,clicked,generation)
+
+    def capture_pending(self,view,factory,clicked,generation):
+        self.capture_idle=0
+        return self.capture(view,factory,clicked,generation)
 
     def capture(self,view,factory,clicked,generation=None):
         if generation is not None and generation!=self.intent:return False
@@ -394,14 +409,15 @@ class PassageActions:
         return True
 
     def key(self,controller,value,*_):
-        if value==Gdk.KEY_Escape and self.target:
+        if value==Gdk.KEY_Escape and (self.target or self.capture_idle or self.keyboard):
             if any(p.get_visible() for p in self.owner._reading_popovers):return False
             self.dismiss();return True
         return False
 
     def dismiss(self):
         self.intent+=1
-        self.keyboard=False
+        self.keyboard=False;self.dragging=False
+        self.cancel_capture()
         # Still invalidate a pending selection capture, but do no native popup
         # or backdrop work for each wheel event when everything is already hidden.
         if self.target is None and not self.adapt_tick and self.clearance is None and not self.bar.get_visible():return

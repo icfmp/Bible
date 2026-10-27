@@ -1050,6 +1050,7 @@ class Window(Adw.ApplicationWindow):
         self.save_session()
         self.closed = True
         self.appearance.cancel_pending()
+        self.passage_actions.dismiss()
         if getattr(self,'place_dialog',None):self.place_dialog.close()
         self.unwatch_layout_surface()
         settings=Gtk.Settings.get_default()
