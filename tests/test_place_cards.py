@@ -72,6 +72,15 @@ class PlaceCardTests(unittest.TestCase):
         self.assertTrue(dialog.current_place['candidates']);self.assertEqual(dialog.reference_model.get_n_items(),1)
         self.assertEqual(self.window.active_tab.state.reference,'Ps.3.2')
 
+    def test_region_reference_point_keeps_its_historical_uncertainty_visible(self):
+        from bible.i18n import tr
+        self.install();dialog=self.window.open_places();spin(lambda:not dialog.pending)
+        place=dialog.rows[0];place['candidates'][0]['role']='representative point'
+        dialog.open_place(place);spin()
+        labels=[x.get_text() for x in self.walk(dialog) if hasattr(x,'get_text')]
+        self.assertIn(tr('Approximate area; this point does not identify an exact site.'),labels)
+        self.assertEqual(len(dialog.map_widget.candidates),1)
+
     def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):
         from bible.study_resources import PLACE_RESOURCE_ID
         w=self.window;before=w.library.installed();dialog=w.open_places();spin()

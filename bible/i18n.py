@@ -3,6 +3,9 @@ import locale
 import os
 
 FR = {
+    'Approximate area; this point does not identify an exact site.':'Zone approximative ; ce point ne désigne pas un site exact.',
+    'The proposed site is somewhere within this modern settlement.':'Le site proposé se situe quelque part dans cette localité actuelle.',
+    'Other proposed locations have not been identified on the map.':'D’autres localisations proposées n’ont pas été identifiées sur la carte.',
     'Unable to open the font chooser.':'Impossible d’ouvrir le sélecteur de police.',
     'Unavailable font: {family}. A fallback is used.':'Police indisponible : {family}. Une police de remplacement est utilisée.',
     'Reading':'Lecture',

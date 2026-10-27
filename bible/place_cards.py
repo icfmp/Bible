@@ -143,6 +143,9 @@ class PlaceCards(Adw.Window):
         if located:
             modern=self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located)))
             card.insert_child_after(modern,card.get_first_child())
+            if len(located)==1:
+                note=self.location_note(located[0])
+                if note:map_box.append(self.label(note,caption=True))
         if located:
             try:
                 from .place_map import PlaceMap
@@ -154,6 +157,10 @@ class PlaceCards(Adw.Window):
         if len(located)>1:
             for index,candidate in enumerate(located):
                 card.append(self.label(str(index+1)+'. '+place_name(candidate['name']),caption=True))
+                note=self.location_note(candidate)
+                if note:card.append(self.label(note,caption=True))
+        if located and any(c['longitude'] is None for c in place['candidates']):
+            card.append(self.label(tr('Other proposed locations have not been identified on the map.'),caption=True))
         self.reference_model=Gio.ListStore.new(PlaceItem)
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
@@ -177,6 +184,13 @@ class PlaceCards(Adw.Window):
         all_refs.connect('clicked',show_all);card.append(all_refs)
         clamp=Adw.Clamp(maximum_size=700,child=card);self.card_scroll.set_child(clamp)
         self.card_scroll.get_vadjustment().set_value(0)
+
+    def location_note(self,candidate):
+        if candidate.get('role') in ('center','representative point') or candidate.get('radius_meters'):
+            return tr('Approximate area; this point does not identify an exact site.')
+        if candidate.get('role')=='settlement':return tr('The proposed site is somewhere within this modern settlement.')
+        return tr({'near':'Near this location','along':'Along this geographical feature','on':'On this geographical feature',
+                   '<':'Within this area','>':'Around this location'}.get(candidate.get('modifier'),''))
 
     def reference_setup(self,_,item):
         item.set_child(self.reference_button())
