@@ -227,3 +227,37 @@ confirmation/cancel, related-note preservation and full-content search. All 64
 resource files are unchanged. Native source captures include several distinct
 notes/highlights, a long note, four palettes/high contrast, 560 px panes and
 large UI type. Installed-package checks and final publication remain pending.
+
+## #111: direct chapter activation, exact verses through typed references
+
+The entire graphical Verse row, adjacent arrow and Open chapter confirmation
+are removed. A native chapter button commits its actual first available verse,
+dismisses the picker and focuses the existing reading tab. Book browsing,
+hover and focus alone do not navigate. Typed localized references still reach
+an exact verse. Missing verses, NT-only editions, source changes, other tabs,
+Text/Themes and history use the existing providers and navigation contract.
+
+Actual GTK 4.20.4 pointer, Space and Return inputs pass. The native check also
+checks focus/hover without navigation and one history entry per activation.
+Source before/after wide/narrow light/dark captures are retained. The complete
+patched GTK 4.14.5 source suite now passes **371 tests**, including annotation,
+selection lifecycle, native map, typography, source identity and persistence
+checks. Installed package validation and publication of the final source remain
+required.
+
+## #114: retain and revalidate the delivered first word-study increment
+
+Its current description and only comment have no new scope-changing feedback.
+The deliberate word-study action, honest verse-source fallback, temporary
+Study detail/Back and shared lemma occurrence search are retained. No permanent
+tab, TIPNR prose, translation-wide token alignment or new provider is added.
+The source provider/draft/heading/mapping regressions remain in the full suite.
+
+With the real installed optional STEP dataset and real Bible modules, the
+source check passes Hebrew Genesis 1:1 exploration (seven source words), exact
+H1254A identity (53 tokens / 45 numeric verses) and Greek G3056 counts (330 /
+317), shared occurrence results, and the numbered-Psalm-heading guard. Segond
+51:3 maps to the actual NRSV source 51:1; three numbered titles remain honestly
+unavailable. The comparison's 19 actual body starts align to 0 px. Notes,
+schema and all 64 resource files remain unchanged. Final actual installed
+package, offline and signed-update verification remain required.
