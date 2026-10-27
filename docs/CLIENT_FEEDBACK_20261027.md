@@ -19,3 +19,11 @@ The shared reading area now uses a full-line grid derived from actual metrics, e
 A canonical chapter prefix can include only separators on the previous spread. Page lookup now chooses the following visible heading/body while retaining exact Document.locate, copy and selection offsets. The source partition remains complete and contiguous.
 
 All 22 affected immersion/pagination/client-feedback tests pass with patched source GTK 4.14.5 and with the available GTK 4.20.4 runtime. They include worker/native partition equivalence at 14/24/48 points, exact clipping/continuity/reflow/selection/anchor checks and unchanged controls-fade geometry. The GTK 4.20 run uses an isolated outer display and the existing isolated-click mode; these remain source-environment checks, not installed Flatpak acceptance. The separate moving focus-edge correction is implemented only after this pagination increment.
+
+## #98: stationary accessible keyboard focus during native slides
+
+The actual 60 fps recording reproduces the reported 804 px vertical blue edge moving across the page. It is the existing `:focus-visible text` inset shadow included in the moving page/snapshot, rather than a text-selection or blur effect. A diagnostic-only focus-style ablation removes it; that diagnostic is not shipped.
+
+Only immersive pages now paint this focus cue on a stationary, noninteractive viewport overlay. Normal reader focus styles, genuine text selection, keyboard routing and the native 200 ms slides remain. Focus/modality changes update the cue through native signals; window handlers disconnect on leaving immersion, without polling or extra animation work.
+
+Source GTK 4.20.4/OpenGL recordings: before, 193 of 235 frames contain an interior vertical blue run (maximum 804 px); after, zero of 237 frames do. A visible keyboard cue remains fixed at x=0. The dark 720 × 900 one-column recording also has zero interior runs across 235 frames. All six deliberate Right/Left inputs turn once in each recording. The 23 affected tests pass, covering focus versus controls/pointer modality, source fidelity, selection, reflow, anchors and existing navigation. Actual installed-package motion and final delivery are still pending.

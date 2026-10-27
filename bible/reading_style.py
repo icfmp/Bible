@@ -137,8 +137,10 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
 /* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque
    background cannot cover the focus mark. Inset shadows do not change layout. */
-{selector}:focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
-{selector}:dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
+{selector}:not(.immersive-page):focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
+{selector}:not(.immersive-page):dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
+.{self.scope}-focus-cue {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
+.{self.scope}-focus-cue.rtl-reading {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
 '''
         window='.'+self.scope+'-window'
         if not self.manager.get_high_contrast():

@@ -39,6 +39,7 @@ class Immersion(Gtk.Overlay):
             if source.rtl:view.set_justification(Gtk.Justification.RIGHT)
             view.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading page')+' '+str(number+1)])
             view.add_css_class(owner.reading_style.scope)
+            view.add_css_class('immersive-page')
             owner.reading_style.views.add(view)
             view._reading_palette=owner.reading_style.palette
             if self.kind=='bible':
@@ -60,6 +61,16 @@ class Immersion(Gtk.Overlay):
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');self.footer.set_valign(Gtk.Align.END)
         self.set_child(body);self.add_overlay(self.footer)
+        # Keyboard focus belongs to the stationary viewport. Painting it in a
+        # text page would bake its vertical inset into the moving slide image.
+        self.focus_cue=Gtk.Box(can_target=False,hexpand=True,vexpand=True)
+        self.focus_cue.add_css_class(owner.reading_style.scope+'-focus-cue')
+        if source.rtl:self.focus_cue.add_css_class('rtl-reading')
+        self.focus_cue.set_visible(False);self.add_overlay(self.focus_cue)
+        for view in self.views:view.connect('state-flags-changed',self.sync_reading_focus)
+        self.connect('state-flags-changed',self.sync_reading_focus)
+        self._focus_handlers=[owner.connect('notify::'+name,self.sync_reading_focus)
+                              for name in ('focus-visible','focus-widget')]
         if getattr(source,'book_pages',False):
             from .book_stream import BookStream
             self.stream=BookStream(self.views[0],source,owner.preferences.value)
@@ -137,6 +148,11 @@ class Immersion(Gtk.Overlay):
         wheel.connect('scroll',self.wheel_scroll);self.add_controller(wheel)
         self._tick=self.add_tick_callback(self.adapt)
         self.reveal_controls()
+
+    def sync_reading_focus(self,*_):
+        visible=(not self._closed and self.owner.get_focus_visible()
+                 and self.owner.get_focus() in (self,*self.views))
+        self.focus_cue.set_visible(visible)
 
     def page_button(self,direction):
         icon='go-previous-symbolic' if (direction<0)!=self.source.rtl else 'go-next-symbolic'
@@ -549,6 +565,7 @@ class Immersion(Gtk.Overlay):
     def finish(self):
         self.cancel_slide()
         self._closed=True
+        for handler in self._focus_handlers:self.owner.disconnect(handler)
         if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0
         self.owner.appearance.popdown();self.aa.set_popover(None);self.owner.appearance_button.set_popover(self.owner.appearance)
