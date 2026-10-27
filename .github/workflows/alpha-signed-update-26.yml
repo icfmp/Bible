@@ -33,7 +33,12 @@ jobs:
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+          installed=false
+          for attempt in 1 2 3 4 5; do
+            if flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref; then installed=true; break; fi
+            sleep 15
+          done
+          test "$installed" = true
           flatpak info --user io.github.icfmp.Bible//alpha > reports/installation-before.txt
           python3 - <<'PY'
           import subprocess,json
@@ -46,6 +51,7 @@ jobs:
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/openbible-topics.sqlite3.gz" https://raw.githubusercontent.com/icfmp/Bible/1c82609a0947822908fdfab7d3b42f7b79146265/docs/evidence/alpha-performance/fixtures/openbible-topics.sqlite3.gz
           echo "f8d8ebe33c339f3f910c930fef1af5713ee9a154bdbb363d7abf1844452a8c2e  $RUNNER_TEMP/openbible-topics.sqlite3.gz" | sha256sum --check
       - name: Prepare real resources and persistent annotations once
+        id: prepare_profile
         run: |
           flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
           import json,sys,hashlib
@@ -137,7 +143,7 @@ jobs:
             timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/candidate-signed-$mode.json" --require-packaged --mode "$mode" --resource FreSegond1910 --reference Ps.119.1 --cycles 2 --input-kind wheel > "reports/candidate-signed-$mode.log" 2>&1
           done
       - name: Verify retained profile data and translations
-        if: always()
+        if: always() && steps.prepare_profile.outcome == 'success'
         run: |
           flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
           import json,sys,hashlib
