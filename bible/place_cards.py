@@ -155,32 +155,45 @@ class PlaceCards(Adw.Window):
             for index,candidate in enumerate(located):
                 card.append(self.label(str(index+1)+'. '+place_name(candidate['name']),caption=True))
         self.reference_model=Gio.ListStore.new(PlaceItem)
-        factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
-        self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
-        references_scroll=Gtk.ScrolledWindow(min_content_height=160,max_content_height=280,propagate_natural_height=True,
-                                            hscrollbar_policy=Gtk.PolicyType.NEVER)
-        references_scroll.set_child(self.references);card.append(references_scroll)
         ordered=[ref for ref in place['references'] if ref in self.origins]+[ref for ref in place['references'] if ref not in self.origins]
         self.reference_model.splice(0,0,[PlaceItem(ref) for ref in ordered[:2]])
+        # The compact preview has natural row heights and shares the card's
+        # outer scroll; an inner fixed viewport would cut a source line in half.
+        self.references=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        for ref in ordered[:2]:
+            button=self.reference_button();self.bind_reference(button,ref);self.references.append(button)
+        card.append(self.references)
         all_refs=Gtk.Button(label=tr('View all'),visible=len(place['references'])>2)
         def show_all(*_):
-            self.reference_model.splice(0,self.reference_model.get_n_items(),[PlaceItem(ref) for ref in ordered]);all_refs.set_visible(False)
+            self.reference_model.splice(0,self.reference_model.get_n_items(),[PlaceItem(ref) for ref in ordered])
+            card.remove(self.references)
+            factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
+            self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
+            scroll=Gtk.ScrolledWindow(min_content_height=240,max_content_height=400,propagate_natural_height=True,
+                                     hscrollbar_policy=Gtk.PolicyType.NEVER)
+            scroll.set_child(self.references);card.insert_child_after(scroll,reference_title);all_refs.set_visible(False)
         all_refs.connect('clicked',show_all);card.append(all_refs)
         clamp=Adw.Clamp(maximum_size=700,child=card);self.card_scroll.set_child(clamp)
         self.card_scroll.get_vadjustment().set_value(0)
 
     def reference_setup(self,_,item):
+        item.set_child(self.reference_button())
+
+    def reference_button(self):
         button=Gtk.Button();button.add_css_class('flat');button.add_css_class('place-reference')
         content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         title=self.label('');title.set_selectable(False);title.add_css_class('accent');title.add_css_class('heading');content.append(title)
         body=self.label('');body.set_selectable(False)
         attrs=Pango.AttrList();attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL));body.set_attributes(attrs);body.set_lines(3);body.set_ellipsize(Pango.EllipsizeMode.END);content.append(body)
-        button.set_child(content);button.connect('clicked',self.preview_reference);item.set_child(button)
+        button.set_child(content);button.connect('clicked',self.preview_reference);return button
 
     def reference_bind(self,_,item):
-        ref=item.get_item().payload;button=item.get_child();button._reference=ref
+        self.bind_reference(item.get_child(),item.get_item().payload)
+
+    def bind_reference(self,button,ref):
+        button._reference=ref
         resource,reader,_,_=self.context
         if ref not in self.reference_cache:
             try:
