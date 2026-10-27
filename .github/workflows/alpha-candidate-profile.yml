@@ -90,7 +90,13 @@ jobs:
           PlaceData(root/'study-data').install()
           from bible.reference_data import ReferenceData
           from bible.topic_data import TopicData
-          ReferenceData(root/'study-data').install()
+          # Reuse the unchanged, previously validated installed reference index.
+          # The mutable upstream ZIP now correctly fails the application's pin.
+          import gzip
+          ref_bytes=gzip.decompress(Path('${{ github.workspace }}/docs/evidence/client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz').read_bytes())
+          assert hashlib.sha256(ref_bytes).hexdigest()=='9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'
+          references=ReferenceData(root/'study-data');references.path.write_bytes(ref_bytes)
+          assert references.metadata()['archive_sha256']=='5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f'
           # Reuse an attributed, validated installed index. Today's weekly upstream
           # archive differs from the source pinned by the published application.
           import gzip
