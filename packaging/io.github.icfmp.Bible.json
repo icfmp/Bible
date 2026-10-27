@@ -16,6 +16,7 @@
       "name": "libshumate",
       "buildsystem": "meson",
       "config-opts": [
+        "--libdir=lib",
         "-Dgtk_doc=false",
         "-Dvapi=false",
         "-Ddemos=false",
@@ -23,7 +24,8 @@
         "-Dsysprof=disabled"
       ],
       "post-install": [
-        "install -Dm644 ../COPYING /app/share/licenses/libshumate/COPYING"
+        "install -Dm644 ../COPYING /app/share/licenses/libshumate/COPYING",
+        "test -f /app/lib/girepository-1.0/Shumate-1.0.typelib"
       ],
       "sources": [
         {
