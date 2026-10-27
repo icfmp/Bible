@@ -8,6 +8,7 @@ class NotePreview(Gtk.TextView):
     def __init__(self, *, owner=None, system=None, navigation_guard=None, **kwargs):
         super().__init__(editable=False, cursor_visible=False, wrap_mode=Gtk.WrapMode.WORD_CHAR,
                          left_margin=12, right_margin=12, top_margin=12, bottom_margin=12, **kwargs)
+        self.add_css_class('study-content')
         self.owner=owner;self.system=system;self.navigation_guard=navigation_guard
         self.citations=[];self._citation_focus=-1;self._pressed=None
         self.set_accepts_tab(False)

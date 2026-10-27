@@ -12,6 +12,7 @@ from .i18n import LANGUAGE
 from . import history
 from .preferences import ReadingPreferences
 from .reading_style import WIDTHS, SPACING, apply_direction
+from .reading_metrics import text_width,side_margin
 from .context_indicator import ContextTextView
 
 
@@ -266,7 +267,7 @@ class ReadingTab(Gtk.Box):
         return False
 
     def adapt_comparison(self,*_):
-        geometry=(self.scroll.get_width(),self.scroll.get_height(),self.preferences.column_width)
+        geometry=(self.scroll.get_width(),self.scroll.get_height(),self.preferences.column_width,self.preferences.text_width_px,self.preferences.side_margin_px)
         changed=geometry!=getattr(self,'_reading_geometry',geometry)
         if changed and not self._restoring_scroll and getattr(self,'_layout_anchor',None):
             self._appearance_anchor=self._layout_anchor;self._jump_reference=None
@@ -275,7 +276,8 @@ class ReadingTab(Gtk.Box):
         orientation=Gtk.Orientation.HORIZONTAL if self.state.comparison or self.get_width()>=760 else Gtk.Orientation.VERTICAL
         if self.reading_layout.get_orientation()!=orientation:self.reading_layout.set_orientation(orientation)
         for view,scroll,minimum in [(self.text,self.scroll,66),(self.comparison_text,self.comparison_scroll,66)]:
-            margin=max(minimum,(scroll.get_width()-WIDTHS[self.preferences.column_width])//2)
+            margin=max(side_margin(self.preferences,minimum),(scroll.get_width()-text_width(self.preferences))//2)
+            margin=min(margin,max(0,(scroll.get_width()-80)//2))
             if view.get_left_margin()!=margin:view.set_left_margin(margin);view.set_right_margin(margin)
         if self.scroll.get_height()>0:
             from .navigation_overlay import position
@@ -283,7 +285,7 @@ class ReadingTab(Gtk.Box):
                 position(button,self.text.get_left_margin(),self.scroll.get_width()-self.text.get_right_margin(),
                          self.scroll.get_margin_top(),self.scroll.get_height(),self.reading_overlay.get_width())
         self.comparison_rows.layout()
-        comparison_geometry=(self.comparison_scroll.get_width(),self.comparison_scroll.get_height(),self.preferences.column_width)
+        comparison_geometry=(self.comparison_scroll.get_width(),self.comparison_scroll.get_height(),self.preferences.column_width,self.preferences.text_width_px,self.preferences.side_margin_px)
         if (not getattr(self,'_shared_comparison',False) and comparison_geometry!=getattr(self,'_comparison_geometry',comparison_geometry)
                 and getattr(self,'_comparison_layout_anchor',None)):
             anchor=self._comparison_layout_anchor

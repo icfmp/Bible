@@ -9,6 +9,7 @@ class AnnotationPreview(Gtk.Label):
     def __init__(self, owner, note, open_note):
         super().__init__(xalign=0, yalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR,
                          lines=3, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=40)
+        self.add_css_class('study-content')
         self.owner=owner;self.note=note;self.open_note=open_note
         text,spans=render(note.body)
         self.citations=citations(text,note.versification,spans)

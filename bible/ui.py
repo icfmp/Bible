@@ -660,6 +660,8 @@ class Window(Adw.ApplicationWindow):
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
+        if self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.preferences.value.study_font:
+            self.study.apply_typography()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
         if self.active_tab:self.active_tab.refresh_comparison()
@@ -1047,6 +1049,7 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        self.appearance.cancel_pending()
         if getattr(self,'place_dialog',None):self.place_dialog.close()
         self.unwatch_layout_surface()
         settings=Gtk.Settings.get_default()

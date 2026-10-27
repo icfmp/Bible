@@ -11,7 +11,7 @@ import gi
 
 gi.require_version('Pango','1.0')
 from gi.repository import Pango
-from .reading_metrics import SPACING
+from .reading_metrics import SPACING, line_spacing
 from .preparation import checkpoint
 
 
@@ -207,7 +207,7 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
     metrics=widget.get_pango_context().get_metrics(Pango.FontDescription(f'{preferences.font} {preferences.size}'),None)
     line_height=metrics.get_height()/Pango.SCALE
-    spacing=SPACING[preferences.line_spacing]
+    spacing=line_spacing(preferences)
     reserve=line_height+2*spacing
     capacity=max(1,height-reserve-2)
     # A fixed common body grid, independent of the current page's content.
@@ -224,7 +224,8 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
         layout.set_font_description(Pango.FontDescription(f'{preferences.font} {preferences.size}'))
         layout.set_width(max(20,int(width))*Pango.SCALE)
         layout.set_wrap(Pango.WrapMode.WORD_CHAR)
-        layout.set_spacing(SPACING[preferences.line_spacing]*Pango.SCALE)
+        layout.set_justify(preferences.alignment=='justified')
+        layout.set_spacing(line_spacing(preferences)*Pango.SCALE)
         layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences,
                                          cancelled=cancelled))
         byte_to_char={0:0};n=0

@@ -82,3 +82,64 @@ limit, not an installed-Flatpak result; confinement is preserved. The new
 packaged native-map checks require the bundled dependency and must pass in the
 actual Flatpak before delivery. Final installed light/dark/narrow/palette,
 network-failure, performance and signed-public-update checks remain required.
+
+## #128: full global reading preferences, shared with Aa
+
+General and backups remain on General; a native Reading page groups Font,
+independent Study content font, Layout and Colors. A standard Gtk.FontDialog
+chooses an installed family, with a native Pango preview. A missing saved family
+is retained and labelled with its fallback rather than silently replaced or
+shown as None. Accepting the chooser explicitly can replace that saved choice,
+even when the selected family is the same as its temporary fallback.
+
+Both presentations edit the same ReadingPreferences instance. Advanced values
+appear as Custom in Aa; merely opening either presentation does not snap them
+to a preset. Native numeric changes save immediately and coalesce expensive
+reflow into one pending main-loop idle; closing the owner cancels that callback.
+The existing worker cancellation and bounded plan cache retain only current
+settings. No periodic work is introduced.
+
+Version 1 is backward compatible with existing files and defaults. Unsupported
+future versions and malformed values preserve the original file and refuse
+writes. New fields/defaults and ownership:
+
+| Setting | Default / bounds | Scope |
+| --- | --- | --- |
+| Reading font/size | Existing DejaVu Serif, 14 pt; 12–64 pt | Shared reading and separate immersive readers |
+| Study family | Existing sans-serif; installed choice or retained missing name | Docked content only, including Notes, References, Commentaries and their previews; controls/global Notes/immersive commentary stay independent |
+| Extra line spacing | Existing preset, 16 px by default; optional integer 0–48 px | Reading layout, native GTK and worker Pango use the same value |
+| Maximum text width | Existing Narrow/580 px; optional 280–1440 logical px | Shared reading and immersion; available width may be smaller |
+| Minimum scrolling margin | Existing 66 px; optional 48–160 logical px | Scrolling readers; small windows clamp to safe available space. Existing immersive insets are retained |
+| Alignment | Existing natural start (left, right for RTL), or justified | Reading source text; copied/stored text is unchanged |
+| Immersive columns | Existing Automatic, or One column | Maximum two; narrow windows never force two columns |
+| Palettes | Existing day/night choices and system/high-contrast ownership | Existing whole-window model, with named visual swatches |
+
+Reset reading settings restores these reading defaults only. Notes, resources,
+application language/backups and stored annotation data are untouched. Optional
+per-pane font/size/background overrides remain explicitly deferred until after
+beta and have no unfinished controls here.
+
+No automatic-hyphenation toggle is exposed: the available native
+[Pango insert-hyphens attribute](https://docs.gtk.org/Pango/func.attr_insert_hyphens_new.html)
+adds a visual hyphen when a word must break, rather than providing a verified
+French/English dictionary-based syllable-hyphenation service. Existing native
+wrapping remains; no source characters, soft hyphens or new engine are inserted.
+
+Source GTK 4.20.4 checks cover legacy/custom/future-file persistence, full/Aa
+round trips and Custom labels, reset, unavailable family preservation, study
+font independence, one-column mode, justified reflow and exact anchors.
+Worker/native partition equivalence also covers custom spacing plus justification.
+The 25-test appearance/immersion/pagination suite and 21-test settings/immersion/
+comparison/RTL suite pass; the final focused settings/client-feedback suite has
+9 passing tests. A real native family chooser accepts a replacement for a saved
+missing Study family without changing the Bible font. Actual source GTK captures
+cover white/dark/sepia/black, wide and 560 px with larger interface type. These
+are developer source checks; final installed-package checks and signed delivery
+remain pending.
+
+The complete patched native source suite also passes: **368 tests**, including
+all four native map checks, the new settings checks and existing persistence,
+annotation, source-text and navigation regressions (GTK 4.14.5). The current
+map packaging retry corrects the measured `/app/lib64` install to `/app/lib`;
+a successful local source run is not a substitute for that pending installed
+Flatpak verification.

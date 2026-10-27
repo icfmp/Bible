@@ -1,6 +1,7 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
+from .reading_metrics import line_spacing
 from .verse_typography import configure
 from gi.repository import Gtk,Pango
 from gi.repository import GObject
@@ -44,9 +45,9 @@ def render(view, reader, chapter, preferences, document=None):
     buffer.insert(buffer.get_end_iter(),document.text[previous:])
     view._inline_buttons=children
     bind_copy(view,document)
-    apply_direction(view, reader)
-    view.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
-    view.set_pixels_below_lines(SPACING[preferences.line_spacing]+4)
+    apply_direction(view, reader,preferences)
+    view.set_pixels_inside_wrap(line_spacing(preferences))
+    view.set_pixels_below_lines(line_spacing(preferences)+4)
     table = buffer.get_tag_table()
     tags = {}
     for kind in ['body','chapter','heading','number','verse-start','hidden','italic','bold','small-caps','superscript']:

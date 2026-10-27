@@ -24,8 +24,8 @@ class ImmersionTests(unittest.TestCase):
         window=Gtk.Window(default_width=500,default_height=700)
         view=Gtk.TextView();window.set_child(view);window.present();spin()
         try:
-            for size in (14,24,48):
-                preferences=ReadingPreferences(size=size,line_spacing='very-airy')
+            for size,spacing,alignment in [(14,None,'left'),(24,12,'justified'),(48,None,'left')]:
+                preferences=ReadingPreferences(size=size,line_spacing='very-airy',line_spacing_px=spacing,alignment=alignment)
                 expected=paginate(view,document,preferences,330,600)
                 stream=BookStream(view,Source(),preferences)
                 try:

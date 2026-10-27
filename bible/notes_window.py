@@ -170,6 +170,7 @@ class NoteEditor(Adw.Window):
         commands.append(switcher)
         self.body = Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR, monospace=False,
                                  left_margin=20, right_margin=20, top_margin=16, bottom_margin=20,pixels_inside_wrap=5)
+        self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note in Markdown')])
         self.body.get_buffer().set_text(note.body if note else '')
         scroll = Gtk.ScrolledWindow(vexpand=not compact, min_content_height=180 if compact else 0,

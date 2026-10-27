@@ -8,7 +8,7 @@ from gi.repository import Adw,Gdk,Gio,GLib,Gtk,Pango
 from .i18n import tr
 from .pagination import Anchor
 from .paged_sources import PagedStream,PageAddress
-from .reading_style import SPACING,WIDTHS
+from .reading_metrics import SPACING,WIDTHS,line_spacing,text_width
 from .notes_window import passage_label
 
 
@@ -183,8 +183,10 @@ class Immersion(Gtk.Overlay):
                          last.origin.x+last.size.width-self.views[-1].get_right_margin(),
                          first.origin.y,first.size.height,width)
         minimum=max(280,self.owner.preferences.value.size*15)
-        count=2 if (width-112-32)/2>=minimum else 1
-        usable=min(WIDTHS[self.owner.preferences.value.column_width],int((width-112-(32 if count==2 else 0))/count))
+        p=self.owner.preferences.value
+        edge=56
+        count=2 if p.immersion_columns=='automatic' and (width-2*edge-32)/2>=minimum else 1
+        usable=min(text_width(p),int((width-2*edge-(32 if count==2 else 0))/count))
         usable=max(40,usable-16)
         page_height=max(40,self.pages.get_height()-24)
         geometry=(usable,page_height,count)
@@ -196,7 +198,7 @@ class Immersion(Gtk.Overlay):
             anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
             key=self.stream.cursor.key if self.stream.cursor else self.initial_key
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
-            maximum=(usable+16)*count+(32 if count==2 else 0)+112
+            maximum=(usable+16)*count+(32 if count==2 else 0)+2*edge
             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
             # Settle allocations before scheduling expensive work. Rapid resize
             # and consecutive Aa changes should prepare only the last geometry.
@@ -328,8 +330,10 @@ class Immersion(Gtk.Overlay):
             table=buffer.get_tag_table();body=table.lookup('page-body')
             if body is None:body=buffer.create_tag('page-body')
             body.props.family=p.font;body.props.size_points=p.size
+            view.set_justification(Gtk.Justification.FILL if p.alignment=='justified' else
+                                   Gtk.Justification.RIGHT if self.source.rtl else Gtk.Justification.LEFT)
             buffer.apply_tag(body,buffer.get_start_iter(),buffer.get_end_iter())
-            view.set_pixels_inside_wrap(SPACING[p.line_spacing]);view.set_pixels_below_lines(SPACING[p.line_spacing])
+            view.set_pixels_inside_wrap(line_spacing(p));view.set_pixels_below_lines(line_spacing(p))
             for kind in ('chapter','heading','number','verse-start'):
                 tag=table.lookup('page-'+kind)
                 if tag is None:tag=buffer.create_tag('page-'+kind)

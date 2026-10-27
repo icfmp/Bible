@@ -62,7 +62,7 @@ class BookStream(PagedStream):
     def build(self,key,preferences,width,height,anchor,cancelled=None):
         checkpoint(cancelled)
         signature=self.document_signature(key,preferences)
-        plan_key=(signature,preferences.font,preferences.size,preferences.line_spacing,
+        plan_key=(signature,preferences.font,preferences.size,preferences.line_spacing,preferences.line_spacing_px,preferences.alignment,
                   width,height,anchor)
         with self._cache_lock:
             plan=self.plans.get(plan_key)
@@ -109,7 +109,7 @@ class BookStream(PagedStream):
         if self.closed:return
         width,height=max(20,width),max(20,height)
         p=self.preferences
-        configuration=(key,width,height,anchor,p.font,p.size,p.line_spacing,p.chapter_numbers,p.verse_numbers)
+        configuration=(key,width,height,anchor,p.font,p.size,p.line_spacing,p.line_spacing_px,p.alignment,p.chapter_numbers,p.verse_numbers)
         if configuration==self._configuration and (self.pending==key or
                 (self.cursor and self.cursor.key==key and self.requested_anchor==anchor)):return
         self._configuration=configuration
