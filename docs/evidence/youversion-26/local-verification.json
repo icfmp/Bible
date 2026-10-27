@@ -1,0 +1,88 @@
+{
+  "source": "916b35a627fb80848107bc3a5701313c903e9883",
+  "environment": "Local native source environment; NOT installed Flatpak",
+  "gtk": "4.14.5",
+  "native_sword": "1.9.0 with exact project fidelity/reference patch",
+  "full_tests": 358,
+  "french_affected_tests": 62,
+  "editions": [
+    {
+      "edition": 21,
+      "chapters": 1189,
+      "introductions": 66,
+      "source_units": 31112,
+      "translation_notes": 7363,
+      "osis_schema_documents": 1255,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 93,
+      "chapters": 1189,
+      "introductions": 66,
+      "source_units": 31170,
+      "translation_notes": 9751,
+      "osis_schema_documents": 1255,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 64,
+      "chapters": 1189,
+      "introductions": 0,
+      "source_units": 31170,
+      "translation_notes": 6340,
+      "osis_schema_documents": 1189,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 131,
+      "chapters": 1189,
+      "introductions": 0,
+      "source_units": 31165,
+      "translation_notes": 0,
+      "osis_schema_documents": 1189,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 1,
+      "chapters": 1189,
+      "introductions": 0,
+      "source_units": 31102,
+      "translation_notes": 0,
+      "osis_schema_documents": 1189,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 12,
+      "chapters": 1189,
+      "introductions": 0,
+      "source_units": 31102,
+      "translation_notes": 16,
+      "osis_schema_documents": 1189,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    },
+    {
+      "edition": 3034,
+      "chapters": 1189,
+      "introductions": 0,
+      "source_units": 31086,
+      "translation_notes": 4854,
+      "osis_schema_documents": 1189,
+      "osis_schema_errors": 0,
+      "independent_dom_native_application_reader": "PASS"
+    }
+  ],
+  "limits": [
+    "Linux/Xvfb developer checks, not client GNOME acceptance",
+    "Segond/Ostervald automatic cross-edition alignment is explicitly unavailable",
+    "Installed Flatpak and signed-update receipts are recorded separately",
+    "No source text, full OSIS, downloaded ZIP or compiled resource is published"
+  ],
+  "checks_before_introduction_spacing_fix_source": "34a64d74300c03e7581ce0c374c9ff5efccf548d",
+  "affected_tests_after_spacing_fix": 31
+}

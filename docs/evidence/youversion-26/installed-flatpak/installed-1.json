@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 1,
+  "title": "King James Version",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 0,
+    "units": 31102,
+    "notes": 0,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "eng",
+  "native_numbering": "KJV",
+  "archive_sha256": "5ce9bcf8b84e0da611efcc4b6b7139c2432685cbe25256af33c131b269665738",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 15.092789561000018,
+  "conversion_child_peak_rss_kib": 72416,
+  "phases": {
+    "converting": [
+      1189,
+      1189
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1189,
+      1189
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 4,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 3153775,
+    "total": 3153775,
+    "seconds": 0.15272501999993437
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

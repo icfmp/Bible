@@ -7,6 +7,48 @@ import unittest
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK')
 class ComparisonRowsTests(unittest.TestCase):
+    def test_actual_verse_bodies_align_with_different_source_headings(self):
+        from unittest.mock import patch
+        from bible.ui import Application,Window,Library
+        from bible.sword_provider import Reader
+        from bible.structured_text import Segment
+        from tests.test_ui import installed_fixture,spin
+        original=Reader.structured_chapter
+        def structured(reader,chapter,**options):
+            result=original(reader,chapter,**options)
+            references={'Primary':('Gen.1.1','Gen.1.9'),'Secondary':('Gen.1.5',)}[reader.name]
+            for reference in references:
+                result[reference]=(Segment('SYNTHETIC SOURCE HEADING WITH SEVERAL WRAPPED LINES '*3,'heading'),*result[reference])
+            return result
+        with tempfile.TemporaryDirectory() as directory,patch.object(Reader,'structured_chapter',structured):
+            for name,count in [('Primary',3),('Secondary',19)]:
+                installed_fixture(directory,name,entries=[(f'Gen.1.{v}',f'{name} UNIQUE{v} '+('words '*(count+v%7))) for v in range(1,32)])
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(Path(directory)/'translations'));window.set_default_size(1280,850);window.present();spin()
+            try:
+                tab=window.active_tab;tab.navigate('Primary','Gen.1.1')
+                tab.state.comparison='Secondary';window.sync_comparison();spin(duration=.6)
+                def aligned():
+                    for row in tab.comparison_rows.rows:
+                        if not row.primary or not row.secondary:continue
+                        values=[view.get_iter_location(view.get_buffer().get_iter_at_offset(markers[refs[0]])).y
+                                for view,markers,refs in [(tab.text,tab._marker_ends,row.primary),
+                                                          (tab.comparison_text,tab._comparison_markers,row.secondary)]]
+                        self.assertAlmostEqual(*values,delta=1)
+                aligned()
+                copies=[doc.copy(0,len(doc.text)) for doc in (tab._document,tab._comparison_document)]
+                for width,size in [(900,24),(1280,32)]:
+                    window.set_default_size(width,850);window.appearance.update('size',size);spin(duration=.6);aligned()
+                for doc,name in [(tab._document,'Primary'),(tab._comparison_document,'Secondary')]:
+                    text=doc.copy(0,len(doc.text))
+                    for verse in range(1,32):self.assertEqual(text.count(f'{name} UNIQUE{verse} '),1)
+                self.assertEqual(copies,[doc.copy(0,len(doc.text)) for doc in (tab._document,tab._comparison_document)])
+                self.assertIs(tab.scroll.get_vadjustment(),tab.comparison_scroll.get_vadjustment())
+                # Settled layout must not query/recompute paragraph geometry.
+                with patch.object(tab.text,'get_iter_location',side_effect=AssertionError('Unexpected idle layout')):
+                    tab.comparison_rows.layout()
+            finally:window.close()
+
     def test_split_final_john_verses_form_one_correspondence_group(self):
         from bible.comparison_layout import correspondences
         from bible.sword_provider import Reader
