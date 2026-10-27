@@ -9,6 +9,7 @@ from xml.etree import ElementTree as E
 from .youversion_content import native_chapter, normalized, parse, project,semantic_roles
 from .youversion_osis import NS, BOOKS, osis_ref
 from .youversion_source import read_edition,archive_chapters,to_osis
+from .youversion_editions import EDITIONS,module_id
 
 
 def emit(phase,done,total):
@@ -22,15 +23,17 @@ def digest(value):
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def source_canon():
-    return json.loads((Path(__file__).parent/'versification_data/Original.json').read_text())['canon']
+def source_canon(system):
+    return json.loads((Path(__file__).parent/'versification_data'/(system+'.json')).read_text())['canon']
 
 
-def build(archive,metadata,target,compiler):
-    edition=read_edition(json.loads(metadata.read_text()),21)
-    if edition.metadata.get('vrs')!='org':raise ValueError('Unverified source numbering')
+def build(archive,metadata,target,compiler,identifier=21):
+    name=module_id(identifier);system=EDITIONS[identifier][1]
+    edition=read_edition(json.loads(metadata.read_text()),identifier)
+    if edition.language!=EDITIONS[identifier][2]:raise ValueError('Unexpected edition language')
+    if edition.metadata.get('vrs')!=EDITIONS[identifier][0]:raise ValueError('Unverified source numbering')
     target.mkdir(parents=True,exist_ok=False)
-    canon=source_canon();checks=[];seen=set();active_book=None;source_index=[]
+    canon=source_canon(system);checks=[];seen=set();active_book=None;source_index=[]
     total=len(edition.chapters)
     osis=target.parent/'edition.osis.xml'
     with osis.open('wb') as output:
@@ -43,7 +46,7 @@ def build(archive,metadata,target,compiler):
             text=root.find('{'+NS+'}osisText');division=text.find('{'+NS+'}div')
             if done==1:
                 header=text.find('{'+NS+'}header')
-                output.write(('<?xml version="1.0" encoding="UTF-8"?><osis xmlns="'+NS+'"><osisText osisIDWork="YouVersion21" osisRefWork="Bible" xml:lang="'+edition.language+'">').encode())
+                output.write(('<?xml version="1.0" encoding="UTF-8"?><osis xmlns="'+NS+'"><osisText osisIDWork="YouVersion'+str(identifier)+'" osisRefWork="Bible" xml:lang="'+edition.language+'">').encode())
                 output.write(E.tostring(header,encoding='utf-8'))
             if book!=active_book:
                 if active_book:output.write(b'</div>')
@@ -64,31 +67,34 @@ def build(archive,metadata,target,compiler):
                         max(int(item.rsplit('.',1)[1]) for item in members)!=maximum):
                     raise ValueError('Source chapter numbering changed')
                 check=dict(ref=chapter_ref,intro=False,units=units,
-                           expected=digest((project(division,milestones=True),semantic_roles(division))))
+                           expected=digest((project(division,milestones=True,preverse=chapter_ref+'.0'),semantic_roles(division))))
             checks.append(check);emit('converting',done,total)
         output.write(b'</div></osisText></osis>')
     expected={f'{book}.{number}' for book,chapters in canon.items() for number in range(1,len(chapters)+1)}
-    if seen!=expected or sum(item['intro'] for item in checks)!=len(canon):
+    if seen!=expected or sum(item['intro'] for item in checks)!=sum('.INTRO' in ref for ref in edition.chapters):
         raise ValueError('Incomplete source canon')
-    data=target/'modules/texts/rawtext/yv21';data.mkdir(parents=True)
+    relative='modules/texts/rawtext/'+name.lower()
+    data=target/relative;data.mkdir(parents=True)
     emit('compiling',0,0)
     with (target.parent/'compiler.log').open('wb') as log:
-        compiled=subprocess.run([compiler,str(data),str(osis),'-v','Original'],stdout=log,stderr=subprocess.STDOUT,timeout=240)
+        compiled=subprocess.run([compiler,str(data),str(osis),'-v',system],stdout=log,stderr=subprocess.STDOUT,timeout=240)
     if compiled.returncode:raise ValueError('SWORD compilation failed')
     # Metadata cannot inject native module options or file paths.
     def line(value):return ' '.join(str(value).split()).replace('\\','/').replace('\x00','')
+    abbreviation=edition.metadata.get('local_abbreviation') or edition.metadata.get('abbreviation') or name
+    if not isinstance(abbreviation,str) or len(abbreviation)>40:abbreviation=name
     (target/'mods.d').mkdir()
-    (target/'mods.d/yv21.conf').write_text(
-        '[YV21]\nDataPath=./modules/texts/rawtext/yv21/\nModDrv=RawText\nSourceType=OSIS\nEncoding=UTF-8\n'
-        'Versification=Original\nGlobalOptionFilter=OSISFootnotes\nGlobalOptionFilter=OSISHeadings\nGlobalOptionFilter=OSISRedLetterWords\n'
-        f'Lang={line(edition.language)}\nDescription={line(edition.title)}\n'
+    (target/'mods.d'/(name.lower()+'.conf')).write_text(
+        f'[{name}]\nDataPath=./{relative}/\nModDrv=RawText\nSourceType=OSIS\nEncoding=UTF-8\n'
+        f'Versification={system}\nBibleSource=YouVersion\nGlobalOptionFilter=OSISFootnotes\nGlobalOptionFilter=OSISHeadings\nGlobalOptionFilter=OSISRedLetterWords\n'
+        f'Lang={line(edition.language)}\nDescription={line(edition.title)}\nAbbreviation={line(abbreviation)}\n'
         f'Copyright={line(edition.attribution)}\nDistributionLicense=Source conditions apply\n'
-        'About=https://www.bible.com/versions/21\n',encoding='utf-8')
+        f'About=https://www.bible.com/versions/{identifier}\n',encoding='utf-8')
     import Sword
-    manager=Sword.SWMgr(str(target));module=manager.getModule('YV21')
+    manager=Sword.SWMgr(str(target));module=manager.getModule(name)
     if module is None:raise ValueError('Compiled resource missing')
-    key=Sword.VerseKey();key.setVersificationSystem('Original');key.setAutoNormalize(False);key.setIntros(True)
-    if key.getVersificationSystem()!='Original':raise ValueError('Packaged Original numbering support is required')
+    key=Sword.VerseKey();key.setVersificationSystem(system);key.setAutoNormalize(False);key.setIntros(True)
+    if key.getVersificationSystem()!=system:raise ValueError('Packaged source numbering support is required')
     for done,check in enumerate(checks,1):
         if check['intro']:
             key.setText(check['ref']);module.setKey(key);raw=module.getRawEntry()
@@ -113,11 +119,11 @@ def build(archive,metadata,target,compiler):
         if actual!=check['expected']:raise ValueError('Compiled text or editorial content differs: '+check['ref'])
         emit('verifying',done,total)
     (target/'.verified.json').write_text(json.dumps(dict(entries=len(checks),
-        source_numbering='org',storage_numbering='Original',
+        source_numbering=edition.metadata['vrs'],storage_numbering=system,
         archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
         all_text_notes_headings_verified=True)))
     (target/'.source-index.json').write_text(json.dumps(dict(parser_version=1,entries=source_index)))
 
 
 if __name__=='__main__':
-    build(Path(sys.argv[1]),Path(sys.argv[2]),Path(sys.argv[3]),sys.argv[4])
+    build(Path(sys.argv[1]),Path(sys.argv[2]),Path(sys.argv[3]),sys.argv[4],int(sys.argv[5]) if len(sys.argv)>5 else 21)

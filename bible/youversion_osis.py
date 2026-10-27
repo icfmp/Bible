@@ -19,9 +19,12 @@ BOOKS = dict(zip(BOOK_CODES, OSIS_BOOKS, strict=True))
 INLINE = {'content', 'verse', 'label', 'note', 'body', 'fr', 'ft', 'fqa',
           'fq', 'fv', 'ord', 'tl', 'bk', 'em',
           'ref', 'qt', 'wj', 'w', 'heading', 'it', 'bd', 'bdit', 'sc', 'add', 'nd', 'br'}
+INLINE |= {'qs','ior'}
 BLOCK = {'p', 'm', 'ip', 'pm', 'nb', 'd', 'b', 'ib', 'ie', 'imt',
          'li1', 'li2', 'ili1', 'ili2',
          's1', 's2', 's3', 'ms1', 'r', 'q1', 'q2', 'q3', 'q4'}
+BLOCK |= {'s','ms','ms2','mr','imt1','imt2','imt3','is1','ipi','io1','io2',
+          'q','qa','qr','qc','pi','pi1','pc','lf','iex','table','row','cell'}
 
 
 class Unsupported(ValueError):
@@ -208,6 +211,8 @@ class Writer:
         elif k == 'w':
             # Source w has no lemma/morphology in this sample. Never invent it.
             self.parts(node.parts, element(parent, 'seg', type='x-source-word'), in_note)
+        elif k in {'qs','ior'}:
+            self.parts(node.parts,element(parent,'seg',type='x-selah' if k=='qs' else 'x-introduction-outline-reference'),in_note)
         elif k in {'content', 'body', 'ft', 'heading'}:
             self.parts(node.parts, parent, in_note)
         else:
@@ -217,18 +222,26 @@ class Writer:
         lg = None
         source_list = None
         for index,block in enumerate(blocks):
-            k = block.kind
+            k = {'s':'s1','ms':'ms1','q':'q1','imt':'imt1','pi':'pi1'}.get(block.kind,block.kind)
+            def contains_verse(node):
+                return isinstance(node,Node) and (node.kind=='verse' or any(contains_verse(child) for child in node.parts))
+            if ('.INTRO' not in self.source_chapter and k in {'d','q1','q2','q3','q4','qc','qr'}
+                    and not contains_verse(block) and plain(block).strip()):
+                # Keep unindexed source poetry/superscriptions distinct from
+                # adjacent verses. In particular Psalm acrostic headings must
+                # not become the end of verse 8 or an invented verse zero.
+                k='unindexed-'+k
             note_context=self.note_context
-            if k not in {'q1', 'q2', 'q3', 'q4'}:
+            if k not in {'q1', 'q2', 'q3', 'q4','qr','qc'}:
                 lg = None
-            if k not in {'li1','li2','ili1','ili2'}:source_list=None
-            if k in {'s1', 's2', 's3', 'ms1', 'imt'}:
+            if k not in {'li1','li2','ili1','ili2','io1','io2'}:source_list=None
+            if k in {'s1', 's2', 's3', 'ms1','ms2','imt1','imt2','imt3','is1','qa'} or k.startswith('unindexed-'):
                 following=self.first_verse(blocks[index+1:])
                 if following != self.active_source:self.close(parent)
                 if following:self.note_context=self.verse_ids(following)[0]
-                target = element(parent, 'title', type='x-section',
-                                 level=k[1:] if k.startswith('s') else '1')
-            elif k == 'r':
+                target = element(parent, 'title', type='x-source-'+k if k.startswith('unindexed-') else 'x-acrostic' if k=='qa' else 'x-section',
+                                 level=k[-1] if k[-1].isdigit() else '1')
+            elif k in {'r','mr'}:
                 following=self.first_verse(blocks[index+1:])
                 if following != self.active_source:self.close(parent)
                 if following:self.note_context=self.verse_ids(following)[0]
@@ -237,18 +250,35 @@ class Writer:
                 target = element(parent, 'p')
             elif k in {'pm','nb'}:
                 target=element(parent,'p',type='x-embedded' if k=='pm' else 'x-no-break')
-            elif k in {'li1','li2','ili1','ili2'}:
+            elif k in {'pi1','ipi','pc','lf','iex'}:
+                target=element(parent,'p',type={'pi1':'x-indent-1','ipi':'x-introduction-indented',
+                    'pc':'x-centered','lf':'x-list-footer','iex':'x-explanatory'}[k])
+            elif k in {'li1','li2','ili1','ili2','io1','io2'}:
                 if source_list is None:source_list=element(parent,'list')
                 # USFM states indentation level, not a parent/child relationship.
                 # Keep that level without inventing empty list items or bullets.
-                target=element(source_list,'item',type=f'x-level-{k[-1]}')
+                target=element(source_list,'item',type=f'x-introduction-outline-{k[-1]}' if k.startswith('io') else f'x-level-{k[-1]}')
             elif k == 'd':
                 # Psalm superscription includes an actual numbered verse here.
                 target = element(parent, 'p', type='x-superscription')
-            elif k in {'q1', 'q2', 'q3', 'q4'}:
+            elif k in {'q1', 'q2', 'q3', 'q4','qr','qc'}:
                 if lg is None:
                     lg = element(parent, 'lg')
-                target = element(lg, 'l', level=k[1:])
+                target = element(lg, 'l', level=k[1:] if k[-1].isdigit() else '1',
+                                 **({'type':'x-right-aligned' if k=='qr' else 'x-centered'} if k in {'qr','qc'} else {}))
+            elif k=='table':
+                target=element(parent,'table')
+                for row in block.parts:
+                    if isinstance(row,str) and not row.strip():continue
+                    if not isinstance(row,Node) or row.kind!='row':raise Unsupported('Invalid source table row')
+                    output_row=element(target,'row')
+                    for cell in row.parts:
+                        if isinstance(cell,str) and not cell.strip():continue
+                        if not isinstance(cell,Node) or cell.kind!='cell':raise Unsupported('Invalid source table cell')
+                        output_cell=element(output_row,'cell',**({'role':'label'} if cell.attrs.get('_cell_header')=='true' else {}));self.parts(cell.parts,output_cell)
+                        text(output_cell,'\t')
+                    text(output_row,'\n')
+                continue
             elif k in {'b', 'ib', 'ie'}:
                 if plain(block).strip():
                     raise Unsupported(f'Nonempty layout/end marker: {k}')

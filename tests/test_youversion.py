@@ -17,9 +17,11 @@ from bible.youversion_content import parse,project
 from tools.research.test_yves_source import metadata
 
 
-def edition_metadata():
-    value=metadata();value.update(id=21,vrs='org')
-    value['offline']['url']='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+def edition_metadata(identifier=21):
+    from bible.youversion_editions import EDITIONS
+    value=metadata();value.update(id=identifier,vrs=EDITIONS[identifier][0])
+    value['language']['iso_639_3']=EDITIONS[identifier][2]
+    value['offline']['url']=f'https://offline-bibles-cdn.youversionapi.com/bible/text/offline/{identifier}-7.zip'
     return value
 
 
@@ -30,6 +32,21 @@ class Response(io.BytesIO):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_one_metadata_refusal_keeps_other_editions_and_the_cached_record(self):
+        from bible.catalogue_cache import CatalogueCache
+        from bible.library import catalogues
+        old=resource_from_metadata(edition_metadata(93),93)
+        with tempfile.TemporaryDirectory() as directory:
+            cache=CatalogueCache(directory);cache.write(YOUVERSION,[old])
+            def fetch(url,out,**options):
+                identifier=int(url.rsplit('=',1)[1])
+                if identifier==93:raise urllib.error.HTTPError(url,403,'Refused',{},None)
+                out.write(json.dumps(edition_metadata(identifier)).encode())
+            with patch('bible.library.download',side_effect=fetch):result=catalogues((YOUVERSION,),cache=cache)
+            self.assertEqual(len(result.resources),7)
+            self.assertEqual(next(item for item in result.resources if item.name=='YV93'),old)
+            self.assertIn(YOUVERSION.name,result.errors)
+            self.assertEqual(len(cache.read(YOUVERSION)[0]),7)
     def test_cancellation_terminates_the_isolated_conversion_process(self):
         import subprocess,sys,time
         actual_popen=subprocess.Popen;processes=[];cancel=[False]
@@ -45,10 +62,17 @@ class AcquisitionTests(unittest.TestCase):
         self.assertLess(time.monotonic()-start,3)
         self.assertLess(processes[0].returncode,0)
     def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
-        data=edition_metadata();payload=json.dumps(data).encode();requests=[]
-        def fetch(url,out,**options):requests.append(url);out.write(payload)
-        with patch('bible.library.download',side_effect=fetch):resource,=catalogue(YOUVERSION)
-        self.assertEqual(requests,[YOUVERSION.catalogue_url])
+        from bible.youversion_editions import EDITIONS,METADATA_URL
+        data=edition_metadata();requests=[]
+        def fetch(url,out,**options):
+            requests.append(url);identifier=int(url.rsplit('=',1)[1]);value=edition_metadata()
+            value.update(id=identifier,vrs=EDITIONS[identifier][0]);value['language']['iso_639_3']=EDITIONS[identifier][2]
+            value['offline']['url']=value['offline']['url'].replace('/21-7.zip',f'/{identifier}-7.zip')
+            out.write(json.dumps(value).encode())
+        with patch('bible.library.download',side_effect=fetch):resources=catalogue(YOUVERSION)
+        resource=next(item for item in resources if item.name=='YV21')
+        self.assertEqual(set(requests),{METADATA_URL.format(edition=i) for i in EDITIONS})
+        self.assertEqual(len(requests),7);self.assertEqual(len(resources),7)
         self.assertEqual(resource.id,'youversion~YV21')
         self.assertEqual(resource.versification,'Original')
         self.assertEqual(json.loads(resource.acquisition),data)
@@ -71,6 +95,17 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(cached_download(url,Path(directory),lambda *x:None,lambda:False,
                 opener=lambda *a,**k:self.fail('Unexpected redownload')),path)
             self.assertEqual(len(calls),1)
+
+    def test_damaged_completed_cache_restarts_without_an_invalid_eof_range(self):
+        url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
+        with tempfile.TemporaryDirectory() as directory:
+            cache=Path(directory)
+            path=cached_download(url,cache,lambda *x:None,lambda:False,opener=lambda *a,**k:Response(b'ORIGINAL',url))
+            path.write_bytes(b'DAMAGED!')
+            def restarted(request,**options):
+                self.assertIsNone(request.get_header('Range'))
+                return Response(b'ORIGINAL',url)
+            self.assertEqual(cached_download(url,cache,lambda *x:None,lambda:False,opener=restarted).read_bytes(),b'ORIGINAL')
 
     def test_interrupted_transfer_resumes_with_validator_and_exact_range(self):
         url='https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip'
@@ -154,7 +189,7 @@ class AcquisitionTests(unittest.TestCase):
         resource=resource_from_metadata(edition_metadata())
         with tempfile.TemporaryDirectory() as directory:
             library=Library(Path(directory)/'translations');events=[]
-            def converted(archive,metadata,target,*args):
+            def converted(archive,metadata,target,*args,**options):
                 self.assertEqual(library.installed(),[])
                 (target/'mods.d').mkdir(parents=True)
                 (target/'mods.d/yv21.conf').write_text('[YV21]\nModDrv=RawText\nVersification=Original\nDescription=Synthetic\n')
@@ -163,12 +198,19 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(events,['commit']);self.assertEqual(library.installed(),[resource.id])
             installed=library.resource(resource.id)
             self.assertEqual(installed.acquisition,resource.acquisition)
+            self.assertEqual(installed.conditions,resource.conditions)
             recorded=json.loads((library.root/resource.id/'.source.json').read_text())
             self.assertFalse(recorded['provider_agreement_submitted'])
             with patch('bible.library.download',side_effect=AssertionError('Offline')):library.install(resource)
 
 
 class EditorialTests(unittest.TestCase):
+    def test_empty_declared_verse_and_unindexed_poetry_keep_distinct_identities(self):
+        source=parse('<root><l type="x-centered">HEADING</l><verse osisID="Ps.119.1" sID="Ps.119.1"/><note n="1">NOTE</note><verse eID="Ps.119.1"/></root>')
+        native=parse('<root><?source-unit Ps.119.0?><l type="x-centered">HEADING</l><?source-unit Ps.119.1?><note n="1">NOTE</note></root>')
+        expected=project(source,milestones=True,preverse='Ps.119.0')
+        self.assertEqual(expected,project(native))
+        self.assertEqual(expected[0],{'Ps.119.0':'HEADING','Ps.119.1':''})
     def test_native_poetry_end_milestones_do_not_duplicate_source_roles(self):
         from bible.youversion_content import semantic_roles
         source=parse('<root><l level="1">SOURCE</l></root>')
@@ -193,6 +235,25 @@ class EditorialTests(unittest.TestCase):
         self.assertEqual(data['forward']['3John.1.15'],['3John.1.14!b'])
 
 
+class SourceReaderTests(unittest.TestCase):
+    def test_source_body_preserves_case_and_characters_without_native_display_transforms(self):
+        try:import Sword
+        except ImportError:self.skipTest('Requires SWORD')
+        from tests.fixtures import module_fixture
+        from bible.sword_provider import Reader
+        from bible.youversion_content import normalized
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'youversion~YV21'
+            module_fixture(root,'YV21',[
+                ('John.1.1','<title type="parallel"><reference osisRef="Ps.3.1">EDITORIAL REFERENCE</reference></title><list><item>Exact <divineName>Dieu</divineName> <hi type="emphasis">emphasis</hi> &amp; tail<note n="1.1">PRIVATE EDITORIAL</note>'),
+                ('John.1.2','CONTINUATION</item></list>')])
+            conf=next((root/'mods.d').glob('*.conf'))
+            conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS')+'BibleSource=YouVersion\nGlobalOptionFilter=OSISFootnotes\nGlobalOptionFilter=OSISHeadings\n')
+            loaded=Reader(root,'youversion~YV21').chapter('John.1.1')
+            self.assertEqual([(ref,normalized(text)) for ref,text in loaded.verses],
+                [('John.1.1','Exact Dieu emphasis & tail'),('John.1.2','CONTINUATION')])
+
+
 def original_available():
     try:
         import Sword
@@ -203,6 +264,17 @@ def original_available():
 
 @unittest.skipUnless(original_available(),'Requires the packaged Original native system')
 class OriginalNativeTests(unittest.TestCase):
+    def test_publisher_indexes_preserve_source_bounds_without_guessing_alignment(self):
+        import Sword
+        from bible.versification_mapping import table,to_base
+        from tools.versification.youversion import check
+        check()
+        for system in ('YouVersion93','YouVersion131'):
+            self.assertIsNotNone(table(system))
+            self.assertEqual(to_base('John.1.1',system),[])
+        key=Sword.VerseKey();key.setAutoNormalize(False);key.setVersificationSystem('YouVersion93')
+        key.setText('Mark.10.53');self.assertEqual(key.getOSISRef(),'Mark.10.53')
+        self.assertEqual(key.popError(),'\x00')
     def test_exact_native_bounds_verified_mapping_and_original_note_roundtrip(self):
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader

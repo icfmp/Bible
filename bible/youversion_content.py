@@ -34,27 +34,29 @@ class EditorialNote:
     text: str
 
 
-def project(root, *, milestones=False):
+def project(root, *, milestones=False, preverse=None, normalize=True, editorial=True):
     bodies = defaultdict(list)
     notes, titles = [], []
-    active = None
+    active = preverse
     def visit(node):
         nonlocal active
         if node.tag is E.ProcessingInstruction:
             target, _, reference = (node.text or '').partition(' ')
-            if target == 'source-unit':active = reference
+            if target == 'source-unit':active = reference;bodies.setdefault(active,[])
             return
         name = tag(node)
         if name == 'header':return
         if name == 'verse' and milestones:
-            if node.get('sID'):active = node.get('osisID', '').split()[0]
+            if node.get('sID'):active = node.get('osisID', '').split()[0];bodies.setdefault(active,[])
             elif node.get('eID'):active = None
             return
         if name == 'note':
+            if not editorial:return
             notes.append(EditorialNote(node.get('osisRef') or active or '',
                 node.get('n', ''), node.get('type', ''), normalized(''.join(node.itertext()))))
             return
         if name == 'title':
+            if not editorial:return
             # Preserve notes nested inside headings, without mixing them into
             # the heading or the biblical body.
             parts = []
@@ -70,12 +72,14 @@ def project(root, *, milestones=False):
             visit(child)
             if active and child.tail:bodies[active].append(child.tail)
     visit(root)
-    return {ref:normalized(''.join(parts)) for ref,parts in bodies.items()}, tuple(notes), tuple(titles)
+    projected={ref:(normalized(''.join(parts)) if normalize else ''.join(parts)) for ref,parts in bodies.items()}
+    projected={ref:value for ref,value in projected.items() if value or not ref.endswith('.0')}
+    return projected, tuple(notes), tuple(titles)
 
 
 def semantic_roles(root):
     """Preserve explicit inline styling, quotation/reference and list levels."""
-    accepted={'hi','divineName','transChange','catchWord','name','q','reference','foreign','l','item'}
+    accepted={'hi','divineName','transChange','catchWord','name','q','reference','foreign','l','item','table','row','cell'}
     result=[]
     for node in root.iter():
         name=tag(node)
@@ -84,7 +88,7 @@ def semantic_roles(root):
         if node.get('eID'):continue
         if name in accepted or name=='seg' and node.get('type','').startswith(('x-source-','x-transliteration')):
             attrs=tuple(sorted((key,value) for key,value in node.attrib.items()
-                               if key in ('type','who','marker','level','osisRef')))
+                               if key in ('type','who','marker','level','osisRef','role')))
             result.append((name,attrs))
     return result
 

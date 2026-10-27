@@ -79,6 +79,14 @@ class BinaryTests(unittest.TestCase):
 
 
 class MetadataTests(unittest.TestCase):
+    def test_absent_notice_is_preserved_and_not_inferred_as_public_domain(self):
+        data=metadata();data['copyright_short']={'text':None,'html':None}
+        edition=read_edition(data,VERSION)
+        self.assertEqual(edition.attribution,'')
+        self.assertEqual(edition.metadata,data)
+        data['copyright_short']['text']=['not a notice']
+        with self.assertRaises(Unsupported):read_edition(data,VERSION)
+
     def test_identity_envelope_and_unchanged_agreement(self):
         data = metadata()
         edition = read_edition({'response': {'data': data}}, VERSION)
@@ -115,6 +123,26 @@ class MetadataTests(unittest.TestCase):
             elif mutation=='role':data['books'][0]['chapters'][0]['canonical']=True
             else:data['books'][0]['chapters']=[]
             with self.subTest(mutation=mutation),self.assertRaises(Unsupported):read_edition(data, VERSION)
+
+
+class AdditionalEditionStructures(unittest.TestCase):
+    def test_selah_stays_in_verse_and_unindexed_centered_line_does_not(self):
+        edition=read_edition(metadata(('PSA.3',)),VERSION)
+        encoded=chapter('PSA.3','<div class="q"><span class="verse" data-usfm="PSA.3.1">FIRST <span class="qs">SELAH</span></span></div><div class="qc"><span class="content">UNINDEXED HEADING</span></div><div class="q1"><span class="verse" data-usfm="PSA.3.2">SECOND</span></div>')
+        raw,_=to_osis(parse_chapter(encoded,'PSA.3',edition),edition)
+        from bible.youversion_content import project
+        bodies,_,titles=project(E.fromstring(raw),milestones=True)
+        self.assertEqual(bodies,{'Ps.3.1':'FIRST SELAH','Ps.3.2':'SECOND'})
+        self.assertEqual(titles,('UNINDEXED HEADING',))
+        self.assertNotIn('Ps.3.0',raw.decode())
+
+    def test_introduction_table_preserves_header_cells_and_inline_word_boundaries(self):
+        edition=read_edition(metadata(('JHN.INTRO1',)),VERSION)
+        encoded=chapter('JHN.INTRO1','<div class="imt2">TITLE</div><table class="table"><tr class="row"><th class="cell">HEAD</th><td class="cell">1<span class="ord">er</span> VALUE</td></tr></table>')
+        raw,_=to_osis(parse_chapter(encoded,'JHN.INTRO1',edition),edition)
+        root=E.fromstring(raw);cells=root.findall('.//{'+NS+'}cell')
+        self.assertEqual(cells[0].get('role'),'label')
+        self.assertEqual(''.join(cells[1].itertext()).strip(),'1er VALUE')
 
 
 class TreeTests(unittest.TestCase):

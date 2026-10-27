@@ -612,13 +612,14 @@ class CatalogueWindow(Adw.Window):
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
                 dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
                 dialog.present();return
+        caption=plain(resource.description) if resource.provider_id=='youversion' else resource.name
 
         def installed(_):
             self._completed_resource=resource.id
             self.preparing=True;self.session.reload_installed()
             self.on_installed(resource.id)
             self.filter_resources()
-            self.status.set_text(tr('Installed: {name}').format(name=resource.name))
+            self.status.set_text(tr('Installed: {name}').format(name=caption))
             self.selection_changed()
         installer=self.study_resources if resource.kind=='study' else self.library
         def perform():
@@ -626,7 +627,7 @@ class CatalogueWindow(Adw.Window):
             if resource.provider_id=='youversion':
                 options.update(cancelled=self._cancel.is_set,phase=self.queue_progress,permission=permission)
             return installer.install(resource,self.report_progress,installing=self.begin_installation,**options)
-        self.task(tr('Downloading {name}…').format(name=resource.name),
+        self.task(tr('Downloading {name}…').format(name=caption),
                   perform,
-                  installed, success_text=tr('Installed: {name}').format(name=resource.name),resource=resource)
+                  installed, success_text=tr('Installed: {name}').format(name=caption),resource=resource)
 

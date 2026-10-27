@@ -89,6 +89,9 @@ class Reader:
         if self.module.getConfigEntry('ModDrv') not in self.drivers:
             raise ValueError('Unsupported resource type')
         self.versification = self.module.getConfigEntry('Versification') or 'KJV'
+        short=self.module.getConfigEntry('Abbreviation') or module_name(name)
+        self.short_name=short if isinstance(short,str) and len(short)<=40 and not any(ord(c)<32 for c in short) else module_name(name)
+        self._source_osis=name.startswith('youversion~') and self.module.getConfigEntry('BibleSource')=='YouVersion'
         probe = Sword.VerseKey()
         probe.setVersificationSystem(self.versification)
         if probe.getVersificationSystem() != self.versification:
@@ -176,6 +179,7 @@ class Reader:
         key.setVerse(1)
         first = key.getOSISRef()
         verses = []
+        source_entries=[]
         links=[];previous_entry=None;primary=None;previous_text=None
         for verse in range(1, key.getVerseMax() + 1):
             checkpoint(cancelled)
@@ -188,11 +192,27 @@ class Reader:
                 links.append((reference,primary));verses.append((reference,previous_text))
                 continue
             # SWORD strips source markup. GTK receives plain text only.
-            text = self.module.stripText()
+            text = self.module.getRawEntry() if self._source_osis else self.module.stripText()
             if not isinstance(text, str):
                 text = text.c_str()
+            if self._source_osis:source_entries.append((reference,text));text=''
             verses.append((reference,text))
             previous_entry=self.sword.VerseKey(key);primary=reference;previous_text=text
+        if self._source_osis:
+            # Native StripText applies presentation transforms (emphasis marks,
+            # divine-name casing, parallel-reference text). Our generated OSIS
+            # has already passed full readback: project its actual verse bodies
+            # without changing text or including editorial material. A complete
+            # chapter also respects markup crossing native entry boundaries.
+            from .youversion_content import parse,project
+            intro=self.sword.VerseKey();intro.setVersificationSystem(self.versification)
+            intro.setAutoNormalize(False);intro.setIntros(True);intro.setText(first.rsplit('.',1)[0]+'.0')
+            self.module.setKey(intro);prefix=self.module.getRawEntry()
+            prefix=prefix if isinstance(prefix,str) else prefix.c_str()
+            raw='<root><?source-unit '+first.rsplit('.',1)[0]+'.0?>'+prefix+''.join('<?source-unit '+ref+'?>'+value for ref,value in source_entries)+'</root>'
+            bodies=project(parse(raw),normalize=False,editorial=False)[0]
+            aliases=dict(links)
+            verses=[(ref,bodies.get(aliases.get(ref,ref),'')) for ref,_ in verses]
         key.setText(first)
         key.decrement()
         previous = key.getOSISRef() if key.popError() == '\x00' else None
@@ -213,14 +233,15 @@ class Reader:
         source_type = self.module.getConfigEntry('SourceType') or 'Plaintext'
         result = {}
         parser=None;prefix=()
-        if source_type=='OSIS' and self.versification=='Original':
-            from .structured_text import SourceParser,checked_segments
+        if source_type=='OSIS' and (self.versification=='Original' or self.module.getConfigEntry('BibleSource')=='YouVersion'):
+            from .structured_text import Segment,SourceParser,checked_segments
             parser=SourceParser()
             key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
             key.setIntros(True);key.setAutoNormalize(False);key.setText(chapter.reference+'.0')
             self.module.setKey(key);raw=self.module.getRawEntry()
             parser.feed(raw if isinstance(raw,str) else raw.c_str())
-            prefix=tuple(segment for segment in parser.segments if segment.kind=='heading')
+            prefix=tuple(Segment(segment.text,'heading',segment.styles)
+                         for segment in parser.segments if segment.kind in ('heading','text') and segment.text.strip())
             parser.segments=[]
         for reference, plain in chapter.unique_verses():
             checkpoint(cancelled)

@@ -45,6 +45,10 @@ def details(resource):
                     else tr('Distributed by the source. Download is checked before installation.'))
     if resource.provider_id=='youversion' and not resource.installable:
         availability=tr('No offline package supplied by the source.')
+    numbering=resource.versification
+    if resource.provider_id=='youversion' and numbering.startswith('YouVersion'):
+        numbering=tr('Numbering supplied by this edition')
+        availability+='\n'+tr('Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.')
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
         f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources'}.get(resource.kind,'Bibles')),
@@ -52,7 +56,7 @@ def details(resource):
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
         f'{tr("License")}: {plain(resource.license)}',
-        f'{tr("Verse numbering")}: '+('Original' if resource.provider_id=='youversion' else resource.versification),
+        f'{tr("Verse numbering")}: {numbering}',
         availability,
         f'{tr("Conditions and attribution")}:\n' + (
             plain(resource.conditions) or tr('No additional conditions supplied by the source.')),

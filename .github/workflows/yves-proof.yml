@@ -79,10 +79,18 @@ jobs:
         run: |
           timeout 240s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/research-python" --command=python3 io.github.icfmp.Bible//master -m tools.research.check_yves_samples "$RUNNER_TEMP/private-yves-input/source.zip" --metadata "$RUNNER_TEMP/private-yves-input/metadata.json" --compiler /app/bin/osis2mod --output "$RUNNER_TEMP/private-extended-proof" --extended --gtk --require-packaged
           cp "$RUNNER_TEMP/private-extended-proof/verification.json" reports/raw-extended.json
-      - name: Verify the complete installer, all native content and offline editorial GTK
+      - name: Download and verify all seven reviewed editions inside the installed application
         run: |
-          timeout 300s dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible//master -m tools.research.check_youversion_install "$RUNNER_TEMP/private-yves-input/source.zip" --metadata "$RUNNER_TEMP/private-yves-input/metadata.json" --output "$RUNNER_TEMP/private-installed-edition" --gtk --require-packaged
-          cp "$RUNNER_TEMP/private-installed-edition/verification.json" reports/whole-install.json
+          for edition in 21 93 64 131 1 12 3034; do
+            retained=()
+            if [ "$edition" = 21 ]; then
+              retained=("$RUNNER_TEMP/private-yves-input/source.zip" --metadata "$RUNNER_TEMP/private-yves-input/metadata.json")
+            fi
+            timeout 360s dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/research-python" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible//master -m tools.research.check_youversion_install "${retained[@]}" --version "$edition" --output "$RUNNER_TEMP/private-seven-proof/online-$edition" --shared-profile --independent --gtk --require-packaged
+            cp "$RUNNER_TEMP/private-seven-proof/online-$edition/verification.json" "reports/installed-$edition.json"
+            timeout 240s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible//master -m tools.research.check_youversion_install --version "$edition" --output "$RUNNER_TEMP/private-seven-proof/offline-$edition" --shared-profile --verify-only --gtk --require-packaged
+            cp "$RUNNER_TEMP/private-seven-proof/offline-$edition/verification.json" "reports/offline-$edition.json"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

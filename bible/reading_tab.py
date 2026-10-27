@@ -154,7 +154,7 @@ class ReadingTab(Gtk.Box):
         return self.state.reference if self.state.resource else tr('Choose a passage')
 
     def title(self):
-        return f'{self.passage_title()} — {module_name(self.state.resource)}' if self.state.resource else tr('New tab')
+        return f'{self.passage_title()} — {self.reader.short_name if self.reader else module_name(self.state.resource)}' if self.state.resource else tr('New tab')
 
     def navigate(self, resource, reference):
         try:

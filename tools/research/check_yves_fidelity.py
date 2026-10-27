@@ -24,7 +24,10 @@ def normalized(s):
 
 def suffix(el):
     classes=set(el.get('class','').split())
-    return next((role for role in ('verse','note','label','fr','s1','s2','s3','ms1','r') if role in classes),'')
+    return next((role for role in ('verse','note','label','fr',*HEADING_ROLES) if role in classes),'')
+
+
+HEADING_ROLES=('s','s1','s2','s3','ms','ms1','ms2','r','mr','qa','imt','imt1','imt2','imt3','is1')
 
 
 def remove(el):
@@ -73,6 +76,7 @@ def xml_verses(xml):
         if tag == 'verse':
             if el.get('sID'):
                 active = el.get('osisID')
+                out.setdefault(active,[])
                 active_sid = el.get('sID')
             elif el.get('eID'):
                 if active_sid != el.get('eID'):
@@ -143,7 +147,8 @@ def compiled_chapter(entries):
 
 def check(source: Path, xml: Path, root: Path, module_name: str, reference: str, *, module=None):
     import Sword
-    raw=source.read_bytes();expected,dom=dom_verses(raw,reference);xml_result=xml_verses(xml.read_bytes())
+    raw=source if isinstance(source,bytes) else source.read_bytes()
+    expected,dom=dom_verses(raw,reference);xml_result=xml_verses(xml if isinstance(xml,bytes) else xml.read_bytes())
     manager=None if module is not None else Sword.SWMgr(str(root))
     mod=module if module is not None else manager.getModule(module_name)
     if mod is None:raise AssertionError('SWORD cannot discover the compiled module')
@@ -169,7 +174,9 @@ def check(source: Path, xml: Path, root: Path, module_name: str, reference: str,
         target=canonical_unit(source_ref).split()[0]
         if bodies.get(target,'')!=content:raise AssertionError('SWORD text mismatch: '+source_ref)
     source_notes=[node for node in dom.iter() if suffix(node)=='note']
-    source_titles=[node for node in dom if suffix(node) in {'s1','s2','s3','ms1','r'}]
+    source_titles=[node for node in dom if suffix(node) in HEADING_ROLES or
+                   set(node.get('class','').split())&{'d','q','q1','q2','q3','q4','qc','qr'}
+                   and not any(suffix(child)=='verse' for child in node.iter()) and normalized(''.join(node.itertext()))]
     if len(compiled_notes)!=len(source_notes):raise AssertionError('Note count mismatch')
     for source_note,compiled_note in zip(source_notes,compiled_notes,strict=True):
         cleaned=deepcopy(source_note);locators=[node for node in source_note.iter() if suffix(node)=='fr']
@@ -177,8 +184,9 @@ def check(source: Path, xml: Path, root: Path, module_name: str, reference: str,
             if suffix(child) in {'label','fr'} and child.getparent() is not None:remove(child)
         if normalized(''.join(cleaned.itertext()))!=normalized(''.join(compiled_note.itertext())):
             raise AssertionError('Note body mismatch')
-        if len(locators)!=1 or normalized(''.join(locators[0].itertext()))!=compiled_note.get('n'):
-            raise AssertionError('Note locator mismatch')
+        expected_locator=normalized(''.join(locators[0].itertext())) if len(locators)==1 else ''
+        if len(locators)>1 or expected_locator!=normalized(compiled_note.get('n') or ''):
+            raise AssertionError('Note locator mismatch: '+reference)
     if [heading_text(node,True) for node in source_titles]!=[heading_text(node) for node in compiled_titles]:
         raise AssertionError('Heading text/order mismatch')
     return dict(reference=reference,verses_compared=len(expected),notes_preserved=len(compiled_notes),

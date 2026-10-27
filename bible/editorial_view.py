@@ -20,9 +20,10 @@ def introduction_text(root):
     parts=[]
     def visit(node):
         name=tag(node)
-        block=name in ('div','p','title','l','item')
+        block=name in ('div','p','title','l','item','table','row')
         if block and parts and not parts[-1].endswith('\n'):parts.append('\n\n')
         if name=='lb':parts.append('\n')
+        if name=='cell' and parts and not parts[-1].endswith(('\n','\t')):parts.append('\t')
         if node.text:parts.append(node.text)
         for child in node:
             visit(child)

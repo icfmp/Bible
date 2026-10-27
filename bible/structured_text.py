@@ -27,7 +27,7 @@ class SourceParser(HTMLParser):
         if self.hidden:return
         styles=[]
         if tag=='hi':
-            styles={'italic':['italic'],'emphasis':['italic'],'bold':['bold'],'bolditalic':['bold','italic'],
+            styles={'italic':['italic'],'emphasis':['italic'],'bold':['bold'],'bolditalic':['bold','italic'],'x-bold-italic':['bold','italic'],
                     'small-caps':['small-caps'],'super':['superscript']}.get(attrs.get('type'),[])
         elif tag=='transchange' and attrs.get('type')=='added':styles=['italic']
         elif tag=='divinename':styles=['small-caps']

@@ -101,6 +101,10 @@ class WindowTests(unittest.TestCase):
 
     def window(self, directory):
         from bible.ui import Library, Window
+        # These are interaction/data fixtures. Catalogue network integration is
+        # tested separately; an automatic refresh must not race a local transfer
+        # or turn a four-second GTK assertion into an external HTTP timeout.
+        self.enterContext(patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False))
         window = Window(self.app, Library(Path(directory) / 'translations'))
         # These regression fixtures cover multiple languages, independently of
         # the locale-default contract exercised by test_library_polish.

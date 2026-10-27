@@ -3,6 +3,11 @@ import locale
 import os
 
 FR = {
+    'Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.':'La correspondance automatique des versets avec les autres éditions est indisponible. La lecture en parallèle indépendante reste disponible.',
+    'Translation conversion or verification failed. No resource was installed.':'La conversion ou la vérification de la traduction a échoué. Aucune ressource n’a été installée.',
+    'Confirm the source conditions before downloading.':'Confirmez les conditions de la source avant le téléchargement.',
+    'Source conditions or edition changed. Refresh the catalogue and review them again.':'L’édition ou les conditions de la source ont changé. Actualisez le catalogue et vérifiez-les à nouveau.',
+    'Numbering supplied by this edition':'Numérotation fournie par cette édition',
     'No offline package supplied by the source.':'Aucun fichier hors connexion fourni par la source.',
     'Download from Bible.com?':'Télécharger depuis Bible.com ?',
     'I have the required permission':'Je dispose de l’autorisation requise',

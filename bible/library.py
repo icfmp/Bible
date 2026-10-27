@@ -143,8 +143,9 @@ def download(url, destination, progress=lambda done, total: None, limit=MAX_ARCH
     request = urllib.request.Request(url, headers={'User-Agent': 'Bible-prototype/0.1',**(headers or {})})
     opener=urllib.request.urlopen
     if same_origin:
-        from .youversion_install import SourceRedirect
-        opener=urllib.request.build_opener(SourceRedirect()).open
+        from .youversion_install import SourceRedirect,open_response
+        open_source=urllib.request.build_opener(SourceRedirect()).open
+        opener=lambda request,timeout:open_response(open_source,request,lambda:False)
     with opener(request, timeout=30) as response:
         if not response.url.startswith('https://'):
             raise ValueError('HTTPS required')
@@ -179,22 +180,18 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     data = io.BytesIO()
     if provider not in PROVIDERS:
         raise ValueError('Unsupported resource source')
+    if provider.id=='youversion':
+        from .youversion_install import catalogue as editions
+        return editions(timings)
     response_headers={}
     headers={name:validators[key] for key,name in [('ETag','If-None-Match'),('Last-Modified','If-Modified-Since')]
              if validators and key in validators}
     if timings is not None:timings.update(requests=1,metadata_bytes=0)
     try:
-        options={'same_origin':True} if provider.id=='youversion' else {}
-        download(provider.catalogue_url, data, limit=8 * 1024 * 1024,headers=headers,response_headers=response_headers,**options)
+        download(provider.catalogue_url, data, limit=8 * 1024 * 1024,headers=headers,response_headers=response_headers)
     finally:
         if timings is not None:timings.update(metadata_bytes=data.tell(),network_seconds=time.monotonic()-started)
     received=time.monotonic()
-    if provider.id == 'youversion':
-        from .youversion_install import resource_from_metadata
-        resources = [resource_from_metadata(json.loads(data.getvalue()))]
-        if timings is not None:timings.update(parse_seconds=time.monotonic()-received,
-                http_status=200,validators=response_headers)
-        return resources
     resources = []
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data.getvalue()), mode='r:gz') as archive:
@@ -234,10 +231,14 @@ def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
         try:
             validators=cache.validators.get(provider.id,{}) if cache and cached else {}
             items=catalogue(provider,timings=timings,**({'validators':validators} if validators else {}))
+            edition_errors=timings.get('edition_errors',{})
+            if edition_errors and cached:
+                missing={'YV'+identifier for identifier in edition_errors}
+                items=[*items,*(item for item in cached[0] if item.name in missing)]
             if cache:
                 try:cache.write(provider,items,validators=timings.get('validators'))
                 except OSError as error:timings['cache_error']=str(error)
-            return items,None,timings
+            return items,'; '.join(f'{key}: {value}' for key,value in edition_errors.items()) or None,timings
         except Exception as error:
             import urllib.error
             if isinstance(error,urllib.error.HTTPError) and error.code==304 and cached and error.geturl().startswith('https://'):
@@ -310,6 +311,13 @@ class Library:
             raise ValueError('Installed source identity mismatch')
         if internal not in parser:raise ValueError('Installed module configuration is missing')
         resource = resource_from_section(internal, parser[internal], provider)
+        if provider_id=='youversion':
+            from .youversion_install import resource_from_metadata
+            from .youversion_editions import edition_id
+            original=resource_from_metadata(json.loads(metadata.get('acquisition','')),edition_id(internal))
+            if (resource.driver,resource.versification)!=(original.driver,original.versification):
+                raise ValueError('Installed source configuration mismatch')
+            resource=original
         # Read the recorded attribution, not today's registry URL, offline.
         return replace(resource, source=metadata.get('source', resource.source),
                        source_url=metadata.get('url', resource.source_url),

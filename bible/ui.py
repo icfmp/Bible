@@ -635,7 +635,7 @@ class Window(Adw.ApplicationWindow):
         for name in ['copy-passage','copy-with-reference','copy-reference']:
             self.lookup_action(name).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
         self.heading.set_title(tab.passage_title())
-        subtitle = module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
+        subtitle = tab.reader.short_name if tab.reader else module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
         if tab.state.resource and tab.state.resource not in self.library.installed():
             subtitle += f' ({tr("Missing translation")})'
         self.heading.set_subtitle(subtitle)
@@ -769,7 +769,11 @@ class Window(Adw.ApplicationWindow):
         self.study_button.set_active(visible)
         if self.active_tab:
             self.active_tab.state.study_visible = visible
-            if visible:self.study.update_indicator()
+            if visible:
+                # Child mapping can precede show-sidebar's final value. Refresh
+                # after notification as well as on map, including a restored
+                # tool whose selection has not changed while hidden.
+                self.study.refresh();self.study.update_indicator()
             else:self.active_tab.mark_commentary_range(None,None)
         self._syncing_study = False
         self.schedule_save()

@@ -50,7 +50,7 @@ class EditorialUITests(unittest.TestCase):
         from tests.test_ui import installed_fixture,spin,close_test_dialogs
         import Sword
         with tempfile.TemporaryDirectory() as directory:
-            root=installed_fixture(directory,entries=[('John.1.1','<p>TEXT <hi type="italic">STYLE</hi><note n="1.1" osisRef="John.1.1" type="study">EDITORIAL ONLY</note></p>'),('John.1.2','SECOND TEXT'),('John.2.1','NEXT TEXT')])
+            root=installed_fixture(directory,entries=[('John.1.1','<p>TEXT <hi type="italic">STYLE</hi><note n="1.1" osisRef="John.1.1" type="study">EDITORIAL ONLY</note></p>'),('John.1.2','SECOND TEXT'),('John.2.1','NEXT TEXT<note n="2.1">SECOND EDITORIAL</note>')])
             conf=next((root/'mods.d').glob('*.conf'))
             conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS')+'GlobalOptionFilter=OSISFootnotes\n')
             window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin()
@@ -67,6 +67,11 @@ class EditorialUITests(unittest.TestCase):
                     self.assertEqual(read.call_count,calls)
                     window.study_button.set_active(False);spin();window.study.translation_notes.refresh(force=True)
                     self.assertEqual(read.call_count,calls)
+                    tab.show('John.2.1');spin()
+                    self.assertEqual(read.call_count,calls)
+                    window.study_button.set_active(True)
+                    spin(lambda:'SECOND EDITORIAL' in window.study.translation_notes.text.get_buffer().props.text)
+                    self.assertEqual(read.call_count,calls+1)
                 self.assertNotIn('EDITORIAL ONLY',tab.text.get_buffer().props.text)
                 self.assertEqual(window.notes_store.all(),before)
                 self.assertEqual(window.study_settings.tool,'translation-notes')

@@ -60,10 +60,16 @@ def read_edition(data, expected_id):
     language = _string(language.get('iso_639_3'), 'language')
     if not re.fullmatch(r'[a-z]{3}', language):
         raise Unsupported('Unsupported language identifier')
-    copyright = data.get('copyright_short')
-    if not isinstance(copyright, dict):
-        raise Unsupported('Missing edition attribution')
-    attribution = _string(copyright.get('text'), 'edition attribution')
+    notices=[]
+    for name in ('copyright_short','copyright_long','reader_footer'):
+        notice=data.get(name)
+        if notice is None:continue
+        if not isinstance(notice,dict) or notice.get('text') is not None and not isinstance(notice['text'],str):
+            raise Unsupported('Invalid edition attribution')
+        if notice.get('text'):notices.append(notice['text'])
+    # Several actual public editions return null notices. Keep that absence;
+    # never manufacture a copyright statement or permission from it.
+    attribution=next(iter(notices),'')
     books = data.get('books')
     if not isinstance(books, list) or not books or len(books) > 200:
         raise Unsupported('Invalid book inventory')
@@ -311,10 +317,13 @@ def _semantic(node):
             attrs['_note_type'] = 'crossReference'
     else:
         raise Unsupported('Unreviewed semantic classes')
-    if node['tag'] not in {'div', 'span', 'br'} or kind not in BLOCK | INLINE:
+    expected_table_tags={'table':{'table'},'row':{'tr'},'cell':{'td','th'}}.get(kind)
+    if (node['tag'] not in {'div', 'span', 'br'} and not (expected_table_tags and node['tag'] in expected_table_tags)
+            or expected_table_tags and node['tag'] not in expected_table_tags or kind not in BLOCK | INLINE):
         raise Unsupported('Unreviewed source semantic structure')
     if set(attrs) - {'class', 'data-usfm', 'id', '_note_type'}:
         raise Unsupported('Unreviewed source attributes')
+    if kind=='cell' and node['tag']=='th':attrs['_cell_header']='true'
     parts = [part for child in node.get('children', []) if (part := _semantic(child)) is not None]
     return Node(kind, attrs, parts)
 
