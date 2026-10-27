@@ -84,6 +84,7 @@ class EditorialUITests(unittest.TestCase):
         from bible.youversion_content import parse
         import Sword
         self.assertEqual(introduction_text(parse('<root><p>1<hi type="super">er</hi> document</p><p>Suite</p></root>')),'1er document\n\nSuite')
+        self.assertEqual(introduction_text(parse('<root><div><p>1<hi type="super">er</hi> document</p></div>\n<div><p>Suite</p></div></root>')),'1er document\n\nSuite')
         with tempfile.TemporaryDirectory() as directory:
             root=installed_fixture(directory,entries=[('John.1.1','READING DATA')])
             module=Sword.RawText(str(root/'modules/texts/rawtext/test'),'Test','Synthetic')

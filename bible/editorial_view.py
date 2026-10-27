@@ -5,6 +5,7 @@ from gi.repository import Adw,Gtk
 from .i18n import tr
 from .youversion_content import tag
 from xml.etree.ElementTree import ParseError
+import re
 
 
 def text_view(label):
@@ -30,7 +31,9 @@ def introduction_text(root):
             if child.tail:parts.append(child.tail)
         if block:parts.append('\n\n')
     visit(root)
-    return ''.join(parts).strip()
+    # Native OSIS wraps introduction paragraphs in nested block divisions.
+    # Their boundaries describe one paragraph break, not stacked blank lines.
+    return re.sub(r'\n(?:[ \t\r]*\n)+','\n\n',''.join(parts)).strip()
 
 
 def show_introduction(parent,reader,book):
