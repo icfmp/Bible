@@ -140,7 +140,7 @@ def main():
                         palette(mode,name,style);w.set_default_size(width,900);spin();t.navigate('FreBDM1707','Gen.6.1');settled();w.study_button.set_active(False);w.enter_immersion('bible');v=w.immersion;spin(lambda:v.layout_ready,timeout=90);v.hide_controls();spin(duration=.5)
                         prefix='immersion-'+name;shot(prefix+'-start');video=None;inputs=[]
                         try:
-                            video=subprocess.Popen(['ffmpeg','-y','-loglevel','error','-f','x11grab','-framerate','60','-video_size',f'{screen.width}x{screen.height}','-i',os.environ['DISPLAY'],'-c:v','libx264','-preset','ultrafast','-crf','18','-pix_fmt','yuv420p',str(args.output/(prefix+'.mp4'))],stdin=subprocess.DEVNULL)
+                            video=subprocess.Popen(['ffmpeg','-y','-loglevel','error','-f','x11grab','-framerate','60','-video_size',f'{screen.width}x{screen.height}','-i',os.environ['DISPLAY'],'-c:v','libvpx-vp9','-deadline','realtime','-cpu-used','8','-row-mt','1','-crf','24','-b:v','0','-pix_fmt','yuv420p',str(args.output/(prefix+'.webm'))],stdin=subprocess.DEVNULL)
                             spin(duration=.4)
                             for key in ['Right','Left','Right','Right','Left','Left']:
                                 before=v.stream.cursor;n.key(key);spin(duration=.35);inputs.append(dict(key=key,turned=v.stream.cursor!=before))

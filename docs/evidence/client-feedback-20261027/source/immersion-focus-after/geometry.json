@@ -1,0 +1,460 @@
+{
+  "environment": "Source code with GTK 4.20 runtime, NOT installed Flatpak",
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 767.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 133.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 251,
+          "address": "PageAddress(key='Gen', index=46)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 618
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 426,
+          "address": "PageAddress(key='Gen', index=47)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.1', offset=0, at_body=False, spacing=0)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 427,
+          "address": "PageAddress(key='Gen', index=48)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 414,
+          "address": "PageAddress(key='Gen', index=49)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.4', offset=149, at_body=True, spacing=0)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 767.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 133.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 251,
+          "address": "PageAddress(key='Gen', index=46)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 618
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 426,
+          "address": "PageAddress(key='Gen', index=47)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.1', offset=0, at_body=False, spacing=2)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 427,
+          "address": "PageAddress(key='Gen', index=48)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 414,
+          "address": "PageAddress(key='Gen', index=49)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.4', offset=149, at_body=True, spacing=0)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 439,
+          "address": "PageAddress(key='Gen', index=50)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 439,
+          "address": "PageAddress(key='Gen', index=51)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.12', offset=39, at_body=True, spacing=0)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 427,
+          "address": "PageAddress(key='Gen', index=48)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 414,
+          "address": "PageAddress(key='Gen', index=49)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.4', offset=149, at_body=True, spacing=0)",
+      "controls": false
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "reading_box": [
+        112,
+        676.25
+      ],
+      "capacity": 708.75,
+      "geometry": [
+        564,
+        780,
+        2
+      ],
+      "glyph_lines": [
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 767.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 133.0,
+          "view_origin": [
+            204.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 251,
+          "address": "PageAddress(key='Gen', index=46)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 618
+        },
+        {
+          "first_line_top": 112.0,
+          "last_line_bottom": 788.0,
+          "top_clearance": 112.0,
+          "bottom_clearance": 112.0,
+          "view_origin": [
+            816.0,
+            48.0
+          ],
+          "view_size": [
+            580,
+            804
+          ],
+          "top_margin": 64,
+          "characters": 426,
+          "address": "PageAddress(key='Gen', index=47)",
+          "buffer_first_y": 0,
+          "buffer_last_y": 639
+        }
+      ],
+      "anchor": "Anchor(reference='Gen.6.1', offset=0, at_body=False, spacing=2)",
+      "controls": false
+    }
+  ],
+  "inputs": [
+    {
+      "key": "Right",
+      "time": 0.5026371940039098,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    },
+    {
+      "key": "Left",
+      "time": 1.014732624986209,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    },
+    {
+      "key": "Right",
+      "time": 1.5203833960113116,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    },
+    {
+      "key": "Right",
+      "time": 2.0315347900032066,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    },
+    {
+      "key": "Left",
+      "time": 2.553777718974743,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    },
+    {
+      "key": "Left",
+      "time": 3.065136153018102,
+      "turned": true,
+      "focus": "ContextTextView",
+      "focus_visible": true
+    }
+  ]
+}

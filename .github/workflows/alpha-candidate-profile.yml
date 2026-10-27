@@ -131,6 +131,7 @@ jobs:
             run_case "$version-comparison" --mode comparison --cycles 2
             run_case "$version-study" --mode study --cycles 2
             run_case "$version-toolbar-native" --toolbar --cycles 2
+            run_case "$version-toolbar-scrollbar" --toolbar --input-kind scrollbar --cycles 2
             run_case "$version-toolbar-disabled" --toolbar --backdrop disabled --cycles 2
             run_case "$version-python" --instrument --mode combined --input-kind scrollbar --cycles 2
             perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)

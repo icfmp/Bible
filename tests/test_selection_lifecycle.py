@@ -53,6 +53,23 @@ class SelectionLifecycleTests(unittest.TestCase):
                 self.assertTrue(a.bar.get_visible());self.assertTrue(a.valid())
                 self.assertEqual(a.target.references,('Gen.1.2','Gen.1.3'))
                 n.wheel(v,1);self.assertFalse(a.bar.get_visible());self.assertEqual(a.capture_idle,0)
+                # A real scrollbar press must release the same blur/capture
+                # lifetime before the first drag motion, without stealing GTK's
+                # native gesture. Programmatic adjustment changes are separate.
+                adjustment=t.scroll.get_vadjustment();adjustment.set_value(0);spin(duration=.2)
+                begin=t._marker_ends['Gen.1.1']+4
+                b.select_range(b.get_iter_at_offset(begin),b.get_iter_at_offset(begin+8))
+                a.capture(v,lambda:a.ordinary(t),None);spin();self.assertTrue(a.bar.get_visible())
+                track=t.scroll.get_vscrollbar().get_first_child();low,high=track.get_slider_range()
+                y=(low+high)/2;x=track.get_width()/2
+                n.move_at(track,x,y);spin(duration=.1)
+                n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.04)
+                self.assertFalse(a.bar.get_visible());self.assertIsNone(a.bar.backdrop)
+                self.assertEqual(a.capture_idle,0);self.assertEqual(a.adapt_tick,0)
+                n.move_at(track,x,min(track.get_height()-4,y+100));spin(duration=.1)
+                n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);spin(duration=.2)
+                self.assertGreater(adjustment.get_value(),0)
+                b.place_cursor(b.get_start_iter())
                 v.scroll_to_iter(b.get_iter_at_offset(t._marker_ends['Gen.1.1']),0,True,0,.1);spin(duration=.2)
                 for backward in (False,True,False,True):
                     first=point(v,t._marker_ends['Gen.1.3' if backward else 'Gen.1.1']+4)
