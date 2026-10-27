@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "edition": 64,
+  "title": "Bible J.N. Darby",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": null,
+  "source_numbering": "org",
+  "native_numbering": "Original",
+  "archive_sha256": "6a020c7cde7054beed6ce364b8e5764c1fd557b07619e07b9d022dd7b0678ff5",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 0.002660433000073681,
+  "conversion_child_peak_rss_kib": 0,
+  "phases": {},
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 3,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": false,
+  "actual_archive_download_in_application": false,
+  "transfer": {
+    "bytes": 0,
+    "total": 0,
+    "seconds": 0
+  },
+  "offline_verification_only": true,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}
