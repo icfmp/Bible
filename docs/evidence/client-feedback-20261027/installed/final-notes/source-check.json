@@ -1,0 +1,10 @@
+{
+  "source": "378146fac2e36fb45f615df427aecad34cbba2d0",
+  "previous_source": "30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8",
+  "changed_files": [
+    "bible/notes_window.py",
+    "tests/test_annotation_workspace.py"
+  ],
+  "production_delta": "Select the actual list record when its annotation context is displayed. No reading, pagination, map, input, blur or packaging code changed.",
+  "ci_run": 41331855804
+}
