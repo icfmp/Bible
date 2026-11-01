@@ -32,12 +32,12 @@ jobs:
           assert len(old['archives'])==41
           for attempt in range(360):
               pr=api('repos/icfmp/Bible/pulls/135')
-              assert pr['head']['sha']=='378146fac2e36fb45f615df427aecad34cbba2d0'
+              assert pr['head']['sha']=='112f42a9db66db0b88fad44da990ad6af666a623'
               if pr['merged']:
                   source=pr['merge_commit_sha'];provenance=public('provenance.json')
                   if provenance['source_commit']==source and provenance['packaging_revision'].endswith('-2'):
                       publication=api('repos/icfmp/Bible/actions/runs/'+provenance['packaging_revision'].split('-')[0])
-                      signed=api('repos/icfmp/Bible/actions/runs/41332151449')
+                      signed=api('repos/icfmp/Bible/actions/runs/41333835468')
                       if publication['status']=='completed' and signed['status']=='completed':
                           assert publication['conclusion']=='success' and signed['conclusion']=='success',(publication['conclusion'],signed['conclusion'])
                           break
