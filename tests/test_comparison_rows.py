@@ -29,16 +29,25 @@ class ComparisonRowsTests(unittest.TestCase):
                 tab=window.active_tab;tab.navigate('Primary','Gen.1.1')
                 tab.state.comparison='Secondary';window.sync_comparison();spin(duration=.6)
                 def aligned():
+                    # Native origins matter: equal buffer coordinates can still
+                    # differ on screen when one source heading wraps.
+                    origins=[view.compute_bounds(window)[1].get_y() for view in (tab.text,tab.comparison_text)]
+                    self.assertAlmostEqual(*origins,delta=1)
                     for row in tab.comparison_rows.rows:
                         if not row.primary or not row.secondary:continue
                         values=[view.get_iter_location(view.get_buffer().get_iter_at_offset(markers[refs[0]])).y
                                 for view,markers,refs in [(tab.text,tab._marker_ends,row.primary),
                                                           (tab.comparison_text,tab._comparison_markers,row.secondary)]]
                         self.assertAlmostEqual(*values,delta=1)
-                aligned()
+                tab.primary_heading.set_text('Short source')
+                tab.comparison_heading.set_text('A long source description with attribution and reference '*4)
+                spin(duration=.6);aligned()
                 copies=[doc.copy(0,len(doc.text)) for doc in (tab._document,tab._comparison_document)]
                 for width,size in [(900,24),(1280,32)]:
-                    window.set_default_size(width,850);window.appearance.update('size',size);spin(duration=.6);aligned()
+                    window.set_default_size(width,850);window.appearance.update('size',size)
+                    tab.primary_heading.set_text('Short source')
+                    tab.comparison_heading.set_text('A long source description with attribution and reference '*4)
+                    spin(duration=.6);aligned()
                 for doc,name in [(tab._document,'Primary'),(tab._comparison_document,'Secondary')]:
                     text=doc.copy(0,len(doc.text))
                     for verse in range(1,32):self.assertEqual(text.count(f'{name} UNIQUE{verse} '),1)
