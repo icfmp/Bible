@@ -162,7 +162,8 @@ class Reader:
             raise ValueError('No readable indexed passage in resource')
         book = self.books[0]
         chapter = next(iter(book.chapters))
-        return f'{book.code}.{chapter}.{book.chapters[chapter][0]}'
+        verse=self.source_verse_order.get(f'{book.code}.{chapter}',book.chapters[chapter])[0]
+        return f'{book.code}.{chapter}.{verse}'
 
     def neighbours(self, reference):
         chapter = self.key(reference).getOSISRef().rsplit('.', 1)[0]

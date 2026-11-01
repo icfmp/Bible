@@ -56,8 +56,8 @@ class NativeSourceIndexTests(unittest.TestCase):
             'JHN.INTRO1':'<div class="iot">Synthetic outline</div><div class="io3"><span class="pn">Synthetic name</span></div>',
             'JHN.1':'<div class="s1">Synthetic heading</div><div class="nb">Unnumbered synthetic prefix.'
                     '<span class="note x"><span class="fk">Synthetic keyword</span> Synthetic chapter note.</span></div>'
-                    '<div class="p"><span class="verse" data-usfm="JHN.1.1">Synthetic first verse.</span>'
-                    '<span class="verse" data-usfm="JHN.1.5"><span class="sls">Synthetic moved verse.</span></span>'
+                    '<div class="p"><span class="verse" data-usfm="JHN.1.5"><span class="sls">Synthetic moved verse.</span></span>'
+                    '<span class="verse" data-usfm="JHN.1.1">Synthetic first verse.</span>'
                     '<span class="verse" data-usfm="JHN.1.3+JHN.1.4">Synthetic linked unit.</span></div>'}
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);archive=root/'source.zip';source=root/'metadata.json'
@@ -69,13 +69,13 @@ class NativeSourceIndexTests(unittest.TestCase):
             target=root/'module'
             with patch('bible.youversion_worker.emit'):build(archive,source,target,compiler,identifier)
             reader=Reader(target,'youversion~YV900083');loaded=reader.chapter('John.1.1')
-            self.assertEqual(reader.first_reference(),'John.1.1');self.assertTrue(reader.rtl)
+            self.assertEqual(reader.first_reference(),'John.1.5');self.assertTrue(reader.rtl)
             self.assertEqual([book.code for book in reader.books],['John'])
             self.assertEqual({ref:normalized(value) for ref,value in loaded.unique_verses()},
                              {'John.1.1':'Synthetic first verse.','John.1.5':'Synthetic moved verse.','John.1.3':'Synthetic linked unit.'})
-            self.assertEqual([ref for ref,_ in loaded.verses],['John.1.1','John.1.5','John.1.3','John.1.4'])
+            self.assertEqual([ref for ref,_ in loaded.verses],['John.1.5','John.1.1','John.1.3','John.1.4'])
             self.assertEqual(loaded.links,(('John.1.4','John.1.3'),))
-            segments=reader.structured_chapter(loaded)['John.1.1']
+            segments=reader.structured_chapter(loaded)['John.1.5']
             self.assertIn('Unnumbered synthetic prefix.',''.join(s.text for s in segments))
             self.assertIsNotNone(reader.introduction('John'))
             self.assertEqual(reader.editorial_notes('John.1.1')[0].reference,'John.1')

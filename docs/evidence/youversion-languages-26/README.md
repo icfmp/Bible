@@ -42,7 +42,7 @@ Reference indexes reject malformed bounds and conflicting replacement while nati
 | Partial Sacy edition | [image](local-gtk/edition-2599-white.png) | [image](local-gtk/edition-2599-dark.png) |
 | Narrow window | [image](local-gtk/edition-small-white.png) | [image](local-gtk/edition-small-dark.png) |
 
-Local targeted checks currently pass: 57 source/native tests and 30 GTK/catalogue tests. New tests exercise asynchronous metadata, cache preservation, exact generic conversion, NT-only canons, moved verses, absent/linked verses, unnumbered notes, RTL, tamper/conflict refusal, metadata hydration and acknowledgement before any archive request. The installed proof additionally reruns all seven historical editions.
+Local targeted checks currently pass: 57 source/native tests and 32 GTK/catalogue tests. New tests exercise asynchronous metadata, cache preservation, exact generic conversion, NT-only canons, moved verses, absent/linked verses, unnumbered notes, RTL, tamper/conflict refusal, metadata hydration, actual attribution display, reuse between detail/download, and acknowledgement before any archive request. Six additional [offline GTK receipts](local-offline-gtk.json) verify real independent parallel reading and the translation-note study panel while preserving all existing module files, a personal note and preferences. The installed proof additionally reruns all seven historical editions.
 
 ## Limits and remaining verification
 

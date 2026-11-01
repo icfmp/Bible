@@ -52,6 +52,7 @@ class CatalogueWindow(Adw.Window):
         self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
         self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
         self._pending_resource=None
+        self._edition_details={}
         self._bound_rows={};self._task_resource=None;self._cancel=Event()
         self._install_started=False
         self.open_context=None
@@ -330,6 +331,9 @@ class CatalogueWindow(Adw.Window):
         self.pages.set_visible_child_name('detail');self.back_button.set_visible(True)
         self.metadata.select_region(0, 0)
         self.back_button.grab_focus()
+        resource=self.selected_resource()
+        if resource and resource.provider_id=='youversion' and json.loads(resource.acquisition).get('_catalogue_summary'):
+            self.load_edition_details(resource)
 
     def reveal_study_resource(self,identifier):
         self.back_to_list()
@@ -439,7 +443,26 @@ class CatalogueWindow(Adw.Window):
 
     def selected_resource(self):
         index = self.choices.get_selected()
-        return self.filtered_resources[index] if index < len(self.filtered_resources) else self._pending_resource if self._building_rows else None
+        resource=self.filtered_resources[index] if index < len(self.filtered_resources) else self._pending_resource if self._building_rows else None
+        return self.known_edition_details(resource)
+
+    def known_edition_details(self,resource):
+        if resource:
+            cached=self._edition_details.get(resource.id)
+            if cached and cached[0]==resource.acquisition and time.monotonic()-cached[2]<900:return cached[1]
+        return resource
+
+    def load_edition_details(self,resource,finished=None):
+        from .youversion_install import fetch_resource
+        from .youversion_editions import edition_id
+        def ready(actual):
+            if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
+            if actual.language!=resource.language:raise ValueError('Source edition language changed')
+            self._edition_details[resource.id]=(resource.acquisition,actual,time.monotonic())
+            self.selection_changed()
+            if finished:finished(actual)
+        self.task(tr('Loading edition details…'),lambda:fetch_resource(edition_id(resource.name)),ready,
+                  resource=resource,executor=self.session.network)
 
     def language_label(self,code):return self._language_records[code][0] if code in self._language_records else language_name(code)
 
@@ -490,7 +513,7 @@ class CatalogueWindow(Adw.Window):
         self.executor.shutdown(wait=False, cancel_futures=True)
         return False
 
-    def task(self, message, action, finished, success_text=None, resource=None):
+    def task(self, message, action, finished, success_text=None, resource=None,executor=None):
         if self._transfer_busy:
             return
         self._transfer_busy = True
@@ -507,7 +530,7 @@ class CatalogueWindow(Adw.Window):
         self.progress.set_text(tr(message))
         self._pulse_id = GLib.timeout_add(80, self.animate_progress)
         self.refresh_controls()
-        future = self.executor.submit(action)
+        future = (executor or self.executor).submit(action)
 
         def complete():
             if self.closed:
@@ -609,19 +632,16 @@ class CatalogueWindow(Adw.Window):
             self._pending_progress=(self._task_id,'preparing' if self._task_resource==STEP_RESOURCE_ID else 'installing',0,0)
 
     def install(self, *_, resource=None, permission=None):
-        resource = resource or self.selected_resource()
+        resource = self.known_edition_details(resource) if resource else self.selected_resource()
         if not resource or not resource.installable or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
             return
 
         if resource.provider_id=='youversion':
             if json.loads(resource.acquisition).get('_catalogue_summary'):
-                from .youversion_install import fetch_resource
-                from .youversion_editions import edition_id
                 def ready(actual):
-                    if actual.language!=resource.language:raise ValueError('Source edition language changed')
                     if not actual.installable:raise ValueError(tr('No offline package supplied by the source.'))
                     self.install(resource=actual)
-                self.task(tr('Loading edition details…'),lambda:fetch_resource(edition_id(resource.name)),ready,resource=resource)
+                self.load_edition_details(resource,ready)
                 return
             from .youversion_install import acknowledgement
             if permission!=acknowledgement(resource):
@@ -632,6 +652,17 @@ class CatalogueWindow(Adw.Window):
                 message+=' '+tr('Bible does not submit an agreement or claim provider approval.')
                 dialog=Adw.MessageDialog.new(self,tr('Download from Bible.com?'),
                     message)
+                data=json.loads(resource.acquisition);notices=[]
+                for key in ('copyright_short','copyright_long','reader_footer'):
+                    value=data.get(key)
+                    if isinstance(value,dict) and isinstance(value.get('text'),str):
+                        notice=plain(value['text'])
+                        if notice and notice not in notices:notices.append(notice)
+                if notices:
+                    label=Gtk.Label(label='\n\n'.join(notices),wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,selectable=True,xalign=0)
+                    scroll=Gtk.ScrolledWindow(min_content_height=80,max_content_height=180,
+                        propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+                    scroll.set_child(label);dialog.set_extra_child(scroll)
                 dialog.add_response('cancel',tr('Cancel'));dialog.add_response('download',tr('I have the required permission'))
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
                 dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
