@@ -1,0 +1,24 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "sections": {
+    "comparison": [
+      {
+        "palette": "white",
+        "rows": 51,
+        "maximum_body_delta_pixels": 408.0
+      },
+      {
+        "palette": "dark",
+        "rows": 51,
+        "maximum_body_delta_pixels": 408.0
+      }
+    ]
+  },
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "renderer": "GLRenderer"
+}
