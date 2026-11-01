@@ -1,0 +1,27 @@
+name: Retire superseded short signed-update verification
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-retire-duplicate-check.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  retire:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Keep the extended retained-profile check and cancel its shorter duplicate
+        run: |
+          python3 - <<'PY'
+          import json,subprocess
+          def run(n):return json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(n)],text=True))
+          extended=run(41333835468);short=run(41333808260)
+          assert extended['path']==short['path']=='.github/workflows/alpha-signed-update-feedback.yml'
+          assert extended['head_branch']=='verify/feedback-completion' and extended['status']=='in_progress'
+          assert short['head_branch']=='feat/client-feedback-reading' and short['head_sha']=='112f42a9db66db0b88fad44da990ad6af666a623'
+          if short['status']!='completed':subprocess.run(['gh','run','cancel','41333808260','--repo','icfmp/Bible'],check=True)
+          print('The extended signed-update run 41333835468 remains active; only its superseded shorter duplicate is retired.')
+          PY
