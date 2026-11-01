@@ -1,0 +1,8 @@
+{
+  "commit": "d9c9791c509a3d51b334ddae5cbab2c2eebe9993",
+  "architecture": "x86_64",
+  "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master",
+  "prerequisites": "success",
+  "ci": "https://github.com/icfmp/Bible/actions/runs/41336913137",
+  "sha256": "4d0faf0a1466cba6f9192da727dbc9359538e4339f7725ceb7a00de26ab7760c"
+}
