@@ -110,7 +110,9 @@ jobs:
         run: |
           set -euo pipefail
           for version in current candidate; do
-            flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
+            if [ "$version" = candidate ]; then
+              flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
+            fi
             cp -a "$RUNNER_TEMP/feedback-visuals/shared-proof-profile" "$RUNNER_TEMP/feedback-visuals/$version"
             baseline=()
             if [ "$version" = current ]; then baseline=(--baseline); fi
