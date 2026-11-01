@@ -1,0 +1,40 @@
+name: Inspect retained reading feedback proof
+on:
+  push:
+    branches: [verify/feedback-proof-diagnostic]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-candidate-performance
+          run-id: 40534169314
+          github-token: ${{ github.token }}
+          path: reports
+      - name: Read bounded diagnostic logs and measured summaries
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('reports')
+          print('VISUAL LOGS')
+          for p in sorted(root.glob('visual-*.log')):
+              print(p.name)
+              print('\n'.join(p.read_text(errors='replace').splitlines()[-45:]))
+          print('MEASURED CASES')
+          for p in sorted(root.glob('*.json')):
+              if '.input.' in p.name:continue
+              d=json.loads(p.read_text())
+              if isinstance(d,dict) and 'startup_ready_memory' in d:
+                  print(p.name,json.dumps({k:d.get(k) for k in ['gtk','renderer','mode','input_kind','startup_to_ready_seconds','startup_ready_memory','phases','after_stop','first_scroll_latency_seconds','first_paint_latency_seconds','first_menu_hide_latency_seconds','backdrop_released','placement_tick']}))
+              elif p.name in ('preservation.json','ci-input-verification.json'):
+                  print(p.name,json.dumps(d))
+          print('VISUAL REPORTS')
+          for p in sorted(root.glob('visual-*/report.json')):
+              print(str(p),p.read_text())
+          PY
