@@ -1,0 +1,17 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "sections": {
+    "notes": {
+      "distinct_notes": 3,
+      "records": 8,
+      "native_editor_scroll": true
+    }
+  },
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "renderer": "GLRenderer"
+}

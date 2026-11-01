@@ -1,0 +1,21 @@
+{
+  "inputs": {
+    "current-bundle": {
+      "commit": "d39a99eb44be1c3257a9ba75f60f7f324282b1b1",
+      "architecture": "x86_64",
+      "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master",
+      "prerequisites": "success",
+      "ci": "https://github.com/icfmp/Bible/actions/runs/40454566453",
+      "sha256": "b17bc4e1f85c7f1b679f4dd9dd5994ec9b6e539521886249890f928567b46fff"
+    },
+    "candidate-bundle": {
+      "commit": "30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8",
+      "architecture": "x86_64",
+      "flatpak_ref": "app/io.github.icfmp.Bible/x86_64/master",
+      "prerequisites": "success",
+      "ci": "https://github.com/icfmp/Bible/actions/runs/40534157118",
+      "sha256": "2e6ef3677a3e8b95e03603be9415996635935c8405bc3a154397b738fc3f1849"
+    }
+  },
+  "limitation": "Baseline is the exact verified CI bundle imported into signed alpha; candidate is a tested feature-branch CI master ref. Candidate is not yet published on the signed channel. Application imports must be packaged."
+}

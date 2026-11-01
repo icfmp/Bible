@@ -1,0 +1,5 @@
+{
+  "baseline_failure": true,
+  "exit_code": 1,
+  "limitation": "The old installed alpha failed this native-input capture. The full log and any preceding screenshots are retained. Candidate cases remain mandatory."
+}

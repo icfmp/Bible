@@ -1,0 +1,310 @@
+{
+  "source": "/app/lib/bible-python/bible/ui.py",
+  "renderer": "GLRenderer",
+  "cases": [
+    {
+      "palette": "white",
+      "parallel": false,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          240,
+          240,
+          240
+        ],
+        [
+          240,
+          240,
+          240
+        ],
+        [
+          240,
+          240,
+          240
+        ]
+      ],
+      "body": [
+        240,
+        240,
+        240
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "dark",
+      "parallel": false,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          48,
+          48,
+          48
+        ],
+        [
+          48,
+          48,
+          48
+        ],
+        [
+          48,
+          48,
+          48
+        ]
+      ],
+      "body": [
+        48,
+        48,
+        48
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "paper",
+      "parallel": false,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          229,
+          220,
+          195
+        ],
+        [
+          229,
+          220,
+          195
+        ],
+        [
+          229,
+          220,
+          195
+        ]
+      ],
+      "body": [
+        229,
+        220,
+        195
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "black",
+      "parallel": false,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          18,
+          18,
+          18
+        ],
+        [
+          18,
+          18,
+          18
+        ],
+        [
+          18,
+          18,
+          18
+        ]
+      ],
+      "body": [
+        18,
+        18,
+        18
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "white",
+      "parallel": true,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          240,
+          240,
+          240
+        ],
+        [
+          240,
+          240,
+          240
+        ],
+        [
+          240,
+          240,
+          240
+        ]
+      ],
+      "body": [
+        240,
+        240,
+        240
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "dark",
+      "parallel": true,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          48,
+          48,
+          48
+        ],
+        [
+          48,
+          48,
+          48
+        ],
+        [
+          48,
+          48,
+          48
+        ]
+      ],
+      "body": [
+        48,
+        48,
+        48
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "paper",
+      "parallel": true,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          229,
+          220,
+          195
+        ],
+        [
+          229,
+          220,
+          195
+        ],
+        [
+          229,
+          220,
+          195
+        ]
+      ],
+      "body": [
+        229,
+        220,
+        195
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    },
+    {
+      "palette": "black",
+      "parallel": true,
+      "width": 8,
+      "decorative_children": 0,
+      "header": [
+        [
+          18,
+          18,
+          18
+        ],
+        [
+          18,
+          18,
+          18
+        ],
+        [
+          18,
+          18,
+          18
+        ]
+      ],
+      "body": [
+        18,
+        18,
+        18
+      ],
+      "drags": [
+        [
+          420,
+          500
+        ],
+        [
+          500,
+          420
+        ]
+      ]
+    }
+  ]
+}

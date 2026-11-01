@@ -1,0 +1,82 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": false,
+  "sections": {
+    "immersion": [
+      {
+        "palette": "white",
+        "inputs": [
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          },
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          }
+        ],
+        "columns": 2,
+        "reading_box": [
+          112,
+          676.25
+        ]
+      },
+      {
+        "palette": "dark",
+        "inputs": [
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          },
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Right",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          },
+          {
+            "key": "Left",
+            "turned": true
+          }
+        ],
+        "columns": 1,
+        "reading_box": [
+          112,
+          676.25
+        ]
+      }
+    ]
+  },
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "renderer": "GLRenderer"
+}

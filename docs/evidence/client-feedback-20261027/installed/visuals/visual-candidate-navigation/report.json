@@ -1,0 +1,15 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": false,
+  "sections": {
+    "navigation": {
+      "verse_controls_present": false
+    }
+  },
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "renderer": "GLRenderer"
+}
