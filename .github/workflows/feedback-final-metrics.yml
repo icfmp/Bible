@@ -1,0 +1,62 @@
+name: Retain exact merged-package scrolling measurements
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-final-metrics.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  metrics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read the verified main package's existing measurements without rerunning tests
+        run: |
+          for attempt in $(seq 1 180); do
+            read -r status conclusion <<< "$(gh api repos/icfmp/Bible/actions/runs/41336913137 --jq '[.status,(.conclusion // "pending")] | @tsv')"
+            if [ "$status" = completed ]; then test "$conclusion" = success; break; fi
+            sleep 10
+          done
+          test "$conclusion" = success
+          gh run download 41336913137 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/merged-package"
+          python3 - <<'PY'
+          import hashlib,json,os,shutil
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'merged-package';out=Path('metrics-review');out.mkdir()
+          info=json.loads((root/'build-info.json').read_text())
+          assert info['commit']=='d9c9791c509a3d51b334ddae5cbab2c2eebe9993'
+          assert hashlib.file_digest((root/'Bible-alpha.flatpak').open('rb'),'sha256').hexdigest()==info['sha256']
+          (out/'build-info.json').write_text(json.dumps(info,indent=2))
+          count=0
+          for p in root.rglob('*.json'):
+              if p.name=='build-info.json':continue
+              if 'scroll' not in str(p.relative_to(root)):continue
+              try:data=json.loads(p.read_text())
+              except (ValueError,UnicodeError):continue
+              destination=out/p.relative_to(root);destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,destination)
+              if 'startup_ready_memory' in data:
+                  count+=1
+                  print(str(p.relative_to(root)),json.dumps({k:data.get(k) for k in ['app_import','renderer','startup_ready_memory','first_scroll_latency_seconds','first_paint_latency_seconds','selection_toolbar','after_stop','phases']}),flush=True)
+          assert count>=2,count
+          (out/'SOURCE.json').write_text(json.dumps(dict(source=info['commit'],ci_run=41336913137,metrics_files=count,tests_repeated=False,limit='Existing installed-package software-OpenGL measurements; not client GNOME/Wayland or hardware-GPU acceptance.'),indent=2))
+          PY
+      - name: Keep the exact-source measurements alongside final captures
+        run: |
+          git fetch origin evidence/reading-feedback-20261101
+          git switch --detach FETCH_HEAD
+          cp -a metrics-review docs/evidence/client-feedback-20261027/installed/final-metrics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/client-feedback-20261027/installed/final-metrics
+          git commit -m 'Retain exact merged-package first-input and sustained scrolling measurements'
+          git push origin HEAD:refs/heads/evidence/reading-feedback-20261101
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-merged-package-metrics
+          path: metrics-review/
+          if-no-files-found: warn
