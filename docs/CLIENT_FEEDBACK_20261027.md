@@ -261,3 +261,11 @@ H1254A identity (53 tokens / 45 numeric verses) and Greek G3056 counts (330 /
 unavailable. The comparison's 19 actual body starts align to 0 px. Notes,
 schema and all 64 resource files remain unchanged. Final actual installed
 package, offline and signed-update verification remain required.
+
+## Final installed visual review — 1 November 2026
+
+Reviewing the actual installed GL images found two defects missed by the initial assertions. A first passage-to-Notes reveal displayed the correct record without selecting its collection row. `update_context` now selects only the record actually displayed; a failed save or cancelled switch keeps the original selection and draft. The regression covers first reveal, cancelled save failure, successful switch/save, highlight selection and unchanged Bible/history/comparison state.
+
+Equal comparison buffer coordinates did not prove screen alignment. Installed GTK 4.20.4, real Segond/KJV John 1, measured 16 px between the TextView origins (31 px with a longer wrapped source label). GTK's documented vertical-only size-group limitation for height-for-width labels caused this residual offset. The existing heading size group now uses BOTH so native GTK propagates the common available width; no polling, custom sizing or scrolling computation is added. Tests assert actual viewport origins with unequal wrapped labels, resize and large type; capture measurements use full window coordinates. Earlier comparison reports using buffer coordinates remain historical evidence and are not relabelled as complete screen-alignment proof.
+
+See the separate [installed evidence branch](https://github.com/icfmp/Bible/tree/evidence/reading-feedback-20261101/docs/evidence/client-feedback-20261027/installed) for unedited light/dark/palette/narrow captures, native motion analysis and bounded before/after CPU/RSS receipts. Initial candidate source 30c151f8 and later Notes evidence are identified separately. The final signed source, installation/update and data-preservation receipts are added there only after publication; this document does not predeclare those results. Numbered release #87 remains paused and all assigned issues remain open.
