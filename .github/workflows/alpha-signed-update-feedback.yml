@@ -66,9 +66,9 @@ jobs:
           root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
           for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
               if name not in library.installed():library.install(next(r for r in resources if r.name==name))
-          from bible.youversion_install import fetch_resource,acknowledgement
+          from bible.youversion_install import acknowledgement
           for edition in (21,93):
-              item=fetch_resource(edition)
+              item=next(r for r in resources if r.id=='youversion~YV'+str(edition))
               if item.id not in library.installed():library.install(item,permission=acknowledgement(item))
           notes=NoteStore(root/'notes.sqlite3')
           if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
