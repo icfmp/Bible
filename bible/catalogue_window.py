@@ -459,6 +459,7 @@ class CatalogueWindow(Adw.Window):
             if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
             if actual.language!=resource.language:raise ValueError('Source edition language changed')
             self._edition_details[resource.id]=(resource.acquisition,actual,time.monotonic())
+            self.status.set_visible(False)
             self.selection_changed()
             if finished:finished(actual)
         self.task(tr('Loading edition details…'),lambda:fetch_resource(edition_id(resource.name)),ready,
