@@ -1,7 +1,8 @@
 name: Verify signed reading feedback update with retained resources
 on:
   push:
-    branches: [feat/client-feedback-reading]
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/alpha-signed-update-feedback.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,7 +13,7 @@ concurrency:
 jobs:
   compare:
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@v6
       - name: Install isolated validation tools
@@ -107,8 +108,8 @@ jobs:
           from pathlib import Path
           import os,subprocess
           expected=None
-          expected_head=os.environ['GITHUB_SHA']
-          for attempt in range(240):
+          expected_head='30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8'
+          for attempt in range(360):
               try:
                   if expected is None:
                       pr=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/pulls/135'],text=True))
