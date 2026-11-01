@@ -273,8 +273,12 @@ class Reader:
             key.setIntros(True);key.setAutoNormalize(False);key.setText(chapter.reference+'.0')
             self.module.setKey(key);raw=self.module.getRawEntry()
             parser.feed(raw if isinstance(raw,str) else raw.c_str())
-            prefix=tuple(Segment(segment.text,'heading',segment.styles)
-                         for segment in parser.segments if segment.kind in ('heading','text') and segment.text.strip())
+            # Ordinary unnumbered source prose is outside the verse body, but
+            # is not an editorial heading. Keep its own styling and breaks.
+            if any(s.kind in ('heading','text') and s.text.strip() for s in parser.segments):
+                plain=''.join(s.text for s in parser.segments if s.kind=='text')
+                prefix=tuple(Segment(s.text,'heading' if s.kind=='heading' else 'preface',s.styles)
+                             for s in checked_segments(parser.segments,plain))
             parser.segments=[]
         for reference, plain in chapter.unique_verses():
             checkpoint(cancelled)

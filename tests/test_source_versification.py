@@ -77,6 +77,13 @@ class NativeSourceIndexTests(unittest.TestCase):
             self.assertEqual(loaded.links,(('John.1.4','John.1.3'),))
             segments=reader.structured_chapter(loaded)['John.1.5']
             self.assertIn('Unnumbered synthetic prefix.',''.join(s.text for s in segments))
+            self.assertTrue(any(s.kind=='preface' and 'Unnumbered synthetic prefix.' in s.text for s in segments))
+            from bible.paged_sources import BiblePages
+            from bible.preferences import ReadingPreferences
+            document=BiblePages(reader,None).document('John.1',ReadingPreferences())
+            position=document.text.index('Unnumbered synthetic prefix.')
+            self.assertLess(position,document.spans[0].body)
+            self.assertFalse(any(style.kind=='heading' and style.start<=position<style.end for style in document.styles))
             self.assertIsNotNone(reader.introduction('John'))
             self.assertEqual(reader.editorial_notes('John.1.1')[0].reference,'John.1')
             self.assertTrue(json.loads((target/'.verified.json').read_text())['all_text_notes_headings_verified'])
