@@ -4,7 +4,7 @@ on:
     branches: [verify/feedback-completion]
     paths: ['.github/workflows/feedback-visual-retry.yml']
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   visuals:
@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: 112f42a9db66db0b88fad44da990ad6af666a623
       - name: Install isolated validation tools
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then
@@ -21,10 +23,20 @@ jobs:
           sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ffmpeg
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
+      - name: Wait for the exact final source package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 180); do
+            read -r status conclusion <<< "$(gh api repos/icfmp/Bible/actions/runs/41333808264 --jq '[.status,(.conclusion // "pending")] | @tsv')"
+            if [ "$status" = completed ]; then test "$conclusion" = success; break; fi
+            sleep 10
+          done
+          test "$conclusion" = success
       - uses: actions/download-artifact@v4
         with:
           name: Bible-alpha-linux-x86_64
-          run-id: 40534157118
+          run-id: 41333808264
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/candidate-bundle
       - name: Download current published application's verified CI bundle
@@ -42,7 +54,7 @@ jobs:
           import os
           root=pathlib.Path(sys.argv[1]);expected={
             'current-bundle':('d39a99eb44be1c3257a9ba75f60f7f324282b1b1','b17bc4e1f85c7f1b679f4dd9dd5994ec9b6e539521886249890f928567b46fff'),
-            'candidate-bundle':('30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8',None)}
+            'candidate-bundle':('112f42a9db66db0b88fad44da990ad6af666a623',None)}
           receipt={}
           for name,(source,digest) in expected.items():
               folder=root/name;info=json.loads((folder/'build-info.json').read_text())
@@ -146,9 +158,29 @@ jobs:
               d=json.loads(p.read_text());assert section in d['sections'],(section,d)
               assert not d['baseline'] and d['app_import'].startswith('/app/')
               print(section,json.dumps(d),flush=True)
+          assert {p.parent.name for p in root.glob('visual-current-*/failure.json')} <= {'visual-current-markers'}
           for p in root.glob('visual-current-*/failure.json'):
               print('BASELINE LIMIT',str(p),p.read_text(),flush=True)
           PY
+      - name: Retain final-source native before and after evidence
+        run: |
+          git fetch --depth=1 origin evidence/reading-feedback-20261101
+          git switch --detach FETCH_HEAD
+          python3 - <<'PY'
+          import hashlib,json,shutil
+          from pathlib import Path
+          root=Path('reports');out=Path('docs/evidence/client-feedback-20261027/installed/final-visuals');out.mkdir()
+          for p in root.rglob('*'):
+              if p.is_file() and p.suffix in ['.png','.webm','.mp4','.json']:
+                  dest=out/p.relative_to(root);dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,dest)
+          (out/'SHA256.json').write_text(json.dumps({str(p.relative_to(out)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest() for p in out.rglob('*') if p.is_file()},indent=2))
+          (out/'SOURCE.md').write_text('Final feature source: 112f42a9db66db0b88fad44da990ad6af666a623. Baseline: d39a99eb44be1c3257a9ba75f60f7f324282b1b1. Installed GTK 4.20.4 OpenGL; all six candidate cases required. Comparison uses real window coordinates. Old baseline marker failure is retained explicitly. Map attribution remains visible: © OpenStreetMap contributors, ODbL; OpenBible.info, CC BY 4.0. No complete downloaded corpus or profile is included. Signed-delivery receipts are separate.\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/client-feedback-20261027/installed/final-visuals
+          git commit -m 'Retain final native feedback surfaces with actual on-screen verse alignment'
+          git push origin HEAD:refs/heads/evidence/reading-feedback-20261101
       - uses: actions/upload-artifact@v4
         if: always()
         with:
