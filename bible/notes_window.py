@@ -816,6 +816,8 @@ class NotesSpace(Gtk.Box):
     def update_context(self,a):
         if self.selected_key!=a.key:self.related_expander.set_expanded(False)
         self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(True);self.placeholder.set_visible(False)
+        selected=next((i for i,row in enumerate(self.rows) if row.key==a.key),Gtk.INVALID_LIST_POSITION)
+        self.selection.set_selected(selected)
         text,description,available=self.excerpt_for(a);self.excerpt.set_text(text);self.excerpt_caption.set_text(description);self.open_button.set_sensitive(available)
         while self.related.get_first_child():self.related.remove(self.related.get_first_child())
         try:reader=self.reader()
