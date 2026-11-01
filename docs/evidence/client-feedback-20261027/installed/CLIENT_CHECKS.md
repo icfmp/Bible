@@ -1,6 +1,6 @@
 # Reading feedback — validation checklist
 
-Feature source: `112f42a9db66db0b88fad44da990ad6af666a623`. [Exact-source CI](https://github.com/icfmp/Bible/actions/runs/41333808264) passes 372 source tests, 154 French tests, 175 installed-package tests, 12 immersion tests and 6 isolated marker/selection tests. Real resources, STEP identities, mapping guards and offline reopening pass. Final signed-delivery provenance and retained-profile receipts are recorded separately in `delivery/` only after publication.
+Published signed source: `d9c9791c509a3d51b334ddae5cbab2c2eebe9993`, revision `41338894877-2`. [Completed delivery and limits](DELIVERY.md). Main CI 41336913137 passes 372 source tests, 154 French tests, 175 installed-package tests, 12 immersion tests and 6 isolated marker/selection tests. Real resources, STEP identities, mapping guards and offline reopening pass. Signed publication, actual retained-profile upgrade and independent source/data audit pass. Candidate capture source 112f42a9… has zero file differences from the merge.
 
 ## Issue evidence and client checks
 
@@ -24,3 +24,5 @@ All checks below are developer validation. Issues remain OPEN; only the client a
 GTK/Xvfb and software GL/Vulkan are not the client's GNOME/Wayland, fractional scaling, physical touchpad or hardware-GPU acceptance. Finite repeated cycles do not prove an indefinite memory plateau. The prior alpha's marker click failed in one native capture; its failure and preceding image are retained, and all candidate sections are mandatory. CPU percentages use one logical CPU = 100%. Python allocation tracing materially perturbs timing and is not presented as ordinary UI latency.
 
 Changed mutable OpenBible reference/topic archives remain correctly refused by existing integrity checks; comparable profiles reuse the same previously validated installed indexes. A new live optional reference/topic download is not claimed as passed. Existing resources and indexes are preserved.
+
+One final capture attempt exceeded the 45-second native map-readiness wait; an unchanged-package repeat passes all four real Shinar/Haran views and all six capture groups. Both attempts are retained in FINAL_REVIEW.json. This does not establish permanent external tile-service availability.
