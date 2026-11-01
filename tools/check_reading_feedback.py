@@ -58,7 +58,7 @@ def main():
                     cases=[]
                     for mode,name in [('day','white'),('night','dark')]:
                         palette(mode,name,style);rows=t.comparison_rows
-                        points=[[v.get_iter_location(v.get_buffer().get_iter_at_offset(offsets[refs[0]])).y if refs else None
+                        points=[[v.compute_bounds(w)[1].get_y()+v.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,0,v.get_iter_location(v.get_buffer().get_iter_at_offset(offsets[refs[0]])).y)[1] if refs else None
                                  for row in rows.rows for refs in [(row.primary if side==0 else row.secondary)]]
                                 for side,v,offsets in [(0,t.text,t._marker_ends),(1,t.comparison_text,t._comparison_markers)]]
                         maximum=max(abs(a-b) for a,b in zip(*points) if a is not None and b is not None)
