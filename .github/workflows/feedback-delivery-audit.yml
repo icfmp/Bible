@@ -1,0 +1,124 @@
+name: Audit final signed reading feedback delivery
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-delivery-audit.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Wait for and independently audit the actual signed delivery
+        run: |
+          python3 - <<'PY'
+          import hashlib,io,json,os,subprocess,tarfile,time,urllib.request
+          from pathlib import Path
+          root=Path('delivery-audit');root.mkdir(exist_ok=True)
+          def api(path):
+              return json.loads(subprocess.check_output(['gh','api',path],text=True))
+          def public(path):
+              return json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/'+path+'?audit='+str(time.time_ns()),timeout=30))
+          def digest(data):return hashlib.sha256(data).hexdigest()
+          old_commit='85d8d4658662e9ad12b521a7a03b133d022665c0'
+          old=json.load(urllib.request.urlopen('https://raw.githubusercontent.com/icfmp/Bible/'+old_commit+'/alpha/sources.json'))
+          assert len(old['archives'])==41
+          for attempt in range(360):
+              pr=api('repos/icfmp/Bible/pulls/135')
+              assert pr['head']['sha']=='378146fac2e36fb45f615df427aecad34cbba2d0'
+              if pr['merged']:
+                  source=pr['merge_commit_sha'];provenance=public('provenance.json')
+                  if provenance['source_commit']==source and provenance['packaging_revision'].endswith('-2'):
+                      publication=api('repos/icfmp/Bible/actions/runs/'+provenance['packaging_revision'].split('-')[0])
+                      signed=api('repos/icfmp/Bible/actions/runs/41332151449')
+                      if publication['status']=='completed' and signed['status']=='completed':
+                          assert publication['conclusion']=='success' and signed['conclusion']=='success',(publication['conclusion'],signed['conclusion'])
+                          break
+              time.sleep(15)
+          else:raise RuntimeError('Final publication and retained-profile verification are not complete')
+          assert provenance['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
+          ci=api('repos/icfmp/Bible/actions/runs/'+provenance['ci_run'])
+          assert ci['head_sha']==source and ci['head_branch']=='main' and ci['conclusion']=='success'
+          subprocess.run(['git','fetch','origin','main'],check=True)
+          subprocess.run(['git','cat-file','-e',source+'^{commit}'],check=True)
+          catalog=public('sources.json')
+          assert len(catalog['archives'])==42
+          assert all(catalog['archives'].get(k)==v for k,v in old['archives'].items())
+          record=catalog['archives'][provenance['source_archive']]
+          assert record['sha256']==provenance['source_sha256'] and record['source_commit']==source
+          archive=urllib.request.urlopen(provenance['source_url'],timeout=120).read()
+          assert digest(archive)==provenance['source_sha256'] and len(archive)==record['bytes']
+          def files(data):
+              out={}
+              with tarfile.open(fileobj=io.BytesIO(data),mode='r:*') as t:
+                  for m in t:
+                      assert not m.name.startswith('/') and '..' not in Path(m.name).parts
+                      assert not m.issym() and not m.islnk()
+                      if m.isfile():out[m.name]=t.extractfile(m).read()
+              return out
+          outer=files(archive)
+          prefix='Bible-'+source+'-sources/'
+          actual=files(outer[prefix+'Bible-source.tar'])
+          expected=files(subprocess.check_output(['git','archive','--format=tar',source,'.',':(exclude)docs/captures',':(exclude)docs/evidence',':(exclude)wiki/images']))
+          assert {k:digest(v) for k,v in actual.items()}=={k:digest(v) for k,v in expected.items()}
+          manifest=json.loads(actual['packaging/io.github.icfmp.Bible.json'])
+          deps={}
+          for module in manifest['modules']:
+              for entry in module['sources']:
+                  if entry['type']=='archive':
+                      name=entry['url'].rsplit('/',1)[-1];value=digest(outer[prefix+'dependencies/'+name])
+                      assert value==entry['sha256'];deps[name]=value
+          assert len(deps)==4
+          releases=api('repos/icfmp/Bible/releases?per_page=100')
+          assert sorted(r['tag_name'] for r in releases if r['tag_name'].startswith('0.'))==['0.1.0-alpha.1','0.1.0-alpha.2','0.1.0-alpha.3']
+          for run,name,dest in [(str(signed['id']),'alpha-signed-update-performance','signed'),(str(publication['id']),'alpha-public-verification','public')]:
+              subprocess.run(['gh','run','download',run,'--name',name,'--dir',str(root/dest)],check=True)
+          def read(name):return json.loads((root/name).read_text())
+          update=read('signed/signed-update.json');pres=read('signed/preservation.json');comparison=read('signed/preservation-comparison.json')
+          assert update['updated'] and update['before']['commit']!=update['after']['commit']==provenance['flatpak_commit']
+          assert update['before']['origin']==update['after']['origin'] and update['before']['ref']==update['after']['ref']
+          assert pres['preserved'] and pres['profile_reused'] and comparison['differences']==[]
+          assert comparison['before']==comparison['after']
+          assert read('signed/after-provenance.json')==provenance
+          pub=read('public/public-update-check.json')
+          assert pub['public_update_success'] and pub['user_data_preserved'] and pub['update_commit']==provenance['flatpak_commit']
+          before=read('public/public-install-check.json')
+          assert before['install_commit']!=pub['update_commit']
+          issues=[97,107,99,98,106,104,128,102,105,75,111,114]
+          assert all(api('repos/icfmp/Bible/issues/'+str(n))['state']=='open' for n in issues)
+          receipt=dict(source=source,provenance=provenance,source_files=len(actual),source_archive_verified=True,dependency_archives=deps,old_archives_preserved=41,catalog_archives=42,numbered_release_87_paused=True,pr=135,ci_run=ci['id'],publication_run=publication['id'],signed_update_run=signed['id'],signed_update=update,preservation=pres,preserved_study_files=len(comparison['after']['study_data']),issues_open=issues,limits=['GTK/Xvfb software renderer, not client GNOME/Wayland or physical touchpad acceptance','Finite cycles do not establish an indefinite memory plateau','Changed mutable OpenBible optional downloads remain refused; existing validated indexes are retained'])
+          (root/'delivery.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps(receipt,indent=2),flush=True)
+          
+          PY
+      - name: Retain verified delivery receipts on the evidence branch
+        run: |
+          cp -r delivery-audit "$RUNNER_TEMP/delivery-audit"
+          git fetch origin evidence/reading-feedback-20261101
+          git switch --detach origin/evidence/reading-feedback-20261101
+          mkdir -p docs/evidence/client-feedback-20261027/installed/delivery
+          python3 - <<'PY'
+          import os,shutil
+          from pathlib import Path
+          source=Path(os.environ['RUNNER_TEMP'])/'delivery-audit';target=Path('docs/evidence/client-feedback-20261027/installed/delivery')
+          for p in source.rglob('*.json'):
+              destination=target/p.relative_to(source);destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,destination)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/client-feedback-20261027/installed/delivery
+          git commit -m 'Retain independently audited signed feedback delivery and profile preservation receipts'
+          git push origin HEAD:refs/heads/evidence/reading-feedback-20261101
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-reading-feedback-delivery-audit
+          path: delivery-audit/
+          if-no-files-found: warn
