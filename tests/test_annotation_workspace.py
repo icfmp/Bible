@@ -54,6 +54,32 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         if self.window.note_editor:self.window.note_editor._discard=True;self.window.note_editor.cancel_autosave()
         close_test_dialogs();self.window.close()
 
+    def test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft(self):
+        from tests.test_ui import spin
+        w=self.window;s=self.space;tab=w.active_tab
+        before=(tab.state.resource,tab.state.reference,list(tab.state.history),tab.state.comparison)
+        s.reveal(('note',self.first.id));spin()
+        self.assertEqual(s.editor.note.id,self.first.id)
+        self.assertEqual(s.selection.get_selected_item().annotation.key,('note',self.first.id))
+        editor=s.editor
+        with patch.object(w.notes_store,'save',side_effect=OSError('TEST WRITE FAILURE')):
+            editor.body.get_buffer().set_text('Retained original draft before changing records')
+            s.reveal(('note',self.second.id));spin()
+            self.assertIs(s.editor,editor)
+            self.assertEqual(s.selection.get_selected_item().annotation.key,('note',self.first.id))
+            editor._confirmation.response('cancel');spin()
+            self.assertEqual(editor.body.get_buffer().props.text,'Retained original draft before changing records')
+            self.assertEqual(w.notes_store.get(self.first.id).body,self.first.body)
+        s.reveal(('note',self.second.id));spin()
+        self.assertEqual(s.editor.note.id,self.second.id)
+        self.assertEqual(s.selection.get_selected_item().annotation.key,('note',self.second.id))
+        self.assertEqual(w.notes_store.get(self.first.id).body,'Retained original draft before changing records')
+        key=next(a.key for a in s.all_records if a.mark)
+        s.reveal(key);spin()
+        self.assertTrue(s.highlight_detail.get_visible())
+        self.assertEqual(s.selection.get_selected_item().annotation.key,key)
+        self.assertEqual((tab.state.resource,tab.state.reference,list(tab.state.history),tab.state.comparison),before)
+
     def test_coalesced_autosave_flush_on_record_switch_and_restart(self):
         from tests.test_ui import spin
         w=self.window;s=self.space;s.open_note(self.first);editor=s.editor
