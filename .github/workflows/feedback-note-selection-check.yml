@@ -1,0 +1,95 @@
+name: Verify final annotation selection in the installed Flatpak
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-note-selection-check.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  notes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 378146fac2e36fb45f615df427aecad34cbba2d0
+          fetch-depth: 1
+      - name: Obtain the green exact-source package
+        run: |
+          for attempt in $(seq 1 180); do
+            read -r status conclusion <<< "$(gh api repos/icfmp/Bible/actions/runs/41331855804 --jq '[.status,(.conclusion // "pending")] | @tsv')"
+            if [ "$status" = completed ]; then test "$conclusion" = success; break; fi
+            sleep 10
+          done
+          test "$conclusion" = success
+          gh run download 41331855804 --repo icfmp/Bible --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/notes-bundle"
+          python3 - "$RUNNER_TEMP/notes-bundle" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1]);info=json.loads((root/'build-info.json').read_text())
+          assert info['commit']=='378146fac2e36fb45f615df427aecad34cbba2d0'
+          assert hashlib.file_digest((root/'Bible-alpha.flatpak').open('rb'),'sha256').hexdigest()==info['sha256']
+          PY
+      - name: Install isolated native validation tools
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/notes-flatpak" >> "$GITHUB_ENV"
+      - name: Install the exact final package and real resources
+        run: |
+          mkdir reports
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive "$RUNNER_TEMP/notes-bundle/Bible-alpha.flatpak"
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$RUNNER_TEMP/notes-profile" <<'PY'
+          import hashlib,sys
+          from pathlib import Path
+          from bible.library import Library,catalogue
+          import bible.notes_window
+          data=Path(bible.notes_window.__file__).read_bytes()
+          assert bible.notes_window.__file__.startswith('/app/')
+          assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()=='fe440f15ccd2f34ecaf6e12b6b876abaf1217196'
+          root=Path(sys.argv[1]);library=Library(root/'translations');items=catalogue()
+          for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:library.install(next(x for x in items if x.name==name))
+          from bible.notes import NoteStore
+          from bible.sword_provider import Reader
+          store=NoteStore(root/'notes.sqlite3')
+          store.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
+          reader=Reader(library.root/'FreBDM1707','FreBDM1707')
+          for ref in ['Gen.11.2','Acts.7.2']:store.save('Synthetic native marker check.',[],versification=reader.versification,start=ref,end=ref,origin_translation='FreBDM1707',origin_language='fr')
+          store.close()
+          PY
+      - name: Verify incoming selection, cancellation and exact native rendering
+        run: |
+          dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m unittest tests.test_annotation_workspace.AnnotationWorkspaceTests.test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft -v
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_reading_feedback "$RUNNER_TEMP/notes-profile" "$PWD/reports/final-notes" --section notes --require-packaged
+          git fetch --depth=1 origin 30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8
+          python3 - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          changed=subprocess.check_output(['git','diff','--name-only','30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8','378146fac2e36fb45f615df427aecad34cbba2d0'],text=True).splitlines()
+          assert set(changed)=={'bible/notes_window.py','tests/test_annotation_workspace.py'},changed
+          d=json.loads(Path('reports/final-notes/report.json').read_text());assert d['renderer']=='GLRenderer' and 'notes' in d['sections']
+          Path('reports/final-notes/source-check.json').write_text(json.dumps(dict(source='378146fac2e36fb45f615df427aecad34cbba2d0',previous_source='30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8',changed_files=changed,production_delta='Select the actual list record when its annotation context is displayed. No reading, pagination, map, input, blur or packaging code changed.',ci_run=41331855804),indent=2))
+          PY
+      - name: Retain the final Notes captures without rebuilding the application
+        run: |
+          git fetch --depth=1 origin evidence/reading-feedback-20261101
+          git switch -c evidence/reading-feedback-20261101 FETCH_HEAD
+          cp -a reports/final-notes docs/evidence/client-feedback-20261027/installed/final-notes
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/client-feedback-20261027/installed/final-notes
+          git commit -m 'Retain exact final-package Notes selection and draft-guard evidence'
+          git push origin HEAD:refs/heads/evidence/reading-feedback-20261101
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: final-annotation-selection
+          path: reports/
+          if-no-files-found: error
