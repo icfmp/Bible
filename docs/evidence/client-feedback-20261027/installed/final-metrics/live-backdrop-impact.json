@@ -1,0 +1,78 @@
+{
+  "source": "d9c9791c509a3d51b334ddae5cbab2c2eebe9993",
+  "ci_run": 41336913137,
+  "job": 124941174347,
+  "extracted_from_verified_job_log": true,
+  "interpretation": "Diagnostic programmatic adjustment keeps the bar visible while content changes; it does not represent native manual input, which dismisses the bar on its first event. The idle/hidden rows test native cache and invalidation inactivity. Percentages use one logical CPU = 100%.",
+  "scroll_impact": [
+    {
+      "phase": "without_bar",
+      "elapsed_seconds": 6.101338491999968,
+      "cpu_seconds": 2.017528673000001,
+      "cpu_percent": 33.066984820549955,
+      "frames": 367,
+      "frame_gap_p95_ms": 17.420785000012984,
+      "main_loop_max_ms": 9.798304999890206,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "visible_bar",
+      "elapsed_seconds": 6.1042282530000875,
+      "cpu_seconds": 12.043110575,
+      "cpu_percent": 197.29128852744145,
+      "frames": 367,
+      "frame_gap_p95_ms": 17.359346000034748,
+      "main_loop_max_ms": 18.35636499993143,
+      "python_calls": {
+        "do_snapshot": 360,
+        "changed": 360,
+        "adapt": 361,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 28.167413000000003,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "visible_idle",
+      "elapsed_seconds": 6.102279308999982,
+      "cpu_seconds": 0.11888447299999427,
+      "cpu_percent": 1.9481978287138841,
+      "frames": 367,
+      "frame_gap_p95_ms": 17.237325999985842,
+      "main_loop_max_ms": 7.482853999931649,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    },
+    {
+      "phase": "hidden_after_dismiss",
+      "elapsed_seconds": 6.101631628000064,
+      "cpu_seconds": 2.080857716000004,
+      "cpu_percent": 34.10329962318699,
+      "frames": 367,
+      "frame_gap_p95_ms": 17.272651999974187,
+      "main_loop_max_ms": 10.498699999970995,
+      "python_calls": {
+        "do_snapshot": 0,
+        "changed": 0,
+        "adapt": 0,
+        "watch": 0
+      },
+      "snapshot_python_cpu_ms": 0,
+      "renderer": "GLRenderer"
+    }
+  ],
+  "method": "Same 6-second forward/back reader scrollbar adjustment; no wheel lifecycle override. Actual wheel dismisses floating actions on its first event."
+}
