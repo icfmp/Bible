@@ -1,0 +1,204 @@
+name: Review and retain installed feedback evidence
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-evidence-review.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FLATPAK_USER_DIR: ${{ runner.temp }}/divider-flatpak
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: reading-feedback-installed-visuals
+          run-id: 41329939198
+          github-token: ${{ github.token }}
+          path: reports/visuals
+      - uses: actions/download-artifact@v4
+        with:
+          name: alpha-candidate-performance
+          run-id: 40534169314
+          github-token: ${{ github.token }}
+          path: reports/performance
+      - uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          run-id: 40534157118
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/candidate-bundle
+      - uses: actions/download-artifact@v4
+        with:
+          name: Bible-alpha-linux-x86_64
+          run-id: 40454566453
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/current-bundle
+      - name: Install native evidence tools
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ffmpeg python3-pil
+      - name: Require the candidate matrix and analyse actual sixty-frame motion
+        run: |
+          python3 - <<'PY'
+          import json,re,subprocess
+          from pathlib import Path
+          from PIL import Image,ImageChops
+          root=Path('reports/visuals');out=Path('reports/review');out.mkdir()
+          for version in ['current','candidate']:
+              for section in ['comparison','markers','notes','preferences','navigation','immersion']:
+                  folder=root/f'visual-{version}-{section}'
+                  if (folder/'failure.json').exists():
+                      assert version=='current' and section=='markers',(version,section)
+                      print('BASELINE NATIVE LIMIT', (folder/'failure.json').read_text(),flush=True);continue
+                  d=json.loads((folder/'report.json').read_text())
+                  assert section in d['sections'] and d['app_import'].startswith('/app/'),(version,section,d)
+                  assert d['renderer']=='GLRenderer' and d['baseline']==(version=='current')
+                  print(version,section,json.dumps(d['sections'][section]),flush=True)
+          summaries=[]
+          for video in sorted(root.glob('visual-*-immersion/*.webm')):
+              info=json.loads(subprocess.check_output(['ffprobe','-v','error','-select_streams','v:0','-show_entries','stream=width,height,r_frame_rate','-of','json',str(video)]))['streams'][0]
+              width,height=info['width'],info['height'];num,den=map(int,info['r_frame_rate'].split('/'));fps=num/den
+              process=subprocess.Popen(['ffmpeg','-v','error','-i',str(video),'-f','rawvideo','-pix_fmt','rgb24','-'],stdout=subprocess.PIPE)
+              frame=0;interior=0;longest=0;first=None;worst=None
+              while True:
+                  data=process.stdout.read(width*height*3)
+                  if not data:break
+                  assert len(data)==width*height*3
+                  im=Image.frombytes('RGB',(width,height),data)
+                  if frame==12:first=im.copy()
+                  red,green,blue=im.split()
+                  mask=ImageChops.multiply(ImageChops.subtract(blue,red).point(lambda x:255 if x>35 else 0),ImageChops.subtract(blue,green).point(lambda x:255 if x>12 else 0))
+                  mask=ImageChops.multiply(mask,blue.point(lambda x:255 if x>90 else 0));box=mask.getbbox();peak=0
+                  if box:
+                      for x in range(max(17,box[0]),min(width-16,box[2])):
+                          values=mask.crop((x,box[1],x+1,box[3])).tobytes()
+                          run=max((len(m[0]) for m in re.finditer(b'\xff+',values)),default=0);peak=max(peak,run)
+                  if peak>=120:interior+=1
+                  if peak>longest:longest=peak;worst=im.copy()
+                  frame+=1
+              assert process.wait()==0 and frame>=120 and fps>=59,(video,frame,fps)
+              candidate='candidate' in str(video)
+              if candidate:assert interior==0,(video,interior,longest)
+              prefix=video.parent.name+'-'+video.stem
+              if first:first.save(out/(prefix+'-frame.png'))
+              if worst and not candidate:worst.save(out/(prefix+'-edge.png'))
+              summaries.append(dict(video=str(video),frames=frame,fps=fps,interior_vertical_blue_frames=interior,maximum_interior_blue_run=longest,criterion='Blue native focus edge, at least 120 vertical pixels; exclude 16 px native left/right window inset. Stationary outer accessibility cue is retained.'))
+          assert len(summaries)==4,len(summaries)
+          (out/'motion-analysis.json').write_text(json.dumps(summaries,indent=2))
+          print('MOTION',json.dumps(summaries),flush=True)
+          performance=[]
+          for p in sorted(Path('reports/performance').glob('*.json')):
+              if '.input.' in p.name:continue
+              d=json.loads(p.read_text())
+              if not isinstance(d,dict) or 'startup_ready_memory' not in d:continue
+              phases=d['phases'];active=[x for x in phases if x['phase']=='scroll'];idle=[x for x in phases if x['phase']=='after_scroll_idle']
+              performance.append(dict(case=p.name,renderer=d['renderer'],mode=d['mode'],input=d['input_kind'],startup_rss_bytes=d['startup_ready_memory']['rss_bytes'],end_rss_bytes=idle[-1]['rss_end'],mean_scroll_cpu_one_core_percent=sum(x['cpu_one_core_percent'] for x in active)/len(active),final_idle_cpu_one_core_percent=idle[-1]['cpu_one_core_percent'],maximum_main_loop_ms=max(x['main_loop_max_ms'] for x in phases),first_scroll_ms=1000*d['first_scroll_latency_seconds'],first_paint_ms=1000*d['first_paint_latency_seconds'],first_hide_ms=1000*d['first_menu_hide_latency_seconds'] if d['first_menu_hide_latency_seconds'] is not None else None,late_adjustments=sum(x['adjustments_later_than_500ms'] for x in d['after_stop']),cycles=len(active)))
+          (out/'performance-summary.json').write_text(json.dumps(performance,indent=2))
+          print('PERFORMANCE',json.dumps(performance),flush=True)
+          PY
+      - name: Write an actual native divider probe
+        run: |
+          cat > "$RUNNER_TEMP/check_divider.py" <<'PY'
+          import argparse,json,inspect
+          from pathlib import Path
+          from bible.ui import Application,Window,Library,Gtk
+          from tests.test_ui import spin
+          from tests.test_appearance import SystemStyleOverride
+          from tools.check_alpha_ui import X11Input
+          from tools.check_client_feedback import Screen
+          p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('output',type=Path);args=p.parse_args();args.output.mkdir(parents=True)
+          assert inspect.getfile(Window).startswith('/app/')
+          app=Application();app.register();w=Window(app,Library(args.profile/'translations'));w.set_default_size(1440,950);w.present();n=X11Input();n.activate(w);screen=Screen(n);rows=[]
+          try:
+              t=w.active_tab;w.appearance.update('size',24);t.navigate('FreSegond1910','John.1.5');w.study_button.set_active(True);w.study.tools.set_visible_child_name('commentaries');w.study.choices.set_selected(w.study.names.index('Wesley'));w.study.refresh();spin(duration=.6)
+              with SystemStyleOverride() as style:
+                  for parallel in [False,True]:
+                      t.state.comparison='KJV' if parallel else None;w.sync_comparison();spin(duration=.6)
+                      for mode,name in [('day','white'),('night','dark'),('day','paper'),('night','black')]:
+                          style.set(dark=mode=='night',high=False);w.appearance.update('mode',mode);w.appearance.update('day_palette' if mode=='day' else 'night_palette',name);spin(duration=.5)
+                          d=w.study_divider;w.set_focus_visible(False);n.move_at(w,2,2);raw,stride=screen.grab(args.output/(name+('-parallel' if parallel else '-single')+'.png'))
+                          header=w.study.header;body=screen.color(raw,stride,w.study,8,min(300,w.study.get_height()-40));colors=[screen.color(raw,stride,header,x,header.get_height()-3) for x in [8,header.get_width()/2,header.get_width()-8]]
+                          assert all(max(abs(a-b) for a,b in zip(c,body))<=1 for c in colors),(name,colors,body)
+                          record=dict(palette=name,parallel=parallel,width=d.get_width(),decorative_children=int(d.get_first_child() is not None),header=colors,body=body,drags=[])
+                          for dx in [-80,80]:
+                              before=w.study_settings.width;surface=w.split;ok,bounds=d.compute_bounds(surface);assert ok;x=bounds.origin.x+4;y=bounds.origin.y+180
+                              n.move_at(surface,x,y);spin(duration=.1);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.1)
+                              for step in range(1,9):n.move_at(surface,x+dx*step/8,y);spin(duration=.03)
+                              n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);spin(duration=.4)
+                              after=w.study_settings.width;assert abs(after-before+dx)<=2,(before,after,dx);record['drags'].append([before,after])
+                          d.grab_focus();n.key('Left');spin(duration=.3);assert w.study_settings.width==after+32
+                          n.key('Right');spin(duration=.3);assert w.study_settings.width==after
+                          saved=w.study_settings.width;w.study_button.set_active(False);spin(duration=.2);w.study_button.set_active(True);spin(duration=.4);assert w.study_settings.width==saved
+                          assert d.get_width()==8;rows.append(record)
+                  w.set_default_size(560,800);spin(duration=.6);assert w.split.get_collapsed() and not d.get_visible();screen.grab(args.output/'narrow.png')
+              print(json.dumps(rows),flush=True)
+          finally:
+              (args.output/'report.json').write_text(json.dumps(dict(source=inspect.getfile(Window),renderer=type(w.get_renderer()).__name__,cases=rows),indent=2));w.close();n.close()
+          PY
+      - name: Verify both installed divider versions with retained real resources
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$RUNNER_TEMP/divider-profile" <<'PY'
+          import sys
+          from pathlib import Path
+          from bible.library import Library,catalogue
+          library=Library(Path(sys.argv[1])/'translations');items=catalogue()
+          for name in ['FreSegond1910','KJV','Wesley']:library.install(next(x for x in items if x.name==name))
+          PY
+          for version in current candidate; do
+            if [ "$version" = candidate ]; then flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"; fi
+            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master "$RUNNER_TEMP/check_divider.py" "$RUNNER_TEMP/divider-profile" "$PWD/reports/divider-$version"
+          done
+      - name: Publish only reviewed native evidence on its own branch
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,shutil
+          from pathlib import Path
+          out=Path('docs/evidence/client-feedback-20261027/installed');out.mkdir()
+          for group in ['visuals','review','divider-current','divider-candidate']:
+              source=Path('reports')/group
+              for p in source.rglob('*'):
+                  if p.is_file() and p.suffix in ['.png','.webm','.mp4','.json']:
+                      destination=out/group/p.relative_to(source);destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,destination)
+          dest=out/'performance';dest.mkdir()
+          for p in Path('reports/performance').glob('*.json'):shutil.copyfile(p,dest/p.name)
+          manifest={str(p.relative_to(out)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest() for p in out.rglob('*') if p.is_file()}
+          (out/'SHA256.json').write_text(json.dumps(manifest,indent=2))
+          (out/'README.md').write_text('''# Actual installed Flatpak evidence
+
+Candidate application source: 30c151f8b2a83607d6dfebe1dee9e77df2f0f5c8; baseline: d39a99eb44be1c3257a9ba75f60f7f324282b1b1.
+These are unedited actual installed GTK/Xvfb surfaces, with OpenGL visual checks and software-renderer CPU/RSS measurements kept separate. They are not client GNOME/Wayland or fractional-scale acceptance. No raw Bible archive, complete module or user profile is included.
+
+The old baseline's native place click did not open a visible detail in one capture; its failure and preceding image are retained rather than fabricated. All six candidate sections are mandatory. Eight cycles do not establish an unlimited-duration memory plateau. CPU percentages use one logical CPU = 100%; software rendering is not a client-device benchmark.
+
+Map images retain attribution to © OpenStreetMap contributors (https://www.openstreetmap.org/copyright), ODbL 1.0, and OpenBible.info, CC BY 4.0. Scripture excerpts come from installed sources; test notes are synthetic.
+
+This is a candidate verification record. A signed-delivery receipt will be added only after actual publication and retained-profile update. Numbered release #87 remains paused and issues remain open.
+''')
+          print('Evidence files',len(manifest),flush=True)
+          PY
+          git switch -c evidence/reading-feedback-20261101
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/evidence/client-feedback-20261027/installed
+          git commit -m 'Retain reviewed installed feedback captures, native motion and measured resource use'
+          git push origin HEAD:refs/heads/evidence/reading-feedback-20261101
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reviewed-reading-feedback-evidence
+          path: reports/
+          if-no-files-found: error
