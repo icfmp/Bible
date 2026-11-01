@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
-      FLATPAK_USER_DIR: ${{ runner.temp }}/divider-flatpak
     steps:
       - uses: actions/checkout@v6
         with:
@@ -49,6 +48,7 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ffmpeg python3-pil
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/divider-flatpak" >> "$GITHUB_ENV"
       - name: Require the candidate matrix and analyse actual sixty-frame motion
         run: |
           python3 - <<'PY'
