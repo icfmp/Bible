@@ -57,6 +57,8 @@ jobs:
               t.primary_heading.set_vexpand(False);t.comparison_heading.set_vexpand(False)
               t.primary_heading.set_valign(Gtk.Align.FILL);t.comparison_heading.set_valign(Gtk.Align.FILL)
               measure('native-fill-diagnostic')
+              t.heading_size_group.set_mode(Gtk.SizeGroupMode.BOTH)
+              measure('native-contextual-size-group-diagnostic')
               Path(sys.argv[2]).write_text(json.dumps(rows,indent=2))
               w.close()
           PY
