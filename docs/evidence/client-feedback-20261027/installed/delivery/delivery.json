@@ -1,0 +1,70 @@
+{
+  "source": "d9c9791c509a3d51b334ddae5cbab2c2eebe9993",
+  "provenance": {
+    "source_commit": "d9c9791c509a3d51b334ddae5cbab2c2eebe9993",
+    "ci_run": "41336913137",
+    "packaging_revision": "41338894877-2",
+    "flatpak_commit": "efc220cb7cd43d67b4881763b0ec688ba747b39cf5e5e8c43a3659fd6a54cfbb",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-d9c9791c509a3d51b334ddae5cbab2c2eebe9993-sources.tar.gz",
+    "source_sha256": "ee9d76fb76ef6aeb01bc099e2c367f406d0471654b3453d9f1abad2d49b15aed",
+    "bundle_sha256": "4d0faf0a1466cba6f9192da727dbc9359538e4339f7725ceb7a00de26ab7760c",
+    "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-d9c9791c509a3d51b334ddae5cbab2c2eebe9993-sources.tar.gz"
+  },
+  "source_files": 389,
+  "source_archive_verified": true,
+  "dependency_archives": {
+    "libshumate-1.5.5.tar.xz": "ce27d88537a37cd5c45959c3bb7cc18c1c18b3d2e663d02bcf46fc66f7414a92",
+    "swig_4.3.0.orig.tar.gz": "f7203ef796f61af986c70c05816236cbd0d31b7aa9631e5ab53020ab7804aa9e",
+    "sword_1.9.0+dfsg.orig.tar.xz": "a1687b8ade230d9b30a9991b76c12920daac865f1c25bd4be3cb897b90f007d9",
+    "iso-codes_4.18.0.orig.tar.xz": "066bc4df7bf299561856a07119cde01d563c8c4c39906537a39363bb833d466c"
+  },
+  "old_archives_preserved": 41,
+  "catalog_archives": 42,
+  "numbered_release_87_paused": true,
+  "pr": 135,
+  "ci_run": 41336913137,
+  "publication_run": 41338894877,
+  "signed_update_run": 41333835468,
+  "signed_update": {
+    "before": {
+      "origin": "bible-alpha",
+      "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+      "commit": "47d14bcb8830e2a744a56dd926230da45f309e4c5880ab1b02ddf15f2a6f4a7c"
+    },
+    "after": {
+      "origin": "bible-alpha",
+      "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+      "commit": "efc220cb7cd43d67b4881763b0ec688ba747b39cf5e5e8c43a3659fd6a54cfbb"
+    },
+    "updated": true
+  },
+  "preservation": {
+    "preserved": true,
+    "notes": 1,
+    "module_files": 37,
+    "profile_reused": true
+  },
+  "preserved_study_files": 4,
+  "issues_open": [
+    97,
+    107,
+    99,
+    98,
+    106,
+    104,
+    128,
+    102,
+    105,
+    75,
+    111,
+    114
+  ],
+  "limits": [
+    "GTK/Xvfb software renderer, not client GNOME/Wayland or physical touchpad acceptance",
+    "Finite cycles do not establish an indefinite memory plateau",
+    "Changed mutable OpenBible optional downloads remain refused; existing validated indexes are retained"
+  ]
+}
