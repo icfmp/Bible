@@ -1,0 +1,68 @@
+name: Measure native comparison screen origins
+on:
+  push:
+    branches: [verify/feedback-completion]
+    paths: ['.github/workflows/feedback-screen-origins.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  geometry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: 378146fac2e36fb45f615df427aecad34cbba2d0
+      - name: Install the measured candidate package and native tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/geometry-flatpak" >> "$GITHUB_ENV"
+          gh run download 40534157118 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          FLATPAK_USER_DIR="$RUNNER_TEMP/geometry-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+      - name: Measure full window coordinates, not only text-buffer coordinates
+        run: |
+          mkdir reports
+          cat > "$RUNNER_TEMP/geometry.py" <<'PY'
+          import json,sys
+          from pathlib import Path
+          from unittest.mock import patch
+          from bible.ui import Application,Window,Library,Gtk
+          from bible.library import catalogue
+          from tests.test_ui import spin
+          root=Path(sys.argv[1]);lib=Library(root/'translations');items=catalogue()
+          for name in ['FreSegond1910','KJV']:lib.install(next(x for x in items if x.name==name))
+          app=Application();app.register()
+          with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
+              w=Window(app,lib);w.set_default_size(1440,950);w.present();spin(duration=1)
+              t=w.active_tab;t.navigate('FreSegond1910','John.1.1');t.state.comparison='KJV';w.sync_comparison();spin(duration=2)
+              rows=[]
+              def measure(label):
+                  spin(duration=.8)
+                  points=[]
+                  for view,offsets,refs in [(t.text,t._marker_ends,t.comparison_rows.rows[0].primary),(t.comparison_text,t._comparison_markers,t.comparison_rows.rows[0].secondary)]:
+                      it=view.get_buffer().get_iter_at_offset(offsets[refs[0]])
+                      rect=view.get_iter_location(it);x,y=view.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,rect.x,rect.y)
+                      ok,bounds=view.compute_bounds(w);points.append(dict(buffer_y=rect.y,widget_y=y,origin_y=bounds.get_y(),screen_y=bounds.get_y()+y))
+                  sizes={name:dict(height=getattr(t,name).get_height(),request=getattr(t,name).get_size_request()) for name in ['primary_heading','comparison_heading','primary_box','comparison_box','reading_overlay','comparison_overlay']}
+                  row=dict(label=label,points=points,sizes=sizes);rows.append(row);print(json.dumps(row),flush=True)
+              measure('actual-resource-headings')
+              t.primary_heading.set_text('Short primary source')
+              t.comparison_heading.set_text('Long secondary source description with source attribution and canonical reference — '*3)
+              measure('forced-wrapped-source-heading')
+              t.primary_heading.set_vexpand(False);t.comparison_heading.set_vexpand(False)
+              t.primary_heading.set_valign(Gtk.Align.FILL);t.comparison_heading.set_valign(Gtk.Align.FILL)
+              measure('native-fill-diagnostic')
+              Path(sys.argv[2]).write_text(json.dumps(rows,indent=2))
+              w.close()
+          PY
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master "$RUNNER_TEMP/geometry.py" "$RUNNER_TEMP/geometry-profile" "$PWD/reports/geometry.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: comparison-screen-origin-diagnostic
+          path: reports/
