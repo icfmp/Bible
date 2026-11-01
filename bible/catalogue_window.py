@@ -374,6 +374,7 @@ class CatalogueWindow(Adw.Window):
         self.language.set_selected(self.languages.index(canonical_language(self.language_choice)) if canonical_language(self.language_choice) in self.languages else 0)
         self._filtering=False
         self.filter_resources()
+        self.request_youversion_language()
         if not self.busy and not self.resources and self.get_mapped():
             GLib.idle_add(self.auto_load)
 
@@ -383,6 +384,15 @@ class CatalogueWindow(Adw.Window):
         try:self.settings.set('library_language',self.language_choice)
         except (OSError,ValueError) as error:self.status.set_text(str(error));self.status.set_visible(True)
         self.filter_resources()
+        self.request_youversion_language()
+
+    def request_youversion_language(self,force=False):
+        if self.closed or not self.get_mapped() or self.kind.get_selected()!=0:return
+        if not self._catalogue_requested and not force:return
+        if not force and not self.settings.value['automatic_catalogue_refresh']:return
+        index=self.source_filter.get_selected()
+        if index and self.source_ids[index]!='youversion':return
+        self.session.load_youversion_language(self.language_choice,force)
 
     def filter_resources(self, *_):
         if self.closed:return False
@@ -535,6 +545,7 @@ class CatalogueWindow(Adw.Window):
         index=self.source_filter.get_selected()
         providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
         self.session.refresh(catalogue,force,providers);self._refresh_generation=self.session.generation
+        self.request_youversion_language(force)
 
     def stop_animation(self):
         if self._pulse_id:
@@ -603,11 +614,24 @@ class CatalogueWindow(Adw.Window):
             return
 
         if resource.provider_id=='youversion':
+            if json.loads(resource.acquisition).get('_catalogue_summary'):
+                from .youversion_install import fetch_resource
+                from .youversion_editions import edition_id
+                def ready(actual):
+                    if actual.language!=resource.language:raise ValueError('Source edition language changed')
+                    if not actual.installable:raise ValueError(tr('No offline package supplied by the source.'))
+                    self.install(resource=actual)
+                self.task(tr('Loading edition details…'),lambda:fetch_resource(edition_id(resource.name)),ready,resource=resource)
+                return
             from .youversion_install import acknowledgement
             if permission!=acknowledgement(resource):
+                policy=json.loads(resource.acquisition).get('offline') or {}
+                message=tr('You are responsible for checking that you have permission to download, convert and use this edition offline.')
+                if policy.get('require_email_agreement'):
+                    message+=' '+tr('The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing.').format(version=policy.get('agreement_version') if policy.get('agreement_version') is not None else '?')
+                message+=' '+tr('Bible does not submit an agreement or claim provider approval.')
                 dialog=Adw.MessageDialog.new(self,tr('Download from Bible.com?'),
-                    tr('You are responsible for checking that you have permission to download, convert and use this edition offline. The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing. Bible does not submit an agreement or claim provider approval.').format(
-                        version=json.loads(resource.acquisition).get('offline',{}).get('agreement_version','?')))
+                    message)
                 dialog.add_response('cancel',tr('Cancel'));dialog.add_response('download',tr('I have the required permission'))
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
                 dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)

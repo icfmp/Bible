@@ -36,6 +36,8 @@ class CatalogueSession:
         self.providers={};self.installed={};self.study_installed=frozenset();self.study_current=frozenset()
         self.language_records={};self.metrics={};self.errors={};self.refreshing=False
         self.language_inventory=frozenset()
+        self.youversion_languages={};self.youversion_loaded={};self.youversion_future=None
+        self.youversion_loading=False;self.youversion_request=0
         self.language_future=None
         self.refresh_future=None;self.installed_future=None;self.revision=0;self.generation=0
         self.bootstrap_future=self.schedule(self.bootstrap)
@@ -84,7 +86,56 @@ class CatalogueSession:
             value=self.cache.read(provider)
             if value is not None:providers[provider.id]=value[0]
         with self.lock:self.providers=providers;self.metrics['cache_read_seconds']=time.monotonic()-start
+        from .youversion_catalogue import saved_languages
+        self.youversion_languages=saved_languages(self.cache.root/'youversion-languages')
         self.scan_installed();self.publish()
+
+    def load_youversion_language(self,choice,force=False):
+        """One language at a time; retain cached results, never acquire a Bible."""
+        from .languages import canonical_language
+        from .providers import YOUVERSION
+        if not choice:return None
+        key=canonical_language(choice)
+        with self.lock:
+            if self.closed:return None
+            if time.monotonic()-self.youversion_loaded.get(key,-10000)<15*60 and not force:return self.youversion_future
+            if self.youversion_loading and getattr(self,'_youversion_choice',None)==key and not force:return self.youversion_future
+            if self.youversion_future:self.youversion_future.cancel()
+            self.youversion_request+=1;request=self.youversion_request
+            self._youversion_choice=key;self.youversion_loading=True
+        def work():
+            from .youversion_catalogue import languages,editions,tags_for_language
+            root=self.cache.root/'youversion-languages'
+            try:
+                self.bootstrap_future.result()
+                with self.lock:
+                    if self.closed or request!=self.youversion_request:return
+                    records=dict(self.youversion_languages)
+                if not records or force:records=languages(root,force)
+                tags=tags_for_language(choice,records);resources=[]
+                for tag in tags:
+                    with self.lock:
+                        if self.closed or request!=self.youversion_request:return
+                    resources.extend(editions(tag,root,force))
+                with self.lock:
+                    if self.closed:return
+                    self.youversion_languages=records
+                    old=[r for r in self.providers.get(YOUVERSION.id,()) if r.language not in tags]
+                    self.providers[YOUVERSION.id]=tuple({r.id:r for r in (*old,*resources)}.values())
+                    self.youversion_loaded[key]=time.monotonic();self.errors.pop(YOUVERSION.name,None)
+                    saved=self.providers[YOUVERSION.id]
+                self.cache.write(YOUVERSION,saved)
+            except Exception as error:
+                with self.lock:
+                    if not self.closed:self.errors[YOUVERSION.name]=str(error)
+            finally:
+                with self.lock:
+                    if request==self.youversion_request:self.youversion_loading=False
+                self.schedule(self.publish) if not self.closed else None
+        with self.lock:
+            self.youversion_future=self.network.submit(work)
+        self.schedule(self.publish)
+        return self.youversion_future
 
     def load_languages(self):
         """Complete offline ISO choices on demand, independently of catalogue IO."""
@@ -116,11 +167,23 @@ class CatalogueSession:
 
     def fetch(self,fetch,force,providers):
         def provider_ready(provider,items,error,timings):
+            records=timings.get('source_languages',{}) if provider.id=='youversion' else {}
+            if records:
+                from .youversion_catalogue import remember
+                from .youversion_editions import CONFIGURATION_URL
+                try:remember(self.cache.root/'youversion-languages/languages.json',CONFIGURATION_URL,dict(default_versions=list(records.values())))
+                except OSError:pass
             with self.lock:
                 if self.closed:return
+                if provider.id=='youversion':
+                    if records:
+                        self.youversion_languages=records
+                    tags=set(timings.get('source_loaded_tags',()))
+                    items=tuple({r.id:r for r in (*[r for r in self.providers.get(provider.id,()) if r.language not in tags],*items)}.values())
                 if not error or items:self.providers[provider.id]=tuple(items)
                 if error:self.errors[provider.name]=str(error)
-                self.metrics[provider.id]=dict(timings);self.revision+=1;revision=self.revision
+                self.metrics[provider.id]={k:v for k,v in timings.items() if k!='source_languages'}
+                self.revision+=1;revision=self.revision
             self.schedule(self.publish,revision)
         try:
             self.bootstrap_future.result()
@@ -130,7 +193,12 @@ class CatalogueSession:
             with self.lock:
                 if self.closed:return
                 self.errors=dict(getattr(result,'errors',{}))
-                self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers if p.name not in self.errors})
+                self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers if p.name not in self.errors and (p.id!='youversion' or p.id not in self.providers)})
+                saved=self.providers.get('youversion')
+            if saved is not None:
+                from .providers import YOUVERSION
+                try:self.cache.write(YOUVERSION,saved)
+                except OSError:pass
         except Exception as error:
             with self.lock:self.errors={'Library':str(error)}
         finally:
@@ -143,9 +211,10 @@ class CatalogueSession:
             if self.closed or revision is not None and revision!=self.revision:return
             resources=tuple(sorted((r for rows in self.providers.values() for r in rows),key=lambda r:(r.language,r.name,r.provider_id)))
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
-            metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing;generation=self.generation;covered=frozenset(self.providers)
+            metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing or self.youversion_loading;generation=self.generation;covered=frozenset(self.providers)
+            source_languages=set(self.youversion_languages)
         start=time.monotonic();all_resources=(*resources,*installed.values(),*self.study.available())
-        languages={r.language for r in all_resources}|self.language_inventory
+        languages={r.language for r in all_resources}|self.language_inventory|source_languages
         for code in languages:
             if self.closed:return
             if code not in self.language_records:

@@ -9,7 +9,11 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from bible.youversion_osis import BOOKS
+from bible.youversion_osis import BOOKS as ALL_BOOKS,BOOK_CODES
+
+# This audited bridge is explicitly the Original 66-book table. Expanding the
+# importer's book vocabulary must not change its reference-mapping contract.
+BOOKS={code:ALL_BOOKS[code] for code in BOOK_CODES}
 
 ROOT=Path(__file__).resolve().parents[2]
 

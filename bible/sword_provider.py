@@ -81,6 +81,9 @@ class Reader:
         self.root,self.name=Path(root),name
         import Sword
         self.sword = Sword
+        if name.startswith('youversion~') and (self.root/'.source-versification').exists():
+            from .source_versification import register_index
+            register_index(self.root/'.source-versification')
         self.manager = Sword.SWMgr(str(root))
         from .providers import module_name
         self.module = self.manager.getModule(module_name(name))
@@ -172,6 +175,28 @@ class Reader:
         return (passages[index - 1][1] if index > 0 else None,
                 passages[index + 1][1] if index + 1 < len(passages) else None)
 
+    @cached_property
+    def source_verse_order(self):
+        """Sparse, verified reference-only exceptions to numeric verse order."""
+        if not self._source_osis:return {}
+        import hashlib,json
+        path=self.root/'.source-verse-order.json';receipt=self.root/'.verified.json'
+        if not path.exists() and not receipt.exists():return {}
+        if receipt.is_symlink() or receipt.stat().st_size>16384:raise ValueError('Invalid source verification receipt')
+        expected=json.loads(receipt.read_text()).get('source_verse_order_sha256')
+        if not expected and not path.exists():return {}
+        if path.is_symlink() or path.stat().st_size>8*1024*1024:raise ValueError('Invalid source verse order')
+        raw=path.read_bytes()
+        if hashlib.sha256(raw).hexdigest()!=expected:raise ValueError('Source verse order changed')
+        value=json.loads(raw)
+        if not isinstance(value,dict) or len(value)>10000:raise ValueError('Invalid source verse order')
+        for ref,numbers in value.items():
+            if (not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}',ref) or
+                not isinstance(numbers,list) or not 1<=len(numbers)<=2000 or
+                any(type(n)is not int or not 1<=n<=2000 for n in numbers) or len(set(numbers))!=len(numbers)):
+                raise ValueError('Invalid source verse order')
+        return value
+
     def chapter(self, reference='Gen.1.1', *, cancelled=None):
         from .preparation import checkpoint
         checkpoint(cancelled)
@@ -181,7 +206,14 @@ class Reader:
         verses = []
         source_entries=[]
         links=[];previous_entry=None;primary=None;previous_text=None
-        for verse in range(1, key.getVerseMax() + 1):
+        numbers=self.source_verse_order.get(first.rsplit('.',1)[0])
+        if numbers is not None:
+            present=set()
+            for verse in range(1,key.getVerseMax()+1):
+                key.setVerse(verse)
+                if self.module.hasEntry(key):present.add(verse)
+            if set(numbers)!=present:raise ValueError('Source verse order differs from native entries')
+        for verse in numbers if numbers is not None else range(1, key.getVerseMax() + 1):
             checkpoint(cancelled)
             key.setVerse(verse)
             if not self.module.hasEntry(key):

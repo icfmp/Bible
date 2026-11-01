@@ -13,6 +13,43 @@ class EditorialUITests(unittest.TestCase):
         from bible.ui import Application
         cls.app=Application.get_default() or Application();cls.app.register()
 
+    def test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive(self):
+        import threading
+        from bible.ui import Window,Library,Adw,Gtk
+        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from tools.research.test_yves_source import metadata
+        from tests.test_youversion_catalogue import listing
+        from bible.youversion_catalogue import resource_from_listing
+        from bible.youversion_install import resource_from_metadata
+        identifier=900021;data=metadata();data['id']=identifier
+        data['language'].update(iso_639_3='spa',language_tag='spa')
+        data['offline']=listing()['offline'];actual=resource_from_metadata(data,identifier)
+        summary=resource_from_listing(listing(),'spa');main=threading.get_ident()
+        def hydrate(value):
+            self.assertEqual(value,identifier);self.assertNotEqual(threading.get_ident(),main)
+            return actual
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin();dialog=None
+            try:
+                with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
+                    dialog=window.open_library();spin(lambda:not dialog.preparing)
+                with patch('bible.youversion_install.fetch_resource',side_effect=hydrate) as fetched,patch.object(window.library,'install') as installed:
+                    dialog.install(resource=summary);spin(lambda:not dialog._transfer_busy)
+                    fetched.assert_called_once();installed.assert_not_called()
+                    confirmation=next(d for d in Gtk.Window.list_toplevels() if isinstance(d,Adw.MessageDialog))
+                    self.assertNotIn('email',confirmation.get_body().lower())
+                    self.assertNotIn('courriel',confirmation.get_body().lower())
+                    confirmation.response('cancel');confirmation.destroy();spin()
+                    installed.assert_not_called()
+                with patch('bible.youversion_install.fetch_resource',side_effect=OSError('Synthetic metadata refusal')):
+                    dialog.install(resource=summary);spin(lambda:not dialog._transfer_busy)
+                    self.assertEqual(dialog._failed_resource,summary.id)
+                    self.assertIn('Synthetic metadata refusal',dialog.status.get_text())
+            finally:
+                if dialog:dialog.close()
+                window.close();close_test_dialogs();spin()
+
     def test_library_download_requires_acknowledgement_and_keeps_failure_retryable(self):
         from bible.ui import Window,Library,Adw,Gtk
         from tests.test_ui import installed_fixture,spin,close_test_dialogs

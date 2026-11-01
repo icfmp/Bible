@@ -20,6 +20,8 @@ FRENCH.update({'Tob': 'Tobie', 'Jdt': 'Judith', 'Wis': 'Sagesse', 'Sir': 'Siraci
                'AddEsth': 'Additions à Esther', 'AddDan': 'Additions à Daniel',
                'EpJer': 'Lettre de Jérémie', 'PrAzar': 'Prière d’Azarias',
                'Sus': 'Suzanne', 'Bel': 'Bel et le Dragon'})
+FRENCH.update({'EsthGr':'Esther (grec)','DanGr':'Daniel (grec)','Odes':'Odes',
+               'PssSol':'Psaumes de Salomon','EpLao':'Épître aux Laodicéens'})
 
 
 def normalized(value):

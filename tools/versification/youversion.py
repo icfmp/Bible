@@ -1,7 +1,8 @@
 """Check the two exact, reference-only publisher indexes in the native patch."""
 import json
 from pathlib import Path
-from bible.youversion_osis import BOOKS
+from bible.youversion_osis import BOOKS as ALL_BOOKS,BOOK_CODES
+BOOKS={code:ALL_BOOKS[code] for code in BOOK_CODES}
 
 ROOT=Path(__file__).resolve().parents[2]
 

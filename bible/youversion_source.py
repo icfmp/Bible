@@ -53,7 +53,7 @@ def read_edition(data, expected_id):
         data = response['data']
     if type(data.get('id')) is not int or data['id'] != expected_id:
         raise Unsupported('Metadata edition identity mismatch')
-    title = _string(data.get('local_title'), 'edition title')
+    title = _string(data.get('local_title') or data.get('title'), 'edition title')
     language = data.get('language')
     if not isinstance(language, dict):
         raise Unsupported('Missing language metadata')
@@ -98,11 +98,19 @@ def read_edition(data, expected_id):
             chapters.append(ref)
     if not chapters or len(chapters) > 10000 or len(set(chapters)) != len(chapters):
         raise Unsupported('Invalid or duplicate chapter inventory')
-    offline = data.get('offline')
-    archive_url = None
+    archive_url = offline_url(data.get('offline'),expected_id)
+    return Edition(data, expected_id, title, language, attribution, tuple(chapters), archive_url)
+
+
+def offline_url(offline,expected_id):
+    archive_url=None
     if offline is not None:
         if not isinstance(offline, dict):
             raise Unsupported('Invalid offline metadata')
+        for field in ('require_email_agreement','allow_redownload','always_allow_updates'):
+            if offline.get(field) is not None and type(offline[field]) is not bool:raise Unsupported('Invalid source agreement policy')
+        if offline.get('agreement_version') is not None and (type(offline['agreement_version']) is not int or not 0<=offline['agreement_version']<=1000000):
+            raise Unsupported('Invalid source agreement version')
         raw = offline.get('url')
         if raw:
             raw = _string(raw, 'offline URL')
@@ -112,7 +120,7 @@ def read_edition(data, expected_id):
                     or parsed.netloc != parsed.hostname or parsed.fragment
                     or not re.fullmatch(fr'/bible/text/offline/{expected_id}-[0-9]+\.zip', parsed.path)):
                 raise Unsupported('Unreviewed offline URL or mismatching edition')
-    return Edition(data, expected_id, title, language, attribution, tuple(chapters), archive_url)
+    return archive_url
 
 
 def decode_bytes(data):
@@ -229,8 +237,16 @@ def parse_chapter(encoded, reference, edition):
         raise Unsupported('Expected one version and chapter container')
     version, version_path = versions[0]
     chapter, chapter_path = chapters[0]
+    source_language=attributes(version).get('data-iso6393')
+    same_language=source_language==edition.language
+    if not same_language and isinstance(source_language,str) and re.fullmatch('[a-z]{3}',source_language):
+        # The Chinese catalogue advertises zho while its offline files use cmn.
+        # Only maintained CLDR aliases qualify; never accept an unrelated code
+        # or erase the actual source identity in the verification receipt.
+        from .languages import canonical_language
+        same_language=canonical_language(source_language)==canonical_language(edition.language)
     if (attributes(version).get('data-vid') != str(edition.identifier)
-            or attributes(version).get('data-iso6393') != edition.language
+            or not same_language
             or attributes(chapter).get('data-usfm') != reference
             or reference not in edition.chapters
             or chapter_path[:len(version_path)] != version_path):
@@ -249,7 +265,7 @@ def parse_chapter(encoded, reference, edition):
         entry['text'] = ''.join(fragment['text'] for fragment in entry['fragments'])
     if '.INTRO' not in reference and not verses:
         raise Unsupported('Chapter contains no indexed verses')
-    return dict(reference=reference, encoded_sha256=hashlib.sha256(encoded).hexdigest(),
+    return dict(reference=reference, source_language=source_language, encoded_sha256=hashlib.sha256(encoded).hexdigest(),
                 html_sha256=hashlib.sha256(source.encode()).hexdigest(), source_html=source,
                 tree=tree, chapter_path=list(chapter_path), verses=list(verses.values()))
 

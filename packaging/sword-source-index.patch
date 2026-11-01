@@ -1,0 +1,76 @@
+--- a/include/versificationmgr.h
++++ b/include/versificationmgr.h
+@@ -161,4 +161,6 @@
+ SWDLLEXPORT extern const struct abbrev builtin_abbrevs[];
+ 
+ SWORD_NAMESPACE_END
++
++extern "C" SWDLLEXPORT int bible_register_source_index(const char *path);
+ #endif
+--- a/src/mgr/versificationmgr.cpp
++++ b/src/mgr/versificationmgr.cpp
+@@ -584,3 +584,5 @@
+ 
+ SWORD_NAMESPACE_END
+ 
++
++#include <bible-source-versification.inc>
+--- a/utilities/osis2mod.cpp
++++ b/utilities/osis2mod.cpp
+@@ -73,6 +73,7 @@
+ 
+ using namespace std;
+ 
++bool      preserveSourcePrefix = false;
+ int       debug            =   0; // mask of debug flags
+ const int DEBUG_WRITE      =   1; // writing to module
+ const int DEBUG_VERSE      =   2; // verse start and end
+@@ -966,9 +967,9 @@
+ 				// If we see one of the following:
+ 				//     a section div
+ 				//     a title that is not main, chapter or sub or unclassified (no type attribute)
+-				if ((tokenName == "div" && typeAttr == "section") ||
++				if (!preserveSourcePrefix && ((tokenName == "div" && typeAttr == "section") ||
+ 				    (tokenName == "title" && typeAttr.length() != 0 && typeAttr != "main" && typeAttr != "chapter" && typeAttr != "sub")
+-				) {
++				)) {
+ 					if (debug & DEBUG_TITLE) {
+ 						cout << "DEBUG(TITLE): " << currentOsisID << ": Done looking for chapter introduction" << endl;
+ 					}
+@@ -1384,6 +1385,7 @@
+ 		fprintf(stderr, "\t\t\t\t entries in uncompressed modules\n");
+ 		fprintf(stderr, "\t\t\t\t (2 bytes to store size equal 65535 characters)\n");
+ 	}
++	fprintf(stderr, "  -V <index>\t\t load Bible source bounds; keep unnumbered chapter prefixes\n");
+ 	fprintf(stderr, "  -v <v11n>\t\t specify a versification scheme to use (default is KJV)\n");
+ 	fprintf(stderr, "\t\t\t\t Note: The following are valid values for v11n:");
+ 
+@@ -1867,6 +1869,7 @@
+ 	const char* program    = argv[0];
+ 	const char* path       = argv[1];
+ 	const char* osisDoc    = argv[2];
++	const char* sourceIndex = nullptr;
+ 	int append             = 0;
+ 	SWBuf compType         = "";
+ 	bool isCommentary      = false;
+@@ -1933,6 +1936,10 @@
+ 			if (i+1 < argc) cipherKey = argv[++i];
+ 			else usage(*argv, "-c requires <cipher_key>");
+ 		}
++		else if (!strcmp(argv[i], "-V")) {
++			if (i+1 < argc) sourceIndex = argv[++i];
++			else usage(*argv, "-V requires a source reference-index file");
++		}
+ 		else if (!strcmp(argv[i], "-v")) {
+ 			if (i+1 < argc) v11n = argv[++i];
+ 			else usage(*argv, "-v requires <v11n>");
+@@ -1966,6 +1973,9 @@
+ 		else usage(*argv, (((SWBuf)"Unknown argument: ")+ argv[i]).c_str());
+ 	}
+ 
++	if (sourceIndex && bible_register_source_index(sourceIndex)) usage(*argv, "Invalid or conflicting source reference index");
++	// Preserve unnumbered source prefixes in the native chapter introduction.
++	preserveSourcePrefix = sourceIndex != nullptr;
+ 	if (isCommentary) isCommentary = true;  // avoid unused warning for now
+ 
+ 	if (compType == "LZSS") {
