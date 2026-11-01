@@ -97,7 +97,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_overlay.set_child(self.comparison_scroll)
         self.comparison_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,margin_top=12,margin_end=12)
         self.comparison_overlay.add_overlay(self.comparison_controls)
-        headings=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        headings=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
         headings.add_widget(self.primary_heading);headings.add_widget(self.comparison_heading)
         self.heading_size_group=headings
         self.comparison_box.append(self.comparison_overlay)
