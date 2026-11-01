@@ -1,0 +1,51 @@
+{
+  "feature_source": "112f42a9db66db0b88fad44da990ad6af666a623",
+  "merge_source": "d9c9791c509a3d51b334ddae5cbab2c2eebe9993",
+  "changed_files_at_merge": 0,
+  "ci_run": 41333808264,
+  "tests": {
+    "source": 372,
+    "french": 154,
+    "installed": 175,
+    "immersion": 12,
+    "isolated_marker_selection": 6
+  },
+  "visual_run": 41333943040,
+  "first_attempt": {
+    "conclusion": "failure",
+    "candidate_passed": [
+      "comparison"
+    ],
+    "failed_section": "markers",
+    "failure": "45-second wait for PlaceMap.ready or retry button; GTK spin timeout at tools/check_reading_feedback.py:84",
+    "artifact_id": 13095308700,
+    "artifact_sha256": "709502d935bb60a0c7ed86dad043b6bde598e8848a933c8069ae10a6b8931d7b"
+  },
+  "second_attempt": {
+    "conclusion": "success",
+    "package_unchanged": true,
+    "all_six_candidate_sections": true,
+    "artifact_id": 13095791364,
+    "artifact_sha256": "a41d0246e48f778688f916d12fecebae17ab7a171c806c563dc7819d2cb009d4",
+    "actual_screen_alignment": {
+      "rows": 51,
+      "white_max_delta_pixels": 0,
+      "dark_max_delta_pixels": 0
+    },
+    "actual_maps": [
+      "Shinar-white",
+      "Shinar-dark",
+      "Haran-white",
+      "Haran-dark"
+    ]
+  },
+  "baseline_limit": "The published d39a99e native marker click does not open a visible detail in this capture; failure is explicitly retained.",
+  "map_limit": "One external-map readiness wait exceeded 45 seconds. An unchanged-package repeat loaded all four real map views. The first failure is not discarded and long-term remote tile-service availability is not established.",
+  "reviewed_images": [
+    "final-visuals/visual-candidate-comparison/comparison-white.png",
+    "final-visuals/visual-candidate-comparison/comparison-dark.png",
+    "final-visuals/visual-candidate-notes/notes-white.png",
+    "final-visuals/visual-candidate-markers/Haran-dark-map.png"
+  ],
+  "numbered_release_87_paused": true
+}
