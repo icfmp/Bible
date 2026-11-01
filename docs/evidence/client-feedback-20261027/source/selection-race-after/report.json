@@ -1,0 +1,110 @@
+{
+  "events": [
+    {
+      "event": "dismiss",
+      "t": 0.8345,
+      "intent": 0,
+      "dragging": false,
+      "caller": "<lambda>",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.4187,
+      "intent": 1,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "capture",
+      "t": 2.4855,
+      "intent": 3,
+      "dragging": false,
+      "caller": "capture_pending",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.4861,
+      "intent": 3,
+      "dragging": false,
+      "caller": "capture",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.6833,
+      "intent": 4,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.8355,
+      "intent": 5,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.9881,
+      "intent": 6,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "capture",
+      "t": 3.4093,
+      "intent": 8,
+      "dragging": false,
+      "caller": "capture_pending",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 3.7336,
+      "intent": 8,
+      "dragging": false,
+      "caller": "on_close",
+      "has_target": true
+    }
+  ],
+  "gestures": [
+    {
+      "selection": true,
+      "old_range": [
+        163,
+        165
+      ],
+      "range": [
+        229,
+        350
+      ],
+      "bar_visible": true,
+      "during_drag": false,
+      "dragging": false,
+      "events": [
+        {
+          "event": "dismiss",
+          "t": 2.9881,
+          "intent": 6,
+          "dragging": false,
+          "caller": "pressed",
+          "has_target": false
+        },
+        {
+          "event": "capture",
+          "t": 3.4093,
+          "intent": 8,
+          "dragging": false,
+          "caller": "capture_pending",
+          "has_target": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "edition": 131,
+  "title": "Ostervald",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": null,
+  "source_numbering": "org",
+  "native_numbering": "YouVersion131",
+  "archive_sha256": "d632e2dce0db4abb46a01f8f85a0bcb106aa73311ffa10a90ef3aa28e563aebb",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 0.0023482120000153373,
+  "conversion_child_peak_rss_kib": 0,
+  "phases": {},
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 4,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": false,
+  "actual_archive_download_in_application": false,
+  "transfer": {
+    "bytes": 0,
+    "total": 0,
+    "seconds": 0
+  },
+  "offline_verification_only": true,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

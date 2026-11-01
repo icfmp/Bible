@@ -60,6 +60,23 @@ class ClientFeedbackTests(unittest.TestCase):
         v.reveal_controls();spin(duration=.4)
         self.assertEqual(v.reading_box,bounds);self.assertEqual(v.stream.anchor(),anchor)
 
+    def test_immersive_keyboard_focus_stays_outside_the_moving_pages(self):
+        w=self.w;w.enter_immersion('bible');v=w.immersion
+        spin(lambda:v.layout_ready,timeout=15)
+        w.set_focus_visible(True);v.views[0].grab_focus();spin()
+        self.assertTrue(v.focus_cue.get_visible())
+        self.assertFalse(v.focus_cue.get_can_target())
+        self.assertFalse(v.focus_cue.is_ancestor(v.page_clamp))
+        original=v.stream.cursor
+        self.assertTrue(v.turn(1));spin(lambda:v.layout_ready)
+        self.assertNotEqual(v.stream.cursor,original)
+        self.assertTrue(v.focus_cue.get_visible())
+        w.set_focus_visible(False);spin()
+        self.assertFalse(v.focus_cue.get_visible())
+        w.set_focus_visible(True);v.leave_button.grab_focus();spin()
+        self.assertFalse(v.focus_cue.get_visible())
+        self.assertIs(w.get_focus(),v.leave_button)
+
     def test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides(self):
         t=self.w.active_tab;a=self.w.passage_actions;b=t.text.get_buffer();offset=t._marker_ends['Gen.1.1']+3
         factory=lambda:a.ordinary(t)

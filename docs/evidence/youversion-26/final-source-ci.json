@@ -1,0 +1,14 @@
+{
+  "source": "916b35a627fb80848107bc3a5701313c903e9883",
+  "ci_run": "40427232547",
+  "artifact": 12699819582,
+  "artifact_sha256": "0f9e834a0cee389267944c5e2269921ab69b345e57be13dc7812eaccf0641f62",
+  "results": {
+    "test-results.log": [
+      "Ran 358 tests in 264.175s\n\nOK (skipped=2)"
+    ],
+    "ui-fr-results.log": [
+      "Ran 144 tests in 154.419s\n\nOK"
+    ]
+  }
+}

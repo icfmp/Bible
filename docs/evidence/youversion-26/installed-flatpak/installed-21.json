@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 21,
+  "title": "La Bible du Semeur 2015",
+  "installed_entries": 1255,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 66,
+    "units": 31112,
+    "notes": 7363,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "org",
+  "native_numbering": "Original",
+  "archive_sha256": "1351a23ef1ea6e2d010f4f7ae48beec6c09bf56ba9743191ae6d1b1eed31040a",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 17.788969422000037,
+  "conversion_child_peak_rss_kib": 74224,
+  "phases": {
+    "converting": [
+      1255,
+      1255
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1255,
+      1255
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": null,
+  "existing_resources_preserved": 0,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": false,
+  "transfer": {
+    "bytes": 4478762,
+    "total": 4478762,
+    "seconds": 0.0
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

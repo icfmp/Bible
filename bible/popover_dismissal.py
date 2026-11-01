@@ -62,6 +62,7 @@ def fit_reader_popover(popover, owner):
     child=popover.get_child()
     width=child.measure(Gtk.Orientation.HORIZONTAL,-1)[1]+16
     half=width/2
-    center=bounds.origin.x+bounds.size.width/2
+    pointed,rect=popover.get_pointing_to()
+    center=bounds.origin.x+(rect.x+rect.width/2 if pointed else bounds.size.width/2)
     target=max(half+4,min(owner.get_width()-half-4,center))
     popover.set_offset(round(target-center),0)

@@ -1,0 +1,15 @@
+[
+  {
+    "palette": "white",
+    "narrow": false,
+    "window": [
+      1280,
+      900
+    ],
+    "dialog": [
+      1280,
+      900
+    ],
+    "source": "/work/client-feedback-20261027/repo/bible/ui.py"
+  }
+]

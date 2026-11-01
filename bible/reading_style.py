@@ -3,7 +3,7 @@ import gi
 
 gi.require_version('Adw', '1')
 from gi.repository import Adw, Gtk
-from .reading_metrics import SPACING, WIDTHS
+from .reading_metrics import SPACING, WIDTHS, line_spacing
 
 # background, text, link, selection background, selection text; opaque colors.
 PALETTES = {
@@ -16,10 +16,11 @@ PALETTES = {
 }
 
 
-def apply_direction(view,reader):
+def apply_direction(view,reader,preferences=None):
     """Resource direction affects the content, not the application's controls."""
     view.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
-    view.set_justification(Gtk.Justification.RIGHT if reader.rtl else Gtk.Justification.LEFT)
+    view.set_justification(Gtk.Justification.FILL if preferences and preferences.alignment=='justified' else
+                           Gtk.Justification.RIGHT if reader.rtl else Gtk.Justification.LEFT)
 
 
 def effective_palette(preferences, dark, high_contrast):
@@ -95,8 +96,8 @@ class ReadingStyle:
                 return False
             view._reader_reflow_tick=view.add_tick_callback(restore)
         preferences = self.owner.preferences.value
-        view.set_pixels_inside_wrap(SPACING[preferences.line_spacing])
-        view.set_pixels_below_lines(SPACING[preferences.line_spacing] + 4)
+        view.set_pixels_inside_wrap(line_spacing(preferences))
+        view.set_pixels_below_lines(line_spacing(preferences) + 4)
         buffer = view.get_buffer()
         tag = buffer.get_tag_table().lookup('reader-typography')
         if tag is None:
@@ -118,10 +119,14 @@ class ReadingStyle:
         bg, fg, link, selection, selected = PALETTES[self.palette]
         selector = 'textview.' + self.scope
         focus_width = 3 if self.manager.get_high_contrast() else 2
+        from .verse_typography import NUMBER_COLORS
+        marker_color=NUMBER_COLORS[self.palette]
+        import json
+        study_family=json.dumps(self.owner.preferences.value.study_font,ensure_ascii=False)
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         self.css = f'''
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
-textview.{self.scope} button.inline-marker {{ min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
+textview.{self.scope} button.inline-marker {{ color: {marker_color}; min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
 textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions {{ border-radius: 16px; padding: 0; background-color: transparent; color: #ffffff; }}
 .passage-actions button {{ color: #ffffff; background: transparent; box-shadow: none; }}
@@ -135,10 +140,14 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
 {selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
+.{self.scope}-window .study-drawer .study-content,
+.{self.scope}-window .study-drawer .study-content text {{ font-family: {study_family}; }}
 /* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque
    background cannot cover the focus mark. Inset shadows do not change layout. */
-{selector}:focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
-{selector}:dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
+{selector}:not(.immersive-page):focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
+{selector}:not(.immersive-page):dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
+.{self.scope}-focus-cue {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
+.{self.scope}-focus-cue.rtl-reading {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
 '''
         window='.'+self.scope+'-window'
         if not self.manager.get_high_contrast():
@@ -151,6 +160,9 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
 {window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
 {window} .sidebar, {window} .sidebar-pane, {window} .study-panel, {window} .study-divider {{ background-color: {sidebar}; color: {fg}; }}
+{window} .annotation-navigation {{ background-color: {sidebar}; color: {fg}; }}
+{window} .annotation-sidebar, {window} .annotation-list {{ background-color: {chrome}; color: {fg}; }}
+{window} .annotation-detail {{ background-color: {bg}; color: {fg}; }}
 {window} textview.study-reader, {window} textview.study-reader text {{ color: {fg}; }}
 {window} .study-drawer headerbar, {window} .study-drawer headerbar .title,
 {window} .study-drawer headerbar .start, {window} .study-drawer headerbar .end {{ background-color: {sidebar}; color: {fg}; }}
@@ -159,6 +171,9 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {window} .passage-actions {{ background-color: transparent; color: white; }}
 {window} .passage-actions popover contents, {window} .passage-actions popover arrow {{ background-color: #202020; color: white; }}
 """
+        for name,(background,foreground,*_) in PALETTES.items():
+            if name.startswith('contrast'):continue
+            self.css+=f'.{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n'
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS
         for view in self.views:

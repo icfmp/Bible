@@ -1,0 +1,42 @@
+{
+  "app_import": "/work/client-feedback-20261027/repo/bible/ui.py",
+  "baseline": false,
+  "sections": {
+    "markers": [
+      {
+        "place": "Shinar",
+        "palette": "white",
+        "reader_mapped": true,
+        "transient": true,
+        "map_ready": true
+      },
+      {
+        "place": "Shinar",
+        "palette": "dark",
+        "reader_mapped": true,
+        "transient": true,
+        "map_ready": true
+      },
+      {
+        "place": "Haran",
+        "palette": "white",
+        "reader_mapped": true,
+        "transient": true,
+        "map_ready": true
+      },
+      {
+        "place": "Haran",
+        "palette": "dark",
+        "reader_mapped": true,
+        "transient": true,
+        "map_ready": true
+      }
+    ]
+  },
+  "gtk": [
+    4,
+    14,
+    5
+  ],
+  "renderer": "GLRenderer"
+}

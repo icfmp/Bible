@@ -168,3 +168,33 @@ source identifiers and credit. Community associations are not doctrinal
 conclusions. Source date, ZIP checksum, schema, transformations and coverage
 are documented in [TOPIC_SEARCH_48.md](docs/TOPIC_SEARCH_48.md). Installed Bible
 excerpts retain their own resource terms.
+
+## libshumate 1.5.5 and on-demand OpenStreetMap tiles
+
+The native map component is licensed under LGPL-2.1-or-later (upstream file
+headers and COPYING). The manifest pins the original GNOME source archive and
+SHA-256; the corresponding-source distribution includes that archive and the
+three small patches in `packaging/shumate-*.patch`. The installed notice is
+`/app/share/licenses/libshumate/COPYING`. Bible's own licence is unchanged.
+The raster-only build uses GTK and libsoup from the separately distributed
+GNOME 49 runtime; no vector renderer or additional map service is embedded.
+
+`shumate-user-agent.patch` makes the native raster downloader honour the public
+application User-Agent API instead of its hard-coded generic default.
+`shumate-image-errors.patch` reports a failed native image decode as a tile
+error rather than marking an empty map successful. Neither patch replaces the
+native cache, HTTP client, image sandbox or rendering/input machinery.
+`shumate-load-notification.patch` preserves map-loaded notifications when
+optional Sysprof profiling is disabled (its timestamp sentinel is -1).
+
+The standard OSM raster service is used only when the reader intentionally
+opens a place detail, for the visible viewport. Its linked © OpenStreetMap
+contributors credit remains visible beside the map. The native disk cache has
+a 100 MB bound, a minimum seven-day freshness period and conditional
+ETag/Last-Modified revalidation. No bulk download, prefetch or offline-map
+feature is provided. Cached revisits do not imply complete offline maps;
+missing/failed tiles show an unavailable state with retry. Service availability
+is best effort under <https://operations.osmfoundation.org/policies/tiles/>.
+The stable identifying User-Agent is `Bible/0.1-alpha
+(+https://github.com/icfmp/Bible)`. The original outlined place icon is Bible
+project artwork under GPL-2.0-only.

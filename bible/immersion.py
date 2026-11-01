@@ -8,7 +8,7 @@ from gi.repository import Adw,Gdk,Gio,GLib,Gtk,Pango
 from .i18n import tr
 from .pagination import Anchor
 from .paged_sources import PagedStream,PageAddress
-from .reading_style import SPACING,WIDTHS
+from .reading_metrics import SPACING,WIDTHS,line_spacing,text_width
 from .notes_window import passage_label
 
 
@@ -25,6 +25,7 @@ class Immersion(Gtk.Overlay):
         self.clicked_reference=None
         self._page_focus_pending=True
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=False;self._allocation_signature=None
+        self._page_body_height=0
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.pages=Gtk.Box(spacing=32,homogeneous=True,hexpand=True,vexpand=True,halign=Gtk.Align.CENTER,
                            margin_top=48,margin_bottom=48,margin_start=56,margin_end=56)
@@ -38,6 +39,7 @@ class Immersion(Gtk.Overlay):
             if source.rtl:view.set_justification(Gtk.Justification.RIGHT)
             view.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading page')+' '+str(number+1)])
             view.add_css_class(owner.reading_style.scope)
+            view.add_css_class('immersive-page')
             owner.reading_style.views.add(view)
             view._reading_palette=owner.reading_style.palette
             if self.kind=='bible':
@@ -59,6 +61,16 @@ class Immersion(Gtk.Overlay):
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');self.footer.set_valign(Gtk.Align.END)
         self.set_child(body);self.add_overlay(self.footer)
+        # Keyboard focus belongs to the stationary viewport. Painting it in a
+        # text page would bake its vertical inset into the moving slide image.
+        self.focus_cue=Gtk.Box(can_target=False,hexpand=True,vexpand=True)
+        self.focus_cue.add_css_class(owner.reading_style.scope+'-focus-cue')
+        if source.rtl:self.focus_cue.add_css_class('rtl-reading')
+        self.focus_cue.set_visible(False);self.add_overlay(self.focus_cue)
+        for view in self.views:view.connect('state-flags-changed',self.sync_reading_focus)
+        self.connect('state-flags-changed',self.sync_reading_focus)
+        self._focus_handlers=[owner.connect('notify::'+name,self.sync_reading_focus)
+                              for name in ('focus-visible','focus-widget')]
         if getattr(source,'book_pages',False):
             from .book_stream import BookStream
             self.stream=BookStream(self.views[0],source,owner.preferences.value)
@@ -137,6 +149,11 @@ class Immersion(Gtk.Overlay):
         self._tick=self.add_tick_callback(self.adapt)
         self.reveal_controls()
 
+    def sync_reading_focus(self,*_):
+        visible=(not self._closed and self.owner.get_focus_visible()
+                 and self.owner.get_focus() in (self,*self.views))
+        self.focus_cue.set_visible(visible)
+
     def page_button(self,direction):
         icon='go-previous-symbolic' if (direction<0)!=self.source.rtl else 'go-next-symbolic'
         button=Gtk.Button(icon_name=icon,tooltip_text=tr('Previous pages') if direction<0 else tr('Next pages'),
@@ -166,8 +183,10 @@ class Immersion(Gtk.Overlay):
                          last.origin.x+last.size.width-self.views[-1].get_right_margin(),
                          first.origin.y,first.size.height,width)
         minimum=max(280,self.owner.preferences.value.size*15)
-        count=2 if (width-112-32)/2>=minimum else 1
-        usable=min(WIDTHS[self.owner.preferences.value.column_width],int((width-112-(32 if count==2 else 0))/count))
+        p=self.owner.preferences.value
+        edge=56
+        count=2 if p.immersion_columns=='automatic' and (width-2*edge-32)/2>=minimum else 1
+        usable=min(text_width(p),int((width-2*edge-(32 if count==2 else 0))/count))
         usable=max(40,usable-16)
         page_height=max(40,self.pages.get_height()-24)
         geometry=(usable,page_height,count)
@@ -179,7 +198,7 @@ class Immersion(Gtk.Overlay):
             anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
             key=self.stream.cursor.key if self.stream.cursor else self.initial_key
             self.count=count;self.frames[1].set_visible(count==2);self.views[1].set_visible(count==2)
-            maximum=(usable+16)*count+(32 if count==2 else 0)+112
+            maximum=(usable+16)*count+(32 if count==2 else 0)+2*edge
             self.page_clamp.set_maximum_size(maximum);self.page_clamp.set_tightening_threshold(maximum)
             # Settle allocations before scheduling expensive work. Rapid resize
             # and consecutive Aa changes should prepare only the last geometry.
@@ -196,12 +215,25 @@ class Immersion(Gtk.Overlay):
                 self._allocation_signature=allocation;self._stable_frames=0;self.layout_ready=False
             else:self._stable_frames+=1
             if self._stable_frames==2:
+                if not all(view.get_mapped() for view in self.views[:self.count]):
+                    self._stable_frames=1;return True
                 # GTK may complete font layout/selection ownership after render.
                 # Reapply canonical bounds only once the allocations are stable.
                 self._updating=True
                 try:self.restore_selection()
                 finally:self._updating=False
                 self._selection_restore_pending=False;self.layout_ready=True
+                # A paragraph sliced at a page boundary can shape its final
+                # punctuation differently. Measure these two displayed pages
+                # once, so an extra actual line never clips. Short final pages
+                # cannot shrink the shared nominal reading area.
+                heights=[]
+                for view in self.views[:self.count]:
+                    end=len(view.get_buffer().props.text.rstrip())
+                    if end:
+                        box=view.get_iter_location(view.get_buffer().get_iter_at_offset(end-1))
+                        heights.append(box.y+box.height)
+                self._page_body_height=max(heights,default=0)
         self.center_reading_box()
         if self._page_focus_pending and self.stream.cursor and self.views[0].get_mapped():
             if self.owner.is_active() and self.owner.get_focus() in (None,self) and not self.open_popovers():
@@ -217,7 +249,7 @@ class Immersion(Gtk.Overlay):
         if not self.stream.cursor:return
         plan=self.stream.plan(self.stream.cursor.key)
         if not plan:return
-        capacity=plan.capacity or self.stream.height
+        capacity=max(plan.reading_height or plan.capacity or self.stream.height,self._page_body_height)
         ok,bounds=self.frames[0].compute_bounds(self)
         if not ok:return
         top=max(12,round((self.get_height()-capacity)/2-bounds.origin.y))
@@ -231,6 +263,7 @@ class Immersion(Gtk.Overlay):
         self.clicked_reference=None
         self.capture_selection();self._restored_selection=bool(self.selection)
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
+        self._page_body_height=0
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         key=self.stream.cursor.key if self.stream.cursor else self.initial_key
         self._geometry=None;self.initial_anchor=anchor;self.initial_key=key
@@ -282,6 +315,7 @@ class Immersion(Gtk.Overlay):
             return
         self.clicked_reference=None
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
+        self._page_body_height=0
         self._updating=True;self.addresses=self.stream.spread(self.count)
         p=self.owner.preferences.value
         for index,view in enumerate(self.views):
@@ -296,8 +330,10 @@ class Immersion(Gtk.Overlay):
             table=buffer.get_tag_table();body=table.lookup('page-body')
             if body is None:body=buffer.create_tag('page-body')
             body.props.family=p.font;body.props.size_points=p.size
+            view.set_justification(Gtk.Justification.FILL if p.alignment=='justified' else
+                                   Gtk.Justification.RIGHT if self.source.rtl else Gtk.Justification.LEFT)
             buffer.apply_tag(body,buffer.get_start_iter(),buffer.get_end_iter())
-            view.set_pixels_inside_wrap(SPACING[p.line_spacing]);view.set_pixels_below_lines(SPACING[p.line_spacing])
+            view.set_pixels_inside_wrap(line_spacing(p));view.set_pixels_below_lines(line_spacing(p))
             for kind in ('chapter','heading','number','verse-start'):
                 tag=table.lookup('page-'+kind)
                 if tag is None:tag=buffer.create_tag('page-'+kind)
@@ -533,6 +569,7 @@ class Immersion(Gtk.Overlay):
     def finish(self):
         self.cancel_slide()
         self._closed=True
+        for handler in self._focus_handlers:self.owner.disconnect(handler)
         if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0
         self.owner.appearance.popdown();self.aa.set_popover(None);self.owner.appearance_button.set_popover(self.owner.appearance)

@@ -215,7 +215,9 @@ class LibraryPolishTests(unittest.TestCase):
     def test_library_install_and_explicit_read_keep_unsaved_note_guard(self):
         w=self.window
         installed_fixture(self.root,'Test');installed_fixture(self.root,'Other')
-        w.open_installed_resource('Test');space=w.open_notes();space.create_note();editor=space.editor
+        w.open_installed_resource('Test');editor=w.new_note(force_new=True)
+        editor.body.get_buffer().set_text('Existing saved note');editor.save()
+        space=w.open_notes();space.open_note(w.notes_store.all()[0]);editor=space.editor
         editor.body.get_buffer().set_text('Actual unsaved draft — keep this text')
         original=w.active_tab.state.resource
         w.resource_installed('Other')

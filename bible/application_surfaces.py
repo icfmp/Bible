@@ -37,7 +37,7 @@ def show_preferences(owner):
     if existing and existing.get_visible():
         existing.present(owner);return existing
     dialog=Adw.PreferencesDialog(title=tr('Preferences'),content_width=520,content_height=560,search_enabled=False)
-    page=Adw.PreferencesPage()
+    page=Adw.PreferencesPage(title=tr('General'),name='general',icon_name='preferences-system-symbolic')
     group=Adw.PreferencesGroup(title=tr('General'))
     status=Gtk.Label(wrap=True,xalign=0)
     settings=owner.application_settings
@@ -77,7 +77,10 @@ def show_preferences(owner):
     data.add(notice)
     page.add(data)
     feedback=Adw.PreferencesGroup();feedback.add(status);page.add(feedback)
-    dialog.add(page);dialog.present(owner);owner.preferences_window=dialog
+    dialog.add(page)
+    from .reading_preferences import ReadingSettings
+    dialog.reading_settings=ReadingSettings(owner,dialog);dialog.add(dialog.reading_settings.page)
+    dialog.present(owner);owner.preferences_window=dialog
     return dialog
 
 

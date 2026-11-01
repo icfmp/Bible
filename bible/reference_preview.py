@@ -84,6 +84,7 @@ class ReferencePreview:
         version.add_css_class('dim-label');box.append(version)
         body=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                           left_margin=4,right_margin=4,top_margin=4,bottom_margin=4)
+        body.add_css_class('study-content')
         body.update_property([Gtk.AccessibleProperty.LABEL],[tr('Local passage text')])
         scroll=Gtk.ScrolledWindow(min_content_width=240,min_content_height=160,max_content_height=300,
                                   propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)

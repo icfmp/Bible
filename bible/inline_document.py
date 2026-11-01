@@ -4,7 +4,8 @@ from .pagination import StyleSpan
 
 
 def decorate(document, markers):
-    slots=sorted((s.body,ref,kind,payload) for s in document.spans
+    # Keep trailing paragraph separators after the compact metadata group.
+    slots=sorted((s.body+len(document.text[s.body:s.end].rstrip()),ref,kind,payload) for s in document.spans
                  for ref in (s.reference,) for kind,payload in markers.get(ref,()))
     if not slots:return document
     def shifted(offset,after=False):
@@ -18,8 +19,9 @@ def decorate(document, markers):
         pieces.append('\ufffc');copies.append('\ufffc');offset+=1;previous=position
     pieces.append(document.text[previous:]);copies.append((document.copy_text or document.text)[previous:])
     value=replace(document,text=''.join(pieces),copy_text=''.join(copies),
-                  spans=tuple(replace(s,start=shifted(s.start),body=shifted(s.body,True),end=shifted(s.end)) for s in document.spans),
+                  spans=tuple(replace(s,start=shifted(s.start,True),body=shifted(s.body,True),end=shifted(s.end,True)) for s in document.spans),
                   styles=tuple(replace(s,start=shifted(s.start),end=shifted(s.end,True)) for s in document.styles)+tuple(hidden))
     value.inline=inline
     value.source_shift=shifted
+    value.source_document=document
     return value

@@ -1,0 +1,673 @@
+{
+  "run": "40454817687",
+  "source_before": "67d741f989da6d6a227af47e5296a93da6f5b33e",
+  "source_after": "d39a99eb44be1c3257a9ba75f60f7f324282b1b1",
+  "limit": "Developer Xvfb/software rendering at scale 2; not client GNOME hardware, no performance improvement claim",
+  "cases": {
+    "current-signed-combined": {
+      "app_import": "/app/lib/bible-python/bible/ui.py",
+      "app_ui_sha256": "521563f5bb78ca8495089f975cccaaaeeba1322c81a604a867a3f56e7996a344",
+      "startup_ready_memory": {
+        "time": 123.743211062,
+        "cpu_seconds": 5.81,
+        "rss_bytes": 417673216,
+        "pss_bytes": 417255424,
+        "private_clean_bytes": 129486848,
+        "private_dirty_bytes": 286507008,
+        "anonymous_bytes": 222367744,
+        "swap_bytes": 0
+      },
+      "phases": [
+        {
+          "phase": "startup_idle",
+          "cycle": null,
+          "seconds": 5.822185419999997,
+          "cpu_one_core_percent": 6.526758812844543,
+          "rss_begin": 417673216,
+          "rss_end": 418459648,
+          "rss_peak": 418459648,
+          "pss_begin": 412954624,
+          "pss_end": 413544448,
+          "anonymous_end": 222957568,
+          "main_loop_max_ms": 56.374267999999006,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 102
+        },
+        {
+          "phase": "scroll",
+          "cycle": 0,
+          "seconds": 7.845847746999993,
+          "cpu_one_core_percent": 116.36728489271316,
+          "rss_begin": 418459648,
+          "rss_end": 467673088,
+          "rss_peak": 468111360,
+          "pss_begin": 413548544,
+          "pss_end": 462647296,
+          "anonymous_end": 270536704,
+          "main_loop_max_ms": 184.33434700000362,
+          "main_loop_over_100ms": 2,
+          "actual_paints": 264
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 0,
+          "seconds": 5.832966800000008,
+          "cpu_one_core_percent": 6.000377029404644,
+          "rss_begin": 465219584,
+          "rss_end": 465219584,
+          "rss_peak": 465219584,
+          "pss_begin": 460120064,
+          "pss_end": 460128256,
+          "anonymous_end": 267673600,
+          "main_loop_max_ms": 63.456034000012096,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 71
+        },
+        {
+          "phase": "scroll",
+          "cycle": 1,
+          "seconds": 7.843561813000008,
+          "cpu_one_core_percent": 119.97100583058783,
+          "rss_begin": 465219584,
+          "rss_end": 461352960,
+          "rss_peak": 478846976,
+          "pss_begin": 460161024,
+          "pss_end": 456257536,
+          "anonymous_end": 263802880,
+          "main_loop_max_ms": 83.39178200000674,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 271
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 1,
+          "seconds": 5.829848088999995,
+          "cpu_one_core_percent": 5.488993797347651,
+          "rss_begin": 474091520,
+          "rss_end": 474091520,
+          "rss_peak": 474091520,
+          "pss_begin": 469143552,
+          "pss_end": 469147648,
+          "anonymous_end": 276692992,
+          "main_loop_max_ms": 72.38617900000577,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 69
+        },
+        {
+          "phase": "scroll",
+          "cycle": 2,
+          "seconds": 7.640416122000005,
+          "cpu_one_core_percent": 120.15052391671284,
+          "rss_begin": 472440832,
+          "rss_end": 478310400,
+          "rss_peak": 478310400,
+          "pss_begin": 467283968,
+          "pss_end": 473522176,
+          "anonymous_end": 281067520,
+          "main_loop_max_ms": 91.16034800001671,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 258
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 2,
+          "seconds": 5.833184762000002,
+          "cpu_one_core_percent": 8.400213948169156,
+          "rss_begin": 476340224,
+          "rss_end": 464015360,
+          "rss_peak": 476340224,
+          "pss_begin": 471527424,
+          "pss_end": 458936320,
+          "anonymous_end": 266481664,
+          "main_loop_max_ms": 70.20006700000181,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 73
+        },
+        {
+          "phase": "scroll",
+          "cycle": 3,
+          "seconds": 7.842681916999993,
+          "cpu_one_core_percent": 118.07185473030339,
+          "rss_begin": 480301056,
+          "rss_end": 466665472,
+          "rss_peak": 480563200,
+          "pss_begin": 475332608,
+          "pss_end": 461565952,
+          "anonymous_end": 269111296,
+          "main_loop_max_ms": 85.20240300001092,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 269
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 3,
+          "seconds": 5.834686558000016,
+          "cpu_one_core_percent": 7.8838853711736885,
+          "rss_begin": 477614080,
+          "rss_end": 466485248,
+          "rss_peak": 477614080,
+          "pss_begin": 472641536,
+          "pss_end": 461484032,
+          "anonymous_end": 269029376,
+          "main_loop_max_ms": 76.02414299998372,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 73
+        }
+      ],
+      "after_stop": [
+        {
+          "cycle": 0,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 1,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 2,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 3,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        }
+      ],
+      "first_scroll_latency_seconds": 0.002993136000014829,
+      "first_paint_latency_seconds": 0.005368365999999014
+    },
+    "candidate-signed-combined": {
+      "app_import": "/app/lib/bible-python/bible/ui.py",
+      "app_ui_sha256": "396fdbf83bdc1cacbfaddf9bfc2b49657440e4ea264749c385fa76d1adb5ecc5",
+      "startup_ready_memory": {
+        "time": 1335.974391247,
+        "cpu_seconds": 4.91,
+        "rss_bytes": 408109056,
+        "pss_bytes": 407265280,
+        "private_clean_bytes": 127692800,
+        "private_dirty_bytes": 278007808,
+        "anonymous_bytes": 214499328,
+        "swap_bytes": 0
+      },
+      "phases": [
+        {
+          "phase": "startup_idle",
+          "cycle": null,
+          "seconds": 5.824868880999929,
+          "cpu_one_core_percent": 8.583884207779235,
+          "rss_begin": 408109056,
+          "rss_end": 408109056,
+          "rss_peak": 408109056,
+          "pss_begin": 402964480,
+          "pss_end": 402960384,
+          "anonymous_end": 214499328,
+          "main_loop_max_ms": 58.636828000089736,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 133
+        },
+        {
+          "phase": "scroll",
+          "cycle": 0,
+          "seconds": 7.841796953999847,
+          "cpu_one_core_percent": 116.42739608736083,
+          "rss_begin": 408240128,
+          "rss_end": 428331008,
+          "rss_peak": 428687360,
+          "pss_begin": 403017728,
+          "pss_end": 423141376,
+          "anonymous_end": 232026112,
+          "main_loop_max_ms": 120.2249389998542,
+          "main_loop_over_100ms": 1,
+          "actual_paints": 280
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 0,
+          "seconds": 5.825690377000001,
+          "cpu_one_core_percent": 9.09763419787047,
+          "rss_begin": 428331008,
+          "rss_end": 429641728,
+          "rss_peak": 429641728,
+          "pss_begin": 423133184,
+          "pss_end": 424443904,
+          "anonymous_end": 233336832,
+          "main_loop_max_ms": 93.20327199998246,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 77
+        },
+        {
+          "phase": "scroll",
+          "cycle": 1,
+          "seconds": 7.844426332000012,
+          "cpu_one_core_percent": 114.6036640477687,
+          "rss_begin": 429641728,
+          "rss_end": 430632960,
+          "rss_peak": 430841856,
+          "pss_begin": 424443904,
+          "pss_end": 425455616,
+          "anonymous_end": 234340352,
+          "main_loop_max_ms": 84.08648499994342,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 288
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 1,
+          "seconds": 5.828241961000003,
+          "cpu_one_core_percent": 7.377868023966197,
+          "rss_begin": 430764032,
+          "rss_end": 424906752,
+          "rss_peak": 430764032,
+          "pss_begin": 425467904,
+          "pss_end": 419639296,
+          "anonymous_end": 228524032,
+          "main_loop_max_ms": 81.16476899999725,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 70
+        },
+        {
+          "phase": "scroll",
+          "cycle": 2,
+          "seconds": 7.645250882000028,
+          "cpu_one_core_percent": 117.32773899047524,
+          "rss_begin": 425037824,
+          "rss_end": 431611904,
+          "rss_peak": 431751168,
+          "pss_begin": 419811328,
+          "pss_end": 426348544,
+          "anonymous_end": 235102208,
+          "main_loop_max_ms": 85.1711869997871,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 279
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 2,
+          "seconds": 5.827783096999838,
+          "cpu_one_core_percent": 8.579591787782935,
+          "rss_begin": 425451520,
+          "rss_end": 430682112,
+          "rss_peak": 430682112,
+          "pss_begin": 420012032,
+          "pss_end": 425467904,
+          "anonymous_end": 234221568,
+          "main_loop_max_ms": 77.17125199997099,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 75
+        },
+        {
+          "phase": "scroll",
+          "cycle": 3,
+          "seconds": 7.843731204000051,
+          "cpu_one_core_percent": 117.29111771841822,
+          "rss_begin": 428482560,
+          "rss_end": 431726592,
+          "rss_peak": 432259072,
+          "pss_begin": 420478976,
+          "pss_end": 426545152,
+          "anonymous_end": 235294720,
+          "main_loop_max_ms": 86.55332500006807,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 285
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 3,
+          "seconds": 5.828733245999956,
+          "cpu_one_core_percent": 7.891937760501938,
+          "rss_begin": 431726592,
+          "rss_end": 425222144,
+          "rss_peak": 431726592,
+          "pss_begin": 426561536,
+          "pss_end": 420032512,
+          "anonymous_end": 228786176,
+          "main_loop_max_ms": 63.93351099995925,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 76
+        }
+      ],
+      "after_stop": [
+        {
+          "cycle": 0,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 1,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 2,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 3,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        }
+      ],
+      "first_scroll_latency_seconds": 0.003134754000029716,
+      "first_paint_latency_seconds": 0.005150390000153493
+    },
+    "candidate-signed-single": {
+      "app_import": "/app/lib/bible-python/bible/ui.py",
+      "app_ui_sha256": "396fdbf83bdc1cacbfaddf9bfc2b49657440e4ea264749c385fa76d1adb5ecc5",
+      "startup_ready_memory": {
+        "time": 1402.425376724,
+        "cpu_seconds": 2.91,
+        "rss_bytes": 377397248,
+        "pss_bytes": 377389056,
+        "private_clean_bytes": 125321216,
+        "private_dirty_bytes": 251289600,
+        "anonymous_bytes": 189054976,
+        "swap_bytes": 0
+      },
+      "phases": [
+        {
+          "phase": "startup_idle",
+          "cycle": null,
+          "seconds": 5.822118745999887,
+          "cpu_one_core_percent": 5.152763333899985,
+          "rss_begin": 377397248,
+          "rss_end": 377397248,
+          "rss_peak": 377397248,
+          "pss_begin": 373106688,
+          "pss_end": 373102592,
+          "anonymous_end": 189054976,
+          "main_loop_max_ms": 54.270655999971495,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 88
+        },
+        {
+          "phase": "scroll",
+          "cycle": 0,
+          "seconds": 7.83518714600018,
+          "cpu_one_core_percent": 112.56910442148866,
+          "rss_begin": 377397248,
+          "rss_end": 400228352,
+          "rss_peak": 400228352,
+          "pss_begin": 373104640,
+          "pss_end": 395943936,
+          "anonymous_end": 206721024,
+          "main_loop_max_ms": 523.1663690001369,
+          "main_loop_over_100ms": 1,
+          "actual_paints": 439
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 0,
+          "seconds": 5.822339910999972,
+          "cpu_one_core_percent": 4.637310842843385,
+          "rss_begin": 400228352,
+          "rss_end": 400228352,
+          "rss_peak": 400228352,
+          "pss_begin": 395948032,
+          "pss_end": 395960320,
+          "anonymous_end": 206737408,
+          "main_loop_max_ms": 50.12983100004931,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 61
+        },
+        {
+          "phase": "scroll",
+          "cycle": 1,
+          "seconds": 7.84884054500003,
+          "cpu_one_core_percent": 112.88291498855985,
+          "rss_begin": 400228352,
+          "rss_end": 402063360,
+          "rss_peak": 402063360,
+          "pss_begin": 395964416,
+          "pss_end": 397860864,
+          "anonymous_end": 208637952,
+          "main_loop_max_ms": 66.91335499999695,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 469
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 1,
+          "seconds": 5.825880303000076,
+          "cpu_one_core_percent": 4.462844865970089,
+          "rss_begin": 402063360,
+          "rss_end": 402325504,
+          "rss_peak": 402325504,
+          "pss_begin": 397860864,
+          "pss_end": 397893632,
+          "anonymous_end": 208670720,
+          "main_loop_max_ms": 52.59084299996175,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 61
+        }
+      ],
+      "after_stop": [
+        {
+          "cycle": 0,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 1,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        }
+      ],
+      "first_scroll_latency_seconds": 0.0011754199999813864,
+      "first_paint_latency_seconds": 0.015607410000029631
+    },
+    "candidate-signed-comparison": {
+      "app_import": "/app/lib/bible-python/bible/ui.py",
+      "app_ui_sha256": "396fdbf83bdc1cacbfaddf9bfc2b49657440e4ea264749c385fa76d1adb5ecc5",
+      "startup_ready_memory": {
+        "time": 1441.654448475,
+        "cpu_seconds": 4.0,
+        "rss_bytes": 387092480,
+        "pss_bytes": 386207744,
+        "private_clean_bytes": 128028672,
+        "private_dirty_bytes": 256765952,
+        "anonymous_bytes": 193748992,
+        "swap_bytes": 0
+      },
+      "phases": [
+        {
+          "phase": "startup_idle",
+          "cycle": null,
+          "seconds": 5.822144126000012,
+          "cpu_one_core_percent": 4.980982842814624,
+          "rss_begin": 387092480,
+          "rss_end": 387092480,
+          "rss_peak": 387092480,
+          "pss_begin": 381923328,
+          "pss_end": 381919232,
+          "anonymous_end": 193748992,
+          "main_loop_max_ms": 59.14368999992803,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 88
+        },
+        {
+          "phase": "scroll",
+          "cycle": 0,
+          "seconds": 7.843716552999922,
+          "cpu_one_core_percent": 123.66586597637978,
+          "rss_begin": 387092480,
+          "rss_end": 392597504,
+          "rss_peak": 392597504,
+          "pss_begin": 381927424,
+          "pss_end": 387514368,
+          "anonymous_end": 197259264,
+          "main_loop_max_ms": 88.01264499993522,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 422
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 0,
+          "seconds": 5.821919995000144,
+          "cpu_one_core_percent": 4.981174599600316,
+          "rss_begin": 392597504,
+          "rss_end": 393908224,
+          "rss_peak": 393908224,
+          "pss_begin": 387514368,
+          "pss_end": 388837376,
+          "anonymous_end": 198582272,
+          "main_loop_max_ms": 75.34433199998603,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 59
+        },
+        {
+          "phase": "scroll",
+          "cycle": 1,
+          "seconds": 7.838841759999923,
+          "cpu_one_core_percent": 124.12548049700769,
+          "rss_begin": 393908224,
+          "rss_end": 394956800,
+          "rss_peak": 394956800,
+          "pss_begin": 388841472,
+          "pss_end": 389894144,
+          "anonymous_end": 199639040,
+          "main_loop_max_ms": 64.09714200003691,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 428
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 1,
+          "seconds": 5.819047361999992,
+          "cpu_one_core_percent": 4.8117841732734385,
+          "rss_begin": 392818688,
+          "rss_end": 392818688,
+          "rss_peak": 392818688,
+          "pss_begin": 387743744,
+          "pss_end": 387743744,
+          "anonymous_end": 199639040,
+          "main_loop_max_ms": 63.57616800005417,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 61
+        }
+      ],
+      "after_stop": [
+        {
+          "cycle": 0,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 1,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        }
+      ],
+      "first_scroll_latency_seconds": 0.0007872259998293885,
+      "first_paint_latency_seconds": 0.018626736999976856
+    },
+    "candidate-signed-study": {
+      "app_import": "/app/lib/bible-python/bible/ui.py",
+      "app_ui_sha256": "396fdbf83bdc1cacbfaddf9bfc2b49657440e4ea264749c385fa76d1adb5ecc5",
+      "startup_ready_memory": {
+        "time": 1480.626343952,
+        "cpu_seconds": 3.55,
+        "rss_bytes": 399298560,
+        "pss_bytes": 399040512,
+        "private_clean_bytes": 125034496,
+        "private_dirty_bytes": 273293312,
+        "anonymous_bytes": 210546688,
+        "swap_bytes": 0
+      },
+      "phases": [
+        {
+          "phase": "startup_idle",
+          "cycle": null,
+          "seconds": 5.824350243000026,
+          "cpu_one_core_percent": 8.069569658261322,
+          "rss_begin": 399298560,
+          "rss_end": 402313216,
+          "rss_peak": 402313216,
+          "pss_begin": 394745856,
+          "pss_end": 397678592,
+          "anonymous_end": 213479424,
+          "main_loop_max_ms": 57.038843999862365,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 125
+        },
+        {
+          "phase": "scroll",
+          "cycle": 0,
+          "seconds": 7.844993367000143,
+          "cpu_one_core_percent": 118.80188502394982,
+          "rss_begin": 402313216,
+          "rss_end": 430125056,
+          "rss_peak": 430125056,
+          "pss_begin": 397682688,
+          "pss_end": 425674752,
+          "anonymous_end": 237559808,
+          "main_loop_max_ms": 127.26374399994711,
+          "main_loop_over_100ms": 1,
+          "actual_paints": 208
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 0,
+          "seconds": 5.828949683000019,
+          "cpu_one_core_percent": 8.23475970979657,
+          "rss_begin": 430125056,
+          "rss_end": 442707968,
+          "rss_peak": 442707968,
+          "pss_begin": 425699328,
+          "pss_end": 438310912,
+          "anonymous_end": 250195968,
+          "main_loop_max_ms": 103.71998699997675,
+          "main_loop_over_100ms": 1,
+          "actual_paints": 96
+        },
+        {
+          "phase": "scroll",
+          "cycle": 1,
+          "seconds": 7.840437295000129,
+          "cpu_one_core_percent": 120.65653539545139,
+          "rss_begin": 442707968,
+          "rss_end": 449523712,
+          "rss_peak": 449523712,
+          "pss_begin": 438331392,
+          "pss_end": 445052928,
+          "anonymous_end": 256933888,
+          "main_loop_max_ms": 90.62311200000295,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 218
+        },
+        {
+          "phase": "after_scroll_idle",
+          "cycle": 1,
+          "seconds": 5.822781185999929,
+          "cpu_one_core_percent": 6.182612543737167,
+          "rss_begin": 449523712,
+          "rss_end": 449523712,
+          "rss_peak": 449523712,
+          "pss_begin": 445057024,
+          "pss_end": 445052928,
+          "anonymous_end": 256933888,
+          "main_loop_max_ms": 55.303719999983514,
+          "main_loop_over_100ms": 0,
+          "actual_paints": 82
+        }
+      ],
+      "after_stop": [
+        {
+          "cycle": 0,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        },
+        {
+          "cycle": 1,
+          "adjustments_later_than_500ms": 0,
+          "last_late_seconds": 0
+        }
+      ],
+      "first_scroll_latency_seconds": 0.001247197000111555,
+      "first_paint_latency_seconds": 0.015667558000131976
+    }
+  }
+}

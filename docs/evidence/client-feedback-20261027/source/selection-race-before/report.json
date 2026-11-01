@@ -1,0 +1,118 @@
+{
+  "events": [
+    {
+      "event": "dismiss",
+      "t": 0.8066,
+      "intent": 0,
+      "dragging": false,
+      "caller": "<lambda>",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.3397,
+      "intent": 1,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "capture",
+      "t": 2.3958,
+      "intent": 3,
+      "dragging": false,
+      "caller": "run",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.3966,
+      "intent": 3,
+      "dragging": false,
+      "caller": "capture",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.6026,
+      "intent": 4,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.7561,
+      "intent": 5,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.9119,
+      "intent": 6,
+      "dragging": false,
+      "caller": "pressed",
+      "has_target": false
+    },
+    {
+      "event": "capture",
+      "t": 2.9406,
+      "intent": 8,
+      "dragging": true,
+      "caller": "run",
+      "has_target": false
+    },
+    {
+      "event": "dismiss",
+      "t": 2.9407,
+      "intent": 8,
+      "dragging": true,
+      "caller": "capture",
+      "has_target": false
+    }
+  ],
+  "gestures": [
+    {
+      "selection": true,
+      "old_range": [
+        163,
+        165
+      ],
+      "range": [
+        230,
+        350
+      ],
+      "bar_visible": false,
+      "during_drag": false,
+      "dragging": false,
+      "events": [
+        {
+          "event": "dismiss",
+          "t": 2.9119,
+          "intent": 6,
+          "dragging": false,
+          "caller": "pressed",
+          "has_target": false
+        },
+        {
+          "event": "capture",
+          "t": 2.9406,
+          "intent": 8,
+          "dragging": true,
+          "caller": "run",
+          "has_target": false
+        },
+        {
+          "event": "dismiss",
+          "t": 2.9407,
+          "intent": 8,
+          "dragging": true,
+          "caller": "capture",
+          "has_target": false
+        }
+      ]
+    }
+  ]
+}

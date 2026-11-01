@@ -91,7 +91,7 @@ def main():
                 settled();w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');settled();raw,stride=shot(palette+'-study-notes')
                 header=w.study.header
                 header_colors=[screen.color(raw,stride,header,x,header.get_height()-3) for x in (8,header.get_width()/2,header.get_width()-8)]
-                body_color=screen.color(raw,stride,w.study,8,w.study.get_height()-8)
+                body_color=screen.color(raw,stride,w.study,8,min(300,w.study.get_height()-40))
                 report.setdefault('study_colors',{})[palette]=dict(header=header_colors,body=body_color)
                 if not args.baseline and not high:assert all(max(abs(a-b) for a,b in zip(c,body_color))<=1 for c in header_colors),(palette,header_colors,body_color)
                 w.study.tools.set_visible_child_name('references');settled();shot(palette+'-study-references')
@@ -104,7 +104,7 @@ def main():
                 menu(w.appearance_button,palette+'-appearance')
                 b=t.text.get_buffer();start=t._marker_ends['Ps.119.1']+2;b.select_range(b.get_iter_at_offset(start),b.get_iter_at_offset(start+16))
                 a=w.passage_actions;a.capture(t.text,lambda:a.ordinary(t),None);spin();shot(palette+'-selection')
-                menu(a.copy_button if not args.baseline else a.copy_options,palette+'-copy-menu')
+                menu(getattr(a,'copy_button',None) or a.copy_options,palette+'-copy-menu')
                 if a.highlight_button:menu(a.highlight_button,palette+'-annotation-menu')
                 a.dismiss();b.place_cursor(b.get_iter_at_offset(start));t.text.grab_focus();n.key('Menu');spin();shot(palette+'-context-menu');n.key('Escape');spin()
             style.set(dark=False,high=False);w.appearance.update('mode','day');w.appearance.update('day_palette','white');w.appearance.update('size',24)

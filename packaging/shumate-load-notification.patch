@@ -1,0 +1,20 @@
+--- a/shumate/shumate-map-layer.c
++++ b/shumate/shumate-map-layer.c
+@@ -425,7 +425,7 @@
+         }
+     }
+ 
+-  if (all_done && self->profile_all_tiles_done_begin > 0)
++  if (all_done && self->profile_all_tiles_done_begin != 0)
+     {
+       g_autofree char *desc = g_strdup_printf ("Visible tiles done (%d)", n_tiles);
+       SHUMATE_PROFILE_COLLECT (self->profile_all_tiles_done_begin, desc, NULL);
+@@ -433,7 +433,7 @@
+ 
+       g_signal_emit (self, signals[MAP_LOADED], 0, !all_succeeded);
+     }
+-  if (all_filled && self->profile_all_tiles_filled_begin > 0)
++  if (all_filled && self->profile_all_tiles_filled_begin != 0)
+     {
+       g_autofree char *desc = g_strdup_printf ("Visible tiles filled (%d)", n_tiles);
+       SHUMATE_PROFILE_COLLECT (self->profile_all_tiles_filled_begin, desc, NULL);

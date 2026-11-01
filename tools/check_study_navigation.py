@@ -53,11 +53,11 @@ def main():
         rows=tab.comparison_rows
         assert rows.rows[0].primary==('Ps.51.1','Ps.51.2','Ps.51.3')
         assert rows.rows[0].secondary==('Ps.51.1',)
-        starts=[[view.get_iter_location(view.get_buffer().get_iter_at_offset(a)).y for a,b in rows.bounds[side]]
+        starts=[[view.get_iter_location(view.get_buffer().get_iter_at_offset(a)).y for a in rows.bodies[side]]
                 for side,view in enumerate((tab.text,tab.comparison_text))]
         maximum=max(abs(a-b) for a,b in zip(*starts));assert maximum<=1
         assert tab.scroll.get_vadjustment() is tab.comparison_scroll.get_vadjustment()
-        report['real_psalm_comparison']=dict(rows=len(rows.rows),maximum_row_delta_pixels=maximum)
+        report['real_psalm_comparison']=dict(rows=len(rows.rows),maximum_body_delta_pixels=maximum)
         from bible.word_metadata import source_verse_references
         for title in ('Ps.3.1','Ps.51.1','Ps.51.2'):
             try:source_verse_references(title,tab.reader)

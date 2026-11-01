@@ -2,7 +2,7 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk, Pango, GLib
 from .i18n import tr
 from .preferences import ReadingPreferences
 
@@ -12,6 +12,7 @@ class AppearancePopover(Gtk.Popover):
         super().__init__()
         self.owner = owner
         self._syncing = False
+        self._apply_id=0;self._pending_reflow=False
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                     max_content_height=620, propagate_natural_height=True)
         self.controls = box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
@@ -96,6 +97,7 @@ class AppearancePopover(Gtk.Popover):
         row=Gtk.Box(spacing=8)
         row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True))
         button=Gtk.DropDown(model=Gtk.StringList.new([tr(title) for _,title in values]))
+        button._preset_titles=[tr(title) for _,title in values]
         button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
         button.connect('notify::selected',lambda widget,*_:self.update(attribute,values[widget.get_selected()][0]) if widget.get_selected()<len(values) else None)
         row.append(button);parent.append(row);return button
@@ -107,17 +109,24 @@ class AppearancePopover(Gtk.Popover):
         self._syncing=True
         p=self.owner.preferences.value
         for family,button in self.fonts.items():button.set_active(p.font==family)
-        self.font_name.set_text(p.font);self.font_name.set_visible(p.font not in self.fonts)
+        self.font_name.set_text(tr('Custom')+': '+p.font);self.font_name.set_visible(p.font not in self.fonts)
         self.size.set_text(f'{p.size} pt')
         self.size.update_property([Gtk.AccessibleProperty.LABEL],[f'{tr("Text size")}: {p.size} pt (12–64)'])
         self.smaller.set_sensitive(p.size>12);self.larger.set_sensitive(p.size<64)
         for attr,values in [('mode',['system','day','night']),('line_spacing',['tight','normal','airy','very-airy']),('column_width',['narrow','normal','wide'])]:
-            getattr(self,attr).set_selected(values.index(getattr(p,attr)))
+            control=getattr(self,attr);labels=list(control._preset_titles)
+            custom=getattr(p,'line_spacing_px' if attr=='line_spacing' else 'text_width_px' if attr=='column_width' else '_unused',None)
+            if custom is not None:labels.append(tr('Custom')+f' ({custom} px)')
+            model=control.get_model()
+            if [model.get_string(i) for i in range(model.get_n_items())]!=labels:control.set_model(Gtk.StringList.new(labels))
+            control.set_selected(len(values) if custom is not None else values.index(getattr(p,attr)))
         for key,button in self.palettes.items():button.set_active(key in (p.day_palette,p.night_palette))
         self.chapter_numbers.set_active(p.chapter_numbers);self.verse_numbers.set_active(p.verse_numbers)
         self.show_highlights.set_active(p.show_highlights)
         self.note_indicators.set_active(p.note_indicators);self.place_markers.set_active(p.place_markers)
         self.sync_system();self._syncing=False
+        dialog=getattr(self.owner,'preferences_window',None)
+        if dialog and dialog.get_visible() and hasattr(dialog,'reading_settings'):dialog.reading_settings.sync()
 
     def sync_system(self):
         high=self.owner.reading_style.manager.get_high_contrast()
@@ -136,17 +145,34 @@ class AppearancePopover(Gtk.Popover):
         if self.owner.active_tab:self.owner.active_tab.state.reading_palette=self.owner.reading_style.palette_settings()
         self.persist()
 
-    def update(self,key,value):
+    def update(self,key,value,*,defer=False):
         if self._syncing:return
         if key in {'mode','day_palette','night_palette'}:
             self.owner.reading_style.remember_tab_palettes()
         setattr(self.owner.preferences.value,key,value)
+        if key=='line_spacing':self.owner.preferences.value.line_spacing_px=None
+        if key=='column_width':self.owner.preferences.value.text_width_px=None
         if key in {'mode','day_palette','night_palette'} and self.owner.active_tab:
             self.owner.active_tab.state.reading_palette=self.owner.reading_style.palette_settings()
-        self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights'})
+        self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights','study_font'},defer=defer)
 
-    def persist(self,reflow=True):
+    def cancel_pending(self):
+        if self._apply_id:GLib.source_remove(self._apply_id)
+        reflow=self._pending_reflow;self._apply_id=0;self._pending_reflow=False
+        return reflow
+
+    def apply_pending(self):
+        reflow=self._pending_reflow;self._apply_id=0;self._pending_reflow=False
+        if not self.owner.closed:self.owner.apply_appearance(reflow=reflow)
+        return False
+
+    def persist(self,reflow=True,*,defer=False):
         try:
-            self.owner.preferences.save();self.owner.apply_appearance(reflow=reflow);self.status.set_text('')
+            self.owner.preferences.save()
+            if defer:
+                self._pending_reflow|=reflow
+                if not self._apply_id:self._apply_id=GLib.idle_add(self.apply_pending)
+            else:self.owner.apply_appearance(reflow=self.cancel_pending() or reflow)
+            self.status.set_text('')
         except (OSError,ValueError) as error:self.status.set_text(str(error))
         self.sync()

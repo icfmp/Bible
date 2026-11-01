@@ -187,11 +187,11 @@ class StudyPanel(Gtk.Box):
 
     def apply_typography(self):
         from .preferences import ReadingPreferences
-        self.sidebar_preferences = ReadingPreferences(font='sans-serif', size=12, line_spacing='normal')
+        self.sidebar_preferences = ReadingPreferences(font=self.owner.preferences.value.study_font, size=12, line_spacing='normal')
         self.text.set_pixels_inside_wrap(0); self.text.set_pixels_below_lines(0)
         buffer=self.text.get_buffer(); tag=buffer.get_tag_table().lookup('reader-typography')
         if tag is None:tag=buffer.create_tag('reader-typography')
-        tag.props.family='sans-serif'; tag.props.size_points=12; tag.props.line_height=1.5
+        tag.props.family=self.owner.preferences.value.study_font; tag.props.size_points=12; tag.props.line_height=1.5
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
 
     def queue_adapt(self,*_,frames=8):

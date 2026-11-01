@@ -193,7 +193,7 @@ class Window(Adw.ApplicationWindow):
         self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
-        self.main_pages.connect('notify::visible-child-name',lambda *_:self.space_selector.sync())
+        self.main_pages.connect('notify::visible-child-name',self.workspace_changed)
         self.main_pages.add_named(self.split,'reading')
         self.set_content(self.main_pages)
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
@@ -228,10 +228,14 @@ class Window(Adw.ApplicationWindow):
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
                            b'.compact-space button { padding-left: 6px; padding-right: 6px; } '
+                           b'.annotation-navigation { background-color: @sidebar_bg_color; color: @sidebar_fg_color; } '
+                           b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
+                           b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
                            b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; } '
                            b'.reference-excerpt { font-weight: normal; } '
+                           b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
                            b'padding: 0; border-radius: 9999px; } '
@@ -659,6 +663,8 @@ class Window(Adw.ApplicationWindow):
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
+        if self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.preferences.value.study_font:
+            self.study.apply_typography()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()
         if self.active_tab:self.active_tab.refresh_comparison()
@@ -911,6 +917,15 @@ class Window(Adw.ApplicationWindow):
         def shown(space):space.set_category('highlights');space.split.set_show_sidebar(True)
         return self.open_notes(on_open=shown)
 
+    def workspace_changed(self,*_):
+        self.space_selector.sync()
+        page=self.main_pages.get_visible_child_name()
+        action=self.lookup_action('note')
+        if action:action.set_enabled(self.notes_store is not None and page in ('reading','immersive')
+                                     and (not self.immersion or self.immersion.kind=='bible'))
+        if page not in ('reading','immersive') and hasattr(self,'passage_actions'):
+            self.passage_actions.dismiss()
+
     def open_notes(self,on_open=None):
         if self.immersion:self.leave_immersion()
         if self.notes_store is None:return
@@ -926,6 +941,7 @@ class Window(Adw.ApplicationWindow):
         return self.notes_space
 
     def new_note(self, force_new=False):
+        if self.main_pages.get_visible_child_name()=='notes':return
         override=self.immersion.selected_passage() if self.immersion and self.immersion.kind=='bible' else None
         if self.immersion:self.leave_immersion()
         tab = self.active_tab
@@ -968,6 +984,7 @@ class Window(Adw.ApplicationWindow):
         return self.open_notes(on_open=shown)
 
     def edit_note(self, note=None, context=None, explanation=''):
+        if note is None and self.main_pages.get_visible_child_name()=='notes':return
         if self.note_editor and not self.note_editor.closed:
             self.note_editor.status.set_text(tr('Save or close the current note before opening another.'))
             self.note_editor.present()
@@ -1046,6 +1063,9 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        self.appearance.cancel_pending()
+        self.passage_actions.dismiss()
+        if getattr(self,'place_dialog',None):self.place_dialog.close()
         self.unwatch_layout_surface()
         settings=Gtk.Settings.get_default()
         for handler in self._layout_settings_handlers:settings.disconnect(handler)

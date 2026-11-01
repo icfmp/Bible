@@ -1,6 +1,6 @@
 # Bible.com offline editions — issue #26
 
-Status: **implementation in draft PR #134; expanded seven-edition package validation pending**. No issue is closed. Numbered release #87 remains paused. The client has requested validation and signed-alpha publication of #26, followed by the separately assigned feedback issues.
+Status: **delivered in signed alpha 40456634652-2**, source `d39a99eb44be1c3257a9ba75f60f7f324282b1b1` via merged PR #134. Full delivery evidence is in [the verification receipt](evidence/youversion-26/README.md). Issue #26 remains open and numbered release #87 remains paused.
 
 ## Implemented scope
 

@@ -12,7 +12,8 @@ class StudyDivider(Gtk.Box):
         self.set_cursor_from_name('col-resize')
         self.set_tooltip_text(tr('Resize study panel: drag or use Left/Right arrow keys'))
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr('Resize study panel')])
-        self.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL, vexpand=True))
+        # OverlaySplitView already paints the full-height pane boundary. Keep
+        # this wider interactive handle without a second decorative separator.
         drag = Gtk.GestureDrag(button=1)
         drag.connect('drag-begin', self.begin)
         drag.connect('drag-update', self.update)

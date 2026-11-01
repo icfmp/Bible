@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 3034,
+  "title": "Berean Standard Bible",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 0,
+    "units": 31086,
+    "notes": 4854,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "eng",
+  "native_numbering": "KJV",
+  "archive_sha256": "5b2af928a0f6f886ac1b53d5e5fa4dc21a285f7c2bbe803b457bb89ebd4460c8",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 62.06490584099993,
+  "conversion_child_peak_rss_kib": 76792,
+  "phases": {
+    "converting": [
+      1189,
+      1189
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1189,
+      1189
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 6,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 4469733,
+    "total": 4469733,
+    "seconds": 0.17072192499995253
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

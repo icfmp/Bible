@@ -20,6 +20,13 @@ class ReadingPreferences:
     show_highlights: bool = True
     note_indicators: bool = True
     place_markers: bool = True
+    version: int = 1
+    study_font: str = 'sans-serif'
+    line_spacing_px: int | None = None
+    text_width_px: int | None = None
+    side_margin_px: int | None = None
+    alignment: str = 'left'
+    immersion_columns: str = 'automatic'
 
 
 class Preferences:
@@ -31,6 +38,8 @@ class Preferences:
         try:
             value = json.loads(self.path.read_text())
             if not isinstance(value,dict):raise ValueError('Invalid reading preferences')
+            if type(value.get('version',1)) is not int or value.get('version',1)!=1:
+                raise ValueError('Unsupported reading preferences version')
             font,size = value.get('font','DejaVu Serif'), value.get('size',14)
             if not isinstance(font,str) or not font or len(font)>100:raise ValueError('Invalid font')
             if type(size) is not int or not 12<=size<=64:raise ValueError('Invalid text size')
@@ -43,10 +52,23 @@ class Preferences:
             selected = {key:value.get(key,getattr(defaults,key)) for key in choices}
             if any(selected[key] not in options for key,options in choices.items()):
                 raise ValueError('Invalid reading appearance')
+            study_font=value.get('study_font','sans-serif')
+            if not isinstance(study_font,str) or not study_font or len(study_font)>100 or any(ord(c)<32 for c in study_font):
+                raise ValueError('Invalid study font')
+            advanced={}
+            for key,low,high in [('line_spacing_px',0,48),('text_width_px',280,1440),('side_margin_px',48,160)]:
+                number=value.get(key)
+                if number is not None and (type(number) is not int or not low<=number<=high):
+                    raise ValueError('Invalid reading layout')
+                advanced[key]=number
+            for key,options in [('alignment',('left','justified')),('immersion_columns',('automatic','one'))]:
+                option=value.get(key,getattr(defaults,key))
+                if option not in options:raise ValueError('Invalid reading layout')
+                advanced[key]=option
             self.value = ReadingPreferences(font,size,value.get('chapter_numbers',True),value.get('verse_numbers',True),
                                             show_highlights=value.get('show_highlights',True),
                                             note_indicators=value.get('note_indicators',True),
-                                            place_markers=value.get('place_markers',True),**selected)
+                                            place_markers=value.get('place_markers',True),study_font=study_font,**selected,**advanced)
         except FileNotFoundError:pass
         except (OSError,ValueError,TypeError) as error:
             self.error = str(error);self.writable = False

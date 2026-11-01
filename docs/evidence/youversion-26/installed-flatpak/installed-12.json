@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 12,
+  "title": "American Standard Version",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 0,
+    "units": 31102,
+    "notes": 16,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "eng",
+  "native_numbering": "KJV",
+  "archive_sha256": "4c90c81ebd6afa71852df63e580359fb2d32ef4a412d6a7eab243a8a201ba46a",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 12.370892362999939,
+  "conversion_child_peak_rss_kib": 71904,
+  "phases": {
+    "converting": [
+      1189,
+      1189
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1189,
+      1189
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 5,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 2993881,
+    "total": 2993881,
+    "seconds": 0.1562998450001487
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}
