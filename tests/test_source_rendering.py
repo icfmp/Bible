@@ -36,3 +36,8 @@ class SourceRenderingTests(unittest.TestCase):
     def test_unknown_conversion_keeps_native_output(self):
         parts=extract('<p>Different body.</p>','Native output.','OSIS')
         self.assertEqual(len(parts),1);self.assertEqual(parts[0].text,'Native output.')
+
+    def test_end_milestone_can_reference_its_start_without_repeating_the_type(self):
+        parts=extract('<div type="x-p" sID="p"/>First paragraph.<div eID="p"/>After paragraph.',
+                      'First paragraph. After paragraph.','OSIS')
+        self.assertIn('First paragraph.\n\nAfter paragraph.',''.join(p.text for p in parts))

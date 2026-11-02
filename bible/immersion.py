@@ -125,7 +125,14 @@ class Immersion(Gtk.Overlay):
             pop=Gtk.Popover();label=Gtk.Label(label=details(source.resource),selectable=True,wrap=True,max_width_chars=36,
                                            margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
             scroll=Gtk.ScrolledWindow(max_content_height=350,propagate_natural_height=True);scroll.set_child(label)
-            pop.set_child(scroll);self.info.set_popover(pop);header.pack_end(self.info)
+            detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+            self.preface_action=Gtk.Button(label=tr('Read source preface'),visible=False)
+            def open_preface(*_):
+                from .commentary_format import show_preface
+                key=self.stream.cursor.key if self.stream.cursor else self.initial_key
+                self.info.popdown();show_preface(owner,source.reader,source.resource,key)
+            self.preface_action.connect('clicked',open_preface);detail.append(self.preface_action);detail.append(scroll)
+            pop.set_child(detail);self.info.set_popover(pop);header.pack_end(self.info)
         controls.append(header)
         self.notification_help=Adw.Banner(title=tr('In GNOME, turn on Do Not Disturb in the clock menu. Bible does not change notifications.'),
                                           button_label=tr('Do not show again'))
@@ -313,6 +320,8 @@ class Immersion(Gtk.Overlay):
             self.footer.set_text((tr('Unable to read this passage.')+' '+self.stream.error)
                                  if getattr(self.stream,'error',None) else tr('Preparing reading pages…'))
             return
+        if self.kind=='commentary' and hasattr(self,'preface_action'):
+            self.preface_action.set_visible(bool(getattr(self.stream.plan(self.stream.cursor.key).document,'has_preface',False)))
         self.clicked_reference=None
         self.layout_ready=False;self._stable_frames=0;self._selection_restore_pending=bool(self.selection);self._allocation_signature=None
         self._page_body_height=0

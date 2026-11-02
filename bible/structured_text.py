@@ -12,6 +12,11 @@ class Segment:
 
 
 class SourceParser(HTMLParser):
+    # OSIS/ThML titles contain inline XML. Recent HTMLParser releases give
+    # HTML title/textarea RCDATA semantics, which would expose those tags.
+    CDATA_CONTENT_ELEMENTS=('script','style')
+    RCDATA_CONTENT_ELEMENTS=()
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.segments = []
@@ -19,6 +24,7 @@ class SourceParser(HTMLParser):
         self.heading = 0
         self.heading_kinds = []
         self.divisions = []
+        self.paragraph_ids = set()
         self.inline = []
 
     def handle_starttag(self,tag,attrs):
@@ -27,8 +33,9 @@ class SourceParser(HTMLParser):
         # A closing milestone is a boundary, never a new enclosing block.
         if attrs.get('eid'):
             if tag=='l':self.segments.append(Segment('\n','poetry',('poetry',)))
-            elif tag=='lg' or tag=='div' and attrs.get('type') in {'paragraph','x-p'}:
+            elif tag=='lg' or tag=='div' and (attrs.get('type') in {'paragraph','x-p'} or attrs['eid'] in self.paragraph_ids):
                 self.segments.append(Segment('\n\n','break'))
+                self.paragraph_ids.discard(attrs['eid'])
             return
         if tag in {'script','style','note'}:self.hidden += 1
         if self.hidden:return
@@ -44,6 +51,7 @@ class SourceParser(HTMLParser):
             self.heading_kinds.append('editorial' if tag=='title' and attrs.get('type')=='parallel' else 'heading')
         if tag == 'div':
             paragraph = attrs.get('type') in {'paragraph', 'x-p'}
+            if paragraph and attrs.get('sid'):self.paragraph_ids.add(attrs['sid'])
             if not attrs.get('sid'):self.divisions.append(paragraph)
         else:
             paragraph = tag in {'p', 'lg'}

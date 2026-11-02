@@ -56,9 +56,19 @@ def main():
                             if comment:
                                 position=s.current_position;assert position is not None,(case,s.status.get_text())
                                 raw=s.reader.index.raw(position);row['source_sha256']=hashlib.sha256(raw.encode()).hexdigest()
-                                if hasattr(s,'_source_focus'):
-                                    focus=s.text.get_iter_location(s.text.get_buffer().get_iter_at_offset(s._source_focus[position]));row['focus_delta_pixels']=focus.y-s.text.get_visible_rect().y
+                                if position in s.ranges:
+                                    focus=s.text.get_iter_location(s.text.get_buffer().get_iter_at_offset(s.ranges[position][0]));row['focus_delta_pixels']=focus.y-s.text.get_visible_rect().y
                             n.move_at(w,2,2);screen.grab(args.output/(case+'.png'));report['cases'].append(row)
+                            if comment=='MHC' and reference=='Gen.1.1' and not args.baseline:
+                                assert s.preface_button.get_visible()
+                                s.preface_button.emit('clicked');spin(duration=.3)
+                                preface=w.commentary_preface;assert preface and preface.get_mapped()
+                                preface.set_default_size(640 if width==1200 else 380,600);spin(duration=.3)
+                                n.activate(preface);screen.grab(args.output/(case+'-preface.png'))
+                                assert len(preface.source_document.text)>30000
+                                preface.close();spin();n.activate(w)
+                                assert t.state.reference==reference
+
         finally:w.close()
     report['module_files_preserved']=before==hashes();assert report['module_files_preserved']
     bad=[r for r in report['cases'] if abs(r.get('focus_delta_pixels',0))>32]

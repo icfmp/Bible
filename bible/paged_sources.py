@@ -121,18 +121,17 @@ class CommentaryPages:
         from .commentary_format import format_entry,preverse_layout
         raw=self.reader.index.raw(key);source_type=str(self.reader.module.getConfigEntry('SourceType'))
         text,inline,titles=format_entry(raw,text,source_type)
-        prefix,prefix_styles,focus=preverse_layout(raw) if source_type=='OSIS' else ('',(),0)
-        preverse_visible=bool(prefix.strip())
-        styles=[StyleSpan(*s) for s in prefix_styles]
-        if titles:
-            if prefix and not prefix.endswith('\n'):prefix+='\n\n'
-            focus=len(prefix);heading=''.join(title+'\n' for title in titles)
-            styles.append(StyleSpan('heading',len(prefix),len(prefix)+len(heading)));prefix+=heading
+        prefix=''.join(title+'\n' for title in titles)
+        styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
         styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
         document=Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
-        document.source_context_start=focus if preverse_visible else None
+        document.has_preface=source_type=='OSIS' and bool(preverse_layout(raw)[0].strip())
         return document
+    def preface(self,key):
+        from .commentary_format import preverse_layout
+        text,styles,_=preverse_layout(self.reader.index.raw(key))
+        return Document(('preverse',key),text,(),tuple(StyleSpan(*s) for s in styles))
     def neighbour(self,key,direction):return None  # Page navigation stops at entry boundaries.
     def entry_neighbour(self,key,direction):
         position=key+direction

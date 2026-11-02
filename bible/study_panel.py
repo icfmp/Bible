@@ -58,6 +58,9 @@ class StudyPanel(Gtk.Box):
         self.previous_entry.connect('clicked',lambda *_:self.step_entry(-1))
         self.next_entry.connect('clicked',lambda *_:self.step_entry(1))
         action_box.append(self.previous_entry);action_box.append(self.next_entry)
+        self.preface_button=Gtk.Button(label=tr('Read source preface'),visible=False)
+        self.preface_button.connect('clicked',lambda *_:self.show_preface())
+        action_box.append(self.preface_button)
         self.info = Gtk.MenuButton(label=tr('Source and conditions'))
         from .catalogue_window import MetadataLabel
         self.metadata = MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
@@ -312,7 +315,7 @@ class StudyPanel(Gtk.Box):
                             from .pagination import Anchor
                             document=CommentaryPages(self.reader,resource).document(self.current_position,self.owner.preferences.value)
                             offset=max(0,document.locate(Anchor(section.start,offset,True))-document.spans[0].body)
-                        self.reveal(self.current_position,offset,prefix=saved.get('prefix',False),force=True)
+                        self.reveal(self.current_position,offset,force=True)
         except VersificationMismatch as error:
             self.clear_content();self.reader=None
             self.status.set_text(tr('Different versifications. Automatic alignment is unavailable.')+f' ({error})')
@@ -375,10 +378,7 @@ class StudyPanel(Gtk.Box):
         if position is None:return None
         rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
         body=self.ranges[position][1]
-        absolute=iterator.get_offset()
-        source_start=getattr(self,'_source_starts',{}).get(position,body)
-        if source_start<=absolute<body:return position,absolute-source_start,True
-        return position,max(0,absolute-body),False
+        return position,max(0,iterator.get_offset()-body)
 
     def visible_section(self):
         if not self.ranges:return None
@@ -398,14 +398,12 @@ class StudyPanel(Gtk.Box):
         from .bible_render import bind_copy
         from .commentary_format import apply
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
-        pieces=[];styles=[];self.ranges={};self._source_starts={};self._source_focus={};offset=0
+        pieces=[];styles=[];self.ranges={};self._prefaces={};offset=0
         for position in self.loaded:
             heading=self.reader.index.label(position)+'\n'
             document=source.document(position,self.owner.preferences.value)
+            self._prefaces[position]=document.has_preface
             base=offset+len(heading)
-            self._source_starts[position]=base
-            context_start=getattr(document,'source_context_start',None)
-            self._source_focus[position]=base+context_start if context_start is not None else offset
             pieces.extend([heading,document.text,'\n\n'])
             styles.extend(StyleSpan(s.kind,s.start+base,s.end+base) for s in document.styles)
             self.ranges[position]=(offset,base+document.spans[0].body,base+len(document.text))
@@ -422,9 +420,8 @@ class StudyPanel(Gtk.Box):
         if number:number.props.foreground_set=False
         tag=buffer.get_tag_table().lookup('entry-heading')
         if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
-        for position,(start,body,end) in self.ranges.items():
-            buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(self._source_starts[position]))
-        if anchor:self.reveal(*anchor,force=True)
+        for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
+        if anchor:self.reveal(anchor[0],anchor[1],force=True)
         else:self.reveal(self.current_position,force=True)
 
     def cancel_reveal(self):
@@ -432,14 +429,14 @@ class StudyPanel(Gtk.Box):
         if self._reveal_tick:self.text.remove_tick_callback(self._reveal_tick);self._reveal_tick=0
         self._positioning=False
 
-    def reveal(self,position,offset=0,prefix=False,force=False,animate=False):
+    def reveal(self,position,offset=0,force=False,animate=False):
         if position not in self.ranges:return
         buffer=self.text.get_buffer();start,body,end=self.ranges[position]
         visible=self.text.get_visible_rect()
         top=self.text.get_iter_location(buffer.get_iter_at_offset(start)).y
         bottom=self.text.get_iter_location(buffer.get_iter_at_offset(end)).y
         if not force and (top<=visible.y<bottom or visible.y<=top<visible.y+visible.height):return
-        self._layout_anchor=(position,offset,prefix)
+        self._layout_anchor=(position,offset)
         self.cancel_reveal();self._positioning=True
         frames=[0]
         def restore(*_):
@@ -448,9 +445,7 @@ class StudyPanel(Gtk.Box):
             self.text.set_bottom_margin(max(24,self.text.get_visible_rect().height))
             if frames[0]<3:return True
             first,begin,last=self.ranges[position]
-            target=(self._source_starts.get(position,first)+offset if prefix else
-                    min(last,begin+offset) if offset else self._source_focus.get(position,first))
-            iterator=buffer.get_iter_at_offset(max(first,min(last,target)))
+            iterator=buffer.get_iter_at_offset(min(last,begin+offset) if offset else first)
             target=self.text.get_iter_location(iterator);rect=self.text.get_visible_rect()
             adjustment=self.scroll.get_vadjustment()
             destination=adjustment.get_value()+target.y-rect.y
@@ -517,10 +512,16 @@ class StudyPanel(Gtk.Box):
         anchor=self.anchor();tab=self.owner.active_tab
         if anchor and tab and tab.state.commentary:
             section=self.reader.index.sections[anchor[0]]
-            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor[1],prefix=anchor[2])
+            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor[1])
             self.owner.schedule_save()
 
+    def show_preface(self):
+        if self.reader and self.current_position is not None:
+            from .commentary_format import show_preface
+            show_preface(self.owner,self.reader,self.owner.library.resource(self.reader.name),self.current_position)
+
     def entry_controls(self):
+        self.preface_button.set_visible(bool(self.reader and getattr(self,'_prefaces',{}).get(self.current_position)))
         self.immersive_button.set_sensitive(bool(self.reader and self.current_position is not None and self.entry_text.strip()))
         self.immersive_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Read in immersive mode')+': '+self.source.get_text()])
         count=len(self.reader.index.sections) if self.reader else 0

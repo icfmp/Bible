@@ -7,6 +7,8 @@ from collections import defaultdict
 
 class PreverseParts(HTMLParser):
     """Keep SWORD's preverse region separate from its stripped verse body."""
+    CDATA_CONTENT_ELEMENTS=('script','style')
+    RCDATA_CONTENT_ELEMENTS=()
     def __init__(self):
         super().__init__(convert_charrefs=False)
         self.body=[];self.prefix=[];self.region=None;self.hidden=0
@@ -60,6 +62,9 @@ def preverse_layout(raw):
 
 
 class InlineOSIS(HTMLParser):
+    CDATA_CONTENT_ELEMENTS=('script','style')
+    RCDATA_CONTENT_ELEMENTS=()
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.parts=[];self.length=0;self.emphasis=[];self.stack=[];self.paragraphs=[]
@@ -180,3 +185,36 @@ def apply(view,styles,preferences,palette):
         elif kind=='editorial':tag.props.scale=.9
         elif kind=='heading':tag.props.weight=700;tag.props.scale=1.12
         buffer.apply_tag(tag,buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(last))
+
+
+def show_preface(owner,reader,resource,position):
+    """Read actual source preverse material without changing the verse anchor."""
+    from gi.repository import Adw,Gtk
+    from .paged_sources import CommentaryPages
+    from .bible_render import bind_copy
+    from .i18n import tr
+    from .preferences import ReadingPreferences
+    document=CommentaryPages(reader,resource).preface(position)
+    if not document.text.strip():return None
+    old=getattr(owner,'commentary_preface',None)
+    if old:old.close()
+    window=Adw.Window(transient_for=owner,modal=True,title=tr('Read source preface'),default_width=640,default_height=600)
+    window.set_destroy_with_parent(True)
+    window.add_css_class(owner.reading_style.scope+'-window')
+    box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    header=Adw.HeaderBar();header.set_title_widget(Adw.WindowTitle(title=tr('Read source preface'),subtitle=resource.description));box.append(header)
+    view=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,left_margin=24,right_margin=24,top_margin=20,bottom_margin=24)
+    view.add_css_class(owner.reading_style.scope)
+    from .reading_style import apply_direction
+    apply_direction(view,reader)
+    buffer=view.get_buffer();buffer.set_text(document.text)
+    body=buffer.create_tag('preface-body',family=owner.preferences.value.study_font,size_points=12,line_height=1.5)
+    buffer.apply_tag(body,buffer.get_start_iter(),buffer.get_end_iter())
+    apply(view,[(s.kind,s.start,s.end) for s in document.styles],ReadingPreferences(font=owner.preferences.value.study_font,size=12),owner.reading_style.palette)
+    bind_copy(view,document)
+    scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER);scroll.set_child(view);box.append(scroll);window.set_content(box)
+    window.text=view;window.source_document=document;owner.commentary_preface=window
+    def closed(*_):
+        if getattr(owner,'commentary_preface',None) is window:owner.commentary_preface=None
+        return False
+    window.connect('close-request',closed);window.present();return window

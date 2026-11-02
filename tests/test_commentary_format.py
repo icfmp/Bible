@@ -52,7 +52,7 @@ class CommentaryFormatTests(unittest.TestCase):
 
 class CommentaryLayoutTests(unittest.TestCase):
     @unittest.skipUnless(__import__('os').environ.get('DISPLAY'),'Requires GTK')
-    def test_preverse_context_and_position_survive_native_open_resize_and_restart(self):
+    def test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules(self):
         import hashlib,tempfile
         from pathlib import Path
         from bible.ui import Application,Window,Library
@@ -73,32 +73,26 @@ class CommentaryLayoutTests(unittest.TestCase):
             window=Window(app,Library(Path(directory)/'translations'));window.set_default_size(1000,700);window.present()
             try:
                 window.study_button.set_active(True);panel=window.study
-                panel.choices.set_selected(panel.names.index('Notes'))
-                spin(lambda:not panel._positioning,duration=.4)
-                self.assertIn('Actual foreword.',panel.text.get_buffer().props.text)
-                buffer=panel.text.get_buffer()
-                foreword=buffer.get_iter_at_offset(buffer.props.text.index('Actual foreword.'))
-                self.assertNotIn('entry-heading',[t.props.name for t in foreword.get_tags()])
-                position=panel.current_position;focus=panel._source_focus[position]
-                target=panel.text.get_iter_location(panel.text.get_buffer().get_iter_at_offset(focus))
-                visible=panel.text.get_visible_rect()
-                self.assertLess(abs(target.y-visible.y),30)
-                panel.reveal(position,120,prefix=True,force=True);spin(lambda:not panel._positioning)
-                self.assertTrue(panel.anchor()[2])
-                window.reading_sync.driver='commentary';panel.remember_position()
-                saved=dict(window.active_tab.state.commentary_positions['Notes'])
-                self.assertTrue(saved['prefix'])
-                window.set_default_size(900,700);spin(duration=.4)
-                self.assertTrue(panel.anchor()[2])
-            finally:window.close()
-            restored=Window(app,Library(Path(directory)/'translations'));restored.present()
-            try:
-                spin(lambda:not restored.study._positioning,duration=.4)
-                self.assertTrue(restored.study.anchor()[2])
-                self.assertEqual(restored.active_tab.state.reference,'Gen.1.1')
-                self.assertEqual(restored.active_tab.state.commentary_positions['Notes'],saved)
+                panel.choices.set_selected(panel.names.index('Notes'));spin(lambda:not panel._positioning,duration=.4)
+                self.assertNotIn('Actual foreword.',panel.text.get_buffer().props.text)
+                self.assertIn('ACTUAL BODY.',panel.text.get_buffer().props.text)
+                self.assertTrue(panel.preface_button.get_visible())
+                reference=window.active_tab.state.reference;position=panel.anchor()
+                panel.preface_button.emit('clicked');spin()
+                preface=window.commentary_preface
+                self.assertEqual(preface.source_document.text.count('Actual foreword.'),500)
+                self.assertIn('SOURCE PREFACE',preface.text.get_buffer().props.text)
+                self.assertNotIn('ACTUAL BODY.',preface.text.get_buffer().props.text)
+                buffer=preface.text.get_buffer();foreword=buffer.get_iter_at_offset(buffer.props.text.index('Actual foreword.'))
+                self.assertNotIn('source-heading',[t.props.name for t in foreword.get_tags()])
+                expected=preface.source_document.copy(0,len(preface.source_document.text))
+                preface.set_default_size(340,400);spin(duration=.3)
+                self.assertEqual(preface.source_document.copy(0,len(preface.source_document.text)),expected)
+                preface.close();spin()
+                self.assertIsNone(window.commentary_preface)
+                self.assertEqual(window.active_tab.state.reference,reference);self.assertEqual(panel.anchor(),position)
                 self.assertEqual({p:hashlib.sha256(p.read_bytes()).hexdigest() for p in files},files)
-            finally:restored.close()
+            finally:window.close()
 
     @unittest.skipUnless(__import__('os').environ.get('DISPLAY'),'Requires GTK')
     def test_verified_decorations_have_zero_advance_without_invisible_indices(self):
