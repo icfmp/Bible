@@ -602,11 +602,13 @@ class WindowTests(unittest.TestCase):
             window.navigation.sync(force=True)
             self.assertEqual(window.navigation.names, ['Test'])
             commentary_fixture(directory, 'CatholicNotes', versification='LXX')
-            self.choose_commentary(window, 'CatholicNotes')
+            with self.assertLogs('bible.study_panel',level='WARNING') as diagnostics:
+                self.choose_commentary(window, 'CatholicNotes')
             self.assertEqual(self.study_text(window), '')
             self.assertIn(tr('No verified alignment for this passage.'),
                           window.study.status.get_text())
-            self.assertIn('LXX', window.study.status.get_text())
+            self.assertIn('LXX','\n'.join(diagnostics.output))
+            self.assertEqual(window.study.status.get_text(),tr('No verified alignment for this passage.'))
             resources = [window.library.resource(name) for name in window.library.installed()]
             with patch('bible.catalogue_window.catalogue', return_value=resources):
                 dialog = window.open_library('commentary')
