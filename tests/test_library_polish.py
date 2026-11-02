@@ -97,8 +97,10 @@ class LibraryPolishTests(unittest.TestCase):
     def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self):
         installed_fixture(self.root)
         w=self.window;w.navigate_selection('Test','Gen.1.1');w.main_pages.set_visible_child_name('reading');w.set_default_size(360,700);spin()
+        w.reader_overflow.popup();spin(lambda:w.reader_overflow_box.get_mapped())
         for button in [w.new_tab_button,w.space_selector,w.study_button]:
             self.assertTrue(button.get_visible());self.assertTrue(button.get_mapped())
+        w.reader_overflow.popdown()
         self.assertFalse(w.tab_new_button.get_visible())
         before=w.view.get_n_pages();w.new_tab_button.emit('clicked');self.assertEqual(w.view.get_n_pages(),before+1)
         w.space_selector.set_selected(1);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
@@ -231,3 +233,48 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.resource,original)
         self.assertEqual(editor.body.get_buffer().props.text,'Actual unsaved draft — keep this text')
         editor._discard=True;editor.close()
+
+    def test_study_category_keeps_queries_filters_and_local_catalogue_independent(self):
+        w=self.window;w.application_settings.set('library_language','fr')
+        d=w.open_library();spin(lambda:not d.busy)
+        d.resources=[replace(RESOURCE,name='French',language='fr')];d.update_languages()
+        d.search.set_text('French');d.filter_resources();d.source_filter.set_selected(1)
+        d.study_tools_button.set_active(True);spin(lambda:not d.busy)
+        self.assertEqual(d.search.get_text(),'')
+        self.assertEqual(len(d.filtered_resources),4)
+        self.assertTrue(d.type_tabs.get_visible());self.assertFalse(d.language.get_visible())
+        self.assertFalse(d.source_filter.get_visible())
+        with patch.object(d,'load_catalogue') as fetch:
+            d.auto_load();fetch.assert_not_called()
+        d.search.set_text('no such dataset');d.filter_resources()
+        self.assertEqual(d.filtered_resources,[])
+        self.assertNotIn('Language:',d.empty.get_text())
+        d.bibles_button.set_active(True);spin(lambda:not d.busy)
+        self.assertEqual(d.search.get_text(),'French');self.assertEqual(d.source_filter.get_selected(),1)
+        self.assertEqual(d.language_choice,'fr')
+        d.study_tools_button.set_active(True);self.assertEqual(d.search.get_text(),'no such dataset')
+        d.reveal_study_resource('step-word-study');spin(lambda:d.pages.get_visible_child_name()=='detail')
+        self.assertEqual(d.selected_resource().id,'step-word-study')
+        self.assertFalse(d._transfer_busy)
+        self.assertIs(w.open_library('study'),d)
+
+    def test_study_transfer_survives_category_switch_and_cancellation_can_retry(self):
+        w=self.window;d=w.open_library('study');spin(lambda:not d.busy)
+        resource=d.study_resources.resource('step-word-study')
+        release=threading.Event();self.addCleanup(release.set)
+        def interrupted(resource,progress,installing,cancelled):
+            progress(1024,4096)
+            release.wait(3)
+            if cancelled():raise InterruptedError('Synthetic cancelled download')
+            raise OSError('Synthetic connection failure')
+        with patch.object(d.study_resources,'install',side_effect=interrupted) as install:
+            d.install(resource=resource);spin(lambda:d.progress.get_text().startswith('1.0 KiB'))
+            task=d._task_id
+            d.bibles_button.set_active(True);d.study_tools_button.set_active(True)
+            self.assertEqual(d._task_id,task);self.assertEqual(install.call_count,1)
+            self.assertTrue(d._transfer_busy);self.assertTrue(d.cancel_button.get_visible())
+            d.cancel_download();release.set();spin(lambda:not d._transfer_busy)
+            self.assertEqual(d._phase,'error');self.assertEqual(d._failed_resource,resource.id)
+            self.assertNotIn(resource.id,d.installed_ids())
+            d.install(resource=resource);spin(lambda:not d._transfer_busy)
+            self.assertEqual(install.call_count,2);self.assertNotIn(resource.id,d.installed_ids())

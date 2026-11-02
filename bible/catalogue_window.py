@@ -49,6 +49,7 @@ class CatalogueWindow(Adw.Window):
         if not existing:parent.catalogue_session=CatalogueSession(library)
         self.session=parent.catalogue_session;self.cache=self.session.cache
         self.resources=[];self.preparing=True
+        self._category=0;self._category_queries={}
         self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
         self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
         self._pending_resource=None
@@ -86,18 +87,26 @@ class CatalogueWindow(Adw.Window):
         layout.append(header)
         self.pages=Gtk.Stack(vexpand=True)
         explorer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_top=16)
-        views=Gtk.Box(spacing=0,halign=Gtk.Align.CENTER);views.add_css_class('linked')
+        views=Gtk.Box(spacing=0,homogeneous=True,margin_start=12,margin_end=12);views.add_css_class('linked')
         self.bibles_button=Gtk.ToggleButton(label=tr('Bibles'),active=True)
         self.commentaries_button=Gtk.ToggleButton(label=tr('Commentaries'),group=self.bibles_button)
+        self.study_tools_button=Gtk.ToggleButton(label=tr('Study tools'),group=self.bibles_button)
+        self.category_buttons=(self.bibles_button,self.commentaries_button,self.study_tools_button)
         self.bibles_button.connect('toggled',lambda button:self.kind.set_selected(0) if button.get_active() else None)
         self.commentaries_button.connect('toggled',lambda button:self.kind.set_selected(1) if button.get_active() else None)
-        views.append(self.bibles_button);views.append(self.commentaries_button);explorer.append(views)
+        self.study_tools_button.connect('toggled',lambda button:self.kind.set_selected(2) if button.get_active() else None)
+        for button in self.category_buttons:
+            text=button.get_label()
+            button.set_child(Gtk.Label(label=text,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
+            button.update_property([Gtk.AccessibleProperty.LABEL],[text])
+            views.append(button)
+        explorer.append(views)
         self.type_tabs=views
         self.search=Gtk.SearchEntry(placeholder_text=tr('Search resources'),margin_start=12,margin_end=12)
         self.search.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search resources')])
         self.search.connect('search-changed',self.filter_resources);explorer.append(self.search)
         filters=Gtk.Box(spacing=8,margin_start=12,margin_end=12)
-        self.kind=Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'),tr('Commentaries'),tr('Study resources')]))
+        self.kind=Gtk.DropDown(model=Gtk.StringList.new([tr('Bibles'),tr('Commentaries'),tr('Study tools')]))
         self.kind.update_property([Gtk.AccessibleProperty.LABEL],[tr('Resource type')])
         self.kind.connect('notify::selected',self.update_languages)
         self.language=LanguagePicker(self.language_changed);self.language.set_hexpand(True)
@@ -223,9 +232,9 @@ class CatalogueWindow(Adw.Window):
         complete=study or all(p.id in self._covered for p in providers)
         names={p.name for p in providers}
         all_names={p.name for p in PROVIDERS}
-        errors={name:error for name,error in self._catalogue_errors.items() if not index or name in names or name not in all_names}
+        errors={} if study else {name:error for name,error in self._catalogue_errors.items() if not index or name in names or name not in all_names}
         self.result_retry.set_label(tr('Retry') if errors else tr('Refresh catalogue'))
-        pending=self.preparing or self.refreshing or (not self._catalogue_requested and not complete and not errors and self.settings.value['automatic_catalogue_refresh'] and not study)
+        pending=self.preparing or (self.refreshing and not study) or (not self._catalogue_requested and not complete and not errors and self.settings.value['automatic_catalogue_refresh'] and not study)
         if rows:
             state='rows'
             message=(tr('Refreshing sources…') if pending else tr('Partial catalogue. Retry to reload unavailable sources.') if errors else '')
@@ -238,9 +247,9 @@ class CatalogueWindow(Adw.Window):
             description=(tr('Retry or open installed resources. No files were removed.') if errors else
                 tr('No resources match the current filters. Clear filters, choose another language or refresh.') if complete else
                 tr('Refresh the catalogue to discover resources.'))
-            if language:description+=' '+tr('Language')+': '+self.language_label(language)
+            if language and not study:description+=' '+tr('Language')+': '+self.language_label(language)
             if self.search.get_text():description+=' '+tr('Search')+': '+self.search.get_text()
-            if index:description+=' '+tr('Source')+': '+providers[0].name
+            if index and not study:description+=' '+tr('Source')+': '+providers[0].name
             if errors:description+='\n'+'\n'.join(f'{name}: {error}' for name,error in errors.items())
             self.empty_page.set_title(title);self.empty_page.set_description(GLib.markup_escape_text(description))
             self.empty.set_text(description);message=title
@@ -365,9 +374,14 @@ class CatalogueWindow(Adw.Window):
 
     def update_languages(self, *_):
         study=self.kind.get_selected()==2
-        self.type_tabs.set_visible(not study)
-        if not study:
-            (self.commentaries_button if self.kind.get_selected()==1 else self.bibles_button).set_active(True)
+        category=self.kind.get_selected()
+        if category!=self._category:
+            self._category_queries[self._category]=self.search.get_text()
+            self._category=category
+            self._filtering=True
+            self.search.set_text(self._category_queries.get(category,''))
+            self._filtering=False
+        self.category_buttons[category].set_active(True)
         wording=tr('Search resources') if study else tr('Search commentaries') if self.kind.get_selected()==1 else tr('Search Bibles')
         self.search.set_placeholder_text(wording);self.search.update_property([Gtk.AccessibleProperty.LABEL],[wording])
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
@@ -668,7 +682,7 @@ class CatalogueWindow(Adw.Window):
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
                 dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
                 dialog.present();return
-        caption=plain(resource.description) if resource.provider_id=='youversion' else resource.name
+        caption=plain(resource.description) if resource.kind=='study' or resource.provider_id=='youversion' else resource.name
 
         def installed(_):
             self._completed_resource=resource.id
