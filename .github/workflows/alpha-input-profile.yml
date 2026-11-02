@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           run_native() {
-            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master "$@"
+            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=MESA_SHADER_CACHE_DISABLE=true --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master "$@"
           }
           run_native -m tools.check_study_navigation "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/preparation.json" --prepare --require-packaged > "$RUNNER_TEMP/private-scroll/preparation.log" 2>&1
           run_native -m tools.check_client_feedback "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/client" --baseline --require-packaged > "$RUNNER_TEMP/private-scroll/client.log" 2>&1
@@ -43,14 +43,16 @@ jobs:
         run: |
           set -euo pipefail
           perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
-          for repeat in 1 2 3; do
-            for version in before after; do
-              flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
+          for repeat in 1 2 3 4 5 6; do
+            for version in control no-overshoot; do
+              flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/after-bundle/Bible-alpha.flatpak"
+              diagnostic=()
+              if [ "$version" = no-overshoot ]; then diagnostic=(--diagnostic-no-overshoot); fi
               output="$RUNNER_TEMP/private-scroll/$version-$repeat.json"
               sudo python3 tools/sample_scroll_waits.py "$output" "$version" "$repeat" "$perf_bin" > "reports/$version-$repeat.json" &
               sampler=$!
               status=0
-              timeout 90s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.check_scroll_waits "$RUNNER_TEMP/profile" "$output" --require-packaged --check > "$RUNNER_TEMP/private-scroll/$version-$repeat.log" 2>&1 || status=$?
+              timeout 90s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=MESA_SHADER_CACHE_DISABLE=true --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.check_scroll_waits "$RUNNER_TEMP/profile" "$output" --require-packaged --check "${diagnostic[@]}" > "$RUNNER_TEMP/private-scroll/$version-$repeat.log" 2>&1 || status=$?
               wait "$sampler"
               echo "$version-$repeat exit-status=$status" >> reports/status.txt
             done
@@ -60,6 +62,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: aggregate-native-scroll-waits
+          name: aggregate-native-edge-comparison
           path: reports/
           if-no-files-found: error
