@@ -8,6 +8,10 @@ on:
         description: Run the isolated rendering diagnosis with the installed GTK runtime
         type: boolean
         default: false
+      candidate_run:
+        description: Optional successful ordinary CI run for this exact source; install its actual bundle instead of mounting development code
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -128,9 +132,58 @@ jobs:
       - name: Capture the packaged baseline using real resources
         run: |
           timeout 300s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before" --prepare --baseline --require-packaged
-      - name: Diagnose development source with the same installed native runtime
+      - name: Capture baseline reader and Library chrome
         run: |
-          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$PWD:/app/lib/bible-python" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after" --runtime-probe
+          for tool in check_reader_chrome check_library_categories check_commentary_context; do
+            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/$tool" --baseline --require-packaged
+          done
+      - name: Install the exact successful candidate when requested
+        if: ${{ inputs.candidate_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN: ${{ inputs.candidate_run }}
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/${{ github.repository }}/actions/runs/$CANDIDATE_RUN" > "$RUNNER_TEMP/candidate-run.json"
+          python3 - "$RUNNER_TEMP/candidate-run.json" <<'PY'
+          import json,os,sys
+          x=json.load(open(sys.argv[1]))
+          assert x['head_sha']==os.environ['GITHUB_SHA']
+          assert x['name']=='Vérifier le socle GNOME' and x['event']=='push'
+          assert x['status']=='completed' and x['conclusion']=='success'
+          PY
+          gh run download "$CANDIDATE_RUN" --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
+          python3 - "$RUNNER_TEMP/candidate-bundle" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          p=Path(sys.argv[1]);x=json.loads((p/'build-info.json').read_text())
+          assert x['commit']==os.environ['GITHUB_SHA']
+          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
+          PY
+          flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/candidate-bundle/Bible-alpha.flatpak"
+      - name: Verify candidate or diagnose development source with the same native runtime
+        env:
+          CANDIDATE_RUN: ${{ inputs.candidate_run }}
+        run: |
+          set -euo pipefail
+          if [ -n "$CANDIDATE_RUN" ]; then
+            python_path="/app/lib/bible-python:$PWD"
+            source_flags=(--require-packaged)
+            flags=(--require-packaged)
+            mkdir -p "$RUNNER_TEMP/rendering-after"
+            cp "$RUNNER_TEMP/candidate-bundle/build-info.json" "$RUNNER_TEMP/rendering-after/"
+          else
+            python_path="$PWD:/app/lib/bible-python"
+            source_flags=(--runtime-probe)
+            flags=()
+          fi
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after" "${source_flags[@]}"
+          for tool in check_reader_chrome check_library_categories check_commentary_context; do
+            extra=()
+            if [ "$tool" = check_library_categories ]; then extra=(--install); fi
+            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/$tool" "${flags[@]}" "${extra[@]}"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
