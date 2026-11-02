@@ -1,18 +1,23 @@
 """Read private native waits and export only scalar aggregates, no raw payload."""
 import json,os,re,signal,subprocess,sys,time
 from pathlib import Path
+def application_target(executable,args,expected_output):
+    return (Path(executable).name=='python3.13' and args[1:3]==[b'-m',b'tools.check_scroll_waits']
+            and str(expected_output).encode() in args)
+
 output,version,repeat=sys.argv[1:];output=Path(output);deadline=time.monotonic()+45;pid=None
 while time.monotonic()<deadline and pid is None:
     for p in Path('/proc').iterdir():
         if not p.name.isdecimal():continue
         try:
             args=p.joinpath('cmdline').read_bytes().split(b'\0')
-            if b'tools.check_scroll_waits' in args and str(output).encode() in args and p.joinpath('exe').resolve().name.startswith('python3'):
+            if application_target(p.joinpath('exe').resolve(),args,output):
                 pid=p.name;break
         except (OSError,RuntimeError):pass
     if pid is None:time.sleep(.05)
-record=dict(version=version,repeat=int(repeat),syscall_traced=False)
+record=dict(version=version,repeat=int(repeat),syscall_traced=False,expected_process_role='application-python')
 if pid is None:record['measurement_completed']=False;print(json.dumps(record));sys.exit()
+record.update(runtime_python='python3.13',verified_entry_module='tools.check_scroll_waits')
 trace=output.with_suffix('.syscalls.private');log=output.with_suffix('.strace.private')
 ticks=os.sysconf('SC_CLK_TCK');samples=[];measurement=None
 def cpu(path):
