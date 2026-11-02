@@ -79,6 +79,37 @@ def main():
                             assert adj.get_value()+adj.get_page_size()>=adj.get_upper()-2,row
                             screen.grab(a.output/(f'{palette}-topics-bottom-{width}.png'))
                         records.append(row);nav.popdown();spin()
+                    if not a.baseline:
+                        # Retained real topic relationships: pointer first/subsequent
+                        # rows, keyboard activation, dismissal and reopening.
+                        w.set_default_size(1000,800);spin();w.choose_passage();nav.modes.set_visible_child_name('topics')
+                        panel.entry.set_text('love');panel.changed()
+                        topic_button=lambda:next((b for b in walk(panel.topics) if isinstance(b,Gtk.Button)
+                            and hasattr(b,'_topic') and b._topic[0]=='love' and b.get_mapped()
+                            and b.get_width()>0 and b.get_height()>0),None)
+                        spin(lambda:topic_button() is not None,duration=.1);n.click(topic_button())
+                        spin(lambda:not panel.pending and len(panel.rows)>1,duration=.1)
+                        generation=panel.generation;origin=(t.state.resource,t.state.reference)
+                        for index,key in [(0,False),(1,False),(0,True)]:
+                            panel.results.scroll_to(index,Gtk.ListScrollFlags.FOCUS,None)
+                            def result_button():
+                                return next((b for b in walk(panel.results) if isinstance(b,Gtk.Button)
+                                    and getattr(b,'_result',None)==(panel.rows[index],panel.generation)
+                                    and b.get_mapped() and b.get_width()>0 and b.get_height()>0),None)
+                            spin(lambda:result_button() is not None,duration=.2)
+                            button=result_button()
+                            if key:button.grab_focus();n.key('Return')
+                            else:n.click(button)
+                            spin(lambda:w.reference_preview.popover is not None,duration=.3)
+                            assert panel.generation==generation and w.reference_preview.target is not None
+                            assert (t.state.resource,t.state.reference)==origin
+                            records.append(dict(surface='topic-activation',palette=palette,index=index,
+                                keyboard=key,target=w.reference_preview.target,generation=generation))
+                            if index==0 and not key:screen.grab(a.output/(palette+'-topic-first-preview.png'))
+                            w.reference_preview.dismiss();spin()
+                        nav.popdown();spin();w.choose_passage();spin()
+                        assert len(panel.rows)>1 and panel.generation==generation
+                        nav.popdown();spin()
             if a.maps:
                 w.set_default_size(1200,820);spin()
                 from bible.place_cards import PlaceCards
@@ -91,9 +122,15 @@ def main():
                     dialog.open_place(place)
                     if dialog.map_widget:spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=40)
                     else:assert not any(c['longitude'] is not None for c in place['candidates'])
-                    for width in (640,360):
-                        dialog.set_default_size(width,720);spin(duration=.4)
-                        screen.grab(a.output/(f'place-{name}-{width}.png'))
+                    for palette,mode in [('white','day'),('dark','night')]:
+                        # Use the same native source tiles and geometry in both themes.
+                        with SystemStyleOverride() as map_style:
+                            map_style.set(dark=mode=='night',high=False)
+                            w.appearance.update('mode',mode)
+                            w.appearance.update('day_palette' if mode=='day' else 'night_palette',palette)
+                            for width in (640,360):
+                                dialog.set_default_size(width,720);spin(duration=.4)
+                                screen.grab(a.output/(f'place-{name}-{palette}-{width}.png'))
                     records.append(dict(surface='places',name=name,map_ready=dialog.map_widget.ready if dialog.map_widget else None,candidates=len(place['candidates']),status=place['status'],description=getattr(dialog,'location_description',dialog.passage_context).get_text()))
                     dialog.close();spin()
         finally:w.close();n.close()
