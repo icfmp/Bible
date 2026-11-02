@@ -101,15 +101,20 @@ if not parsed:
 record['longest_native_waits']=sorted(waits,key=lambda v:v['duration_ms'],reverse=True)[:8]
 record['longest_gap_native_waits']=[v for v in waits if v['overlaps_longest_gap'] and v['duration_ms']>5]
 # A fixed symbol/DSO/percentage schema only. No raw stacks, addresses or paths.
-def symbol_aggregates(children=False):
+def symbol_aggregates(children=False,window=True):
     fields='overhead_children,symbol,dso' if children else 'overhead,symbol,dso'
-    command=[perf,'report','-i',str(perfdata),'--symfs',str(symbols),'--stdio','--no-call-graph','--sort','symbol,dso','-F',fields,'-t','|','--percent-limit','0.1','--time',f'{gap[1]:.6f},{gap[2]:.6f}']
+    command=[perf,'report','-i',str(perfdata),'--symfs',str(symbols),'--stdio','--no-call-graph','--sort','symbol,dso','-F',fields,'-t','|','--percent-limit','0.1']
+    if window:command+=['--time',f'{gap[1]:.6f},{gap[2]:.6f}']
     command+=['--children'] if children else ['--no-children']
     result=subprocess.run(command,capture_output=True,text=True)
-    record['native_inclusive_report_exit_code' if children else 'native_self_report_exit_code']=result.returncode
-    entries=[];unresolved=0.0;matched=0
+    prefix=('gap_' if window else 'full_')+('inclusive' if children else 'self')
+    record[prefix+'_report_exit_code']=result.returncode
+    record[prefix+'_report_output_bytes']=len(result.stdout)
+    record[prefix+'_report_error_bytes']=len(result.stderr)
+    entries=[];unresolved=0.0;matched=0;field_counts={}
     for line in result.stdout.splitlines():
-        parts=line.split('|')
+        if not line.strip() or line.lstrip().startswith('#'):continue
+        parts=line.strip().strip('|').split('|');field_counts[str(len(parts))]=field_counts.get(str(len(parts)),0)+1
         if len(parts)!=3:continue
         try:percentage=float(parts[0].strip().rstrip('%'))
         except ValueError:continue
@@ -118,9 +123,23 @@ def symbol_aggregates(children=False):
         if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):
             unresolved+=percentage;continue
         entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[2].strip()).name))
-    record['native_inclusive_report_rows' if children else 'native_self_report_rows']=matched
-    record['native_inclusive_unresolved_percent' if children else 'native_self_unresolved_percent']=unresolved
+    record[prefix+'_report_rows']=matched
+    record[prefix+'_report_column_counts']=field_counts
+    record[prefix+'_unresolved_percent']=unresolved
     return entries[:32]
 record['longest_gap_native_cpu_symbols']=symbol_aggregates()
 record['longest_gap_native_inclusive_symbols']=symbol_aggregates(True)
+record['full_native_cpu_symbols']=symbol_aggregates(window=False)
+record['full_native_inclusive_symbols']=symbol_aggregates(True,window=False)
+record['native_capture_bytes']=perfdata.stat().st_size if perfdata.exists() else 0
+sample_times=subprocess.run([perf,'script','-i',str(perfdata),'-F','time'],capture_output=True,text=True)
+timestamps=[]
+for line in sample_times.stdout.splitlines():
+    m=re.fullmatch(r'\s*(\d+\.\d+):?\s*',line)
+    if m:timestamps.append(float(m[1]))
+record['native_sample_count']=len(timestamps)
+if timestamps:
+    record['native_first_sample_minus_gap_start_ms']=(min(timestamps)-gap[1])*1000
+    record['native_last_sample_minus_gap_end_ms']=(max(timestamps)-gap[2])*1000
+    record['native_sample_count_inside_gap']=sum(gap[1]<=t<=gap[2] for t in timestamps)
 print(json.dumps(record))

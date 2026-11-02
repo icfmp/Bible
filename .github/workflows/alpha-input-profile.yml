@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
-          for repeat in 1 2 3 4 5 6; do
+          for repeat in 1 2 3; do
             for version in before after; do
               flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
               output="$RUNNER_TEMP/private-scroll/$version-$repeat.json"
