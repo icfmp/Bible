@@ -312,7 +312,7 @@ class StudyPanel(Gtk.Box):
                             from .pagination import Anchor
                             document=CommentaryPages(self.reader,resource).document(self.current_position,self.owner.preferences.value)
                             offset=max(0,document.locate(Anchor(section.start,offset,True))-document.spans[0].body)
-                        self.reveal(self.current_position,offset,force=True)
+                        self.reveal(self.current_position,offset,prefix=saved.get('prefix',False),force=True)
         except VersificationMismatch as error:
             self.clear_content();self.reader=None
             self.status.set_text(tr('Different versifications. Automatic alignment is unavailable.')+f' ({error})')
@@ -375,7 +375,10 @@ class StudyPanel(Gtk.Box):
         if position is None:return None
         rect=self.text.get_visible_rect();_,iterator=self.text.get_iter_at_location(rect.x,rect.y)
         body=self.ranges[position][1]
-        return position,max(0,iterator.get_offset()-body)
+        absolute=iterator.get_offset()
+        source_start=getattr(self,'_source_starts',{}).get(position,body)
+        if source_start<=absolute<body:return position,absolute-source_start,True
+        return position,max(0,absolute-body),False
 
     def visible_section(self):
         if not self.ranges:return None
@@ -395,11 +398,14 @@ class StudyPanel(Gtk.Box):
         from .bible_render import bind_copy
         from .commentary_format import apply
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
-        pieces=[];styles=[];self.ranges={};offset=0
+        pieces=[];styles=[];self.ranges={};self._source_starts={};self._source_focus={};offset=0
         for position in self.loaded:
             heading=self.reader.index.label(position)+'\n'
             document=source.document(position,self.owner.preferences.value)
             base=offset+len(heading)
+            self._source_starts[position]=base
+            context_start=getattr(document,'source_context_start',None)
+            self._source_focus[position]=base+context_start if context_start is not None else offset
             pieces.extend([heading,document.text,'\n\n'])
             styles.extend(StyleSpan(s.kind,s.start+base,s.end+base) for s in document.styles)
             self.ranges[position]=(offset,base+document.spans[0].body,base+len(document.text))
@@ -416,8 +422,9 @@ class StudyPanel(Gtk.Box):
         if number:number.props.foreground_set=False
         tag=buffer.get_tag_table().lookup('entry-heading')
         if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
-        for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
-        if anchor:self.reveal(anchor[0],anchor[1],force=True)
+        for position,(start,body,end) in self.ranges.items():
+            buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(self._source_starts[position]))
+        if anchor:self.reveal(*anchor,force=True)
         else:self.reveal(self.current_position,force=True)
 
     def cancel_reveal(self):
@@ -425,14 +432,14 @@ class StudyPanel(Gtk.Box):
         if self._reveal_tick:self.text.remove_tick_callback(self._reveal_tick);self._reveal_tick=0
         self._positioning=False
 
-    def reveal(self,position,offset=0,force=False,animate=False):
+    def reveal(self,position,offset=0,prefix=False,force=False,animate=False):
         if position not in self.ranges:return
         buffer=self.text.get_buffer();start,body,end=self.ranges[position]
         visible=self.text.get_visible_rect()
         top=self.text.get_iter_location(buffer.get_iter_at_offset(start)).y
         bottom=self.text.get_iter_location(buffer.get_iter_at_offset(end)).y
         if not force and (top<=visible.y<bottom or visible.y<=top<visible.y+visible.height):return
-        self._layout_anchor=(position,offset)
+        self._layout_anchor=(position,offset,prefix)
         self.cancel_reveal();self._positioning=True
         frames=[0]
         def restore(*_):
@@ -441,7 +448,9 @@ class StudyPanel(Gtk.Box):
             self.text.set_bottom_margin(max(24,self.text.get_visible_rect().height))
             if frames[0]<3:return True
             first,begin,last=self.ranges[position]
-            iterator=buffer.get_iter_at_offset(min(last,begin+offset) if offset else first)
+            target=(self._source_starts.get(position,first)+offset if prefix else
+                    min(last,begin+offset) if offset else self._source_focus.get(position,first))
+            iterator=buffer.get_iter_at_offset(max(first,min(last,target)))
             target=self.text.get_iter_location(iterator);rect=self.text.get_visible_rect()
             adjustment=self.scroll.get_vadjustment()
             destination=adjustment.get_value()+target.y-rect.y
@@ -508,7 +517,7 @@ class StudyPanel(Gtk.Box):
         anchor=self.anchor();tab=self.owner.active_tab
         if anchor and tab and tab.state.commentary:
             section=self.reader.index.sections[anchor[0]]
-            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor[1])
+            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor[1],prefix=anchor[2])
             self.owner.schedule_save()
 
     def entry_controls(self):

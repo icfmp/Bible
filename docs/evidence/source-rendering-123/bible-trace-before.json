@@ -1,0 +1,281 @@
+[
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Gen.1.1",
+    "versification": "NRSV",
+    "chars": 4650,
+    "newline_count": 48,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 9,
+      "break": 23,
+      "text": 1540
+    },
+    "headings": [
+      "Ch. 1 à 11: 9. (Ac 17:24-28.) ",
+      "Création du monde ",
+      "V. 1: cf. Né 9:6. (Ps 124:8. Jé 32:17; 10:12.) Ro 1:20. Ap 4:11. Jn 1:1-3. ",
+      "V. 2-5: cf. Ps 104:2. És 45:7. 2 Co 4:6. ",
+      "V. 6-8: cf. Ps 104:2, 3; 19:2. ",
+      "V. 9-13: cf. Job 38:8-11. Ps 104:6-9, 14-16. ",
+      "V. 14-19: cf. Ps 104:19; 136:7-9; 148:3, 5, 6. ",
+      "V. 20-23: cf. Ps 104:24-26; 148:7, 10. ",
+      "V. 24-31: cf. Ge 2:19, 20. (Ge 5:1, 2; 2:7, 21-23.) Ps 8:5-9. (Ec 7:29. Ép 4:24.) "
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 9,
+      "number": 31,
+      "verse-start": 31
+    },
+    "raw_sha256": "6c785a3159f8f26b8aa747a6158c3e1195ddadaebc123e63f20997ceeeae1fc1"
+  },
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Gen.2.1",
+    "versification": "NRSV",
+    "chars": 3453,
+    "newline_count": 36,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 7,
+      "break": 17,
+      "text": 1152
+    },
+    "headings": [
+      "V. 1-3: cf. (Ex 20:8-11. És 58:13, 14.) Mc 2:27. ",
+      "Formation de l’homme et de la femme ",
+      "V. 4-7: cf. Ge 1:26-28. 1 Co 15:45-49. ",
+      "V. 8-17: cf. Ap 22:1, 2; 2:7. ",
+      "V. 18-24: cf. (1 Co 11:7-10. 1 Ti 2:11-13.) (Ép 5:22-33. Mt 19:3-9.) ",
+      "Le jardin d’Éden, et le péché d’Adam ",
+      "2 v. 25 à 3 v. 6: cf. Mt 4:1-11. (2 Co 11:3. 1 Ti 2:14.) Mt 6:13. "
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 7,
+      "number": 25,
+      "verse-start": 25
+    },
+    "raw_sha256": "23b860deb260640649d4fbd82500d854e84fd407cac367a44115b3345fed3f23"
+  },
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Ps.13.1",
+    "versification": "NRSV",
+    "chars": 745,
+    "newline_count": 39,
+    "max_newlines": 3,
+    "segments": {
+      "heading": 1,
+      "break": 5,
+      "text": 237,
+      "poetry": 27
+    },
+    "headings": [
+      "Ps 70; 142. "
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 6,
+      "verse-start": 6
+    },
+    "raw_sha256": "9d1c835788de4b06877426167294bd89352d7c05cd9e5f763b8ec351d87b63c7"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Gen.1.1",
+    "versification": "NRSVA",
+    "chars": 4128,
+    "newline_count": 36,
+    "max_newlines": 4,
+    "segments": {
+      "text": 1415,
+      "break": 17
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 31,
+      "verse-start": 31
+    },
+    "raw_sha256": "e2cef8def059331bb5bb059f0413359b88dde587adb9cb51a9de6aa4457227a3"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Gen.2.1",
+    "versification": "NRSVA",
+    "chars": 3062,
+    "newline_count": 12,
+    "max_newlines": 4,
+    "segments": {
+      "text": 1068,
+      "break": 5
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 25,
+      "verse-start": 25
+    },
+    "raw_sha256": "15f7bc9801ef823bfc681eb7b4bb7cdd8a524c1445f7f74b58d0a6e677c9bdc4"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Ps.13.1",
+    "versification": "NRSVA",
+    "chars": 724,
+    "newline_count": 39,
+    "max_newlines": 3,
+    "segments": {
+      "heading": 1,
+      "break": 5,
+      "text": 164,
+      "poetry": 27
+    },
+    "headings": [
+      "Au chef de chœur. Psaume de David. "
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 6,
+      "verse-start": 6
+    },
+    "raw_sha256": "07b8b122f74ec746dabf66b92c843e8a800f8cea368519893bbdaf2c9d3051df"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Gen.1.1",
+    "versification": "German",
+    "chars": 4292,
+    "newline_count": 44,
+    "max_newlines": 4,
+    "segments": {
+      "text": 849,
+      "break": 21
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 31,
+      "small-caps": 32,
+      "verse-start": 31
+    },
+    "raw_sha256": "f036623c6c6b2af87919c4feac8a3f851ca61b4855bc636ccca80fc54d169476"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Gen.2.1",
+    "versification": "German",
+    "chars": 3208,
+    "newline_count": 28,
+    "max_newlines": 4,
+    "segments": {
+      "text": 623,
+      "break": 13
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 25,
+      "verse-start": 25,
+      "small-caps": 25
+    },
+    "raw_sha256": "4ec98021044a07a15d617070bc91b1c0e68410adccc9c6a07a308c00c8d3350f"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Ps.13.1",
+    "versification": "German",
+    "chars": 735,
+    "newline_count": 19,
+    "max_newlines": 2,
+    "segments": {
+      "text": 127,
+      "poetry": 11,
+      "break": 3
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 6,
+      "verse-start": 6,
+      "small-caps": 4
+    },
+    "raw_sha256": "bfdbdea3a1a4f88556e078f609db96765c663e6bf625ba877eaea077b26d2d34"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Gen.1.1",
+    "versification": "Calvin",
+    "chars": 4309,
+    "newline_count": 6,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 2,
+      "text": 58
+    },
+    "headings": [
+      "Création du monde."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 31,
+      "verse-start": 31,
+      "italic": 13
+    },
+    "raw_sha256": "133088702290620574d765f01181f489bbb056fb5586068b5376aeab5fdc3467"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Gen.2.1",
+    "versification": "Calvin",
+    "chars": 3351,
+    "newline_count": 6,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 2,
+      "text": 34
+    },
+    "headings": [
+      "Du Sabbat et de la femme."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 25,
+      "verse-start": 25,
+      "italic": 4
+    },
+    "raw_sha256": "50d422cc85915a8d852a8971c0738284772e8d1068ef6ef9777735a79e9fb840"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Ps.13.1",
+    "versification": "Calvin",
+    "chars": 746,
+    "newline_count": 6,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 2,
+      "text": 17
+    },
+    "headings": [
+      "Complainte de David, et sa confiance en Dieu."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 6,
+      "italic": 5,
+      "verse-start": 6
+    },
+    "raw_sha256": "12956952fa3558d6efe0c92adac2828a5581127042df95d5c59dbe23554a657f"
+  }
+]

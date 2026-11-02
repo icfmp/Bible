@@ -3,11 +3,17 @@ on:
   push:
     branches: [feat/26-yves-fidelity, feat/26-youversion-language-catalogue]
   workflow_dispatch:
+    inputs:
+      runtime_probe:
+        description: Run the isolated rendering diagnosis with the installed GTK runtime
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
 jobs:
   proof:
+    if: ${{ inputs.runtime_probe != true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -100,4 +106,36 @@ jobs:
         with:
           name: yves-conversion-statistics
           path: reports/
+          if-no-files-found: warn
+
+  runtime-rendering-probe:
+    if: ${{ inputs.runtime_probe == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install the previously verified package in an isolated deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/rendering-flatpak" >> "$GITHUB_ENV"
+          gh run download 41391340612 --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
+          FLATPAK_USER_DIR="$RUNNER_TEMP/rendering-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          FLATPAK_USER_DIR="$RUNNER_TEMP/rendering-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+      - name: Capture the packaged baseline using real resources
+        run: |
+          timeout 300s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before" --prepare --baseline --require-packaged
+      - name: Diagnose development source with the same installed native runtime
+        run: |
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$PWD:/app/lib/bible-python" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after" --runtime-probe
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-rendering-runtime-probe
+          path: |
+            ${{ runner.temp }}/rendering-before/
+            ${{ runner.temp }}/rendering-after/
           if-no-files-found: warn

@@ -20,7 +20,8 @@ class SessionTests(unittest.TestCase):
             store = SessionStore(Path(directory) / 'session.json')
             session = Session([TabState('KJV', 'John.3.16', 0.53, True, 'RemovedCommentary'),
                                TabState('RemovedTranslation', 'Gen.2.1', 0.3)], 1)
-            session.tabs[0].commentary_positions={'RemovedCommentary':{'reference':'John.3.16','index':42,'offset':137,'canonical':True,'immersive':True}}
+            session.tabs[0].commentary_positions={'RemovedCommentary':{'reference':'John.3.16','index':42,'offset':137,'canonical':True,'immersive':True},
+                                                'OtherCommentary':{'reference':'Gen.1.1','index':3,'offset':25,'prefix':True}}
             store.save(session)
             self.assertEqual(store.load(), session)
             self.assertEqual(stat.S_IMODE(store.path.stat().st_mode), 0o600)
@@ -65,6 +66,7 @@ class SessionTests(unittest.TestCase):
                              ('scroll', 2), ('study_visible', 'false'), ('commentary', '../outside'),
                              ('commentary', False), ('commentary', ''),
                              ('commentary_positions', {'Notes': {'reference':'Gen.1.1','index':1,'offset':2,'canonical':'false'}}),
+                             ('commentary_positions', {'Notes': {'reference':'Gen.1.1','index':1,'offset':2,'prefix':'true'}}),
                              ('commentary_positions', {'Notes': {'reference':'Gen.1.1','index':1,'offset':-1}})]:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
                 tab = {'resource': 'KJV', 'reference': 'Gen.1.1', 'scroll': 0, 'study_visible': False}

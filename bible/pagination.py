@@ -149,6 +149,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         if right<=left:continue
         if span.kind in ('heading','chapter'):
             attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12)]
+        elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
         elif span.kind=='number':
             from .verse_typography import NUMBER_SCALE, number_rise
             if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
@@ -180,7 +181,7 @@ def heading_groups(document):
     """
     groups=[]
     for style in sorted(document.styles,key=lambda s:s.start):
-        if style.kind not in {'heading','chapter'}:continue
+        if style.kind not in {'heading','chapter','editorial'}:continue
         start,end=style.start,style.end
         if groups and not document.text[groups[-1][1]:start].strip():
             start=groups.pop()[0]

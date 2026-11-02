@@ -2,6 +2,61 @@
 from bisect import bisect_left
 from html.parser import HTMLParser
 import re
+from collections import defaultdict
+
+
+class PreverseParts(HTMLParser):
+    """Keep SWORD's preverse region separate from its stripped verse body."""
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.body=[];self.prefix=[];self.region=None;self.hidden=0
+
+    def append(self,text):
+        (self.prefix if self.region else self.body).append(text)
+
+    def start(self,tag,attrs,raw,empty):
+        values=dict(attrs)
+        if not self.hidden and tag=='div':
+            if values.get('subtype')=='x-preverse' and values.get('sid'):self.region=values['sid']
+            if self.region and values.get('eid')==self.region:
+                self.append(raw);self.region=None;return
+        self.append(raw)
+        if not empty and tag in {'script','style','note'}:self.hidden+=1
+
+    def handle_starttag(self,tag,attrs):self.start(tag,attrs,self.get_starttag_text(),False)
+    def handle_startendtag(self,tag,attrs):self.start(tag,attrs,self.get_starttag_text(),True)
+    def handle_endtag(self,tag):
+        self.append('</'+tag+'>')
+        if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1)
+    def handle_data(self,text):self.append(text)
+    def handle_entityref(self,name):self.append('&'+name+';')
+    def handle_charref(self,name):self.append('&#'+name+';')
+
+
+def split_preverse(raw):
+    parser=PreverseParts();parser.feed(raw);parser.close()
+    return ''.join(parser.body),''.join(parser.prefix)
+
+
+def preverse_layout(raw):
+    """Real preverse prose/headings, outside legacy native body offsets."""
+    if len(raw)>2*1024*1024:return '',(),0
+    from .structured_text import SourceParser,checked_segments
+    _,prefix=split_preverse(raw)
+    parser=SourceParser();parser.feed(prefix);parser.close()
+    native=''.join(s.text for s in parser.segments if s.kind=='text')
+    parts=[];styles=[];offset=0;focus=0
+    for segment in checked_segments(parser.segments,native):
+        text=segment.text
+        if segment.kind in ('heading','editorial'):
+            # Same escaped-inline-title handling as InlineOSIS below.
+            from .resource_details import PlainMetadata
+            clean=PlainMetadata();clean.feed(text);text=''.join(clean.parts)
+            if text.strip():
+                styles.append((segment.kind,offset,offset+len(text)));focus=offset
+        styles.extend((kind,offset,offset+len(text)) for kind in segment.styles if kind!='poetry')
+        parts.append(text);offset+=len(text)
+    return ''.join(parts),tuple(styles),focus
 
 
 class InlineOSIS(HTMLParser):
@@ -52,22 +107,47 @@ class InlineOSIS(HTMLParser):
 def format_entry(raw,plain,source_type):
     """Return same-length body, typed ranges and real source headings.
 
-    SWORD OSISPlain inserts stars around hi elements. Validate the complete
-    non-whitespace character sequence, including every generated/literal star,
-    before hiding only verified decorations. Unknown conversions fall back.
+    SWORD OSISPlain inserts stars around hi elements. Validate source characters,
+    literal stars and bounded generated markers before hiding decorations.
+    Unknown conversions fall back to native text.
     """
     if source_type!='OSIS' or len(raw)>2*1024*1024:return plain,(),()
     parser=InlineOSIS()
-    try:parser.feed(raw);parser.close()
+    try:
+        raw,_=split_preverse(raw)
+        parser.feed(raw);parser.close()
     except Exception:return plain,(),()
     expected=''.join(parser.parts)
-    left=[i for i,c in enumerate(expected) if not c.isspace()]
-    right=[i for i,c in enumerate(plain) if not c.isspace()]
+    generated={marker for _,first,_,_,last in parser.emphasis for marker in (first,last)}
+    # Native OSISPlain has one suspension buffer for nested hi elements, so
+    # their generated stars can collect at a different emphasis boundary.
+    # Verify every source character and literal star; permit only the exact
+    # number of generated decorations, at actual source emphasis boundaries.
+    left=[i for i,c in enumerate(expected) if not c.isspace() and c!='*']
+    right=[i for i,c in enumerate(plain) if not c.isspace() and c!='*']
     if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return plain,(),()
-    mapping=dict(zip(left,right));styles=[];display=list(plain)
+    literals=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
+    for index,char in enumerate(expected):
+        if char.isspace():continue
+        if char=='*':
+            if index in generated:boundaries.add(position)
+            else:literals[position].append(index)
+        else:position+=1
+    position=0
+    for index,char in enumerate(plain):
+        if char.isspace():continue
+        if char=='*':actual[position].append(index)
+        else:position+=1
+    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return plain,(),()
+    mapping=dict(zip(left,right));hidden=[]
+    for slot in actual.keys()|literals.keys():
+        authored=literals[slot];native=actual[slot]
+        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return plain,(),()
+        mapping.update(zip(authored,native))
+        hidden.extend(native[len(authored):])
+    left=sorted(mapping);right=[mapping[i] for i in left]
+    styles=[('hidden',i,i+1) for i in hidden];display=list(plain)
     for kind,first,body,end,last in parser.emphasis:
-        for marker in [first,last]:
-            actual=mapping[marker];styles.append(('hidden',actual,actual+1))
         content=right[bisect_left(left,body):bisect_left(left,end)]
         style={'italic':'italic','bold':'bold','super':'number','small-caps':'small-caps'}.get(kind)
         if content and style:styles.append((style,content[0],content[-1]+1))
@@ -96,5 +176,7 @@ def apply(view,styles,preferences,palette):
         elif kind=='bold':tag.props.weight=700
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='number':configure(tag,view,preferences,palette)
+        elif kind=='superscript':configure(tag,view,preferences,palette)
+        elif kind=='editorial':tag.props.scale=.9
         elif kind=='heading':tag.props.weight=700;tag.props.scale=1.12
         buffer.apply_tag(tag,buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(last))

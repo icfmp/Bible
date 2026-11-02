@@ -50,7 +50,7 @@ def render(view, reader, chapter, preferences, document=None):
     view.set_pixels_below_lines(line_spacing(preferences)+4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','number','verse-start','hidden','italic','bold','small-caps','superscript']:
+    for kind in ['body','chapter','heading','editorial','poetry','number','verse-start','hidden','italic','bold','small-caps','superscript']:
         name = 'verse-'+kind if kind != 'verse-start' else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
@@ -62,10 +62,14 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='bold':tag.props.weight=Pango.Weight.BOLD
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
+        elif kind=='editorial':
+            tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
+            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2
+        elif kind=='poetry':tag.props.pixels_below_lines=line_spacing(preferences)
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
-            tag.props.pixels_above_lines=20 if kind=='chapter' else 16
-            tag.props.pixels_below_lines=20 if kind=='chapter' else 12
+            tag.props.pixels_above_lines=12 if kind=='chapter' else 6
+            tag.props.pixels_below_lines=8 if kind=='chapter' else 4
             tag.props.justification=Gtk.Justification.CENTER if kind=='chapter' else Gtk.Justification.LEFT
     buffer.apply_tag(tags['body'],buffer.get_start_iter(),buffer.get_end_iter())
     for style in document.styles:

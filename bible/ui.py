@@ -448,8 +448,8 @@ class Window(Adw.ApplicationWindow):
             else:
                 current=study.anchor()
                 if current:
-                    key,offset=current;doc=source.document(key,self.preferences.value)
-                    anchor=doc.anchor(doc.spans[0].body+offset if offset else 0)
+                    key,offset,*prefix=current;doc=source.document(key,self.preferences.value)
+                    anchor=doc.anchor(offset if prefix and prefix[0] else doc.spans[0].body+offset if offset else getattr(doc,'source_context_start',None) or 0)
         else:
             source=BibleBookPages(tab.reader,self.library.resource(tab.state.resource))
             anchor=Anchor(tab.state.reference)

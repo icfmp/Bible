@@ -90,7 +90,7 @@ class SessionStore:
                             or len(anchor['reference'])>256 or type(anchor.get('index')) is not int
                             or not 0<=anchor['index']<=1000000 or type(anchor.get('offset')) is not int
                             or not 0<=anchor['offset']<=10000000
-                            or any(type(anchor[flag]) is not bool for flag in ('canonical','immersive') if flag in anchor)):raise ValueError('Invalid commentary anchor')
+                            or any(type(anchor[flag]) is not bool for flag in ('canonical','immersive','prefix') if flag in anchor)):raise ValueError('Invalid commentary anchor')
                 palette=item.get('reading_palette',{})
                 allowed={'mode':('system','day','night'),'day_palette':('white','paper'),'night_palette':('dark','black')}
                 if not isinstance(palette,dict) or (palette and (set(palette)!=set(allowed) or any(palette[k] not in v for k,v in allowed.items()))):

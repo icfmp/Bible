@@ -17,12 +17,19 @@ class SourceParser(HTMLParser):
         self.segments = []
         self.hidden = 0
         self.heading = 0
+        self.heading_kinds = []
         self.divisions = []
         self.inline = []
 
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
-        if attrs.get('eID'):return
+        # HTMLParser normalizes attribute names, including OSIS sID/eID.
+        # A closing milestone is a boundary, never a new enclosing block.
+        if attrs.get('eid'):
+            if tag=='l':self.segments.append(Segment('\n','poetry',('poetry',)))
+            elif tag=='lg' or tag=='div' and attrs.get('type') in {'paragraph','x-p'}:
+                self.segments.append(Segment('\n\n','break'))
+            return
         if tag in {'script','style','note'}:self.hidden += 1
         if self.hidden:return
         styles=[]
@@ -34,14 +41,15 @@ class SourceParser(HTMLParser):
         if tag in ('hi','transchange','divinename'):self.inline.append((tag,tuple(styles)))
         if tag in {'title','h1','h2','h3','h4'}:
             self.heading += 1
+            self.heading_kinds.append('editorial' if tag=='title' and attrs.get('type')=='parallel' else 'heading')
         if tag == 'div':
             paragraph = attrs.get('type') in {'paragraph', 'x-p'}
-            self.divisions.append(paragraph)
+            if not attrs.get('sid'):self.divisions.append(paragraph)
         else:
             paragraph = tag in {'p', 'lg'}
         if paragraph or (tag=='milestone' and attrs.get('type') in {'x-p','paragraph'}):
             self.segments.append(Segment('\n\n','break'))
-        elif tag in {'l','lb','br'}:self.segments.append(Segment('\n','poetry'))
+        elif tag in {'l','lb','br'}:self.segments.append(Segment('\n','poetry',('poetry',)))
 
     def handle_endtag(self,tag):
         if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1);return
@@ -51,6 +59,7 @@ class SourceParser(HTMLParser):
                 if self.inline[index][0]==tag:del self.inline[index:];break
         if tag in {'title','h1','h2','h3','h4'}:
             self.heading=max(0,self.heading-1);self.segments.append(Segment('\n','break'))
+            if self.heading_kinds:self.heading_kinds.pop()
         paragraph = self.divisions.pop() if tag == 'div' and self.divisions else tag in {'p','lg'}
         if paragraph:self.segments.append(Segment('\n\n','break'))
 
@@ -58,11 +67,11 @@ class SourceParser(HTMLParser):
         # Empty ThML p and OSIS start/end milestones each mark a boundary.
         # Do not synthesize a second end event, or retain an empty title/note.
         self.handle_starttag(tag,attrs)
-        if tag in {'note','script','style','title','h1','h2','h3','h4','div'}:
+        if not dict(attrs).get('sid') and not dict(attrs).get('eid') and tag in {'note','script','style','title','h1','h2','h3','h4','div'}:
             self.handle_endtag(tag)
 
     def handle_data(self,text):
-        if not self.hidden:self.segments.append(Segment(text,'heading' if self.heading else 'text',
+        if not self.hidden:self.segments.append(Segment(text,self.heading_kinds[-1] if self.heading_kinds else 'text',
             tuple(dict.fromkeys(style for _,styles in self.inline for style in styles))))
 
 
@@ -86,11 +95,31 @@ def checked_segments(segments,plain):
         # Some StripText filters retain editorial titles. Do not guess which
         # words belong to verses; use the original plain output in that case.
         return (Segment(plain),)
-    result = []
+    result = [];pending=[]
+    def flush(next_segment=None):
+        if not pending:return next_segment
+        boundaries=[s for s in pending if s.kind in {'break','poetry'}]
+        if boundaries:
+            # Formatting whitespace between paired milestones is not an extra
+            # paragraph. Retain the strongest authored boundary exactly once.
+            kind='break' if any(s.kind=='break' for s in boundaries) else 'poetry'
+            if result:
+                previous=result[-1]
+                result[-1]=Segment(previous.text.rstrip(),previous.kind,previous.styles)
+            result.append(Segment('\n\n' if kind=='break' else '\n',kind,('poetry',) if kind=='poetry' else ()))
+            if next_segment is not None:next_segment=Segment(next_segment.text.lstrip(),next_segment.kind,next_segment.styles)
+        else:
+            for item in pending:
+                if result and (result[-1].kind,result[-1].styles)==(item.kind,item.styles):
+                    previous=result.pop();item=Segment(previous.text+item.text,item.kind,item.styles)
+                result.append(item)
+        pending.clear()
+        return next_segment
     for segment in segments:
-        if segment.kind in {'break','poetry'} and result and result[-1].kind in {'break','poetry'}:
-            previous = result.pop()
-            segment = Segment('\n\n' if 'break' in {previous.kind,segment.kind} else '\n',
-                              'break' if 'break' in {previous.kind,segment.kind} else 'poetry')
+        if segment.kind in {'break','poetry'} or segment.text.isspace():pending.append(segment);continue
+        segment=flush(segment)
+        if result and (result[-1].kind,result[-1].styles)==(segment.kind,segment.styles):
+            previous=result.pop();segment=Segment(previous.text+segment.text,segment.kind,segment.styles)
         result.append(segment)
-    return tuple(result) or (Segment(plain),)
+    flush()
+    return tuple(s for s in result if s.text) or (Segment(plain),)
