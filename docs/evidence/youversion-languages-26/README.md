@@ -1,3 +1,5 @@
+Current delivery: see the [published signed-alpha evidence and limits](PUBLICATION.md). The checkpoint below is retained as historical evidence.
+
 # Issue 26: YouVersion catalogue by language
 
 Status: implemented on the feature branch, packaging and signed delivery pending. This expands the earlier [seven-edition pilot](../youversion-26/README.md) following the client's clarification. Issue #26 stays OPEN; numbered release #87 remains paused.

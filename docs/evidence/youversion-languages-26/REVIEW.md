@@ -1,3 +1,5 @@
+Current delivery: see the [published signed-alpha evidence and limits](PUBLICATION.md). The checkpoint below is retained as historical evidence.
+
 # Final feature-source review
 
 Feature source: `2335ac3216ea045499e92309550835657689a60e`, PR #144.
