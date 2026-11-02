@@ -24,3 +24,8 @@ Local GTK 4.18.6/Xvfb captures and the installed Flatpak validation will be link
 in the final batch delivery. Local source execution alone is not installed
 Flatpak or client GNOME acceptance. Issue 118 stays open; numbered release 87
 remains paused.
+
+Header breakpoints follow GNOME text scaling through native SP units and adjust
+on an explicit custom GTK font-size change. They retain the same native fallback
+instead of wrapping a long translation into an excessively tall wide-window
+header. This invalidation is event-driven and adds no idle polling.

@@ -43,3 +43,9 @@ automatically installed for application users.
 
 Local source tests and native captures are distinct from installed candidate and
 client desktop acceptance. Both issues remain open; release 87 remains paused.
+
+The enlarged-UI checks also reproduced a shared reference-preview failure:
+GTK closed an oversized native popup immediately after showing it, including in
+the References panel. A native outer scroller now lets GTK constrain the complete
+preview while keeping its existing text and navigation actions accessible. This
+is separate from the delayed-search race and preserves popup ownership/targets.

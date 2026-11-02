@@ -195,8 +195,9 @@ class Window(Adw.ApplicationWindow):
                 header.set_title_widget(self.header_title)
             self.compact_title.set_visible(False)
             self.queue_controls()
+        self._header_breakpoints=[];self._header_font_size=None
         for width,tiny in [(760,False),(420,True)]:
-            compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}px'))
+            compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}sp'))
             compact_tools.add_setter(self.reader_controls,'visible',False)
             compact_tools.add_setter(self.reader_overflow,'visible',True)
             compact_tools.add_setter(self.header_title,'orientation',Gtk.Orientation.VERTICAL)
@@ -204,6 +205,7 @@ class Window(Adw.ApplicationWindow):
             compact_tools.connect('apply',compact_applied,tiny)
             compact_tools.connect('unapply',compact_removed)
             self.header_bin.add_breakpoint(compact_tools)
+            self._header_breakpoints.append((compact_tools,width))
         self._controls_tick=0;self._controls_frames=0
         self.primary_version.caption.connect('notify::label',self.queue_controls)
         self.compared_version.caption.connect('notify::label',self.queue_controls)
@@ -386,9 +388,18 @@ class Window(Adw.ApplicationWindow):
         if hasattr(self,'study_divider'):self.study_divider.cancel_adapt()
         if hasattr(self,'study'):self.study.cancel_adapt()
 
+    def refresh_header_conditions(self):
+        # SP follows GNOME text scaling; a custom UI font size is independent.
+        settings=Gtk.Settings.get_default()
+        size=Pango.FontDescription.from_string(settings.props.gtk_font_name).get_size()/Pango.SCALE
+        if size==self._header_font_size:return
+        self._header_font_size=size;ratio=max(1,size/11)
+        for breakpoint,width in self._header_breakpoints:
+            breakpoint.set_condition(Adw.BreakpointCondition.parse(f'max-width: {width*ratio:g}sp'))
+
     def queue_layout(self,*_):
         if not self.get_mapped() or self.closed:return
-        self.queue_controls()
+        self.refresh_header_conditions();self.queue_controls()
         if hasattr(self,'study_divider'):self.study_divider.queue_adapt()
         if hasattr(self,'study'):self.study.queue_adapt()
         if hasattr(self,'view'):

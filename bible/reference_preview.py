@@ -125,7 +125,14 @@ class ReferencePreview:
         if provenance:
             attribution=Gtk.Label(label=provenance,xalign=0,wrap=True,max_width_chars=36)
             attribution.add_css_class('caption');attribution.set_selectable(True);box.append(attribution)
-        popover.set_child(box);popover.set_parent(anchor)
+        # Let GTK constrain the entire preview when large UI text leaves too
+        # little space above/below a result. A fixed minimum for all controls
+        # could otherwise make the native popup close immediately on allocation.
+        content=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_width=True,min_content_width=240,
+            max_content_width=min(440,max(240,root.get_width()-48)),
+            propagate_natural_height=True,max_content_height=min(540,max(160,root.get_height()-96)))
+        content.set_child(box);popover.set_child(content);popover.set_parent(anchor)
         if pointing_to is not None:popover.set_pointing_to(pointing_to)
         popover.popup()
         self.body,self.status,self.open_here,self.open_new=body,status,here,new
