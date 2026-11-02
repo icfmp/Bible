@@ -1,0 +1,72 @@
+[
+  {
+    "resource": "MHC",
+    "reference": "Gen.1.1",
+    "raw_sha256": "d1dc460f38cc6c920cad9db0c5b843023d4c194aca24b18c2c7ec97a6e38bb37",
+    "source_characters_preserved": true,
+    "literal_stars_preserved": 0,
+    "generated_markers_hidden": 54,
+    "body_length_unchanged": true,
+    "styles": 81,
+    "prefix_chars": 38622,
+    "prefix_styles": 121,
+    "format_seconds": 0.007140579997212626,
+    "document_seconds": 0.018742533997283317
+  },
+  {
+    "resource": "MHC",
+    "reference": "Gen.2.4",
+    "raw_sha256": "03cf0b54e6f3f91105990c2312be7abe597f0acd1617a69b01375db1a215d730",
+    "source_characters_preserved": true,
+    "literal_stars_preserved": 0,
+    "generated_markers_hidden": 68,
+    "body_length_unchanged": true,
+    "styles": 102,
+    "prefix_chars": 0,
+    "prefix_styles": 0,
+    "format_seconds": 0.0035764360000030138,
+    "document_seconds": 0.00458943699777592
+  },
+  {
+    "resource": "MHC",
+    "reference": "Ps.13.1",
+    "raw_sha256": "4ff20b85ec1226f0d2a386cc86617cd347d4403060af7ade7da52248b92fd902",
+    "source_characters_preserved": true,
+    "literal_stars_preserved": 0,
+    "generated_markers_hidden": 96,
+    "body_length_unchanged": true,
+    "styles": 144,
+    "prefix_chars": 0,
+    "prefix_styles": 0,
+    "format_seconds": 0.004328902999986894,
+    "document_seconds": 0.005557372001931071
+  },
+  {
+    "resource": "FreAug",
+    "reference": "Ps.13.1",
+    "raw_sha256": "2bde276ee29454723917accd6d8f5491df5963ce8e241a73430fd55578152fb2",
+    "source_characters_preserved": true,
+    "literal_stars_preserved": 0,
+    "generated_markers_hidden": 12,
+    "body_length_unchanged": true,
+    "styles": 18,
+    "prefix_chars": 235,
+    "prefix_styles": 3,
+    "format_seconds": 0.0020075450011063367,
+    "document_seconds": 0.003113934006250929
+  },
+  {
+    "resource": "FreChry",
+    "reference": "Ps.13.1",
+    "raw_sha256": "06acb47ca370ecd32be31a9fe2b8f2e2a71008e9820a0d5050cd7d8a40c9e6b5",
+    "source_characters_preserved": true,
+    "literal_stars_preserved": 3,
+    "generated_markers_hidden": 16,
+    "body_length_unchanged": true,
+    "styles": 24,
+    "prefix_chars": 0,
+    "prefix_styles": 0,
+    "format_seconds": 0.006238004003535025,
+    "document_seconds": 0.0067346249998081475
+  }
+]

@@ -28,7 +28,7 @@ def main():
         assert tab.navigate('FreSegond1910','John.3.16')
         assert window.preferences.value.line_spacing=='very-airy'
         capture('very-airy-default')
-        assert window.reader_controls.get_parent() is tab.reading_overlay
+        assert window.reader_controls.get_parent() is window.header_tools
         window.appearance.update('line_spacing','airy');capture('airy')
         window.appearance.update('line_spacing','very-airy');capture('very-airy')
         for palette,mode,attribute in [('white','day','day_palette'),('paper','day','day_palette'),

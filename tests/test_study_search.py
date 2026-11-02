@@ -64,5 +64,48 @@ class StudySearchTests(unittest.TestCase):
         self.assertFalse(preview.open_here.get_sensitive());self.assertFalse(preview.open_new.get_sensitive())
         self.assertEqual((self.window.active_tab.state.reference,self.window.active_tab.state.history),before)
 
+    def test_delayed_text_notification_keeps_explicit_search_results(self):
+        panel=self.navigation.text_search
+        panel.entry.set_text('SENTINEL');panel.run_text()
+        spin(lambda:not panel.pending,duration=.4)
+        self.assertEqual([r.start for r in panel.rows],['Gen.1.1','Gen.1.2'])
+        panel.entry.set_text('different query');spin(duration=.3)
+        self.assertEqual(panel.rows,[])
+
+    def test_delayed_topic_notification_keeps_selected_results_and_preview(self):
+        from unittest.mock import patch
+        from tests.test_topic_data import archive
+        from bible.topic_data import TopicData
+        from bible.topic_vocabulary import suggestions
+        from gi.repository import Gtk
+        path=self.root/'topics.zip';digest=archive(path)
+        with patch('bible.topic_data.ARCHIVE_SHA256',digest):TopicData(self.root/'study-data').install_archive(path)
+        self.window.choose_passage();self.navigation.modes.set_visible_child_name('topics')
+        panel=self.navigation.topic_search;panel.entry.set_text('love');panel.changed();panel.choose(suggestions('love')[0])
+        spin(lambda:not panel.pending,duration=.04)
+        def walk(widget):
+            yield widget
+            child=widget.get_first_child()
+            while child:yield from walk(child);child=child.get_next_sibling()
+        button=next(b for b in walk(panel.results) if isinstance(b,Gtk.Button) and hasattr(b,'_result'))
+        button.emit('clicked');spin(duration=.4)
+        self.assertIsNotNone(self.window.reference_preview.popover)
+        self.assertEqual(self.window.reference_preview.target,('Test','John.3.16'))
+        self.assertEqual(self.window.active_tab.state.reference,'John.1.1')
+        panel.entry.set_text('fear');spin(duration=.3)
+        self.assertIsNone(self.window.reference_preview.popover);self.assertEqual(panel.rows,[])
+
+    def test_paused_query_keeps_draft_without_leaving_a_stale_searching_state(self):
+        from bible.i18n import tr
+        panel=self.navigation.text_search;started=threading.Event();release=threading.Event()
+        self.addCleanup(release.set)
+        def work():started.set();release.wait(3);return [Relationship('John.3.16','John.3.16',0,1)],1
+        panel.entry.set_text('retained draft');panel.launch(work,'query','KJV')
+        self.assertTrue(started.wait(2));panel.pause()
+        self.assertFalse(panel.pending);self.assertEqual(panel.entry.get_text(),'retained draft')
+        self.assertEqual(panel.status.get_text(),tr('Enter a phrase and press Enter.'))
+        release.set();spin(duration=.2)
+        self.assertEqual(panel.rows,[]);self.assertIsNone(self.window.reference_preview.popover)
+
 
 if __name__=='__main__':unittest.main()

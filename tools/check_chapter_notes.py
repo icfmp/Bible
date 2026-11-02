@@ -20,8 +20,16 @@ def main():
             spin(lambda:not tab._restoring_scroll and bool(p.cards) and p.cards[-1].get_height()>0)
             cards=list(p.cards);history=list(tab.state.history);native.activate(w)
             p.resume.grab_focus();focus=w.get_focus();before=tab.state.reference
+            def wheel_state(phase):
+                a=tab.scroll.get_vadjustment()
+                return dict(phase=phase,reference=tab.state.reference,visible=tab.visible_reference(),
+                    scroll=[a.get_value(),a.get_upper(),a.get_page_size()],
+                    view=[tab.text.get_width(),tab.text.get_height()],restoring=tab._restoring_scroll,
+                    following=p.following)
+            print(json.dumps(wheel_state('before-wheel')),flush=True)
             native.wheel(tab.text,14)
-            spin(lambda:tab.state.reference==tab.visible_reference() and tab.state.reference!=before)
+            try:spin(lambda:tab.state.reference==tab.visible_reference() and tab.state.reference!=before)
+            finally:print(json.dumps(wheel_state('after-wheel')),flush=True)
             assert p.cards==cards and w.get_focus() is focus
             first=tab.state.reference;native.wheel(tab.text,-8)
             spin(lambda:tab.state.reference==tab.visible_reference() and tab.state.reference!=first)

@@ -10,7 +10,11 @@ from gi.repository import Shumate
 if (Shumate.MAJOR_VERSION,Shumate.MINOR_VERSION)<(1,4):
     raise ImportError('The map requires libshumate 1.4 or later; the Flatpak bundles 1.5.5.')
 
-TILE_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+# Raster labels are authored by the provider: French and available international
+# Latin names. English uses that readable fallback; there is no bitmap translation.
+TILE_URL='https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
+TILE_SOURCE='OpenStreetMap France'
+TILE_TERMS='https://www.openstreetmap.fr/fonds-de-carte/'
 COPYRIGHT_URL='https://www.openstreetmap.org/copyright'
 USER_AGENT='Bible/0.1-alpha (+https://github.com/icfmp/Bible)'
 
@@ -36,7 +40,7 @@ class PlaceMap(Gtk.Box):
         self.status.add_css_class('caption');self.status.add_css_class('dim-label')
         self.retry=Gtk.Button(label=tr('Retry'),halign=Gtk.Align.START,visible=False)
         self.retry.connect('clicked',lambda *_:self.start())
-        self.credit=Gtk.LinkButton(uri=COPYRIGHT_URL,label='© OpenStreetMap contributors',halign=Gtk.Align.START)
+        self.credit=Gtk.LinkButton(uri=TILE_TERMS,label='OpenStreetMap France',halign=Gtk.Align.START)
         self.credit.add_css_class('caption')
         self.append(self.credit);self.append(self.status);self.append(self.retry)
         self.connect('map',lambda *_:self.start() if self.canvas is None else None)
@@ -48,9 +52,9 @@ class PlaceMap(Gtk.Box):
         Shumate.set_user_agent(USER_AGENT)
         self.canvas=Shumate.SimpleMap(hexpand=True,height_request=260)
         self.canvas.set_show_zoom_buttons(True)
-        self.canvas.get_license().set_visible(False) # Replaced by the visible linked credit immediately below.
+        self.canvas.get_license().set_visible(True) # Required visible corner credit; source link is below.
         self.canvas.update_property([Gtk.AccessibleProperty.LABEL],[tr('Modern map with proposed historical locations')])
-        source=Shumate.RasterRenderer.new_full('bible-osm-standard','OpenStreetMap',
+        source=Shumate.RasterRenderer.new_full('bible-osm-fr-latin',TILE_SOURCE,
             '© OpenStreetMap contributors',COPYRIGHT_URL,2,18,256,Shumate.MapProjection.MERCATOR,
             Shumate.TileDownloader.new(TILE_URL))
         viewport=self.canvas.get_viewport()

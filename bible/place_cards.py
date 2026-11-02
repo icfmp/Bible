@@ -4,6 +4,7 @@ from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr
 from .place_data import PlaceData,SOURCE_URL,LICENSE_URL,ODBL_URL
 from .place_names import place_name
+from .resource_details import plain
 from .reference_targets import source_references,local_excerpt
 from .reference_preview import passage_title
 from .reference_resolution import VersificationMismatch
@@ -28,7 +29,7 @@ class PlaceCards(Adw.Window):
         self.context=context or ((tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None)
         self.map_widget=None
         self.connect('close-request',self.on_closed)
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.layout=box
         header=Adw.HeaderBar(show_end_title_buttons=False)
         self.title=Gtk.Label(label=tr('Places in this passage'),ellipsize=Pango.EllipsizeMode.END,width_chars=1)
         self.title.add_css_class('heading');header.set_title_widget(self.title)
@@ -36,7 +37,7 @@ class PlaceCards(Adw.Window):
         self.back.connect('clicked',lambda *_:self.show_list());header.pack_start(self.back)
         close=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         close.add_css_class('flat');close.connect('clicked',lambda *_:self.close());header.pack_end(close)
-        box.append(header)
+        box.append(header);self.header=header
         context=Gtk.Label(xalign=0,wrap=True,margin_start=16,margin_end=16,margin_bottom=8)
         if self.context:
             resource,reader,start,end=self.context
@@ -80,6 +81,11 @@ class PlaceCards(Adw.Window):
         self.stop_map()
         self.generation+=1;self.pages.set_visible_child_name('list')
         self.back.set_visible(False);self.title.set_text(tr('Places in this passage'));self.set_title(tr('Places in this passage'))
+        parent=self.passage_context.get_parent()
+        if parent is not self.layout:
+            if parent:parent.remove(self.passage_context)
+            self.layout.insert_child_after(self.passage_context,self.header)
+        self.passage_context.set_margin_start(16);self.passage_context.set_margin_end(16)
 
     def message(self,value,download=False):
         self.status.set_text(value);self.status.set_tooltip_text(None);self.download.set_visible(download)
@@ -137,15 +143,22 @@ class PlaceCards(Adw.Window):
         self.pages.set_visible_child_name('card');self.back.set_visible(True);self.title.set_text(place_name(place['name']))
         self.set_title(place_name(place['name']))
         card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
-        card.append(self.label(tr(STATUS[place['status']])))
-        map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         located=[c for c in place['candidates'] if c['longitude'] is not None]
-        if located:
-            modern=self.label(tr('Proposed modern locations')+': '+ '; '.join(dict.fromkeys(place_name(c['name']) for c in located)))
-            card.insert_child_after(modern,card.get_first_child())
-            if len(located)==1:
-                note=self.location_note(located[0])
-                if note:map_box.append(self.label(note,caption=True))
+        # The supplied description can name a region while its representative
+        # coordinate belongs to a modern site. Do not equate those two entities.
+        descriptions=list(dict.fromkeys(place_name(plain(c.get('description') or c['name'])) for c in located))
+        self.location_description=self.label(descriptions[0] if len(located)==1 else
+            tr('Several proposed locations') if len(located)>1 else tr('Unknown location'))
+        self.location_description.add_css_class('heading');card.append(self.location_description)
+        if place['status']!='known' and (located or place['status']!='unknown'):card.append(self.label(tr(STATUS[place['status']]),caption=True))
+        if len(located)==1:
+            note=self.location_note(located[0])
+            if note:card.append(self.label(note,caption=True))
+        parent=self.passage_context.get_parent()
+        if parent:parent.remove(self.passage_context)
+        self.passage_context.set_margin_start(0);self.passage_context.set_margin_end(0)
+        self.passage_context.add_css_class('caption');card.append(self.passage_context)
+        map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         if located:
             try:
                 from .place_map import PlaceMap
@@ -187,8 +200,8 @@ class PlaceCards(Adw.Window):
 
     def location_note(self,candidate):
         if candidate.get('role') in ('center','representative point') or candidate.get('radius_meters'):
-            return tr('Approximate area; this point does not identify an exact site.')
-        if candidate.get('role')=='settlement':return tr('The proposed site is somewhere within this modern settlement.')
+            return tr('Approximate location')
+        if candidate.get('role')=='settlement':return tr('Within the proposed modern settlement')
         return tr({'near':'Near this location','along':'Along this geographical feature','on':'On this geographical feature',
                    '<':'Within this area','>':'Around this location'}.get(candidate.get('modifier'),''))
 

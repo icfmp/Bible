@@ -45,7 +45,7 @@ class ReadingTab(Gtk.Box):
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
         from .scroll_motion import ScrollMotion
         self.scroll_motion=ScrollMotion(self.scroll)
-        self.scroll.set_margin_top(56)  # Fixed clearance for the reading overlay controls.
+        self.scroll.set_margin_top(0)
         self.text = ContextTextView(editable=False, cursor_visible=False,
                                  wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                  left_margin=56, right_margin=56,
@@ -77,14 +77,12 @@ class ReadingTab(Gtk.Box):
                                              'win.next-chapter', Gtk.Align.END)
         self.reading_layout=Gtk.Box(spacing=16,vexpand=True,homogeneous=True)
         self.primary_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,vexpand=True,hexpand=True)
-        self.primary_heading=Gtk.Label(wrap=True,yalign=0,margin_top=12,margin_start=12,margin_end=12,visible=False)
-        self.primary_heading.add_css_class('heading')
-        self.primary_box.append(self.primary_heading);self.primary_box.append(self.reading_overlay)
+        self.primary_controls=Gtk.Box(spacing=6,margin_top=8,margin_start=12,margin_end=12,visible=False)
+        self.primary_box.append(self.primary_controls);self.primary_box.append(self.reading_overlay)
         self.reading_layout.append(self.primary_box)
         self.comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False,vexpand=True,hexpand=True)
-        self.comparison_heading=Gtk.Label(wrap=True,yalign=0,margin_top=12,margin_start=12,margin_end=12)
-        self.comparison_heading.add_css_class('heading')
-        self.comparison_box.append(self.comparison_heading)
+        self.comparison_controls=Gtk.Box(spacing=6,margin_top=8,margin_start=12,margin_end=12)
+        self.comparison_box.append(self.comparison_controls)
         self.comparison_status=Gtk.Label(wrap=True,margin_start=12,margin_end=12,visible=False)
         self.comparison_box.append(self.comparison_status)
         self.comparison_text=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
@@ -93,13 +91,10 @@ class ReadingTab(Gtk.Box):
         self.comparison_text._marker_context=self.inline_markers
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
-        self.comparison_scroll.set_margin_top(56)
+        self.comparison_scroll.set_margin_top(0)
         self.comparison_overlay.set_child(self.comparison_scroll)
-        self.comparison_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,margin_top=12,margin_end=12)
-        self.comparison_overlay.add_overlay(self.comparison_controls)
-        headings=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.BOTH)
-        headings.add_widget(self.primary_heading);headings.add_widget(self.comparison_heading)
-        self.heading_size_group=headings
+        self.selector_size_group=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        self.selector_size_group.add_widget(self.primary_controls);self.selector_size_group.add_widget(self.comparison_controls)
         self.comparison_box.append(self.comparison_overlay)
         self.reading_layout.append(self.comparison_box)
         self.comparison_horizontal=Gtk.ScrolledWindow(vexpand=True,hexpand=True,
@@ -144,18 +139,23 @@ class ReadingTab(Gtk.Box):
         self.reading_overlay.add_overlay(button)
         return button
 
-    def passage_title(self):
+    def passage_title(self,chapter_only=False):
         if self.reader:
             try:
                 key = self.reader.key(self.state.reference)
                 name = display_name(key.getOSISBookName(), key.getBookName(), LANGUAGE)
-                return f'{name} {key.getChapter()}:{key.getVerse()}'
+                return f'{name} {key.getChapter()}' + ('' if chapter_only else f':{key.getVerse()}')
             except ValueError:
                 pass
+        if chapter_only and self.state.resource:
+            import re
+            match=re.fullmatch(r'([1-5]?[A-Za-z][A-Za-z0-9]*)\.(\d+)(?:\.\d+)?',self.state.reference)
+            if match:return display_name(match[1],match[1],LANGUAGE)+' '+match[2]
+            return tr('Choose a passage')
         return self.state.reference if self.state.resource else tr('Choose a passage')
 
     def title(self):
-        return f'{self.passage_title()} — {self.reader.short_name if self.reader else module_name(self.state.resource)}' if self.state.resource else tr('New tab')
+        return self.passage_title(chapter_only=True) if self.state.resource else tr('New tab')
 
     def navigate(self, resource, reference):
         try:
@@ -312,16 +312,13 @@ class ReadingTab(Gtk.Box):
             self._appearance_anchor = self.position_anchor(iterator.get_offset())
             self._jump_reference = None; self.schedule_scroll_restore()
         self.comparison_box.set_visible(bool(name))
-        self.primary_heading.set_visible(bool(name))
+        self.primary_controls.set_visible(bool(name))
         self.comparison_horizontal.set_policy(Gtk.PolicyType.AUTOMATIC if name else Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
         self.reading_layout.set_size_request(760 if name else -1,-1)
         if not name:
+            self.comparison_reference=None;self.comparison_end_reference=None
             self.comparison_rows.leave()
             return
-        try:
-            primary=self.library.resource(self.state.resource)
-            self.primary_heading.set_text(primary.description+' — '+primary.source+' · '+self.state.reference if self.reader else '')
-        except ValueError:self.primary_heading.set_text('')
         self.comparison_status.set_text('');self.comparison_status.set_visible(False)
         self._comparison_layout_error=None
         try:
@@ -345,8 +342,7 @@ class ReadingTab(Gtk.Box):
                 reference = reference or reader.first_reference()
                 end = reference
             chapter = reader.chapter(reference)
-            self._comparison_heading_base = resource.description+' — '+resource.source+' · '+reference+(
-                '–'+end if end != reference else '')
+            self.comparison_reference=reference;self.comparison_end_reference=end
             self.set_comparison_alignment(alignment_error)
             signature = (name, chapter.reference, tuple(vars(self.preferences).items()))
             rebuild = signature != getattr(self, '_comparison_signature', None)
@@ -382,8 +378,8 @@ class ReadingTab(Gtk.Box):
             self.comparison_text.get_buffer().set_text('')
             self._comparison_reader = None; self._comparison_name = None
             self._comparison_signature = None; self._comparison_offsets = {}
+            self.comparison_reference=None;self.comparison_end_reference=None
             self._comparison_document = None; self._comparison_ranges = {}; self._comparison_markers = {}
-            self.comparison_heading.set_text('')
             self.comparison_status.set_text(str(error));self.comparison_status.set_visible(True)
 
     def set_comparison_alignment(self, error):
@@ -392,8 +388,6 @@ class ReadingTab(Gtk.Box):
         self.comparison_status.set_visible(error is not None)
         self.comparison_status.set_text((tr('Automatic following unavailable. Reading independently.')+' '+str(error))
                                         if error is not None else '')
-        heading = getattr(self, '_comparison_heading_base', '')
-        self.comparison_heading.set_text(heading+(' · '+tr('Independent reading') if error is not None else ''))
 
     def comparison_visible_reference(self):
         offsets = getattr(self, '_comparison_offsets', {})

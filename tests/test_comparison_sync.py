@@ -22,7 +22,7 @@ class ComparisonTests(unittest.TestCase):
                 spin(lambda:not tab._restoring_scroll)
                 self.assertTrue(tab.comparison_status.get_text())
                 self.assertIn('TARGET SOURCE TEXT',tab.comparison_text.get_buffer().props.text)
-                self.assertIn(tr('Independent reading'),tab.comparison_heading.get_text())
+                self.assertIn(tr('Automatic following unavailable. Reading independently.'),tab.comparison_status.get_text())
                 before=tab.state.reference;history=list(tab.state.history)
                 for side in ('primary','comparison'):
                     tab.comparison_sync.intent(side);tab.comparison_sync.synchronize()
@@ -49,11 +49,11 @@ class ComparisonTests(unittest.TestCase):
                 tab=window.active_tab;tab.navigate('Primary','Ps.3.2')
                 tab.state.comparison='Target';window.sync_comparison()
                 spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
-                self.assertTrue(tab.comparison_heading.get_text().endswith('Ps.3.2'))
+                self.assertEqual(tab.comparison_reference,'Ps.3.2')
                 self.assertTrue(tab.navigate('Shifted','Ps.3.2'))
                 spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
                 self.assertFalse(tab.comparison_status.get_text())
-                self.assertTrue(tab.comparison_heading.get_text().endswith('Ps.3.1'))
+                self.assertEqual(tab.comparison_reference,'Ps.3.1')
             finally:window.close()
 
     def test_shared_render_and_reference_follow_without_history(self):

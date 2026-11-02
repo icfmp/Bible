@@ -4,6 +4,21 @@ from .i18n import tr
 from .providers import module_name
 
 
+def fit_wrapped_button(button,text):
+    """MenuButton is constant-size: request its native wrapped content height."""
+    if not button.get_mapped():return
+    content=button.get_child()
+    if not content or content.get_width()<=0:return
+    stamp=(button.get_width(),content.get_width(),text,content.get_pango_context().get_serial())
+    if stamp==getattr(button,'_wrapped_height_stamp',None):return
+    button._wrapped_height_stamp=stamp
+    button.props.height_request=-1
+    base=button.measure(Gtk.Orientation.VERTICAL,-1)[1]
+    natural=content.measure(Gtk.Orientation.VERTICAL,-1)[1]
+    wrapped=content.measure(Gtk.Orientation.VERTICAL,content.get_width())[1]
+    button.props.height_request=base+max(0,wrapped-natural)
+
+
 def bounded_choices(dropdown):
     """Keep long installed resource names usable inside constrained native popups."""
     def factory(popup):
@@ -49,9 +64,11 @@ class DirectChoices(Gtk.ScrolledWindow):
 class VersionChooser(Gtk.MenuButton):
     def __init__(self, owner, comparison=False):
         super().__init__(tooltip_text=tr('Version'))
+        self.set_can_shrink(True)
         self.owner=owner;self.comparison=comparison;self._syncing=False;self.names=[]
         self.add_css_class('version-pill')
-        self.caption=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,max_width_chars=16,width_chars=1)
+        self.caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=24,width_chars=1)
+        self.caption.set_hexpand(True)
         row=Gtk.Box(spacing=4);row.append(self.caption);row.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
         self.set_child(row)
         self.popover=Gtk.Popover(autohide=False)
@@ -84,11 +101,11 @@ class VersionChooser(Gtk.MenuButton):
                 try:
                     resource=self.owner.library.resource(name)
                     labels.append(resource.description+' — '+resource.source)
-                    captions.append(resource.description.split(' with ')[0])
+                    captions.append(resource.description)
                 except (ValueError,OSError):
-                    labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(module_name(name))
+                    labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(tr('Missing translation'))
             else:
-                labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(module_name(name))
+                labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(tr('Missing translation'))
         self._syncing=True
         if names!=self.names or labels!=getattr(self,'_labels',None):
             self.names=names;self._labels=labels;self.choices.set_model(Gtk.StringList.new(labels))

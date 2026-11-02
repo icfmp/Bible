@@ -12,14 +12,18 @@ MAPPED_SYSTEMS = frozenset({'KJV', 'KJVA', 'Segond', 'DarbyFr', 'Calvin',
 
 @dataclass(frozen=True)
 class ResolvedPassage:
-    start: str
-    end: str
+    start: str | None
+    end: str | None
+    introductions: tuple[str, ...] = ()
 
 
-def resolve(reference, source_system, target_reader, require_entry=True):
+def resolve(reference, source_system, target_reader, require_entry=True, *, include_introductions=False):
+    import re
     import Sword
     from .book_names import canonical_input
     reference=canonical_input(reference)
+    if not re.fullmatch(r'(?:[1-5]\s*)?[A-Za-z][A-Za-z0-9]*(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?',reference):
+        raise ValueError(f'Invalid source reference: {reference}')
     target_system = target_reader.versification
     source = Sword.VerseKey()
     source.setVersificationSystem(source_system)
@@ -55,6 +59,17 @@ def resolve(reference, source_system, target_reader, require_entry=True):
             if not mapped:
                 raise VersificationMismatch(f'No verified alignment: {source_system} {reference} / {target_system}')
             references.extend(mapped)
+        introductions=()
+        if include_introductions:
+            contexts=[];verses=[]
+            for ref in references:
+                if ref.endswith('.0'):
+                    introduction_key(ref,target_reader)  # Validate a real native context, never clamp it.
+                    contexts.append(ref)
+                else:verses.append(ref)
+            introductions=tuple(dict.fromkeys(contexts));references=verses
+            if not references:
+                return ResolvedPassage(None,None,introductions)
         try:
             ordered = sorted(set(references), key=lambda ref: target_reader.key(ref).getIndex())
             if _span(ordered[0], ordered[-1], target_system) != ordered:
@@ -63,14 +78,19 @@ def resolve(reference, source_system, target_reader, require_entry=True):
             raise VersificationMismatch(str(error)) from error
         if require_entry and any(not target_reader.has_reference(ref) for ref in ordered):
             raise ValueError(f'Passage unavailable: {ordered[0]}–{ordered[-1]}')
-        return ResolvedPassage(ordered[0], ordered[-1])
+        return ResolvedPassage(ordered[0], ordered[-1],introductions)
     target = Sword.VerseKey()
     target.setVersificationSystem(target_system)
     target.setAutoNormalize(False)
     # positionFrom preserves the destination system and invokes translateVerse.
     # copy construction/copyFrom instead copies the source system.
     target.positionFrom(source)
-    if target.popError() != '\x00' or target.getVerse() < 1:
+    error=target.popError()
+    if error == '\x00' and target.getVerse()==0 and include_introductions and not target.isBoundSet():
+        context=f'{target.getOSISBookName()}.{target.getChapter()}.0'
+        introduction_key(context,target_reader)
+        return ResolvedPassage(None,None,(context,))
+    if error != '\x00' or target.getVerse() < 1:
         raise VersificationMismatch(f'No verse alignment: {reference}')
     start = target.getOSISRef()
     end = target.getUpperBound().getOSISRef() if target.isBoundSet() else start
@@ -104,3 +124,17 @@ def _native_refs(source, system):
     start = target.getOSISRef()
     end = target.getUpperBound().getOSISRef() if target.isBoundSet() else start
     return _span(start, end, system)
+
+
+def introduction_key(reference,reader):
+    """Validate explicitly mapped chapter context independently of ordinary verses."""
+    import re
+    import Sword
+    match=re.fullmatch(r'([1-5]?[A-Za-z][A-Za-z0-9]*)\.([1-9][0-9]*)\.0',reference)
+    if not match:raise VersificationMismatch('Unsupported introduction context: '+reference)
+    key=Sword.VerseKey();key.setVersificationSystem(reader.versification)
+    key.setIntros(True);key.setAutoNormalize(False);key.setText(reference)
+    if (key.popError()!='\x00' or key.getOSISBookName()!=match[1]
+            or key.getChapter()!=int(match[2]) or key.getVerse()!=0):
+        raise VersificationMismatch('Invalid introduction context: '+reference)
+    return key

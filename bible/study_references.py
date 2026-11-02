@@ -37,7 +37,7 @@ class StudyReferences(Gtk.Box):
         combined=Gtk.FlattenListModel(model=sections)
         factory=Gtk.SignalListItemFactory();factory.connect('bind',self.bind)
         factory.connect('unbind',lambda _,item:item.set_child(None))
-        self.list=Gtk.ListView(model=Gtk.NoSelection(model=combined),factory=factory,vexpand=True,show_separators=True)
+        self.list=Gtk.ListView(model=Gtk.NoSelection(model=combined),factory=factory,vexpand=True,show_separators=False)
         self.list.add_css_class('navigation-sidebar')
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.list);self.append(scroll);self.scroll=scroll
@@ -120,10 +120,11 @@ class StudyReferences(Gtk.Box):
             button=self.button();self.fill(button,item.get_item());item.set_child(button)
 
     def button(self):
-        button=Gtk.Button();button.add_css_class('flat')
-        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=4,margin_end=4,margin_top=6,margin_bottom=6)
+        button=Gtk.Button();button.add_css_class('card');button.add_css_class('annotation-card');button.add_css_class('reference-card')
+        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         title=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        title.add_css_class('heading');title.add_css_class('accent');title.add_css_class('study-content');content.append(title)
+        title.add_css_class('study-content')
+        weight=Pango.AttrList();weight.insert(Pango.attr_weight_new(Pango.Weight.SEMIBOLD));title.set_attributes(weight);content.append(title)
         text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,ellipsize=Pango.EllipsizeMode.END,lines=3,width_chars=1)
         text.add_css_class('reference-excerpt');text.add_css_class('study-content')
         content.append(text)

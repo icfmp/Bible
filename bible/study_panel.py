@@ -1,4 +1,5 @@
 """Native passage study tools and the existing synchronized commentary reader."""
+import logging
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -8,7 +9,7 @@ from .i18n import tr
 from .reading_style import apply_direction
 from .resource_details import details, plain
 from .sword_provider import CommentaryReader, VersificationMismatch
-from .reference_resolution import resolve
+from .reference_resolution import resolve,introduction_key
 
 
 class StudyPanel(Gtk.Box):
@@ -58,6 +59,9 @@ class StudyPanel(Gtk.Box):
         self.previous_entry.connect('clicked',lambda *_:self.step_entry(-1))
         self.next_entry.connect('clicked',lambda *_:self.step_entry(1))
         action_box.append(self.previous_entry);action_box.append(self.next_entry)
+        self.preface_button=Gtk.Button(label=tr('Read source preface'),visible=False)
+        self.preface_button.connect('clicked',lambda *_:self.show_preface())
+        action_box.append(self.preface_button)
         self.info = Gtk.MenuButton(label=tr('Source and conditions'))
         from .catalogue_window import MetadataLabel
         self.metadata = MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
@@ -267,6 +271,7 @@ class StudyPanel(Gtk.Box):
 
     def clear_content(self):
         self._chapter_context=None
+        self.alignment_introductions=()
         self.cancel_scroll()
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
         self._layout_anchor=None
@@ -323,26 +328,34 @@ class StudyPanel(Gtk.Box):
     def follow(self,reference):
         if not self.reader:return
         try:
-            resolved=resolve(reference,self.owner.active_tab.reader.versification,self.reader,require_entry=False)
+            resolved=resolve(reference,self.owner.active_tab.reader.versification,self.reader,require_entry=False,include_introductions=True)
         except (ValueError,VersificationMismatch) as error:
-            self.clear_content();self.status.set_text(tr('No verified alignment for this passage.')+f' {error}')
+            logging.getLogger(__name__).warning('Commentary alignment failed for %s (%s -> %s): %s',reference,self.owner.active_tab.reader.versification,self.reader.versification,error)
+            self.clear_content();self.status.set_text(tr('No verified alignment for this passage.'))
             self.entry_controls();return
-        reference=resolved.start
-        replaced=self.ensure_chapter(reference)
-        position=self.reader.index.locate(reference)
+        self.alignment_introductions=resolved.introductions
+        reference=resolved.start or resolved.introductions[0]
+        replaced=self.ensure_chapter(reference,introduction=resolved.start is None)
+        position=self.reader.index.locate(resolved.start) if resolved.start else None
+        contexts={introduction_key(ref,self.reader).getIndex() for ref in resolved.introductions}
+        available=next((i for i in self.loaded if self.reader.index.sections[i].introduction
+                        and self.reader.index.sections[i].index in contexts),None)
+        if available is not None:position=available
         if position is None or not self.reader.index.text(position).strip():
             self.cancel_reveal();self.current_position=None
             self.owner.active_tab.mark_commentary_range(None,None)
-            self._missing_near=self.reader.index.near(reference)
+            self._missing_near=self.reader.index.near(resolved.start) if resolved.start else 0
             self.passage.set_text(self.owner.active_tab.passage_title())
             self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
-        self.status.set_text('');self.current_position=position
+        self.status.set_text(tr('This passage includes introductory text, shown with the commentary.') if contexts and available is not None else
+                             tr('This passage includes introductory text without a separate commentary introduction. Showing the aligned verse.') if contexts else '')
+        self.current_position=position
         self.passage.set_text(self.reader.index.label(position))
         self.reveal(position,force=replaced,animate=not replaced);self.entry_controls()
         self.update_indicator()
 
-    def ensure_chapter(self,reference):
-        key=self.reader.key(reference)
+    def ensure_chapter(self,reference,introduction=False):
+        key=introduction_key(reference,self.reader) if introduction else self.reader.key(reference)
         context=(id(self.reader),key.getOSISBookName(),key.getChapter())
         if context==getattr(self,'_chapter_context',None):return False
         key.setVerse(1);first=key.getIndex();key.setVerse(key.getVerseMax());last=key.getIndex()
@@ -395,10 +408,11 @@ class StudyPanel(Gtk.Box):
         from .bible_render import bind_copy
         from .commentary_format import apply
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
-        pieces=[];styles=[];self.ranges={};offset=0
+        pieces=[];styles=[];self.ranges={};self._prefaces={};offset=0
         for position in self.loaded:
             heading=self.reader.index.label(position)+'\n'
             document=source.document(position,self.owner.preferences.value)
+            self._prefaces[position]=document.has_preface
             base=offset+len(heading)
             pieces.extend([heading,document.text,'\n\n'])
             styles.extend(StyleSpan(s.kind,s.start+base,s.end+base) for s in document.styles)
@@ -511,7 +525,13 @@ class StudyPanel(Gtk.Box):
             tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor[1])
             self.owner.schedule_save()
 
+    def show_preface(self):
+        if self.reader and self.current_position is not None:
+            from .commentary_format import show_preface
+            show_preface(self.owner,self.reader,self.owner.library.resource(self.reader.name),self.current_position)
+
     def entry_controls(self):
+        self.preface_button.set_visible(bool(self.reader and getattr(self,'_prefaces',{}).get(self.current_position)))
         self.immersive_button.set_sensitive(bool(self.reader and self.current_position is not None and self.entry_text.strip()))
         self.immersive_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Read in immersive mode')+': '+self.source.get_text()])
         count=len(self.reader.index.sections) if self.reader else 0

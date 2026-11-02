@@ -80,7 +80,9 @@ class ReferencePreview:
         close=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         close.add_css_class('flat');close.connect('clicked',lambda *_:self.dismiss());header.append(close)
         box.append(header)
-        version=Gtk.Label(label=resource or tr('No active Bible translation'),xalign=0,wrap=True,max_width_chars=36)
+        try:version_title=self.owner.library.resource(resource).description if resource else tr('No active Bible translation')
+        except (OSError,ValueError):version_title=tr('Translation unavailable.')
+        version=Gtk.Label(label=version_title,xalign=0,wrap=True,max_width_chars=36)
         version.add_css_class('dim-label');box.append(version)
         body=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                           left_margin=4,right_margin=4,top_margin=4,bottom_margin=4)
@@ -125,7 +127,14 @@ class ReferencePreview:
         if provenance:
             attribution=Gtk.Label(label=provenance,xalign=0,wrap=True,max_width_chars=36)
             attribution.add_css_class('caption');attribution.set_selectable(True);box.append(attribution)
-        popover.set_child(box);popover.set_parent(anchor)
+        # Let GTK constrain the entire preview when large UI text leaves too
+        # little space above/below a result. A fixed minimum for all controls
+        # could otherwise make the native popup close immediately on allocation.
+        content=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_width=True,min_content_width=240,
+            max_content_width=min(440,max(240,root.get_width()-48)),
+            propagate_natural_height=True,max_content_height=min(540,max(160,root.get_height()-96)))
+        content.set_child(box);popover.set_child(content);popover.set_parent(anchor)
         if pointing_to is not None:popover.set_pointing_to(pointing_to)
         popover.popup()
         self.body,self.status,self.open_here,self.open_new=body,status,here,new

@@ -1,9 +1,9 @@
 """Topics and literal text in the existing passage selector, with local previews."""
 from .metadata_workers import MetadataExecutor
 from gi.repository import Gtk,GLib,Gio,GObject,Pango
-from .i18n import tr
+from .i18n import tr,LANGUAGE
 from .topic_vocabulary import VOCABULARY,suggestions,title
-from .topic_data import TopicData,SOURCE_URL,LICENSE_URL
+from .topic_data import TopicData,SOURCE_URL,LICENSE_URL,TRANSFORMATIONS
 from .reference_data import Relationship
 from .reference_targets import local_excerpt
 from .reference_preview import passage_title
@@ -47,30 +47,58 @@ class StudySearch(Gtk.Box):
         self.topics=Gtk.ListView(model=Gtk.NoSelection(model=self.topic_model),factory=topic_factory)
         self.topic_scroll=Gtk.ScrolledWindow(min_content_height=80,max_content_height=160,propagate_natural_height=True,
                                             hscrollbar_policy=Gtk.PolicyType.NEVER)
-        self.topic_scroll.set_child(self.topics);self.topic_scroll.set_visible(mode=='topics');self.append(self.topic_scroll)
-        self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.append(self.heading)
+        self.topic_scroll.set_child(self.topics);self.topic_scroll.set_visible(mode=='topics')
+        if mode!='topics':self.append(self.topic_scroll)
+        self.back_topics=Gtk.Button(label=tr('All themes'),halign=Gtk.Align.START,visible=False)
+        self.back_topics.add_css_class('flat');self.back_topics.connect('clicked',self.show_topics);self.append(self.back_topics)
+        self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.heading.set_visible(mode!='topics');self.append(self.heading)
         self.model=Gio.ListStore.new(SearchItem)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.result_setup);factory.connect('bind',self.result_bind)
         self.results=Gtk.ListView(model=Gtk.NoSelection(model=self.model),factory=factory)
         scroll=Gtk.ScrolledWindow(min_content_height=100,max_content_height=280,propagate_natural_height=True,
                                    hscrollbar_policy=Gtk.PolicyType.NEVER)
-        scroll.set_child(self.results);self.append(scroll);self.result_scroll=scroll
+        scroll.set_child(self.results);self.result_scroll=scroll
+        if mode=='topics':
+            self.set_vexpand(True)
+            self.topic_scroll.set_min_content_height(80);self.topic_scroll.set_max_content_height(-1)
+            self.topic_scroll.set_propagate_natural_height(False);self.topic_scroll.set_vexpand(True)
+            scroll.set_max_content_height(-1);scroll.set_propagate_natural_height(False);scroll.set_vexpand(True)
+            self.topic_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+            self.topic_pages.add_named(self.topic_scroll,'topics');self.topic_pages.add_named(scroll,'results')
+            self.append(self.topic_pages)
+        else:self.append(scroll)
         self.more=Gtk.Button(label=tr('More results'),visible=False)
         self.more.connect('clicked',lambda *_:self.run_lemma(append=True) if self.lemma_query else self.run_text(append=True));self.append(self.more)
-        self.credit=Gtk.Label(label=tr('OpenBible.info · CC BY 4.0. Community suggestions; explore the context.'),xalign=0,wrap=True)
-        self.credit.add_css_class('caption');self.credit.set_visible(mode=='topics');self.credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.append(self.credit)
+        self.credit=Gtk.MenuButton(child=Gtk.Label(label='OpenBible.info',xalign=0),halign=Gtk.Align.START)
+        self.credit.add_css_class('flat');self.credit.add_css_class('caption');self.credit.set_visible(mode=='topics')
+        self.credit.update_property([Gtk.AccessibleProperty.LABEL],[tr('Source and license')])
+        information=Gtk.Popover()
+        notice=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=36,
+            margin_start=12,margin_end=12,margin_top=12,margin_bottom=12,selectable=True)
+        notice.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>\n'+
+            GLib.markup_escape_text(tr('Community suggestions; explore the context.'))+'\n\n'+GLib.markup_escape_text(TRANSFORMATIONS))
+        notice_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_height=True,propagate_natural_width=True,
+            min_content_width=220,max_content_width=360,max_content_height=350)
+        notice_scroll.set_child(notice);information.set_child(notice_scroll)
+        self.credit.set_popover(information);self.append(self.credit)
         self.refresh()
 
     def close(self):self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
 
     def pause(self):
         self.epoch+=1
-        if self.future:self.future.cancel()
+        if self.pending:
+            self.invalidate()
+            self.status.set_text(tr('Choose a topic.') if self.mode=='topics' else tr('Enter a phrase and press Enter.'))
+            if self.mode=='topics':self.show_topics()
+        elif self.future:self.future.cancel()
         self.pending=False
 
     def invalidate(self):
         if hasattr(self,'more'):self.more.set_visible(False)
         if self.future:self.future.cancel();self.future=None
+        self._submitted_query=None
         self.generation+=1;self.pending=False;self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
         if hasattr(self.owner,'reference_preview'):self.owner.reference_preview.dismiss()
         self.heading.set_text('');self.status.set_tooltip_text(None)
@@ -79,12 +107,12 @@ class StudySearch(Gtk.Box):
         names=self.owner.library.installed('bible')
         revision=self.data.revision if self.mode=='topics' else None
         active=self.owner.active_tab if hasattr(self.owner,'view') else None
-        stamp=(tuple(names),revision,bool(active))
+        stamp=(tuple(names),revision,bool(active),self.navigation.selected_resource() if self.mode=='topics' else None,LANGUAGE)
         if stamp==self._refresh_stamp:return
         self._refresh_stamp=stamp
         self.invalidate()
-        self.explanation.set_text(tr('Partial curated vocabulary: {count} topics in French and English. Suggestions are not doctrinal conclusions.').format(count=len(VOCABULARY)) if self.mode=='topics' else
-                                  tr('All words, in any order. Use double quotes for a contiguous phrase. Latin accents are ignored for supported languages.'))
+        self.explanation.set_text(tr('{count} reviewed themes').format(count=len(VOCABULARY)) if self.mode=='topics' else
+                                  tr('All words first, then strong close matches. Quoted phrases stay exact. Supported Latin accents are ignored.'))
         if self.mode=='text':
             previous=self.search_names[self.source.get_selected()] if self.source.get_selected()<len(self.search_names) else None
             self.search_names=names
@@ -96,7 +124,7 @@ class StudySearch(Gtk.Box):
             self.source.set_selected(names.index(selected) if selected in names else Gtk.INVALID_LIST_POSITION)
             self._source_syncing=False;self.source_changed()
         self.download.set_visible(self.mode=='topics' and self.data.revision is None)
-        if self.mode=='topics':self.changed()
+        if self.mode=='topics':self._topic_filter=None;self.changed()
         else:self.status.set_text(tr('Enter a phrase and press Enter.'))
 
     def source_changed(self,*_):
@@ -127,16 +155,27 @@ class StudySearch(Gtk.Box):
 
     def changed(self,*_):
         if getattr(self,'_setting_lemma',False):return
+        if self.mode=='text' and _ and _[0] is self.entry and self.entry.get_text()==getattr(self,'_submitted_query',None):return
+        if self.mode=='topics':
+            query=self.entry.get_text()
+            if query==getattr(self,'_topic_filter',None):return
+            self._topic_filter=query
         if self.mode=='text' and self.lemma_query and self.entry.get_text()==getattr(self,'_lemma_caption',None):return
         self.lemma_query=None
         if self.mode=='text':self.scope.set_visible(True)
         self.invalidate()
         if self.mode=='text':self.status.set_text(tr('Enter a phrase and press Enter.'));return
+        if self.mode=='topics':self.show_topics()
         entries=suggestions(self.entry.get_text())
         self.topic_model.splice(0,self.topic_model.get_n_items(),[SearchItem(e) for e in entries])
         self.status.set_text(tr('Download topic data once to explore it offline.') if self.data.revision is None else
                              tr('Choose a topic.') if entries else tr('No topic in the supported vocabulary. Try a shorter word.'))
         self.download.set_visible(self.data.revision is None)
+
+    def show_topics(self,*_):
+        if self.mode!='topics':return
+        self.topic_pages.set_visible_child_name('topics');self.back_topics.set_visible(False);self.heading.set_visible(False)
+        if _:self._topic_filter=None;self.changed()
 
     def open_library(self,*_):
         from .study_resources import TOPIC_RESOURCE_ID
@@ -191,10 +230,13 @@ class StudySearch(Gtk.Box):
         future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def choose(self,entry):
+        # An explicit choice wins over the SearchEntry's delayed notification.
+        self._topic_filter=self.entry.get_text()
         self.topic=entry
         if self.data.revision is None:self.status.set_text(tr('Download topic data once to explore it offline.'));return
         def operation():
             rows=self.data.query(entry[0]);return rows,len(rows)
+        self.topic_pages.set_visible_child_name('results');self.back_topics.set_visible(True);self.heading.set_visible(True)
         self.launch(operation,title(entry),'openbible')
 
     def run_text(self,*_,append=False):
@@ -204,7 +246,7 @@ class StudySearch(Gtk.Box):
         resource,reader=self.context;query=self.entry.get_text().strip()
         if not query or len(query)>200 or any(ord(c)<32 for c in query):
             self.invalidate();self.status.set_text(tr('Enter a phrase of 1–200 characters.'));return
-        from .text_search import search
+        from .text_search import search,TextMatch
         from .search_terms import terms
         try:terms(query,self.owner.library.resource(resource).language)
         except ValueError as error:self.status.set_text(tr(str(error)));return
@@ -214,8 +256,9 @@ class StudySearch(Gtk.Box):
         offset=len(self.rows) if append else 0
         def operation():
             value=search(root,resource,query,scope,book,offset)
-            return [Relationship(ref,ref,0,1) for ref in value['references']],value['total']
+            return [TextMatch(item['reference'],item['reference'],item['kind']) for item in value['matches']],value['total']
         self.launch(operation,query,reader.versification,append=append)
+        self._submitted_query=query
 
     def show_lemma(self,corpus,identifier,caption,resource):
         if resource in self.search_names:self.source.set_selected(self.search_names.index(resource))
@@ -264,15 +307,21 @@ class StudySearch(Gtk.Box):
         excerpt.set_attributes(attributes)
         if self.mode=='text' and not self.lemma_query:
             from .search_terms import match_ranges
-            try:ranges=match_ranges(text,self.entry.get_text(),self.owner.library.resource(resource).language)
+            try:
+                query=self.entry.get_text()
+                if getattr(row,'kind','strict')=='close':
+                    from .search_terms import normalized
+                    query=' '.join(normalized(query,self.owner.library.resource(resource).language).split())
+                ranges=match_ranges(text,query,self.owner.library.resource(resource).language)
             except ValueError:ranges=()
             for start,end in ranges:
                 attribute=Pango.attr_weight_new(Pango.Weight.BOLD)
                 attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.change(attribute)
             excerpt.set_attributes(attributes)
         excerpt.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR);excerpt.set_xalign(1 if reader.rtl else 0)
-        score=excerpt.get_next_sibling();score.set_visible(self.mode=='topics')
-        score.set_text(tr('Source quality score: {score}').format(score=row.score))
+        score=excerpt.get_next_sibling();score.set_visible(True)
+        score.set_text(tr('Source quality score: {score}').format(score=row.score) if self.mode=='topics' else
+                       tr('Close match') if getattr(row,'kind','strict')=='close' else tr('Matches all search terms') if not self.lemma_query else '')
 
     def preview(self,button):
         row,generation=button._result
@@ -283,4 +332,4 @@ class StudySearch(Gtk.Box):
             if self.owner.main_pages.get_visible_child_name()=='notes':self.owner.notes_space.guard(action)
             else:action()
         self.owner.reference_preview.show(button,resource,reader,row.start,row.end,source_system=self.source_system,
-            provenance='OpenBible.info · CC BY 4.0\n'+SOURCE_URL+'\n'+self.topic[0] if self.mode=='topics' else '',navigation_guard=navigate)
+            provenance='OpenBible.info · '+title(self.topic) if self.mode=='topics' else '',navigation_guard=navigate)

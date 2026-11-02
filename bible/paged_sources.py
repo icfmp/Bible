@@ -25,16 +25,23 @@ class BiblePages:
             start=offset if spans else 0
             segments=structured[reference]
             for segment in segments:
-                if segment.kind=='heading' and segment.text.strip():
+                if segment.kind in ('heading','editorial') and segment.text.strip():
                     text=segment.text.strip()+'\n';pieces.append(text)
-                    styles.append(StyleSpan('heading',offset,offset+len(text)));offset+=len(text)
+                    styles.append(StyleSpan(segment.kind,offset,offset+len(text)));offset+=len(text)
                 elif segment.kind=='preface':
                     pieces.append(segment.text)
                     styles.extend(StyleSpan(kind,offset,offset+len(segment.text)) for kind in segment.styles)
                     offset+=len(segment.text)
-            body=''.join(s.text for s in segments if s.kind not in ('heading','preface'))
-            leading=body[:len(body)-len(body.lstrip())]
-            if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
+            body=''.join(s.text for s in segments if s.kind not in ('heading','editorial','preface'))
+            source_leading=len(body)-len(body.lstrip())
+            leading=body[:source_leading]
+            if '\n' in leading:
+                # Boundaries surrounding prefixed headings belong to that
+                # heading, rather than several empty body paragraphs.
+                trailing=len(pieces[-1])-len(pieces[-1].rstrip('\n')) if pieces else 0
+                leading='\n'*max(0,min(2,leading.count('\n'))-trailing)
+            if leading:pieces.append(leading);offset+=len(leading)
+            body=body[source_leading:]
             members=chapter.members(reference)
             label=chapter.label(reference) if len(members)>1 else None
             number=(label or reference.rsplit('.',1)[-1])+' ' if preferences.verse_numbers else ''
@@ -42,9 +49,9 @@ class BiblePages:
             pieces.append(number);offset+=len(number);body_start=offset
             position=0
             for segment in segments:
-                if segment.kind in ('heading','preface'):continue
-                first=max(position,len(leading))-len(leading)
-                last=position+len(segment.text)-len(leading)
+                if segment.kind in ('heading','editorial','preface'):continue
+                first=max(position,source_leading)-source_leading
+                last=position+len(segment.text)-source_leading
                 if last>first:
                     styles.extend(StyleSpan(kind,body_start+first,body_start+last) for kind in segment.styles)
                 position+=len(segment.text)
@@ -111,13 +118,20 @@ class CommentaryPages:
     def document(self,key,preferences):
         section=self.reader.index.sections[key]
         text=self.reader.index.text(key)
-        from .commentary_format import format_entry
-        text,inline,titles=format_entry(self.reader.index.raw(key),text,str(self.reader.module.getConfigEntry('SourceType')))
+        from .commentary_format import format_entry,preverse_layout
+        raw=self.reader.index.raw(key);source_type=str(self.reader.module.getConfigEntry('SourceType'))
+        text,inline,titles=format_entry(raw,text,source_type)
         prefix=''.join(title+'\n' for title in titles)
         styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
         styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
-        return Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
+        document=Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
+        document.has_preface=source_type=='OSIS' and bool(preverse_layout(raw)[0].strip())
+        return document
+    def preface(self,key):
+        from .commentary_format import preverse_layout
+        text,styles,_=preverse_layout(self.reader.index.raw(key))
+        return Document(('preverse',key),text,(),tuple(StyleSpan(*s) for s in styles))
     def neighbour(self,key,direction):return None  # Page navigation stops at entry boundaries.
     def entry_neighbour(self,key,direction):
         position=key+direction

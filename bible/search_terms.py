@@ -1,13 +1,14 @@
 """Word/phrase normalization and exact source-offset highlighting."""
 import re
 import unicodedata
+from .languages import canonical_language
 
 LATIN_LANGUAGES={'en','fr','de','es','pt','it','la','nl','ro','ca'}
 UNSEGMENTED_LANGUAGES={'zh','ja','th','lo','km','my'}
 
 
 def normalized(value,language='und',offsets=False):
-    latin=language.split('-')[0] in LATIN_LANGUAGES
+    latin=canonical_language(language).split('-')[0] in LATIN_LANGUAGES
     characters=[];positions=[]
     clusters=[]
     for index,char in enumerate(value):
@@ -38,7 +39,7 @@ def match_ranges(text,query,language='und'):
     value,offsets=normalized(text,language,True);ranges=[]
     for term in terms(query,language):
         pattern=re.escape(term)
-        if language.split('-')[0] not in UNSEGMENTED_LANGUAGES:pattern=r'(?<!\w)'+pattern+r'(?!\w)'
+        if canonical_language(language).split('-')[0] not in UNSEGMENTED_LANGUAGES:pattern=r'(?<!\w)'+pattern+r'(?!\w)'
         for match in re.finditer(pattern,value):
             if match.end():
                 end=offsets[match.end()-1]+1

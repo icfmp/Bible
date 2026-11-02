@@ -1,0 +1,274 @@
+[
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Gen.1.1",
+    "versification": "NRSV",
+    "chars": 4601,
+    "newline_count": 32,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 2,
+      "break": 16,
+      "editorial": 7,
+      "text": 31
+    },
+    "headings": [
+      "Ch. 1 à 11: 9. (Ac 17:24-28.)",
+      "Création du monde"
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 2,
+      "editorial": 7,
+      "number": 31,
+      "verse-start": 31
+    },
+    "raw_sha256": "6c785a3159f8f26b8aa747a6158c3e1195ddadaebc123e63f20997ceeeae1fc1"
+  },
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Gen.2.1",
+    "versification": "NRSV",
+    "chars": 3413,
+    "newline_count": 24,
+    "max_newlines": 2,
+    "segments": {
+      "editorial": 5,
+      "break": 12,
+      "text": 25,
+      "heading": 2
+    },
+    "headings": [
+      "Formation de l’homme et de la femme",
+      "Le jardin d’Éden, et le péché d’Adam"
+    ],
+    "styles": {
+      "chapter": 1,
+      "editorial": 5,
+      "number": 25,
+      "verse-start": 25,
+      "heading": 2
+    },
+    "raw_sha256": "23b860deb260640649d4fbd82500d854e84fd407cac367a44115b3345fed3f23"
+  },
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "reference": "Ps.13.1",
+    "versification": "NRSV",
+    "chars": 688,
+    "newline_count": 20,
+    "max_newlines": 2,
+    "segments": {
+      "editorial": 1,
+      "break": 4,
+      "text": 14,
+      "poetry": 16
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "editorial": 1,
+      "number": 6,
+      "verse-start": 6,
+      "poetry": 12
+    },
+    "raw_sha256": "9d1c835788de4b06877426167294bd89352d7c05cd9e5f763b8ec351d87b63c7"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Gen.1.1",
+    "versification": "NRSVA",
+    "chars": 4084,
+    "newline_count": 20,
+    "max_newlines": 2,
+    "segments": {
+      "text": 31,
+      "break": 17
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 31,
+      "verse-start": 31
+    },
+    "raw_sha256": "e2cef8def059331bb5bb059f0413359b88dde587adb9cb51a9de6aa4457227a3"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Gen.2.1",
+    "versification": "NRSVA",
+    "chars": 3048,
+    "newline_count": 8,
+    "max_newlines": 2,
+    "segments": {
+      "text": 25,
+      "break": 5
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 25,
+      "verse-start": 25
+    },
+    "raw_sha256": "15f7bc9801ef823bfc681eb7b4bb7cdd8a524c1445f7f74b58d0a6e677c9bdc4"
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "reference": "Ps.13.1",
+    "versification": "NRSVA",
+    "chars": 667,
+    "newline_count": 20,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 4,
+      "text": 14,
+      "poetry": 16
+    },
+    "headings": [
+      "Au chef de chœur. Psaume de David."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 6,
+      "poetry": 12,
+      "verse-start": 6
+    },
+    "raw_sha256": "07b8b122f74ec746dabf66b92c843e8a800f8cea368519893bbdaf2c9d3051df"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Gen.1.1",
+    "versification": "German",
+    "chars": 4228,
+    "newline_count": 24,
+    "max_newlines": 2,
+    "segments": {
+      "text": 95,
+      "break": 21
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 31,
+      "small-caps": 32,
+      "verse-start": 31
+    },
+    "raw_sha256": "f036623c6c6b2af87919c4feac8a3f851ca61b4855bc636ccca80fc54d169476"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Gen.2.1",
+    "versification": "German",
+    "chars": 3168,
+    "newline_count": 16,
+    "max_newlines": 2,
+    "segments": {
+      "text": 75,
+      "break": 13
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 25,
+      "verse-start": 25,
+      "small-caps": 25
+    },
+    "raw_sha256": "4ec98021044a07a15d617070bc91b1c0e68410adccc9c6a07a308c00c8d3350f"
+  },
+  {
+    "resource": "FreJND",
+    "reference": "Ps.13.1",
+    "versification": "German",
+    "chars": 700,
+    "newline_count": 10,
+    "max_newlines": 2,
+    "segments": {
+      "text": 15,
+      "poetry": 8,
+      "break": 2
+    },
+    "headings": [],
+    "styles": {
+      "chapter": 1,
+      "number": 6,
+      "verse-start": 6,
+      "small-caps": 4,
+      "poetry": 4
+    },
+    "raw_sha256": "bfdbdea3a1a4f88556e078f609db96765c663e6bf625ba877eaea077b26d2d34"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Gen.1.1",
+    "versification": "Calvin",
+    "chars": 4306,
+    "newline_count": 4,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 1,
+      "text": 57
+    },
+    "headings": [
+      "Création du monde."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 31,
+      "verse-start": 31,
+      "italic": 13
+    },
+    "raw_sha256": "133088702290620574d765f01181f489bbb056fb5586068b5376aeab5fdc3467"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Gen.2.1",
+    "versification": "Calvin",
+    "chars": 3348,
+    "newline_count": 4,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 1,
+      "text": 33
+    },
+    "headings": [
+      "Du Sabbat et de la femme."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 25,
+      "verse-start": 25,
+      "italic": 4
+    },
+    "raw_sha256": "50d422cc85915a8d852a8971c0738284772e8d1068ef6ef9777735a79e9fb840"
+  },
+  {
+    "resource": "FreBDM1744",
+    "reference": "Ps.13.1",
+    "versification": "Calvin",
+    "chars": 743,
+    "newline_count": 4,
+    "max_newlines": 2,
+    "segments": {
+      "heading": 1,
+      "break": 1,
+      "text": 16
+    },
+    "headings": [
+      "Complainte de David, et sa confiance en Dieu."
+    ],
+    "styles": {
+      "chapter": 1,
+      "heading": 1,
+      "number": 6,
+      "italic": 5,
+      "verse-start": 6
+    },
+    "raw_sha256": "12956952fa3558d6efe0c92adac2828a5581127042df95d5c59dbe23554a657f"
+  }
+]

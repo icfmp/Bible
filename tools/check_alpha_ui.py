@@ -162,7 +162,16 @@ def main():
                     inputs.key(letter)
                 spin(lambda: list(nav.book_rows) == ['1Cor'])
                 assert window.active_tab.state.reference == 'Exod.1.1'
-                inputs.click(nav.close_button)
+                inputs.key('Escape')
+                assert not nav.get_visible()
+                focus=window.get_focus()
+                assert focus is window.passage_button or focus.is_ancestor(window.passage_button)
+                window.choose_passage();spin()
+                # A native click outside also dismisses without navigating.
+                retained=window.active_tab.state.reference
+                inputs.click_at(window.active_tab.text,10,window.active_tab.text.get_height()-10)
+                assert not nav.get_visible()
+                assert window.active_tab.state.reference==retained
                 assert not nav.get_visible()
                 second = window.new_tab()
                 # A newly selected page is mapped before its overlay buttons

@@ -1,0 +1,128 @@
+[
+  {
+    "resource": "MHC",
+    "title": "Matthew Henry's Complete Commentary on the Whole Bible",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "2.2",
+      "Abbreviation": null,
+      "SourceType": "OSIS",
+      "ModDrv": "zCom4",
+      "Encoding": "UTF-8",
+      "Versification": "KJV",
+      "SwordVersionDate": "2022-08-29"
+    }
+  },
+  {
+    "resource": "FreAug",
+    "title": "Commentaires de la Bible par Saint Augustin",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "1.1",
+      "Abbreviation": "St Augustin",
+      "SourceType": "OSIS",
+      "ModDrv": "zCom4",
+      "Encoding": "UTF-8",
+      "Versification": "Catholic",
+      "SwordVersionDate": "2023-11-06"
+    }
+  },
+  {
+    "resource": "FreChry",
+    "title": "Commentaires de la Bible par Saint Jean Chrysostome",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "2.2",
+      "Abbreviation": "St Jean Chrysostome",
+      "SourceType": "OSIS",
+      "ModDrv": "zCom4",
+      "Encoding": "UTF-8",
+      "Versification": "Catholic",
+      "SwordVersionDate": "2026-01-29"
+    }
+  },
+  {
+    "resource": "FreBDM1744",
+    "title": "Bible David Martin (1744)",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "2.0",
+      "Abbreviation": "Martin1744",
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "Calvin",
+      "SwordVersionDate": "2021-02-17"
+    }
+  },
+  {
+    "resource": "FreJND",
+    "title": "Bible J.N. Darby (2024) in French with Strong's numbers",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "3.3",
+      "Abbreviation": null,
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "German",
+      "SwordVersionDate": "2026-02-17"
+    }
+  },
+  {
+    "resource": "FreSegond1910",
+    "title": "Bible Louis Segond (1910) with Strong's numbers",
+    "provider": "CrossWire",
+    "metadata": {
+      "Version": "4.0",
+      "Abbreviation": "Segond1910",
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "Segond",
+      "SwordVersionDate": "2026-02-17"
+    }
+  },
+  {
+    "resource": "ebible~fraLSG1910eb",
+    "title": "Louis Segond 1910",
+    "provider": "eBible",
+    "metadata": {
+      "Version": "100.0",
+      "Abbreviation": "F10",
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "NRSV",
+      "SwordVersionDate": "2026-10-29"
+    }
+  },
+  {
+    "resource": "ebible~francl2022eb",
+    "title": "Sainte Bible néo-Crampon Libre",
+    "provider": "eBible",
+    "metadata": {
+      "Version": "1326.0",
+      "Abbreviation": "FRANCL",
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "Catholic2",
+      "SwordVersionDate": "2026-11-01"
+    }
+  },
+  {
+    "resource": "ebible~frasbl2022eb",
+    "title": "Sainte Bible libre pour le monde",
+    "provider": "eBible",
+    "metadata": {
+      "Version": "171.0",
+      "Abbreviation": "SBL",
+      "SourceType": "OSIS",
+      "ModDrv": "zText",
+      "Encoding": "UTF-8",
+      "Versification": "NRSVA",
+      "SwordVersionDate": "2026-10-29"
+    }
+  }
+]

@@ -3,11 +3,21 @@ on:
   push:
     branches: [feat/26-yves-fidelity, feat/26-youversion-language-catalogue]
   workflow_dispatch:
+    inputs:
+      runtime_probe:
+        description: Run the isolated rendering diagnosis with the installed GTK runtime
+        type: boolean
+        default: false
+      candidate_run:
+        description: Optional successful ordinary CI run for this exact source; install its actual bundle instead of mounting development code
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
 jobs:
   proof:
+    if: ${{ inputs.runtime_probe != true }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -100,4 +110,100 @@ jobs:
         with:
           name: yves-conversion-statistics
           path: reports/
+          if-no-files-found: warn
+
+  runtime-rendering-probe:
+    if: ${{ inputs.runtime_probe == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install the previously verified package in an isolated deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/rendering-flatpak" >> "$GITHUB_ENV"
+          gh run download 41391340612 --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
+          FLATPAK_USER_DIR="$RUNNER_TEMP/rendering-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          FLATPAK_USER_DIR="$RUNNER_TEMP/rendering-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+      - name: Capture the packaged baseline using real resources
+        run: |
+          timeout 300s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before" --prepare --baseline --require-packaged
+      - name: Capture baseline reader and Library chrome
+        run: |
+          for tool in check_reader_chrome check_library_categories check_commentary_context check_followup_surfaces check_reading_surfaces; do
+            extra=()
+            if [ "$tool" = check_followup_surfaces ]; then extra=(--maps); fi
+            if [ "$tool" = check_reading_surfaces ]; then extra=(--prepare); fi
+            timeout 600s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/$tool" --baseline --require-packaged "${extra[@]}"
+          done
+      - name: Prepare actual Semeur and English search baselines
+        run: |
+          timeout 360s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m tools.check_quotation_search "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/quotations" --baseline --require-packaged --prepare
+      - name: Install the exact successful candidate when requested
+        if: ${{ inputs.candidate_run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN: ${{ inputs.candidate_run }}
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/${{ github.repository }}/actions/runs/$CANDIDATE_RUN" > "$RUNNER_TEMP/candidate-run.json"
+          python3 - "$RUNNER_TEMP/candidate-run.json" <<'PY'
+          import json,os,sys
+          x=json.load(open(sys.argv[1]))
+          assert x['head_sha']==os.environ['GITHUB_SHA']
+          assert x['name']=='Vérifier le socle GNOME' and x['event']=='push'
+          assert x['status']=='completed' and x['conclusion']=='success'
+          PY
+          gh run download "$CANDIDATE_RUN" --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
+          python3 - "$RUNNER_TEMP/candidate-bundle" <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          p=Path(sys.argv[1]);x=json.loads((p/'build-info.json').read_text())
+          assert x['commit']==os.environ['GITHUB_SHA']
+          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
+          PY
+          flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/candidate-bundle/Bible-alpha.flatpak"
+      - name: Verify candidate or diagnose development source with the same native runtime
+        env:
+          CANDIDATE_RUN: ${{ inputs.candidate_run }}
+        run: |
+          set -euo pipefail
+          if [ -n "$CANDIDATE_RUN" ]; then
+            python_path="/app/lib/bible-python:$PWD"
+            source_flags=(--require-packaged)
+            flags=(--require-packaged)
+            mkdir -p "$RUNNER_TEMP/rendering-after"
+            cp "$RUNNER_TEMP/candidate-bundle/build-info.json" "$RUNNER_TEMP/rendering-after/"
+          else
+            python_path="$PWD:/app/lib/bible-python"
+            source_flags=(--runtime-probe)
+            flags=()
+          fi
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after" "${source_flags[@]}"
+          for tool in check_reader_chrome check_library_categories check_commentary_context check_followup_surfaces check_quotation_search check_reading_surfaces; do
+            extra=()
+            if [ "$tool" = check_followup_surfaces ]; then extra=(--maps); fi
+            timeout 600s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/$tool" "${flags[@]}" "${extra[@]}"
+          done
+          # A separate marked acquisition profile proves a real candidate download;
+          # the comparison profile retains its already installed datasets unchanged.
+          mkdir "$RUNNER_TEMP/library-acquisition-profile"
+          touch "$RUNNER_TEMP/library-acquisition-profile/.source-rendering-research"
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m tools.check_library_categories "$RUNNER_TEMP/library-acquisition-profile" "$RUNNER_TEMP/rendering-after/actual-library-acquisition" "${flags[@]}" --install
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=en --command=python3 io.github.icfmp.Bible//master -m tools.check_followup_surfaces "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/english-surfaces" "${flags[@]}" --maps
+          for tool in check_library_categories check_followup_surfaces; do
+            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/large-$tool" "${flags[@]}" --ui-font 'Sans 18'
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-rendering-runtime-probe
+          path: |
+            ${{ runner.temp }}/rendering-before/
+            ${{ runner.temp }}/rendering-after/
           if-no-files-found: warn

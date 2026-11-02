@@ -335,13 +335,15 @@ class WindowTests(unittest.TestCase):
             self.assertFalse(nav.get_visible())
             window.choose_passage();nav.direct.set_text('Jean 3:16');nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
-            self.assertIn('3:16', window.heading.get_title())
-            self.assertEqual(window.heading.get_subtitle(), 'Test')
+            self.assertIn(window.heading.get_title(),('John 3','Jean 3'))
+            self.assertEqual(window.heading.get_subtitle(), '')
+            self.assertEqual(window.primary_version.caption.get_text(),'Test')
             window.choose_passage()
             nav.version.set_selected(nav.names.index('Other'))
             self.assertEqual(window.active_tab.state.resource, 'Other')
             self.assertEqual(window.active_tab.state.reference, 'John.3.16')
-            self.assertEqual(window.heading.get_subtitle(), 'Other')
+            self.assertEqual(window.heading.get_subtitle(), '')
+            self.assertEqual(window.primary_version.caption.get_text(),'Other')
             window.close()
 
     def test_header_and_selector_follow_active_tab_and_restoration(self):
@@ -359,15 +361,15 @@ class WindowTests(unittest.TestCase):
             self.assertFalse(nav.get_visible())
             self.assertEqual(window.view.get_n_pages(), 2)
             self.assertEqual(first.state.reference, 'John.3.16')
-            self.assertIn('2:1', window.heading.get_title())
+            self.assertIn(window.heading.get_title(),('Genesis 2','Genèse 2'))
             window.previous.emit('clicked')
-            self.assertIn('1:1', window.heading.get_title())
+            self.assertIn(window.heading.get_title(),('Genesis 1','Genèse 1'))
             window.view.set_selected_page(window.view.get_nth_page(0))
-            self.assertIn('3:16', window.heading.get_title())
+            self.assertIn(window.heading.get_title(),('John 3','Jean 3'))
             self.assertEqual(nav.selected_reference(), 'John.3.16')
             window.close()
             restored = self.window(directory)
-            self.assertIn('3:16', restored.heading.get_title())
+            self.assertIn(restored.heading.get_title(),('John 3','Jean 3'))
             self.assertEqual(restored.navigation.selected_reference(), 'John.3.16')
             self.assertEqual(restored.navigation.selected_resource(), 'Test')
             restored.close()
@@ -396,7 +398,7 @@ class WindowTests(unittest.TestCase):
             nav.direct.set_text('Jean 3:18')
             nav.direct.emit('activate')
             self.assertEqual(window.active_tab.state.reference, 'John.3.18')
-            self.assertIn('3:18', window.heading.get_title())
+            self.assertIn(window.heading.get_title(),('John 3','Jean 3'))
             window.close()
 
     def test_header_at_360_pixels_and_full_height_study_to_the_right(self):
@@ -600,11 +602,13 @@ class WindowTests(unittest.TestCase):
             window.navigation.sync(force=True)
             self.assertEqual(window.navigation.names, ['Test'])
             commentary_fixture(directory, 'CatholicNotes', versification='LXX')
-            self.choose_commentary(window, 'CatholicNotes')
+            with self.assertLogs('bible.study_panel',level='WARNING') as diagnostics:
+                self.choose_commentary(window, 'CatholicNotes')
             self.assertEqual(self.study_text(window), '')
             self.assertIn(tr('No verified alignment for this passage.'),
                           window.study.status.get_text())
-            self.assertIn('LXX', window.study.status.get_text())
+            self.assertIn('LXX','\n'.join(diagnostics.output))
+            self.assertEqual(window.study.status.get_text(),tr('No verified alignment for this passage.'))
             resources = [window.library.resource(name) for name in window.library.installed()]
             with patch('bible.catalogue_window.catalogue', return_value=resources):
                 dialog = window.open_library('commentary')
