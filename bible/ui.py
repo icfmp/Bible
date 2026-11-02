@@ -609,6 +609,25 @@ class Window(Adw.ApplicationWindow):
         mode=self.navigation.modes.get_visible_child_name()
         (self.navigation.text_search.entry if mode=='text' else self.navigation.topic_search.entry if mode=='topics' else self.navigation.direct).grab_focus()
 
+    def switch_translation(self,name):
+        """A missing correspondence does not make the target unreadable."""
+        from .sword_provider import Reader
+        from .reference_resolution import resolve,VersificationMismatch
+        tab=self.active_tab
+        if not tab:return False
+        reader=Reader(self.library.root/name,name);independent=False
+        try:
+            reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
+        except VersificationMismatch:
+            # This is an explicit resource-opening action. Do not transfer an
+            # unverified printed reference or change the strict shared resolver.
+            reference=reader.first_reference();independent=True
+        if not self.navigate_selection(name,reference):return False
+        if independent:
+            tab.status.set_text(tr('The current passage cannot be matched reliably in this translation. Its first available passage is open; you can choose another passage.'))
+            tab.status.set_visible(True)
+        return True
+
     def step_chapter(self, direction):
         tab = self.active_tab
         if tab and tab.reader:
@@ -859,11 +878,7 @@ class Window(Adw.ApplicationWindow):
             elif destination=='comparison':
                 tab.state.comparison=name;self.sync_comparison()
             else:
-                from .sword_provider import Reader
-                from .reference_resolution import resolve
-                reader=Reader(self.library.root/name,name)
-                reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
-                if not self.navigate_selection(name,reference):return
+                if not self.switch_translation(name):return
             self.main_pages.set_visible_child_name('reading');self.schedule_save()
         if self.main_pages.get_visible_child_name()=='notes':
             def guarded_open():

@@ -112,8 +112,8 @@ jobs:
           import json,time,urllib.request
           from pathlib import Path
           import os,subprocess
-          expected=None
           expected_head=os.environ['GITHUB_SHA']
+          expected=expected_head if os.environ.get('GITHUB_REF')=='refs/heads/main' else None
           for attempt in range(240):
               try:
                   if expected is None:

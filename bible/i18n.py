@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'The current passage cannot be matched reliably in this translation. Its first available passage is open; you can choose another passage.':'Le passage actuel ne peut pas être repéré de manière fiable dans cette traduction. Son premier passage disponible est ouvert ; vous pouvez en choisir un autre.',
     'Loading edition details…':'Chargement des informations de l’édition…',
     'You are responsible for checking that you have permission to download, convert and use this edition offline.':'Il vous appartient de vérifier que vous disposez de l’autorisation de télécharger, convertir et utiliser cette édition hors connexion.',
     'The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing.':'La source exige un accord par courriel (version {version}). Remplissez cette condition auprès du fournisseur avant de continuer.',

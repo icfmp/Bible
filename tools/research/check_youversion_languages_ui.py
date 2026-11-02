@@ -39,6 +39,7 @@ def main():
                     screen.grab(args.output/name);captures.append(dict(file=name,language=language,rows=len(dialog.filtered_resources)))
                 dialog.close();dialog=None;spin()
                 tab=window.active_tab
+                tab.state.comparison='';tab.refresh_comparison();spin()
                 with patch('urllib.request.OpenerDirector.open',side_effect=AssertionError('Unexpected offline reading request')):
                     for edition,reference in [(504,'Tob.1.1'),(36,'Isa.38.1'),(13,'John.1.1'),(2599,'Matt.1.1')]:
                         window.set_default_size(1100,760);tab.navigate('youversion~YV'+str(edition),reference);spin()
@@ -47,6 +48,8 @@ def main():
                         if edition==36:
                             refs=[int(ref.rsplit('.',1)[1]) for ref,_ in tab.reader.chapter(reference).unique_verses()]
                             assert refs==[*range(1,7),21,22,*range(7,21)]
+                            layout=tab.text.create_pango_layout(tab.text.get_buffer().props.text)
+                            assert layout.get_unknown_glyphs_count()==0,'Missing CJK font on the validation host'
                         window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes');spin()
                         name=f'edition-{edition}-{palette}.png';native.move_at(window,2,2);screen.grab(args.output/name)
                         captures.append(dict(file=name,edition=edition,size=[window.get_width(),window.get_height()]))

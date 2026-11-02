@@ -7,6 +7,31 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK/Pango')
 class VerseTypographyTests(unittest.TestCase):
+    def test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy(self):
+        from bible.ui import Gtk
+        from bible.bible_render import render
+        from bible.preferences import ReadingPreferences
+        from bible.sword_provider import Reader
+        text='甲乙丙丁戊己庚辛壬癸'*8
+        with tempfile.TemporaryDirectory() as directory:
+            root=installed_fixture(directory,entries=[('Gen.1.1',text)])
+            reader=Reader(root,'Test');view=Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR)
+            view.set_left_margin(20);view.set_right_margin(20)
+            scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER);scroll.set_child(view)
+            window=Gtk.Window(default_width=360,default_height=400);window.set_child(scroll);window.present()
+            try:
+                for size in (16,28):
+                    preferences=ReadingPreferences(size=size)
+                    document,offsets,ranges,markers=render(view,reader,reader.chapter('Gen.1.1'),preferences)
+                    spin();buffer=view.get_buffer();span=document.spans[0]
+                    visible=view.get_visible_rect()
+                    right=max(view.get_iter_location(buffer.get_iter_at_offset(i)).x for i in range(span.body,span.end))
+                    self.assertLessEqual(right,visible.x+visible.width-20+2)
+                    self.assertEqual(view.get_line_yrange(buffer.get_iter_at_offset(offsets['Gen.1.1']))[0],
+                                     view.get_line_yrange(buffer.get_iter_at_offset(span.body))[0])
+                    self.assertEqual(document.copy(span.body,span.end),text)
+            finally:window.destroy();spin()
+
     def test_marker_and_first_word_stay_on_one_line_and_page(self):
         from bible.ui import Application, Window, Library
         from bible.paged_sources import BiblePages
