@@ -81,3 +81,28 @@ first paint at 7.95–17.04 ms. Each simple/comparison/study/initial-toolbar cas
 moved during sustained input and recorded zero adjustments after 500 ms of
 stopping. In the initially visible toolbar case, dismissal took 0.177 ms;
 the backdrop was released and placement stopped before the first motion.
+
+## Current publication gate: native scroll pause
+
+The merged application is not yet published to the signed alpha. Main CI
+41477968873 observed a 494 ms direction change (400 ms limit) in single reading
+with the toolbar hidden. The independent input process sent 48 events during
+the 492 ms GTK pause. There was no movement later than 500 ms after stopping.
+
+An installed A/B comparison used the exact verified old/candidate packages,
+retained real resources and three runs per version:
+
+| Version | Maximum GTK main-loop gaps in the three runs | Longest direction change |
+| --- | --- | --- |
+| Previous package | 18, 23, 19 ms | 20 ms |
+| Candidate | 18, 416, 18 ms | 419 ms |
+
+The candidate's second run failed its unchanged timing assertion. Completing
+the diagnostic collection is not a passing publication gate. Python GC stayed
+below 4 ms and callback profiles did not explain the pause. Native CPU analysis
+is in progress. No product feature was disabled and no client profile was reset.
+The signed-update waiting run was cancelled and will be restarted after the
+blocking check is resolved. The previous signed alpha remains available.
+
+This public report contains aggregate measurements only. Raw diagnostic traces
+are not added to this evidence branch.
