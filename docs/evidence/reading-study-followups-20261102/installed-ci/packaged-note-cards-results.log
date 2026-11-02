@@ -1,0 +1,1347 @@
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=1001 pid=12678 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.Flatpak'
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.portal.Documents' requested by ':1.0' (uid=1001 pid=12678 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.2' (uid=1001 pid=12691 comm="/usr/libexec/xdg-document-portal" label="unconfined")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+F: Can't get document portal: GDBus.Error:org.freedesktop.portal.Error.Failed: Can't mount path /run/user/1001/doc
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+test_empty_draft_save_failure_and_empty_preview_do_not_change_storage (tests.test_passage_note_cards.PassageNoteCardTests.test_empty_draft_save_failure_and_empty_preview_do_not_change_storage) ... dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.5' (uid=1001 pid=12707 comm="xdg-dbus-proxy --args=37" label="flatpak (unconfined)")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.portal.Documents' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:26.747: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:26.747: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12743): Gtk-WARNING **: 15:45:27.053: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.120: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.121: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.121: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.121: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.121: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12746): Gtk-WARNING **: 15:45:27.130: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.134: Failed to create file chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.134: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.134: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12748): Gtk-WARNING **: 15:45:27.146: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.147: Failed to create app chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.147: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.147: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12750): Gtk-WARNING **: 15:45:27.155: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.157: Failed to create print proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.157: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.157: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12752): Gtk-WARNING **: 15:45:27.164: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.165: Failed to create notification proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.165: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.165: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12754): Gtk-WARNING **: 15:45:27.173: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.174: Failed to create inhibit proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.174: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.174: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12756): Gtk-WARNING **: 15:45:27.182: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.183: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.183: No skeleton to export
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12758): Gtk-WARNING **: 15:45:27.191: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12760): Gtk-WARNING **: 15:45:27.200: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.201: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.201: No skeleton to export
+[W][00258.331808] pw.conf      | [          conf.c: 1031 try_load_conf()] can't load config client.conf: No such file or directory
+[E][00258.331874] pw.conf      | [          conf.c: 1060 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.202: Failed connect to PipeWire: Couldn't create PipeWire context
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.202: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12762): Gtk-WARNING **: 15:45:27.211: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.212: Failed to create account proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.212: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.213: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12764): Gtk-WARNING **: 15:45:27.221: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.223: Failed to create email proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.223: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.223: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=12727 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:12766): Gtk-WARNING **: 15:45:27.231: cannot open display: 
+dbus-daemon[12664]: [session uid=1001 pid=12664] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.233: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:12727): xdg-desktop-portal-WARNING **: 15:45:27.233: No skeleton to export
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.portal.Desktop'
+
+(process:2): Gtk-WARNING **: 15:45:27.297: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+
+(process:2): Gtk-WARNING **: 15:45:27.731: Creating a portal monitor failed: GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: No such interface “org.freedesktop.portal.Inhibit” on object at path /org/freedesktop/portal/desktop
+ok
+test_inline_expand_same_document_failure_cancel_save_and_context (tests.test_passage_note_cards.PassageNoteCardTests.test_inline_expand_same_document_failure_cancel_save_and_context) ... ok
+test_switch_note_prompt_cancel_and_discard_do_not_lose_current_draft (tests.test_passage_note_cards.PassageNoteCardTests.test_switch_note_prompt_cancel_and_discard_do_not_lose_current_draft) ... ok
+test_unavailable_original_resource_keeps_note_visible_and_editable (tests.test_passage_note_cards.PassageNoteCardTests.test_unavailable_original_resource_keeps_note_visible_and_editable) ... ok
+test_unified_independent_cards_bounded_preview_and_no_render_writes (tests.test_passage_note_cards.PassageNoteCardTests.test_unified_independent_cards_bounded_preview_and_no_render_writes) ... ok
+test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged (tests.test_note_citations.NoteCitationTests.test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged) ... ok
+test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes (tests.test_note_citations.NoteCitationTests.test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes) ... 
+(process:2): Gtk-WARNING **: 15:45:33.617: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.628: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:33.628: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed5d3110 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:33.628: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7ed599480 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:33.628: Trying to measure GtkBox 0x55a7ed4ef5b0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:33.628: Trying to measure GtkLabel 0x55a7ed5c8de0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:33.629: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed8214b0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:33.629: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7ed81fb30 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:33.637: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Adwaita-WARNING **: 15:45:33.637: AdwHeaderBar 0x55a7ed2fcab0 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:33.637: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.650: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.650: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.666: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.666: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.683: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.683: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.699: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.699: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.716: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.716: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.733: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.733: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.749: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.749: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.765: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.765: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.782: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.782: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.799: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.799: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:33.816: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ed879510 with width -2147482458 and height 890
+
+(process:2): Gtk-WARNING **: 15:45:33.816: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ed84f7f0 with width -16 and height 76
+ok
+test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview (tests.test_note_citations.NoteCitationTests.test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview) ... ok
+test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note (tests.test_note_citations.NoteCitationTests.test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note) ... ok
+test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records (tests.test_study_references.StudyReferenceTests.test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records) ... 
+(process:2): Gtk-WARNING **: 15:45:37.089: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.099: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:37.100: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ec141a20 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:37.100: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7eec89fc0 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:37.100: Trying to measure GtkBox 0x55a7ee92b6c0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:37.100: Trying to measure GtkLabel 0x55a7ee8fd770 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:37.100: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eeeee270 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:37.100: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7eeeec8f0 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:37.109: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:37.109: AdwHeaderBar 0x55a7eec3b400 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:37.109: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.122: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.122: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.137: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.137: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.155: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.155: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.171: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.171: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.188: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.188: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.204: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.204: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.221: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.221: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.238: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.238: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.254: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.254: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.270: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.270: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.287: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7eeb9e4f0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.287: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eef1c5b0 with width -16 and height 76
+ok
+test_inline_footer_exact_total_expand_and_return_preserve_source_and_order (tests.test_study_references.StudyReferenceTests.test_inline_footer_exact_total_expand_and_return_preserve_source_and_order) ... 
+(process:2): Gtk-WARNING **: 15:45:37.723: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.734: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:37.734: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eecb3960 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:37.734: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7eecae6a0 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:37.734: Trying to measure GtkBox 0x55a7eecaf780 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:37.734: Trying to measure GtkLabel 0x55a7ef1bef60 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:37.734: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef372d20 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:37.734: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7ef3713a0 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:37.748: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:37.748: AdwHeaderBar 0x55a7ef14c120 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:37.748: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.756: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.756: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.772: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.772: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.789: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.789: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.805: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.805: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.821: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.821: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.839: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.839: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.855: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.855: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.871: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.871: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.888: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.888: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.904: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.905: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:37.924: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef3cad40 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:37.924: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef3a1030 with width -16 and height 76
+ok
+test_missing_data_library_flow_and_offline_browse_do_not_change_bible_resources (tests.test_study_references.StudyReferenceTests.test_missing_data_library_flow_and_offline_browse_do_not_change_bible_resources) ... 
+(process:2): Gtk-WARNING **: 15:45:38.657: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.667: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:38.668: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef6f1a30 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:38.668: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7ef71b6a0 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:38.668: Trying to measure GtkBox 0x55a7ef742ae0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:38.668: Trying to measure GtkLabel 0x55a7ef6694a0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:38.668: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef946910 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:38.668: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7ef944f90 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:38.681: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:38.681: AdwHeaderBar 0x55a7efa93130 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:38.681: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.689: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.689: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.706: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.706: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.723: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.723: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.740: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.740: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.756: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.756: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.772: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.772: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.790: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.790: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.806: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.806: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.822: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.822: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:38.839: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7ef9a22a0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:38.839: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ef9749f0 with width -16 and height 76
+ok
+test_missing_local_text_keeps_preview_non_navigating_and_data_available (tests.test_study_references.StudyReferenceTests.test_missing_local_text_keeps_preview_non_navigating_and_data_available) ... 
+(process:2): Gtk-WARNING **: 15:45:39.698: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.709: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:39.709: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7edded890 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:39.709: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7efe96320 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:39.709: Trying to measure GtkBox 0x55a7efe1ae50 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:39.709: Trying to measure GtkLabel 0x55a7efdeb880 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:39.709: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f00d71e0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:39.709: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7f00d5860 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:39.719: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:39.719: AdwHeaderBar 0x55a7efb68840 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:39.719: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.731: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.731: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.748: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.748: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.764: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.764: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.781: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.781: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.797: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.797: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.814: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.814: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.831: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.831: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.847: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.847: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.864: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.864: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.880: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.880: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:39.899: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f012f210 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:39.899: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f01054f0 with width -16 and height 76
+ok
+test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs (tests.test_study_references.StudyReferenceTests.test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs) ... 
+(process:2): Gtk-WARNING **: 15:45:40.581: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.591: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:40.591: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7eff14d10 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:40.591: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7f0260740 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:40.591: Trying to measure GtkBox 0x55a7f02bbc70 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:40.591: Trying to measure GtkLabel 0x55a7f03c31a0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:40.591: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0687f90 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:40.591: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7f0686610 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:40.600: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:40.601: AdwHeaderBar 0x55a7f04052a0 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:40.601: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.614: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.614: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.630: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.630: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.647: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.647: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.664: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.664: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.680: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.680: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.696: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.696: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.714: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.714: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.730: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.730: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.746: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.746: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.763: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.763: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:40.783: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f06dffc0 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:40.783: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f06b62a0 with width -16 and height 76
+ok
+test_range_aggregation_rapid_navigation_and_preview_dismissal (tests.test_study_references.StudyReferenceTests.test_range_aggregation_rapid_navigation_and_preview_dismissal) ... 
+(process:2): Gtk-WARNING **: 15:45:41.817: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.826: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:45:41.826: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7ee2943e0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:41.826: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a7f0ab2a40 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:41.826: Trying to measure GtkBox 0x55a7f0ab52a0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:41.826: Trying to measure GtkLabel 0x55a7f0a8c7a0 for width of 0, but it needs at least 40
+
+(process:2): Gtk-WARNING **: 15:45:41.827: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0ce99b0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:45:41.827: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a7f0ce8030 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:45:41.836: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Adwaita-WARNING **: 15:45:41.836: AdwHeaderBar 0x55a7f0ab56c0 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:45:41.836: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.850: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.850: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.866: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.866: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.882: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.882: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.899: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.899: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.916: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.916: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.932: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.932: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.949: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.949: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.966: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.966: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.982: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.982: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:41.999: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:41.999: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:45:42.015: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a7f0d41a10 with width -2147482558 and height 840
+
+(process:2): Gtk-WARNING **: 15:45:42.015: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a7f0d17cf0 with width -16 and height 76
+ok
+test_archive_layout_headers_limits_and_identifiers_are_untrusted (tests.test_reference_data.ReferenceDataTests.test_archive_layout_headers_limits_and_identifiers_are_untrusted) ... ok
+test_corrupt_or_future_local_schema_is_explicit_and_untouched (tests.test_reference_data.ReferenceDataTests.test_corrupt_or_future_local_schema_is_explicit_and_untouched) ... ok
+test_damaged_relationship_table_remains_repairable_from_library (tests.test_reference_data.ReferenceDataTests.test_damaged_relationship_table_remains_repairable_from_library) ... ok
+test_directed_relationship_ranking_range_deduplication_and_offline_reopen (tests.test_reference_data.ReferenceDataTests.test_directed_relationship_ranking_range_deduplication_and_offline_reopen) ... ok
+test_failed_corrupt_and_interrupted_replacement_preserve_the_previous_index (tests.test_reference_data.ReferenceDataTests.test_failed_corrupt_and_interrupted_replacement_preserve_the_previous_index) ... ok
+test_complete_targets_do_not_use_excerpt_end_or_require_module_text (tests.test_reference_data.ReferenceNumberingTests.test_complete_targets_do_not_use_excerpt_end_or_require_module_text) ... ok
+test_exact_local_excerpts_boundaries_and_missing_text_without_network (tests.test_reference_data.ReferenceNumberingTests.test_exact_local_excerpts_boundaries_and_missing_text_without_network) ... ok
+test_verified_psalm_and_split_john_boundaries_in_both_directions (tests.test_reference_data.ReferenceNumberingTests.test_verified_psalm_and_split_john_boundaries_in_both_directions) ... ok
+test_language_aliases_do_not_conflate_scripts_or_regions (tests.test_library_polish.ApplicationSettingsTests.test_language_aliases_do_not_conflate_scripts_or_regions) ... ok
+test_new_locale_defaults_explicit_choice_and_restart (tests.test_library_polish.ApplicationSettingsTests.test_new_locale_defaults_explicit_choice_and_restart) ... ok
+test_saved_ui_language_is_loaded_at_next_process_start (tests.test_library_polish.ApplicationSettingsTests.test_saved_ui_language_is_loaded_at_next_process_start) ... ok
+test_scoped_refresh_keeps_other_providers_and_runs_only_selected_source (tests.test_library_polish.ApplicationSettingsTests.test_scoped_refresh_keeps_other_providers_and_runs_only_selected_source) ... ok
+test_upgrade_missing_marker_and_corrupt_settings_preserve_originals (tests.test_library_polish.ApplicationSettingsTests.test_upgrade_missing_marker_and_corrupt_settings_preserve_originals) ... ok
+test_cold_offline_language_inventory_remains_searchable_and_empty_is_truthful (tests.test_library_polish.LibraryPolishTests.test_cold_offline_language_inventory_remains_searchable_and_empty_is_truthful) ... ok
+test_contextual_downloads_preserve_passage_and_installed_selection (tests.test_library_polish.LibraryPolishTests.test_contextual_downloads_preserve_passage_and_installed_selection) ... ok
+test_filter_change_during_refresh_rejects_stale_type_and_language_rows (tests.test_library_polish.LibraryPolishTests.test_filter_change_during_refresh_rejects_stale_type_and_language_rows) ... ok
+test_general_preferences_reuse_persist_and_do_not_change_library_or_reader (tests.test_library_polish.LibraryPolishTests.test_general_preferences_reuse_persist_and_do_not_change_library_or_reader) ... ok
+test_global_menu_preferences_shortcuts_about_and_notes_share_routes (tests.test_library_polish.LibraryPolishTests.test_global_menu_preferences_shortcuts_about_and_notes_share_routes) ... ok
+test_install_refresh_never_selects_resource_explicit_read_targets_intended_tab (tests.test_library_polish.LibraryPolishTests.test_install_refresh_never_selects_resource_explicit_read_targets_intended_tab) ... ok
+test_language_choice_empty_alias_and_type_persistence_without_fetch (tests.test_library_polish.LibraryPolishTests.test_language_choice_empty_alias_and_type_persistence_without_fetch) ... ok
+test_library_install_and_explicit_read_keep_unsaved_note_guard (tests.test_library_polish.LibraryPolishTests.test_library_install_and_explicit_read_keep_unsaved_note_guard) ... ok
+test_narrow_reader_keeps_mouse_routes_after_menu_cleanup (tests.test_library_polish.LibraryPolishTests.test_narrow_reader_keeps_mouse_routes_after_menu_cleanup) ... ok
+test_study_category_keeps_queries_filters_and_local_catalogue_independent (tests.test_library_polish.LibraryPolishTests.test_study_category_keeps_queries_filters_and_local_catalogue_independent) ... ok
+test_study_transfer_survives_category_switch_and_cancellation_can_retry (tests.test_library_polish.LibraryPolishTests.test_study_transfer_survives_category_switch_and_cancellation_can_retry) ... Study resource step-word-study: Synthetic cancelled download
+Study resource step-word-study: Synthetic connection failure
+ok
+test_welcome_skip_restart_and_later_empty_download_route (tests.test_library_polish.LibraryPolishTests.test_welcome_skip_restart_and_later_empty_download_route) ... ok
+test_large_language_changes_use_bounded_native_updates_and_discard_stale_search (tests.test_library_startup.LibraryStartupTests.test_large_language_changes_use_bounded_native_updates_and_discard_stale_search) ... ok
+test_large_valid_cache_uses_owner_thread_bounded_models_and_keeps_heartbeat (tests.test_library_startup.LibraryStartupTests.test_large_valid_cache_uses_owner_thread_bounded_models_and_keeps_heartbeat) ... ok
+test_metadata_failure_is_visible_and_retry_does_not_remain_busy (tests.test_library_startup.LibraryStartupTests.test_metadata_failure_is_visible_and_retry_does_not_remain_busy) ... ok
+test_refresh_status_keeps_unchanged_native_models_and_selection (tests.test_library_startup.LibraryStartupTests.test_refresh_status_keeps_unchanged_native_models_and_selection) ... ok
+test_reopen_during_slow_refresh_deduplicates_and_keeps_progressive_results (tests.test_library_startup.LibraryStartupTests.test_reopen_during_slow_refresh_deduplicates_and_keeps_progressive_results) ... ok
+test_reopen_rechecks_resources_installed_by_another_window (tests.test_library_startup.LibraryStartupTests.test_reopen_rechecks_resources_installed_by_another_window) ... ok
+test_slow_cache_opens_shell_and_close_reopen_share_one_preparation (tests.test_library_startup.LibraryStartupTests.test_slow_cache_opens_shell_and_close_reopen_share_one_preparation) ... ok
+test_process_exit_never_joins_blocked_catalogue_workers (tests.test_library_startup.MetadataExitTests.test_process_exit_never_joins_blocked_catalogue_workers) ... ok
+test_coalesced_autosave_flush_on_record_switch_and_restart (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_coalesced_autosave_flush_on_record_switch_and_restart) ... ok
+test_global_workspace_only_edits_existing_notes_and_keeps_reader_creation (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_global_workspace_only_edits_existing_notes_and_keeps_reader_creation) ... ok
+test_highlight_recolor_remove_and_full_text_filters_do_not_merge_notes (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_highlight_recolor_remove_and_full_text_filters_do_not_merge_notes) ... ok
+test_missing_resources_keep_annotations_editable_and_backups_compatible (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_missing_resources_keep_annotations_editable_and_backups_compatible) ... ok
+test_passage_footer_reveals_actual_record_in_unified_workspace (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_passage_footer_reveals_actual_record_in_unified_workspace) ... ok
+test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft) ... ok
+test_pending_delete_cannot_autosave_recreate_note_and_keeps_highlight (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_pending_delete_cannot_autosave_recreate_note_and_keeps_highlight) ... ok
+test_real_numbering_difference_explicit_new_tab_and_notes_context (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_real_numbering_difference_explicit_new_tab_and_notes_context) ... ok
+test_unavailable_imported_reference_keeps_note_without_guessing_passage (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_unavailable_imported_reference_keeps_note_without_guessing_passage) ... ok
+test_workspace_selector_routes_and_unfinished_label_guard (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_workspace_selector_routes_and_unfinished_label_guard) ... ok
+test_write_failure_and_optimistic_conflict_preserve_draft (tests.test_annotation_workspace.AnnotationWorkspaceTests.test_write_failure_and_optimistic_conflict_preserve_draft) ... ok
+test_distinct_records_counts_search_and_stable_keys (tests.test_annotation_workspace.CollectionTests.test_distinct_records_counts_search_and_stable_keys) ... ok
+test_draft_keeps_context_across_chapter_tab_callbacks_and_restart (tests.test_chapter_notes.ChapterNotesTests.test_draft_keeps_context_across_chapter_tab_callbacks_and_restart) ... ok
+test_large_collection_all_reachable_and_stale_reveal_cancelled (tests.test_chapter_notes.ChapterNotesTests.test_large_collection_all_reachable_and_stale_reveal_cancelled) ... ok
+test_manual_browsing_suspends_and_explicit_resume_uses_same_records (tests.test_chapter_notes.ChapterNotesTests.test_manual_browsing_suspends_and_explicit_resume_uses_same_records) ... ok
+test_verified_cross_chapter_mapping_and_range_projection_once (tests.test_chapter_notes.ChapterNotesTests.test_verified_cross_chapter_mapping_and_range_projection_once) ... ok
+test_whole_chapter_canonical_order_group_gaps_no_rebuild_or_navigation (tests.test_chapter_notes.ChapterNotesTests.test_whole_chapter_canonical_order_group_gaps_no_rebuild_or_navigation) ... ok
+test_backup_merge_conflicts_duplicates_and_unicode (tests.test_notes.NoteTests.test_backup_merge_conflicts_duplicates_and_unicode) ... ok
+test_cross_chapter_range_roundtrip_keeps_schema_identity_and_legacy_notes (tests.test_notes.NoteTests.test_cross_chapter_range_roundtrip_keeps_schema_identity_and_legacy_notes) ... ok
+test_delete_is_transactional_and_does_not_touch_other_notes (tests.test_notes.NoteTests.test_delete_is_transactional_and_does_not_touch_other_notes) ... ok
+test_empty_database_migrates_explicitly_and_private_files (tests.test_notes.NoteTests.test_empty_database_migrates_explicitly_and_private_files) ... ok
+test_failed_export_preserves_existing_backup_and_protects_database (tests.test_notes.NoteTests.test_failed_export_preserves_existing_backup_and_protects_database) ... ok
+test_future_or_unrelated_database_is_not_modified (tests.test_notes.NoteTests.test_future_or_unrelated_database_is_not_modified) ... ok
+test_initial_schema_persistence_passages_and_labels (tests.test_notes.NoteTests.test_initial_schema_persistence_passages_and_labels) ... ok
+test_invalid_passage_body_labels_and_backup_size (tests.test_notes.NoteTests.test_invalid_passage_body_labels_and_backup_size) ... ok
+test_invalid_restore_validates_every_record_before_writing (tests.test_notes.NoteTests.test_invalid_restore_validates_every_record_before_writing) ... ok
+test_markdown_is_inert_and_preserves_untrusted_text (tests.test_notes.NoteTests.test_markdown_is_inert_and_preserves_untrusted_text) ... ok
+test_optimistic_edits_and_failed_write_preserve_old_note (tests.test_notes.NoteTests.test_optimistic_edits_and_failed_write_preserve_old_note) ... ok
+test_restore_transaction_rolls_back_after_a_partial_write_failure (tests.test_notes.NoteTests.test_restore_transaction_rolls_back_after_a_partial_write_failure) ... ok
+test_action_surface_stays_dark_and_readable_after_repeated_native_redraw (tests.test_finishing.FinishingTests.test_action_surface_stays_dark_and_readable_after_repeated_native_redraw) ... ok
+test_catalogue_loading_zero_failure_and_retained_rows_are_distinct (tests.test_finishing.FinishingTests.test_catalogue_loading_zero_failure_and_retained_rows_are_distinct) ... ok
+test_immersion_hides_saved_marks_without_changing_preferences_or_storage (tests.test_finishing.FinishingTests.test_immersion_hides_saved_marks_without_changing_preferences_or_storage) ... ok
+test_immersive_turns_cancel_on_resize_and_disabled_animations (tests.test_finishing.FinishingTests.test_immersive_turns_cancel_on_resize_and_disabled_animations) ... ok
+test_one_click_lists_and_canvas_tooltip (tests.test_finishing.FinishingTests.test_one_click_lists_and_canvas_tooltip) ... ok
+test_reference_opened_tab_keeps_inherited_palette_after_switch_and_restart (tests.test_finishing.FinishingTests.test_reference_opened_tab_keeps_inherited_palette_after_switch_and_restart) ... ok
+test_tab_strip_allocations_and_per_tab_palette_survive_restart (tests.test_finishing.FinishingTests.test_tab_strip_allocations_and_per_tab_palette_survive_restart) ... ok
+test_unreadable_installed_metadata_keeps_welcome_and_original_files (tests.test_finishing.FinishingTests.test_unreadable_installed_metadata_keeps_welcome_and_original_files) ... ok
+test_wide_immersive_arrows_hold_hover_and_mouse_focus_does_not_pin_chrome (tests.test_finishing.FinishingTests.test_wide_immersive_arrows_hold_hover_and_mouse_focus_does_not_pin_chrome) ... ok
+test_context_commands_keep_comparison_source_without_floating_selection (tests.test_client_feedback.ClientFeedbackTests.test_context_commands_keep_comparison_source_without_floating_selection) ... ok
+test_dismiss_releases_backdrop_source_signals_and_selection_timer (tests.test_client_feedback.ClientFeedbackTests.test_dismiss_releases_backdrop_source_signals_and_selection_timer) ... ok
+test_immersive_keyboard_focus_stays_outside_the_moving_pages (tests.test_client_feedback.ClientFeedbackTests.test_immersive_keyboard_focus_stays_outside_the_moving_pages) ... ok
+test_preferences_direct_theme_choices_and_backup_rows_use_existing_actions (tests.test_client_feedback.ClientFeedbackTests.test_preferences_direct_theme_choices_and_backup_rows_use_existing_actions) ... ok
+test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides (tests.test_client_feedback.ClientFeedbackTests.test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides) ... ok
+test_shared_immersive_reading_box_stays_centered_when_controls_fade (tests.test_client_feedback.ClientFeedbackTests.test_shared_immersive_reading_box_stays_centered_when_controls_fade) ... ok
+test_visible_workspace_group_switches_both_ways_in_one_activation (tests.test_client_feedback.ClientFeedbackTests.test_visible_workspace_group_switches_both_ways_in_one_activation) ... ok
+test_frozen_comparison_source_copy_note_and_stale_selection (tests.test_passage_actions.PassageActionTests.test_frozen_comparison_source_copy_note_and_stale_selection) ... ok
+test_programmatic_anchor_and_study_updates_do_not_open_actions (tests.test_passage_actions.PassageActionTests.test_programmatic_anchor_and_study_updates_do_not_open_actions) ... ok
+test_failed_recovery_blocks_further_edits_and_exports_until_reopened (tests.test_personal_backup.PersonalBackupTests.test_failed_recovery_blocks_further_edits_and_exports_until_reopened) ... ok
+test_highlight_write_failure_recovers_both_stores_and_restart_is_repeatable (tests.test_personal_backup.PersonalBackupTests.test_highlight_write_failure_recovers_both_stores_and_restart_is_repeatable) ... ok
+test_invalid_entire_input_or_backup_write_failure_changes_nothing (tests.test_personal_backup.PersonalBackupTests.test_invalid_entire_input_or_backup_write_failure_changes_nothing) ... ok
+test_legacy_notes_and_highlights_backups_remain_importable (tests.test_personal_backup.PersonalBackupTests.test_legacy_notes_and_highlights_backups_remain_importable) ... ok
+test_unicode_markdown_labels_ranges_missing_resources_roundtrip_merge (tests.test_personal_backup.PersonalBackupTests.test_unicode_markdown_labels_ranges_missing_resources_roundtrip_merge) ... ok
+test_backup_native_cancel_and_declined_merge_leave_annotations_unchanged (tests.test_personal_backup_ui.PersonalBackupUITests.test_backup_native_cancel_and_declined_merge_leave_annotations_unchanged) ... ok
+test_active_palette_pair_switches_without_losing_saved_other_pair (tests.test_visual_polish.VisualPolishTests.test_active_palette_pair_switches_without_losing_saved_other_pair) ... ok
+test_pane_choosers_keep_tabs_data_and_verified_mapping (tests.test_visual_polish.VisualPolishTests.test_pane_choosers_keep_tabs_data_and_verified_mapping) ... ok
+test_controls_selection_big_text_shared_tabs_and_restart (tests.test_appearance.AppearanceTests.test_controls_selection_big_text_shared_tabs_and_restart) ... ok
+test_controls_stay_in_header_and_reference_field_is_visible (tests.test_appearance.AppearanceTests.test_controls_stay_in_header_and_reference_field_is_visible) ... ok
+test_live_modes_contrast_and_restore_do_not_change_passage (tests.test_appearance.AppearanceTests.test_live_modes_contrast_and_restore_do_not_change_passage) ... ok
+test_reflow_preserves_visible_body_anchor_and_non_latin_glyphs (tests.test_appearance.AppearanceTests.test_reflow_preserves_visible_body_anchor_and_non_latin_glyphs) ... ok
+test_approved_defaults_missing_fields_and_saved_choices (tests.test_appearance.PaletteTests.test_approved_defaults_missing_fields_and_saved_choices) ... ok
+test_contrast_text_links_numbers_selection_all_palettes (tests.test_appearance.PaletteTests.test_contrast_text_links_numbers_selection_all_palettes) ... ok
+test_preferences_legacy_and_new_fields_survive (tests.test_appearance.PaletteTests.test_preferences_legacy_and_new_fields_survive) ... ok
+test_legacy_defaults_custom_values_and_future_files_are_preserved (tests.test_reading_preferences.ReadingPreferenceDataTests.test_legacy_defaults_custom_values_and_future_files_are_preserved) ... ok
+test_full_express_custom_roundtrip_independent_study_font_and_reset (tests.test_reading_preferences.ReadingSettingsTests.test_full_express_custom_roundtrip_independent_study_font_and_reset) ... 
+(process:2): Adwaita-CRITICAL **: 15:46:54.188: Trying to close AdwPreferencesDialog 0x55a811cc5d50 that's not presented
+ok
+test_chapter_stream_keeps_all_entries_and_missing_coverage_without_replacement (tests.test_study_navigation.CommentaryRestoreTests.test_chapter_stream_keeps_all_entries_and_missing_coverage_without_replacement) ... ok
+test_last_explicit_source_defaults_only_unchosen_tabs_and_survives_absence (tests.test_study_navigation.CommentaryRestoreTests.test_last_explicit_source_defaults_only_unchosen_tabs_and_survives_absence) ... ok
+test_legacy_and_qualified_identity_and_invalid_file_preservation (tests.test_study_navigation.RememberedSourceTests.test_legacy_and_qualified_identity_and_invalid_file_preservation) ... ok
+test_frames_latest_target_input_reflow_and_disabled_animations (tests.test_scroll_motion.ScrollMotionTests.test_frames_latest_target_input_reflow_and_disabled_animations) ... ok
+test_actual_verse_bodies_align_with_different_source_headings (tests.test_comparison_rows.ComparisonRowsTests.test_actual_verse_bodies_align_with_different_source_headings) ... ok
+test_chapter_navigation_discards_previous_reflow_anchor (tests.test_comparison_rows.ComparisonRowsTests.test_chapter_navigation_discards_previous_reflow_anchor) ... ok
+test_split_final_john_verses_form_one_correspondence_group (tests.test_comparison_rows.ComparisonRowsTests.test_split_final_john_verses_form_one_correspondence_group) ... ok
+test_split_mapping_groups_and_known_absence_preserve_every_source_verse (tests.test_comparison_rows.ComparisonRowsTests.test_split_mapping_groups_and_known_absence_preserve_every_source_verse) ... ok
+test_wrapped_rows_stay_aligned_reflow_and_single_prose_restore (tests.test_comparison_rows.ComparisonRowsTests.test_wrapped_rows_stay_aligned_reflow_and_single_prose_restore) ... 
+(process:2): Gtk-WARNING **: 15:47:06.693: Trying to snapshot GtkGizmo 0x55a814727ac0 without a current allocation
+ok
+test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab (tests.test_place_cards.PlaceCardTests.test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab) ... ok
+test_map_failure_keeps_place_metadata_and_related_references (tests.test_place_cards.PlaceCardTests.test_map_failure_keeps_place_metadata_and_related_references) ... ok
+test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles (tests.test_place_cards.PlaceCardTests.test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles) ... ok
+test_region_reference_point_keeps_its_historical_uncertainty_visible (tests.test_place_cards.PlaceCardTests.test_region_reference_point_keeps_its_historical_uncertainty_visible) ... ok
+test_identified_cached_view_and_no_requests_after_close (tests.test_place_map.PlaceMapTests.test_identified_cached_view_and_no_requests_after_close) ... dbus-daemon[12664]: [session uid=1001 pid=12664] Activating service name='org.freedesktop.portal.Flatpak' requested by ':1.9' (uid=1001 pid=12707 comm="xdg-dbus-proxy --args=37" label="flatpak (unconfined)")
+dbus-daemon[12664]: [session uid=1001 pid=12664] Successfully activated service 'org.freedesktop.portal.Flatpak'
+
+(process:2): shumate-WARNING **: 15:47:13.004: Failed to create texture from tile data (77, 50 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.005: Failed to create texture from tile data (77, 51 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.006: Failed to create texture from tile data (77, 52 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.007: Failed to create texture from tile data (77, 53 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.007: Failed to create texture from tile data (78, 50 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.008: Failed to create texture from tile data (78, 51 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.009: Failed to create texture from tile data (78, 52 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.010: Failed to create texture from tile data (78, 53 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.010: Failed to create texture from tile data (79, 50 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.011: Failed to create texture from tile data (79, 51 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.012: Failed to create texture from tile data (79, 52 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.013: Failed to create texture from tile data (79, 53 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.013: Failed to create texture from tile data (80, 50 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.014: Failed to create texture from tile data (80, 51 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.015: Failed to create texture from tile data (80, 52 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.015: Failed to create texture from tile data (80, 53 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.016: Failed to create texture from tile data (81, 50 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.017: Failed to create texture from tile data (81, 51 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.018: Failed to create texture from tile data (81, 52 @ 7): Unrecognized image file format
+
+(process:2): shumate-WARNING **: 15:47:13.018: Failed to create texture from tile data (81, 53 @ 7): Unrecognized image file format
+ok
+test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture (tests.test_word_study.WordStudyTests.test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture) ... ok
+test_numbered_source_heading_is_unavailable_without_changing_reader (tests.test_word_study.WordStudyTests.test_numbered_source_heading_is_unavailable_without_changing_reader) ... ok
+test_real_provider_boundary_temporary_back_and_occurrence_search_preserve_draft (tests.test_word_study.WordStudyTests.test_real_provider_boundary_temporary_back_and_occurrence_search_preserve_draft) ... ok
+test_accents_punctuation_limits_and_unsupported_segmentation (tests.test_text_search.CloseMatchTests.test_accents_punctuation_limits_and_unsupported_segmentation) ... ok
+test_negation_is_not_dropped_and_distant_overlap_is_not_a_close_phrase (tests.test_text_search.CloseMatchTests.test_negation_is_not_dropped_and_distant_overlap_is_not_a_close_phrase) ... ok
+test_quotes_remain_strict_and_common_words_do_not_create_close_results (tests.test_text_search.CloseMatchTests.test_quotes_remain_strict_and_common_words_do_not_create_close_results) ... ok
+test_strict_terms_precede_close_wording_and_paging_preserves_order (tests.test_text_search.CloseMatchTests.test_strict_terms_precede_close_wording_and_paging_preserves_order) ... ok
+test_actual_sword_index_scope_count_pages_and_phrase_order (tests.test_text_search.SearchTermsTests.test_actual_sword_index_scope_count_pages_and_phrase_order) ... ok
+test_french_accents_apostrophes_phrases_and_source_highlighting (tests.test_text_search.SearchTermsTests.test_french_accents_apostrophes_phrases_and_source_highlighting) ... ok
+test_alternate_title_addresses_remain_distinct_and_excluded_readings_stay_out (tests.test_step_data.StepDataTests.test_alternate_title_addresses_remain_distinct_and_excluded_readings_stay_out) ... ok
+test_filtered_corpora_lexical_lookup_counts_and_failed_update_retains_data (tests.test_step_data.StepDataTests.test_filtered_corpora_lexical_lookup_counts_and_failed_update_retains_data) ... ok
+test_real_numbered_psalm_titles_never_become_body_verse_words (tests.test_word_metadata.SourceVerseTests.test_real_numbered_psalm_titles_never_become_body_verse_words) ... ok
+test_grouped_multiple_strongs_and_hidden_markup_never_pick_an_arbitrary_lemma (tests.test_word_metadata.WordMetadataTests.test_grouped_multiple_strongs_and_hidden_markup_never_pick_an_arbitrary_lemma) ... ok
+test_verified_translated_word_supplies_lexical_id_without_inflected_claim (tests.test_word_metadata.WordMetadataTests.test_verified_translated_word_supplies_lexical_id_without_inflected_claim) ... ok
+test_delayed_text_notification_keeps_explicit_search_results (tests.test_study_search.StudySearchTests.test_delayed_text_notification_keeps_explicit_search_results) ... ok
+test_delayed_topic_notification_keeps_selected_results_and_preview (tests.test_study_search.StudySearchTests.test_delayed_topic_notification_keeps_selected_results_and_preview) ... ok
+test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable (tests.test_study_search.StudySearchTests.test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable) ... ok
+test_paused_query_keeps_draft_without_leaving_a_stale_searching_state (tests.test_study_search.StudySearchTests.test_paused_query_keeps_draft_without_leaving_a_stale_searching_state) ... ok
+test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one (tests.test_study_search.StudySearchTests.test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one) ... ok
+test_superseded_worker_cannot_replace_new_result_or_reopen_preview (tests.test_study_search.StudySearchTests.test_superseded_worker_cannot_replace_new_result_or_reopen_preview) ... ok
+test_unavailable_translation_and_invalid_phrase_do_not_launch_worker (tests.test_study_search.StudySearchTests.test_unavailable_translation_and_invalid_phrase_do_not_launch_worker) ... ok
+test_followed_verses_do_not_rebuild_hidden_passage_menu_and_opening_refreshes_it (tests.test_scroll_position.ScrollPositionTests.test_followed_verses_do_not_rebuild_hidden_passage_menu_and_opening_refreshes_it) ... ok
+test_native_adjustment_only_persists_position_but_passage_change_still_updates (tests.test_scroll_position.ScrollPositionTests.test_native_adjustment_only_persists_position_but_passage_change_still_updates) ... ok
+test_hidden_actions_cancel_pending_capture_without_native_popup_work (tests.test_reader_layout_idle.ReaderLayoutIdleTests.test_hidden_actions_cancel_pending_capture_without_native_popup_work) ... ok
+test_idle_has_no_geometry_or_caption_polling (tests.test_reader_layout_idle.ReaderLayoutIdleTests.test_idle_has_no_geometry_or_caption_polling) ... ok
+test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries (tests.test_reader_layout_idle.ReaderLayoutIdleTests.test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries) ... 
+(process:2): Gtk-WARNING **: 15:47:32.572: Trying to snapshot AdwBin 0x55a81b1a7490 without a current allocation
+ok
+test_resize_scroll_and_font_changes_settle_with_reading_anchor (tests.test_reader_layout_idle.ReaderLayoutIdleTests.test_resize_scroll_and_font_changes_settle_with_reading_anchor) ... ok
+test_chapter_titles_full_names_narrow_controls_and_restore (tests.test_reader_chrome.ReaderChromeTests.test_chapter_titles_full_names_narrow_controls_and_restore) ... 
+(process:2): Gtk-WARNING **: 15:47:38.534: Trying to snapshot AdwBin 0x55a81bea4690 without a current allocation
+ok
+test_repeated_reads_reuse_parsing_but_changed_terms_and_source_are_revalidated (tests.test_library_metadata.LibraryMetadataTests.test_repeated_reads_reuse_parsing_but_changed_terms_and_source_are_revalidated) ... ok
+test_replacement_with_same_size_and_mtime_and_removal_do_not_return_stale_attribution (tests.test_library_metadata.LibraryMetadataTests.test_replacement_with_same_size_and_mtime_and_removal_do_not_return_stale_attribution) ... ok
+test_wrapped_and_partial_lines_match_existing_reference_semantics_in_both_directions (tests.test_viewport_reference.ViewportReferenceTests.test_wrapped_and_partial_lines_match_existing_reference_semantics_in_both_directions) ... ok
+test_note_on_alias_remains_visible_and_draft_data_is_unchanged (tests.test_linked_verses.LinkedLayoutTests.test_note_on_alias_remains_visible_and_draft_data_is_unchanged) ... ok
+test_render_alias_navigation_selection_and_copy_use_one_unit (tests.test_linked_verses.LinkedLayoutTests.test_render_alias_navigation_selection_and_copy_use_one_unit) ... ok
+test_shared_comparison_aligns_a_linked_unit_with_both_other_verses (tests.test_linked_verses.LinkedLayoutTests.test_shared_comparison_aligns_a_linked_unit_with_both_other_verses) ... ok
+test_alias_lookup_keeps_all_references_and_unique_units_keep_real_repetition (tests.test_linked_verses.LinkedReaderTests.test_alias_lookup_keeps_all_references_and_unique_units_keep_real_repetition) ... ok
+test_authentication_refusal_is_not_retried_or_bypassed (tests.test_youversion.AcquisitionTests.test_authentication_refusal_is_not_retried_or_bypassed) ... ok
+test_cancel_and_oversize_never_mark_download_complete (tests.test_youversion.AcquisitionTests.test_cancel_and_oversize_never_mark_download_complete) ... ok
+test_cancellation_terminates_the_isolated_conversion_process (tests.test_youversion.AcquisitionTests.test_cancellation_terminates_the_isolated_conversion_process) ... ok
+test_catalogue_is_metadata_only_and_exact_conditions_survive (tests.test_youversion.AcquisitionTests.test_catalogue_is_metadata_only_and_exact_conditions_survive) ... ok
+test_commit_is_atomic_provenance_is_offline_and_repeat_is_noop (tests.test_youversion.AcquisitionTests.test_commit_is_atomic_provenance_is_offline_and_repeat_is_noop) ... ok
+test_damaged_completed_cache_restarts_without_an_invalid_eof_range (tests.test_youversion.AcquisitionTests.test_damaged_completed_cache_restarts_without_an_invalid_eof_range) ... ok
+test_failed_conversion_does_not_register_or_modify_existing_data (tests.test_youversion.AcquisitionTests.test_failed_conversion_does_not_register_or_modify_existing_data) ... ok
+test_interrupted_transfer_resumes_with_validator_and_exact_range (tests.test_youversion.AcquisitionTests.test_interrupted_transfer_resumes_with_validator_and_exact_range) ... ok
+test_one_metadata_refusal_keeps_other_editions_and_the_cached_record (tests.test_youversion.AcquisitionTests.test_one_metadata_refusal_keeps_other_editions_and_the_cached_record) ... ok
+test_permission_and_changed_metadata_stop_before_acquisition (tests.test_youversion.AcquisitionTests.test_permission_and_changed_metadata_stop_before_acquisition) ... ok
+test_rate_limit_honours_retry_after_and_long_wait_is_reported (tests.test_youversion.AcquisitionTests.test_rate_limit_honours_retry_after_and_long_wait_is_reported) ... ok
+test_redirect_cannot_move_to_http_or_another_host (tests.test_youversion.AcquisitionTests.test_redirect_cannot_move_to_http_or_another_host) ... ok
+test_retained_complete_download_never_requests_redownload (tests.test_youversion.AcquisitionTests.test_retained_complete_download_never_requests_redownload) ... ok
+test_unknown_numbering_and_no_returned_package (tests.test_youversion.AcquisitionTests.test_unknown_numbering_and_no_returned_package) ... ok
+test_empty_declared_verse_and_unindexed_poetry_keep_distinct_identities (tests.test_youversion.EditorialTests.test_empty_declared_verse_and_unindexed_poetry_keep_distinct_identities) ... ok
+test_native_fragments_notes_headings_and_inline_words (tests.test_youversion.EditorialTests.test_native_fragments_notes_headings_and_inline_words) ... ok
+test_native_poetry_end_milestones_do_not_duplicate_source_roles (tests.test_youversion.EditorialTests.test_native_poetry_end_milestones_do_not_duplicate_source_roles) ... ok
+test_original_reference_data_is_reproducible_and_boundaries_are_explicit (tests.test_youversion.EditorialTests.test_original_reference_data_is_reproducible_and_boundaries_are_explicit) ... ok
+test_exact_native_bounds_verified_mapping_and_original_note_roundtrip (tests.test_youversion.OriginalNativeTests.test_exact_native_bounds_verified_mapping_and_original_note_roundtrip) ... ok
+test_publisher_indexes_preserve_source_bounds_without_guessing_alignment (tests.test_youversion.OriginalNativeTests.test_publisher_indexes_preserve_source_bounds_without_guessing_alignment) ... ok
+test_source_body_preserves_case_and_characters_without_native_display_transforms (tests.test_youversion.SourceReaderTests.test_source_body_preserves_case_and_characters_without_native_display_transforms) ... ok
+test_introduction_preserves_inline_words_and_leaves_passage_unchanged (tests.test_youversion_ui.EditorialUITests.test_introduction_preserves_inline_words_and_leaves_passage_unchanged) ... ok
+test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive (tests.test_youversion_ui.EditorialUITests.test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive) ... ok
+test_library_download_requires_acknowledgement_and_keeps_failure_retryable (tests.test_youversion_ui.EditorialUITests.test_library_download_requires_acknowledgement_and_keeps_failure_retryable) ... ok
+test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive (tests.test_youversion_ui.EditorialUITests.test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive) ... ok
+test_library_and_selector_open_unmapped_target_without_relabeling_a_passage (tests.test_independent_opening.IndependentOpeningTests.test_library_and_selector_open_unmapped_target_without_relabeling_a_passage) ... ok
+test_marker_and_first_word_stay_on_one_line_and_page (tests.test_verse_typography.VerseTypographyTests.test_marker_and_first_word_stay_on_one_line_and_page) ... ok
+test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy (tests.test_verse_typography.VerseTypographyTests.test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy) ... ok
+test_bad_refresh_preserves_previous_language_list (tests.test_youversion_catalogue.LanguageCatalogueTests.test_bad_refresh_preserves_previous_language_list) ... ok
+test_browsing_downloads_metadata_only_and_unchanged_cache_keeps_its_age (tests.test_youversion_catalogue.LanguageCatalogueTests.test_browsing_downloads_metadata_only_and_unchanged_cache_keeps_its_age) ... ok
+test_language_index_and_regional_lists_use_actual_tags (tests.test_youversion_catalogue.LanguageCatalogueTests.test_language_index_and_regional_lists_use_actual_tags) ... ok
+test_new_ids_and_source_indexes_are_not_limited_to_the_pilots (tests.test_youversion_catalogue.LanguageCatalogueTests.test_new_ids_and_source_indexes_are_not_limited_to_the_pilots) ... ok
+test_session_loads_only_chosen_languages_off_thread_and_retains_previous_rows (tests.test_youversion_catalogue.LanguageCatalogueTests.test_session_loads_only_chosen_languages_off_thread_and_retains_previous_rows) ... ok
+test_unavailable_or_untrusted_source_is_never_a_downloadable_placeholder (tests.test_youversion_catalogue.LanguageCatalogueTests.test_unavailable_or_untrusted_source_is_never_a_downloadable_placeholder) ... ok
+test_native_parser_rejects_invalid_testaments_and_oversized_indexes (tests.test_source_versification.NativeSourceIndexTests.test_native_parser_rejects_invalid_testaments_and_oversized_indexes) ... ok
+test_nt_only_rtl_prefix_missing_verse_and_bridge_survive_full_readback (tests.test_source_versification.NativeSourceIndexTests.test_nt_only_rtl_prefix_missing_verse_and_bridge_survive_full_readback) ... ok
+test_reference_only_index_reuse_conflict_and_receipt_integrity (tests.test_source_versification.NativeSourceIndexTests.test_reference_only_index_reuse_conflict_and_receipt_integrity) ... ok
+test_end_milestone_can_reference_its_start_without_repeating_the_type (tests.test_source_rendering.SourceRenderingTests.test_end_milestone_can_reference_its_start_without_repeating_the_type) ... ok
+test_paired_paragraphs_collapse_only_adjacent_markup_whitespace (tests.test_source_rendering.SourceRenderingTests.test_paired_paragraphs_collapse_only_adjacent_markup_whitespace) ... ok
+test_paired_poetry_milestones_have_one_line_boundary (tests.test_source_rendering.SourceRenderingTests.test_paired_poetry_milestones_have_one_line_boundary) ... ok
+test_source_distinguishes_parallel_references_from_section_titles (tests.test_source_rendering.SourceRenderingTests.test_source_distinguishes_parallel_references_from_section_titles) ... ok
+test_unknown_conversion_keeps_native_output (tests.test_source_rendering.SourceRenderingTests.test_unknown_conversion_keeps_native_output) ... ok
+test_follow_intro_body_missing_intro_and_later_verse_without_changing_reference (tests.test_commentary_context.CommentaryContextTests.test_follow_intro_body_missing_intro_and_later_verse_without_changing_reference) ... 
+(process:2): Gtk-WARNING **: 15:47:57.654: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.665: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:47:57.665: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8200e95c0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:47:57.665: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a8202b94e0 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:47:57.665: Trying to measure GtkBox 0x55a82025b560 for width of 0, but it needs at least 44
+
+(process:2): Gtk-WARNING **: 15:47:57.665: Trying to measure GtkLabel 0x55a8115e8700 for width of 0, but it needs at least 44
+
+(process:2): Gtk-WARNING **: 15:47:57.666: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204571c0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:47:57.666: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a820455840 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:47:57.693: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Adwaita-WARNING **: 15:47:57.693: AdwHeaderBar 0x55a80e39edc0 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:47:57.693: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.702: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.702: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.718: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.718: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.735: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.735: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.752: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.752: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.768: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.768: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:57.785: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a8204af830 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:57.785: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8204854d0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.875: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.885: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:47:58.885: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a81a3422a0 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:47:58.885: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a8125e9610 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:47:58.885: Trying to measure GtkBox 0x55a820710280 for width of 0, but it needs at least 44
+
+(process:2): Gtk-WARNING **: 15:47:58.886: Trying to measure GtkLabel 0x55a812505760 for width of 0, but it needs at least 44
+
+(process:2): Gtk-WARNING **: 15:47:58.886: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a8209dab80 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:47:58.886: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a8209d9200 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:47:58.913: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Adwaita-WARNING **: 15:47:58.913: AdwHeaderBar 0x55a82070d380 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:47:58.913: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.923: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.923: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.940: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.940: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.957: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.957: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.974: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.974: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:58.990: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:58.990: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:47:59.007: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820a331f0 with width -2147482698 and height 690
+
+(process:2): Gtk-WARNING **: 15:47:59.007: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820a08e90 with width -16 and height 76
+ok
+test_verified_combined_title_and_verse_do_not_weaken_annotation_mapping (tests.test_commentary_context.CommentaryContextTests.test_verified_combined_title_and_verse_do_not_weaken_annotation_mapping) ... ok
+test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles (tests.test_commentary_format.CommentaryFormatTests.test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles) ... ok
+test_nested_native_markers_keep_literal_stars_and_semantic_emphasis (tests.test_commentary_format.CommentaryFormatTests.test_nested_native_markers_keep_literal_stars_and_semantic_emphasis) ... ok
+test_only_verified_osis_decorations_are_hidden (tests.test_commentary_format.CommentaryFormatTests.test_only_verified_osis_decorations_are_hidden) ... ok
+test_unknown_filter_output_keeps_original_text (tests.test_commentary_format.CommentaryFormatTests.test_unknown_filter_output_keeps_original_text) ... ok
+test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules (tests.test_commentary_format.CommentaryLayoutTests.test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules) ... 
+(process:2): Gtk-WARNING **: 15:48:00.128: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.140: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 50
+
+(process:2): Gtk-WARNING **: 15:48:00.140: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820b38b10 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:48:00.140: gtk_widget_size_allocate(): attempt to allocate AdwWindowTitle windowtitle 0x55a820b0cfe0 with width -20 and height 0
+
+(process:2): Gtk-WARNING **: 15:48:00.140: Trying to measure GtkBox 0x55a81fd9ffa0 for width of 0, but it needs at least 41
+
+(process:2): Gtk-WARNING **: 15:48:00.140: Trying to measure GtkLabel 0x55a820cb0fb0 for width of 0, but it needs at least 41
+
+(process:2): Gtk-WARNING **: 15:48:00.141: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f63890 with width -20 and height 24
+
+(process:2): Gtk-WARNING **: 15:48:00.141: gtk_widget_size_allocate(): attempt to allocate GtkLabel label 0x55a820f61f10 with width -16 and height 0
+
+(process:2): Gtk-WARNING **: 15:48:00.169: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Adwaita-WARNING **: 15:48:00.169: AdwHeaderBar 0x55a820c98b10 exceeds AdwBreakpointBin size: requested 235×47 px, 0×46 px available
+
+(process:2): Gtk-WARNING **: 15:48:00.169: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.174: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.174: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.191: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.191: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.208: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.208: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.224: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.224: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.241: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.241: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+
+(process:2): Gtk-WARNING **: 15:48:00.258: gtk_widget_size_allocate(): attempt to allocate AdwBin widget 0x55a820fbbbe0 with width -2147482658 and height 690
+
+(process:2): Gtk-WARNING **: 15:48:00.258: gtk_widget_size_allocate(): attempt to allocate GtkBox box 0x55a820f91ba0 with width -16 and height 76
+ok
+test_verified_decorations_have_zero_advance_without_invisible_indices (tests.test_commentary_format.CommentaryLayoutTests.test_verified_decorations_have_zero_advance_without_invisible_indices) ... ok
+
+----------------------------------------------------------------------
+Ran 211 tests in 154.729s
+
+OK
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=1001 pid=13321 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[13307]: [session uid=1001 pid=13307] Successfully activated service 'org.freedesktop.Flatpak'
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.portal.Documents' requested by ':1.0' (uid=1001 pid=13321 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.2' (uid=1001 pid=13334 comm="/usr/libexec/xdg-document-portal" label="unconfined")
+dbus-daemon[13307]: [session uid=1001 pid=13307] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[13307]: [session uid=1001 pid=13307] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+F: Can't get document portal: GDBus.Error:org.freedesktop.portal.Error.Failed: Can't mount path /run/user/1001/doc
+MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.5' (uid=1001 pid=13350 comm="xdg-dbus-proxy --args=37" label="flatpak (unconfined)")
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.portal.Documents' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[13307]: [session uid=1001 pid=13307] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.287: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.287: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13385): Gtk-WARNING **: 15:48:03.296: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.300: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.300: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.300: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.300: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.300: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13388): Gtk-WARNING **: 15:48:03.309: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.311: Failed to create file chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.311: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.311: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13390): Gtk-WARNING **: 15:48:03.319: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.321: Failed to create app chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.321: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.321: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13392): Gtk-WARNING **: 15:48:03.329: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.331: Failed to create print proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.331: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.331: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13394): Gtk-WARNING **: 15:48:03.339: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.340: Failed to create notification proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.341: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.341: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13396): Gtk-WARNING **: 15:48:03.349: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.351: Failed to create inhibit proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.351: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.351: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13398): Gtk-WARNING **: 15:48:03.359: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.361: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.361: No skeleton to export
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13400): Gtk-WARNING **: 15:48:03.370: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13402): Gtk-WARNING **: 15:48:03.379: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.381: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.381: No skeleton to export
+[W][00414.508998] pw.conf      | [          conf.c: 1031 try_load_conf()] can't load config client.conf: No such file or directory
+[E][00414.509066] pw.conf      | [          conf.c: 1060 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.382: Failed connect to PipeWire: Couldn't create PipeWire context
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.382: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13404): Gtk-WARNING **: 15:48:03.390: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.392: Failed to create account proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.392: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.392: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13406): Gtk-WARNING **: 15:48:03.401: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.403: Failed to create email proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.403: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.403: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13370 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13408): Gtk-WARNING **: 15:48:03.411: cannot open display: 
+dbus-daemon[13307]: [session uid=1001 pid=13307] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.412: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13370): xdg-desktop-portal-WARNING **: 15:48:03.412: No skeleton to export
+dbus-daemon[13307]: [session uid=1001 pid=13307] Successfully activated service 'org.freedesktop.portal.Desktop'
+test_commentary_entry_limits_resume_and_bible_unchanged (tests.test_immersion.ImmersionTests.test_commentary_entry_limits_resume_and_bible_unchanged) ... <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+
+(process:2): Gtk-WARNING **: 15:48:03.730: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+/usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1801: DeprecationWarning: Gtk.CssProvider.load_from_data is deprecated
+  super().load_from_data(text, length)
+
+(process:2): Gtk-WARNING **: 15:48:04.246: Creating a portal monitor failed: GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: No such interface “org.freedesktop.portal.Inhibit” on object at path /org/freedesktop/portal/desktop
+ok
+test_commentary_inline_formatting_survives_highlight_integration (tests.test_immersion.ImmersionTests.test_commentary_inline_formatting_survives_highlight_integration) ... ok
+test_deferred_native_selection_clear_is_restored_after_reflow (tests.test_immersion.ImmersionTests.test_deferred_native_selection_clear_is_restored_after_reflow) ... ok
+test_exit_during_preparation_cancels_worker_and_keeps_reading_state (tests.test_immersion.ImmersionTests.test_exit_during_preparation_cancels_worker_and_keeps_reading_state) ... ok
+test_multiverse_selection_overrides_click_and_navigation_clears_click (tests.test_immersion.ImmersionTests.test_multiverse_selection_overrides_click_and_navigation_clears_click) ... /usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1077: DeprecationWarning: Gtk.ListStore.set_column_types is deprecated
+  self.set_column_types(column_types)
+/app/lib/bible-python/bible/notes_window.py:80: DeprecationWarning: Gtk.Entry.set_completion is deprecated
+  self.entry.set_completion(completion)
+ok
+test_narrow_rtl_notifications_optout_and_suspension (tests.test_immersion.ImmersionTests.test_narrow_rtl_notifications_optout_and_suspension) ... /home/runner/work/Bible/Bible/tests/test_immersion.py:160: DeprecationWarning: Gtk.Widget.get_allocation is deprecated
+  self.assertLess(r.frames[0].get_allocation().x,r.frames[1].get_allocation().x)
+ok
+test_native_click_targets_notes_and_context_copy_on_each_page (tests.test_immersion.ImmersionTests.test_native_click_targets_notes_and_context_copy_on_each_page) ... /home/runner/work/Bible/Bible/tools/check_alpha_ui.py:74: DeprecationWarning: GdkX11.X11Surface.get_xid is deprecated
+  self.display, native.get_surface().get_xid(),
+ok
+test_passage_navigation_keeps_the_continuous_book_source (tests.test_immersion.ImmersionTests.test_passage_navigation_keeps_the_continuous_book_source) ... ok
+test_profile_closes_window_before_resources_even_after_failure (tests.test_immersion.ImmersionTests.test_profile_closes_window_before_resources_even_after_failure) ... ok
+test_real_pages_fit_and_partition_and_roundtrip_restores_panels (tests.test_immersion.ImmersionTests.test_real_pages_fit_and_partition_and_roundtrip_restores_panels) ... ok
+test_reflow_preserves_inside_verse_and_selection_escape_precedence (tests.test_immersion.ImmersionTests.test_reflow_preserves_inside_verse_and_selection_escape_precedence) ... ok
+test_worker_pagination_matches_the_native_font_context (tests.test_immersion.ImmersionTests.test_worker_pagination_matches_the_native_font_context) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 18.042s
+
+OK
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.Flatpak' requested by ':1.0' (uid=1001 pid=13535 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.Flatpak'
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.portal.Documents' requested by ':1.0' (uid=1001 pid=13535 comm="flatpak run --user --cwd=/tmp --filesystem=/home/r" label="flatpak (unconfined)")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.2' (uid=1001 pid=13548 comm="/usr/libexec/xdg-document-portal" label="unconfined")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+F: Can't get document portal: GDBus.Error:org.freedesktop.portal.Error.Failed: Can't mount path /run/user/1001/doc
+test_native_multi_place_chooser_after_scrolling_the_anchor (tests.test_inline_markers.InlineMarkerTests.test_native_multi_place_chooser_after_scrolling_the_anchor) ... MESA-EGL: warning: DRI3 error: Could not get DRI3 device
+MESA-EGL: warning: Ensure your X server supports DRI3 to get accelerated rendering
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.5' (uid=1001 pid=13564 comm="xdg-dbus-proxy --args=37" label="flatpak (unconfined)")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.portal.Documents' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.portal.Documents'
+fusermount3: failed to access mountpoint /run/user/1001/doc: Permission denied
+error: fuse init failed: Can't mount path /run/user/1001/doc
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.799: Choosing gtk.portal for org.freedesktop.impl.portal.Lockdown as a last-resort fallback
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.799: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13599): Gtk-WARNING **: 15:48:21.807: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.811: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.811: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.811: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.811: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.811: Choosing gtk.portal for org.freedesktop.impl.portal.FileChooser as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13603): Gtk-WARNING **: 15:48:21.819: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.820: Failed to create file chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.820: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.820: Choosing gtk.portal for org.freedesktop.impl.portal.AppChooser as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13605): Gtk-WARNING **: 15:48:21.828: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.830: Failed to create app chooser proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.830: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.830: Choosing gtk.portal for org.freedesktop.impl.portal.Print as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13607): Gtk-WARNING **: 15:48:21.837: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.839: Failed to create print proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.839: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.839: Choosing gtk.portal for org.freedesktop.impl.portal.Notification as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13609): Gtk-WARNING **: 15:48:21.846: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.848: Failed to create notification proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.848: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.848: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13611): Gtk-WARNING **: 15:48:21.855: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.856: Failed to create inhibit proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.856: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.856: Choosing gtk.portal for org.freedesktop.impl.portal.Access as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13613): Gtk-WARNING **: 15:48:21.864: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.866: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.866: No skeleton to export
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13615): Gtk-WARNING **: 15:48:21.874: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13617): Gtk-WARNING **: 15:48:21.883: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.884: Failed to create access proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.884: No skeleton to export
+[W][00433.011647] pw.conf      | [          conf.c: 1031 try_load_conf()] can't load config client.conf: No such file or directory
+[E][00433.011708] pw.conf      | [          conf.c: 1060 pw_conf_load_conf_for_context()] can't load config client.conf: No such file or directory
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.885: Failed connect to PipeWire: Couldn't create PipeWire context
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.885: Choosing gtk.portal for org.freedesktop.impl.portal.Account as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13619): Gtk-WARNING **: 15:48:21.893: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.894: Failed to create account proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.894: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.894: Choosing gtk.portal for org.freedesktop.impl.portal.Email as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13621): Gtk-WARNING **: 15:48:21.902: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.903: Failed to create email proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.903: No skeleton to export
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.903: Choosing gtk.portal for org.freedesktop.impl.portal.DynamicLauncher as a last-resort fallback
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.6' (uid=1001 pid=13584 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+
+(xdg-desktop-portal-gtk:13623): Gtk-WARNING **: 15:48:21.911: cannot open display: 
+dbus-daemon[13521]: [session uid=1001 pid=13521] Activated service 'org.freedesktop.impl.portal.desktop.gtk' failed: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.913: Failed to create dynamic_launcher proxy: Error calling StartServiceByName for org.freedesktop.impl.portal.desktop.gtk: Process org.freedesktop.impl.portal.desktop.gtk exited with status 1
+
+(/usr/libexec/xdg-desktop-portal:13584): xdg-desktop-portal-WARNING **: 15:48:21.913: No skeleton to export
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.portal.Desktop'
+
+(process:2): Gtk-WARNING **: 15:48:21.968: Unable to acquire the address of the accessibility bus: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown. If you are attempting to run GTK without a11y support, GTK_A11Y should be set to 'none'.
+/usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1801: DeprecationWarning: Gtk.CssProvider.load_from_data is deprecated
+  super().load_from_data(text, length)
+
+(process:2): Gtk-WARNING **: 15:48:22.398: Creating a portal monitor failed: GDBus.Error:org.freedesktop.DBus.Error.UnknownMethod: No such interface “org.freedesktop.portal.Inhibit” on object at path /org/freedesktop/portal/desktop
+/home/runner/work/Bible/Bible/tools/check_alpha_ui.py:51: DeprecationWarning: GdkX11.X11Surface.get_xid is deprecated
+  self.x11.XSetInputFocus(self.display, window.get_surface().get_xid(), 2, 0)
+ok
+test_native_note_click_and_hovered_marker_rebuild_in_both_readers (tests.test_inline_markers.InlineMarkerTests.test_native_note_click_and_hovered_marker_rebuild_in_both_readers) ... ok
+test_notes_ranges_hidden_numbers_copy_and_live_edits (tests.test_inline_markers.InlineMarkerTests.test_notes_ranges_hidden_numbers_copy_and_live_edits) ... /usr/lib/python3.13/site-packages/gi/overrides/Gtk.py:1077: DeprecationWarning: Gtk.ListStore.set_column_types is deprecated
+  self.set_column_types(column_types)
+/app/lib/bible-python/bible/notes_window.py:80: DeprecationWarning: Gtk.Entry.set_completion is deprecated
+  self.entry.set_completion(completion)
+ok
+test_place_fallback_and_note_coexist_after_verified_mapping_without_network (tests.test_inline_markers.InlineMarkerTests.test_place_fallback_and_note_coexist_after_verified_mapping_without_network) ... ok
+test_end_group_preserves_copy_and_canonical_positions (tests.test_inline_markers.MarkerDocumentTests.test_end_group_preserves_copy_and_canonical_positions) ... ok
+test_pending_keyboard_capture_cannot_cancel_a_new_mouse_selection (tests.test_selection_lifecycle.SelectionLifecycleTests.test_pending_keyboard_capture_cannot_cancel_a_new_mouse_selection) ... dbus-daemon[13521]: [session uid=1001 pid=13521] Activating service name='org.freedesktop.portal.Flatpak' requested by ':1.9' (uid=1001 pid=13564 comm="xdg-dbus-proxy --args=37" label="flatpak (unconfined)")
+dbus-daemon[13521]: [session uid=1001 pid=13521] Successfully activated service 'org.freedesktop.portal.Flatpak'
+ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 16.497s
+
+OK

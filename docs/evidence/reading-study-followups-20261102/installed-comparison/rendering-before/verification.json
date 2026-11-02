@@ -1,0 +1,275 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "development_source_with_installed_runtime": false,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "case": "ebible~fraLSG1910eb-Ps.13.1-reader-white-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~fraLSG1910eb-Ps.13.1-reader-white-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~frasbl2022eb-Ps.13.1-reader-white-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~frasbl2022eb-Ps.13.1-reader-white-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~fraLSG1910eb-Gen.2.1-reader-white-1200",
+      "reference": "Gen.2.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreJND-Gen.2.1-reader-white-1200",
+      "reference": "Gen.2.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreBDM1744-Gen.1.1-reader-white-1200",
+      "reference": "Gen.1.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreSegond1910-Gen.1.1-MHC-white-1200",
+      "reference": "Gen.1.1",
+      "width": 1190,
+      "source_sha256": "d1dc460f38cc6c920cad9db0c5b843023d4c194aca24b18c2c7ec97a6e38bb37",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.1.1-MHC-white-620",
+      "reference": "Gen.1.1",
+      "width": 610,
+      "source_sha256": "d1dc460f38cc6c920cad9db0c5b843023d4c194aca24b18c2c7ec97a6e38bb37",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.2.4-MHC-white-1200",
+      "reference": "Gen.2.4",
+      "width": 1190,
+      "source_sha256": "03cf0b54e6f3f91105990c2312be7abe597f0acd1617a69b01375db1a215d730",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.2.4-MHC-white-620",
+      "reference": "Gen.2.4",
+      "width": 610,
+      "source_sha256": "03cf0b54e6f3f91105990c2312be7abe597f0acd1617a69b01375db1a215d730",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreAug-white-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": "2bde276ee29454723917accd6d8f5491df5963ce8e241a73430fd55578152fb2",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreAug-white-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": "2bde276ee29454723917accd6d8f5491df5963ce8e241a73430fd55578152fb2",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreChry-white-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": "06acb47ca370ecd32be31a9fe2b8f2e2a71008e9820a0d5050cd7d8a40c9e6b5",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreChry-white-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": "06acb47ca370ecd32be31a9fe2b8f2e2a71008e9820a0d5050cd7d8a40c9e6b5",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "ebible~fraLSG1910eb-Ps.13.1-reader-dark-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~fraLSG1910eb-Ps.13.1-reader-dark-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~frasbl2022eb-Ps.13.1-reader-dark-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~frasbl2022eb-Ps.13.1-reader-dark-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": null
+    },
+    {
+      "case": "ebible~fraLSG1910eb-Gen.2.1-reader-dark-1200",
+      "reference": "Gen.2.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreJND-Gen.2.1-reader-dark-1200",
+      "reference": "Gen.2.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreBDM1744-Gen.1.1-reader-dark-1200",
+      "reference": "Gen.1.1",
+      "width": 1190,
+      "source_sha256": null
+    },
+    {
+      "case": "FreSegond1910-Gen.1.1-MHC-dark-1200",
+      "reference": "Gen.1.1",
+      "width": 1190,
+      "source_sha256": "d1dc460f38cc6c920cad9db0c5b843023d4c194aca24b18c2c7ec97a6e38bb37",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.1.1-MHC-dark-620",
+      "reference": "Gen.1.1",
+      "width": 610,
+      "source_sha256": "d1dc460f38cc6c920cad9db0c5b843023d4c194aca24b18c2c7ec97a6e38bb37",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.2.4-MHC-dark-1200",
+      "reference": "Gen.2.4",
+      "width": 1190,
+      "source_sha256": "03cf0b54e6f3f91105990c2312be7abe597f0acd1617a69b01375db1a215d730",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Gen.2.4-MHC-dark-620",
+      "reference": "Gen.2.4",
+      "width": 610,
+      "source_sha256": "03cf0b54e6f3f91105990c2312be7abe597f0acd1617a69b01375db1a215d730",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreAug-dark-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": "2bde276ee29454723917accd6d8f5491df5963ce8e241a73430fd55578152fb2",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreAug-dark-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": "2bde276ee29454723917accd6d8f5491df5963ce8e241a73430fd55578152fb2",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreChry-dark-1200",
+      "reference": "Ps.13.1",
+      "width": 1190,
+      "source_sha256": "06acb47ca370ecd32be31a9fe2b8f2e2a71008e9820a0d5050cd7d8a40c9e6b5",
+      "focus_delta_pixels": 0
+    },
+    {
+      "case": "FreSegond1910-Ps.13.1-FreChry-dark-620",
+      "reference": "Ps.13.1",
+      "width": 610,
+      "source_sha256": "06acb47ca370ecd32be31a9fe2b8f2e2a71008e9820a0d5050cd7d8a40c9e6b5",
+      "focus_delta_pixels": 0
+    }
+  ],
+  "resources": [
+    {
+      "id": "MHC",
+      "title": "Matthew Henry's Complete Commentary on the Whole Bible",
+      "system": "KJV",
+      "version": "2.2",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "FreAug",
+      "title": "Commentaires de la Bible par Saint Augustin",
+      "system": "Catholic",
+      "version": "1.1",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "FreChry",
+      "title": "Commentaires de la Bible par Saint Jean Chrysostome",
+      "system": "Catholic",
+      "version": "2.2",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "FreBDM1744",
+      "title": "Bible David Martin (1744)",
+      "system": "Calvin",
+      "version": "2.0",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "FreJND",
+      "title": "Bible J.N. Darby (2024) in French with Strong's numbers",
+      "system": "German",
+      "version": "3.3",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "ebible~fraLSG1910eb",
+      "title": "Louis Segond 1910",
+      "system": "NRSV",
+      "version": "100.0",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "ebible~frasbl2022eb",
+      "title": "Sainte Bible libre pour le monde",
+      "system": "NRSVA",
+      "version": "171.0",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "FreSegond1910",
+      "title": "Bible Louis Segond (1910) with Strong's numbers",
+      "system": "Segond",
+      "version": "4.0",
+      "source_type": "OSIS"
+    },
+    {
+      "id": "ebible~francl2022eb",
+      "title": "Sainte Bible néo-Crampon Libre",
+      "system": "Catholic2",
+      "version": "1332.0",
+      "source_type": "OSIS"
+    }
+  ],
+  "module_files_preserved": true,
+  "unexpected_context_positions": []
+}

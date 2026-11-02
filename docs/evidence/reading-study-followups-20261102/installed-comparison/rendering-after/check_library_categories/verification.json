@@ -1,0 +1,132 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": false,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "case": "light-0-560",
+      "width": 550,
+      "category": 0,
+      "category_control_visible": true,
+      "resources": [
+        "KJV"
+      ]
+    },
+    {
+      "case": "light-0-360",
+      "width": 350,
+      "category": 0,
+      "category_control_visible": true,
+      "resources": [
+        "KJV"
+      ]
+    },
+    {
+      "case": "light-1-560",
+      "width": 550,
+      "category": 1,
+      "category_control_visible": true,
+      "resources": [
+        "MHC"
+      ]
+    },
+    {
+      "case": "light-1-360",
+      "width": 350,
+      "category": 1,
+      "category_control_visible": true,
+      "resources": [
+        "MHC"
+      ]
+    },
+    {
+      "case": "light-2-560",
+      "width": 550,
+      "category": 2,
+      "category_control_visible": true,
+      "resources": [
+        "openbible-cross-references",
+        "openbible-places",
+        "openbible-topics",
+        "step-word-study"
+      ]
+    },
+    {
+      "case": "light-2-360",
+      "width": 350,
+      "category": 2,
+      "category_control_visible": true,
+      "resources": [
+        "openbible-cross-references",
+        "openbible-places",
+        "openbible-topics",
+        "step-word-study"
+      ]
+    },
+    {
+      "case": "dark-0-560",
+      "width": 550,
+      "category": 0,
+      "category_control_visible": true,
+      "resources": [
+        "KJV"
+      ]
+    },
+    {
+      "case": "dark-0-360",
+      "width": 350,
+      "category": 0,
+      "category_control_visible": true,
+      "resources": [
+        "KJV"
+      ]
+    },
+    {
+      "case": "dark-1-560",
+      "width": 550,
+      "category": 1,
+      "category_control_visible": true,
+      "resources": [
+        "MHC"
+      ]
+    },
+    {
+      "case": "dark-1-360",
+      "width": 350,
+      "category": 1,
+      "category_control_visible": true,
+      "resources": [
+        "MHC"
+      ]
+    },
+    {
+      "case": "dark-2-560",
+      "width": 550,
+      "category": 2,
+      "category_control_visible": true,
+      "resources": [
+        "openbible-cross-references",
+        "openbible-places",
+        "openbible-topics",
+        "step-word-study"
+      ]
+    },
+    {
+      "case": "dark-2-360",
+      "width": 350,
+      "category": 2,
+      "category_control_visible": true,
+      "resources": [
+        "openbible-cross-references",
+        "openbible-places",
+        "openbible-topics",
+        "step-word-study"
+      ]
+    }
+  ],
+  "transfer": {}
+}

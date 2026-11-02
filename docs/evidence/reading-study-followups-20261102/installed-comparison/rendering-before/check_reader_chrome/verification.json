@@ -1,0 +1,131 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "case": "white-single-1200",
+      "width": 1190,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "white-single-560",
+      "width": 550,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "white-single-360",
+      "width": 350,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "white-comparison-1200",
+      "width": 1190,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    },
+    {
+      "case": "white-comparison-560",
+      "width": 550,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    },
+    {
+      "case": "white-comparison-360",
+      "width": 350,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    },
+    {
+      "case": "dark-single-1200",
+      "width": 1190,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "dark-single-560",
+      "width": 550,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "dark-single-360",
+      "width": 350,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": null
+    },
+    {
+      "case": "dark-comparison-1200",
+      "width": 1190,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    },
+    {
+      "case": "dark-comparison-560",
+      "width": 550,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    },
+    {
+      "case": "dark-comparison-360",
+      "width": 350,
+      "title": "Genèse 1:22",
+      "subtitle": "F10",
+      "tab_title": "Genèse 1:22 — F10",
+      "reference": "Gen.1.22",
+      "primary_title": "Louis Segond 1910",
+      "secondary_title": "Bible David Martin (1744)"
+    }
+  ]
+}

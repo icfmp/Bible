@@ -1,0 +1,75 @@
+{
+  "repository": "icfmp/Bible",
+  "issue_states": [
+    {
+      "number": 123,
+      "state": "open",
+      "updated_at": "2026-10-27T11:57:57Z",
+      "comments_read": 0
+    },
+    {
+      "number": 118,
+      "state": "open",
+      "updated_at": "2026-11-01T22:01:02Z",
+      "comments_read": 0
+    },
+    {
+      "number": 130,
+      "state": "open",
+      "updated_at": "2026-11-02T14:10:28Z",
+      "comments_read": 0
+    },
+    {
+      "number": 139,
+      "state": "open",
+      "updated_at": "2026-11-01T21:54:09Z",
+      "comments_read": 0
+    },
+    {
+      "number": 140,
+      "state": "open",
+      "updated_at": "2026-11-01T22:05:52Z",
+      "comments_read": 0
+    },
+    {
+      "number": 141,
+      "state": "open",
+      "updated_at": "2026-11-01T22:16:12Z",
+      "comments_read": 0
+    },
+    {
+      "number": 142,
+      "state": "open",
+      "updated_at": "2026-11-01T22:18:17Z",
+      "comments_read": 0
+    },
+    {
+      "number": 143,
+      "state": "open",
+      "updated_at": "2026-11-01T22:19:37Z",
+      "comments_read": 0
+    },
+    {
+      "number": 145,
+      "state": "open",
+      "updated_at": "2026-11-01T22:22:36Z",
+      "comments_read": 0
+    },
+    {
+      "number": 146,
+      "state": "open",
+      "updated_at": "2026-11-01T22:23:46Z",
+      "comments_read": 0
+    },
+    {
+      "number": 147,
+      "state": "open",
+      "updated_at": "2026-11-01T22:25:46Z",
+      "comments_read": 0
+    }
+  ],
+  "project_error": "Resource not accessible by integration",
+  "numbered_release_87": "paused",
+  "automatic_closing_links": [],
+  "read_on_utc": "2026-11-02"
+}

@@ -1,0 +1,188 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "surface": "references",
+      "palette": "white",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "white",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 160,
+      "popover_height": 526,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "topics",
+      "palette": "white",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "references",
+      "palette": "dark",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "dark",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 160,
+      "popover_height": 526,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "topics",
+      "palette": "dark",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "references",
+      "palette": "paper",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "paper",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 160,
+      "popover_height": 526,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "topics",
+      "palette": "paper",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "references",
+      "palette": "black",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "black",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 160,
+      "popover_height": 526,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "topics",
+      "palette": "black",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "anger",
+        "anxiety",
+        "baptism",
+        "children"
+      ]
+    },
+    {
+      "surface": "places",
+      "name": "Shinar",
+      "map_ready": true,
+      "candidates": 1,
+      "status": "known",
+      "description": "Passage étudié : Genèse 11:2"
+    },
+    {
+      "surface": "places",
+      "name": "Jerusalem",
+      "map_ready": true,
+      "candidates": 1,
+      "status": "known",
+      "description": "Passage étudié : Josué 10:1"
+    },
+    {
+      "surface": "places",
+      "name": "Emmaus",
+      "map_ready": true,
+      "candidates": 6,
+      "status": "disputed",
+      "description": "Passage étudié : Luc 24:13"
+    },
+    {
+      "surface": "places",
+      "name": "Nod",
+      "map_ready": null,
+      "candidates": 1,
+      "status": "unknown",
+      "description": "Passage étudié : Genèse 4:16"
+    }
+  ],
+  "unchanged_source_files": 90
+}

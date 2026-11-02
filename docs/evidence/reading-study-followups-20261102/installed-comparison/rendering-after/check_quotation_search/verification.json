@@ -1,0 +1,211 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": false,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "module": "youversion~YV21",
+      "query": "Car Dieu a tant aimé le monde",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "close"
+      ],
+      "elapsed_seconds": 2.5298332590000427,
+      "max_main_loop_interval_ms": 22.36600100002306,
+      "total": 1
+    },
+    {
+      "module": "youversion~YV21",
+      "query": "\"Car Dieu a tant aimé le monde\"",
+      "references": [],
+      "kinds": [],
+      "elapsed_seconds": 0.4335958430000346,
+      "max_main_loop_interval_ms": 16.360013999928924,
+      "total": 0
+    },
+    {
+      "module": "youversion~YV21",
+      "query": "DIEU TANT AIME MONDE",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "strict"
+      ],
+      "elapsed_seconds": 0.4523040320000291,
+      "max_main_loop_interval_ms": 16.45940299999893,
+      "total": 1
+    },
+    {
+      "module": "KJV",
+      "query": "For God so loved the world",
+      "references": [
+        "John.3.16",
+        "1John.4.10",
+        "2Chr.9.8",
+        "Deut.23.5",
+        "1John.4.11",
+        "1Cor.1.21",
+        "John.13.1",
+        "Gal.2.20",
+        "2Cor.4.4",
+        "1John.5.4",
+        "Rom.3.6",
+        "2Tim.4.10",
+        "John.3.19",
+        "Hos.9.1",
+        "1John.3.1",
+        "Eph.2.12",
+        "Acts.17.24",
+        "1Cor.3.19",
+        "1John.5.19",
+        "Jas.4.4"
+      ],
+      "kinds": [
+        "strict",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close"
+      ],
+      "elapsed_seconds": 0.5724221339999076,
+      "max_main_loop_interval_ms": 113.73878400002013,
+      "total": 21
+    },
+    {
+      "module": "KJV",
+      "query": "For God dearly loved the world",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "close"
+      ],
+      "elapsed_seconds": 0.4542185560000007,
+      "max_main_loop_interval_ms": 21.086021999963123,
+      "total": 1
+    },
+    {
+      "module": "youversion~YV21",
+      "query": "Car Dieu a tant aimé le monde",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "close"
+      ],
+      "elapsed_seconds": 0.4687570499999083,
+      "max_main_loop_interval_ms": 16.83261699997729,
+      "total": 1
+    },
+    {
+      "module": "youversion~YV21",
+      "query": "\"Car Dieu a tant aimé le monde\"",
+      "references": [],
+      "kinds": [],
+      "elapsed_seconds": 0.44174184200005584,
+      "max_main_loop_interval_ms": 21.688811999979407,
+      "total": 0
+    },
+    {
+      "module": "youversion~YV21",
+      "query": "DIEU TANT AIME MONDE",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "strict"
+      ],
+      "elapsed_seconds": 0.46733878199995615,
+      "max_main_loop_interval_ms": 17.809675999956198,
+      "total": 1
+    },
+    {
+      "module": "KJV",
+      "query": "For God so loved the world",
+      "references": [
+        "John.3.16",
+        "1John.4.10",
+        "2Chr.9.8",
+        "Deut.23.5",
+        "1John.4.11",
+        "1Cor.1.21",
+        "John.13.1",
+        "Gal.2.20",
+        "2Cor.4.4",
+        "1John.5.4",
+        "Rom.3.6",
+        "2Tim.4.10",
+        "John.3.19",
+        "Hos.9.1",
+        "1John.3.1",
+        "Eph.2.12",
+        "Acts.17.24",
+        "1Cor.3.19",
+        "1John.5.19",
+        "Jas.4.4"
+      ],
+      "kinds": [
+        "strict",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close",
+        "close"
+      ],
+      "elapsed_seconds": 0.5631241170000294,
+      "max_main_loop_interval_ms": 113.40361800000665,
+      "total": 21
+    },
+    {
+      "module": "KJV",
+      "query": "For God dearly loved the world",
+      "references": [
+        "John.3.16"
+      ],
+      "kinds": [
+        "close"
+      ],
+      "elapsed_seconds": 0.4899706090000109,
+      "max_main_loop_interval_ms": 17.6495089999662,
+      "total": 1
+    }
+  ],
+  "unchanged_resource_files": 115,
+  "manual_client_gnome_validation": false
+}

@@ -1,0 +1,74 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "surface": "comparison",
+      "resource": "ebible~fraLSG1910eb",
+      "reference": "Ps.13.1",
+      "rtl": false,
+      "body_sha256": "fb221e76ae41c1caf6ae53945a4826e7f03970463d770d97c5342774fd4e7898"
+    },
+    {
+      "surface": "bible-immersion",
+      "resource": "ebible~fraLSG1910eb",
+      "reference": "Ps.13.1",
+      "rtl": false
+    },
+    {
+      "surface": "comparison",
+      "resource": "youversion~YV13",
+      "reference": "Ps.13.1",
+      "rtl": true,
+      "body_sha256": "030dcb527688f85b5cb38d23af0190e2c88620f04da6c00633a9cc7e0a9a5b6e"
+    },
+    {
+      "surface": "bible-immersion",
+      "resource": "youversion~YV13",
+      "reference": "Ps.13.1",
+      "rtl": true
+    },
+    {
+      "surface": "commentary-immersion",
+      "resource": "MHC",
+      "position": 3
+    },
+    {
+      "surface": "comparison",
+      "resource": "ebible~fraLSG1910eb",
+      "reference": "Ps.13.1",
+      "rtl": false,
+      "body_sha256": "fb221e76ae41c1caf6ae53945a4826e7f03970463d770d97c5342774fd4e7898"
+    },
+    {
+      "surface": "bible-immersion",
+      "resource": "ebible~fraLSG1910eb",
+      "reference": "Ps.13.1",
+      "rtl": false
+    },
+    {
+      "surface": "comparison",
+      "resource": "youversion~YV13",
+      "reference": "Ps.13.1",
+      "rtl": true,
+      "body_sha256": "030dcb527688f85b5cb38d23af0190e2c88620f04da6c00633a9cc7e0a9a5b6e"
+    },
+    {
+      "surface": "bible-immersion",
+      "resource": "youversion~YV13",
+      "reference": "Ps.13.1",
+      "rtl": true
+    },
+    {
+      "surface": "commentary-immersion",
+      "resource": "MHC",
+      "position": 3
+    }
+  ],
+  "unchanged_resource_files": 97
+}

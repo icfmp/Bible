@@ -1,0 +1,103 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": true,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.1",
+      "status": "Aucun alignement vérifié pour ce passage. Invalid reference: Ps.17.0",
+      "intro_contexts": [],
+      "section": null,
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.2",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Ps.17.1",
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.1",
+      "status": "Aucun alignement vérifié pour ce passage. Invalid reference: Ps.17.0",
+      "intro_contexts": [],
+      "section": null,
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Gen.2.1",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Gen.2.1",
+      "section_is_intro": false,
+      "bible_spans": 25
+    },
+    {
+      "module": "FreSegond1910",
+      "reference": "Ps.17.1",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Ps.17.1",
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.1",
+      "status": "Aucun alignement vérifié pour ce passage. Invalid reference: Ps.17.0",
+      "intro_contexts": [],
+      "section": null,
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.2",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Ps.17.1",
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Ps.17.1",
+      "status": "Aucun alignement vérifié pour ce passage. Invalid reference: Ps.17.0",
+      "intro_contexts": [],
+      "section": null,
+      "section_is_intro": false,
+      "bible_spans": 15
+    },
+    {
+      "module": "ebible~francl2022eb",
+      "reference": "Gen.2.1",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Gen.2.1",
+      "section_is_intro": false,
+      "bible_spans": 25
+    },
+    {
+      "module": "FreSegond1910",
+      "reference": "Ps.17.1",
+      "status": "",
+      "intro_contexts": [],
+      "section": "Ps.17.1",
+      "section_is_intro": false,
+      "bible_spans": 15
+    }
+  ],
+  "resource_files_unchanged": 87,
+  "offline_restart": false
+}

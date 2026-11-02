@@ -1,0 +1,296 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "baseline": false,
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "cases": [
+    {
+      "surface": "references",
+      "palette": "white",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "white",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 330,
+      "popover_height": 568,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 1770.0
+    },
+    {
+      "surface": "topics",
+      "palette": "white",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 2020.0
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "white",
+      "index": 0,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 6
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "white",
+      "index": 1,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.16.14"
+      ],
+      "generation": 6
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "white",
+      "index": 0,
+      "keyboard": true,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 6
+    },
+    {
+      "surface": "references",
+      "palette": "dark",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "dark",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 330,
+      "popover_height": 568,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 1770.0
+    },
+    {
+      "surface": "topics",
+      "palette": "dark",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 2020.0
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "dark",
+      "index": 0,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 9
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "dark",
+      "index": 1,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.16.14"
+      ],
+      "generation": 9
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "dark",
+      "index": 0,
+      "keyboard": true,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 9
+    },
+    {
+      "surface": "references",
+      "palette": "paper",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "paper",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 330,
+      "popover_height": 568,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 1770.0
+    },
+    {
+      "surface": "topics",
+      "palette": "paper",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 2020.0
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "paper",
+      "index": 0,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 12
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "paper",
+      "index": 1,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.16.14"
+      ],
+      "generation": 12
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "paper",
+      "index": 0,
+      "keyboard": true,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 12
+    },
+    {
+      "surface": "references",
+      "palette": "black",
+      "total": 19,
+      "first_source_target": "Gen.14.10"
+    },
+    {
+      "surface": "topics",
+      "palette": "black",
+      "width": 990,
+      "height": 790,
+      "entries": 50,
+      "list_height": 330,
+      "popover_height": 568,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 1770.0
+    },
+    {
+      "surface": "topics",
+      "palette": "black",
+      "width": 350,
+      "height": 430,
+      "entries": 50,
+      "list_height": 80,
+      "popover_height": 318,
+      "first_labels": [
+        "friendship",
+        "love",
+        "baptism",
+        "anger"
+      ],
+      "keyboard_end_scroll": 2020.0
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "black",
+      "index": 0,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 15
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "black",
+      "index": 1,
+      "keyboard": false,
+      "target": [
+        "FreSegond1910",
+        "1Cor.16.14"
+      ],
+      "generation": 15
+    },
+    {
+      "surface": "topic-activation",
+      "palette": "black",
+      "index": 0,
+      "keyboard": true,
+      "target": [
+        "FreSegond1910",
+        "1Cor.13.4"
+      ],
+      "generation": 15
+    }
+  ],
+  "unchanged_source_files": 118
+}
