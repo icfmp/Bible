@@ -14,7 +14,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/diagnostic-flatpak" >> "$GITHUB_ENV"
           mkdir reports
           gh run download 41391340612 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/before-bundle"
@@ -45,12 +45,18 @@ jobs:
             run_native -m tools.check_live_backdrop "$RUNNER_TEMP/profile" "$PWD/reports/$version-live" --require-packaged --measure > "reports/$version-live.log" 2>&1
             for repeat in 1 2 3; do
               diagnostic=()
-              if [ "$repeat" = 2 ]; then diagnostic=(--cpu); fi
+              if [ "$repeat" = 2 ]; then diagnostic=(--cpu --native-profile); fi
+              if [ "$repeat" = 2 ]; then
+                perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
+                sudo python3 tools/sample_scroll_native.py "$perf_bin" "$PWD/reports/$version-$repeat.json" "$RUNNER_TEMP/perf-$version" > "reports/$version-$repeat.native-capture.log" 2>&1 &
+                sampler=$!
+              fi
               if run_native -m tools.check_scroll_diagnostic "$RUNNER_TEMP/profile" "$PWD/reports/$version-$repeat.json" --require-packaged --check "${diagnostic[@]}" > "reports/$version-$repeat.log" 2>&1; then
                 echo "$version-$repeat PASS" >> reports/results.txt
               else
                 echo "$version-$repeat FAILED: inspect preserved trace" >> reports/results.txt
               fi
+              if [ "$repeat" = 2 ]; then wait "$sampler"; fi
             done
           done
       - uses: actions/upload-artifact@v4
