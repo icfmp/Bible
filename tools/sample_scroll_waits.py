@@ -112,7 +112,7 @@ def symbol_aggregates(children=False,window=True):
     record[prefix+'_report_output_bytes']=len(result.stdout)
     record[prefix+'_report_error_bytes']=len(result.stderr)
     record[prefix+'_report_headers']=[line.strip('# ').strip() for line in result.stdout.splitlines() if line.startswith('#') and '|' in line and re.fullmatch(r'[# A-Za-z0-9_()|.-]+',line)]
-    entries=[];unresolved=0.0;matched=0;field_counts={}
+    entries=[];unresolved=0.0;matched=0;field_counts={};libraries={}
     for line in result.stdout.splitlines():
         if not line.strip() or line.lstrip().startswith('#'):continue
         parts=line.strip().strip('|').split('|');field_counts[str(len(parts))]=field_counts.get(str(len(parts)),0)+1
@@ -120,14 +120,17 @@ def symbol_aggregates(children=False,window=True):
         try:percentage=float(parts[0].strip().rstrip('%'))
         except ValueError:continue
         matched+=1
-        symbol=re.sub(r'^\[[^]]+\]\s*','',parts[-2].strip())
+        library=Path(parts[2].strip()).name
+        if re.fullmatch(r'[A-Za-z0-9_.+-]+',library):libraries[library]=libraries.get(library,0)+percentage
+        symbol=re.sub(r'^\[[^]]+\]\s*','',parts[1].strip())
         if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):
             unresolved+=percentage;continue
-        entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[-1].strip()).name))
+        entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[2].strip()).name))
     record[prefix+'_report_rows']=matched
     record[prefix+'_report_column_counts']=field_counts
     record[prefix+'_unresolved_percent']=unresolved
-    return entries[:32]
+    record[prefix+'_library_percent']=libraries
+    return sorted(entries,key=lambda row:row['percent'],reverse=True)[:32]
 record['longest_gap_native_cpu_symbols']=symbol_aggregates()
 record['longest_gap_native_inclusive_symbols']=symbol_aggregates(True)
 record['full_native_cpu_symbols']=symbol_aggregates(window=False)
