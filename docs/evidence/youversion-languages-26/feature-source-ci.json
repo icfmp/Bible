@@ -1,0 +1,10 @@
+{
+  "run": 41358906575,
+  "source": "2335ac3216ea045499e92309550835657689a60e",
+  "prerequisites": "success",
+  "flatpak": "in progress",
+  "suites": {
+    "test-results.log": "Ran 383 tests in 285.015s  OK (skipped=10)",
+    "ui-fr-results.log": "Ran 154 tests in 168.017s  OK"
+  }
+}

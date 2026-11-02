@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "app_import": "/workspace/work/youversion-language-26/repo/bible/ui.py",
+  "metadata_requests": [
+    21
+  ],
+  "archive_or_install_requests": 0,
+  "cached_details_reused": true
+}
