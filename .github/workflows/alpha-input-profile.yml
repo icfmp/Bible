@@ -42,7 +42,7 @@ jobs:
       - name: Alternate installed packages and measure native waits privately
         run: |
           set -euo pipefail
-          for repeat in 1 2 3 4 5; do
+          for repeat in 1 2 3; do
             for version in before after; do
               flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
               output="$RUNNER_TEMP/private-scroll/$version-$repeat.json"

@@ -18,15 +18,30 @@ while time.monotonic()<deadline and pid is None:
 record=dict(version=version,repeat=int(repeat),syscall_traced=False,expected_process_role='application-python')
 if pid is None:record['measurement_completed']=False;print(json.dumps(record));sys.exit()
 record.update(runtime_python='python3.13',verified_entry_module='tools.check_scroll_waits')
+# Keep ptrace out of import, SWORD discovery and initial GTK allocation.
+# The independent input subprocess is launched only after the reader settles.
+input_seen=False
+while time.monotonic()<deadline and not input_seen:
+    for p in Path('/proc').iterdir():
+        if not p.name.isdecimal():continue
+        try:
+            args=p.joinpath('cmdline').read_bytes().split(b'\0')
+            if b'tools.sustained_scroll_input' not in args or str(output.with_suffix('.input.json')).encode() not in args:continue
+            fields=p.joinpath('stat').read_text().rsplit(')',1)[1].split()
+            if fields[1]==pid:input_seen=True;break
+        except (OSError,ValueError,IndexError):pass
+    if not input_seen:time.sleep(.005)
+record['input_process_observed']=input_seen
 trace=output.with_suffix('.syscalls.private');log=output.with_suffix('.strace.private')
-ticks=os.sysconf('SC_CLK_TCK');samples=[];measurement=None
+ticks=os.sysconf('SC_CLK_TCK');samples=[];measurement=None;cpu_error=None
 def cpu(path):
     fields=path.read_text().rsplit(')',1)[1].split();return (int(fields[11])+int(fields[12]))/ticks
 with log.open('w') as err:
     child=subprocess.Popen(['strace','-qq','-ttt','-T','-s','0','-e','trace=futex,poll,ppoll,select,pselect6,epoll_wait,read,write,recvmsg,sendmsg,recvfrom,sendto,openat,newfstatat,statx','-e','raw=read,write,recvmsg,sendmsg,recvfrom,sendto','-p',pid,'-o',str(trace)],stdout=err,stderr=err)
     while time.monotonic()<deadline:
         try:samples.append((time.monotonic(),cpu(Path('/proc')/pid/'task'/pid/'stat'),cpu(Path('/proc')/pid/'stat')))
-        except (OSError,ValueError):break
+        except (OSError,ValueError) as error:
+            cpu_error=dict(kind=type(error).__name__,errno=getattr(error,'errno',None));break
         if output.exists():
             try:measurement=json.loads(output.read_text())
             except (OSError,json.JSONDecodeError):measurement=None
@@ -35,7 +50,9 @@ with log.open('w') as err:
     child.send_signal(signal.SIGINT)
     try:child.wait(timeout=5)
     except subprocess.TimeoutExpired:child.kill();child.wait()
-record['trace_tool_exit_code']=child.returncode
+record.update(trace_tool_exit_code=child.returncode,cpu_time_samples=len(samples),cpu_sampling_error=cpu_error,sampling_deadline_reached=time.monotonic()>=deadline)
+if not measurement:
+    record['trace_line_count']=len(trace.read_text(errors='replace').splitlines()) if trace.exists() else 0
 if measurement is None:record['measurement_completed']=False;print(json.dumps(record));sys.exit()
 x=measurement;offset=json.loads(output.with_suffix('.clock.json').read_text())['wall_offset']
 start,end=x['input']['start'],x['input']['end'];rows=x['samples'];gap=max((b[0]-a[0],a[0],b[0]) for a,b in zip(rows,rows[1:]) if start<=a[0]<=end)
