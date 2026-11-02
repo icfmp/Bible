@@ -139,6 +139,7 @@ class StudyPanel(Gtk.Box):
         self.text.add_css_class('study-reader')
         self.text.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary text')])
         self.scroll = Gtk.ScrolledWindow(vexpand=True,hexpand=True)
+        self.scroll.add_css_class('reading-scroll')
         self.scroll.set_child(self.text)
         from .scroll_motion import ScrollMotion
         self.motion=ScrollMotion(self.scroll)
