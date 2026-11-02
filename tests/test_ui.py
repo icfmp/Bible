@@ -105,6 +105,10 @@ class WindowTests(unittest.TestCase):
         # tested separately; an automatic refresh must not race a local transfer
         # or turn a four-second GTK assertion into an external HTTP timeout.
         self.enterContext(patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False))
+        # Changing this fixture's language must not start the dynamic provider's
+        # HTTP/cache worker either. Its real lifecycle is covered separately in
+        # test_youversion_ui and the installed language-catalogue proof.
+        self.enterContext(patch('bible.catalogue_session.CatalogueSession.load_youversion_language',return_value=None))
         window = Window(self.app, Library(Path(directory) / 'translations'))
         # These regression fixtures cover multiple languages, independently of
         # the locale-default contract exercised by test_library_polish.
