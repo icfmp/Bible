@@ -2,7 +2,7 @@
 from .i18n import LANGUAGE
 
 FRENCH={
- 'Jerusalem':'Jérusalem','Emmaus':'Emmaüs','Nod':'Nod','Babylon':'Babylone',
+ 'Babylonia':'Babylonie','Jerusalem':'Jérusalem','Emmaus':'Emmaüs','Nod':'Nod','Babylon':'Babylone',
  'Bethlehem':'Bethléem','Bethany':'Béthanie','Bethphage':'Bethphagé','Nazareth':'Nazareth',
  'Capernaum':'Capernaüm','Galilee':'Galilée','Sea of Galilee':'Lac de Galilée',
  'Sea of Tiberias':'Lac de Tibériade','Jordan':'Jourdain','Jordan River':'Jourdain',
