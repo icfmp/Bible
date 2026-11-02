@@ -4,64 +4,57 @@ permissions:
   contents: read
   actions: read
 jobs:
-  compare:
+  isolate:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
-      - name: Install isolated native runtime tools
+        with:
+          fetch-depth: 0
+      - name: Prepare exact installed runtime and private research profile
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/diagnostic-flatpak" >> "$GITHUB_ENV"
-          mkdir reports
-          gh run download 41391340612 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/before-bundle"
-          gh run download 41472220377 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/after-bundle"
-          python3 - "$RUNNER_TEMP" <<'PY'
+          gh run download 41472220377 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
+          python3 - "$RUNNER_TEMP/bundle" <<'PY'
           import hashlib,json,sys
           from pathlib import Path
-          root=Path(sys.argv[1])
-          for name,expected in [('before','51d8efdca732d2efa147894b64138c0c000400c2'),('after','99b4689bfb575260ccb7cc9e526fb7876960ed2c')]:
-              folder=root/(name+'-bundle');x=json.loads((folder/'build-info.json').read_text())
-              assert x['commit']==expected
-              assert hashlib.sha256((folder/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
-              Path('reports/'+name+'-build-info.json').write_text(json.dumps(x,indent=2))
+          p=Path(sys.argv[1]);x=json.loads((p/'build-info.json').read_text())
+          assert x['commit']=='99b4689bfb575260ccb7cc9e526fb7876960ed2c'
+          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
           PY
           FLATPAK_USER_DIR="$RUNNER_TEMP/diagnostic-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-      - name: Profile exact installed packages with retained real resources
+          FLATPAK_USER_DIR="$RUNNER_TEMP/diagnostic-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+          mkdir "$RUNNER_TEMP/private-scroll" reports
+      - name: Recreate the accumulated test conditions once
         run: |
           set -euo pipefail
           run_native() {
-            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master "$@"
+            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master "$@"
           }
-          for version in before after; do
-            flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
-            if [ "$version" = before ]; then
-              run_native -m tools.check_study_navigation "$RUNNER_TEMP/profile" "$PWD/reports/preparation.json" --prepare --require-packaged > reports/preparation.log 2>&1
-            fi
-            run_native -m tools.check_client_feedback "$RUNNER_TEMP/profile" "$PWD/reports/$version-client" --baseline --require-packaged > "reports/$version-client.log" 2>&1
-            run_native -m tools.check_live_backdrop "$RUNNER_TEMP/profile" "$PWD/reports/$version-live" --require-packaged --measure > "reports/$version-live.log" 2>&1
-            for repeat in 1 2 3; do
-              diagnostic=()
-              if [ "$repeat" = 2 ]; then diagnostic=(--cpu --native-profile); fi
-              if [ "$repeat" = 2 ]; then
-                perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
-                sudo python3 tools/sample_scroll_native.py "$perf_bin" "$PWD/reports/$version-$repeat.json" "$RUNNER_TEMP/perf-$version" > "reports/$version-$repeat.native-capture.log" 2>&1 &
-                sampler=$!
-              fi
-              if run_native -m tools.check_scroll_diagnostic "$RUNNER_TEMP/profile" "$PWD/reports/$version-$repeat.json" --require-packaged --check "${diagnostic[@]}" > "reports/$version-$repeat.log" 2>&1; then
-                echo "$version-$repeat PASS" >> reports/results.txt
-              else
-                echo "$version-$repeat FAILED: inspect preserved trace" >> reports/results.txt
-              fi
-              if [ "$repeat" = 2 ]; then wait "$sampler"; fi
+          run_native -m tools.check_study_navigation "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/preparation.json" --prepare --require-packaged > "$RUNNER_TEMP/private-scroll/preparation.log" 2>&1
+          run_native -m tools.check_client_feedback "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/client" --baseline --require-packaged > "$RUNNER_TEMP/private-scroll/client.log" 2>&1
+          run_native -m tools.check_live_backdrop "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/live" --require-packaged --measure > "$RUNNER_TEMP/private-scroll/live.log" 2>&1
+      - name: Isolate Python revisions in the same installed native runtime
+        run: |
+          set -euo pipefail
+          for revision in 83248ef71a6c927f9fc580e6863230ed09f7fedf 8a20272 97416c7 05fca7e 9fb9e3307294e8bf1113d65aec7f9756b8b4dfc0; do
+            commit=$(git rev-parse "$revision")
+            source="$RUNNER_TEMP/source-$commit"
+            mkdir "$source"
+            git archive "$commit" bible | tar -x -C "$source"
+            for repeat in 1 2 3 4; do
+              status=0
+              timeout 90s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$source:/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.check_sustained_scroll "$RUNNER_TEMP/profile" "$RUNNER_TEMP/private-scroll/$commit-$repeat.json" --check > "$RUNNER_TEMP/private-scroll/$commit-$repeat.log" 2>&1 || status=$?
+              python3 tools/summarize_scroll_case.py "$RUNNER_TEMP/private-scroll/$commit-$repeat.json" "$commit" "$repeat" "$status" >> reports/measurements.jsonl
             done
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: isolated-scroll-direction-profile
-          path: reports/
+          name: aggregate-scroll-source-isolation
+          path: reports/measurements.jsonl
           if-no-files-found: error
