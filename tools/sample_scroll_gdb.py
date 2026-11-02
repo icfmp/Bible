@@ -25,13 +25,15 @@ while time.monotonic()<deadline:
                 stat=(Path('/proc')/pid/'task'/pid/'stat').read_text().rsplit(')',1)[1].split()
                 record['trigger_state']=stat[0]
             except OSError:pass
-            result=subprocess.run(['gdb','-nx','-batch','-p',pid,'-ex','set pagination off','-ex','set print frame-arguments none','-ex','thread 1','-ex','bt 48','-ex','detach'],capture_output=True,text=True,timeout=20)
+            result=subprocess.run(['gdb','-nx','-batch','-iex','set debuginfod enabled off','-iex','set auto-load off','-iex',f'set sysroot /proc/{pid}/root','-p',pid,'-ex','set pagination off','-ex','set print frame-arguments none','-ex','thread 1','-ex','bt 48','-ex','detach'],capture_output=True,text=True,timeout=20)
             output.with_suffix('.native-stack.private').write_text(result.stdout+'\n'+result.stderr)
             record['debugger_exit_code']=result.returncode;functions=[]
             for line in result.stdout.splitlines():
                 match=re.match(r'^#\d+\s+(?:0x[0-9a-f]+\s+in\s+)?([A-Za-z_][A-Za-z0-9_:.<>~@]+)\s*\(',line)
                 if match:functions.append(match[1])
             record['native_functions']=functions
+            record['native_total_frames']=sum(bool(re.match(r'^#\d+\s',line)) for line in result.stdout.splitlines())
+            record['native_unresolved_frames']=sum(bool(re.match(r'^#\d+\s+(?:0x[0-9a-f]+\s+in\s+)?\?\?',line)) for line in result.stdout.splitlines())
             break
     if output.exists():
         try:
