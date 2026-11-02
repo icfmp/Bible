@@ -1,0 +1,120 @@
+{
+  "result": "PASS",
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "actual_packaged_application": true,
+  "captures": [
+    {
+      "file": "catalogue-es-white.png",
+      "language": "es",
+      "rows": 30
+    },
+    {
+      "file": "catalogue-fr-white.png",
+      "language": "fr",
+      "rows": 20
+    },
+    {
+      "file": "catalogue-ar-white.png",
+      "language": "ar",
+      "rows": 14
+    },
+    {
+      "file": "edition-504-white.png",
+      "edition": 504,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-36-white.png",
+      "edition": 36,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-13-white.png",
+      "edition": 13,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-2599-white.png",
+      "edition": 2599,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-small-white.png",
+      "size": [
+        350,
+        590
+      ]
+    },
+    {
+      "file": "catalogue-es-dark.png",
+      "language": "es",
+      "rows": 30
+    },
+    {
+      "file": "catalogue-fr-dark.png",
+      "language": "fr",
+      "rows": 20
+    },
+    {
+      "file": "catalogue-ar-dark.png",
+      "language": "ar",
+      "rows": 14
+    },
+    {
+      "file": "edition-504-dark.png",
+      "edition": 504,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-36-dark.png",
+      "edition": 36,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-13-dark.png",
+      "edition": 13,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-2599-dark.png",
+      "edition": 2599,
+      "size": [
+        1090,
+        750
+      ]
+    },
+    {
+      "file": "edition-small-dark.png",
+      "size": [
+        350,
+        590
+      ]
+    }
+  ]
+}

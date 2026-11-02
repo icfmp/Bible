@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "edition": 13,
+  "title": "\u0627\u0644\u0643\u062a\u0627\u0628 \u0627\u0644\u0645\u0642\u062f\u0633",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": null,
+  "source_numbering": "eng",
+  "native_numbering": "YouVersion13",
+  "archive_sha256": "f286592146ec13800f1e281f1faffcf6afe0fcee8220fdeb4b7127c42b0ce51c",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 0.003562273000170535,
+  "conversion_child_peak_rss_kib": 0,
+  "phases": {},
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 11,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": false,
+  "actual_archive_download_in_application": false,
+  "transfer": {
+    "bytes": 0,
+    "total": 0,
+    "seconds": 0
+  },
+  "offline_verification_only": true,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

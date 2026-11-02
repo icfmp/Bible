@@ -1,0 +1,24 @@
+{
+  "feature_source": "51d8efdca732d2efa147894b64138c0c000400c2",
+  "main_source": "83248ef71a6c927f9fc580e6863230ed09f7fedf",
+  "ci": 41391340612,
+  "proof": 41391340474,
+  "online_editions": 13,
+  "offline_editions": 13,
+  "totals": {
+    "chapters": 14441,
+    "introductions": 198,
+    "units": 378824,
+    "notes": 72123
+  },
+  "artifacts": {
+    "proof": {
+      "id": 13118458409,
+      "sha256": "cabd616cda3047b81e924085094115ea463496c864b8dd78e2e6dac197516d58"
+    },
+    "package": {
+      "id": 13118630845,
+      "sha256": "0a8348dc6b720b98e963c81fad4c12ab83edc89862f3b63e60327617d3e90b34"
+    }
+  }
+}

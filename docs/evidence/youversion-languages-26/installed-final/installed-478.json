@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 478,
+  "title": "Darby's Translation 1890",
+  "installed_entries": 1189,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 0,
+    "units": 31102,
+    "notes": 2681,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "eng",
+  "native_numbering": "YouVersion478",
+  "archive_sha256": "ea2e63be7295f36193e6eb55fafd3dc3db09538f2121f9bcfbf490920fe490d8",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 9.131814351999992,
+  "conversion_child_peak_rss_kib": 74796,
+  "phases": {
+    "converting": [
+      1189,
+      1189
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1189,
+      1189
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 12,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 2956952,
+    "total": 2956952,
+    "seconds": 0.08197811700006241
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

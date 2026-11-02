@@ -1,0 +1,25 @@
+{
+  "result": "PASS",
+  "app_import": "/workspace/work/reading-followups-20261102/repo/bible/ui.py",
+  "packaged": false,
+  "opening_routes": [
+    "Library Read",
+    "Primary selector",
+    "New tab",
+    "Offline session restore"
+  ],
+  "verified_owned_references": [
+    "Gen.19.1",
+    "Gen.1.1",
+    "Ps.119.1",
+    "Mark.10.53",
+    "Rev.22.21"
+  ],
+  "strict_cross_resource_mapping_unchanged": true,
+  "independent_comparison": true,
+  "study_panel": true,
+  "notes_preserved": 1,
+  "preferences_preserved": true,
+  "module_files_preserved": 18,
+  "existing_client_profile_accessed": false
+}

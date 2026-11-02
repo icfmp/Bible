@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 149,
+  "title": "Biblia Reina Valera 1960",
+  "installed_entries": 1255,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1189,
+    "introductions": 66,
+    "units": 31104,
+    "notes": 3785,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "eng",
+  "native_numbering": "YouVersion149",
+  "archive_sha256": "bffb47cc2f59f0cc91138fe5f379f954f9f94b67a10f439e56e938983f5e12f0",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 11.189330733999896,
+  "conversion_child_peak_rss_kib": 75500,
+  "phases": {
+    "converting": [
+      1255,
+      1255
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1255,
+      1255
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 8,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 3480159,
+    "total": 3480159,
+    "seconds": 0.0870615789999647
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}

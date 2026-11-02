@@ -1,0 +1,51 @@
+{
+  "result": "PASS",
+  "edition": 504,
+  "title": "Bible catholique Crampon 1923",
+  "installed_entries": 1334,
+  "all_native_text_notes_headings_verified": true,
+  "independent_dom": {
+    "chapters": 1334,
+    "introductions": 0,
+    "units": 35578,
+    "notes": 0,
+    "all_application_verses_verified": true
+  },
+  "source_numbering": "org",
+  "native_numbering": "YouVersion504",
+  "archive_sha256": "f6f32c3a7ed654e14e1bcd0914f3e9d51ac3743d23091aafaf9ad8ee2c39fe15",
+  "source_import": "/app/lib/bible-python/bible/sword_provider.py",
+  "sword_import": "/app/lib/bible-python/Sword.py",
+  "elapsed_seconds": 11.164303109000002,
+  "conversion_child_peak_rss_kib": 76488,
+  "phases": {
+    "converting": [
+      1334,
+      1334
+    ],
+    "compiling": [
+      0,
+      0
+    ],
+    "verifying": [
+      1334,
+      1334
+    ]
+  },
+  "gtk": true,
+  "offline_reopen": true,
+  "parallel_gtk": true,
+  "existing_resources_preserved": 7,
+  "existing_personal_notes_preserved": 1,
+  "existing_preferences_preserved": true,
+  "live_metadata_revalidated": true,
+  "actual_archive_download_in_application": true,
+  "transfer": {
+    "bytes": 3622490,
+    "total": 3622490,
+    "seconds": 0.08689429399987603
+  },
+  "offline_verification_only": false,
+  "provider_agreement_submitted": false,
+  "source_distribution": false
+}
