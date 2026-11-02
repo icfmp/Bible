@@ -1,0 +1,7 @@
+{
+  "source": "YouVersion2599",
+  "opened": false,
+  "error_type": "VersificationMismatch",
+  "error": "No verified alignment: YouVersion2599 Matt.1.1 / YouVersion504",
+  "resource_after": "youversion~YV2599"
+}

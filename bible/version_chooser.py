@@ -114,11 +114,7 @@ class VersionChooser(Gtk.MenuButton):
                 # The existing comparison resolver owns alignment and error states.
                 tab.state.comparison=name;self.owner.sync_comparison();self.owner.schedule_save()
             else:
-                from .sword_provider import Reader
-                from .reference_resolution import resolve
-                reader=Reader(self.owner.library.root/name,name)
-                reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
-                if not self.owner.navigate_selection(name,reference):
+                if not self.owner.switch_translation(name):
                     raise ValueError(tab.status.get_text())
             self.status.set_visible(False)
             # Finish native row activation before rebuilding any models.
