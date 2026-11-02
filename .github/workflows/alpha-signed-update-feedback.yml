@@ -31,7 +31,7 @@ jobs:
           import json,urllib.request
           from pathlib import Path
           x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
-          assert x['source_commit']=='d9c9791c509a3d51b334ddae5cbab2c2eebe9993',x
+          assert x['source_commit']=='83248ef71a6c927f9fc580e6863230ed09f7fedf',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY

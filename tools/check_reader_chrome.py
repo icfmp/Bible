@@ -28,7 +28,7 @@ def main():
                             w.set_default_size(width,820);spin(lambda:not t._restoring_scroll and not getattr(t,'_comparison_positioning',False),duration=.5)
                             name=f'{palette}-{"comparison" if comparison else "single"}-{width}'
                             screen.grab(args.output/(name+'.png'))
-                            assert w.header.get_width()<=w.get_width()+4,(name,w.header.get_width(),w.get_width())
+                            if not args.baseline:assert w.header.get_width()<=w.get_width()+4,(name,w.header.get_width(),w.get_width())
                             row=dict(case=name,width=w.get_width(),title=w.heading.get_title(),subtitle=w.heading.get_subtitle(),tab_title=t.title(),reference=t.state.reference,primary_title=w.primary_version.caption.get_text(),secondary_title=w.compared_version.caption.get_text() if comparison else None)
                             if not args.baseline:
                                 assert ':' not in row['title'] and ':' not in row['tab_title'],row

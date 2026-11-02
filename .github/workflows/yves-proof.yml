@@ -115,7 +115,7 @@ jobs:
   runtime-rendering-probe:
     if: ${{ inputs.runtime_probe == true }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
       - name: Install the previously verified package in an isolated deployment
@@ -134,9 +134,14 @@ jobs:
           timeout 300s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before" --prepare --baseline --require-packaged
       - name: Capture baseline reader and Library chrome
         run: |
-          for tool in check_reader_chrome check_library_categories check_commentary_context; do
-            timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/$tool" --baseline --require-packaged
+          for tool in check_reader_chrome check_library_categories check_commentary_context check_followup_surfaces; do
+            extra=()
+            if [ "$tool" = check_followup_surfaces ]; then extra=(--maps); fi
+            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/$tool" --baseline --require-packaged "${extra[@]}"
           done
+      - name: Prepare actual Semeur and English search baselines
+        run: |
+          timeout 360s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m tools.check_quotation_search "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-before/quotations" --baseline --require-packaged --prepare
       - name: Install the exact successful candidate when requested
         if: ${{ inputs.candidate_run != '' }}
         env:
@@ -179,11 +184,17 @@ jobs:
             flags=()
           fi
           timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_source_rendering "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after" "${source_flags[@]}"
-          for tool in check_reader_chrome check_library_categories check_commentary_context; do
+          for tool in check_reader_chrome check_library_categories check_commentary_context check_followup_surfaces check_quotation_search; do
             extra=()
-            if [ "$tool" = check_library_categories ]; then extra=(--install); fi
-            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/$tool" "${flags[@]}" "${extra[@]}"
+            if [ "$tool" = check_followup_surfaces ]; then extra=(--maps); fi
+            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m "tools.$tool" "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/$tool" "${flags[@]}" "${extra[@]}"
           done
+          # A separate marked acquisition profile proves a real candidate download;
+          # the comparison profile retains its already installed datasets unchanged.
+          mkdir "$RUNNER_TEMP/library-acquisition-profile"
+          touch "$RUNNER_TEMP/library-acquisition-profile/.source-rendering-research"
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=fr_FR --command=python3 io.github.icfmp.Bible//master -m tools.check_library_categories "$RUNNER_TEMP/library-acquisition-profile" "$RUNNER_TEMP/rendering-after/actual-library-acquisition" "${flags[@]}" --install
+          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1200x850x24' flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="$python_path" --env=GSK_RENDERER=gl --env=LANGUAGE=en --command=python3 io.github.icfmp.Bible//master -m tools.check_followup_surfaces "$RUNNER_TEMP/research-profile" "$RUNNER_TEMP/rendering-after/english-surfaces" "${flags[@]}" --maps
       - uses: actions/upload-artifact@v4
         if: always()
         with:

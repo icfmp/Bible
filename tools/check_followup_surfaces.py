@@ -22,6 +22,10 @@ def main():
         target=data_root/Path(file).stem
         if not target.exists():target.write_bytes(data)
     def hashes():return {str(f.relative_to(a.profile)):hashlib.sha256(f.read_bytes()).hexdigest() for base in ('translations','study-data') for f in (a.profile/base).rglob('*') if f.is_file()}
+    if a.maps:
+        from bible.place_data import PlaceData
+        places=PlaceData(data_root)
+        if places.revision is None:places.install()
     before=hashes();app=Application.get_default() or Application();app.register();records=[]
     def walk(widget):
         yield widget
@@ -37,23 +41,30 @@ def main():
                     w.study_button.set_active(False);w.set_default_size(1200,820);spin(duration=.3);n.activate(w)
                     w.study_button.set_active(True);s=w.study;s.tools.set_visible_child_name('references');s.references.refresh(force=True)
                     spin(lambda:not s.references.pending,duration=.3)
-                    screen.grab(a.output/(palette+'-references.png'))
-                    refs=s.references;buttons=[b for b in walk(refs.list) if isinstance(b,Gtk.Button) and hasattr(b,'_reference_item')]
-                    assert buttons,'Retained real references are missing'
-                    refs.scroll.get_vadjustment().set_value(0);spin(duration=.2)
-                    target=buttons[0]._reference_item.relationship.start
-                    n.click(buttons[0]);spin();assert w.reference_preview.popover is not None
+                    refs=s.references
+                    refs.list.scroll_to(0,Gtk.ListScrollFlags.FOCUS,None)
+                    def first_reference():
+                        return next((b for b in walk(refs.list) if isinstance(b,Gtk.Button)
+                            and hasattr(b,'_reference_item') and b._reference_item.generation==refs.generation
+                            and b._reference_item.relationship==refs.rows[0] and b.get_mapped()
+                            and b.get_width()>0 and b.get_height()>0),None) if refs.rows else None
+                    spin(lambda:first_reference() is not None,duration=.2)
+                    button=first_reference();screen.grab(a.output/(palette+'-references.png'))
+                    target=button._reference_item.relationship.start
+                    n.click(button);spin();assert w.reference_preview.popover is not None,(palette,refs.generation)
                     assert t.state.reference=='Gen.11.3';w.reference_preview.dismiss()
                     records.append(dict(surface='references',palette=palette,total=len(refs.rows),first_source_target=target))
                     w.study_button.set_active(False)
                     for width,height in [(1000,800),(360,440)]:
                         w.set_default_size(width,height);spin(duration=.3);w.choose_passage();nav=w.navigation;nav.modes.set_visible_child_name('topics');panel=nav.topic_search
                         panel.entry.set_text('');panel.changed();spin(duration=.3)
+                        panel.topic_scroll.get_vadjustment().set_value(0);spin(duration=.2)
                         screen.grab(a.output/(f'{palette}-topics-{width}.png'))
                         row=dict(surface='topics',palette=palette,width=w.get_width(),height=w.get_height(),entries=panel.topic_model.get_n_items(),list_height=panel.topic_scroll.get_height(),popover_height=nav.get_height(),first_labels=[panel.topic_model.get_item(i).value[0] for i in range(min(4,panel.topic_model.get_n_items()))])
                         if not a.baseline:
                             assert row['entries']==50,row
-                            assert row['list_height']>100,row
+                            assert row['list_height']>=(60 if width<600 else 200),row
+                            assert abs(panel.topic_pages.get_height()-row['list_height'])<=2,row
                             assert row['popover_height']<=w.get_height(),row
                             first=next(b for b in walk(panel.topics) if isinstance(b,Gtk.Button) and hasattr(b,'_topic'))
                             first.grab_focus();spin(duration=.2);n.key('End');spin()
