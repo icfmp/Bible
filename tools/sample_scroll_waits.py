@@ -1,11 +1,11 @@
 """Read private native waits and export only scalar aggregates, no raw payload."""
-import json,os,re,signal,subprocess,sys,time
+import json,os,re,signal,subprocess,sys,time,shutil
 from pathlib import Path
 def application_target(executable,args,expected_output):
     return (Path(executable).name=='python3.13' and args[1:3]==[b'-m',b'tools.check_scroll_waits']
             and str(expected_output).encode() in args)
 
-output,version,repeat=sys.argv[1:];output=Path(output);deadline=time.monotonic()+45;pid=None
+output,version,repeat,perf=sys.argv[1:];output=Path(output);deadline=time.monotonic()+45;pid=None
 while time.monotonic()<deadline and pid is None:
     for p in Path('/proc').iterdir():
         if not p.name.isdecimal():continue
@@ -34,6 +34,19 @@ while time.monotonic()<deadline and not input_seen:
 record['input_process_observed']=input_seen
 trace=output.with_suffix('.syscalls.private');log=output.with_suffix('.strace.private')
 ticks=os.sysconf('SC_CLK_TCK');samples=[];measurement=None;cpu_error=None
+perfdata=output.with_suffix('.perf.private');perflog=output.with_suffix('.perf-log.private')
+perferr=perflog.open('w')
+perfchild=subprocess.Popen([perf,'record','-e','cpu-clock:u','-F','199','--clockid','mono','--call-graph','dwarf,8192','-t',pid,'-o',str(perfdata)],stdout=perferr,stderr=perferr)
+# Resolve only known application/runtime DSOs; keep their copies private.
+symbols=output.parent/'native-symbols'
+for line in (Path('/proc')/pid/'maps').read_text().splitlines():
+    fields=line.split(maxsplit=5)
+    if len(fields)<6 or not fields[5].startswith(('/usr/lib/','/app/lib/','/usr/bin/python')):continue
+    name=fields[5];source=Path('/proc')/pid/'root'/name.lstrip('/');destination=symbols/name.lstrip('/')
+    if destination.exists() or not source.is_file():continue
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    try:shutil.copyfile(source,destination)
+    except OSError:pass
 def cpu(path):
     fields=path.read_text().rsplit(')',1)[1].split();return (int(fields[11])+int(fields[12]))/ticks
 with log.open('w') as err:
@@ -50,6 +63,11 @@ with log.open('w') as err:
     child.send_signal(signal.SIGINT)
     try:child.wait(timeout=5)
     except subprocess.TimeoutExpired:child.kill();child.wait()
+perfchild.send_signal(signal.SIGINT)
+try:perfchild.wait(timeout=5)
+except subprocess.TimeoutExpired:perfchild.kill();perfchild.wait()
+perferr.close()
+record.update(native_sampler_exit_code=perfchild.returncode)
 record.update(trace_tool_exit_code=child.returncode,cpu_time_samples=len(samples),cpu_sampling_error=cpu_error,sampling_deadline_reached=time.monotonic()>=deadline)
 if not measurement:
     record['trace_line_count']=len(trace.read_text(errors='replace').splitlines()) if trace.exists() else 0
@@ -82,4 +100,22 @@ if not parsed:
     record['trace_error_kind']='permission-denied' if 'Operation not permitted' in message or 'Permission denied' in message else 'missing-process' if 'No such process' in message else 'unclassified'
 record['longest_native_waits']=sorted(waits,key=lambda v:v['duration_ms'],reverse=True)[:8]
 record['longest_gap_native_waits']=[v for v in waits if v['overlaps_longest_gap'] and v['duration_ms']>5]
+# A fixed symbol/DSO/percentage schema only. No raw stacks, addresses or paths.
+def symbol_aggregates(children=False):
+    fields='overhead_children,symbol,dso' if children else 'overhead,symbol,dso'
+    command=[perf,'report','-i',str(perfdata),'--symfs',str(symbols),'--stdio','--no-call-graph','--sort','symbol,dso','-F',fields,'-x','|','--percent-limit','0.1','--time',f'{gap[1]:.6f},{gap[2]:.6f}']
+    command+=['--children'] if children else ['--no-children']
+    result=subprocess.run(command,capture_output=True,text=True)
+    entries=[]
+    for line in result.stdout.splitlines():
+        parts=line.split('|')
+        if len(parts)!=3:continue
+        try:percentage=float(parts[0].strip().rstrip('%'))
+        except ValueError:continue
+        symbol=re.sub(r'^\[[^]]+\]\s*','',parts[1].strip())
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):continue
+        entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[2].strip()).name))
+    return entries[:32]
+record['longest_gap_native_cpu_symbols']=symbol_aggregates()
+record['longest_gap_native_inclusive_symbols']=symbol_aggregates(True)
 print(json.dumps(record))

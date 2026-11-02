@@ -14,7 +14,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr strace
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr strace linux-tools-generic
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/diagnostic-flatpak" >> "$GITHUB_ENV"
           gh run download 41391340612 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/before-bundle"
           gh run download 41472220377 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/after-bundle"
@@ -42,11 +42,12 @@ jobs:
       - name: Alternate installed packages and measure native waits privately
         run: |
           set -euo pipefail
-          for repeat in 1 2 3; do
+          perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
+          for repeat in 1 2 3 4 5 6; do
             for version in before after; do
               flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
               output="$RUNNER_TEMP/private-scroll/$version-$repeat.json"
-              sudo python3 tools/sample_scroll_waits.py "$output" "$version" "$repeat" > "reports/$version-$repeat.json" &
+              sudo python3 tools/sample_scroll_waits.py "$output" "$version" "$repeat" "$perf_bin" > "reports/$version-$repeat.json" &
               sampler=$!
               status=0
               timeout 90s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.check_scroll_waits "$RUNNER_TEMP/profile" "$output" --require-packaged --check > "$RUNNER_TEMP/private-scroll/$version-$repeat.log" 2>&1 || status=$?
