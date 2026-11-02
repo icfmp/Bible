@@ -80,24 +80,30 @@ class Window(Adw.ApplicationWindow):
         # Bound both title and version even with long affiliated module IDs.
         def constrain_labels(widget,maximum=18):
             if isinstance(widget,Gtk.Label):
-                widget.set_max_width_chars(maximum);widget.set_width_chars(1);widget.set_ellipsize(Pango.EllipsizeMode.END)
+                widget.set_max_width_chars(maximum);widget.set_width_chars(1)
+                widget.set_wrap(True);widget.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                widget.set_ellipsize(Pango.EllipsizeMode.NONE)
             child=widget.get_first_child()
             while child:
                 constrain_labels(child,maximum);child=child.get_next_sibling()
         constrain_labels(self.heading)
+        self.heading.set_halign(Gtk.Align.FILL);self.heading.set_hexpand(True)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
         heading_box.append(Gtk.Image(icon_name='pan-down-symbolic'))
         self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr('Choose a passage'))
+        self.passage_button.set_can_shrink(True)
         self.passage_button.add_css_class('flat')
         self.navigation = PassagePopover(self)
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
         from .workspace_selector import WorkspaceSelector
         self.space_selector=WorkspaceSelector(self);header.pack_start(self.space_selector)
+        self.space_selector.set_valign(Gtk.Align.CENTER)
         new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
                          action_name='win.new-tab')
         self.new_tab_button=new
+        new.set_valign(Gtk.Align.CENTER)
         header.pack_start(new)
         from .application_surfaces import application_menu
         self.menu=application_menu()
@@ -141,24 +147,75 @@ class Window(Adw.ApplicationWindow):
         from .version_chooser import VersionChooser
         self.primary_version=VersionChooser(self)
         self.compared_version=VersionChooser(self,comparison=True)
-        self.reader_controls=Gtk.Box(spacing=6,halign=Gtk.Align.END,valign=Gtk.Align.START,
-                                    margin_top=12,margin_end=12)
-        self.reader_controls.append(self.primary_version)
+        self.header_title=Gtk.Box(spacing=8,halign=Gtk.Align.FILL)
+        header.set_title_widget(None)
+        self.header_title.append(self.passage_button);self.header_title.append(self.primary_version)
+        header.set_title_widget(self.header_title)
+        self.reader_controls=Gtk.Box(spacing=4)
         for widget,label in [(self.comparison_button,'Compare translations'),(self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
-            widget.add_css_class('circular');widget.add_css_class('reader-action')
+            widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             self.reader_controls.append(widget)
+        self.reader_overflow=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Reading tools'),visible=False)
+        self.reader_overflow_box=Gtk.Box(spacing=6,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
+        overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
+        self._reading_popovers.append(overflow)
+        self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
+        header.pack_end(self.header_tools)
+        def move_tools(*_):
+            target=self.reader_overflow_box if self.reader_overflow.get_visible() else self.reader_controls
+            for widget in (self.comparison_button,self.appearance_button,self.immersive_button):
+                parent=widget.get_parent()
+                if parent is not target:
+                    if parent:parent.remove(widget)
+                    target.append(widget)
+        self.reader_overflow.connect('notify::visible',move_tools)
+        self.compact_title=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,visible=False,
+            margin_start=8,margin_end=8,margin_top=4,margin_bottom=4)
+        self.header_bin=Adw.BreakpointBin();self.header_bin.set_child(header)
+        self.header_bin.set_size_request(300,46)
+        def study_in_overflow(enabled):
+            parent=self.study_button.get_parent()
+            if enabled and parent is not self.reader_overflow_box:
+                header.remove(self.study_button);self.reader_overflow_box.append(self.study_button)
+            elif not enabled and parent is self.reader_overflow_box:
+                self.reader_overflow_box.remove(self.study_button)
+                header.remove(self.header_tools);header.pack_end(self.study_button);header.pack_end(self.header_tools)
+        def compact_applied(breakpoint,tiny):
+            self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
+            if self.header_title.get_parent() is not self.compact_title:
+                header.set_title_widget(Gtk.Box())
+                self.compact_title.append(self.header_title)
+            self.compact_title.set_visible(True)
+            self.queue_controls()
+        def compact_removed(*_):
+            self.space_selector.remove_css_class('compact-space');study_in_overflow(False)
+            if self.header_title.get_parent() is self.compact_title:
+                self.compact_title.remove(self.header_title)
+                header.set_title_widget(self.header_title)
+            self.compact_title.set_visible(False)
+            self.queue_controls()
+        for width,tiny in [(760,False),(420,True)]:
+            compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}px'))
+            compact_tools.add_setter(self.reader_controls,'visible',False)
+            compact_tools.add_setter(self.reader_overflow,'visible',True)
+            compact_tools.add_setter(self.header_title,'orientation',Gtk.Orientation.VERTICAL)
+            compact_tools.add_setter(header,'decoration-layout',':close')
+            compact_tools.connect('apply',compact_applied,tiny)
+            compact_tools.connect('unapply',compact_removed)
+            self.header_bin.add_breakpoint(compact_tools)
         self._controls_tick=0;self._controls_frames=0
-        self._layout_surface=None;self._layout_surface_handlers=[]
-        self.reader_controls.connect('map',self.queue_controls)
-        self.reader_controls.connect('unmap',self.cancel_controls)
         self.primary_version.caption.connect('notify::label',self.queue_controls)
+        self.compared_version.caption.connect('notify::label',self.queue_controls)
+        self.reader_overflow_box.connect('map',self.queue_controls)
+        self._layout_surface=None;self._layout_surface_handlers=[]
         self.connect('map',self.watch_layout_surface)
         self.connect('unmap',self.unwatch_layout_surface)
         settings=Gtk.Settings.get_default()
         self._layout_settings_handlers=[settings.connect('notify::'+name,self.queue_layout)
             for name in ('gtk-font-name','gtk-theme-name','gtk-xft-dpi')]
-        layout.append(header)
+        layout.append(self.header_bin)
+        layout.append(self.compact_title)
         self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
                                         margin_start=12, margin_end=12)
         layout.append(self.session_status)
@@ -199,35 +256,12 @@ class Window(Adw.ApplicationWindow):
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
         self.add_breakpoint(breakpoint)
-        tiny_header = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 420px'))
-        tiny_header.add_setter(self.split, 'collapsed', True)
-        # Adw breakpoints do not stack: the tiny layout also needs the drawer's
-        # adaptive sizing and its single visible set of native window controls.
-        # Removing Library frees room for the existing mouse routes; the new
-        # global menu no longer duplicates these reading/workspace commands.
-        tiny_header.add_setter(new,'visible',True)
-        tiny_header.add_setter(self.tab_new_button,'visible',False)
-        # The real passage chooser stays reachable beside the tabs when the
-        # top-left space selector needs room. There is still one chooser.
-        compact_title=Gtk.Box()
-        def compact(*_):
-            self.space_selector.add_css_class('compact-space')
-            header.set_title_widget(compact_title)
-            layout.insert_child_after(self.passage_button,header)
-            constrain_labels(self.heading,8)
-        def expanded(*_):
-            self.space_selector.remove_css_class('compact-space')
-            if self.passage_button.get_parent() is layout:layout.remove(self.passage_button)
-            header.set_title_widget(self.passage_button)
-            constrain_labels(self.heading)
-        tiny_header.connect('apply',compact);tiny_header.connect('unapply',expanded)
-        self.add_breakpoint(tiny_header)
         icons = Gtk.IconTheme.get_for_display(self.get_display())
         icons.add_search_path(str(Path(__file__).parent / 'icons'))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
-                           b'.compact-space button { padding-left: 6px; padding-right: 6px; } '
+                           b'.compact-space button { padding-left: 4px; padding-right: 4px; } '
                            b'.annotation-navigation { background-color: @sidebar_bg_color; color: @sidebar_fg_color; } '
                            b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
                            b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
@@ -361,40 +395,43 @@ class Window(Adw.ApplicationWindow):
             for tab in self.tabs():tab.queue_adapt()
 
     def queue_controls(self,*_):
-        if self.closed or not self.reader_controls.get_mapped():return
+        if self.closed or not self.get_mapped():return
         self._controls_frames=3
-        if not self._controls_tick:self._controls_tick=self.reader_controls.add_tick_callback(self._settle_controls)
+        if not self._controls_tick:self._controls_tick=self.add_tick_callback(self._settle_controls)
 
     def cancel_controls(self,*_):
-        if self._controls_tick:self.reader_controls.remove_tick_callback(self._controls_tick)
+        if self._controls_tick:self.remove_tick_callback(self._controls_tick)
         self._controls_tick=0;self._controls_frames=0
 
     def _settle_controls(self,*_):
         self.fit_reader_controls();self._controls_frames-=1
         if self._controls_frames>0:return True
-        self._controls_tick=0
-        return False
+        self._controls_tick=0;return False
 
     def fit_reader_controls(self,*_):
+        from .version_chooser import fit_wrapped_button
+        fit_wrapped_button(self.primary_version,self.primary_version.caption.get_text())
+        fit_wrapped_button(self.compared_version,self.compared_version.caption.get_text())
+        fit_wrapped_button(self.passage_button,self.heading.get_title())
+
+    def position_primary_version(self,force=False):
+        if not force and self.immersion and self.immersion.kind=='bible':return
         tab=self.active_tab
-        if not tab or self.primary_version.get_parent() is not self.reader_controls:return True
-        available=tab.reading_overlay.get_width()-24
-        if available<=0:return True
-        others=[];child=self.reader_controls.get_first_child()
-        while child:
-            if child is not self.primary_version and child.get_visible():others.append(child)
-            child=child.get_next_sibling()
-        widths=tuple(widget.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for widget in others)
-        caption=self.primary_version.caption
-        stamp=(available,widths,caption.get_text(),caption.get_pango_context().get_serial())
-        if stamp==getattr(self,'_reader_controls_geometry',None):return True
-        self._reader_controls_geometry=stamp
-        width=sum(widths)
-        padding=self.primary_version.measure(Gtk.Orientation.HORIZONTAL,-1)[1]-caption.measure(Gtk.Orientation.HORIZONTAL,-1)[1]
-        em=max(1,caption.create_pango_layout('M').get_pixel_size()[0])
-        chars=max(4,min(16,int((available-width-padding-6*len(others))/em)))
-        if caption.get_max_width_chars()!=chars:caption.set_max_width_chars(chars)
-        return True
+        target=tab.primary_controls if tab and tab.state.comparison else self.header_title
+        parent=self.primary_version.get_parent()
+        if parent is not target:
+            if parent:parent.remove(self.primary_version)
+            target.append(self.primary_version)
+        self.primary_version.set_hexpand(bool(tab and tab.state.comparison))
+
+    def open_reading_popup(self,button):
+        if button.get_parent() is self.reader_overflow_box:
+            self.reader_overflow.popup()
+            def show():
+                if not self.closed and self.reader_overflow_box.get_mapped():button.popup()
+                return False
+            GLib.idle_add(show)
+        else:button.popup()
 
     def copy_passage(self,with_reference=False,reference_only=False):
         from .notes_window import passage_label
@@ -417,12 +454,12 @@ class Window(Adw.ApplicationWindow):
 
     def show_appearance(self):
         if self.immersion:self.immersion.reveal_controls();self.immersion.aa.popup()
-        else:self.appearance_button.popup()
+        else:self.open_reading_popup(self.appearance_button)
 
     def show_comparison(self):
         if self.immersion:self.leave_immersion()
         if self.active_tab and self.active_tab.state.comparison:self.compared_version.popup()
-        else:self.comparison_button.popup()
+        else:self.open_reading_popup(self.comparison_button)
 
     def toggle_immersion(self):
         if self.immersion:self.leave_immersion()
@@ -643,10 +680,7 @@ class Window(Adw.ApplicationWindow):
             return
         for color in [*COLORS,'remove']:
             self.lookup_action('highlight-'+color).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
-        parent=self.reader_controls.get_parent()
-        if parent is not tab.reading_overlay:
-            if parent:parent.remove_overlay(self.reader_controls)
-            tab.reading_overlay.add_overlay(self.reader_controls)
+        self.position_primary_version()
         right_parent=self.compared_version.get_parent()
         if right_parent is not tab.comparison_controls:
             if right_parent:right_parent.remove(self.compared_version)
@@ -657,14 +691,14 @@ class Window(Adw.ApplicationWindow):
         self.lookup_action('immersive').set_enabled(tab.reader is not None)
         for name in ['copy-passage','copy-with-reference','copy-reference']:
             self.lookup_action(name).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
-        self.heading.set_title(tab.passage_title())
+        self.heading.set_title(tab.passage_title(chapter_only=True))
         subtitle = tab.reader.short_name if tab.reader else module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
         if tab.state.resource and tab.state.resource not in self.library.installed():
             subtitle += f' ({tr("Missing translation")})'
-        self.heading.set_subtitle(subtitle)
-        self.passage_button.set_tooltip_text(f'{tab.passage_title()} — {subtitle}\n{tr("Choose a passage")} (Ctrl+G)')
+        self.heading.set_subtitle('')
+        self.passage_button.set_tooltip_text(f'{tab.passage_title(chapter_only=True)}\n{tr("Choose a passage")} (Ctrl+G)')
         self.passage_button.update_property([Gtk.AccessibleProperty.LABEL],
-                                             [f'{tr("Choose a passage")}: {tab.passage_title()} — {subtitle}'])
+                                             [f'{tr("Choose a passage")}: {tab.passage_title(chapter_only=True)}'])
         previous, following = tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
         self.lookup_action('previous-chapter').set_enabled(previous is not None)
         self.lookup_action('next-chapter').set_enabled(following is not None)
@@ -706,6 +740,7 @@ class Window(Adw.ApplicationWindow):
         self.comparison_button.set_tooltip_text(label)
         self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
         tab.refresh_comparison()
+        self.position_primary_version()
         self.primary_version.sync();self.compared_version.sync()
         self.immersive_button.set_visible(not bool(tab.state.comparison))
 
@@ -774,12 +809,18 @@ class Window(Adw.ApplicationWindow):
 
     def toggle_study(self, *_):
         if not self._syncing_study:
+            if self.study_button.get_parent() is self.reader_overflow_box:self.reader_overflow.popdown()
             self.split.set_show_sidebar(self.study_button.get_active())
 
     def sync_header_controls(self):
+        decoration=self.header.get_decoration_layout()
         visible=self.split.get_show_sidebar()
         self.header.set_show_end_title_buttons(not visible)
         self.study.header.set_show_end_title_buttons(visible)
+        # Older libadwaita recreates end controls when the sidebar changes.
+        # Reapply the compact layout to that new native control instance.
+        if decoration is not None:
+            self.header.set_decoration_layout(None);self.header.set_decoration_layout(decoration)
 
     def sidebar_changed(self, *_):
         if not self.split.get_show_sidebar():

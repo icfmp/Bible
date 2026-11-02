@@ -115,7 +115,7 @@ def main():
         for primary, comparison, ref, start, end in boundaries:
             row = open_pair(primary, comparison, ref)
             expected = start+('–'+end if end != start else '')
-            assert tab.comparison_heading.get_text().endswith(expected), (row, tab.comparison_heading.get_text())
+            assert (tab.comparison_reference,tab.comparison_end_reference)==(start,end),(row,tab.comparison_reference,tab.comparison_end_reference)
             row['expected_target'] = expected; report['boundaries'].append(row)
         # Ordinary John 3 has identical verified numbering in these systems.
         for primary, comparison in [('FreSegond1910','ebible~frajnd2024eb'),
@@ -151,10 +151,10 @@ def main():
         # readable target text, clearly labelled, and resume on a supported verse.
         assert tab.navigate('ebible~frajnd2024eb','Ps.3.1')
         tab.state.comparison='KJV';window.sync_comparison();settled()
-        assert tab.comparison_status.get_text() and tr('Independent reading') in tab.comparison_heading.get_text()
+        assert tab.comparison_status.get_text() and tr('Automatic following unavailable. Reading independently.') in tab.comparison_status.get_text()
         assert tab.comparison_text.get_buffer().get_char_count()>0
         limitation=tab.comparison_status.get_text()
-        heading=tab.comparison_heading.get_text()
+        heading=tab.comparison_reference
         tab.comparison_sync.intent('comparison');tab.comparison_sync.synchronize()
         # It may recover at its explicitly displayed independent reference only
         # if a subsequent real user gesture has a verified mapping.

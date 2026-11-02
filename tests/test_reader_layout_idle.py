@@ -23,7 +23,7 @@ class ReaderLayoutIdleTests(unittest.TestCase):
 
     def settled(self):
         w=self.window;t=self.tab
-        return not (t._restoring_scroll or t._adapt_id or w._controls_tick or w.study_divider._adapt_id or w.study._adapt_tick)
+        return not (t._restoring_scroll or t._adapt_id or w.study_divider._adapt_id or w.study._adapt_tick or w._controls_tick)
 
     def test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries(self):
         from tests.test_commentary import commentary_fixture

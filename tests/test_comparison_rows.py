@@ -39,14 +39,14 @@ class ComparisonRowsTests(unittest.TestCase):
                                 for view,markers,refs in [(tab.text,tab._marker_ends,row.primary),
                                                           (tab.comparison_text,tab._comparison_markers,row.secondary)]]
                         self.assertAlmostEqual(*values,delta=1)
-                tab.primary_heading.set_text('Short source')
-                tab.comparison_heading.set_text('A long source description with attribution and reference '*4)
+                window.primary_version.caption.set_text('Short source')
+                window.compared_version.caption.set_text('A long human-readable translation title '*4)
                 spin(duration=.6);aligned()
                 copies=[doc.copy(0,len(doc.text)) for doc in (tab._document,tab._comparison_document)]
                 for width,size in [(900,24),(1280,32)]:
                     window.set_default_size(width,850);window.appearance.update('size',size)
-                    tab.primary_heading.set_text('Short source')
-                    tab.comparison_heading.set_text('A long source description with attribution and reference '*4)
+                    window.primary_version.caption.set_text('Short source')
+                    window.compared_version.caption.set_text('A long human-readable translation title '*4)
                     spin(duration=.6);aligned()
                 for doc,name in [(tab._document,'Primary'),(tab._comparison_document,'Secondary')]:
                     text=doc.copy(0,len(doc.text))

@@ -79,7 +79,7 @@ class PaletteTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires real GTK under Xvfb')
 class AppearanceTests(unittest.TestCase):
-    def test_controls_follow_active_bible_overlay_and_reference_field_is_visible(self):
+    def test_controls_stay_in_header_and_reference_field_is_visible(self):
         from bible.ui import Window,Library
         from tests.test_ui import installed_fixture,spin
         with tempfile.TemporaryDirectory() as directory:
@@ -87,14 +87,14 @@ class AppearanceTests(unittest.TestCase):
             window=Window(self.app,Library(Path(directory)/'translations'));window.present()
             try:
                 spin()
-                self.assertIs(window.reader_controls.get_parent(),window.active_tab.reading_overlay)
-                self.assertIs(window.reader_controls.get_first_child(),window.primary_version)
+                self.assertIs(window.reader_controls.get_parent(),window.header_tools)
+                self.assertIs(window.reader_controls.get_first_child(),window.comparison_button)
                 self.assertIs(window.appearance_button.get_parent(),window.reader_controls)
-                self.assertFalse(window.appearance_button.is_ancestor(window.header))
+                self.assertTrue(window.appearance_button.is_ancestor(window.header))
                 self.assertFalse(window.navigation.version.get_parent())
                 self.assertFalse(hasattr(window.study,'appearance_button'))
                 window.new_tab();spin()
-                self.assertIs(window.reader_controls.get_parent(),window.active_tab.reading_overlay)
+                self.assertIs(window.reader_controls.get_parent(),window.header_tools)
                 window.navigation.modes.set_visible_child_name('topics')
                 window.choose_passage(direct=True);spin()
                 self.assertTrue(window.navigation.direct.get_mapped())

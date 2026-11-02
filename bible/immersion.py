@@ -108,7 +108,7 @@ class Immersion(Gtk.Overlay):
         header.pack_start(self.menu);header.pack_end(self.aa);header.pack_end(self.leave_button)
         self.header=header
         if self.kind=='bible':
-            owner.reader_controls.remove(owner.primary_version)
+            owner.primary_version.get_parent().remove(owner.primary_version)
             header.pack_end(owner.primary_version)
         for button in (self.aa,self.leave_button):
             button.add_css_class('circular');button.add_css_class('reader-action')
@@ -384,7 +384,7 @@ class Immersion(Gtk.Overlay):
                 button.set_sensitive(position is not None)
                 button.set_tooltip_text((tr('Previous available entry') if direction<0 else tr('Next available entry'))+
                                        (': '+self.source.reader.index.label(position) if position is not None else ''))
-        self.footer.set_text(caption);self.caption.set_text(caption)
+        self.footer.set_text(caption);self.caption.set_text(self.owner.active_tab.passage_title(chapter_only=True) if self.kind=='bible' else caption)
         self.update_page_buttons()
 
     def update_page_buttons(self):
@@ -585,7 +585,7 @@ class Immersion(Gtk.Overlay):
         if self.kind=='bible':
             self.owner.primary_version.popdown()
             self.header.remove(self.owner.primary_version)
-            self.owner.reader_controls.prepend(self.owner.primary_version)
+            self.owner.position_primary_version(force=True)
             self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
         if hasattr(self.stream,'close'):self.stream.close()
