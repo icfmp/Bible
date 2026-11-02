@@ -111,18 +111,19 @@ def symbol_aggregates(children=False,window=True):
     record[prefix+'_report_exit_code']=result.returncode
     record[prefix+'_report_output_bytes']=len(result.stdout)
     record[prefix+'_report_error_bytes']=len(result.stderr)
+    record[prefix+'_report_headers']=[line.strip('# ').strip() for line in result.stdout.splitlines() if line.startswith('#') and '|' in line and re.fullmatch(r'[# A-Za-z0-9_()|.-]+',line)]
     entries=[];unresolved=0.0;matched=0;field_counts={}
     for line in result.stdout.splitlines():
         if not line.strip() or line.lstrip().startswith('#'):continue
         parts=line.strip().strip('|').split('|');field_counts[str(len(parts))]=field_counts.get(str(len(parts)),0)+1
-        if len(parts)!=3:continue
+        if len(parts)<3:continue
         try:percentage=float(parts[0].strip().rstrip('%'))
         except ValueError:continue
         matched+=1
-        symbol=re.sub(r'^\[[^]]+\]\s*','',parts[1].strip())
+        symbol=re.sub(r'^\[[^]]+\]\s*','',parts[-2].strip())
         if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):
             unresolved+=percentage;continue
-        entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[2].strip()).name))
+        entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[-1].strip()).name))
     record[prefix+'_report_rows']=matched
     record[prefix+'_report_column_counts']=field_counts
     record[prefix+'_unresolved_percent']=unresolved
