@@ -45,7 +45,6 @@ jobs:
           perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
           for repeat in 1 2 3 4 5 6; do
             for version in control no-overshoot; do
-              flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/after-bundle/Bible-alpha.flatpak"
               diagnostic=()
               if [ "$version" = no-overshoot ]; then diagnostic=(--diagnostic-no-overshoot); fi
               output="$RUNNER_TEMP/private-scroll/$version-$repeat.json"
