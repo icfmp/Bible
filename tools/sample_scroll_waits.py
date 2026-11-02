@@ -103,18 +103,23 @@ record['longest_gap_native_waits']=[v for v in waits if v['overlaps_longest_gap'
 # A fixed symbol/DSO/percentage schema only. No raw stacks, addresses or paths.
 def symbol_aggregates(children=False):
     fields='overhead_children,symbol,dso' if children else 'overhead,symbol,dso'
-    command=[perf,'report','-i',str(perfdata),'--symfs',str(symbols),'--stdio','--no-call-graph','--sort','symbol,dso','-F',fields,'-x','|','--percent-limit','0.1','--time',f'{gap[1]:.6f},{gap[2]:.6f}']
+    command=[perf,'report','-i',str(perfdata),'--symfs',str(symbols),'--stdio','--no-call-graph','--sort','symbol,dso','-F',fields,'-t','|','--percent-limit','0.1','--time',f'{gap[1]:.6f},{gap[2]:.6f}']
     command+=['--children'] if children else ['--no-children']
     result=subprocess.run(command,capture_output=True,text=True)
-    entries=[]
+    record['native_inclusive_report_exit_code' if children else 'native_self_report_exit_code']=result.returncode
+    entries=[];unresolved=0.0;matched=0
     for line in result.stdout.splitlines():
         parts=line.split('|')
         if len(parts)!=3:continue
         try:percentage=float(parts[0].strip().rstrip('%'))
         except ValueError:continue
+        matched+=1
         symbol=re.sub(r'^\[[^]]+\]\s*','',parts[1].strip())
-        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):continue
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_:.<>~@()+* ,\[\]-]{0,180}',symbol):
+            unresolved+=percentage;continue
         entries.append(dict(percent=percentage,symbol=symbol,dso=Path(parts[2].strip()).name))
+    record['native_inclusive_report_rows' if children else 'native_self_report_rows']=matched
+    record['native_inclusive_unresolved_percent' if children else 'native_self_unresolved_percent']=unresolved
     return entries[:32]
 record['longest_gap_native_cpu_symbols']=symbol_aggregates()
 record['longest_gap_native_inclusive_symbols']=symbol_aggregates(True)
