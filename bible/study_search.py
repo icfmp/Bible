@@ -77,14 +77,22 @@ class StudySearch(Gtk.Box):
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12,selectable=True)
         notice.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>\n'+
             GLib.markup_escape_text(tr('Community suggestions; explore the context.'))+'\n\n'+GLib.markup_escape_text(TRANSFORMATIONS))
-        information.set_child(notice);self.credit.set_popover(information);self.append(self.credit)
+        notice_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_height=True,propagate_natural_width=True,
+            min_content_width=220,max_content_width=360,max_content_height=350)
+        notice_scroll.set_child(notice);information.set_child(notice_scroll)
+        self.credit.set_popover(information);self.append(self.credit)
         self.refresh()
 
     def close(self):self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
 
     def pause(self):
         self.epoch+=1
-        if self.future:self.future.cancel()
+        if self.pending:
+            self.invalidate()
+            self.status.set_text(tr('Choose a topic.') if self.mode=='topics' else tr('Enter a phrase and press Enter.'))
+            if self.mode=='topics':self.show_topics()
+        elif self.future:self.future.cancel()
         self.pending=False
 
     def invalidate(self):
@@ -324,4 +332,4 @@ class StudySearch(Gtk.Box):
             if self.owner.main_pages.get_visible_child_name()=='notes':self.owner.notes_space.guard(action)
             else:action()
         self.owner.reference_preview.show(button,resource,reader,row.start,row.end,source_system=self.source_system,
-            provenance='OpenBible.info · CC BY 4.0\n'+SOURCE_URL+'\n'+self.topic[0] if self.mode=='topics' else '',navigation_guard=navigate)
+            provenance='OpenBible.info · '+title(self.topic) if self.mode=='topics' else '',navigation_guard=navigate)

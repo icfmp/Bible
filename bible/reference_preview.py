@@ -80,7 +80,9 @@ class ReferencePreview:
         close=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         close.add_css_class('flat');close.connect('clicked',lambda *_:self.dismiss());header.append(close)
         box.append(header)
-        version=Gtk.Label(label=resource or tr('No active Bible translation'),xalign=0,wrap=True,max_width_chars=36)
+        try:version_title=self.owner.library.resource(resource).description if resource else tr('No active Bible translation')
+        except (OSError,ValueError):version_title=tr('Translation unavailable.')
+        version=Gtk.Label(label=version_title,xalign=0,wrap=True,max_width_chars=36)
         version.add_css_class('dim-label');box.append(version)
         body=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                           left_margin=4,right_margin=4,top_margin=4,bottom_margin=4)

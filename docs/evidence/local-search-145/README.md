@@ -13,7 +13,8 @@ both groups, and source text is never rewritten.
 
 The existing maintained ISO aliases now recognize `fra`/`fre`/`eng` and regional
 variants for supported normalization. The derived search-cache signature changes
-from 4 to 5 so previous normalization is not reused incorrectly; resource files,
+from 4 to 5 only when alias normalization changes the stored accent behavior.
+Compatible English/French caches remain usable without rebuilding; resource files,
 preferences, notes and sessions are not migrated/reset. Greek accents and
 unsegmented-language semantics are not broadened into unsupported approximation.
 

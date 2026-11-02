@@ -9,7 +9,7 @@ import subprocess
 import sys
 import os
 import tempfile
-from .search_terms import normalized,terms,UNSEGMENTED_LANGUAGES
+from .search_terms import normalized,terms,UNSEGMENTED_LANGUAGES,LATIN_LANGUAGES
 from .languages import canonical_language
 
 
@@ -28,7 +28,12 @@ def search(root,name,query,scope='all',book=None,offset=0,limit=100):
 def index(root,name,reader):
     files=sorted((str(p.relative_to(reader.root)),p.stat().st_size,p.stat().st_mtime_ns)
                  for p in reader.root.rglob('*') if p.is_file())
-    signature=hashlib.sha256(json.dumps([5,files]).encode()).hexdigest()
+    language=reader.module.getConfigEntry('Lang') or 'und'
+    old_latin=language.split('-')[0] in LATIN_LANGUAGES
+    new_latin=canonical_language(language).split('-')[0] in LATIN_LANGUAGES
+    # Keep compatible installed caches; only changed normalization needs rebuilding.
+    generation=5 if old_latin!=new_latin else 4
+    signature=hashlib.sha256(json.dumps([generation,files]).encode()).hexdigest()
     cache=Path(root).parent/'search-indexes';cache.mkdir(exist_ok=True)
     path=cache/(name+'.sqlite3')
     try:
@@ -37,7 +42,6 @@ def index(root,name,reader):
                 db.execute('SELECT reference,normalized FROM verses LIMIT 1').fetchone()
                 if db.execute('PRAGMA quick_check').fetchone()[0]=='ok':return path
     except sqlite3.Error:pass
-    language=reader.module.getConfigEntry('Lang') or 'und'
     with tempfile.TemporaryDirectory(prefix='.search-',dir=cache) as temp:
         candidate=Path(temp)/'index.sqlite3'
         with closing(sqlite3.connect(candidate)) as db,db:

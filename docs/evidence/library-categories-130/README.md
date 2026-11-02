@@ -21,6 +21,13 @@ returns ZIP SHA-256 `045f1c5db8a331e3d2a185b44646b6ff220b72dd54669fd1976270a7351
 is `5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f`.
 This is an upstream content-review limitation, not an installed-data migration.
 The checksum check remains enabled and no installed index was overwritten.
-Do not describe this failed acquisition as a successful installation.
+The topics archive likewise currently differs from its reviewed pin: observed
+SHA-256 `b20499362abe0c71c45bb18cca1dcf386b8caf50381e6246cc531fa7a69aa2cf`
+(418,746 bytes), pinned
+`47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc`.
+Fresh reference/topic acquisitions remain blocked pending a separate source review.
+The rendering checks reuse attributed, previously verified installed indices;
+they do not substitute those fixtures into normal application downloads.
+Do not describe either failed acquisition as a successful installation.
 
 The issue remains open for client validation. Numbered release 87 remains paused.

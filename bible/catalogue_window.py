@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from threading import Event
 import json
+import logging
 import time
 import gi
 
@@ -132,7 +133,7 @@ class CatalogueWindow(Adw.Window):
         self.resource_list.connect('activate',self.open_details)
         self.list_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.list_scroll.set_child(self.resource_list)
-        self.result_pages=Gtk.Stack(vexpand=True)
+        self.result_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
         self.result_pages.add_named(self.list_scroll,'rows')
         self.skeleton=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14,margin_start=20,margin_end=20,margin_top=20)
         self.loading_phase=Gtk.Label(wrap=True,xalign=0,max_width_chars=40)
@@ -151,7 +152,7 @@ class CatalogueWindow(Adw.Window):
         self.skeleton.set_can_target(False)
         self.result_pages.add_named(self.skeleton,'loading')
         self.empty_page=Adw.StatusPage(icon_name='edit-find-symbolic')
-        empty_actions=Gtk.Box(spacing=8,halign=Gtk.Align.CENTER)
+        empty_actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,halign=Gtk.Align.CENTER)
         clear=Gtk.Button(label=tr('Clear filters'));clear.connect('clicked',self.clear_filters);empty_actions.append(clear)
         retry=self.result_retry=Gtk.Button(label=tr('Refresh catalogue'));retry.connect('clicked',self.load_catalogue);empty_actions.append(retry)
         self.empty_page.set_child(empty_actions);self.result_pages.add_named(self.empty_page,'empty')
@@ -539,7 +540,7 @@ class CatalogueWindow(Adw.Window):
         self._indeterminate = True
         self.status.set_visible(True)
         self.progress.set_visible(True)
-        self.status.set_text(tr(message))
+        self.status.set_text(tr(message));self.status.set_tooltip_text(None)
         self.progress.set_fraction(0)
         self.progress.set_show_text(True)
         self.progress.set_text(tr(message))
@@ -565,7 +566,16 @@ class CatalogueWindow(Adw.Window):
                 self.progress.set_text(tr("Failed"))
                 self._failed_resource=resource.id if resource else None
                 context=(resource.id+': ') if resource else ''
-                self.status.set_text(f'{context}{error}\n{tr("Retry using the same button.")}')
+                message=str(error)
+                if resource and resource.kind=='study':
+                    from .reference_data import ReferenceDataError
+                    context=plain(resource.description)+': '
+                    message=tr('Download cancelled.') if isinstance(error,InterruptedError) or str(error)==tr('Download cancelled.') else tr(
+                        'The study data could not be verified. Previously installed data was preserved.' if isinstance(error,ReferenceDataError) else
+                        'The study tool could not be downloaded or installed. Previously installed data was preserved.')
+                    logging.getLogger(__name__).warning('Study resource %s: %s',resource.id,error)
+                    self.status.set_tooltip_text(str(error))
+                self.status.set_text(f'{context}{message}\n{tr("Retry using the same button.")}')
                 self.status.set_visible(True)
             finally:
                 self.refresh_controls()

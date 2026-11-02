@@ -25,7 +25,8 @@ def main():
                     style.set(dark=dark,high=False);w.appearance.update('mode','night' if dark else 'day')
                     for module,refs in [('ebible~francl2022eb',['Ps.17.1','Ps.17.2','Ps.17.1','Gen.2.1']),('FreSegond1910',['Ps.17.1'])]:
                         for i,ref in enumerate(refs):
-                            t.navigate(module,ref);w.study_button.set_active(True);s=w.study
+                            assert t.navigate(module,ref),(module,ref,t.status.get_text())
+                            w.study_button.set_active(True);s=w.study
                             s.tools.set_visible_child_name('commentaries');s.refresh(force=True);s.choices.set_selected(s.names.index('MHC'))
                             spin(lambda:not t._restoring_scroll and not s._positioning,duration=.4)
                             section=s.reader.index.sections[s.current_position] if s.current_position is not None else None

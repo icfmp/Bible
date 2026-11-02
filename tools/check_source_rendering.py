@@ -24,7 +24,7 @@ def main():
         args.profile.mkdir(parents=True,exist_ok=True);marker.touch()
     assert marker.is_file(),'Use a marked disposable research profile only'
     library=Library(args.profile/'translations')
-    names=['MHC','FreAug','FreChry','FreBDM1744','FreJND','ebible~fraLSG1910eb','ebible~frasbl2022eb','FreSegond1910']
+    names=['MHC','FreAug','FreChry','FreBDM1744','FreJND','ebible~fraLSG1910eb','ebible~frasbl2022eb','FreSegond1910','ebible~francl2022eb']
     if args.prepare:
         resources=[r for provider in PROVIDERS if provider.id in {'crosswire','ebible'} for r in catalogue(provider)]
         for name in names:

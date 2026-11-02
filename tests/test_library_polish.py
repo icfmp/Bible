@@ -275,6 +275,8 @@ class LibraryPolishTests(unittest.TestCase):
             self.assertTrue(d._transfer_busy);self.assertTrue(d.cancel_button.get_visible())
             d.cancel_download();release.set();spin(lambda:not d._transfer_busy)
             self.assertEqual(d._phase,'error');self.assertEqual(d._failed_resource,resource.id)
+            self.assertTrue(d.status.get_text().startswith(resource.description+': '))
+            self.assertIn('Synthetic cancelled download',d.status.get_tooltip_text())
             self.assertNotIn(resource.id,d.installed_ids())
             d.install(resource=resource);spin(lambda:not d._transfer_busy)
             self.assertEqual(install.call_count,2);self.assertNotIn(resource.id,d.installed_ids())

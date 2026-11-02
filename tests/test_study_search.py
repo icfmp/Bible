@@ -95,5 +95,17 @@ class StudySearchTests(unittest.TestCase):
         panel.entry.set_text('fear');spin(duration=.3)
         self.assertIsNone(self.window.reference_preview.popover);self.assertEqual(panel.rows,[])
 
+    def test_paused_query_keeps_draft_without_leaving_a_stale_searching_state(self):
+        from bible.i18n import tr
+        panel=self.navigation.text_search;started=threading.Event();release=threading.Event()
+        self.addCleanup(release.set)
+        def work():started.set();release.wait(3);return [Relationship('John.3.16','John.3.16',0,1)],1
+        panel.entry.set_text('retained draft');panel.launch(work,'query','KJV')
+        self.assertTrue(started.wait(2));panel.pause()
+        self.assertFalse(panel.pending);self.assertEqual(panel.entry.get_text(),'retained draft')
+        self.assertEqual(panel.status.get_text(),tr('Enter a phrase and press Enter.'))
+        release.set();spin(duration=.2)
+        self.assertEqual(panel.rows,[]);self.assertIsNone(self.window.reference_preview.popover)
+
 
 if __name__=='__main__':unittest.main()

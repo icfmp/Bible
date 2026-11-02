@@ -7,6 +7,8 @@ FR = {
     'Close match':'Correspondance proche',
     'Matches all search terms':'Tous les termes recherchés',
     '{count} reviewed themes':'{count} thèmes relus',
+    'The study data could not be verified. Previously installed data was preserved.':'Les données d’étude n’ont pas pu être vérifiées. Les données déjà installées ont été conservées.',
+    'The study tool could not be downloaded or installed. Previously installed data was preserved.':'L’outil d’étude n’a pas pu être téléchargé ou installé. Les données déjà installées ont été conservées.',
     'All themes':'Tous les thèmes',
     'Source and license':'Source et licence',
     'Community suggestions; explore the context.':'Suggestions de la communauté ; examinez le contexte.',

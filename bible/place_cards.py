@@ -147,14 +147,13 @@ class PlaceCards(Adw.Window):
         # The supplied description can name a region while its representative
         # coordinate belongs to a modern site. Do not equate those two entities.
         descriptions=list(dict.fromkeys(place_name(plain(c.get('description') or c['name'])) for c in located))
-        self.location_description=self.label('; '.join(descriptions) if descriptions else tr('Unknown location'))
+        self.location_description=self.label(descriptions[0] if len(located)==1 else
+            tr('Several proposed locations') if len(located)>1 else tr('Unknown location'))
         self.location_description.add_css_class('heading');card.append(self.location_description)
-        if place['status']!='known':card.append(self.label(tr(STATUS[place['status']]),caption=True))
+        if place['status']!='known' and (located or place['status']!='unknown'):card.append(self.label(tr(STATUS[place['status']]),caption=True))
         if len(located)==1:
             note=self.location_note(located[0])
             if note:card.append(self.label(note,caption=True))
-        elif len(located)>1:
-            card.append(self.label(tr('Several proposed locations'),caption=True))
         parent=self.passage_context.get_parent()
         if parent:parent.remove(self.passage_context)
         self.passage_context.set_margin_start(0);self.passage_context.set_margin_end(0)

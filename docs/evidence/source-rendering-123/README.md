@@ -1,6 +1,6 @@
 # Source rendering follow-up — issue 123
 
-Status: local implementation and native GTK validation; installed Flatpak/package delivery remains pending. This branch follows the separately publishing issue 26 batch. Issues remain OPEN and numbered release 87 remains paused.
+Status: local implementation and native GTK validation; installed Flatpak/package delivery remains pending. This branch follows the already published issue 26 batch. Issues remain OPEN and numbered release 87 remains paused.
 
 ## Measured causes
 
@@ -17,12 +17,13 @@ All five real commentary cases preserve source body characters, literal stars an
 
 Focused source/GTK checks cover paired milestones, editorial roles, nested emphasis, literal stars, fallback safety, preface styling, separate copy and preserved parent position, module hashes, canonical anchors, pagination, clipboard, chapter following and immersion. The installed suite now includes the new renderer checks. Remaining: installed before/after and performance/idle checks, RTL/non-Latin actual-resource checks, signed publication and retained-profile verification.
 
-## Outstanding local geometry diagnosis
+## Source-preface geometry
 
-Repeated mixed-source capture cycles with animations enabled exposed a current-entry position offset in the long MHC preface after reopening/theme changes (up to 27,387 pixels). Simpler first-open/resize fixtures pass. GTK scroll-to-iterator/mark experiments did not resolve it and were reverted. The branch retains the established reveal path while an explicit non-publication workflow compares real resources with the installed GTK 4.20 runtime and development Python source. This diagnostic mode must not be described as an installed candidate application delivery. No source/text change is inferred from the geometry failure.
-
-## Final local correction
-
-The mixed-source/theme position defect was reproduced with the installed GTK 4.20 runtime, not just the local runtime. Scroll-to-iterator/mark and buffer replacement experiments did not provide a robust fix and were discarded. Preverse material now has an explicit native reading window accessible through the existing commentary actions/source information. The main commentary retains its legacy body coordinate system, and the long preface is displayed on explicit access. The repeated 30-case local source/window capture cycle then had no unexpected context positions. Native module hashes remained unchanged; targeted dialog/copy/immersion/following checks passed. Installed-candidate validation remains pending.
+A real-resource comparison with GTK 4.20 demonstrated that embedding the entire
+MHC foreword in the ordinary chapter could shift the current entry after theme
+changes/reopening. The separate native preface reader keeps existing body
+coordinates and persisted anchors stable. The 30-case local source/window cycle
+then had no unexpected context positions, with unchanged module hashes. Final
+installed candidate, publication and retained-update receipts remain required.
 
 Python 3.12.14 also introduced HTML RCDATA title semantics. The OSIS/ThML parsers explicitly retain XML inline-title handling across Python versions; a structured parallel-reference regression verifies that nested reference markup is not displayed as literal XML.

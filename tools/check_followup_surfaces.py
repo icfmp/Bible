@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--maps',action='store_true');a=p.parse_args()
+    p.add_argument('--ui-font');p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--maps',action='store_true');a=p.parse_args()
     assert (a.profile/'.source-rendering-research').is_file();a.output.mkdir(parents=True,exist_ok=True)
     from bible.ui import Application,Window,Library,Gtk
     from tests.test_ui import spin
@@ -14,6 +14,7 @@ def main():
     from tools.check_alpha_ui import X11Input
     from tools.check_client_feedback import Screen
     if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    if a.ui_font:Gtk.init();Gtk.Settings.get_default().props.gtk_font_name=a.ui_font
     evidence_root=Path(__file__).resolve().parents[1]
     fixtures=[('docs/evidence/client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz','9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'),('docs/evidence/topic-followups-146-147/fixtures/openbible-topics.sqlite3.gz','90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209')]
     data_root=a.profile/'study-data';data_root.mkdir(exist_ok=True)
@@ -63,6 +64,9 @@ def main():
                         row=dict(surface='topics',palette=palette,width=w.get_width(),height=w.get_height(),entries=panel.topic_model.get_n_items(),list_height=panel.topic_scroll.get_height(),popover_height=nav.get_height(),first_labels=[panel.topic_model.get_item(i).value[0] for i in range(min(4,panel.topic_model.get_n_items()))])
                         if not a.baseline:
                             assert row['entries']==50,row
+                            n.click(panel.credit);spin(lambda:panel.credit.get_popover().get_mapped())
+                            n.key('Escape');spin()
+                            assert nav.get_visible() and not panel.credit.get_popover().get_visible(),row
                             assert row['list_height']>=(60 if width<600 else 200),row
                             assert abs(panel.topic_pages.get_height()-row['list_height'])<=2,row
                             assert row['popover_height']<=w.get_height(),row
@@ -80,15 +84,17 @@ def main():
                 from bible.place_cards import PlaceCards
                 from bible.place_data import PlaceData
                 store=PlaceData(data_root)
-                for reference,name in [('Gen.11.2','Shinar'),('Josh.10.1','Jerusalem')]:
+                for reference,name in [('Gen.11.2','Shinar'),('Josh.10.1','Jerusalem'),('Luke.24.13','Emmaus'),('Gen.4.16','Nod')]:
                     t.navigate('FreSegond1910',reference);spin(lambda:not t._restoring_scroll)
                     dialog=PlaceCards(w);dialog.present();spin(lambda:not dialog.pending)
                     place=next(row for row in dialog.rows if row['name']==name)
-                    dialog.open_place(place);spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=40)
+                    dialog.open_place(place)
+                    if dialog.map_widget:spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=40)
+                    else:assert not any(c['longitude'] is not None for c in place['candidates'])
                     for width in (640,360):
                         dialog.set_default_size(width,720);spin(duration=.4)
                         screen.grab(a.output/(f'place-{name}-{width}.png'))
-                    records.append(dict(surface='places',name=name,map_ready=dialog.map_widget.ready,candidates=len(place['candidates']),status=place['status'],description=getattr(dialog,'location_description',dialog.passage_context).get_text()))
+                    records.append(dict(surface='places',name=name,map_ready=dialog.map_widget.ready if dialog.map_widget else None,candidates=len(place['candidates']),status=place['status'],description=getattr(dialog,'location_description',dialog.passage_context).get_text()))
                     dialog.close();spin()
         finally:w.close();n.close()
     assert before==hashes(),'Research source data changed'

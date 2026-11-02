@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--install',action='store_true');p.add_argument('--resource',default='openbible-places');a=p.parse_args()
+    p.add_argument('--ui-font');p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--install',action='store_true');p.add_argument('--resource',default='openbible-places');a=p.parse_args()
     assert (a.profile/'.source-rendering-research').is_file();a.output.mkdir(parents=True,exist_ok=True)
     from bible.ui import Application,Window,Library,Gtk
     from tests.test_ui import spin
@@ -15,6 +15,7 @@ def main():
     from tools.check_client_feedback import Screen
     from bible.study_resources import REFERENCE_RESOURCE_ID
     if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    if a.ui_font:Gtk.init();Gtk.Settings.get_default().props.gtk_font_name=a.ui_font
     app=Application.get_default() or Application();app.register();records=[];transfer={}
     with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False),patch('bible.catalogue_session.CatalogueSession.load_youversion_language',return_value=None):
         w=Window(app,Library(a.profile/'translations'));w.present();d=w.open_library('study');spin(lambda:not d.busy)
