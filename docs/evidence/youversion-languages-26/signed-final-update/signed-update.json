@@ -1,0 +1,13 @@
+{
+  "before": {
+    "origin": "bible-alpha",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "commit": "efc220cb7cd43d67b4881763b0ec688ba747b39cf5e5e8c43a3659fd6a54cfbb"
+  },
+  "after": {
+    "origin": "bible-alpha",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "commit": "e159c75e5b706c7ff6e40210ae1dd11ca735d86c8b9e8e177682428431cebb52"
+  },
+  "updated": true
+}

@@ -1,0 +1,55 @@
+{
+  "result": "PASS",
+  "source_commit": "83248ef71a6c927f9fc580e6863230ed09f7fedf",
+  "publication": {
+    "source_commit": "83248ef71a6c927f9fc580e6863230ed09f7fedf",
+    "ci_run": "41394567129",
+    "packaging_revision": "41396639880-2",
+    "flatpak_commit": "e159c75e5b706c7ff6e40210ae1dd11ca735d86c8b9e8e177682428431cebb52",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-83248ef71a6c927f9fc580e6863230ed09f7fedf-sources.tar.gz",
+    "source_sha256": "937ea1ec4afaec74171c0496cf4da2c38f1cc5456e168702ae6267782d290c3f",
+    "bundle_sha256": "1ea45a7a0462f126227467612869452c587d6bf9367bd9577d91a58ad1ade92e",
+    "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-83248ef71a6c927f9fc580e6863230ed09f7fedf-sources.tar.gz"
+  },
+  "project_files_verified": 398,
+  "dependency_sources": [
+    {
+      "name": "libshumate-1.5.5.tar.xz",
+      "sha256": "ce27d88537a37cd5c45959c3bb7cc18c1c18b3d2e663d02bcf46fc66f7414a92"
+    },
+    {
+      "name": "swig_4.3.0.orig.tar.gz",
+      "sha256": "f7203ef796f61af986c70c05816236cbd0d31b7aa9631e5ab53020ab7804aa9e"
+    },
+    {
+      "name": "sword_1.9.0+dfsg.orig.tar.xz",
+      "sha256": "a1687b8ade230d9b30a9991b76c12920daac865f1c25bd4be3cb897b90f007d9"
+    },
+    {
+      "name": "iso-codes_4.18.0.orig.tar.xz",
+      "sha256": "066bc4df7bf299561856a07119cde01d563c8c4c39906537a39363bb833d466c"
+    }
+  ],
+  "historical_source_records_unchanged": 42,
+  "source_records_now": 43,
+  "numbered_tags_unchanged": [
+    [
+      "0.1.0-alpha.1",
+      "3325a912effd65c776885cf722052bc57e468d41"
+    ],
+    [
+      "0.1.0-alpha.2",
+      "c2792c14ec86b28767cd5bc9ec8509a576e9a52d"
+    ],
+    [
+      "0.1.0-alpha.3",
+      "f64cbb9252d227f9160dfd4d237e3adeacd7cb4d"
+    ]
+  ],
+  "archive_sha256": "937ea1ec4afaec74171c0496cf4da2c38f1cc5456e168702ae6267782d290c3f",
+  "archive_bytes": 22934066,
+  "profile_accessed": false
+}

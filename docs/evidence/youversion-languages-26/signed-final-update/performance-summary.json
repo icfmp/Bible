@@ -1,0 +1,78 @@
+{
+  "result": "PASS",
+  "run": 41414159020,
+  "source_commit": "83248ef71a6c927f9fc580e6863230ed09f7fedf",
+  "final_installed_commit": "e159c75e5b706c7ff6e40210ae1dd11ca735d86c8b9e8e177682428431cebb52",
+  "measurements": {
+    "current-signed-combined": {
+      "startup_rss_mib": 437.8,
+      "end_rss_mib": 457.0,
+      "scroll_cpu_percent_one_core": 111.4,
+      "idle_after_cpu_percent_one_core": 4.7,
+      "first_scroll_ms": 2.66,
+      "first_paint_ms": 4.98,
+      "adjustments_after_500ms": 0,
+      "hidden_menu": true,
+      "backdrop_released": true,
+      "placement_tick": 0,
+      "renderer": "VulkanRenderer",
+      "logical_cpus": 4
+    },
+    "candidate-signed-combined": {
+      "startup_rss_mib": 423.6,
+      "end_rss_mib": 446.2,
+      "scroll_cpu_percent_one_core": 111.9,
+      "idle_after_cpu_percent_one_core": 5.5,
+      "first_scroll_ms": 2.99,
+      "first_paint_ms": 4.83,
+      "adjustments_after_500ms": 0,
+      "hidden_menu": true,
+      "backdrop_released": true,
+      "placement_tick": 0,
+      "renderer": "VulkanRenderer",
+      "logical_cpus": 4
+    },
+    "candidate-signed-single": {
+      "startup_rss_mib": 397.4,
+      "end_rss_mib": 416.7,
+      "scroll_cpu_percent_one_core": 99.1,
+      "idle_after_cpu_percent_one_core": 4.1,
+      "first_scroll_ms": 1.25,
+      "first_paint_ms": 10.32,
+      "adjustments_after_500ms": 0,
+      "hidden_menu": true,
+      "backdrop_released": true,
+      "placement_tick": 0,
+      "renderer": "VulkanRenderer",
+      "logical_cpus": 4
+    },
+    "candidate-signed-comparison": {
+      "startup_rss_mib": 404.1,
+      "end_rss_mib": 420.8,
+      "scroll_cpu_percent_one_core": 110.0,
+      "idle_after_cpu_percent_one_core": 5.1,
+      "first_scroll_ms": 0.71,
+      "first_paint_ms": 21.16,
+      "adjustments_after_500ms": 0,
+      "hidden_menu": true,
+      "backdrop_released": true,
+      "placement_tick": 0,
+      "renderer": "VulkanRenderer",
+      "logical_cpus": 4
+    },
+    "candidate-signed-study": {
+      "startup_rss_mib": 416.6,
+      "end_rss_mib": 433.3,
+      "scroll_cpu_percent_one_core": 114.7,
+      "idle_after_cpu_percent_one_core": 6.4,
+      "first_scroll_ms": 1.25,
+      "first_paint_ms": 19.74,
+      "adjustments_after_500ms": 0,
+      "hidden_menu": true,
+      "backdrop_released": true,
+      "placement_tick": 0,
+      "renderer": "VulkanRenderer",
+      "logical_cpus": 4
+    }
+  }
+}
