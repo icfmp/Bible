@@ -52,6 +52,7 @@ def independent_check(archive,edition,root,reader):
             loaded=reader.chapter(canonical_chapter(ref)+'.1')
             actual={key:normalized(value) for key,value in loaded.unique_verses()}
             if actual!=expected:raise AssertionError('Application verse text mismatch: '+ref)
+            if list(actual)!=list(expected):raise AssertionError('Application verse order mismatch: '+ref)
             checked+=1;units+=result['verses_compared'];notes+=result['notes_preserved']
     return dict(chapters=checked,introductions=intros,units=units,notes=notes,all_application_verses_verified=True)
 
@@ -138,11 +139,15 @@ def main():
     actual=library.resource(item.id)
     assert actual.acquisition==item.acquisition and actual.conditions==item.conditions
     reader=Reader(root,item.id);assert reader.versification==item.versification
-    assert len(reader.books)==66
+    expected_books={book['usfm'] for book in edition.metadata['books'] if book['text']}
+    assert len(reader.books)==len(expected_books)
     oracle=independent_check(retained,edition,root,reader) if args.independent else None
     gtk=False;parallel=None
     with patch('urllib.request.urlopen',side_effect=AssertionError('Offline')),patch('urllib.request.OpenerDirector.open',side_effect=AssertionError('Offline')):
-        for ref in ('Gen.1.1','Ps.3.1','John.1.1','Rev.22.21'):assert reader.chapter(ref).verses
+        samples=[reader.first_reference()]
+        for book in (reader.books[len(reader.books)//2],reader.books[-1]):
+            chapter=max(book.chapters);samples.append(f'{book.code}.{chapter}.{book.chapters[chapter][0]}')
+        for ref in samples:assert reader.chapter(ref).verses
         if args.version==21:
             assert ('Exod.27.15','Exod.27.14') in reader.chapter('Exod.27.14').links
             assert len(reader.editorial_notes('John.1.1'))==14
@@ -154,7 +159,9 @@ def main():
             app=Application.get_default() or Application();app.register()
             window=Window(app,library);window.present();spin()
             try:
-                tab=window.active_tab;tab.navigate(item.id,'John.1.1');spin()
+                display='John.1.1' if any(book.code=='John' for book in reader.books) else reader.first_reference()
+                display_chapter=display.rsplit('.',1)[0]
+                tab=window.active_tab;tab.navigate(item.id,display);spin()
                 assert tab._document.spans and len(tab.text.get_buffer().props.text)>100
                 if args.version==21:
                     tab.navigate(item.id,'Exod.27.14');spin()
@@ -167,13 +174,13 @@ def main():
                     assert len(tab.comparison_text.get_buffer().props.text)>20
                     parallel=True
                 window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes')
-                try:spin(lambda:window.study.translation_notes.stamp==(id(tab.reader),'John.1'))
+                try:spin(lambda:window.study.translation_notes.stamp==(id(tab.reader),display_chapter))
                 except AssertionError as error:
                     raise AssertionError(dict(expected_reader=id(tab.reader),stamp=window.study.translation_notes.stamp,
                         reference=tab.state.reference,resource=tab.state.resource,tool=window.study.tool,
                         sidebar=window.split.get_show_sidebar(),mapped=window.study.translation_notes.get_mapped(),
                         size=(window.get_width(),window.get_height()))) from error
-                assert window.study.translation_notes.stamp==(id(tab.reader),'John.1')
+                assert window.study.translation_notes.stamp==(id(tab.reader),display_chapter)
                 assert window.study.translation_notes.text.get_buffer().get_char_count()>0
                 for width in (1100,360):window.set_default_size(width,600);spin()
                 window.study_button.set_active(False);spin()

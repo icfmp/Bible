@@ -97,6 +97,15 @@
         {
           "type": "patch",
           "path": "sword-osis-fidelity.patch"
+        },
+        {
+          "type": "file",
+          "path": "bible-source-versification.inc",
+          "dest": "include"
+        },
+        {
+          "type": "patch",
+          "path": "sword-source-index.patch"
         }
       ],
       "builddir": true

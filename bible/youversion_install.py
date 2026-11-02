@@ -20,7 +20,7 @@ from datetime import datetime,timezone
 
 from .providers import YOUVERSION
 from .youversion_source import read_edition
-from .youversion_editions import EDITIONS,METADATA_URL,module_id,edition_id
+from .youversion_editions import EDITIONS,METADATA_URL,module_id,edition_id,storage_system
 from .i18n import tr
 
 MAX_ZIP = 32 * 1024 * 1024
@@ -44,22 +44,25 @@ def resource_from_metadata(value,expected_id=21):
     from .library import Resource
     name=module_id(expected_id)
     edition = read_edition(value,expected_id)
-    if edition.language!=EDITIONS[expected_id][2]:raise ValueError('Unexpected edition language')
+    if expected_id in EDITIONS and edition.language!=EDITIONS[expected_id][2]:raise ValueError('Unexpected edition language')
     policy = edition.metadata.get('offline') or {}
     # Pilot only. New editions or numbering systems require separate fidelity
     # and numbering validation, rather than being silently treated as KJV.
-    if edition.metadata.get('vrs') != EDITIONS[expected_id][0]:
+    if expected_id in EDITIONS and edition.metadata.get('vrs') != EDITIONS[expected_id][0]:
         raise ValueError('Unsupported source numbering')
     notices=[edition.attribution]
     for notice_key in ('copyright_long','reader_footer'):
         notice=edition.metadata.get(notice_key)
         if isinstance(notice,dict) and isinstance(notice.get('text'),str) and notice['text'] not in notices:notices.append(notice['text'])
     conditions = '\n\n'.join(notices)+'\n\n'+serialized(policy)
-    return Resource(name,edition.title,edition.language,'Source conditions apply',
+    language=edition.metadata['language'].get('language_tag') or edition.language
+    from .youversion_catalogue import language_tag
+    language_tag(language)
+    return Resource(name,edition.title,language,'Source conditions apply',
         about='https://www.bible.com/versions/'+str(expected_id), conditions=conditions,
         driver='RawText',
         source=YOUVERSION.name,source_url=YOUVERSION.url,
-        versification=EDITIONS[expected_id][1],provider_id=YOUVERSION.id,
+        versification=storage_system(expected_id),provider_id=YOUVERSION.id,
         acquisition=serialized(edition.metadata))
 
 
@@ -68,26 +71,21 @@ def acknowledgement(resource):
 
 
 def catalogue(timings=None):
-    """Fetch only the seven reviewed metadata records, with bounded concurrency."""
-    from concurrent.futures import as_completed
-    from .metadata_workers import MetadataExecutor
+    """Language discovery and one initial list; other languages load on demand."""
+    from .youversion_catalogue import languages,editions,tags_for_language
+    from .i18n import LANGUAGE
+    records=languages();tags=tags_for_language(LANGUAGE.split('_')[0],records)
+    resources=[resource for tag in tags for resource in editions(tag)]
+    if timings is not None:timings.update(requests=1+len(tags),source_languages=records,source_loaded_tags=tags,validators={})
+    return resources
+
+
+def fetch_resource(identifier):
+    """Hydrate a catalogue row before showing conditions or downloading bytes."""
     from .library import download
-    def fetch(identifier):
-        data=io.BytesIO();download(METADATA_URL.format(edition=identifier),data,
-                                  limit=2*1024*1024,same_origin=True)
-        return resource_from_metadata(json.loads(data.getvalue()),identifier),data.tell()
-    resources=[];errors={};size=0;start=time.monotonic()
-    with MetadataExecutor(max_workers=2,thread_name_prefix='bible-edition-metadata') as executor:
-        pending={executor.submit(fetch,identifier):identifier for identifier in EDITIONS}
-        for future in as_completed(pending):
-            identifier=pending[future]
-            try:
-                item,received=future.result();resources.append(item);size+=received
-            except Exception as error:errors[str(identifier)]=str(error)
-    if timings is not None:timings.update(requests=len(EDITIONS),metadata_bytes=size,
-        network_seconds=time.monotonic()-start,edition_errors=errors,validators={})
-    if not resources:raise OSError('; '.join(f'{key}: {value}' for key,value in errors.items()))
-    return sorted(resources,key=lambda item:(item.language,item.description))
+    module_id(identifier);data=io.BytesIO()
+    download(METADATA_URL.format(edition=identifier),data,limit=2*1024*1024,same_origin=True)
+    return resource_from_metadata(json.loads(data.getvalue()),identifier)
 
 
 def checkpoint(cancelled):
@@ -241,9 +239,23 @@ def install(library,resource,progress,installing,cancelled,phase,permission):
         run_conversion(archive,metadata,target,phase,cancelled,edition=identifier)
         checkpoint(cancelled)
         installing()  # Only the short atomic commit becomes non-cancellable.
+        index=target/'.source-versification'
+        if index.is_file():
+            # Reference-only metadata outlives resource removal, like personal
+            # notes. Never replace a previous index used by stored annotations.
+            directory=library.root.parent/'reference-indexes';directory.mkdir(exist_ok=True)
+            saved=directory/(actual.versification+'.vrs')
+            if directory.is_symlink() or saved.is_symlink():raise ValueError('Unsafe source reference-index path')
+            data=index.read_bytes()
+            if saved.exists() and saved.read_bytes()!=data:raise ValueError('Stored source reference index differs')
+            if not saved.exists():
+                with tempfile.NamedTemporaryFile('wb',dir=directory,delete=False) as output:
+                    temporary=Path(output.name);output.write(data);output.flush();os.fsync(output.fileno())
+                try:os.replace(temporary,saved)
+                finally:temporary.unlink(missing_ok=True)
         source={'provider_id':YOUVERSION.id,'module_name':resource.name,
                 'source':YOUVERSION.name,'url':YOUVERSION.url,'acquisition':actual.acquisition,
-                'source_versification':edition.metadata['vrs'],'storage_versification':actual.versification,
+                'source_versification':edition.metadata.get('vrs'),'storage_versification':actual.versification,
                 'local_permission_acknowledgement':permission,
                 'provider_agreement_submitted':False}
         source.update(parser_version=1,installed_at=datetime.now(timezone.utc).isoformat())

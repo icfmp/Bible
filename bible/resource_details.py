@@ -40,6 +40,9 @@ from .languages import language_name
 
 
 def details(resource):
+    import json
+    try:pending=resource.provider_id=='youversion' and json.loads(resource.acquisition).get('_catalogue_summary')
+    except (ValueError,AttributeError):pending=False
     availability = (tr('Access key required. Encrypted resources are not supported.') if resource.locked
                     else tr('Unsupported format.') if not resource.installable
                     else tr('Distributed by the source. Download is checked before installation.'))
@@ -59,6 +62,7 @@ def details(resource):
         f'{tr("Verse numbering")}: {numbering}',
         availability,
         f'{tr("Conditions and attribution")}:\n' + (
+            tr('Loading edition details…') if pending else
             plain(resource.conditions) or tr('No additional conditions supplied by the source.')),
         plain(resource.about),
         tr('Check the source conditions before downloading. Availability does not grant redistribution rights.'),

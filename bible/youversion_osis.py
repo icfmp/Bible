@@ -16,15 +16,22 @@ E.register_namespace('', NS)
 BOOK_CODES = '''GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV'''.split()
 OSIS_BOOKS = '''Gen Exod Lev Num Deut Josh Judg Ruth 1Sam 2Sam 1Kgs 2Kgs 1Chr 2Chr Ezra Neh Esth Job Ps Prov Eccl Song Isa Jer Lam Ezek Dan Hos Joel Amos Obad Jonah Mic Nah Hab Zeph Hag Zech Mal Matt Mark Luke John Acts Rom 1Cor 2Cor Gal Eph Phil Col 1Thess 2Thess 1Tim 2Tim Titus Phlm Heb Jas 1Pet 2Pet 1John 2John 3John Jude Rev'''.split()
 BOOKS = dict(zip(BOOK_CODES, OSIS_BOOKS, strict=True))
+# USFM book identifiers and OSIS names, not an assumed 66-book canon.
+# https://ubsicap.github.io/usfm/identification/books.html
+# Native SWORD's canon_abbrevs.h retains these OSIS book identities.
+BOOKS.update(dict(zip(
+    'TOB JDT ESG WIS SIR BAR LJE S3Y SUS BEL 1MA 2MA 3MA 4MA 1ES 2ES MAN PS2 ODA PSS DAG LAO'.split(),
+    'Tob Jdt EsthGr Wis Sir Bar EpJer PrAzar Sus Bel 1Macc 2Macc 3Macc 4Macc 1Esd 2Esd PrMan Ps151 Odes PssSol DanGr EpLao'.split(),strict=True)))
 INLINE = {'content', 'verse', 'label', 'note', 'body', 'fr', 'ft', 'fqa',
           'fq', 'fv', 'ord', 'tl', 'bk', 'em',
           'ref', 'qt', 'wj', 'w', 'heading', 'it', 'bd', 'bdit', 'sc', 'add', 'nd', 'br'}
-INLINE |= {'qs','ior'}
+INLINE |= {'qs','ior','pn','fk','sls'}
 BLOCK = {'p', 'm', 'ip', 'pm', 'nb', 'd', 'b', 'ib', 'ie', 'imt',
          'li1', 'li2', 'ili1', 'ili2',
          's1', 's2', 's3', 'ms1', 'r', 'q1', 'q2', 'q3', 'q4'}
 BLOCK |= {'s','ms','ms2','mr','imt1','imt2','imt3','is1','ipi','io1','io2',
-          'q','qa','qr','qc','pi','pi1','pc','lf','iex','table','row','cell'}
+          'q','qa','qr','qc','pi','pi1','pc','lf','iex','table','row','cell','iot',
+          'io','io3','ili','iq','iq1','iq2','iq3','is2','ipr','cl','s4','sp','pr'}
 
 
 class Unsupported(ValueError):
@@ -87,6 +94,7 @@ class Writer:
         self.fragments = Counter()
         self.note_count = 0
         self.note_context = (BOOKS[chapter.split('.')[0]] if '.INTRO' in chapter else None)
+        self.chapter_context = None if '.INTRO' in chapter else osis_ref(chapter)
 
     def close(self, parent):
         if self.active:
@@ -147,8 +155,8 @@ class Writer:
                     if not plain(node).strip():
                         return
                     raise Unsupported(f'Non-contiguous verse fragments: {ref}')
-                if numbers[0] <= self.last_verse:
-                    raise Unsupported('Out-of-order verse IDs')
+                # Some sources move numbered verses, e.g. Isaiah 38:21–22
+                # before 7. Keep that order, without renumbering their text.
                 self.close(parent)
                 label=next((plain(part).strip() for part in node.parts
                             if isinstance(part,Node) and part.kind=='label'),None)
@@ -162,7 +170,9 @@ class Writer:
             self.parts(node.parts, parent)
             return
         if k == 'note':
-            anchor=self.note_context or self.active
+            # A source note before any numbered text belongs to the chapter,
+            # not to an invented verse or an assumed following verse.
+            anchor=self.note_context or self.active or (self.chapter_context if not self.seen else None)
             if in_note or not anchor:
                 raise Unsupported('Nested or unanchored note')
             self.note_count += 1
@@ -181,6 +191,10 @@ class Writer:
             target=(element(parent,'catchWord') if k=='fq'
                     else element(parent,'hi',type='super'))
             self.parts(node.parts,target,True)
+            return
+        if k == 'fk':
+            if not in_note:raise Unsupported('Footnote-only content outside a note')
+            self.parts(node.parts,element(parent,'catchWord',type='x-keyword'),True)
             return
         if k == 'ref':
             target = node.attrs.get('data-usfm')
@@ -208,6 +222,11 @@ class Writer:
             self.parts(node.parts,element(parent,'seg',type='x-transliteration'),in_note)
         elif k == 'bk':
             self.parts(node.parts,element(parent,'name',type='x-book-title'),in_note)
+        elif k == 'pn':
+            self.parts(node.parts,element(parent,'name',type='x-proper-name'),in_note)
+        elif k == 'sls':
+            # USFM identifies a secondary language without naming that language.
+            self.parts(node.parts,element(parent,'seg',type='x-source-secondary-language'),in_note)
         elif k == 'w':
             # Source w has no lemma/morphology in this sample. Never invent it.
             self.parts(node.parts, element(parent, 'seg', type='x-source-word'), in_note)
@@ -222,7 +241,8 @@ class Writer:
         lg = None
         source_list = None
         for index,block in enumerate(blocks):
-            k = {'s':'s1','ms':'ms1','q':'q1','imt':'imt1','pi':'pi1'}.get(block.kind,block.kind)
+            k = {'s':'s1','ms':'ms1','q':'q1','imt':'imt1','pi':'pi1',
+                 'io':'io1','ili':'ili1','iq':'iq1'}.get(block.kind,block.kind)
             def contains_verse(node):
                 return isinstance(node,Node) and (node.kind=='verse' or any(contains_verse(child) for child in node.parts))
             if ('.INTRO' not in self.source_chapter and k in {'d','q1','q2','q3','q4','qc','qr'}
@@ -232,14 +252,15 @@ class Writer:
                 # not become the end of verse 8 or an invented verse zero.
                 k='unindexed-'+k
             note_context=self.note_context
-            if k not in {'q1', 'q2', 'q3', 'q4','qr','qc'}:
+            if k not in {'q1', 'q2', 'q3', 'q4','qr','qc','iq1','iq2','iq3'}:
                 lg = None
-            if k not in {'li1','li2','ili1','ili2','io1','io2'}:source_list=None
-            if k in {'s1', 's2', 's3', 'ms1','ms2','imt1','imt2','imt3','is1','qa'} or k.startswith('unindexed-'):
+            if k not in {'li1','li2','ili1','ili2','io1','io2','io3'}:source_list=None
+            if k in {'s1', 's2', 's3','s4', 'ms1','ms2','imt1','imt2','imt3','is1','is2','iot','qa','cl','sp'} or k.startswith('unindexed-'):
                 following=self.first_verse(blocks[index+1:])
                 if following != self.active_source:self.close(parent)
                 if following:self.note_context=self.verse_ids(following)[0]
-                target = element(parent, 'title', type='x-source-'+k if k.startswith('unindexed-') else 'x-acrostic' if k=='qa' else 'x-section',
+                target = element(parent, 'title', type='x-source-'+k if k.startswith('unindexed-') else
+                                 {'qa':'x-acrostic','cl':'chapter','sp':'x-speaker'}.get(k,'x-section'),
                                  level=k[-1] if k[-1].isdigit() else '1')
             elif k in {'r','mr'}:
                 following=self.first_verse(blocks[index+1:])
@@ -250,10 +271,10 @@ class Writer:
                 target = element(parent, 'p')
             elif k in {'pm','nb'}:
                 target=element(parent,'p',type='x-embedded' if k=='pm' else 'x-no-break')
-            elif k in {'pi1','ipi','pc','lf','iex'}:
+            elif k in {'pi1','ipi','pc','lf','iex','ipr','pr'}:
                 target=element(parent,'p',type={'pi1':'x-indent-1','ipi':'x-introduction-indented',
-                    'pc':'x-centered','lf':'x-list-footer','iex':'x-explanatory'}[k])
-            elif k in {'li1','li2','ili1','ili2','io1','io2'}:
+                    'pc':'x-centered','lf':'x-list-footer','iex':'x-explanatory','ipr':'x-introduction-right-aligned','pr':'x-right-aligned'}[k])
+            elif k in {'li1','li2','ili1','ili2','io1','io2','io3'}:
                 if source_list is None:source_list=element(parent,'list')
                 # USFM states indentation level, not a parent/child relationship.
                 # Keep that level without inventing empty list items or bullets.
@@ -261,11 +282,12 @@ class Writer:
             elif k == 'd':
                 # Psalm superscription includes an actual numbered verse here.
                 target = element(parent, 'p', type='x-superscription')
-            elif k in {'q1', 'q2', 'q3', 'q4','qr','qc'}:
+            elif k in {'q1', 'q2', 'q3', 'q4','qr','qc','iq1','iq2','iq3'}:
                 if lg is None:
                     lg = element(parent, 'lg')
-                target = element(lg, 'l', level=k[1:] if k[-1].isdigit() else '1',
-                                 **({'type':'x-right-aligned' if k=='qr' else 'x-centered'} if k in {'qr','qc'} else {}))
+                target = element(lg, 'l', level=k[-1] if k[-1].isdigit() else '1',
+                                 **({'type':'x-introduction-poetry'} if k.startswith('iq') else
+                                    {'type':'x-right-aligned' if k=='qr' else 'x-centered'} if k in {'qr','qc'} else {}))
             elif k=='table':
                 target=element(parent,'table')
                 for row in block.parts:

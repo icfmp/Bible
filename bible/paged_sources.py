@@ -28,7 +28,11 @@ class BiblePages:
                 if segment.kind=='heading' and segment.text.strip():
                     text=segment.text.strip()+'\n';pieces.append(text)
                     styles.append(StyleSpan('heading',offset,offset+len(text)));offset+=len(text)
-            body=''.join(s.text for s in segments if s.kind!='heading')
+                elif segment.kind=='preface':
+                    pieces.append(segment.text)
+                    styles.extend(StyleSpan(kind,offset,offset+len(segment.text)) for kind in segment.styles)
+                    offset+=len(segment.text)
+            body=''.join(s.text for s in segments if s.kind not in ('heading','preface'))
             leading=body[:len(body)-len(body.lstrip())]
             if leading:pieces.append(leading);offset+=len(leading);body=body[len(leading):]
             members=chapter.members(reference)
@@ -38,7 +42,7 @@ class BiblePages:
             pieces.append(number);offset+=len(number);body_start=offset
             position=0
             for segment in segments:
-                if segment.kind=='heading':continue
+                if segment.kind in ('heading','preface'):continue
                 first=max(position,len(leading))-len(leading)
                 last=position+len(segment.text)-len(leading)
                 if last>first:

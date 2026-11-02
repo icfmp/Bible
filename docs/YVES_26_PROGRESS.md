@@ -2,9 +2,13 @@
 
 Status: **delivered in signed alpha 40456634652-2**, source `d39a99eb44be1c3257a9ba75f60f7f324282b1b1` via merged PR #134. Full delivery evidence is in [the verification receipt](evidence/youversion-26/README.md). Issue #26 remains open and numbered release #87 remains paused.
 
-## Implemented scope
+## Language catalogue expansion (in progress)
 
-Library offers exactly these reviewed editions. It downloads translation metadata when requested; it never acquires a Bible during startup or merely opening its details.
+The client clarified that the intended feature is a YouVersion catalogue by language, comparable to the existing CrossWire source. The fixed pilot list below is historical. The current feature branch discovers the actual language inventory and loads the selected language’s editions on demand; edition IDs are no longer an allowlist. New editions use bounded source-specific native reference indexes derived from their actual complete inventories. Existing seven-edition identities and verified numbering remain unchanged. See [expansion evidence and limits](evidence/youversion-languages-26/README.md). This expansion is not yet published.
+
+## Delivered pilot scope
+
+The previously delivered pilot offered these seven reviewed editions. It downloads translation metadata when requested; it never acquires a Bible during startup or merely opening its details.
 
 | Edition | Source ID | Language | Native reference index | Indexed entries |
 | --- | ---: | --- | --- | ---: |
@@ -20,7 +24,7 @@ Acquisition uses the current JSON metadata and its returned `offline.url`. No gu
 
 Before downloading, Library displays source attribution/conditions and requires a local acknowledgement bound to the exact metadata. Anonymously reachable content is not treated as provider approval. The source email-agreement requirement is stated explicitly; each user must satisfy applicable source requirements. The application does not assert or submit that agreement. Missing copyright notices remain absent, rather than being invented as a Public Domain declaration. Actual supplied notices and all agreement/redownload/update fields are retained offline.
 
-The seven metadata requests use two workers; one refusal retains other editions and the failed edition's cached record. Download revalidates metadata, supports validated Range/If-Range resume, honours bounded Retry-After, and stops on authentication refusal. Completed archives are reused. Cache receipts are atomic; a damaged completed package restarts without treating its corrupt bytes as a resumable prefix.
+The pilot used seven metadata requests and two workers. The language catalogue instead loads configuration and per-language metadata in the existing metadata worker, retaining previously usable caches after a refusal. Download revalidates metadata, supports validated Range/If-Range resume, honours bounded Retry-After, and stops on authentication refusal. Completed archives are reused. Cache receipts are atomic; a damaged completed package restarts without treating its corrupt bytes as a resumable prefix.
 
 A separate cancellable process streams source chapters into OSIS, invokes the packaged compiler without a shell, then checks **every** indexed chapter/introduction, source unit, bridge, note, heading and semantic role through native SWORD. Cancellation terminates its process group. Failed staging never becomes installed; existing resources are not overwritten. Registration is atomic. Original metadata, acquisition context, parser version, archive and individual source hashes remain on the user's machine. No Scripture, source HTML, complete OSIS or compiled resource is included in the application or public artifacts.
 

@@ -27,7 +27,7 @@ def suffix(el):
     return next((role for role in ('verse','note','label','fr',*HEADING_ROLES) if role in classes),'')
 
 
-HEADING_ROLES=('s','s1','s2','s3','ms','ms1','ms2','r','mr','qa','imt','imt1','imt2','imt3','is1')
+HEADING_ROLES=('s','s1','s2','s3','s4','ms','ms1','ms2','r','mr','qa','cl','sp','imt','imt1','imt2','imt3','is1','is2','iot')
 
 
 def remove(el):
@@ -103,6 +103,9 @@ def canonical_chapter(reference):
     usfm='GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV'.split()
     osis='Gen Exod Lev Num Deut Josh Judg Ruth 1Sam 2Sam 1Kgs 2Kgs 1Chr 2Chr Ezra Neh Esth Job Ps Prov Eccl Song Isa Jer Lam Ezek Dan Hos Joel Amos Obad Jonah Mic Nah Hab Zeph Hag Zech Mal Matt Mark Luke John Acts Rom 1Cor 2Cor Gal Eph Phil Col 1Thess 2Thess 1Tim 2Tim Titus Phlm Heb Jas 1Pet 2Pet 1John 2John 3John Jude Rev'.split()
     books=dict(zip(usfm,osis,strict=True))
+    # Additional official USFM/OSIS identifiers, independently of the writer.
+    books.update(dict(zip('TOB JDT ESG WIS SIR BAR LJE S3Y SUS BEL 1MA 2MA 3MA 4MA 1ES 2ES MAN PS2 ODA PSS DAG LAO'.split(),
+                          'Tob Jdt EsthGr Wis Sir Bar EpJer PrAzar Sus Bel 1Macc 2Macc 3Macc 4Macc 1Esd 2Esd PrMan Ps151 Odes PssSol DanGr EpLao'.split(),strict=True)))
     code,number=reference.split('.')
     return books[code]+'.'+number
 

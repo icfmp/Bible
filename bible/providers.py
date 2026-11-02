@@ -29,7 +29,7 @@ EBIBLE = Provider('ebible', 'eBible', 'https://ebible.org/sword/',
                   'https://ebible.org/sword/mods.d.tar.gz',
                   'https://ebible.org/sword/zip/')
 YOUVERSION = Provider('youversion', 'YouVersion / Bible.com', 'https://www.bible.com/',
-                      'https://nodejs.bible.com/api/bible/version/3.3?id=21', '')
+                      'https://bible.youversionapi.com/3.1/configuration.json', '')
 PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, YOUVERSION)
 BY_ID = {p.id: p for p in PROVIDERS}
 MODULE_NAME = r'[A-Za-z0-9_-]+'

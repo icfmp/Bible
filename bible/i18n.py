@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'Loading edition details…':'Chargement des informations de l’édition…',
+    'You are responsible for checking that you have permission to download, convert and use this edition offline.':'Il vous appartient de vérifier que vous disposez de l’autorisation de télécharger, convertir et utiliser cette édition hors connexion.',
+    'The source requires an email agreement (version {version}). Satisfy this requirement with the provider before continuing.':'La source exige un accord par courriel (version {version}). Remplissez cette condition auprès du fournisseur avant de continuer.',
+    'Bible does not submit an agreement or claim provider approval.':'Bible ne transmet aucun accord et ne prétend pas avoir obtenu l’autorisation du fournisseur.',
     'Approximate area; this point does not identify an exact site.':'Zone approximative ; ce point ne désigne pas un site exact.',
     'The proposed site is somewhere within this modern settlement.':'Le site proposé se situe quelque part dans cette localité actuelle.',
     'Other proposed locations have not been identified on the map.':'D’autres localisations proposées n’ont pas été identifiées sur la carte.',

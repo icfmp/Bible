@@ -39,14 +39,12 @@ class AcquisitionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             cache=CatalogueCache(directory);cache.write(YOUVERSION,[old])
             def fetch(url,out,**options):
-                identifier=int(url.rsplit('=',1)[1])
-                if identifier==93:raise urllib.error.HTTPError(url,403,'Refused',{},None)
-                out.write(json.dumps(edition_metadata(identifier)).encode())
+                raise urllib.error.HTTPError(url,403,'Refused',{},None)
             with patch('bible.library.download',side_effect=fetch):result=catalogues((YOUVERSION,),cache=cache)
-            self.assertEqual(len(result.resources),7)
+            self.assertEqual(len(result.resources),1)
             self.assertEqual(next(item for item in result.resources if item.name=='YV93'),old)
             self.assertIn(YOUVERSION.name,result.errors)
-            self.assertEqual(len(cache.read(YOUVERSION)[0]),7)
+            self.assertEqual(len(cache.read(YOUVERSION)[0]),1)
     def test_cancellation_terminates_the_isolated_conversion_process(self):
         import subprocess,sys,time
         actual_popen=subprocess.Popen;processes=[];cancel=[False]
@@ -62,17 +60,21 @@ class AcquisitionTests(unittest.TestCase):
         self.assertLess(time.monotonic()-start,3)
         self.assertLess(processes[0].returncode,0)
     def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
-        from bible.youversion_editions import EDITIONS,METADATA_URL
+        from bible.youversion_editions import CONFIGURATION_URL,VERSIONS_URL
+        from bible.youversion_catalogue import resource_from_listing
         data=edition_metadata();requests=[]
+        language=dict(iso_639_3='fra',language_tag='fra',has_text=True)
+        listing=dict(id=900007,title='Synthetic edition',local_title='Synthetic edition',language=language,text=True,offline=data['offline'])
+        listing['offline']={**listing['offline'],'url':'https://offline-bibles-cdn.youversionapi.com/bible/text/offline/900007-7.zip'}
         def fetch(url,out,**options):
-            requests.append(url);identifier=int(url.rsplit('=',1)[1]);value=edition_metadata()
-            value.update(id=identifier,vrs=EDITIONS[identifier][0]);value['language']['iso_639_3']=EDITIONS[identifier][2]
-            value['offline']['url']=value['offline']['url'].replace('/21-7.zip',f'/{identifier}-7.zip')
+            requests.append(url)
+            value={'default_versions':[language]} if url==CONFIGURATION_URL else {'versions':[listing]}
             out.write(json.dumps(value).encode())
-        with patch('bible.library.download',side_effect=fetch):resources=catalogue(YOUVERSION)
-        resource=next(item for item in resources if item.name=='YV21')
-        self.assertEqual(set(requests),{METADATA_URL.format(edition=i) for i in EDITIONS})
-        self.assertEqual(len(requests),7);self.assertEqual(len(resources),7)
+        with patch('bible.library.download',side_effect=fetch),patch('bible.i18n.LANGUAGE','fr'):resources=catalogue(YOUVERSION)
+        self.assertEqual(requests,[CONFIGURATION_URL,VERSIONS_URL.format(language='fra')])
+        self.assertEqual(len(resources),1);self.assertEqual(resources[0].name,'YV900007')
+        self.assertTrue(json.loads(resources[0].acquisition)['_catalogue_summary'])
+        resource=resource_from_metadata(data)
         self.assertEqual(resource.id,'youversion~YV21')
         self.assertEqual(resource.versification,'Original')
         self.assertEqual(json.loads(resource.acquisition),data)
