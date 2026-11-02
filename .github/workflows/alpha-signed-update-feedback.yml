@@ -129,7 +129,12 @@ jobs:
                       expected=pr['merge_commit_sha']
                   url='https://icfmp.github.io/Bible/alpha/provenance.json?update-check='+str(time.time_ns())
                   x=json.load(urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=20))
-                  if x['source_commit']==expected:break
+                  revision=x.get('packaging_revision','')
+                  if x['source_commit']==expected and revision.endswith('-2'):
+                      publication=int(revision.rsplit('-',1)[0])
+                      run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
+                      if run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success':
+                          break
               except Exception as e:print(type(e).__name__,flush=True)
               time.sleep(15)
           else:raise RuntimeError('Corrected signed alpha was not published within the verification window')
