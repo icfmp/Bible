@@ -26,6 +26,11 @@ class TopicDataTests(unittest.TestCase):
         self.assertEqual(suggestions('Holy-Spirit')[0][0],'holy spirit')
         self.assertEqual(suggestions('bonjour vocabulaire inconnu'),[])
         self.assertEqual(title(suggestions('grace')[0],'fr'),'Grâce')
+        for language in ('fr_FR','fr-CA','fr_BE.UTF-8'):
+            self.assertEqual(title(suggestions('anger')[0],language),'Colère')
+            self.assertEqual(suggestions('',language)[0][0],'friendship')
+        self.assertEqual(title(suggestions('anger')[0],'en_US'),'Anger')
+        self.assertEqual(title(('missing label','',''),'fr-CA'),'Missing label')
 
     def test_real_sqlite_exact_deduplication_rank_and_no_topic_merging(self):
         with tempfile.TemporaryDirectory() as temporary:

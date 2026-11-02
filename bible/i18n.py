@@ -3,6 +3,13 @@ import locale
 import os
 
 FR = {
+    'All words first, then strong close matches. Quoted phrases stay exact. Supported Latin accents are ignored.':'Tous les mots d’abord, puis les correspondances proches. Les expressions entre guillemets restent exactes. Les accents latins pris en charge sont ignorés.',
+    'Close match':'Correspondance proche',
+    'Matches all search terms':'Tous les termes recherchés',
+    '{count} reviewed themes':'{count} thèmes relus',
+    'All themes':'Tous les thèmes',
+    'Source and license':'Source et licence',
+    'Community suggestions; explore the context.':'Suggestions de la communauté ; examinez le contexte.',
     'Reading tools':'Outils de lecture',
     'Read source preface':'Lire le texte liminaire',
     'The current passage cannot be matched reliably in this translation. Its first available passage is open; you can choose another passage.':'Le passage actuel ne peut pas être repéré de manière fiable dans cette traduction. Son premier passage disponible est ouvert ; vous pouvez en choisir un autre.',
@@ -216,6 +223,9 @@ FR = {
     'Open an installed Bible translation to preview this reference.':'Ouvrez une traduction biblique installée pour prévisualiser cette référence.',
     'References':'Références', 'This passage includes introductory text, shown with the commentary.':'Ce passage comprend un texte introductif, affiché avec le commentaire.',
     'This passage includes introductory text without a separate commentary introduction. Showing the aligned verse.':'Ce passage comprend un texte introductif sans introduction de commentaire distincte. Le verset correspondant est affiché.',
+    'Approximate location':'Localisation approximative',
+    'Within the proposed modern settlement':'Dans l’agglomération moderne proposée',
+    'Several proposed locations':'Plusieurs localisations proposées',
     'Study tools':'Outils d’étude', 'Study resources':'Ressources d’étude', 'Bible cross-references':'Renvois bibliques',
     'Update':'Mettre à jour', 'Cross-references':'Références croisées', 'View all':'Tout voir',
     'Passage preview':'Aperçu du passage', 'Local passage text':'Texte local du passage',

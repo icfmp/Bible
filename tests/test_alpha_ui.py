@@ -245,7 +245,7 @@ class AlphaTests(unittest.TestCase):
             nav.filter_books()
             self.assertTrue(nav.no_books.get_visible())
             self.assertEqual(second.state.reference, '1Cor.15.8')
-            nav.close_button.emit('clicked')
+            nav.popdown()
             window.choose_passage()
             self.assertEqual(nav.search.get_text(), '')
             self.assertIs(nav.book_list.get_selected_row(), nav.book_rows['1Cor'])

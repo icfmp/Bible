@@ -1,4 +1,5 @@
 """Reviewed, deliberately partial FR/EN topic names; identifiers are source facts."""
+import locale
 import re
 import unicodedata
 from .i18n import LANGUAGE
@@ -63,7 +64,9 @@ def normalized(value):
                                             if not unicodedata.combining(c)),re.UNICODE))
 
 
-def title(entry,language=None):return entry[1] if (language or LANGUAGE)=='fr' else entry[0].capitalize()
+def title(entry,language=None):
+    base=(language or LANGUAGE).split(':')[0].replace('_','-').casefold().split('-')[0]
+    return entry[1] if base=='fr' and entry[1] else entry[0].capitalize()
 
 
 def suggestions(query,language=None,limit=50):
@@ -72,5 +75,5 @@ def suggestions(query,language=None,limit=50):
         terms=[normalized(t) for t in (entry[0],entry[1],*entry[2].split(';'))]
         if all(any(word==token or token.startswith(word) for term in terms for token in term.split()) for word in words):
             exact=normalized(query) in terms
-            ranked.append((not exact,normalized(title(entry,language)),entry))
+            ranked.append((not exact,locale.strxfrm(normalized(title(entry,language))),entry))
     return [entry for _,_,entry in sorted(ranked)[:limit]]

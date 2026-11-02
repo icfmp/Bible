@@ -32,15 +32,8 @@ class PassagePopover(Gtk.Popover):
         self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
         self.direct.connect('activate',lambda *_:self.commit())
         self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
-        top = Gtk.Box(spacing=8)
         self.version = self.dropdown('Version', self.version_changed)
         # Kept as an internal source model for navigation/search, not a duplicate chooser.
-        self.close_button = Gtk.Button(icon_name='window-close-symbolic', tooltip_text=tr('Close'))
-        self.close_button.add_css_class('flat')
-        self.close_button.update_property([Gtk.AccessibleProperty.LABEL], [tr('Close')])
-        self.close_button.connect('clicked', lambda *_: self.popdown())
-        top.append(self.close_button)
-        self.content.append(top)
         self.columns = Gtk.Box(spacing=16)
         self.left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.left.add_css_class('navigation-books')
@@ -125,10 +118,14 @@ class PassagePopover(Gtk.Popover):
         preview_keys.connect('key-pressed',self.preview_key_pressed)
         self.add_controller(preview_keys)
 
-    def preview_key_pressed(self,_,key,code,state):
-        if key==Gdk.KEY_Escape and self.owner.reference_preview.popover:
+    def preview_key_pressed(self,controller,key,code,state):
+        if key!=Gdk.KEY_Escape:return False
+        event=controller.get_current_event()
+        # An inner native chooser owns its own Escape before the parent picker.
+        if event and event.get_surface() not in (self.get_surface(),self.owner.get_surface()):return False
+        if self.owner.reference_preview.popover:
             self.owner.reference_preview.dismiss();return True
-        return False
+        self.popdown();return True
 
     def dropdown(self, label, callback):
         dropdown = Gtk.DropDown(enable_search=True, hexpand=True)
@@ -147,6 +144,7 @@ class PassagePopover(Gtk.Popover):
             if self.modes.get_visible_child_name()!=name:panel.pause()
         self.mode_buttons[self.modes.get_visible_child_name()].set_active(True)
         self.owner.reference_preview.dismiss()
+        self._layout_stamp=None;self.adapt()
         if self.modes.get_visible_child_name()=='topics':self.topic_search.refresh()
         elif self.modes.get_visible_child_name()=='text':self.text_search.refresh()
 
@@ -188,12 +186,15 @@ class PassagePopover(Gtk.Popover):
             GLib.source_remove(self._resize_id)
             self._resize_id = 0
             self.text_search.pause();self.topic_search.pause()
+            anchor=self.get_parent()
+            if anchor and anchor.get_mapped():anchor.grab_focus()
 
     def adapt(self):
         if not self.get_visible():
             self._resize_id = 0
             return False
-        size = (self.owner.get_width(), self.owner.get_height())
+        mode=self.modes.get_visible_child_name()
+        size = (self.owner.get_width(), self.owner.get_height(),mode)
         if size != self._layout_stamp:
             self._layout_stamp = size
             narrow = size[0] < 600
@@ -203,7 +204,13 @@ class PassagePopover(Gtk.Popover):
             self.book_scroll.set_min_content_height(100 if narrow else 260)
             self.book_scroll.set_max_content_height(120 if narrow else 300)
             self.content.set_size_request(min(680, max(280, size[0] - 64)), -1)
-            self.scroll.set_max_content_height(min(540, max(160, size[1] - 140)))
+            available=min(540,max(160,size[1]-140))
+            self.scroll.set_min_content_height(-1)
+            self.scroll.set_max_content_height(available)
+            self.scroll.set_min_content_height(available if mode=='topics' else -1)
+            self.scroll.set_size_request(-1,available if mode=='topics' else -1)
+            self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER if mode=='topics' else Gtk.PolicyType.AUTOMATIC)
+            self.modes.set_vexpand(mode=='topics')
         return True
 
     def sync(self, force=False):

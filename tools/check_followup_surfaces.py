@@ -1,0 +1,87 @@
+"""Retained real study data and native reader follow-up evidence, no client profile."""
+import argparse,gzip,hashlib,inspect,json,time
+from pathlib import Path
+from unittest.mock import patch
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
+    p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--maps',action='store_true');a=p.parse_args()
+    assert (a.profile/'.source-rendering-research').is_file();a.output.mkdir(parents=True,exist_ok=True)
+    from bible.ui import Application,Window,Library,Gtk
+    from tests.test_ui import spin
+    from tests.test_appearance import SystemStyleOverride
+    from tools.check_alpha_ui import X11Input
+    from tools.check_client_feedback import Screen
+    if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
+    evidence_root=Path(__file__).resolve().parents[1]
+    fixtures=[('docs/evidence/client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz','9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'),('docs/evidence/topic-followups-146-147/fixtures/openbible-topics.sqlite3.gz','90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209')]
+    data_root=a.profile/'study-data';data_root.mkdir(exist_ok=True)
+    for file,digest in fixtures:
+        data=gzip.decompress((evidence_root/file).read_bytes());assert hashlib.sha256(data).hexdigest()==digest
+        target=data_root/Path(file).stem
+        if not target.exists():target.write_bytes(data)
+    def hashes():return {str(f.relative_to(a.profile)):hashlib.sha256(f.read_bytes()).hexdigest() for base in ('translations','study-data') for f in (a.profile/base).rglob('*') if f.is_file()}
+    before=hashes();app=Application.get_default() or Application();app.register();records=[]
+    def walk(widget):
+        yield widget
+        child=widget.get_first_child()
+        while child:yield from walk(child);child=child.get_next_sibling()
+    with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False),patch('bible.catalogue_session.CatalogueSession.load_youversion_language',return_value=None):
+        w=Window(app,Library(a.profile/'translations'));w.set_default_size(1200,820);w.present();n=X11Input();n.activate(w);screen=Screen(n)
+        try:
+            t=w.active_tab;t.state.comparison=None;w.sync_comparison();t.navigate('FreSegond1910','Gen.11.3');spin(lambda:not t._restoring_scroll)
+            with SystemStyleOverride() as style:
+                for palette,mode in [('white','day'),('dark','night'),('paper','day'),('black','night')]:
+                    style.set(dark=mode=='night',high=False);w.appearance.update('mode',mode);w.appearance.update('day_palette' if mode=='day' else 'night_palette',palette)
+                    w.study_button.set_active(False);w.set_default_size(1200,820);spin(duration=.3);n.activate(w)
+                    w.study_button.set_active(True);s=w.study;s.tools.set_visible_child_name('references');s.references.refresh(force=True)
+                    spin(lambda:not s.references.pending,duration=.3)
+                    screen.grab(a.output/(palette+'-references.png'))
+                    refs=s.references;buttons=[b for b in walk(refs.list) if isinstance(b,Gtk.Button) and hasattr(b,'_reference_item')]
+                    assert buttons,'Retained real references are missing'
+                    refs.scroll.get_vadjustment().set_value(0);spin(duration=.2)
+                    target=buttons[0]._reference_item.relationship.start
+                    n.click(buttons[0]);spin();assert w.reference_preview.popover is not None
+                    assert t.state.reference=='Gen.11.3';w.reference_preview.dismiss()
+                    records.append(dict(surface='references',palette=palette,total=len(refs.rows),first_source_target=target))
+                    w.study_button.set_active(False)
+                    for width,height in [(1000,800),(360,440)]:
+                        w.set_default_size(width,height);spin(duration=.3);w.choose_passage();nav=w.navigation;nav.modes.set_visible_child_name('topics');panel=nav.topic_search
+                        panel.entry.set_text('');panel.changed();spin(duration=.3)
+                        screen.grab(a.output/(f'{palette}-topics-{width}.png'))
+                        row=dict(surface='topics',palette=palette,width=w.get_width(),height=w.get_height(),entries=panel.topic_model.get_n_items(),list_height=panel.topic_scroll.get_height(),popover_height=nav.get_height(),first_labels=[panel.topic_model.get_item(i).value[0] for i in range(min(4,panel.topic_model.get_n_items()))])
+                        if not a.baseline:
+                            assert row['entries']==50,row
+                            assert row['list_height']>100,row
+                            assert row['popover_height']<=w.get_height(),row
+                            first=next(b for b in walk(panel.topics) if isinstance(b,Gtk.Button) and hasattr(b,'_topic'))
+                            first.grab_focus();spin(duration=.2);n.key('End');spin()
+                            adj=panel.topic_scroll.get_vadjustment()
+                            row['keyboard_end_scroll']=adj.get_value()
+                            assert adj.get_value()>0,row
+                            n.wheel(panel.topics,40);spin()
+                            assert adj.get_value()+adj.get_page_size()>=adj.get_upper()-2,row
+                            screen.grab(a.output/(f'{palette}-topics-bottom-{width}.png'))
+                        records.append(row);nav.popdown();spin()
+            if a.maps:
+                w.set_default_size(1200,820);spin()
+                from bible.place_cards import PlaceCards
+                from bible.place_data import PlaceData
+                store=PlaceData(data_root)
+                for reference,name in [('Gen.11.2','Shinar'),('Josh.10.1','Jerusalem')]:
+                    t.navigate('FreSegond1910',reference);spin(lambda:not t._restoring_scroll)
+                    dialog=PlaceCards(w);dialog.present();spin(lambda:not dialog.pending)
+                    place=next(row for row in dialog.rows if row['name']==name)
+                    dialog.open_place(place);spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=40)
+                    for width in (640,360):
+                        dialog.set_default_size(width,720);spin(duration=.4)
+                        screen.grab(a.output/(f'place-{name}-{width}.png'))
+                    records.append(dict(surface='places',name=name,map_ready=dialog.map_widget.ready,candidates=len(place['candidates']),status=place['status'],description=getattr(dialog,'location_description',dialog.passage_context).get_text()))
+                    dialog.close();spin()
+        finally:w.close();n.close()
+    assert before==hashes(),'Research source data changed'
+    (a.output/'verification.json').write_text(json.dumps(dict(app_import=inspect.getfile(Window),baseline=a.baseline,gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],cases=records,unchanged_source_files=len(before)),ensure_ascii=False,indent=2)+'\n')
+
+
+if __name__=='__main__':main()
