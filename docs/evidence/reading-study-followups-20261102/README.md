@@ -104,5 +104,7 @@ is in progress. No product feature was disabled and no client profile was reset.
 The signed-update waiting run was cancelled and will be restarted after the
 blocking check is resolved. The previous signed alpha remains available.
 
+A follow-up installed comparison ([41517637227](https://github.com/icfmp/Bible/actions/runs/41517637227)) attached the native sampler only after reader initialization and independently verified the Python 3.13 application process and its input child. All six measurements completed. Previous-package maximum GTK gaps were 30, 23 and 35 ms; candidate gaps were 528, 24 and 34 ms. During the 528 ms gap, main-thread CPU increased by 510 ms over a 537 ms sampling window; no traced native wait longer than 5 ms overlapped it. One direction response was missing in that candidate run; its unchanged assertions failed. The other five runs passed, and all six had zero late adjustments. This identifies native CPU work rather than a long system wait, but does not yet identify the responsible function. Earlier CPU/wait estimates from the host-supervisor sampler were invalid and are not evidence about the application. A time-correlated native function profile is the next check.
+
 This public report contains aggregate measurements only. Raw diagnostic traces
 are not added to this evidence branch.
