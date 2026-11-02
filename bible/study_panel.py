@@ -1,4 +1,5 @@
 """Native passage study tools and the existing synchronized commentary reader."""
+import logging
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -8,7 +9,7 @@ from .i18n import tr
 from .reading_style import apply_direction
 from .resource_details import details, plain
 from .sword_provider import CommentaryReader, VersificationMismatch
-from .reference_resolution import resolve
+from .reference_resolution import resolve,introduction_key
 
 
 class StudyPanel(Gtk.Box):
@@ -270,6 +271,7 @@ class StudyPanel(Gtk.Box):
 
     def clear_content(self):
         self._chapter_context=None
+        self.alignment_introductions=()
         self.cancel_scroll()
         self.cancel_reveal();self.loaded=[];self.ranges={};self.current_position=None
         self._layout_anchor=None
@@ -326,26 +328,34 @@ class StudyPanel(Gtk.Box):
     def follow(self,reference):
         if not self.reader:return
         try:
-            resolved=resolve(reference,self.owner.active_tab.reader.versification,self.reader,require_entry=False)
+            resolved=resolve(reference,self.owner.active_tab.reader.versification,self.reader,require_entry=False,include_introductions=True)
         except (ValueError,VersificationMismatch) as error:
-            self.clear_content();self.status.set_text(tr('No verified alignment for this passage.')+f' {error}')
+            logging.getLogger(__name__).warning('Commentary alignment failed for %s (%s -> %s): %s',reference,self.owner.active_tab.reader.versification,self.reader.versification,error)
+            self.clear_content();self.status.set_text(tr('No verified alignment for this passage.'))
             self.entry_controls();return
-        reference=resolved.start
-        replaced=self.ensure_chapter(reference)
-        position=self.reader.index.locate(reference)
+        self.alignment_introductions=resolved.introductions
+        reference=resolved.start or resolved.introductions[0]
+        replaced=self.ensure_chapter(reference,introduction=resolved.start is None)
+        position=self.reader.index.locate(resolved.start) if resolved.start else None
+        contexts={introduction_key(ref,self.reader).getIndex() for ref in resolved.introductions}
+        available=next((i for i in self.loaded if self.reader.index.sections[i].introduction
+                        and self.reader.index.sections[i].index in contexts),None)
+        if available is not None:position=available
         if position is None or not self.reader.index.text(position).strip():
             self.cancel_reveal();self.current_position=None
             self.owner.active_tab.mark_commentary_range(None,None)
-            self._missing_near=self.reader.index.near(reference)
+            self._missing_near=self.reader.index.near(resolved.start) if resolved.start else 0
             self.passage.set_text(self.owner.active_tab.passage_title())
             self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
-        self.status.set_text('');self.current_position=position
+        self.status.set_text(tr('This passage includes introductory text, shown with the commentary.') if contexts and available is not None else
+                             tr('This passage includes introductory text without a separate commentary introduction. Showing the aligned verse.') if contexts else '')
+        self.current_position=position
         self.passage.set_text(self.reader.index.label(position))
         self.reveal(position,force=replaced,animate=not replaced);self.entry_controls()
         self.update_indicator()
 
-    def ensure_chapter(self,reference):
-        key=self.reader.key(reference)
+    def ensure_chapter(self,reference,introduction=False):
+        key=introduction_key(reference,self.reader) if introduction else self.reader.key(reference)
         context=(id(self.reader),key.getOSISBookName(),key.getChapter())
         if context==getattr(self,'_chapter_context',None):return False
         key.setVerse(1);first=key.getIndex();key.setVerse(key.getVerseMax());last=key.getIndex()
