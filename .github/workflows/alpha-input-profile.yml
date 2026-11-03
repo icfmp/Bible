@@ -26,12 +26,16 @@ jobs:
           PY
           FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
-      - name: Real pointer activation on installed baseline
+      - name: Frozen previously verified topic index
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/topics.sqlite3.gz" https://raw.githubusercontent.com/icfmp/Bible/1c82609a0947822908fdfab7d3b42f7b79146265/docs/evidence/alpha-performance/fixtures/openbible-topics.sqlite3.gz
+          echo "f8d8ebe33c339f3f910c930fef1af5713ee9a154bdbb363d7abf1844452a8c2e  $RUNNER_TEMP/topics.sqlite3.gz" | sha256sum --check
+      - name: Real pointer and Library actions on installed baseline
         run: |
           mkdir reports
-          timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -m tools.check_selection_baseline "$RUNNER_TEMP/profile" "$PWD/reports" > "$RUNNER_TEMP/selection.log" 2>&1
+          timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_selection_batch "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --topics "$RUNNER_TEMP/topics.sqlite3.gz" --baseline --downloads --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: installed-selection-baseline
+          name: installed-selection-batch-baseline
           path: reports/
