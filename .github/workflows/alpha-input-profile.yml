@@ -60,6 +60,11 @@ jobs:
           if [ '${{ inputs.focus_downloads }}' = true ]; then extra+=(--downloads-only); fi
           if [ '${{ inputs.focus_lexical }}' = true ]; then module=tools.check_lexical_activation; extra=(); fi
           timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare "${extra[@]}" "${mode[@]}" --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
+      - name: Native book, chapter and appearance input in the installed candidate
+        if: inputs.candidate_run != ''
+        run: |
+          timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -c 'import inspect; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); from tools.check_alpha_ui import main; main()' > "$RUNNER_TEMP/native-book-input.log" 2>&1
+          echo 'PASS: installed native book/chapter, keyboard, popup, tab and appearance input' > reports/native-book-input.txt
       - name: Actual lexical units on the installed candidate
         if: inputs.candidate_run != '' && !inputs.focus_lexical
         run: |
