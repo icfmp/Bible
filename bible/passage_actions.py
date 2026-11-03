@@ -29,6 +29,7 @@ class Target:
     verses: tuple
     native_selection: bool
     anchor: int
+    selection: tuple | None = None
 
 
 def references(source,first,last):
@@ -48,7 +49,8 @@ def target(view,source,factory,clicked=None):
     verses=[text for _,text in passage_verses(source.reader,refs)]
     text=source.document.copy(first,last) if selection else '\n'.join(verses)
     anchor=view.get_buffer().get_iter_at_mark(view.get_buffer().get_insert()).get_offset() if selection else clicked
-    return Target(source,view,factory,refs,text,tuple(verses),bool(selection),anchor)
+    return Target(source,view,factory,refs,text,tuple(verses),bool(selection),anchor,
+                  (first,last) if selection else None)
 
 
 class Backdrop(Gtk.Widget):
@@ -176,6 +178,7 @@ class PassageActions:
 
     def study_word(self):
         value=self.target
+        if value is not None and not self.valid():self.dismiss();return
         if value is None:
             tab=self.owner.active_tab
             if not tab or not tab.reader:return
@@ -410,6 +413,7 @@ class PassageActions:
             bounds=value.view.get_buffer().get_selection_bounds()
             if not bounds:return False
             first,last=(current.base+i.get_offset() for i in bounds)
+            if value.selection is not None and (first,last)!=value.selection:return False
             if references(current,first,last)!=value.references or current.document.copy(first,last)!=value.text:return False
         return True
 

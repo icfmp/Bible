@@ -44,7 +44,9 @@ class PassageActionTests(unittest.TestCase):
                 # A new selection must invalidate the old frozen action target.
                 changed=tab._comparison_markers['Gen.1.4']
                 buffer.select_range(buffer.get_iter_at_offset(changed),buffer.get_iter_at_offset(changed+5))
-                self.assertFalse(actions.valid());actions.copy();self.assertFalse(actions.bar.get_visible())
+                self.assertFalse(actions.valid());actions.study_word();spin()
+                self.assertIsNone(window.study.words.dialog)
+                actions.copy();self.assertFalse(actions.bar.get_visible())
                 self.assertEqual(tab.state.resource,'Test')
                 if not hasattr(window,'highlights'):self.assertIsNone(actions.highlight_button)
             finally:window.close()

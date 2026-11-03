@@ -47,9 +47,9 @@ def selected_metadata(target):
     if reader.module.getConfigEntry('SourceType')!='OSIS':return None
     reference=target.references[0]
     span=next((s for s in document.spans if s.reference==reference),None)
-    bounds=target.view.get_buffer().get_selection_bounds()
+    bounds=getattr(target,'selection',None)
     if not span or not bounds:return None
-    first,last=(source.base+i.get_offset() for i in bounds)
+    first,last=bounds
     if first<span.body or last>span.end:return None
     reader.module.setKey(reader.key(reference));raw=reader.module.getRawEntry()
     raw=raw if isinstance(raw,str) else raw.c_str()

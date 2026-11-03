@@ -16,6 +16,8 @@ Issues remain open for client validation. Numbered release #87 remains paused.
   lexical ambiguity and explicitly named alternative original-language sources
   retain their conservative alignment rules. Native activation finishes before
   hiding its anchor; closing cancels queued requests and invalidates callbacks.
+  Lexical identifiers use the captured selection offsets: a later live GTK
+  selection change cannot attach another word's identifier to the captured text.
 - Header selectors are flat. The passage shows book/chapter; the translation
   uses a supplied public abbreviation, with a full public-name fallback and
   complete accessible labels. Small windows retain the selectors inside the

@@ -33,3 +33,18 @@ class SourceVerseTests(unittest.TestCase):
         self.assertEqual(source_verse_references('Ps.51.3',source),('Ps.51.1',))
         self.assertEqual(source_verse_references('Ps.51.4',source),('Ps.51.2',))
         self.assertEqual(source_verse_references('3John.1.14',Canon('KJV')),('3John.1.14','3John.1.15'))
+
+class CapturedMetadataTests(unittest.TestCase):
+    def test_live_selection_cannot_retarget_the_captured_word(self):
+        from types import SimpleNamespace as N
+        from bible.word_metadata import selected_metadata
+        body='Alpha Beta'
+        module=N(getConfigEntry=lambda _: 'OSIS',setKey=lambda _:None,
+                 getRawEntry=lambda:'<w lemma="strong:G111">Alpha</w> <w lemma="strong:G222">Beta</w>')
+        document=N(spans=[N(reference='Gen.1.1',body=0,end=len(body))],copy=lambda a,b:body[a:b])
+        # The command captured Alpha. A later caret/selection update shows Beta.
+        buffer=N(get_selection_bounds=lambda:(N(get_offset=lambda:6),N(get_offset=lambda:10)))
+        value=N(native_selection=True,references=('Gen.1.1',),selection=(0,5),text='Alpha',
+                source=N(reader=N(module=module,key=lambda _:None),document=document,base=0),
+                view=N(get_buffer=lambda:buffer))
+        self.assertEqual(selected_metadata(value)['identifiers'],('G0111',))
