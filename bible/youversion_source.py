@@ -90,8 +90,8 @@ def read_edition(data, expected_id):
             raise Unsupported('Missing text chapter inventory')
         for chapter in inventory:
             ref = chapter.get('usfm') if isinstance(chapter, dict) else None
-            if not isinstance(ref, str) or not re.fullmatch(code + r'\.(?:[1-9][0-9]*|INTRO[1-9][0-9]*)', ref):
-                raise Unsupported('Unexpected indexed chapter')
+            if not isinstance(ref, str) or not re.fullmatch(code + r'\.(?:[1-9][0-9]*(?:_[1-9][0-9]*)?|INTRO[1-9][0-9]*)', ref):
+                raise Unsupported('Unexpected indexed chapter: '+str(ref))
             canonical = chapter.get('canonical')
             if type(canonical) is not bool or canonical == ('.INTRO' in ref):
                 raise Unsupported('Inconsistent chapter/introduction role')

@@ -138,18 +138,22 @@ class PassageActions:
         self.copy_popover=self.menu(self.copy_button,[(label,lambda *_,mode=mode:self.copy(mode))
             for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
                                ('Copy verses with reference','reference'),('Copy reference','label')]])
-        self.highlight_button=None
+        self.highlight_button=None;self.highlight_buttons={}
         if hasattr(owner,'highlights'):
             from .highlights import COLORS
-            self.highlight_button=Gtk.MenuButton(icon_name='color-select-symbolic',tooltip_text=tr('Highlight'))
-            self.highlight_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight')])
-            self.actions.append(self.highlight_button)
-            self.highlight_popover=self.menu(self.highlight_button,[(label,lambda *_,c=color:self.highlight(c))
-                for color,(_,label) in COLORS.items()]+[('Remove highlight',lambda *_:self.highlight(None)),
-                    ('All highlights',lambda *_:owner.open_highlights())])
+            for color,(_,label) in COLORS.items():
+                button=Gtk.ToggleButton(tooltip_text=tr('Highlight')+': '+tr(label))
+                button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight')+': '+tr(label)])
+                circle=Gtk.Box(width_request=20,height_request=20,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
+                circle.add_css_class('highlight-'+color)
+                check=Gtk.Image(icon_name='object-select-symbolic',pixel_size=14,opacity=0);circle.append(check)
+                button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
+                self.actions.append(button);self.highlight_buttons[color]=(button,check)
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
-        self.compare_button=self.button('view-dual-symbolic','Compare translations',lambda *_:self.compare())
-        self.word_button=self.button('accessories-dictionary-symbolic','Study word',lambda *_:self.study_word())
+        self.word_button=self.button('bible-word-study-symbolic','Study word',lambda *_:self.study_word())
+        word_content=Gtk.Box(spacing=6,margin_start=6,margin_end=6)
+        word_content.append(Gtk.Image(icon_name='bible-word-study-symbolic',pixel_size=20))
+        self.word_label=Gtk.Label(label=tr('Study word'));word_content.append(self.word_label);self.word_button.set_child(word_content)
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
@@ -345,7 +349,7 @@ class PassageActions:
         self.bar.set_visible(True)
         self.schedule_adapt()
         self.bar.set_margin_bottom(0 if source.side=='immersion' else 12)
-        self.compare_button.set_sensitive(source.tab.reader is not None)
+        self.sync_highlights()
         return False
 
     def schedule_adapt(self):
@@ -369,6 +373,7 @@ class PassageActions:
         em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
         chars=max(8,min(38,available//em))
         self.label.set_max_width_chars(chars);self.version_label.set_max_width_chars(chars)
+        self.word_label.set_visible(available>=440)
         margin_bottom=12
         from gi.repository import Graphene
         buffer=value.view.get_buffer()
@@ -453,9 +458,16 @@ class PassageActions:
         try:
             if len(value.references)>1000:raise ValueError('Select at most 1000 verses')
             self.owner.highlights.set(value.source.reader.versification,value.references,color,value.source.resource)
-            self.owner.refresh_highlights()
+            self.owner.refresh_highlights();self.sync_highlights()
         except (ValueError,OSError) as error:
             value.source.tab.status.set_text(str(error));value.source.tab.status.set_visible(True)
+
+    def sync_highlights(self):
+        value=self.target
+        if not value:return
+        colors={self.owner.highlights.entries.get((value.source.reader.versification,ref),{}).get('color') for ref in value.references}
+        for color,(button,check) in self.highlight_buttons.items():
+            active=colors=={color};button.set_active(active);check.set_opacity(1 if active else 0)
 
     def compare(self):
         if not self.valid():self.dismiss();return

@@ -33,11 +33,11 @@ class ReaderChromeTests(unittest.TestCase):
                             w.set_default_size(width,800)
                             spin(lambda:not w._controls_tick and not t._restoring_scroll,duration=.4)
                             self.assertLessEqual(w.header.get_width(),w.get_width()+4)
-                            self.assertGreater(w.passage_button.get_width(),80)
+                            self.assertGreaterEqual(w.passage_button.get_width(),44)
                             label=w.primary_version.caption
-                            self.assertGreater(label.get_width(),80)
+                            self.assertGreater(label.get_width(),0)
                             self.assertGreaterEqual(label.get_height(),label.get_layout().get_pixel_size()[1])
-                            self.assertEqual(label.get_ellipsize(),0)
+                            self.assertEqual(label.get_ellipsize(),3) # Header abbreviation/fallback stays on one line.
                             if width==360:
                                 w.open_reading_popup(w.appearance_button);spin(lambda:w.appearance.get_visible())
                                 self.assertTrue(w.reader_overflow.get_active());w.dismiss_popovers();spin()

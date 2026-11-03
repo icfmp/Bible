@@ -86,6 +86,9 @@ class PlaceCards(Adw.Window):
             if parent:parent.remove(self.passage_context)
             self.layout.insert_child_after(self.passage_context,self.header)
         self.passage_context.set_margin_start(16);self.passage_context.set_margin_end(16)
+        if self.context:
+            _,reader,start,end=self.context
+            self.passage_context.set_text(tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification)))
 
     def message(self,value,download=False):
         self.status.set_text(value);self.status.set_tooltip_text(None);self.download.set_visible(download)
@@ -150,14 +153,18 @@ class PlaceCards(Adw.Window):
         self.location_description=self.label(descriptions[0] if len(located)==1 else
             tr('Several proposed locations') if len(located)>1 else tr('Unknown location'))
         self.location_description.add_css_class('heading');card.append(self.location_description)
-        if place['status']!='known' and (located or place['status']!='unknown'):card.append(self.label(tr(STATUS[place['status']]),caption=True))
+        metadata=[]
+        if place['status']!='known' and (located or place['status']!='unknown'):metadata.append(tr(STATUS[place['status']]))
         if len(located)==1:
             note=self.location_note(located[0])
-            if note:card.append(self.label(note,caption=True))
+            if note:metadata.append(note)
         parent=self.passage_context.get_parent()
         if parent:parent.remove(self.passage_context)
         self.passage_context.set_margin_start(0);self.passage_context.set_margin_end(0)
-        self.passage_context.add_css_class('caption');card.append(self.passage_context)
+        self.passage_context.add_css_class('caption')
+        resource,reader,start,end=self.context
+        self.passage_context.set_text(' · '.join(metadata+[tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification))]))
+        card.append(self.passage_context)
         map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         if located:
             try:
@@ -178,24 +185,25 @@ class PlaceCards(Adw.Window):
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
         ordered=[ref for ref in place['references'] if ref in self.origins]+[ref for ref in place['references'] if ref not in self.origins]
-        self.reference_model.splice(0,0,[PlaceItem(ref) for ref in ordered[:2]])
-        # The compact preview has natural row heights and shares the card's
-        # outer scroll; an inner fixed viewport would cut a source line in half.
-        self.references=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        for ref in ordered[:2]:
-            button=self.reference_button();self.bind_reference(button,ref);self.references.append(button)
-        card.append(self.references)
-        all_refs=Gtk.Button(label=tr('View all'),visible=len(place['references'])>2)
-        def show_all(*_):
-            self.reference_model.splice(0,self.reference_model.get_n_items(),[PlaceItem(ref) for ref in ordered])
-            card.remove(self.references)
-            factory=Gtk.SignalListItemFactory();factory.connect('setup',self.reference_setup);factory.connect('bind',self.reference_bind)
-            self.references=Gtk.ListView(model=Gtk.NoSelection(model=self.reference_model),factory=factory)
-            scroll=Gtk.ScrolledWindow(min_content_height=240,max_content_height=400,propagate_natural_height=True,
-                                     hscrollbar_policy=Gtk.PolicyType.NEVER)
-            scroll.set_child(self.references);card.insert_child_after(scroll,reference_title);all_refs.set_visible(False)
-        all_refs.connect('clicked',show_all);card.append(all_refs)
-        clamp=Adw.Clamp(maximum_size=700,child=card);self.card_scroll.set_child(clamp)
+        self.reference_model.splice(0,0,[PlaceItem(ref) for ref in ordered])
+        # One virtualized body: metadata/map header and every reference use
+        # the same adjustment. Large place inventories do not create hundreds
+        # of native buttons/excerpts before the user reaches them.
+        header_model=Gio.ListStore.new(PlaceItem);header_model.append(PlaceItem(None))
+        sections=Gio.ListStore.new(Gio.ListModel);sections.append(header_model);sections.append(self.reference_model)
+        model=Gtk.FlattenListModel(model=sections)
+        factory=Gtk.SignalListItemFactory()
+        header=Adw.Clamp(maximum_size=700,child=card)
+        def bind(_,item):
+            ref=item.get_item().payload
+            if ref is None:item.set_child(header)
+            else:
+                button=self.reference_button();self.bind_reference(button,ref)
+                button.set_margin_start(16);button.set_margin_end(16)
+                item.set_child(Adw.Clamp(maximum_size=700,child=button))
+        factory.connect('bind',bind);factory.connect('unbind',lambda _,item:item.set_child(None))
+        self.references=Gtk.ListView(model=Gtk.NoSelection(model=model),factory=factory)
+        self.card_scroll.set_child(self.references)
         self.card_scroll.get_vadjustment().set_value(0)
 
     def location_note(self,candidate):

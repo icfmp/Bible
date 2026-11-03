@@ -32,7 +32,9 @@ class WordStudyTests(unittest.TestCase):
                 history=list(tab.state.history);reference=tab.state.reference
                 words=window.study.words;words.open(value)
                 spin(lambda:not words.pending,duration=.2)
-                self.assertEqual(window.study.tool,'word');self.assertFalse(window.study.tools_switcher.get_visible())
+                self.assertEqual(window.study.tool,'notes');self.assertTrue(window.study.tools_switcher.get_visible())
+                self.assertTrue(words.dialog.get_visible());self.assertTrue(words.dialog.get_modal())
+                self.assertIs(words.dialog.get_transient_for(),window)
                 self.assertIs(window.study.notes.editor,editor)
                 buttons=[c for c in words.children() if hasattr(c,'emit') and c.__class__.__name__=='Button']
                 self.assertTrue(buttons)

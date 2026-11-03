@@ -126,6 +126,21 @@ def _native_refs(source, system):
     return _span(start, end, system)
 
 
+def available_chapter(reference,reader):
+    """Explicit source switch only: chapter availability is not verse alignment."""
+    from .book_names import canonical_input
+    parts=canonical_input(reference).split('.')
+    if len(parts)!=3:return None
+    book,chapter,_=parts
+    try:chapter=int(chapter)
+    except ValueError:return None
+    entry=next((item for item in reader.books if item.code==book),None)
+    verses=entry.chapters.get(chapter) if entry else None
+    if not verses:return None
+    order=reader.source_verse_order.get(f'{book}.{chapter}',verses)
+    return f'{book}.{chapter}.{order[0]}'
+
+
 def introduction_key(reference,reader):
     """Validate explicitly mapped chapter context independently of ordinary verses."""
     import re

@@ -210,8 +210,13 @@ def run_conversion(archive,metadata,target,phase,cancelled,*,compiler='/app/bin/
                             value=json.loads(line)
                             phase(value['phase'],value['done'],value['total'])
             if process.wait()!=0:
-                # Compiler/source bodies stay private; no corpus in UI or logs.
-                raise ValueError(tr('Translation conversion or verification failed. No resource was installed.'))
+                # Show a bounded structural diagnostic, never the traceback or
+                # compiler output, so the reported error identifies its own job.
+                errors.seek(0);lines=errors.read(65536).decode('utf-8',errors='replace').splitlines()
+                detail=next((line.split(': ',1)[1] for line in reversed(lines) if line.startswith(('ValueError: ','bible.youversion_osis.Unsupported: '))), '')
+                detail=detail[:400] if not any(c in detail for c in ('<','>','http:','https:')) else ''
+                message=tr('Translation conversion or verification failed. No resource was installed.')
+                raise ValueError(message+('\n'+detail if detail else ''))
         finally:
             if process.poll() is None:
                 os.killpg(process.pid,signal.SIGTERM)

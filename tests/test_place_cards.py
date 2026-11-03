@@ -78,7 +78,7 @@ class PlaceCardTests(unittest.TestCase):
         place=dialog.rows[0];place['candidates'][0]['role']='representative point'
         dialog.open_place(place);spin()
         labels=[x.get_text() for x in self.walk(dialog) if hasattr(x,'get_text')]
-        self.assertIn(tr('Approximate location'),labels)
+        self.assertTrue(any(tr('Approximate location') in label for label in labels))
         self.assertEqual(len(dialog.map_widget.candidates),1)
 
     def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):

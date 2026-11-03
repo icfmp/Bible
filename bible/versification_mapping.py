@@ -48,12 +48,24 @@ def valid(reference, data):
         return False
 
 
+def verified_identity(reference,data):
+    """Explicit text-audited verse intervals, never equal-size canon inference."""
+    bridge=data.get('verified_identity',{})
+    try:
+        chapter,verse=reference.rsplit('.',1);verse=int(verse)
+        return any(first<=verse<=last for first,last in bridge.get('chapters',{}).get(chapter,()))
+    except (ValueError,TypeError):return False
+
+
 def to_base(reference, system):
     """Return qualified KJVA references, or None if capability is unavailable."""
     data = table(system)
     base = table('KJVA')
     if data is None or base is None:
         return None
+    bridge=data.get('verified_identity')
+    if bridge:
+        return to_base(reference,bridge['system']) if verified_identity(reference,data) else []
     if reference in data.get('forward', {}):
         result = data['forward'][reference]
         # The pinned upstream cannot unmap a qualified multi-verse range
@@ -68,6 +80,10 @@ def from_base(qualified, system):
     data = table(system)
     if data is None:
         return None
+    bridge=data.get('verified_identity')
+    if bridge:
+        refs=from_base(qualified,bridge['system'])
+        return refs if refs and all(verified_identity(ref,data) for ref in refs) else []
     reverse = data.get('reverse', {})
     if qualified in reverse:
         return reverse[qualified]

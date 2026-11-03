@@ -90,7 +90,7 @@ class Window(Adw.ApplicationWindow):
         self.heading.set_halign(Gtk.Align.FILL);self.heading.set_hexpand(True)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
-        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic'))
+        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
         self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr('Choose a passage'))
         self.passage_button.set_can_shrink(True)
         self.passage_button.add_css_class('flat')
@@ -183,13 +183,11 @@ class Window(Adw.ApplicationWindow):
                 header.remove(self.header_tools);header.pack_end(self.study_button);header.pack_end(self.header_tools)
         def compact_applied(breakpoint,tiny):
             self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
-            if self.header_title.get_parent() is not self.compact_title:
-                header.set_title_widget(Gtk.Box())
-                self.compact_title.append(self.header_title)
-            self.compact_title.set_visible(True)
+            self.space_selector.set_compact(tiny)
             self.queue_controls()
         def compact_removed(*_):
             self.space_selector.remove_css_class('compact-space');study_in_overflow(False)
+            self.space_selector.set_compact(False)
             if self.header_title.get_parent() is self.compact_title:
                 self.compact_title.remove(self.header_title)
                 header.set_title_widget(self.header_title)
@@ -200,7 +198,8 @@ class Window(Adw.ApplicationWindow):
             compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}sp'))
             compact_tools.add_setter(self.reader_controls,'visible',False)
             compact_tools.add_setter(self.reader_overflow,'visible',True)
-            compact_tools.add_setter(self.header_title,'orientation',Gtk.Orientation.VERTICAL)
+            compact_tools.add_setter(self.new_tab_button,'visible',False)
+            compact_tools.add_setter(self.header_title,'spacing',4)
             compact_tools.add_setter(header,'decoration-layout',':close')
             compact_tools.connect('apply',compact_applied,tiny)
             compact_tools.connect('unapply',compact_removed)
@@ -263,7 +262,7 @@ class Window(Adw.ApplicationWindow):
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
-                           b'.compact-space button { padding-left: 4px; padding-right: 4px; } '
+                           b'.compact-space button { padding-left: 2px; padding-right: 2px; } '
                            b'.annotation-navigation { background-color: @sidebar_bg_color; color: @sidebar_fg_color; } '
                            b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
                            b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
@@ -660,20 +659,15 @@ class Window(Adw.ApplicationWindow):
     def switch_translation(self,name):
         """A missing correspondence does not make the target unreadable."""
         from .sword_provider import Reader
-        from .reference_resolution import resolve,VersificationMismatch
+        from .reference_resolution import resolve,available_chapter
         tab=self.active_tab
         if not tab:return False
-        reader=Reader(self.library.root/name,name);independent=False
+        reader=Reader(self.library.root/name,name)
         try:
             reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
-        except VersificationMismatch:
-            # This is an explicit resource-opening action. Do not transfer an
-            # unverified printed reference or change the strict shared resolver.
-            reference=reader.first_reference();independent=True
+        except ValueError:
+            reference=available_chapter(tab.state.reference,reader) or reader.first_reference()
         if not self.navigate_selection(name,reference):return False
-        if independent:
-            tab.status.set_text(tr('The current passage cannot be matched reliably in this translation. Its first available passage is open; you can choose another passage.'))
-            tab.status.set_visible(True)
         return True
 
     def step_chapter(self, direction):

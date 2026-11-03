@@ -66,7 +66,7 @@ class VersionChooser(Gtk.MenuButton):
         super().__init__(tooltip_text=tr('Version'))
         self.set_can_shrink(True)
         self.owner=owner;self.comparison=comparison;self._syncing=False;self.names=[]
-        self.add_css_class('version-pill')
+        self.add_css_class('flat')
         self.caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=24,width_chars=1)
         self.caption.set_hexpand(True)
         row=Gtk.Box(spacing=4);row.append(self.caption);row.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
@@ -112,6 +112,18 @@ class VersionChooser(Gtk.MenuButton):
         self.choices.set_selected(names.index(current) if current in names else Gtk.INVALID_LIST_POSITION)
         self._syncing=False
         caption=captions[names.index(current)] if current in names else tr('Choose a translation')
+        # The header uses the provider's public abbreviation. Pane selectors
+        # keep their full name; the picker and accessible label always do too.
+        reader=tab.reader
+        in_header=not self.comparison and not tab.state.comparison
+        if in_header and reader and current==tab.state.resource:
+            short=reader.module.getConfigEntry('Abbreviation')
+            if isinstance(short,str) and short.strip() and len(short)<=40 and not any(ord(c)<32 for c in short):
+                caption=short
+        self.caption.set_wrap(not in_header)
+        self.caption.set_ellipsize(Pango.EllipsizeMode.END if in_header else Pango.EllipsizeMode.NONE)
+        if in_header:self.caption.add_css_class('dim-label')
+        else:self.caption.remove_css_class('dim-label')
         self.caption.set_text(caption)
         full=labels[names.index(current)] if current in names else tr('Choose a translation')
         self.set_tooltip_text(tr('Version')+': '+full)
