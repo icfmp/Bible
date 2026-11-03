@@ -5,6 +5,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+import uuid
 from unittest.mock import patch
 from tests.test_ui import installed_fixture,spin,close_test_dialogs
 from tests.test_place_data import inputs,pins
@@ -18,6 +19,7 @@ class PlaceCardTests(unittest.TestCase):
         require_native_map()
         from bible.ui import Application,Window,Library
         self.enterContext(patch('bible.place_map.TILE_URL','http://127.0.0.1:1/{z}/{x}/{y}.png'))
+        self.enterContext(patch('bible.place_map.TILE_SOURCE_ID','unavailable-'+uuid.uuid4().hex))
         self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
         installed_fixture(self.directory,'French',versification='Segond',entries=[('Ps.3.2','EXACT FRENCH PSALM TEST'),('John.1.5','SOURCE TEST')])
         self.files=inputs(self.root)

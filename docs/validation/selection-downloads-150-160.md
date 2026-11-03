@@ -25,6 +25,8 @@ Issues remain open for client validation. Numbered release #87 remains paused.
   highlights, notes or comparison. The old full-width fallback banner is gone.
 - The place card uses one virtualized body, including its map/header and all
   references. Approximate-location and passage metadata share a wrapping line.
+  The native map retains its camera while offscreen, without retaining its
+  loading layer; synthetic HTTP test caches use separate provider identities.
 - Text search groups secondary filters, keeps Enter/Search activation and shows
   a localized result count without repeating the query. Topics combine their
   name/count and omit visible ranking scores; source ranking remains unchanged.
@@ -62,7 +64,9 @@ Nouvelle Segond révisée is a different edition, 2053. The first NBS failure wa
 `GEN/INTRO1.yves`, an unsupported introductory paragraph marker `im`. Its complete
 archive also required standard `imi`, `is`, and `li` forms. All 1,245 actual NBS
 chapters/introductions passed conversion and compiled text/editorial readback in
-the local native worker. Installed-Library validation is recorded separately.
+the local native worker. An independent HTML/DOM audit also verified all 31,169
+verse units and 27,682 notes against actual application readback. Installed-Library
+validation is recorded separately.
 
 NFC 2367 first failed index validation for split identifiers such as `ESG.1_1`.
 Consecutive, non-overlapping sections can now retain every physical-file receipt
@@ -75,9 +79,13 @@ renumbered or declared a verified installation. NFC remains an explicit,
 chapter-specific unsupported-structure failure; full lossless NFC support is
 still outstanding. Failed conversion remains atomic and preserves old resources.
 
-For #151, 27 actual pointer activations on the installed baseline (GTK 4.20.4,
-software OpenGL; KJV, CrossWire Segond and BDS, single/multi-verse, missing/present
-STEP data and repeated activation) produced no crash or Python exception. This
+For #151, 51 actual pointer activations on the installed baseline (GTK 4.20.4,
+software OpenGL) produced no crash or Python exception: 27 initial KJV/Segond/BDS
+activations plus 24 checks of complete, explicitly tagged lexical units and
+unavailable/ambiguous selections, each with STEP present and absent. The latter
+checks verified actual supplied IDs for `was`, `the Word`, and `the beginning`;
+selecting only `beginning` correctly supplies no lexical ID. The retained STEP
+database was restored byte-for-byte after the missing-data checks. This
 is not a demonstrated root-cause fix for the client's reported crash. Exact
 client resource/word/build details were requested; #151 remains unconfirmed.
 The presentation change in #152 is not being used as proof that #151 is solved.

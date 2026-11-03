@@ -3,6 +3,7 @@ import os
 import struct
 import threading
 import unittest
+import uuid
 import zlib
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from unittest.mock import patch
@@ -43,7 +44,7 @@ class PlaceMapTests(unittest.TestCase):
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         try:
-            with patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png'):
+            with patch('bible.place_map.TILE_SOURCE_ID','synthetic-'+uuid.uuid4().hex),patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png'):
                 w=Gtk.Window(default_width=600,default_height=360)
                 self.addCleanup(w.destroy)
                 canvas=PlaceMap([dict(latitude=32.5,longitude=44.4)]);w.set_child(canvas)
@@ -51,6 +52,16 @@ class PlaceMapTests(unittest.TestCase):
                 w.present();spin(lambda:canvas.ready,timeout=15)
                 self.assertTrue(requests);self.assertLess(len(requests),30)
                 self.assertTrue(all(agent==USER_AGENT and cache!='no-cache' for _,agent,cache in requests))
+                viewport=canvas.canvas.get_viewport();canvas.ready=False
+                viewport.set_location(33.5,43.4);viewport.set_zoom_level(7)
+                spin(lambda:canvas.ready,timeout=15)
+                w.set_visible(False);spin(duration=.2)
+                self.assertIsNone(canvas.canvas)
+                w.present();spin(duration=.2)
+                viewport=canvas.canvas.get_viewport()
+                self.assertAlmostEqual(viewport.get_latitude(),33.5)
+                self.assertAlmostEqual(viewport.get_longitude(),43.4)
+                self.assertAlmostEqual(viewport.get_zoom_level(),7)
                 before=len(requests);w.close();spin(duration=.2)
                 self.assertIsNone(canvas.canvas)
                 spin(duration=.3);self.assertEqual(len(requests),before)
@@ -60,7 +71,7 @@ class PlaceMapTests(unittest.TestCase):
                 spin(lambda:cached.ready,timeout=15)
                 self.assertEqual(len(requests),before,'Reopening an unchanged region reuses the native disk cache')
                 again.close();spin()
-            with patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/invalid/{{z}}/{{x}}/{{y}}.png'):
+            with patch('bible.place_map.TILE_SOURCE_ID','invalid-'+uuid.uuid4().hex),patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/invalid/{{z}}/{{x}}/{{y}}.png'):
                 failed=Gtk.Window(default_width=600,default_height=360);self.addCleanup(failed.destroy)
                 broken=PlaceMap([dict(latitude=32.5,longitude=44.4)]);failed.set_child(broken);failed.present()
                 spin(lambda:broken.retry.get_visible(),timeout=15)
