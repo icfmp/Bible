@@ -13,6 +13,7 @@ def main():
     library=Library(root/'translations');name='youversion~YV104';assert name in library.installed()
     content=library.root/name;receipt=json.loads((content/'.verified.json').read_text())
     assert receipt['all_text_notes_headings_verified'] and receipt['entries']==1245
+    assert receipt['archive_sha256']=='ef1994bc91039b972c157c50f577ec4cf3b8a1d392f5fcbb1f872dd9035fc694'
     def snapshot():return {str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()}
     before=snapshot();app=Application();app.register();w=Window(app,library);w.set_default_size(1100,800);w.present();spin()
     try:
@@ -33,7 +34,7 @@ def main():
             assert study.current_position==study.reader.index.locate(resolved.start)
             following.append(dict(reference=ref,mapped=resolved.start,commentary_loaded=True))
         assert snapshot()==before
-        out.write_text(json.dumps(dict(result='PASS',source=inspect.getfile(Window),edition=104,offline=True,reopened_after_actual_library_install=True,all_worker_entries_verified=receipt['entries'],samples=checks,verified_commentary_following=following,existing_resource_files_unchanged=len(before)),indent=2))
+        out.write_text(json.dumps(dict(result='PASS',source=inspect.getfile(Window),edition=104,offline=True,reopened_after_actual_library_install=True,archive_sha256=receipt['archive_sha256'],all_worker_entries_verified=receipt['entries'],samples=checks,verified_commentary_following=following,existing_resource_files_unchanged=len(before)),indent=2))
     finally:w.close();close_test_dialogs();spin()
 
 
