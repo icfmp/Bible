@@ -23,8 +23,17 @@ def main():
             assert t.reader.module.getConfigEntry('Abbreviation')=='NBS'
             checks.append(dict(reference=ref,rendered=True))
         assert t.reader.introduction('Gen') is not None
+        from bible.reference_resolution import resolve
+        w.study_button.set_active(True);w.study.tools.set_visible_child_name('commentaries');w.study.choices.set_selected(w.study.names.index('MHC'))
+        following=[]
+        for ref in ('Gen.1.1','Gen.1.2','Gen.11.3','Ps.3.3'):
+            assert t.navigate('youversion~YV93',ref);spin(lambda:not t._restoring_scroll,duration=.2);w.study.refresh(force=True);spin(duration=.2)
+            study=w.study;assert study.reader and study.current_position is not None
+            resolved=resolve(ref,t.reader.versification,study.reader,require_entry=False)
+            assert study.current_position==study.reader.index.locate(resolved.start)
+            following.append(dict(reference=ref,mapped=resolved.start,commentary_loaded=True))
         assert snapshot()==before
-        out.write_text(json.dumps(dict(result='PASS',source=inspect.getfile(Window),edition=104,offline=True,reopened_after_actual_library_install=True,all_worker_entries_verified=receipt['entries'],samples=checks,existing_resource_files_unchanged=len(before)),indent=2))
+        out.write_text(json.dumps(dict(result='PASS',source=inspect.getfile(Window),edition=104,offline=True,reopened_after_actual_library_install=True,all_worker_entries_verified=receipt['entries'],samples=checks,verified_commentary_following=following,existing_resource_files_unchanged=len(before)),indent=2))
     finally:w.close();close_test_dialogs();spin()
 
 
