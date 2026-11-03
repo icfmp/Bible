@@ -48,6 +48,8 @@ class WordStudyTests(unittest.TestCase):
                 search=window.navigation.text_search;spin(lambda:not search.pending,duration=.3)
                 self.assertEqual(search.lemma_query,('tagnt-na27','G3056'))
                 self.assertEqual([r.start for r in search.rows],['John.1.1','Acts.1.1'])
+                focus=window.get_focus()
+                self.assertTrue(focus is search.entry or focus.is_ancestor(search.entry))
                 window.navigation.popdown();words.leave();spin()
                 self.assertEqual(window.study.tool,'notes')
                 self.assertEqual(editor.body.get_buffer().props.text,'Unsaved draft kept')

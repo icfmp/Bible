@@ -70,8 +70,9 @@ class WordStudy(Gtk.Box):
 
     def open(self,target,metadata=None):
         if self.owner.closed or target.source.tab is not self.owner.active_tab:return
-        previous=self.dialog;self.leave()
+        previous=self.dialog;self.leave(restore_focus=False)
         if previous:previous.set_content(None)
+        self.restore_focus=True
         self.generation+=1;self.pending=False;self.previous_focus=target.view
         self.target=target;self.lexical_metadata=metadata
         self.context=(target,self.owner.active_tab,self.owner.active_tab.state.reference)
@@ -95,9 +96,10 @@ class WordStudy(Gtk.Box):
         for future in self.futures:future.cancel()
         self.futures.clear();self.owner.reference_preview.dismiss()
         focus=getattr(self,'previous_focus',None)
+        restore=self.restore_focus
         def detached():
             if dialog and dialog.get_content() is self:dialog.set_content(None)
-            if not self.dialog and not self.owner.closed and focus and focus.get_mapped():focus.grab_focus()
+            if restore and not self.dialog and not self.owner.closed and focus and focus.get_mapped():focus.grab_focus()
             return False
         GLib.idle_add(detached)
         return False
@@ -118,7 +120,7 @@ class WordStudy(Gtk.Box):
 
     def download(self):
         from .study_resources import STEP_RESOURCE_ID
-        self.leave()
+        self.leave(restore_focus=False)
         window=self.owner.open_library('study')
         window.reveal_study_resource(STEP_RESOURCE_ID)
 
@@ -275,16 +277,17 @@ class WordStudy(Gtk.Box):
         yield from walk(self.content)
 
     def all_occurrences(self,corpus,entry):
-        resource=self.target.source.resource;self.leave()
+        resource=self.target.source.resource;self.leave(restore_focus=False)
         navigation=self.owner.navigation
         self.owner.choose_passage();navigation.modes.set_visible_child_name('text')
         navigation.text_search.show_lemma(corpus,entry['id'],entry['lemma']+' · '+tr('Lemma occurrences'),resource)
+        navigation.text_search.entry.grab_focus()
 
-    def leave(self):
-        if self.dialog:self.dialog.close()
+    def leave(self,restore_focus=True):
+        if self.dialog:self.restore_focus=restore_focus;self.dialog.close()
 
     def refresh(self):
-        if self.dialog and not self.valid():self.leave()
+        if self.dialog and not self.valid():self.leave(restore_focus=False)
 
     def close(self):
         self.leave();self.generation+=1;self.dismiss_offer();self.executor.shutdown(wait=False,cancel_futures=True)
