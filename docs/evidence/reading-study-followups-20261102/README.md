@@ -157,6 +157,8 @@ All 408 archived project files and all 4 dependency archives match the verified 
 
 ## Manual project actions
 
+All eleven scoped issues received [delivery evidence and client checks](issue-comment-receipts.json) and remain OPEN.
+
 Project 5 remains forbidden to the integration. Keep or move the eleven scoped
 issues to In review under the current numbered-release gate while #87 is paused;
 the signed alpha is available for client testing. Only the client sets Done and
