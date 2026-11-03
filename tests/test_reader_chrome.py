@@ -34,6 +34,7 @@ class ReaderChromeTests(unittest.TestCase):
                             spin(lambda:not w._controls_tick and not t._restoring_scroll,duration=.4)
                             self.assertLessEqual(w.header.get_width(),w.get_width()+4)
                             self.assertGreaterEqual(w.passage_button.get_width(),44)
+                            self.assertLessEqual(w.passage_button.get_height(),w.menu.get_height()+16)
                             label=w.primary_version.caption
                             self.assertGreater(label.get_width(),0)
                             self.assertGreaterEqual(label.get_height(),label.get_layout().get_pixel_size()[1])

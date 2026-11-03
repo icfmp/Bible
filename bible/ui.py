@@ -81,8 +81,8 @@ class Window(Adw.ApplicationWindow):
         def constrain_labels(widget,maximum=18):
             if isinstance(widget,Gtk.Label):
                 widget.set_max_width_chars(maximum);widget.set_width_chars(1)
-                widget.set_wrap(True);widget.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
-                widget.set_ellipsize(Pango.EllipsizeMode.NONE)
+                widget.set_wrap(False)
+                widget.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
             child=widget.get_first_child()
             while child:
                 constrain_labels(child,maximum);child=child.get_next_sibling()
