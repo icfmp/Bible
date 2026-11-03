@@ -125,6 +125,9 @@ class ReadingStyle:
         study_family=json.dumps(self.owner.preferences.value.study_font,ensure_ascii=False)
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         self.css = f'''
+/* Native edge glow can synchronously JIT-compile a radial-gradient program
+   on software OpenGL during wheel reversal. Keep native scrolling without it. */
+scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
 button.reference-card {{ padding: 10px; margin-top: 4px; margin-bottom: 4px; }}
 button.reference-card:hover {{ background-image: image(alpha(currentColor,.05)); }}
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}

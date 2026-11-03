@@ -43,6 +43,7 @@ class ReadingTab(Gtk.Box):
                                 margin_start=12, margin_end=12)
         self.append(self.status)
         self.scroll = Gtk.ScrolledWindow(vexpand=True, hexpand=True)
+        self.scroll.add_css_class('reading-scroll')
         from .scroll_motion import ScrollMotion
         self.scroll_motion=ScrollMotion(self.scroll)
         self.scroll.set_margin_top(0)
@@ -88,6 +89,7 @@ class ReadingTab(Gtk.Box):
         self.comparison_text=ContextTextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                           left_margin=24,right_margin=24,top_margin=16,bottom_margin=24,pixels_inside_wrap=5,pixels_below_lines=9)
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
+        self.comparison_scroll.add_css_class('reading-scroll')
         self.comparison_text._marker_context=self.inline_markers
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
