@@ -112,12 +112,13 @@ jobs:
       - name: Wait for this source pull request merge and its signed publication
         env:
           GH_TOKEN: ${{ github.token }}
+          CANDIDATE_HEAD: ${{ inputs.candidate_head }}
         run: |
           python3 - <<'PY'
           import json,time,urllib.request
           from pathlib import Path
           import os,subprocess
-          expected_head='${{ inputs.candidate_head }}'
+          expected_head=os.environ['CANDIDATE_HEAD']
           import re
           assert re.fullmatch('[0-9a-f]{40}',expected_head)
           expected=expected_head if os.environ.get('GITHUB_REF')=='refs/heads/main' else None
