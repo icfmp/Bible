@@ -82,35 +82,32 @@ moved during sustained input and recorded zero adjustments after 500 ms of
 stopping. In the initially visible toolbar case, dismissal took 0.177 ms;
 the backdrop was released and placement stopped before the first motion.
 
-## Current publication gate: native scroll pause
+## Correction verified; final publication checks pending
 
-The merged application is not yet published to the signed alpha. Main CI
-41477968873 observed a 494 ms direction change (400 ms limit) in single reading
-with the toolbar hidden. The independent input process sent 48 events during
-the 492 ms GTK pause. There was no movement later than 500 ms after stopping.
+[PR 154](https://github.com/icfmp/Bible/pull/154), source `976a0e39c31c256656df4246261fe04d7debc6d1`, passes [ordinary CI 41526308283](https://github.com/icfmp/Bible/actions/runs/41526308283): 405 source tests (10 outside-package skips), 167 French UI tests, 211 installed Flatpak tests, 12 immersion tests and six selection/inline-marker checks. These suites overlap. The bundle SHA-256 is `e6d51485445301303aaf85846d8d0304f0706db0e3a17e82e45cc41080fbbd05`.
 
-An installed A/B comparison used the exact verified old/candidate packages,
-retained real resources and three runs per version:
+The initial main merge was blocked by a 494 ms direction change against the unchanged 400 ms limit, with one Bible, Study closed and the selection toolbar hidden. Installed A/B comparisons reproduced intermittent candidate pauses of 416–538 ms. A native profile ([41523430369](https://github.com/icfmp/Bible/actions/runs/41523430369)) captured a 450 ms gap with 440 ms of main-thread CPU and 83 user-CPU samples inside that exact gap: approximately 72% in LLVM and 20% in Mesa/Gallium. Stacks include `gsk_gl_device_use_program`, `gsk_gl_frame_use_program`, `gsk_gpu_shader_op_gl_command_n`, `llvm::MCJIT::emitObject` and native code generation. The measured cost is synchronous GSK/OpenGL shader compilation during paint; Python GC remained below 4 ms and no long native system wait explained the gap.
 
-| Version | Maximum GTK main-loop gaps in the three runs | Longest direction change |
+An alternating experiment ([41524487320](https://github.com/icfmp/Bible/actions/runs/41524487320)) isolated GTK's decorative overshoot halo on the unchanged installed candidate, with the Mesa disk shader cache disabled equally:
+
+| Six trials | Maximum GTK gaps (ms) | Assertions |
 | --- | --- | --- |
-| Previous package | 18, 23, 19 ms | 20 ms |
-| Candidate | 18, 416, 18 ms | 419 ms |
+| Original edge glow | 24, 31, 492, 505, 22, 495 | Three failures |
+| Only overshoot background/shadow removed transiently | 21, 22, 31, 21, 24, 22 | Six passes |
 
-The candidate's second run failed its unchanged timing assertion. Completing
-the diagnostic collection is not a passing publication gate. Python GC stayed
-below 4 ms and callback profiles did not explain the pause. Native CPU analysis
-is in progress. No product feature was disabled and no client profile was reset.
-The signed-update waiting run was cancelled and will be restarted after the
-blocking check is resolved. The previous signed alpha remains available.
+The production change scopes that removal to ordinary Bible, comparison and commentary scrollers. Native scrolling, inertia, scrollbars, synchronization, focus cues and the selection toolbar remain. No custom shader cache, performance setting, data migration or preference reset was introduced.
 
-A follow-up installed comparison ([41517637227](https://github.com/icfmp/Bible/actions/runs/41517637227)) attached the native sampler only after reader initialization and independently verified the Python 3.13 application process and its input child. All six measurements completed. Previous-package maximum GTK gaps were 30, 23 and 35 ms; candidate gaps were 528, 24 and 34 ms. During the 528 ms gap, main-thread CPU increased by 510 ms over a 537 ms sampling window; no traced native wait longer than 5 ms overlapped it. One direction response was missing in that candidate run; its unchanged assertions failed. The other five runs passed, and all six had zero late adjustments. This identifies native CPU work rather than a long system wait, but does not yet identify the responsible function. Earlier CPU/wait estimates from the host-supervisor sampler were invalid and are not evidence about the application. A time-correlated native function profile is the next check.
+The corrected actual installed package passes all four **GLRenderer** sustained-input checks with the driver disk shader cache disabled. Original thresholds are retained:
 
-Native function attribution is now available from [41523430369](https://github.com/icfmp/Bible/actions/runs/41523430369): a candidate run paused for 450 ms, with 440 ms of main-thread CPU and 83 user-CPU samples inside the exact gap. Approximately 72% of self samples were in LLVM and 20% in Mesa/Gallium. Inclusive stacks contain `gsk_gl_device_use_program`, `gsk_gl_frame_use_program`, `gsk_gpu_shader_op_gl_command_n`, `llvm::MCJIT::emitObject` and `llvm::SelectionDAGISel::CodeGenAndEmitDAG`. This identifies synchronous native shader compilation during a GSK/OpenGL paint; it is not evidence of an expensive Python callback or a long system wait. The native selection toolbar was hidden. The responsible render primitive is still being isolated by a transient CSS comparison on the unchanged installed candidate. Earlier collectors with missing/incorrect symbol extraction, and the entirely unresolved debugger stack, are not used for function attribution.
+| Scenario | Maximum GTK gap | Worst direction response | First movement / paint |
+| --- | ---: | ---: | ---: |
+| Single Bible, Study closed | 18.5 ms | 18.7 ms | 1.19 / 15.43 ms |
+| Initially visible selection toolbar | 17.9 ms | 21.7 ms | 1.05 / 12.83 ms |
+| Comparison | 17.9 ms | 18.6 ms | 0.65 / 14.97 ms |
+| Wesley study open | 52.5 ms | 37.8 ms | 1.12 / 17.33 ms |
 
-The render primitive is isolated by [41524487320](https://github.com/icfmp/Bible/actions/runs/41524487320), alternating six controls and six transient CSS variants on the unchanged installed candidate. Both variants used a disabled Mesa disk shader cache. Controls recorded maximum GTK gaps of 24, 31, 492, 505, 22 and 495 ms; three failed their unchanged assertions. Removing only the native overshoot background/shadow produced 21, 22, 31, 21, 24 and 22 ms, all six passing, with a worst direction response of 29 ms and zero late adjustments. The three slow controls again sampled predominantly LLVM/Mesa compilation. This is diagnostic attribution, not proof of a packaged correction.
+All four recorded zero adjustments later than 500 ms after stopping. Toolbar dismissal took 0.262 ms, releasing the backdrop and stopping placement before the first scroll paint. [Aggregate receipt](corrected-ci/cold-scroll-summary.json) and [matching build information](corrected-ci/build-info.json) contain no raw input streams, source bodies or profile snapshots. Earlier unsuccessful collectors and the unresolved debugger stack are excluded from native function attribution.
 
-[PR 154](https://github.com/icfmp/Bible/pull/154), source `976a0e39c31c256656df4246261fe04d7debc6d1`, removes that decorative edge glow from Bible, comparison and commentary scrollers while retaining native scrolling and the existing selection toolbar. Nine local GTK checks pass. [Exact-source CI 41526308283](https://github.com/icfmp/Bible/actions/runs/41526308283) and [retained signed update 41526437205](https://github.com/icfmp/Bible/actions/runs/41526437205) are in progress. Final installed-package verification and signed publication remain outstanding; the currently published alpha has not been replaced.
+Final before/after captures of this corrected package are being repeated. The first attempt stopped while the **previous** package's map did not finish loading within 40 seconds, before candidate installation; assertions were not relaxed. The signed-update wait also expired without a merge/publication. Both verification jobs have been restarted on the unchanged source. Final merge, signed publication and retained-profile update remain outstanding; the previously published alpha remains available.
 
-This public report contains aggregate measurements only. Raw diagnostic traces
-are not added to this evidence branch.
+This public report contains aggregate measurements only. Raw diagnostic traces are not added to this evidence branch. Cloud software-rendered X11 checks do not establish acceptance on the client's GNOME/GPU.
