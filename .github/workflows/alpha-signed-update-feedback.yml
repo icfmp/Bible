@@ -3,6 +3,10 @@ on:
   push:
     branches: [feat/client-feedback-reading, feat/26-youversion-language-catalogue]
   workflow_dispatch:
+    inputs:
+      candidate_head:
+        description: Exact reviewed application PR head to update to
+        required: true
 permissions:
   contents: read
   actions: read
@@ -31,7 +35,7 @@ jobs:
           import json,urllib.request
           from pathlib import Path
           x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
-          assert x['source_commit']=='83248ef71a6c927f9fc580e6863230ed09f7fedf',x
+          assert x['source_commit']=='be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
@@ -94,8 +98,11 @@ jobs:
           if topics.path.exists():assert topics.path.read_bytes()==topic_bytes
           else:topics.path.write_bytes(topic_bytes)
           assert topics.metadata()['archive_sha256']=='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
+          from bible.highlights import HighlightStore
+          highlights=HighlightStore(root/'highlights.json')
+          if not highlights.entries:highlights.set('Segond',['Ps.119.1'],'blue','FreSegond1910')
           preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
-          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
+          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),highlights_sha256=hashlib.sha256(highlights.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
           (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
           PY
       - name: Measure the old signed alpha before upgrade
@@ -110,7 +117,9 @@ jobs:
           import json,time,urllib.request
           from pathlib import Path
           import os,subprocess
-          expected_head=os.environ['GITHUB_SHA']
+          expected_head='${{ inputs.candidate_head }}'
+          import re
+          assert re.fullmatch('[0-9a-f]{40}',expected_head)
           expected=expected_head if os.environ.get('GITHUB_REF')=='refs/heads/main' else None
           for attempt in range(240):
               try:
@@ -174,12 +183,12 @@ jobs:
           from dataclasses import asdict
           from bible.notes import NoteStore
           root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
-          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),highlights_sha256=hashlib.sha256((root/'highlights.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
           after=json.loads(json.dumps(after))
           differences=[key for key in before if before[key]!=after[key]]
           Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
           assert not differences, 'Changed persisted components: '+str(differences)
-          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
+          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,highlights_preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
           PY
       - name: Log the bounded signed update and preservation receipts
         if: always()
@@ -190,14 +199,22 @@ jobs:
           for name in ['signed-update.json','preservation.json']:
               p=Path('reports')/name
               if p.exists():print(name,p.read_text())
+          summaries={}
           for p in Path('reports').glob('*-signed-*.json'):
               if '.input.' in p.name:continue
               x=json.loads(p.read_text())
-              print(p.name,json.dumps({k:x[k] for k in ['app_import','app_ui_sha256','startup_ready_memory','phases','after_stop','first_scroll_latency_seconds','first_paint_latency_seconds']}))
+              summaries[p.stem]={k:x[k] for k in ['app_import','app_ui_sha256','startup_ready_memory','phases','after_stop','first_scroll_latency_seconds','first_paint_latency_seconds','menu_final_visible','backdrop_released','placement_tick','logical_cpus','renderer','scale_factor']}
+              print(p.name,json.dumps(summaries[p.stem]))
+          Path('reports/performance-summary.json').write_text(json.dumps(summaries,indent=2))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: alpha-signed-update-performance
-          path: reports/
+          path: |
+            reports/before-provenance.json
+            reports/after-provenance.json
+            reports/signed-update.json
+            reports/preservation.json
+            reports/performance-summary.json
           if-no-files-found: error
