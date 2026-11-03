@@ -41,6 +41,6 @@ class ReaderChromeTests(unittest.TestCase):
                             self.assertEqual(label.get_ellipsize(),3) # Header abbreviation/fallback stays on one line.
                             if width==360:
                                 w.open_reading_popup(w.appearance_button);spin(lambda:w.appearance.get_visible())
-                                self.assertTrue(w.reader_overflow.get_active());w.dismiss_popovers();spin()
+                                self.assertTrue(w.reading_tools_menu.get_active());w.dismiss_popovers();spin()
                     self.assertEqual(t.state.reference,'John.3.17')
                 finally:settings.props.gtk_font_name=font;w.close()

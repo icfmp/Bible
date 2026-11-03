@@ -159,7 +159,8 @@ class Window(Adw.ApplicationWindow):
         self.reader_overflow=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Reading tools'),visible=False)
         self.reader_overflow_box=Gtk.Box(spacing=6,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
-        self._reading_popovers.append(overflow)
+        self._reading_popovers.extend((overflow,self.menu.get_popover()))
+        self.reading_tools_menu=self.reader_overflow
         self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
         def move_tools(*_):
@@ -186,13 +187,22 @@ class Window(Adw.ApplicationWindow):
                 header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
             elif not enabled and parent is self.reader_overflow_box:
                 self.reader_overflow_box.remove(self.new_tab_button);header.pack_start(self.new_tab_button)
+        def tools_in_main_menu(tiny):
+            parent=self.reader_overflow_box.get_parent()
+            menu_box=self.menu.get_popover().get_child().get_child()
+            if tiny and parent is not menu_box:
+                overflow.set_child(None);menu_box.prepend(self.reader_overflow_box)
+            elif not tiny and parent is menu_box:
+                menu_box.remove(self.reader_overflow_box);overflow.set_child(self.reader_overflow_box)
+            self.reading_tools_menu=self.menu if tiny else self.reader_overflow
+            self.header_tools.set_visible(not tiny)
         def compact_applied(breakpoint,tiny):
             self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
-            self.space_selector.set_compact(tiny)
+            self.space_selector.set_compact(tiny);tools_in_main_menu(tiny)
             self.queue_controls()
         def compact_removed(*_):
             self.space_selector.remove_css_class('compact-space');study_in_overflow(False)
-            self.space_selector.set_compact(False)
+            self.space_selector.set_compact(False);tools_in_main_menu(False)
             if self.header_title.get_parent() is self.compact_title:
                 self.compact_title.remove(self.header_title)
                 header.set_title_widget(self.header_title)
@@ -440,7 +450,7 @@ class Window(Adw.ApplicationWindow):
 
     def open_reading_popup(self,button):
         if button.get_parent() is self.reader_overflow_box:
-            self.reader_overflow.popup()
+            self.reading_tools_menu.popup()
             def show():
                 if not self.closed and self.reader_overflow_box.get_mapped():button.popup()
                 return False
@@ -818,7 +828,7 @@ class Window(Adw.ApplicationWindow):
 
     def toggle_study(self, *_):
         if not self._syncing_study:
-            if self.study_button.get_parent() is self.reader_overflow_box:self.reader_overflow.popdown()
+            if self.study_button.get_parent() is self.reader_overflow_box:self.reading_tools_menu.popdown()
             self.split.set_show_sidebar(self.study_button.get_active())
 
     def sync_header_controls(self):

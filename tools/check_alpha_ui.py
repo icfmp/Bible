@@ -128,6 +128,7 @@ def main():
                 spin(duration=0.3)
                 window.choose_passage()
                 spin(duration=0.4)
+                inputs.activate(window)
                 nav = window.navigation
                 inputs.click(nav.book_rows['1Cor'])
                 assert window.active_tab.state.reference == 'Gen.1.1'
