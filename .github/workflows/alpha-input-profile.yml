@@ -2,6 +2,10 @@ name: Diagnose installed selection actions
 on:
   workflow_dispatch:
     inputs:
+      focus_lexical:
+        description: Check genuine lexical-unit activation only
+        type: boolean
+        default: false
       candidate_run:
         description: Successful ordinary candidate CI run (empty for baseline)
         required: false
@@ -47,7 +51,10 @@ jobs:
           mkdir reports
           mode=()
           if [ -z '${{ inputs.candidate_run }}' ]; then mode=(--baseline); fi
-          timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_selection_batch "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --topics "$RUNNER_TEMP/topics.sqlite3.gz" "${mode[@]}" --downloads --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
+          module=tools.check_selection_batch
+          extra=(--topics "$RUNNER_TEMP/topics.sqlite3.gz" --downloads)
+          if [ '${{ inputs.focus_lexical }}' = true ]; then module=tools.check_lexical_activation; extra=(); fi
+          timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare "${extra[@]}" "${mode[@]}" --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
