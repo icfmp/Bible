@@ -1,5 +1,15 @@
 name: Diagnose installed selection actions
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run:
+        description: Successful ordinary candidate CI run (empty for baseline)
+        required: false
+        default: ''
+      candidate_source:
+        description: Exact candidate source SHA (required with candidate_run)
+        required: false
+        default: '' 
 permissions:
   contents: read
   actions: read
@@ -16,13 +26,15 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/baseline-flatpak" >> "$GITHUB_ENV"
-          gh run download 41582452296 --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
+          gh run download ${{ inputs.candidate_run || '41582452296' }} --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/bundle"
           python3 - "$RUNNER_TEMP/bundle" <<'PY'
           import json,hashlib,sys
           from pathlib import Path
           p=Path(sys.argv[1]);b=json.loads((p/'build-info.json').read_text())
-          assert b['commit']=='be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289'
-          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==b['sha256']=='1c019e318b5d35b3bf01a3f3288078f209430a10023083cadbb381e08067d42e'
+          expected='${{ inputs.candidate_source }}' or 'be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289'
+          assert b['commit']==expected
+          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==b['sha256']
+          if not '${{ inputs.candidate_run }}':assert b['sha256']=='1c019e318b5d35b3bf01a3f3288078f209430a10023083cadbb381e08067d42e'
           PY
           FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
@@ -33,9 +45,11 @@ jobs:
       - name: Real pointer and Library actions on installed baseline
         run: |
           mkdir reports
-          timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_selection_batch "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --topics "$RUNNER_TEMP/topics.sqlite3.gz" --baseline --downloads --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
+          mode=()
+          if [ -z '${{ inputs.candidate_run }}' ]; then mode=(--baseline); fi
+          timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_selection_batch "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --topics "$RUNNER_TEMP/topics.sqlite3.gz" "${mode[@]}" --downloads --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: installed-selection-batch-baseline
+          name: installed-selection-batch-${{ inputs.candidate_run || 'baseline' }}
           path: reports/

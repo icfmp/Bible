@@ -59,7 +59,7 @@ def main():
     if args.require_packaged:assert inspect.getfile(Window).startswith('/app/')
     exceptions=[]
     def exception(kind,value,tb):
-        exceptions.append(dict(type=kind.__name__,message=str(value)[:400],functions=[f.name for f in traceback.extract_tb(tb)]))
+        exceptions.append(dict(type=kind.__name__,functions=[f.name for f in traceback.extract_tb(tb)]))
         traceback.print_exception(kind,value,tb)
     sys.excepthook=exception
     app=Application.get_default() or Application();app.register();library=Library(args.profile/'translations')
@@ -148,7 +148,7 @@ def main():
                     if not args.baseline:
                         assert words.dialog and words.dialog.get_visible();assert previous==(w.study.tool,w.study_button.get_active(),t.state.reference)
                         n.activate(words.dialog);n.key('Escape');spin();assert words.dialog is None and not words.pending
-                    else:words.leave();spin()
+                    else:words.leave();w.study_button.set_active(previous[1]);spin()
                     n.activate(w);pointer_selection(True);shot(prefix+'-multi-selection');actions.dismiss()
                     w.choose_passage();w.navigation.modes.set_visible_child_name('text');search=w.navigation.text_search
                     search.source.set_selected(search.search_names.index('youversion~YV21'));search.entry.set_text('Je suis le chemin la vérité la vie');search.changed();search.run_text()
@@ -169,6 +169,14 @@ def main():
                         d.open_place(d.rows[0]);spin(duration=.4);shot(prefix+'-place')
                         d.card_scroll.get_vadjustment().set_value(d.card_scroll.get_vadjustment().get_upper());spin();shot(prefix+'-place-last-reference')
                     d.close();spin();n.activate(w)
+        # A very small window and large GNOME text must keep native controls
+        # inside the Header Bar, without adding a second selector row.
+        w.set_default_size(360,750);settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+        try:
+            settings.props.gtk_font_name='Sans 18';spin(lambda:not w._controls_tick,duration=.4)
+            shot('narrow-360-large-text')
+            if not args.baseline:assert w.header.get_width()<=w.get_width()+4
+        finally:settings.props.gtk_font_name=font
         assert not exceptions,exceptions
         report['result']='PASS';save()
     finally:w.close();close_test_dialogs();spin();n.close();save()
