@@ -55,6 +55,14 @@ jobs:
           extra=(--topics "$RUNNER_TEMP/topics.sqlite3.gz" --downloads)
           if [ '${{ inputs.focus_lexical }}' = true ]; then module=tools.check_lexical_activation; extra=(); fi
           timeout 540s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare "${extra[@]}" "${mode[@]}" --require-packaged > "$RUNNER_TEMP/selection.log" 2>&1
+      - name: Actual lexical units on the installed candidate
+        if: inputs.candidate_run != '' && !inputs.focus_lexical
+        run: |
+          timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_lexical_activation "$RUNNER_TEMP/profile" "$PWD/reports" --require-packaged > "$RUNNER_TEMP/lexical.log" 2>&1
+      - name: Reopen the GUI-installed NBS with network unshared
+        if: inputs.candidate_run != '' && !inputs.focus_lexical
+        run: |
+          timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_nbs_offline "$RUNNER_TEMP/profile" "$PWD/reports/nbs-offline.json" > "$RUNNER_TEMP/nbs-offline.log" 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
