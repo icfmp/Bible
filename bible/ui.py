@@ -181,6 +181,11 @@ class Window(Adw.ApplicationWindow):
             elif not enabled and parent is self.reader_overflow_box:
                 self.reader_overflow_box.remove(self.study_button)
                 header.remove(self.header_tools);header.pack_end(self.study_button);header.pack_end(self.header_tools)
+            parent=self.new_tab_button.get_parent()
+            if enabled and parent is not self.reader_overflow_box:
+                header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
+            elif not enabled and parent is self.reader_overflow_box:
+                self.reader_overflow_box.remove(self.new_tab_button);header.pack_start(self.new_tab_button)
         def compact_applied(breakpoint,tiny):
             self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
             self.space_selector.set_compact(tiny)
@@ -198,7 +203,6 @@ class Window(Adw.ApplicationWindow):
             compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}sp'))
             compact_tools.add_setter(self.reader_controls,'visible',False)
             compact_tools.add_setter(self.reader_overflow,'visible',True)
-            compact_tools.add_setter(self.new_tab_button,'visible',False)
             compact_tools.add_setter(self.header_title,'spacing',4)
             compact_tools.add_setter(header,'decoration-layout',':close')
             compact_tools.connect('apply',compact_applied,tiny)
