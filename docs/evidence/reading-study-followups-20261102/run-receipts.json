@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "candidate-ci",
+    "id": 41526308283,
+    "name": "V\u00e9rifier le socle GNOME",
+    "head_sha": "976a0e39c31c256656df4246261fe04d7debc6d1",
+    "branch": "feat/native-reader-scroll-stall",
+    "event": "push",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/icfmp/Bible/actions/runs/41526308283"
+  },
+  {
+    "kind": "installed-proof",
+    "id": 41529836329,
+    "name": "Verify ZIP YVES conversion inside the installed Flatpak",
+    "head_sha": "976a0e39c31c256656df4246261fe04d7debc6d1",
+    "branch": "feat/native-reader-scroll-stall",
+    "event": "workflow_dispatch",
+    "attempt": 2,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/icfmp/Bible/actions/runs/41529836329"
+  },
+  {
+    "kind": "main-ci",
+    "id": 41582452296,
+    "name": "V\u00e9rifier le socle GNOME",
+    "head_sha": "be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289",
+    "branch": "main",
+    "event": "push",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/icfmp/Bible/actions/runs/41582452296"
+  },
+  {
+    "kind": "signed-publication",
+    "id": 41584806903,
+    "name": "Publier le canal alpha Flatpak",
+    "head_sha": "be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289",
+    "branch": "main",
+    "event": "workflow_run",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/icfmp/Bible/actions/runs/41584806903"
+  },
+  {
+    "kind": "retained-update",
+    "id": 41526437205,
+    "name": "Verify signed alpha update with retained resources",
+    "head_sha": "976a0e39c31c256656df4246261fe04d7debc6d1",
+    "branch": "feat/native-reader-scroll-stall",
+    "event": "workflow_dispatch",
+    "attempt": 2,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/icfmp/Bible/actions/runs/41526437205"
+  }
+]

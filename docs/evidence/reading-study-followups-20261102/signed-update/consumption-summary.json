@@ -1,0 +1,697 @@
+{
+  "previous": {
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "VulkanRenderer",
+    "logical_cpus": 4,
+    "scale_factor": 2,
+    "mode": "combined",
+    "input_kind": "scrollbar",
+    "first_scroll_latency_seconds": 0.0021838520000301287,
+    "first_paint_latency_seconds": 0.003841961000034644,
+    "first_menu_hide_latency_seconds": null,
+    "backdrop_released": true,
+    "placement_tick": 0,
+    "startup_memory": {
+      "rss_bytes": 459169792,
+      "pss_bytes": 457216000,
+      "anonymous_bytes": 227622912
+    },
+    "phases": [
+      {
+        "phase": "startup_idle",
+        "cycle": null,
+        "seconds": 5.82432826400003,
+        "cpu_one_core_percent": 5.3225022002296685,
+        "rss_begin": 459169792,
+        "rss_end": 459169792,
+        "rss_peak": 459169792,
+        "pss_begin": 452526080,
+        "pss_end": 452526080,
+        "anonymous_end": 227627008,
+        "main_loop_max_ms": 60.92574000001605,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 106
+      },
+      {
+        "phase": "scroll",
+        "cycle": 0,
+        "seconds": 7.841659101999994,
+        "cpu_one_core_percent": 113.36886600608062,
+        "rss_begin": 459169792,
+        "rss_end": 473554944,
+        "rss_peak": 474615808,
+        "pss_begin": 452526080,
+        "pss_end": 466984960,
+        "anonymous_end": 240095232,
+        "main_loop_max_ms": 90.75395399997888,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 396
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 0,
+        "seconds": 5.829256480000026,
+        "cpu_one_core_percent": 4.11716315491404,
+        "rss_begin": 473948160,
+        "rss_end": 473948160,
+        "rss_peak": 473948160,
+        "pss_begin": 467341312,
+        "pss_end": 467341312,
+        "anonymous_end": 240103424,
+        "main_loop_max_ms": 57.12041700002146,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 73
+      },
+      {
+        "phase": "scroll",
+        "cycle": 1,
+        "seconds": 7.8365846199999964,
+        "cpu_one_core_percent": 114.97355591625073,
+        "rss_begin": 473948160,
+        "rss_end": 476934144,
+        "rss_peak": 477487104,
+        "pss_begin": 467386368,
+        "pss_end": 470368256,
+        "anonymous_end": 243126272,
+        "main_loop_max_ms": 70.32416700002386,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 412
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 1,
+        "seconds": 5.828493196000011,
+        "cpu_one_core_percent": 3.602989536714567,
+        "rss_begin": 476934144,
+        "rss_end": 476934144,
+        "rss_peak": 476934144,
+        "pss_begin": 470368256,
+        "pss_end": 470368256,
+        "anonymous_end": 243126272,
+        "main_loop_max_ms": 52.97391700003118,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 69
+      },
+      {
+        "phase": "scroll",
+        "cycle": 2,
+        "seconds": 7.641353562000006,
+        "cpu_one_core_percent": 113.46157365516221,
+        "rss_begin": 477065216,
+        "rss_end": 475938816,
+        "rss_peak": 477720576,
+        "pss_begin": 470388736,
+        "pss_end": 469385216,
+        "anonymous_end": 242143232,
+        "main_loop_max_ms": 71.5270970000006,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 394
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 2,
+        "seconds": 5.823532876000002,
+        "cpu_one_core_percent": 7.0403998522906255,
+        "rss_begin": 475938816,
+        "rss_end": 476725248,
+        "rss_peak": 476725248,
+        "pss_begin": 469786624,
+        "pss_end": 470011904,
+        "anonymous_end": 242769920,
+        "main_loop_max_ms": 67.51542899996821,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 75
+      },
+      {
+        "phase": "scroll",
+        "cycle": 3,
+        "seconds": 7.845223049000026,
+        "cpu_one_core_percent": 114.20962723478037,
+        "rss_begin": 476725248,
+        "rss_end": 477380608,
+        "rss_peak": 477380608,
+        "pss_begin": 470011904,
+        "pss_end": 470777856,
+        "anonymous_end": 243535872,
+        "main_loop_max_ms": 71.25833800000692,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 414
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 3,
+        "seconds": 5.82535274899999,
+        "cpu_one_core_percent": 3.7765953321498893,
+        "rss_begin": 477380608,
+        "rss_end": 477380608,
+        "rss_peak": 477380608,
+        "pss_begin": 470777856,
+        "pss_end": 470777856,
+        "anonymous_end": 243535872,
+        "main_loop_max_ms": 50.302620000024945,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 71
+      }
+    ],
+    "after_stop": [
+      {
+        "cycle": 0,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 1,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 2,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 3,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      }
+    ]
+  },
+  "updated": {
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "VulkanRenderer",
+    "logical_cpus": 4,
+    "scale_factor": 2,
+    "mode": "combined",
+    "input_kind": "scrollbar",
+    "first_scroll_latency_seconds": 0.0023631630001546,
+    "first_paint_latency_seconds": 0.0039598909997948795,
+    "first_menu_hide_latency_seconds": null,
+    "backdrop_released": true,
+    "placement_tick": 0,
+    "startup_memory": {
+      "rss_bytes": 449929216,
+      "pss_bytes": 447881216,
+      "anonymous_bytes": 219389952
+    },
+    "phases": [
+      {
+        "phase": "startup_idle",
+        "cycle": null,
+        "seconds": 5.837677231999805,
+        "cpu_one_core_percent": 7.023341368593395,
+        "rss_begin": 449929216,
+        "rss_end": 449929216,
+        "rss_peak": 449929216,
+        "pss_begin": 443187200,
+        "pss_end": 443183104,
+        "anonymous_end": 219389952,
+        "main_loop_max_ms": 52.90921799996795,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 136
+      },
+      {
+        "phase": "scroll",
+        "cycle": 0,
+        "seconds": 7.837612329000422,
+        "cpu_one_core_percent": 111.38596339726578,
+        "rss_begin": 450060288,
+        "rss_end": 474611712,
+        "rss_peak": 474611712,
+        "pss_begin": 443383808,
+        "pss_end": 467619840,
+        "anonymous_end": 241295360,
+        "main_loop_max_ms": 84.74829200031309,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 420
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 0,
+        "seconds": 5.8379048069996315,
+        "cpu_one_core_percent": 5.138829938444723,
+        "rss_begin": 471572480,
+        "rss_end": 471572480,
+        "rss_peak": 471572480,
+        "pss_begin": 464445440,
+        "pss_end": 464547840,
+        "anonymous_end": 238219264,
+        "main_loop_max_ms": 52.33902899999521,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 71
+      },
+      {
+        "phase": "scroll",
+        "cycle": 1,
+        "seconds": 7.838955441000053,
+        "cpu_one_core_percent": 113.53553502103576,
+        "rss_begin": 471834624,
+        "rss_end": 471584768,
+        "rss_peak": 475897856,
+        "pss_begin": 464900096,
+        "pss_end": 464662528,
+        "anonymous_end": 238292992,
+        "main_loop_max_ms": 76.13862700009122,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 410
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 1,
+        "seconds": 5.825932696000109,
+        "cpu_one_core_percent": 3.604573052211534,
+        "rss_begin": 472633344,
+        "rss_end": 472633344,
+        "rss_peak": 472633344,
+        "pss_begin": 465780736,
+        "pss_end": 465801216,
+        "anonymous_end": 239431680,
+        "main_loop_max_ms": 57.744996000110405,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 65
+      },
+      {
+        "phase": "scroll",
+        "cycle": 2,
+        "seconds": 7.639310398000362,
+        "cpu_one_core_percent": 114.27733061200306,
+        "rss_begin": 472764416,
+        "rss_end": 473706496,
+        "rss_peak": 475676672,
+        "pss_begin": 466046976,
+        "pss_end": 466870272,
+        "anonymous_end": 240496640,
+        "main_loop_max_ms": 76.7805580003369,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 395
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 2,
+        "seconds": 5.841394688000037,
+        "cpu_one_core_percent": 7.361255709759652,
+        "rss_begin": 473706496,
+        "rss_end": 473706496,
+        "rss_peak": 473706496,
+        "pss_begin": 466866176,
+        "pss_end": 466874368,
+        "anonymous_end": 240504832,
+        "main_loop_max_ms": 56.04411800004527,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 77
+      },
+      {
+        "phase": "scroll",
+        "cycle": 3,
+        "seconds": 7.840538298999945,
+        "cpu_one_core_percent": 111.72702263462355,
+        "rss_begin": 473706496,
+        "rss_end": 475406336,
+        "rss_peak": 475709440,
+        "pss_begin": 466898944,
+        "pss_end": 468668416,
+        "anonymous_end": 242298880,
+        "main_loop_max_ms": 76.01406000003408,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 421
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 3,
+        "seconds": 5.839509005999844,
+        "cpu_one_core_percent": 4.281181855240496,
+        "rss_begin": 475406336,
+        "rss_end": 475406336,
+        "rss_peak": 475406336,
+        "pss_begin": 468680704,
+        "pss_end": 468676608,
+        "anonymous_end": 242307072,
+        "main_loop_max_ms": 52.588621999802854,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 70
+      }
+    ],
+    "after_stop": [
+      {
+        "cycle": 0,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 1,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 2,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 3,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      }
+    ]
+  },
+  "single": {
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "VulkanRenderer",
+    "logical_cpus": 4,
+    "scale_factor": 2,
+    "mode": "single",
+    "input_kind": "wheel",
+    "first_scroll_latency_seconds": 0.0011392200003683683,
+    "first_paint_latency_seconds": 0.0116221600001154,
+    "first_menu_hide_latency_seconds": null,
+    "backdrop_released": true,
+    "placement_tick": 0,
+    "startup_memory": {
+      "rss_bytes": 416620544,
+      "pss_bytes": 415383552,
+      "anonymous_bytes": 190955520
+    },
+    "phases": [
+      {
+        "phase": "startup_idle",
+        "cycle": null,
+        "seconds": 5.838197765000132,
+        "cpu_one_core_percent": 4.110857659512581,
+        "rss_begin": 416620544,
+        "rss_end": 416620544,
+        "rss_peak": 416620544,
+        "pss_begin": 410718208,
+        "pss_end": 410714112,
+        "anonymous_end": 190955520,
+        "main_loop_max_ms": 54.1658459997052,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 89
+      },
+      {
+        "phase": "scroll",
+        "cycle": 0,
+        "seconds": 7.8434147590000975,
+        "cpu_one_core_percent": 85.29448213003671,
+        "rss_begin": 416751616,
+        "rss_end": 418717696,
+        "rss_peak": 418717696,
+        "pss_begin": 410734592,
+        "pss_end": 412708864,
+        "anonymous_end": 191979520,
+        "main_loop_max_ms": 70.14867299994876,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 487
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 0,
+        "seconds": 5.834446973000013,
+        "cpu_one_core_percent": 3.5993128564166077,
+        "rss_begin": 418717696,
+        "rss_end": 418848768,
+        "rss_peak": 418848768,
+        "pss_begin": 412708864,
+        "pss_end": 412741632,
+        "anonymous_end": 192012288,
+        "main_loop_max_ms": 54.84917200010386,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 61
+      },
+      {
+        "phase": "scroll",
+        "cycle": 1,
+        "seconds": 7.834247252000296,
+        "cpu_one_core_percent": 83.09668804922924,
+        "rss_begin": 418848768,
+        "rss_end": 420159488,
+        "rss_peak": 420159488,
+        "pss_begin": 412749824,
+        "pss_end": 413986816,
+        "anonymous_end": 193257472,
+        "main_loop_max_ms": 63.50063899981251,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 481
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 1,
+        "seconds": 5.835805787000027,
+        "cpu_one_core_percent": 3.769830731688773,
+        "rss_begin": 420159488,
+        "rss_end": 420159488,
+        "rss_peak": 420159488,
+        "pss_begin": 413986816,
+        "pss_end": 414019584,
+        "anonymous_end": 193290240,
+        "main_loop_max_ms": 50.14333600001919,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 106
+      }
+    ],
+    "after_stop": [
+      {
+        "cycle": 0,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 1,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      }
+    ]
+  },
+  "comparison": {
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "VulkanRenderer",
+    "logical_cpus": 4,
+    "scale_factor": 2,
+    "mode": "comparison",
+    "input_kind": "wheel",
+    "first_scroll_latency_seconds": 0.0007077969999045308,
+    "first_paint_latency_seconds": 0.016819994999877963,
+    "first_menu_hide_latency_seconds": null,
+    "backdrop_released": true,
+    "placement_tick": 0,
+    "startup_memory": {
+      "rss_bytes": 424009728,
+      "pss_bytes": 421453824,
+      "anonymous_bytes": 195375104
+    },
+    "phases": [
+      {
+        "phase": "startup_idle",
+        "cycle": null,
+        "seconds": 5.83635270700006,
+        "cpu_one_core_percent": 4.283497117988648,
+        "rss_begin": 424009728,
+        "rss_end": 424009728,
+        "rss_peak": 424009728,
+        "pss_begin": 416911360,
+        "pss_end": 416907264,
+        "anonymous_end": 195375104,
+        "main_loop_max_ms": 59.43250300015279,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 90
+      },
+      {
+        "phase": "scroll",
+        "cycle": 0,
+        "seconds": 7.8482841229997575,
+        "cpu_one_core_percent": 92.12204714674067,
+        "rss_begin": 424009728,
+        "rss_end": 426106880,
+        "rss_peak": 426106880,
+        "pss_begin": 416909312,
+        "pss_end": 419080192,
+        "anonymous_end": 195862528,
+        "main_loop_max_ms": 62.393858000177715,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 482
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 0,
+        "seconds": 5.841707022999799,
+        "cpu_one_core_percent": 3.7660224851027797,
+        "rss_begin": 426106880,
+        "rss_end": 426106880,
+        "rss_peak": 426106880,
+        "pss_begin": 419080192,
+        "pss_end": 419080192,
+        "anonymous_end": 195862528,
+        "main_loop_max_ms": 51.84918600025412,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 61
+      },
+      {
+        "phase": "scroll",
+        "cycle": 1,
+        "seconds": 7.8407497849998435,
+        "cpu_one_core_percent": 92.46564676595081,
+        "rss_begin": 426106880,
+        "rss_end": 427024384,
+        "rss_peak": 427024384,
+        "pss_begin": 419084288,
+        "pss_end": 419981312,
+        "anonymous_end": 196763648,
+        "main_loop_max_ms": 62.301052999828244,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 487
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 1,
+        "seconds": 5.6374622270000145,
+        "cpu_one_core_percent": 3.902465172118338,
+        "rss_begin": 427024384,
+        "rss_end": 424718336,
+        "rss_peak": 427155456,
+        "pss_begin": 419981312,
+        "pss_end": 417552384,
+        "anonymous_end": 196796416,
+        "main_loop_max_ms": 50.14245000029405,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 105
+      }
+    ],
+    "after_stop": [
+      {
+        "cycle": 0,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 1,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      }
+    ]
+  },
+  "study": {
+    "gtk": [
+      4,
+      20,
+      4
+    ],
+    "renderer": "VulkanRenderer",
+    "logical_cpus": 4,
+    "scale_factor": 2,
+    "mode": "study",
+    "input_kind": "wheel",
+    "first_scroll_latency_seconds": 0.0012039829998684581,
+    "first_paint_latency_seconds": 0.01567148599997381,
+    "first_menu_hide_latency_seconds": null,
+    "backdrop_released": true,
+    "placement_tick": 0,
+    "startup_memory": {
+      "rss_bytes": 443318272,
+      "pss_bytes": 442085376,
+      "anonymous_bytes": 216809472
+    },
+    "phases": [
+      {
+        "phase": "startup_idle",
+        "cycle": null,
+        "seconds": 5.831592261999958,
+        "cpu_one_core_percent": 7.202149621070386,
+        "rss_begin": 443318272,
+        "rss_end": 443318272,
+        "rss_peak": 443318272,
+        "pss_begin": 437555200,
+        "pss_end": 437551104,
+        "anonymous_end": 216809472,
+        "main_loop_max_ms": 59.93800599981114,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 129
+      },
+      {
+        "phase": "scroll",
+        "cycle": 0,
+        "seconds": 7.844625158000326,
+        "cpu_one_core_percent": 113.580952824918,
+        "rss_begin": 443318272,
+        "rss_end": 455286784,
+        "rss_peak": 455286784,
+        "pss_begin": 437555200,
+        "pss_end": 449748992,
+        "anonymous_end": 226914304,
+        "main_loop_max_ms": 82.28605000022071,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 294
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 0,
+        "seconds": 5.841534881999905,
+        "cpu_one_core_percent": 5.9915759653937695,
+        "rss_begin": 455286784,
+        "rss_end": 455417856,
+        "rss_peak": 455417856,
+        "pss_begin": 449748992,
+        "pss_end": 449765376,
+        "anonymous_end": 226930688,
+        "main_loop_max_ms": 56.91815600039263,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 72
+      },
+      {
+        "phase": "scroll",
+        "cycle": 1,
+        "seconds": 7.834883004999938,
+        "cpu_one_core_percent": 114.48798909027325,
+        "rss_begin": 455417856,
+        "rss_end": 456204288,
+        "rss_peak": 456204288,
+        "pss_begin": 449802240,
+        "pss_end": 450568192,
+        "anonymous_end": 227733504,
+        "main_loop_max_ms": 80.27306499980114,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 319
+      },
+      {
+        "phase": "after_scroll_idle",
+        "cycle": 1,
+        "seconds": 5.843953782999961,
+        "cpu_one_core_percent": 5.475744878935886,
+        "rss_begin": 456335360,
+        "rss_end": 456335360,
+        "rss_peak": 456335360,
+        "pss_begin": 450576384,
+        "pss_end": 450572288,
+        "anonymous_end": 227737600,
+        "main_loop_max_ms": 67.23896399989826,
+        "main_loop_over_100ms": 0,
+        "actual_paints": 80
+      }
+    ],
+    "after_stop": [
+      {
+        "cycle": 0,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      },
+      {
+        "cycle": 1,
+        "adjustments_later_than_500ms": 0,
+        "last_late_seconds": 0
+      }
+    ]
+  }
+}

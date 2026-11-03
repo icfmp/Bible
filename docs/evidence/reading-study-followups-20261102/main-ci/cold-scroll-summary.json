@@ -1,0 +1,46 @@
+{
+  "source": "be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289",
+  "ci": 41582452296,
+  "mesa_disk_cache_disabled": true,
+  "cases": [
+    {
+      "case": "scroll-gl-comparison",
+      "renderer": "GLRenderer",
+      "main_loop_max_ms": 17.31371699997908,
+      "worst_reverse_ms": 18.931458999986717,
+      "first_move_ms": 0.5587339999237884,
+      "first_paint_ms": 17.875857999911204,
+      "late_adjustments": 0
+    },
+    {
+      "case": "scroll-gl-single-toolbar",
+      "renderer": "GLRenderer",
+      "main_loop_max_ms": 17.4786170000516,
+      "worst_reverse_ms": 15.54837799994857,
+      "first_move_ms": 1.0081599999693935,
+      "first_paint_ms": 15.22726899997906,
+      "late_adjustments": 0,
+      "dismiss_ms": 0.30976699997609103,
+      "backdrop_released": true,
+      "placement_stopped": true
+    },
+    {
+      "case": "scroll-gl-single",
+      "renderer": "GLRenderer",
+      "main_loop_max_ms": 17.37406999995983,
+      "worst_reverse_ms": 12.987310999960755,
+      "first_move_ms": 1.0612089999995078,
+      "first_paint_ms": 7.97643999999309,
+      "late_adjustments": 0
+    },
+    {
+      "case": "scroll-gl-study",
+      "renderer": "GLRenderer",
+      "main_loop_max_ms": 50.20173899993097,
+      "worst_reverse_ms": 50.132232000009935,
+      "first_move_ms": 1.0387899999386718,
+      "first_paint_ms": 6.994580999958089,
+      "late_adjustments": 0
+    }
+  ]
+}
