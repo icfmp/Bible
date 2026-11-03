@@ -45,7 +45,7 @@ def prepare(root,topics):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
     p.add_argument('--prepare',action='store_true');p.add_argument('--topics',type=Path)
-    p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--downloads',action='store_true')
+    p.add_argument('--downloads-only',action='store_true');p.add_argument('--baseline',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--downloads',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     if args.prepare:prepare(args.profile,args.topics)
     assert (args.profile/'.selection-batch-profile').is_file(),'Disposable marked profile required'
@@ -92,9 +92,15 @@ def main():
         from bible.youversion_catalogue import editions
         resource=next(r for r in editions('fra') if r.name=='YV'+str(identifier))
         with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):d=w.open_library('bible')
-        spin(lambda:not d.preparing);d._catalogue_requested=True;d.resources=[resource];d.update_languages();d.open_details(None,0)
-        spin(lambda:not d.busy,duration=.3,timeout=90)
-        d.install(resource=resource);spin(duration=.3)
+        spin(lambda:not d.preparing and not d._building_rows);d._catalogue_requested=True
+        d.source_filter.set_selected(d.source_ids.index('youversion'))
+        d.language.set_selected(d.language.codes.index('fr'));d.request_youversion_language(force=True)
+        spin(lambda:not d.session.youversion_loading and not d._building_rows and any(r.id==resource.id for r in d.filtered_resources),duration=.3,timeout=90)
+        index=next(i for i,r in enumerate(d.filtered_resources) if r.id==resource.id)
+        d.open_details(None,index);spin(lambda:not d.busy and not d._building_rows,duration=.3,timeout=90)
+        assert d.selected_resource().id==resource.id
+        if d.download_button.get_sensitive():n.click(d.download_button)
+        spin(duration=.3)
         dialogs=[v for v in Gtk.Window.get_toplevels() if hasattr(v,'get_response_label') and v.get_mapped()]
         if not dialogs:
             spin(lambda:not d.busy,duration=.3,timeout=90)
@@ -113,6 +119,8 @@ def main():
     try:
         if args.downloads:
             download(104);download(2367)
+            if args.downloads_only:
+                report['result']='PASS';save();return
         t.state.comparison=None;w.sync_comparison();w.study_button.set_active(False)
         # Independent passage-switch/commentary diagnosis uses genuine editions.
         for ref in ('Gen.10.1','Gen.11.1','Gen.12.2','Ps.3.3','Ps.51.3'):

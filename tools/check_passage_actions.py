@@ -133,7 +133,7 @@ def main():
             native.key('Escape');assert window.immersion is None
             print('PASS: native single click without actions, completed drag, exact partial Copy menu, retained selection, '
                   'keyboard extension without focus theft, nested Escape, comparison note source/versification, '
-                  'mapped Compare and immersive action/close lifecycle',flush=True)
+                  'pane-local comparison selection and immersive action/close lifecycle',flush=True)
         finally:window.close();native.close()
 
 
