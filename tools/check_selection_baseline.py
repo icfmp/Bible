@@ -23,9 +23,15 @@ def main():
     report=dict(source=inspect.getfile(Window),gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],renderer=type(w.get_renderer()).__name__,cases=[],exceptions=errors)
     def save(): (a.output/'diagnosis.json').write_text(json.dumps(report,indent=2))
     try:
-        for resource,multiple in [('KJV',False),('KJV',True),('FreSegond1910',False)]:
+        for resource,multiple in [('KJV',False),('KJV',True),('FreSegond1910',False)]+[('youversion~YV21',i%2==0) for i in range(12)]+[('KJV',False) for i in range(12)]:
+            if resource.startswith('youversion') and resource not in lib.installed():
+                from bible.youversion_install import fetch_resource,acknowledgement
+                from bible.step_data import StepData
+                r=fetch_resource(21);lib.install(r,permission=acknowledgement(r));StepData(a.profile/'study-data').install()
             t.navigate(resource,'John.1.1');spin(lambda:not t._restoring_scroll)
             b=t.text.get_buffer();start=t._marker_ends['John.1.1']+1;end=t._marker_ends['John.1.2']+12 if multiple else start+2
+            if resource=='KJV' and not multiple:
+                txt=b.get_text(b.get_start_iter(),b.get_end_iter(),False);start=txt.index('beginning',start);end=start+len('beginning')
             b.select_range(b.get_iter_at_offset(start),b.get_iter_at_offset(end));t.text.grab_focus()
             actions.capture(t.text,lambda:actions.ordinary(t),None);spin()
             case=dict(resource=resource,multiple=multiple,before_toolbar=actions.bar.get_visible(),before_exceptions=len(errors));report['cases'].append(case);save()
