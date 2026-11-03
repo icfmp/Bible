@@ -202,8 +202,22 @@ def main():
                 inputs.key('Escape')
                 assert not aa.get_visible()
                 assert second.state.reference == '1Cor.1.1'
+                settings=Gtk.Settings.get_default();original_font=settings.props.gtk_font_name
+                try:
+                    window.set_default_size(360,750);settings.props.gtk_font_name='Sans 18'
+                    spin(lambda:not window._controls_tick and not second._restoring_scroll,duration=.4)
+                    inputs.click(window.menu);spin(lambda:window.reader_overflow_box.get_mapped())
+                    inputs.click(window.appearance_button);spin(lambda:aa.get_visible())
+                    size=window.preferences.value.size
+                    inputs.click(aa.larger);assert window.preferences.value.size==size+1
+                    inputs.click(aa.smaller);assert window.preferences.value.size==size
+                    inputs.click(aa.line_spacing);inputs.key('Home');inputs.key('Return')
+                    assert aa.get_visible()
+                    inputs.click_at(window.header,4,20)
+                    assert not aa.get_visible() and not window.menu.get_active()
+                finally:settings.props.gtk_font_name=original_font
                 print('PASS: native X11 book/chapter clicks, chapter Space, book Return/Down, '
-                      'typed search, close, overlay, independent tabs and Aa mouse/keyboard controls', flush=True)
+                      'typed search, close, overlay, independent tabs, Aa mouse/keyboard controls and narrow nested-menu dismissal', flush=True)
             finally:
                 window.close()
     finally:

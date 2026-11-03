@@ -196,6 +196,7 @@ class Window(Adw.ApplicationWindow):
                 menu_box.remove(self.reader_overflow_box);overflow.set_child(self.reader_overflow_box)
             self.reading_tools_menu=self.menu if tiny else self.reader_overflow
             self.header_tools.set_visible(not tiny)
+            self.menu.get_popover().set_autohide(not tiny)
         def compact_applied(breakpoint,tiny):
             self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
             self.space_selector.set_compact(tiny);tools_in_main_menu(tiny)
