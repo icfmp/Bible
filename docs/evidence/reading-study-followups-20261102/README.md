@@ -9,6 +9,8 @@ This report will be finalized only after installed candidate verification,
 main CI, signed alpha publication and an actual retained-profile update pass.
 It must not be read as evidence of a published batch before those checks.
 
+Corrected package: [337-image installed proof, attempt 2](https://github.com/icfmp/Bible/actions/runs/41529836329) and [135 selected original before/after captures](CORRECTED-GALLERY.md), source `976a0e39c31c256656df4246261fe04d7debc6d1`. All 18 native-import receipts and three mapped-place views pass; source data hashes remain unchanged. Final signed publication is pending.
+
 ## Changes and simple client checks
 
 | Issue | Implemented behavior | Client checks |

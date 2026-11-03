@@ -1,0 +1,921 @@
+{
+  "source_commit": "976a0e39c31c256656df4246261fe04d7debc6d1",
+  "candidate_ci": 41526308283,
+  "installed_proof": 41529836329,
+  "selected_original_images": 135,
+  "full_original_images": 337,
+  "aggregate_receipts": [
+    {
+      "file": "rendering-after/actual-library-acquisition/verification.json",
+      "sha256": "baa40e3bc8fba96d4e64ba9779d76817b7f62da9c2690633dca1eeb07f300468",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-after/check_commentary_context/verification.json",
+      "sha256": "044a5bd9670336755e4f55da2a19dc031b40d2edc6d93d00c442f62840ba2364",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "resource_files_unchanged": 115,
+      "offline_restart": true
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/verification.json",
+      "sha256": "2050f49bf7ea27837310d9a2836da686b67b72408c43734b74dba2f86f2635ba",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 28,
+      "unchanged_source_files": 118
+    },
+    {
+      "file": "rendering-after/check_library_categories/verification.json",
+      "sha256": "4dc65ab994c242eae19c136dd63f73a8095386a9d56ebd99a6f764e05c2986bb",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-after/check_quotation_search/verification.json",
+      "sha256": "fe953bf0909e84f11fb31cbbf983a3def04c0b54ed00ba91d5d717e76d2bed7e",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "unchanged_resource_files": 115
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/verification.json",
+      "sha256": "f3d615d9b9d87b7b52fc274925648caf502f285f2148aa57ddbe6d109a10c639",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/verification.json",
+      "sha256": "6af8337d0c046f9ad6b869675db121521ab890dd0e3fab10af795c65ac8eb714",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "unchanged_resource_files": 115
+    },
+    {
+      "file": "rendering-after/english-surfaces/verification.json",
+      "sha256": "4316a481a6caef9a554703f82105c3e224e9adb5afefb84a78c4b8997ccbeb57",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 28,
+      "unchanged_source_files": 118
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/verification.json",
+      "sha256": "ec051f2ae677370be99357e29d2fbcd5828270d00b20821c642c9090ecf99dc2",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 24,
+      "unchanged_source_files": 118
+    },
+    {
+      "file": "rendering-after/large-check_library_categories/verification.json",
+      "sha256": "4dc65ab994c242eae19c136dd63f73a8095386a9d56ebd99a6f764e05c2986bb",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-after/verification.json",
+      "sha256": "751eb6645d365aa5541ddbf645430bcb706549571f9a9d8134e2401dc86674aa",
+      "native_import_verified": true,
+      "baseline": false,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 30,
+      "resources_count": 9,
+      "module_files_preserved": true,
+      "unexpected_context_positions_count": 0
+    },
+    {
+      "file": "rendering-before/check_commentary_context/verification.json",
+      "sha256": "28629fc095c1d71a384b9b3f4fe48cae756a8dbc4eebbd17d2d9c768e9b394c0",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "resource_files_unchanged": 87,
+      "offline_restart": false
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/verification.json",
+      "sha256": "e13b45108c7437333168216db418ed38639e4f5576ddf297ae69ad0fd47685be",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 16,
+      "unchanged_source_files": 90
+    },
+    {
+      "file": "rendering-before/check_library_categories/verification.json",
+      "sha256": "52ae474de72ba585877bd7b9a6fd24931cf3119cefa7a4fb957bd25f1632d865",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/verification.json",
+      "sha256": "3f5b866fee34f1b06a4710e742cec1421ef686e83bb4753c102e9badeb6d7c4a",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 12
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/verification.json",
+      "sha256": "6f27426e7486e2f14069e099783e38df0cfc35e899b4b5731fb518091cadf634",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "unchanged_resource_files": 97
+    },
+    {
+      "file": "rendering-before/quotations/verification.json",
+      "sha256": "f8101e54ce671b3a3bf0ffe53b9d05fea02d28aa8c7a01fd8b03ff12452d8e85",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 10,
+      "unchanged_resource_files": 115
+    },
+    {
+      "file": "rendering-before/verification.json",
+      "sha256": "a02d23a12d4e0b9b7332d474b8cbe450b859e703e6e3c04ed0baf89a9d45f478",
+      "native_import_verified": true,
+      "baseline": true,
+      "gtk": [
+        4,
+        20,
+        4
+      ],
+      "cases": 30,
+      "resources_count": 9,
+      "module_files_preserved": true,
+      "unexpected_context_positions_count": 0
+    }
+  ],
+  "images": [
+    {
+      "file": "rendering-after/FreBDM1744-Gen.1.1-reader-dark-1200.png",
+      "sha256": "bca4b15b68dd8efe313b5122a372d8a7ece1c0930779c82b91b598a8f5bdc43d",
+      "bytes": 104327
+    },
+    {
+      "file": "rendering-after/FreBDM1744-Gen.1.1-reader-white-1200.png",
+      "sha256": "b65d771efa2dc56878ed1c7288a057d9557dfe608fad42883634e4cf0efa9097",
+      "bytes": 106532
+    },
+    {
+      "file": "rendering-after/FreJND-Gen.2.1-reader-dark-1200.png",
+      "sha256": "195a9c34d946eb240f1c92b32111075a68a52ed033b1d3a5be43cbcaedafe91b",
+      "bytes": 98986
+    },
+    {
+      "file": "rendering-after/FreJND-Gen.2.1-reader-white-1200.png",
+      "sha256": "a05641d111a8c699fa75a3dddb31e24e34421e515335e720967919268ab93efb",
+      "bytes": 100855
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-dark-1200-preface.png",
+      "sha256": "e8adcf13448058481607c7786d58402a22713ee33ce3573a82cdc33f39f7887b",
+      "bytes": 169393
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-dark-1200.png",
+      "sha256": "3d4111cbde0d02962959e25aacf7907a144c44276c8bb2ff1d2bb3eda106d144",
+      "bytes": 176086
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-dark-620-preface.png",
+      "sha256": "1047be982200ea968bedf2d0570b21bfc500ed51aae898206fef727e5e581187",
+      "bytes": 106618
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-white-1200-preface.png",
+      "sha256": "cf947f3460dce88cbc72051809d887b7a8f508229067f4ee3c46bc2ac19e5a05",
+      "bytes": 171829
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-white-1200.png",
+      "sha256": "b8fae22d0e78a550a4ba0d22f7d77ba5397ddc10edbadd4a4839f821dfca25b9",
+      "bytes": 179624
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Gen.1.1-MHC-white-620-preface.png",
+      "sha256": "2fdfcbdf0b854ab1de6aef148f7d339b498758dfd1992fd79f7dea6942648bdb",
+      "bytes": 107384
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Ps.13.1-FreAug-dark-620.png",
+      "sha256": "7474640aeae041405308699b7bf77ffd5e5ab54cd3d8c03fd90fd30f48488177",
+      "bytes": 105931
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Ps.13.1-FreAug-white-620.png",
+      "sha256": "1de317cdc761dd93be6bc9fdee32ddeaf08ecee396c313bd632ed2ada98d467a",
+      "bytes": 103266
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Ps.13.1-FreChry-dark-1200.png",
+      "sha256": "14f5c9071ec274ff8e35520a2121137be889a1c85bd27c84529d321e09a2f8a5",
+      "bytes": 185122
+    },
+    {
+      "file": "rendering-after/FreSegond1910-Ps.13.1-FreChry-white-1200.png",
+      "sha256": "49488cd143ce00792a5b11d64767e28b6436d5b4b8d7aa2bd99c935ff33cfb1f",
+      "bytes": 189540
+    },
+    {
+      "file": "rendering-after/check_commentary_context/dark-ebible~francl2022eb-Ps.17.1-0.png",
+      "sha256": "31b946fe4a400e357fc12695a05a08abd863af91a80f48bdc0ac7380413d3e7d",
+      "bytes": 172199
+    },
+    {
+      "file": "rendering-after/check_commentary_context/light-ebible~francl2022eb-Ps.17.1-0.png",
+      "sha256": "0965b0b94936a1466d4123bb8914cfad3c728ac543382744fd95556967eea6c7",
+      "bytes": 176234
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/black-references.png",
+      "sha256": "4c2f55f40b5471e4b38eadcc114d5015f5896b8feafb851aa57bd7799d6fb408",
+      "bytes": 167269
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/black-topic-first-preview.png",
+      "sha256": "66c5b29cefc872291c0a219512d69d35661a25ebaf188961d6aefd32e616eb43",
+      "bytes": 128922
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/dark-references.png",
+      "sha256": "f126e4e63dfff4ac3f8d26150cacdbd87af7415490c50b102c39fe98b3597582",
+      "bytes": 161714
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/dark-topic-first-preview.png",
+      "sha256": "291238b408d699783a8ff818c0b315b0819883ce014dcf5d7228b55bdc06718b",
+      "bytes": 126204
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/dark-topics-1000.png",
+      "sha256": "23710b9906d576f14fae5080ad25cf2edea45270f0c00abd9dd88026af07abbc",
+      "bytes": 67812
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/dark-topics-360.png",
+      "sha256": "9d86f099f0ccf93a5cc5a9c911e822a763f28587a3dc62bdc885ae5baf1fed21",
+      "bytes": 22973
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/paper-references.png",
+      "sha256": "e934da3ed5c6b43ce5bb2ae7148dcd3876589dd1c42c22ebe1fd86cd1339f35f",
+      "bytes": 172150
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/paper-topic-first-preview.png",
+      "sha256": "7eb587ad7e38ddbb1cb2d20e419747966386bf61aee2a767c3335a594b36dfca",
+      "bytes": 134279
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Emmaus-dark-360.png",
+      "sha256": "4407e466fbc8575a8f10f076c8010d6e6b8520aae5d7cfa2a9fd32badad34806",
+      "bytes": 184053
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Emmaus-white-360.png",
+      "sha256": "d9651778f89c8f81248a742cc66e3c49c13ff33cda73ae235bcc1653191f0cfc",
+      "bytes": 187481
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Jerusalem-dark-360.png",
+      "sha256": "56265f08935c31d7866893b698cdbe14c724f0fb502b672a1a789a158a256378",
+      "bytes": 214140
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Jerusalem-white-360.png",
+      "sha256": "04e59c366e04412c3977864674276ebe2ac614a6f211aa1bcf0083df3f7384ee",
+      "bytes": 219982
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Nod-dark-360.png",
+      "sha256": "c22ea08fd6481dba10b0dd138ab8c1bc73789f58f35c6b3c4ca810c8c10ab0c3",
+      "bytes": 163300
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Nod-white-360.png",
+      "sha256": "32974a23c99bf035f9625ecd5480346d919085fb69c10c2cd9ce7074cb756cec",
+      "bytes": 167981
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Shinar-dark-360.png",
+      "sha256": "822202485aad9caf2f2eb83062dae92b6b0b75c6cb8eb7f9efb41ae10b1cdb9a",
+      "bytes": 208091
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/place-Shinar-white-360.png",
+      "sha256": "f68ad9efc03a8e28eff8bc3ea82154787137d7c9a2037c68aabce705d641086e",
+      "bytes": 213294
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/white-references.png",
+      "sha256": "d9afa9b9f8722f7f813a49395528dc882ed631126a700f977212dadff9f6db56",
+      "bytes": 167376
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/white-topic-first-preview.png",
+      "sha256": "a23be2468f9d3da712df6d50eb56ca5161866c8a38875d36577428f871b97a09",
+      "bytes": 128853
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/white-topics-1000.png",
+      "sha256": "14cb1504d0f397eec1def8b847f620d7ef5a04875bd412725590f03d95e0de43",
+      "bytes": 68783
+    },
+    {
+      "file": "rendering-after/check_followup_surfaces/white-topics-360.png",
+      "sha256": "29afd61c98f25b259dc63cd97beddb967b3214c652f8d9d3a6758b0cb96c7199",
+      "bytes": 23152
+    },
+    {
+      "file": "rendering-after/check_library_categories/dark-2-360.png",
+      "sha256": "17181c244be2cbdc6eeb2cfaf4db4b930740a44849c5f06371b63a0b7cdd889e",
+      "bytes": 90528
+    },
+    {
+      "file": "rendering-after/check_library_categories/dark-2-560.png",
+      "sha256": "0b4b4a36b0001d4c58acb916b85c5d2c1c08a12d45dab0c11cc2662beed6f48c",
+      "bytes": 72854
+    },
+    {
+      "file": "rendering-after/check_library_categories/light-2-360.png",
+      "sha256": "c606bac3b1d728826d3b851ecfa950e3bdb760ec9780deb7b88bb0d9193ed0ba",
+      "bytes": 91372
+    },
+    {
+      "file": "rendering-after/check_library_categories/light-2-560.png",
+      "sha256": "7e4125442f15a00c979357aa001ef66fad81111c107d5a7a3973395fc354315d",
+      "bytes": 73016
+    },
+    {
+      "file": "rendering-after/check_quotation_search/dark-youversion~YV21-close-6.png",
+      "sha256": "88b7b2cc7a6e298b4d47abf1e4f47cb0d6686f6fda9118d6b11f34c403556f6e",
+      "bytes": 99321
+    },
+    {
+      "file": "rendering-after/check_quotation_search/light-youversion~YV21-close-1.png",
+      "sha256": "63651ecaf8687d10ef6a88a5ca66548658aedd55f637d3f84a071c1f08351519",
+      "bytes": 101091
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/dark-comparison-1200.png",
+      "sha256": "07ac9fb7da97cc2a98884d741680fc13a54fee4d7c596a69d9c9eb8d035582c4",
+      "bytes": 133047
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/dark-comparison-360-right.png",
+      "sha256": "a8f885f0bee4e5afcb1a4da2568a5420395501740e09fefbc10cbfd8b1a33db0",
+      "bytes": 43753
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/dark-single-1200.png",
+      "sha256": "24b8d56d63d756ea76c8fae0a7ccd60908915416ac22543b44e3e9cf5fb77466",
+      "bytes": 163867
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/dark-single-360.png",
+      "sha256": "751366c5cd15e93cee2d86df6a31b8baa3a5ec97064131473fecfc0909c7ed51",
+      "bytes": 51595
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/white-comparison-1200.png",
+      "sha256": "18cb0592cf951d31e0573c4a68cb59c1b581ac2c5a99154013d6fb6c57982c45",
+      "bytes": 135320
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/white-comparison-360-right.png",
+      "sha256": "86d5b22bd8340aece69e5bb2a2795bfc3273f7abcc99b3e6b8d1418872f2600a",
+      "bytes": 44519
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/white-single-1200.png",
+      "sha256": "d962d132305990f58e4d9f8d59a1d4a1e2f4b995c3a8c4c92712cea8e5873f15",
+      "bytes": 111735
+    },
+    {
+      "file": "rendering-after/check_reader_chrome/white-single-360.png",
+      "sha256": "4f84357e3806282e23d59ae07b74e536e11bc59d3b60622be85b1b2971b84759",
+      "bytes": 54296
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/dark-MHC-immersion.png",
+      "sha256": "65f7b68d199103b9f8e13138068df5edff54adcf02b6bca308fe48a1a5454b21",
+      "bytes": 140273
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/dark-ebible~fraLSG1910eb-comparison.png",
+      "sha256": "c8003c4ebb003e1307812955c4e1a54fa4fd0c8a7e8548b9040188ae2dba1889",
+      "bytes": 85629
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/dark-ebible~fraLSG1910eb-immersion.png",
+      "sha256": "9d5917816c8f030bad344df6acf2dc71f2bef07863d485fc0b22c75fa32c4e45",
+      "bytes": 102274
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/dark-youversion~YV13-comparison.png",
+      "sha256": "e827402167ae5e66e6642fe871f5f5232ea085de3cb56857ba022d071c71b5d3",
+      "bytes": 129416
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/dark-youversion~YV13-immersion.png",
+      "sha256": "768fc0bce73ee1c3353793a40481215b446a276d9927392af3ddf7ada67776e4",
+      "bytes": 91574
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/light-MHC-immersion.png",
+      "sha256": "3a48ff800ccc803a8fb915e930cac0fc35453b3bcd9a6b94298932f5c7040cb7",
+      "bytes": 143829
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/light-ebible~fraLSG1910eb-comparison.png",
+      "sha256": "b833e16d889641203f526da9fd07c711f40d0b60729ba6d2ce4704d34a7d54af",
+      "bytes": 86433
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/light-ebible~fraLSG1910eb-immersion.png",
+      "sha256": "770f5542707c9d1d967b46edb433bdc0917c6aa1cf486500cbd421604bdd457a",
+      "bytes": 104719
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/light-youversion~YV13-comparison.png",
+      "sha256": "040666ff8186b5c72f24313addf4df3d2bb7f6351ab5573ccd83847eea4b8ec3",
+      "bytes": 131602
+    },
+    {
+      "file": "rendering-after/check_reading_surfaces/light-youversion~YV13-immersion.png",
+      "sha256": "4a3c088df5ee5c8b6be5b0d78a4ac36a3a62148c4b8eb6e50cccec055e2ffc18",
+      "bytes": 93787
+    },
+    {
+      "file": "rendering-after/ebible~fraLSG1910eb-Gen.2.1-reader-dark-1200.png",
+      "sha256": "ed6092687b92b3d0f3a6124213fcef9be3aee782596f80b8b4bcc390fcb650bf",
+      "bytes": 88276
+    },
+    {
+      "file": "rendering-after/ebible~fraLSG1910eb-Gen.2.1-reader-white-1200.png",
+      "sha256": "b8bcfc6c0316c0b23f552a336b7553edc542e7413d97cd99c95ee76ae6e5b982",
+      "bytes": 90239
+    },
+    {
+      "file": "rendering-after/ebible~fraLSG1910eb-Ps.13.1-reader-dark-1200.png",
+      "sha256": "bd32c49e59ad39cf48824a54e04f4da975fa4ab888e04d6718c8cad53ccdb874",
+      "bytes": 76570
+    },
+    {
+      "file": "rendering-after/ebible~fraLSG1910eb-Ps.13.1-reader-white-1200.png",
+      "sha256": "57009537c0e66cceed2203448dc2718ec8b6786849fbd5c55c59785f33952593",
+      "bytes": 78454
+    },
+    {
+      "file": "rendering-after/ebible~frasbl2022eb-Ps.13.1-reader-dark-1200.png",
+      "sha256": "b34d15187e2fdf74e334d720c17448505c99b34c131a9407a5b5d40db4ddeea5",
+      "bytes": 82238
+    },
+    {
+      "file": "rendering-after/ebible~frasbl2022eb-Ps.13.1-reader-white-1200.png",
+      "sha256": "45d64cb401c16d9b39a5112d345a7ef99511d7b6f0895570483491a542348c07",
+      "bytes": 84121
+    },
+    {
+      "file": "rendering-after/english-surfaces/place-Shinar-white-640.png",
+      "sha256": "3269986baae402cc8f9fdf85cfa19fa3e0365ae1d7216ec8835f77159da04ed9",
+      "bytes": 190158
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/black-topic-first-preview.png",
+      "sha256": "44b51c0f9e694b40d4d8c023828c8d1e7f57f983a1e0110b13612153699106fb",
+      "bytes": 131163
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/black-topics-360.png",
+      "sha256": "21c4ef90fa0a9e3065faba1dc650279de4db841127919e0c996c1cc66242de20",
+      "bytes": 28217
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/dark-topic-first-preview.png",
+      "sha256": "2f85fa4311d34d5efd4f9bdd087f82d54926c7e899e39a8c6c83e12bf8fcb1bf",
+      "bytes": 127311
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/dark-topics-360.png",
+      "sha256": "f926143ac69232790afe9a6454bdac2db86355cd6ff7f38549e6fa9a6e5e19d3",
+      "bytes": 27946
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/paper-topic-first-preview.png",
+      "sha256": "0cc528e08e4606e36638679329749275795ff9de56cb3d43de2b8742362386d8",
+      "bytes": 135550
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/paper-topics-360.png",
+      "sha256": "6f0ff28d65b20028a46280be69e5da7654da288d917611e6937a9e6c924425ff",
+      "bytes": 29603
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/white-topic-first-preview.png",
+      "sha256": "90feca18c024c6b571f9584ba3a6dec863ce00b42b1697e534388179bdcebd1b",
+      "bytes": 130615
+    },
+    {
+      "file": "rendering-after/large-check_followup_surfaces/white-topics-360.png",
+      "sha256": "29e1c3ac3a01dc60ed95970b423f22a6a37de7e4414efff613d7244b4259f367",
+      "bytes": 28061
+    },
+    {
+      "file": "rendering-after/large-check_library_categories/dark-2-360.png",
+      "sha256": "d2a647b42fb68999b5e557bb75535e99ae216eda9e38d920d5714257eae4f464",
+      "bytes": 117352
+    },
+    {
+      "file": "rendering-after/large-check_library_categories/light-2-360.png",
+      "sha256": "364a755ec314d90efdd052c235b2abf1f12bbdcce5e86e927888f9bebd7db71c",
+      "bytes": 120269
+    },
+    {
+      "file": "rendering-before/FreBDM1744-Gen.1.1-reader-dark-1200.png",
+      "sha256": "3c90d9b49764fafa1c971c936714699ffdbf09b7bf5f159dac0f7fee6bccfe58",
+      "bytes": 80754
+    },
+    {
+      "file": "rendering-before/FreBDM1744-Gen.1.1-reader-white-1200.png",
+      "sha256": "99c4ca0283c57becbdc1325b0393968bc045e2b87cd83c1424e31bc9f57c6096",
+      "bytes": 82265
+    },
+    {
+      "file": "rendering-before/FreJND-Gen.2.1-reader-dark-1200.png",
+      "sha256": "bc7feba45ba4763e815aa96d69d7bc21f36b1f8669c5253d33c5b3733ab6fae0",
+      "bytes": 78487
+    },
+    {
+      "file": "rendering-before/FreJND-Gen.2.1-reader-white-1200.png",
+      "sha256": "658ca48d2d95d14ffa0c59ad42cce79132d05b60a9dae2c40d28535089dc6990",
+      "bytes": 80208
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Gen.1.1-MHC-dark-1200.png",
+      "sha256": "3ddb644fedf2523579e0fee4a4275f57a35ac38c8454f2ce024466703c5d9baa",
+      "bytes": 175983
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Gen.1.1-MHC-white-1200.png",
+      "sha256": "fef5fe70035a67adf5ed94b91be5548c3a92b497a2d621491750e8adac1aa654",
+      "bytes": 179722
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Ps.13.1-FreAug-dark-620.png",
+      "sha256": "fa8843675ede6f2188acf9e47752ae4e2457cd5ec973bfce06f4b29fd73bbc72",
+      "bytes": 109798
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Ps.13.1-FreAug-white-620.png",
+      "sha256": "1349477a68099b25e987fbef8c172548c5dfa0e819153e3797d547b5ae32d88a",
+      "bytes": 107042
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Ps.13.1-FreChry-dark-1200.png",
+      "sha256": "daa15324c8232fcb1734fe76fc0cdb8d06e9b8c6ac9442c574279c128d00f7b6",
+      "bytes": 176213
+    },
+    {
+      "file": "rendering-before/FreSegond1910-Ps.13.1-FreChry-white-1200.png",
+      "sha256": "f607baafd602eb7e6025c2b0d6a2677ea57bc388a5a9661fb0cc9cf3c60f2898",
+      "bytes": 180290
+    },
+    {
+      "file": "rendering-before/check_commentary_context/dark-ebible~francl2022eb-Ps.17.1-0.png",
+      "sha256": "00e8ed7752fbeff46636b2b0a54bf31a26c9544fcb9673a28cc703bc14d38075",
+      "bytes": 94496
+    },
+    {
+      "file": "rendering-before/check_commentary_context/light-ebible~francl2022eb-Ps.17.1-0.png",
+      "sha256": "9ee8ec42bab448b4a5c76e85614d1d9ab05f27a185fdc8f296a0cc6342ba9f7e",
+      "bytes": 96145
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/black-references.png",
+      "sha256": "8546b8c8ed533866da47b86284d03c0d9e344968225600c15ea625f2af25bd83",
+      "bytes": 159148
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/dark-references.png",
+      "sha256": "78d4df15f167a6e7d9e194247184ad880bebefb65214934bfeea8a4b0e2d0d9b",
+      "bytes": 153769
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/dark-topics-1000.png",
+      "sha256": "49912f48397c3d761bb9ce01d5c2422d353913a316bb13fb6ef379fa0ac577cb",
+      "bytes": 67484
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/dark-topics-360.png",
+      "sha256": "c96672424d4f0a1e5cc89cb6e9e10a1357a70c367e1f23870fd035c36ad9c27e",
+      "bytes": 25475
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/paper-references.png",
+      "sha256": "9012b476b88a13dacd414eda37390b262b852d03c259112dbb01b840b8a1137a",
+      "bytes": 162635
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Emmaus-dark-360.png",
+      "sha256": "035bf5fd56b4d9d5a28f0a9c0bedc4e988288473ac45b34e4bbcccad8ef891ac",
+      "bytes": 190374
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Emmaus-white-360.png",
+      "sha256": "2eec92141819d47cdbfb57313da8554ee1656d80bc1569840b00befd05004b9d",
+      "bytes": 193182
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Jerusalem-dark-360.png",
+      "sha256": "c36f065aa3b5b2f629d1d917f2b955f09243695da6dbdbd77e513aaaefba0ad8",
+      "bytes": 217896
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Jerusalem-white-360.png",
+      "sha256": "7d6da62f7d4dc16384c07a930267ad0c1c55b417dec20c0a4f5ad118fa6a4baa",
+      "bytes": 221440
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Nod-dark-360.png",
+      "sha256": "ac9edcd77fbd964d70425f06958ae981d3eb06f51641ecab92750db17ce29e17",
+      "bytes": 161671
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Nod-white-360.png",
+      "sha256": "497f68a091ae62275c03ce6176281cde0bc0356f9693527cc7f57cc6ba1fee29",
+      "bytes": 165182
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Shinar-dark-360.png",
+      "sha256": "415fc4a0eeda561174d441b53013bff696ca1820b83e53b24288db47e7fa77e1",
+      "bytes": 199704
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/place-Shinar-white-360.png",
+      "sha256": "216644e5801eb11132f4e35d46c55e4e94b0bfe7892e0abadd76bc4592f50337",
+      "bytes": 202887
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/white-references.png",
+      "sha256": "21bd9eeba397b121e969bda36e72e48d6b3232538406d97330363b4d3fe9b7b8",
+      "bytes": 155841
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/white-topics-1000.png",
+      "sha256": "70b13fec47fd7756af9d40360c21264f83f32d31c9ad5ed8856efeba15cb056f",
+      "bytes": 68430
+    },
+    {
+      "file": "rendering-before/check_followup_surfaces/white-topics-360.png",
+      "sha256": "d121fe7b8875a173f7d121d237dc24971718b626007b158cb01c907f02643734",
+      "bytes": 25624
+    },
+    {
+      "file": "rendering-before/check_library_categories/dark-2-360.png",
+      "sha256": "720040b4dc00dc44925e16d7336c0fd9d0a53ae67cf2ad4b956dbb2ec442cf42",
+      "bytes": 89788
+    },
+    {
+      "file": "rendering-before/check_library_categories/dark-2-560.png",
+      "sha256": "fa7f9fc5218dd14d84961d60f03ce6e22b00c6c3b5259ae2cbd739cd76e370cf",
+      "bytes": 69091
+    },
+    {
+      "file": "rendering-before/check_library_categories/light-2-360.png",
+      "sha256": "7760d616448cdb6786fbbf7a02d2dc011d69dfea6bc8c292d5253fcb47c00a55",
+      "bytes": 90925
+    },
+    {
+      "file": "rendering-before/check_library_categories/light-2-560.png",
+      "sha256": "3bbe1d02f2b0763dbc7d31d4736da21595dfb9c65529274c1db4fce1f5c8d617",
+      "bytes": 69042
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/dark-comparison-1200.png",
+      "sha256": "7735f8855abd6c42da92557f0def6aa2f34679bee48e50d78cbbc895321bce35",
+      "bytes": 131791
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/dark-comparison-360-right.png",
+      "sha256": "d97c2bdd49f3b27bb62e6a68aad6ba34b1f01102c62741250b7b27ea6e92394a",
+      "bytes": 49836
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/dark-single-1200.png",
+      "sha256": "d8d8bdec1ee739a86217235f6000636277420d142d18a9c53b315af09a59bab2",
+      "bytes": 138656
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/dark-single-360.png",
+      "sha256": "66fb8047e1976d49df6d631d8c3686a3e40338adfa56377265169de5f074a8d7",
+      "bytes": 60342
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/white-comparison-1200.png",
+      "sha256": "c2f1f89737a88ecc7e0b01c88c4522f69adeefe63b078b8f2cb1c410aa05fbbe",
+      "bytes": 133781
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/white-comparison-360-right.png",
+      "sha256": "6701fd991e1cc852318c9ed167acd52d4b67eac3dd8a8332ebbd5aaf5588ab0c",
+      "bytes": 50813
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/white-single-1200.png",
+      "sha256": "1522de124a3c70737c562061be1a606148c6803b1b835c44da92e5704f68af4c",
+      "bytes": 87187
+    },
+    {
+      "file": "rendering-before/check_reader_chrome/white-single-360.png",
+      "sha256": "3494d69cb10e7938c4c3f870b914bc035c8030af5b0432f146b6c9d7fa055c8b",
+      "bytes": 52212
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/dark-MHC-immersion.png",
+      "sha256": "df05ad82eae1060c86bcfbc81293e5b9e67941c0a0a36108c956603a879d62f4",
+      "bytes": 155422
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/dark-ebible~fraLSG1910eb-comparison.png",
+      "sha256": "3b30d088dcc2a915d657cc07a0d683314fc496ae084a0974005ebf8ca0d73e97",
+      "bytes": 50080
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/dark-ebible~fraLSG1910eb-immersion.png",
+      "sha256": "0edac9e5e3ba33402436bf044a7853b3e9fb3c207f3cc1b3703093b42531c5d6",
+      "bytes": 64634
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/dark-youversion~YV13-comparison.png",
+      "sha256": "f0152bd3b56857be23fdf174a5d521deb22012bf67ef16d78fb70858f0c4ff7d",
+      "bytes": 96346
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/dark-youversion~YV13-immersion.png",
+      "sha256": "9368941b9812aa57bea09f30c4fbdbb5a43f0080e615414f96833feb54333bc3",
+      "bytes": 116869
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/light-MHC-immersion.png",
+      "sha256": "e28b8af84b4939c604f91958f8783abe239c28bea3ed75ec7561064ca433dafb",
+      "bytes": 160009
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/light-ebible~fraLSG1910eb-comparison.png",
+      "sha256": "f5f3bb37d5ad4bdc282556d907f979fdcbc10653924d2bbed7799296eeb46cd8",
+      "bytes": 50321
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/light-ebible~fraLSG1910eb-immersion.png",
+      "sha256": "848e4d632a8817bbba37110736fc45327fd02e21e467ecad34353a0613e4bd34",
+      "bytes": 66203
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/light-youversion~YV13-comparison.png",
+      "sha256": "4ee9bd6b9cc88430a2763bfdb2be0a7ec349d2390187701192c074831ac63b21",
+      "bytes": 97395
+    },
+    {
+      "file": "rendering-before/check_reading_surfaces/light-youversion~YV13-immersion.png",
+      "sha256": "6c912d9017eb8d659f3a1d54d89495775b43563bed00c49140fc085d0363fe15",
+      "bytes": 120123
+    },
+    {
+      "file": "rendering-before/ebible~fraLSG1910eb-Gen.2.1-reader-dark-1200.png",
+      "sha256": "697397a8f7ab51f9e7d08d7bf603f333d6077107f18323766598a4de95646568",
+      "bytes": 69302
+    },
+    {
+      "file": "rendering-before/ebible~fraLSG1910eb-Gen.2.1-reader-white-1200.png",
+      "sha256": "604ba65909a4101de4e95431bd2901d910c11282ae3f849b338f57e82918a313",
+      "bytes": 70528
+    },
+    {
+      "file": "rendering-before/ebible~fraLSG1910eb-Ps.13.1-reader-dark-1200.png",
+      "sha256": "b21b0aef8c9b48b3d5dba77b6aae505b616f33c0fdc914ba1ad01d978421f1ba",
+      "bytes": 34210
+    },
+    {
+      "file": "rendering-before/ebible~fraLSG1910eb-Ps.13.1-reader-white-1200.png",
+      "sha256": "7b06c834e23195153ea756684a6c51918e074b21790a03927f2bc2f02701252c",
+      "bytes": 34788
+    },
+    {
+      "file": "rendering-before/ebible~frasbl2022eb-Ps.13.1-reader-dark-1200.png",
+      "sha256": "669adbf03199384a037959a3c065870cb88d5ab6cc126742ba135373f3975f9f",
+      "bytes": 46400
+    },
+    {
+      "file": "rendering-before/ebible~frasbl2022eb-Ps.13.1-reader-white-1200.png",
+      "sha256": "d498214a8746c3ecab5334dca616738c71708d26dbab6165613c97b1b256ca22",
+      "bytes": 47211
+    },
+    {
+      "file": "rendering-before/quotations/dark-youversion~YV21-close-6.png",
+      "sha256": "222f427276f1a565f6fd1c3eb11399ab8162c89ae561308793421c85e7391484",
+      "bytes": 80432
+    },
+    {
+      "file": "rendering-before/quotations/light-youversion~YV21-close-1.png",
+      "sha256": "270cfa5267a8dae9ec7f32c80bbc737cf3d281cbe8ffe5e064625ca867b2b185",
+      "bytes": 81799
+    }
+  ],
+  "raw_profile_exported": false
+}
