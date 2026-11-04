@@ -34,26 +34,63 @@ def bounded_choices(dropdown):
     dropdown.set_enable_search(False)
 
 
+def fit_translation_choices(popover,choices,owner):
+    if not popover.get_visible():return
+    width=max(120,min(520,owner.get_width()-48))
+    choices.set_propagate_natural_width(True)
+    if choices.get_min_content_width()!=width or choices.get_max_content_width()!=width:
+        choices.set_min_content_width(-1)
+        choices.set_max_content_width(width)
+        choices.set_min_content_width(width)
+    # Ask GTK for the wrapped rows' height rather than the unconstrained one.
+    # Long lists still scroll, and short windows retain room for the action.
+    height=min(360,max(80,owner.get_height()-160),choices.list.measure(Gtk.Orientation.VERTICAL,width)[1])
+    choices.set_min_content_height(height)
+    from .popover_dismissal import fit_reader_popover
+    fit_reader_popover(popover,owner)
+
+
+def choice_details(resource):
+    return resource.description,resource.source,resource.public_code
+
+
 class DirectChoices(Gtk.ScrolledWindow):
     """One native list, with the same selection contract in every pane."""
     __gsignals__={'reselected':(GObject.SignalFlags.RUN_LAST,None,())}
     selected=GObject.Property(type=GObject.TYPE_UINT,default=Gtk.INVALID_LIST_POSITION)
     def __init__(self):
-        super().__init__(hscrollbar_policy=Gtk.PolicyType.NEVER,max_content_height=360,propagate_natural_height=True)
+        super().__init__(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,max_content_height=360,propagate_natural_height=True)
         self.list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
         self.list.add_css_class('boxed-list');self.set_child(self.list);self.rows=[]
         self.list.connect('row-activated',self.activate)
+        self.connect('map',self.focus_selection)
+    def focus_selection(self,*_):
+        row=self.list.get_selected_row()
+        if row:row.grab_focus()
     def activate(self,_,row):
         if row.get_index()==self.get_selected():self.emit('reselected')
         else:self.set_selected(row.get_index())
 
-    def set_model(self,model):
+    def set_model(self,model,details=None):
         while self.list.get_first_child():self.list.remove(self.list.get_first_child())
         self.rows=[]
         for i in range(model.get_n_items()):
             box=Gtk.Box(spacing=12,margin_top=10,margin_bottom=10,margin_start=12,margin_end=12)
-            text=Gtk.Label(label=model.get_string(i),xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36,hexpand=True)
-            check=Gtk.Image(icon_name='object-select-symbolic',opacity=0);box.append(text);box.append(check);self.list.append(box);self.rows.append(check)
+            title,source,code=details[i] if details else (model.get_string(i),'','')
+            labels=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3,hexpand=True)
+            text=Gtk.Label(label=title,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=48,hexpand=True)
+            text.add_css_class('heading');labels.append(text);box.append(labels)
+            if source:
+                provider=Gtk.Label(label=source,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
+                provider.add_css_class('caption');provider.add_css_class('dim-label');labels.append(provider)
+            if code:
+                badge=Gtk.Label(label=code,valign=Gtk.Align.CENTER,width_chars=1,max_width_chars=12,
+                    ellipsize=Pango.EllipsizeMode.NONE if len(code)<=4 else Pango.EllipsizeMode.END,tooltip_text=code)
+                badge.add_css_class('caption');badge.add_css_class('translation-code');box.append(badge)
+            check=Gtk.Image(icon_name='object-select-symbolic',opacity=0);box.append(check)
+            row=Gtk.ListBoxRow(child=box)
+            row.update_property([Gtk.AccessibleProperty.LABEL],[', '.join(x for x in (title,code,source) if x)])
+            self.list.append(row);self.rows.append(check)
     def get_selected(self):return self.selected
     def set_selected(self,index):
         for i,check in enumerate(self.rows):check.set_opacity(1 if i==index else 0)
@@ -78,14 +115,22 @@ class VersionChooser(Gtk.MenuButton):
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(self.choices)
         self.download_more=Gtk.Button(label=tr('Download more…'))
+        self.download_more.set_can_shrink(True)
+        # The list controls the popup width, including with enlarged UI text.
+        self.download_more.get_child().set_ellipsize(Pango.EllipsizeMode.END)
+        self.download_more.get_child().set_width_chars(1)
+        self.download_more.get_child().set_max_width_chars(1)
+        self.download_more.set_tooltip_text(tr('Download more…'))
         self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
         box.append(self.download_more)
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,visible=False);box.append(self.status)
         self.popover.set_child(box);self.set_popover(self.popover)
-        from .popover_dismissal import fit_reader_popover
-        self.popover.connect('show',lambda *_:fit_reader_popover(self.popover,owner))
+        self.popover.connect_after('show',lambda *_:self.fit_popup())
         owner._reading_popovers.append(self.popover)
         self.connect('notify::active',lambda *_:self.sync())
+
+    def fit_popup(self):
+        fit_translation_choices(self.popover,self.choices,self.owner)
 
     def sync(self):
         if self.owner.closed:return False
@@ -95,20 +140,23 @@ class VersionChooser(Gtk.MenuButton):
         installed=self.owner.library.installed('bible')
         names=list(installed)
         if current and current not in names:names.insert(0,current)
-        labels=[];captions=[]
+        labels=[];captions=[];details=[]
         for name in names:
             if name in installed:
                 try:
                     resource=self.owner.library.resource(name)
                     labels.append(resource.description+' — '+resource.source)
                     captions.append(resource.description)
+                    details.append(choice_details(resource))
                 except (ValueError,OSError):
                     labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(tr('Missing translation'))
+                    details.append((labels[-1],'',''))
             else:
                 labels.append(module_name(name)+' ('+tr('Missing translation')+')');captions.append(tr('Missing translation'))
+                details.append((labels[-1],'',''))
         self._syncing=True
-        if names!=self.names or labels!=getattr(self,'_labels',None):
-            self.names=names;self._labels=labels;self.choices.set_model(Gtk.StringList.new(labels))
+        if names!=self.names or details!=getattr(self,'_details',None):
+            self.names=names;self._labels=labels;self._details=details;self.choices.set_model(Gtk.StringList.new(labels),details)
         self.choices.set_selected(names.index(current) if current in names else Gtk.INVALID_LIST_POSITION)
         self._syncing=False
         caption=captions[names.index(current)] if current in names else tr('Choose a translation')

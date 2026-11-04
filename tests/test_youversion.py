@@ -32,6 +32,13 @@ class Response(io.BytesIO):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_public_code_uses_local_metadata_without_an_internal_fallback(self):
+        data=edition_metadata();data.pop('abbreviation',None);data.pop('local_abbreviation',None)
+        self.assertEqual(resource_from_metadata(data).public_code,'')
+        data['abbreviation']='BDS';self.assertEqual(resource_from_metadata(data).public_code,'BDS')
+        data['local_abbreviation']='SEM';self.assertEqual(resource_from_metadata(data).public_code,'SEM')
+        data['local_abbreviation']='YV21';self.assertEqual(resource_from_metadata(data).public_code,'')
+
     def test_one_metadata_refusal_keeps_other_editions_and_the_cached_record(self):
         from bible.catalogue_cache import CatalogueCache
         from bible.library import catalogues

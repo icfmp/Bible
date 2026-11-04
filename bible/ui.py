@@ -125,14 +125,19 @@ class Window(Adw.ApplicationWindow):
         self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
         self.stop_comparison.set_visible(False)
         self.download_comparison=Gtk.Button(label=tr('Download more…'))
+        self.download_comparison.set_can_shrink(True)
+        self.download_comparison.get_child().set_ellipsize(Pango.EllipsizeMode.END)
+        self.download_comparison.get_child().set_width_chars(1)
+        self.download_comparison.get_child().set_max_width_chars(1)
+        self.download_comparison.set_tooltip_text(tr('Download more…'))
         self.download_comparison.connect('clicked',lambda *_:self.contextual_library('bible','comparison'))
         comparison_box.append(self.download_comparison)
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
-        from .popover_dismissal import install, fit_reader_popover
+        from .popover_dismissal import install
         self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
         self._popover_dismissal = install(self, self._reading_popovers)
-        self.comparison_popover.connect('show',lambda *_:fit_reader_popover(self.comparison_popover,self))
+        self.comparison_popover.connect_after('show',lambda *_:self.fit_comparison_popup())
         self._comparison_syncing=False
         # Notes has a working application-space selector at the top left.
         for widget,label in [(self.menu,'Main menu'),
@@ -291,6 +296,7 @@ class Window(Adw.ApplicationWindow):
                            b'padding: 0; border-radius: 9999px; } '
                            b'.reader-action { min-width: 34px; min-height: 34px; padding: 0; border-radius: 9999px; } '
                            b'.version-pill > button { border-radius: 9999px; } '
+                           b'.translation-code { padding: 2px 6px; border-radius: 6px; background-color: alpha(currentColor,.10); } '
                            b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
                            b'padding: 8px; border-radius: 12px; } '
                            b'popover.passage-selector > contents { border-radius: 18px; }')
@@ -438,6 +444,11 @@ class Window(Adw.ApplicationWindow):
         fit_wrapped_button(self.primary_version,self.primary_version.caption.get_text())
         fit_wrapped_button(self.compared_version,self.compared_version.caption.get_text())
         fit_wrapped_button(self.passage_button,self.heading.get_title())
+        self.primary_version.fit_popup();self.compared_version.fit_popup();self.fit_comparison_popup()
+
+    def fit_comparison_popup(self):
+        from .version_chooser import fit_translation_choices
+        fit_translation_choices(self.comparison_popover,self.comparison_choices,self)
 
     def position_primary_version(self,force=False):
         if not force and self.immersion and self.immersion.kind=='bible':return
@@ -747,10 +758,13 @@ class Window(Adw.ApplicationWindow):
         tab=self.active_tab
         self._comparison_syncing=True
         self._comparison_names=[None]+[name for name in self.library.installed('bible') if name!=tab.state.resource]
-        labels=[tr('No comparison')]+[self.library.resource(name).description for name in self._comparison_names[1:]]
+        from .version_chooser import choice_details
+        details=[(tr('No comparison'),'','')]+[choice_details(self.library.resource(name)) for name in self._comparison_names[1:]]
+        labels=[item[0] for item in details]
         # Synchronization must not emit another selection for an unchanged row.
-        if getattr(self,'_comparison_labels',None)!=labels:
-            self.comparison_choices.set_model(Gtk.StringList.new(labels));self._comparison_labels=labels
+        if getattr(self,'_comparison_details',None)!=details:
+            self.comparison_choices.set_model(Gtk.StringList.new(labels),details)
+            self._comparison_labels=labels;self._comparison_details=details
         self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
         self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
         self._comparison_syncing=False

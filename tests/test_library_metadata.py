@@ -5,10 +5,22 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from bible.library import Library,config
+from bible.library import Library,config,resource_from_section
 
 
 class LibraryMetadataTests(unittest.TestCase):
+    def test_public_codes_come_from_provider_metadata_and_not_module_ids(self):
+        from dataclasses import replace
+        from bible.providers import PROVIDERS
+        for provider in PROVIDERS:
+            resource=resource_from_section('Internal123',{'Description':'Full edition','Abbreviation':'ABC'},provider)
+            self.assertEqual(resource.public_code,'ABC')
+            self.assertEqual(replace(resource,abbreviation='').public_code,'')
+            self.assertEqual(replace(resource,abbreviation=resource.id).public_code,'' if '~' in resource.id else 'Internal123')
+        resource=replace(resource,name='YV21',abbreviation='YV21')
+        self.assertEqual(resource.public_code,'')
+        for invalid in ('a\nb','x'*41):self.assertEqual(replace(resource,abbreviation=invalid).public_code,'')
+
     def setUp(self):
         self.root=Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.module=self.root/'Test';self.module.mkdir()

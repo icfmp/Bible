@@ -42,6 +42,16 @@ class Resource:
     versification: str = 'KJV'
     provider_id: str = 'crosswire'
     acquisition: str = ''
+    abbreviation: str = ''
+
+    @property
+    def public_code(self):
+        value=self.abbreviation
+        if not isinstance(value,str) or len(value)>40 or any(ord(c)<32 for c in value):return ''
+        value=value.strip()
+        # Older YouVersion conversions used their generated module ID here.
+        if '~' in value or self.provider_id=='youversion' and value==self.name:return ''
+        return value
 
     @property
     def id(self):
@@ -73,7 +83,8 @@ def resource_from_section(name, section, provider=CROSSWIRE):
                     section.get('ModDrv') or '', author=section.get('Author') or '',
                     category=section.get('Category') or 'Biblical Texts',
                     versification=section.get('Versification') or 'KJV',
-                    provider_id=provider.id, source=provider.name, source_url=provider.url)
+                    provider_id=provider.id, source=provider.name, source_url=provider.url,
+                    abbreviation=section.get('Abbreviation') or '')
 
 
 def config(data):

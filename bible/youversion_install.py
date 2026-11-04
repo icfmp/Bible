@@ -63,7 +63,9 @@ def resource_from_metadata(value,expected_id=21):
         driver='RawText',
         source=YOUVERSION.name,source_url=YOUVERSION.url,
         versification=storage_system(expected_id),provider_id=YOUVERSION.id,
-        acquisition=serialized(edition.metadata))
+        acquisition=serialized(edition.metadata),
+        abbreviation=next((edition.metadata.get(key) for key in ('local_abbreviation','abbreviation')
+            if isinstance(edition.metadata.get(key),str) and edition.metadata[key].strip()),''))
 
 
 def acknowledgement(resource):
