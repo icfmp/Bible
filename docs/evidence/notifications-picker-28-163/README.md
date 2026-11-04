@@ -10,7 +10,7 @@ Rows use GTK wrapping and native scrolled-window size limits. The requested widt
 
 ## Notification investigation
 
-See [the pinned source investigation](../../NOTIFICATION_INTEGRATION_28.md). The current Notification/Inhibit portals, freedesktop notification interface and GNOME presence setter do not establish the caller-owned, crash-safe global suppression lease required by #28. Existing manual Do Not Disturb guidance and sandbox permissions remain unchanged. GNOME Shell's primary-monitor fullscreen policy is documented separately; it is not runtime evidence of notification suppression by Bible.
+See [the pinned source investigation](../../NOTIFICATION_INTEGRATION_28.md). The current Notification/Inhibit portals, freedesktop notification interface and GNOME presence setter do not establish the caller-owned, crash-safe global suppression lease required by #28. This investigation predates the client's cancellation decision. The current #28 scope removes the manual Do Not Disturb guidance and its exclusively owned code; that cleanup is pending in the Ready queue. GNOME Shell's primary-monitor fullscreen policy is documented separately; it is not runtime evidence of notification suppression by Bible.
 
 No real GNOME notification-delivery, crash-restoration or multi-monitor claim is made. Immersive reading checks and the investigation of notification integration are separate.
 
@@ -32,7 +32,7 @@ The full [before matrix](before/README.md) and [after matrix](after/README.md) r
 
 ## Limits
 
-These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. #28 remains open. The closure of #163 by icfmp is preserved; distribution verification is still pending independently. Numbered release #87 remains paused.
+These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. #28 remains open. The closure of #163 by icfmp is preserved; distribution verification is still pending independently. The client has withdrawn the mistaken #87 pause instruction; the standing numbered-alpha rule applies.
 
 ## Verified candidate checks
 
@@ -51,7 +51,7 @@ As of 4 November 2026, 11:25 UTC, [GitHub Status](https://www.githubstatus.com/)
 - Distribution repair PR [170](https://github.com/icfmp/Bible/pull/170), merged as `e22dd2c605a6028e2329238034e92b14038734ce`, adds bounded same-commit server-error recovery, a self-contained Git pack fallback, parent/concurrent-change checks and per-attempt Pages artifact names. Its [real channel restoration/signature/update CI](https://github.com/icfmp/Bible/actions/runs/41818781106) passes. It changes no application or resource data.
 - Retained-profile update check [41813577757](https://github.com/icfmp/Bible/actions/runs/41813577757) timed out waiting for a successful final publication; the update and after-update measurement were skipped. **No successful after-update data-preservation check is claimed.** The prepared old profile has not been reset to hide the blocker.
 - The public source catalogue contains46 archives and all45 previous archive records are unchanged. The signing identity remains `47A17230403EA4953745E6E020EB9FFCCECAFD8F`. No source archive was deleted or replaced.
-- Issue #163 was closed as completed by `icfmp` at11:16:35 UTC, with no closing commit or GitHub App recorded. That closure is preserved. The remaining signed-publication/update verification is recorded independently and is not claimed complete. Project access returns `Resource not accessible by integration`; no project status was changed by this work. #28 remains open. Numbered release #87 remains paused.
+- Issue #163 was closed as completed by `icfmp` at11:16:35 UTC, with no closing commit or GitHub App recorded. That closure is preserved. The remaining signed-publication/update verification is recorded independently and is not claimed complete. Project access returns `Resource not accessible by integration`; no project status was changed by this work. #28 remains open. The client has withdrawn the mistaken #87 pause instruction; the standing numbered-alpha rule applies.
 
 The final captures above are from the successful unmodified installed application candidate, with capture harness `536c179a7a8f02aa978852a1fb485c373178a50d` and `shrink_probe=false`. They are valid GUI evidence, not evidence of a completed signed-channel update.
 
