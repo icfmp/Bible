@@ -115,8 +115,11 @@ class VersionChooser(Gtk.MenuButton):
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(self.choices)
         self.download_more=Gtk.Button(label=tr('Download more…'))
+        self.download_more.set_can_shrink(True)
+        # The list controls the popup width, including with enlarged UI text.
         self.download_more.get_child().set_ellipsize(Pango.EllipsizeMode.END)
         self.download_more.get_child().set_width_chars(1)
+        self.download_more.get_child().set_max_width_chars(1)
         self.download_more.set_tooltip_text(tr('Download more…'))
         self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
         box.append(self.download_more)

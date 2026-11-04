@@ -34,6 +34,12 @@ class TranslationPickerTests(unittest.TestCase):
                     self.assertGreaterEqual(text.get_height(),text.get_layout().get_pixel_size()[1])
                     badge=labels.get_next_sibling()
                     self.assertGreaterEqual(badge.get_width(),badge.create_pango_layout('ABC').get_pixel_size()[0])
+                    settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+                    try:
+                        settings.props.gtk_font_name='Sans 18';spin(lambda:not w._controls_tick,duration=.4)
+                        if not chooser.popover.get_visible():chooser.popup();spin(duration=.3)
+                        self.assertLessEqual(chooser.popover.get_child().get_width(),w.get_width())
+                    finally:settings.props.gtk_font_name=font
                     chooser.choices.list.emit('row-activated',row);spin()
                     self.assertFalse(chooser.popover.get_visible())
                     self.assertEqual(w.active_tab.state.resource,'Test')
