@@ -12,6 +12,53 @@ from tools.flatpak_channel import restore_repository_layout
 
 
 class ChannelStorageTests(unittest.TestCase):
+    def test_push_recovery_preserves_commit_identity_and_rejects_concurrent_changes(self):
+        actual_run = subprocess.run
+        for mode in ('server_error','lost_success','concurrent_change','permission_denied'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);remote=root/'remote.git';work=root/'work';work.mkdir()
+                actual_run(['git','init','--bare',str(remote)],check=True,capture_output=True)
+                actual_run(['git','init','-b','main',str(work)],check=True,capture_output=True)
+                original=Path.cwd();os.chdir(work)
+                try:
+                    actual_run(['git','remote','add','origin',str(remote)],check=True)
+                    with patch.dict(os.environ,{'RUNNER_TEMP':str(root)}):
+                        restore();(work/'public/alpha').mkdir()
+                        (work/'public/alpha/provenance.json').write_text('{}')
+                        (work/'public/index.html').write_text('First');persist()
+                        first=(root/'bible-alpha-parent').read_text()
+                        (work/'public/index.html').write_text('Second')
+                        pushes=[];other=[]
+                        def flaky(command,*args,**options):
+                            if command[:2]!=['git','push']:return actual_run(command,*args,**options)
+                            pushes.append(command)
+                            if len(pushes)>1:return actual_run(command,*args,**options)
+                            if mode=='lost_success':actual_run(command,*args,**options)
+                            if mode=='concurrent_change':
+                                tree=subprocess.check_output(['git','--git-dir',str(remote),'rev-parse',first+'^{tree}'],text=True).strip()
+                                concurrent=subprocess.check_output(['git','--git-dir',str(remote),'-c','user.name=Other','-c','user.email=other@example.invalid','commit-tree',tree,'-p',first,'-m','Other publication'],text=True).strip()
+                                actual_run(['git','--git-dir',str(remote),'update-ref','refs/heads/flatpak-alpha-data',concurrent,first],check=True);other.append(concurrent)
+                            message='Permission denied' if mode=='permission_denied' else 'remote: Internal Server Error'
+                            return subprocess.CompletedProcess(command,1,'',message)
+                        with patch('tools.channel_ci.subprocess.run',side_effect=flaky),patch('tools.channel_ci.time.sleep') as pause:
+                            if mode=='concurrent_change':
+                                with self.assertRaisesRegex(AssertionError,'Channel changed'):persist()
+                            elif mode=='permission_denied':
+                                with self.assertRaises(subprocess.CalledProcessError):persist()
+                                pause.assert_not_called()
+                            else:persist()
+                        head=subprocess.check_output(['git','--git-dir',str(remote),'rev-parse','flatpak-alpha-data'],text=True).strip()
+                        self.assertEqual(len(pushes),2 if mode=='server_error' else 1)
+                        if mode in ('server_error','lost_success'):
+                            self.assertEqual((root/'bible-alpha-parent').read_text(),head)
+                            self.assertEqual(pushes[0][-1].split(':')[0],head)
+                            self.assertEqual(subprocess.check_output(['git','--git-dir',str(remote),'rev-parse',head+'^'],text=True).strip(),first)
+                            if mode=='server_error':self.assertIn('--no-thin',pushes[1]);self.assertEqual(pushes[0][-1],pushes[1][-1])
+                        else:
+                            self.assertEqual((root/'bible-alpha-parent').read_text(),first)
+                            self.assertEqual(head,other[0] if other else first)
+                finally:os.chdir(original)
+
     def test_only_public_files_are_pushed_and_history_round_trips(self):
         original = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:

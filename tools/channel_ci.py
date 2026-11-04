@@ -6,7 +6,9 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
+import time
 from tools.flatpak_channel import digest, run, restore_repository_layout
 
 REPO = 'icfmp/Bible'
@@ -87,7 +89,18 @@ def persist():
         arguments = ['git','commit-tree',tree,'-m','Publish signed Flatpak alpha repository']
         if parent: arguments += ['-p',parent]
         commit = subprocess.check_output(arguments,env=env,text=True).strip()
-        subprocess.run(['git','push','origin',f'{commit}:refs/heads/{DATA_BRANCH}'],check=True)
+        for attempt in range(3):
+            current = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
+            current = current.split()[0] if current else None
+            if current == commit:break  # A lost response after a successful push.
+            assert current == parent, 'Channel changed while publishing; refusing to overwrite its objects'
+            command = ['git','push'] + (['--no-thin'] if attempt else []) + ['origin',f'{commit}:refs/heads/{DATA_BRANCH}']
+            result = subprocess.run(command,capture_output=True,text=True)
+            sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
+            if result.returncode == 0:break
+            if attempt == 2 or not any(message in result.stderr for message in ('Internal Server Error','HTTP 500')):
+                raise subprocess.CalledProcessError(result.returncode,command,output=result.stdout,stderr=result.stderr)
+            time.sleep(5*(attempt+1))
         parent_state().write_text(commit)
 
 
