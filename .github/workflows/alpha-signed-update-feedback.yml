@@ -26,16 +26,16 @@ jobs:
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic ostree
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
-      - name: Install the still-published previous signed alpha
+      - name: Install and verify the previous immutable signed alpha
         run: |
           mkdir reports
           python3 - <<'PY'
           import json,urllib.request
           from pathlib import Path
-          x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
+          x=json.loads(Path('tools/fixtures/alpha19-provenance.json').read_text())
           assert x['source_commit']=='39449e0743c8e8b6fb03fbfc30a7d259046502f3',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
@@ -47,12 +47,17 @@ jobs:
             sleep 15
           done
           test "$installed" = true
+          previous_commit=$(python3 -c "import json;print(json.load(open('reports/before-provenance.json'))['flatpak_commit'])")
+          flatpak update --user --noninteractive --commit="$previous_commit" io.github.icfmp.Bible//alpha
+          ostree show --repo="$FLATPAK_USER_DIR/repo" --gpg-verify-remote=bible-alpha "$previous_commit" > reports/previous-signature.txt
           flatpak info --user io.github.icfmp.Bible//alpha > reports/installation-before.txt
           python3 - <<'PY'
           import subprocess,json
           from pathlib import Path
           x=json.loads(Path('reports/before-provenance.json').read_text())
           assert subprocess.check_output(['flatpak','info','--user','--show-commit','io.github.icfmp.Bible//alpha'],text=True).strip()==x['flatpak_commit']
+          ui_hash=subprocess.check_output(['flatpak','run','--user','--unshare=network','--command=python3','io.github.icfmp.Bible//alpha','-c',"import hashlib;from pathlib import Path;print(hashlib.sha256(Path('/app/lib/bible-python/bible/ui.py').read_bytes()).hexdigest())"],text=True).strip()
+          assert ui_hash==x['app_ui_sha256'], 'Previous application source mismatch'
           PY
       - name: Obtain frozen previously validated optional topic data
         run: |
@@ -142,7 +147,13 @@ jobs:
                   if x['source_commit']==expected and revision.endswith('-2'):
                       publication=int(revision.rsplit('-',1)[0])
                       run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
-                      if run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success':
+                      approved_publisher='e22dd2c605a6028e2329238034e92b14038734ce'
+                      assert expected=='fcfd908857c1c36e1ef0f371849e1a20a62fbeca', expected
+                      if run['head_sha'] == approved_publisher:
+                          comparison=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/compare/'+expected+'...'+approved_publisher],text=True))
+                          assert comparison['status']=='ahead'
+                          assert not any(f['filename'].startswith(('bible/','packaging/')) for f in comparison['files'])
+                      if run['head_sha'] in (expected,approved_publisher) and run['status']=='completed' and run['conclusion']=='success':
                           break
               except Exception as e:print(type(e).__name__,flush=True)
               time.sleep(15)
