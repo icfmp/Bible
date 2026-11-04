@@ -84,7 +84,8 @@ class DirectChoices(Gtk.ScrolledWindow):
                 provider=Gtk.Label(label=source,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
                 provider.add_css_class('caption');provider.add_css_class('dim-label');labels.append(provider)
             if code:
-                badge=Gtk.Label(label=code,valign=Gtk.Align.CENTER,width_chars=1,max_width_chars=12,ellipsize=Pango.EllipsizeMode.END,tooltip_text=code)
+                badge=Gtk.Label(label=code,valign=Gtk.Align.CENTER,width_chars=1,max_width_chars=12,
+                    ellipsize=Pango.EllipsizeMode.NONE if len(code)<=4 else Pango.EllipsizeMode.END,tooltip_text=code)
                 badge.add_css_class('caption');badge.add_css_class('translation-code');box.append(badge)
             check=Gtk.Image(icon_name='object-select-symbolic',opacity=0);box.append(check)
             row=Gtk.ListBoxRow(child=box)
@@ -114,6 +115,9 @@ class VersionChooser(Gtk.MenuButton):
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(self.choices)
         self.download_more=Gtk.Button(label=tr('Download more…'))
+        self.download_more.get_child().set_ellipsize(Pango.EllipsizeMode.END)
+        self.download_more.get_child().set_width_chars(1)
+        self.download_more.set_tooltip_text(tr('Download more…'))
         self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
         box.append(self.download_more)
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,visible=False);box.append(self.status)

@@ -32,6 +32,8 @@ class TranslationPickerTests(unittest.TestCase):
                     self.assertLessEqual(chooser.popover.get_child().get_width(),w.get_width())
                     text=labels.get_first_child()
                     self.assertGreaterEqual(text.get_height(),text.get_layout().get_pixel_size()[1])
+                    badge=labels.get_next_sibling()
+                    self.assertGreaterEqual(badge.get_width(),badge.create_pango_layout('ABC').get_pixel_size()[0])
                     chooser.choices.list.emit('row-activated',row);spin()
                     self.assertFalse(chooser.popover.get_visible())
                     self.assertEqual(w.active_tab.state.resource,'Test')

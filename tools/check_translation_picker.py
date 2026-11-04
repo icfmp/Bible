@@ -81,7 +81,7 @@ def main():
                     w.catalogue_window.close();spin();n.activate(w);actions.append('Download more opens contextual Library')
                     t.navigate('youversion~YV21','John.3.16');spin(lambda:not t._restoring_scroll)
                 settings.props.gtk_font_name='Sans 18';w.set_default_size(360,820);spin(lambda:not w._controls_tick,duration=.4)
-                n.click(w.primary_version);spin(duration=.3);screen.grab(args.output/'large-text-360.png')
+                n.click(w.primary_version);spin(duration=.3);n.key('Up');n.key('Down');screen.grab(args.output/'large-text-360.png')
                 if not args.baseline:assert w.primary_version.popover.get_child().get_width()<=w.get_width()
                 w.dismiss_popovers();spin()
         finally:settings.props.gtk_font_name=font;w.close();n.close()
