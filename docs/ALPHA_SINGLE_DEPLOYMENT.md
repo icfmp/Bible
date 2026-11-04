@@ -1,0 +1,9 @@
+# One alpha deployment and a retained public client
+
+The source/Flatpak CI for application `d7290ee50cb61c5e9e79b20d7a80f4768327272f` is green (`41871553894`). Publication retry `41906372662` completed both Pages deployment steps, but its final HTTPS update guard failed: the public metadata continued to serve packaging revision `41906372662-1` rather than expected `-2`. Both Pages requests returned the same source-commit deployment identifier. Earlier attempts timed out or reported cancellation. This evidence establishes an unreliable two-deployment verification path; it does not establish a general GitHub service incident.
+
+The workflow now installs and records the actual public signed client before staging the new revision, publishes once, then updates that retained client. Existing resource/note/preference sentinels survive unchanged. The updated client must have a different installed commit, the same ref/remote, enforced GPG commit and summary checks, and successful actual GTK startup. A metadata wait uses a fresh bounded request each time, retaining the exact expected commit guard.
+
+No signing identity, repository administration, application code, resource data or published tag changes. The workflow reuses the previously verified main artifact. Distribution-only checks exercise installation/update after Git restoration; targeted tests reject unchanged commits and changed retained data instead of generating a success receipt. The separate full-resource retained-profile diagnostic remains required for the delivery evidence. This infrastructure change does not itself receive an application prerelease.
+
+Local focused publication/gate tests: 11 pass. Actual workflow verification, merge, deployment and retained-profile update are pending. A passing unit test or deployed first revision is not reported as a fully delivered numbered alpha.

@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 35
     environment:
       name: github-pages
-      url: ${{ steps.second-deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       contents: write
       actions: read
@@ -70,6 +70,8 @@ jobs:
         env:
           BIBLE_FLATPAK_GPG_KEY: ${{ secrets.BIBLE_FLATPAK_GPG_KEY }}
         run: python3 -m tools.channel_ci import-key
+      - name: Retain an installed public client before publishing
+        run: python3 -m tools.validate_public_channel snapshot --base-url "$BASE_URL"
       - name: Préparer la première révision signée
         run: |
           python3 - <<'PYTHON'
@@ -86,41 +88,11 @@ jobs:
         with:
           name: github-pages-first-${{ github.run_attempt }}
           path: public
-      - name: Publier la première révision
+      - name: Publish the checked signed revision
+        id: deployment
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages-first-${{ github.run_attempt }}
-      - name: Installer depuis le flatpakref HTTPS public et lancer Bible
-        run: python3 -m tools.validate_public_channel install --base-url "$BASE_URL"
-      - name: Restaurer la publication sauvegardée dans Git avant la seconde révision
-        run: |
-          python3 - <<'PYTHON'
-          import shutil
-          from tools.channel_ci import restore
-          shutil.rmtree('public')
-          restore()
-          PYTHON
-      - name: Préparer la seconde révision contrôlée du même canal
-        run: |
-          python3 - <<'PYTHON'
-          import json, os
-          from pathlib import Path
-          from tools.flatpak_channel import prepare
-          info = json.loads(Path('incoming/verified.json').read_text())
-          prepare('incoming/Bible-alpha.flatpak','public',os.environ['BASE_URL'],
-                  Path(os.environ['RUNNER_TEMP'])/'alpha-signing-key',os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT'],
-                  info['source'],info['ci_run'],os.environ['GITHUB_RUN_ID'] + '-2', managed_storage=True)
-          PYTHON
-          python3 -m tools.channel_ci persist
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          name: github-pages-second-${{ github.run_attempt }}
-          path: public
-      - name: Publier la seconde révision
-        id: second-deployment
-        uses: actions/deploy-pages@v4
-        with:
-          artifact_name: github-pages-second-${{ github.run_attempt }}
       - name: Mettre à jour le client précédent et vérifier le nouveau commit
         run: python3 -m tools.validate_public_channel update --base-url "$BASE_URL"
       - name: Conserver les preuves publiques
@@ -130,6 +102,7 @@ jobs:
           name: alpha-public-verification
           path: |
             incoming/verified.json
+            public-before-provenance.json
             public/alpha/provenance.json
             public-install-check.json
             public-update-check.json

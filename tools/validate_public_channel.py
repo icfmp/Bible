@@ -6,21 +6,28 @@ from pathlib import Path
 import subprocess
 import time
 import urllib.request
-from tools.check_flatpak_channel import check, verify_data
+from tools.check_flatpak_channel import check, verify_data, verify_client
 from tools.flatpak_channel import APP_ID, run
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action',choices=['install','update'])
+    parser.add_argument('action',choices=['snapshot','install','update'])
     parser.add_argument('--base-url',required=True)
     args = parser.parse_args()
     assert args.base_url.startswith('https://'), 'Public validation requires HTTPS'
+    metadata_url = args.base_url.rstrip('/') + '/alpha/provenance.json'
+    if args.action == 'snapshot':
+        with urllib.request.urlopen(urllib.request.Request(metadata_url+'?before='+str(time.time_ns()),headers={'Cache-Control':'no-cache'}),timeout=20) as response:
+            previous=json.load(response)
+        Path('public-before-provenance.json').write_text(json.dumps(previous,indent=2)+'\n')
+        print(json.dumps(check(args.base_url,previous,Path('public-install-check.json').resolve()),indent=2))
+        return
     expected = json.loads(Path('public/alpha/provenance.json').read_text())
-    url = args.base_url.rstrip('/') + '/alpha/provenance.json?revision=' + expected['flatpak_commit']
+    url = metadata_url + '?revision=' + expected['flatpak_commit']
     for attempt in range(30):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=20) as response:
+            with urllib.request.urlopen(urllib.request.Request(url+'&check='+str(time.time_ns()),headers={'Cache-Control':'no-cache'}),timeout=20) as response:
                 if json.load(response)['flatpak_commit'] == expected['flatpak_commit']:
                     break
         except Exception:
@@ -39,6 +46,7 @@ def main():
         else: raise RuntimeError('flatpak update did not install the published revision')
         assert installed != old['install_commit'], 'The update must change the installed commit'
         verify_data(old['user_data_snapshot'])
+        verify_client()
         result = dict(old, user_data_preserved=True, update_commit=installed, public_update_success=True,
                       public_url=args.base_url + '/alpha/Bible.flatpakref')
         Path('public-update-check.json').write_text(json.dumps(result,indent=2) + '\n')
