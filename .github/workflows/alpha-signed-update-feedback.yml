@@ -4,6 +4,10 @@ on:
     branches: [feat/client-feedback-reading, feat/26-youversion-language-catalogue]
   workflow_dispatch:
     inputs:
+      candidate_pr:
+        description: Exact reviewed pull request number
+        required: true
+        default: '173'
       candidate_head:
         description: Exact reviewed application PR head to update to
         required: true
@@ -35,8 +39,8 @@ jobs:
           python3 - <<'PY'
           import json,urllib.request
           from pathlib import Path
-          x=json.loads(Path('tools/fixtures/alpha19-provenance.json').read_text())
-          assert x['source_commit']=='39449e0743c8e8b6fb03fbfc30a7d259046502f3',x
+          x=json.loads(Path('tools/fixtures/alpha20-provenance.json').read_text())
+          assert x['source_commit']=='fcfd908857c1c36e1ef0f371849e1a20a62fbeca',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
@@ -73,7 +77,9 @@ jobs:
           from bible.library import Library,catalogue
           from bible.notes import NoteStore
           from bible.preferences import Preferences
-          root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
+          root=Path(sys.argv[1]);root.mkdir(parents=True,exist_ok=True)
+          (root/'immersion-help.json').write_text('{"disabled":true}')
+          library=Library(root/'translations');resources=catalogue()
           for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
               if name not in library.installed():library.install(next(r for r in resources if r.name==name))
           from bible.youversion_install import acknowledgement,fetch_resource
@@ -119,12 +125,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           CANDIDATE_HEAD: ${{ inputs.candidate_head }}
+          CANDIDATE_PR: ${{ inputs.candidate_pr }}
         run: |
           python3 - <<'PY'
           import json,time,urllib.request
           from pathlib import Path
           import os,subprocess
           expected_head=os.environ['CANDIDATE_HEAD']
+          candidate_pr=os.environ['CANDIDATE_PR'];assert candidate_pr.isdigit()
           import re
           assert re.fullmatch('[0-9a-f]{40}',expected_head)
           expected=expected_head if os.environ.get('GITHUB_REF')=='refs/heads/main' else None
@@ -133,7 +141,7 @@ jobs:
                   if expected is None:
                       # The commit-to-pulls endpoint omits this merged head;
                       # verify the known reviewed PR directly, without inference.
-                      pr=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/pulls/164'],text=True))
+                      pr=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/pulls/'+candidate_pr],text=True))
                       assert pr['head']['sha']==expected_head and pr['base']['ref']=='main'
                       if not pr['merged_at']:
                           time.sleep(15);continue
@@ -144,13 +152,7 @@ jobs:
                   if x['source_commit']==expected and revision.endswith('-2'):
                       publication=int(revision.rsplit('-',1)[0])
                       run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
-                      approved_publisher='e22dd2c605a6028e2329238034e92b14038734ce'
-                      assert expected=='fcfd908857c1c36e1ef0f371849e1a20a62fbeca', expected
-                      if run['head_sha'] == approved_publisher:
-                          comparison=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/compare/'+expected+'...'+approved_publisher],text=True))
-                          assert comparison['status']=='ahead'
-                          assert not any(f['filename'].startswith(('bible/','packaging/')) for f in comparison['files'])
-                      if run['head_sha'] in (expected,approved_publisher) and run['status']=='completed' and run['conclusion']=='success':
+                      if run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success':
                           break
               except Exception as e:print(type(e).__name__,flush=True)
               time.sleep(15)
@@ -198,6 +200,7 @@ jobs:
           differences=[key for key in before if before[key]!=after[key]]
           Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
           assert not differences, 'Changed persisted components: '+str(differences)
+          assert not (root/'immersion-help.json').exists(), 'Retired hint state remains after upgrade'
           Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,highlights_preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
           PY
       - name: Log the bounded signed update and preservation receipts
