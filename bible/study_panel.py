@@ -163,7 +163,6 @@ class StudyPanel(Gtk.Box):
         self.sidebar_preferences = None
         from .word_study import WordStudy
         self.words=WordStudy(owner)
-        self.content_pages.add_named(self.words,'word')
         self.content_pages.connect('notify::visible-child-name',self.tool_changed)
         self.tool_controls()
 
@@ -230,6 +229,7 @@ class StudyPanel(Gtk.Box):
         self.owner.contextual_library('commentary','commentary')
 
     def refresh(self, force=False):
+        self.words.refresh()
         tab = self.owner.active_tab
         if tab is None:
             return

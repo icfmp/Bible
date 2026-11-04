@@ -13,6 +13,7 @@ if (Shumate.MAJOR_VERSION,Shumate.MINOR_VERSION)<(1,4):
 # Raster labels are authored by the provider: French and available international
 # Latin names. English uses that readable fallback; there is no bitmap translation.
 TILE_URL='https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
+TILE_SOURCE_ID='bible-osm-fr-latin'
 TILE_SOURCE='OpenStreetMap France'
 TILE_TERMS='https://www.openstreetmap.fr/fonds-de-carte/'
 COPYRIGHT_URL='https://www.openstreetmap.org/copyright'
@@ -35,7 +36,7 @@ class PlaceMap(Gtk.Box):
     def __init__(self,candidates):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=6,hexpand=True)
         self.candidates=tuple(c for c in candidates if c['longitude'] is not None)
-        self.canvas=None;self.layer=None;self._loaded_handler=0;self.ready=False
+        self.canvas=None;self.layer=None;self._loaded_handler=0;self.ready=False;self.camera=None
         self.status=Gtk.Label(label=tr('Loading map…'),xalign=0,wrap=True)
         self.status.add_css_class('caption');self.status.add_css_class('dim-label')
         self.retry=Gtk.Button(label=tr('Retry'),halign=Gtk.Align.START,visible=False)
@@ -54,12 +55,12 @@ class PlaceMap(Gtk.Box):
         self.canvas.set_show_zoom_buttons(True)
         self.canvas.get_license().set_visible(True) # Required visible corner credit; source link is below.
         self.canvas.update_property([Gtk.AccessibleProperty.LABEL],[tr('Modern map with proposed historical locations')])
-        source=Shumate.RasterRenderer.new_full('bible-osm-fr-latin',TILE_SOURCE,
+        source=Shumate.RasterRenderer.new_full(TILE_SOURCE_ID,TILE_SOURCE,
             '© OpenStreetMap contributors',COPYRIGHT_URL,2,18,256,Shumate.MapProjection.MERCATOR,
             Shumate.TileDownloader.new(TILE_URL))
         viewport=self.canvas.get_viewport()
         viewport.set_reference_map_source(source)
-        lat,lon,zoom=region(self.candidates,max(300,self.get_width()))
+        lat,lon,zoom=self.camera or region(self.candidates,max(300,self.get_width()))
         viewport.set_location(lat,lon);viewport.set_zoom_level(zoom)
         self.canvas.set_map_source(source)
         markers=Shumate.MarkerLayer.new(viewport)
@@ -89,6 +90,8 @@ class PlaceMap(Gtk.Box):
         if self.layer and self._loaded_handler:self.layer.disconnect(self._loaded_handler)
         self._loaded_handler=0
         if self.canvas:
+            viewport=self.canvas.get_viewport()
+            self.camera=(viewport.get_latitude(),viewport.get_longitude(),viewport.get_zoom_level())
             # Removing the native layer releases its tiles and pending work;
             # no custom downloader, periodic timer or background map survives.
             if self.layer:self.canvas.get_map().remove_layer(self.layer)

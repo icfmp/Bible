@@ -1,5 +1,5 @@
 """Deliberate lexical offers and temporary study details; no new permanent tab."""
-from gi.repository import Gtk,GLib,Pango
+from gi.repository import Adw,Gtk,Gdk,GLib,Pango
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
 from .step_data import StepData
@@ -15,11 +15,18 @@ class WordStudy(Gtk.Box):
         self.owner=owner;self.data=StepData(owner.library.root.parent/'study-data')
         self.executor=MetadataExecutor(thread_name_prefix='bible-word-study')
         self.generation=0;self.offer_generation=0;self.popover=None;self.context=None;self.pending=False
-        row=Gtk.Box(spacing=8,margin_start=12,margin_end=12)
-        self.back=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back'))
-        self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back')]);self.back.connect('clicked',lambda *_:self.leave())
-        row.append(self.back);heading=Gtk.Label(label=tr('Word study'),hexpand=True,xalign=0);heading.add_css_class('heading');row.append(heading)
+        self.dialog=None;self.futures=set()
+        row=Adw.HeaderBar(show_end_title_buttons=False)
+        self.back=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
+        self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')]);self.back.connect('clicked',lambda *_:self.leave())
+        row.pack_end(self.back);heading=Gtk.Label(label=tr('Word study'));heading.add_css_class('heading');row.set_title_widget(heading)
         self.append(row)
+        self.context_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+            margin_start=16,margin_end=16,margin_top=8,margin_bottom=8)
+        self.context_label.add_css_class('dim-label');self.append(self.context_label)
+        self.selection_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+            lines=3,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
+        self.append(self.selection_label)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12,margin_bottom=16)
         self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.scroll.set_child(self.content);self.append(self.scroll)
@@ -37,7 +44,7 @@ class WordStudy(Gtk.Box):
         button.connect('clicked',lambda *_:callback());(parent or self.content).append(button);return button
 
     def valid(self):
-        if self.owner.closed or not self.context:return False
+        if self.owner.closed or not self.context or self.dialog is None:return False
         target,tab,reference=self.context
         return (self.owner.active_tab is tab and tab.state.reference==reference
                 and target.source.resource==(tab.state.comparison if target.source.side=='comparison' else tab.state.resource)
@@ -47,57 +54,55 @@ class WordStudy(Gtk.Box):
         self.offer_generation+=1
         if self.popover:self.popover.popdown()
 
-    def offer(self,target,anchor):
-        self.dismiss_offer()
+    def offer(self,target,anchor=None):
         if not target or self.owner.closed:return
+        self.offer_generation+=1;generation=self.offer_generation
         metadata=selected_metadata(target)
-        pop=Gtk.Popover(autohide=False);pop.set_parent(anchor);self.popover=pop
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-        label=Gtk.Label(label=tr('Explore the original words of this verse'),xalign=0,wrap=True,max_width_chars=36)
-        box.append(label)
-        action=Gtk.Button(child=Gtk.Label(label=tr('Study this word') if metadata else tr('Explore the original words of this verse'),wrap=True))
-        action.connect('clicked',lambda *_:(pop.popdown(),self.open(target,metadata)))
-        box.append(action)
-        scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-            max_content_width=max(200,min(320,self.owner.get_width()-72)),propagate_natural_width=True,
-            max_content_height=max(180,min(430,self.owner.get_height()-120)),propagate_natural_height=True)
-        scroll.set_child(box);pop.set_child(scroll)
-        from .popover_dismissal import fit_reader_popover
-        pop.connect('show',lambda *_:fit_reader_popover(pop,self.owner))
-        self.owner._reading_popovers.append(pop)
-        def closed(*_):
-            if self.popover is pop:self.popover=None
-            if pop in self.owner._reading_popovers:self.owner._reading_popovers.remove(pop)
-            GLib.idle_add(lambda:pop.unparent() or False)
-        pop.connect('closed',closed);pop.popup()
-        if metadata:
-            label.set_text(tr('Strong lexical lookup. Exact STEP token or extended-sense alignment is not established.'))
-            generation=self.offer_generation;tab=self.owner.active_tab
-            def operation():
-                return [entry for identifier in metadata['identifiers'] for entry in self.data.candidates(identifier)]
-            future=self.executor.submit(operation)
-            def complete():
-                if self.owner.closed or generation!=self.offer_generation or self.popover is not pop or self.owner.active_tab is not tab:return False
-                try:
-                    entries=future.result()
-                    if len(entries)==1:label.set_text(entries[0]['lemma']+' · '+entries[0]['gloss'][:240]+'\n'+tr('English lexical content')+'\n'+tr('Strong lexical lookup. Exact STEP token or extended-sense alignment is not established.'))
-                except Exception:pass
-                return False
-            future.add_done_callback(lambda _:GLib.idle_add(complete))
+        def present():
+            if self.owner.closed or generation!=self.offer_generation:return False
+            current=target.factory()
+            if (current and self.owner.active_tab is target.source.tab
+                    and current.reader is target.source.reader and current.document.key==target.source.document.key):
+                self.open(target,metadata)
+            return False
+        # Finish the native activation before hiding its toolbar/menu anchor.
+        GLib.idle_add(present)
 
     def open(self,target,metadata=None):
         if self.owner.closed or target.source.tab is not self.owner.active_tab:return
-        if self.owner.immersion:self.owner.leave_immersion()
-        self.generation+=1;self.pending=False
-        study=self.owner.study
-        if study.tool!='word':
-            self.previous_tool=study.tool;self.previous_focus=self.owner.get_focus()
-            if self.owner.passage_actions.contains(self.previous_focus):self.previous_focus=target.view
+        previous=self.dialog;self.leave(restore_focus=False)
+        if previous:previous.set_content(None)
+        self.restore_focus=True
+        self.generation+=1;self.pending=False;self.previous_focus=target.view
         self.target=target;self.lexical_metadata=metadata
         self.context=(target,self.owner.active_tab,self.owner.active_tab.state.reference)
+        resource=self.owner.library.resource(target.source.resource)
+        self.context_label.set_text(passage_title(target.references[0],target.references[-1],target.source.reader.versification)+' — '+resource.description)
+        self.selection_label.set_text(target.text if target.native_selection else '')
+        self.selection_label.set_visible(target.native_selection)
         self.owner.passage_actions.dismiss()
-        self.owner.study_button.set_active(True);study.content_pages.set_visible_child_name('word')
-        self.clear();self.back.grab_focus();self.begin()
+        self.dialog=Adw.Window(title=tr('Word study'),transient_for=self.owner,modal=True,
+            destroy_with_parent=True,default_width=600,default_height=680)
+        self.dialog.add_css_class(self.owner.reading_style.scope+'-window')
+        self.dialog.set_content(self)
+        self.dialog.connect('close-request',self.dialog_closed)
+        keys=Gtk.EventControllerKey()
+        keys.connect('key-pressed',lambda _,key,*args:(self.leave() or True) if key==Gdk.KEY_Escape else False)
+        self.dialog.add_controller(keys)
+        self.begin();self.dialog.present();self.back.grab_focus()
+
+    def dialog_closed(self,*_):
+        dialog=self.dialog;self.dialog=None;self.generation+=1;self.pending=False;self.context=None
+        for future in self.futures:future.cancel()
+        self.futures.clear();self.owner.reference_preview.dismiss()
+        focus=getattr(self,'previous_focus',None)
+        restore=self.restore_focus
+        def detached():
+            if dialog and dialog.get_content() is self:dialog.set_content(None)
+            if restore and not self.dialog and not self.owner.closed and focus and focus.get_mapped():focus.grab_focus()
+            return False
+        GLib.idle_add(detached)
+        return False
 
     def begin(self):
         self.clear()
@@ -115,15 +120,17 @@ class WordStudy(Gtk.Box):
 
     def download(self):
         from .study_resources import STEP_RESOURCE_ID
+        self.leave(restore_focus=False)
         window=self.owner.open_library('study')
         window.reveal_study_resource(STEP_RESOURCE_ID)
 
     def request(self,operation,complete):
         self.generation+=1;generation=self.generation;self.pending=True
         status=self.label(tr('Loading study data…'));self.content.append(status)
-        future=self.executor.submit(operation)
+        future=self.executor.submit(operation);self.futures.add(future)
         def finished():
-            if generation!=self.generation or not self.valid() or self.owner.study.tool!='word':return False
+            self.futures.discard(future)
+            if generation!=self.generation or not self.valid():return False
             self.pending=False
             if status.get_parent() is self.content:self.content.remove(status)
             try:complete(future.result())
@@ -131,7 +138,7 @@ class WordStudy(Gtk.Box):
                 label=self.label(tr('Word study unavailable. Ordinary reading is unchanged.'));label.set_tooltip_text(str(error));self.content.append(label)
                 self.button(tr('Download study data'),self.download)
             return False
-        future.add_done_callback(lambda _:GLib.idle_add(finished))
+        future.add_done_callback(lambda _:GLib.idle_add(finished) if self.context and generation==self.generation else None)
 
     def lexical_choices(self,entries):
         unique={entry['id']:entry for entry in entries}
@@ -270,21 +277,17 @@ class WordStudy(Gtk.Box):
         yield from walk(self.content)
 
     def all_occurrences(self,corpus,entry):
+        resource=self.target.source.resource;self.leave(restore_focus=False)
         navigation=self.owner.navigation
         self.owner.choose_passage();navigation.modes.set_visible_child_name('text')
-        navigation.text_search.show_lemma(corpus,entry['id'],entry['lemma']+' · '+tr('Lemma occurrences'),self.target.source.resource)
+        navigation.text_search.show_lemma(corpus,entry['id'],entry['lemma']+' · '+tr('Lemma occurrences'),resource)
+        navigation.text_search.entry.grab_focus()
 
-    def leave(self):
-        self.generation+=1;self.pending=False;self.owner.reference_preview.dismiss()
-        self.owner.study.tools.set_visible_child_name(getattr(self,'previous_tool','notes'))
-        self.owner.study.content_pages.set_visible_child_name('tools')
-        focus=getattr(self,'previous_focus',None)
-        if focus and focus.get_mapped():focus.grab_focus()
-        self.context=None
+    def leave(self,restore_focus=True):
+        if self.dialog:self.restore_focus=restore_focus;self.dialog.close()
 
     def refresh(self):
-        if self.owner.study.tool=='word':
-            if not self.valid():self.leave()
+        if self.dialog and not self.valid():self.leave(restore_focus=False)
 
     def close(self):
-        self.generation+=1;self.dismiss_offer();self.executor.shutdown(wait=False,cancel_futures=True)
+        self.leave();self.generation+=1;self.dismiss_offer();self.executor.shutdown(wait=False,cancel_futures=True)

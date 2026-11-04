@@ -124,7 +124,10 @@ class ReadingStyle:
         import json
         study_family=json.dumps(self.owner.preferences.value.study_font,ensure_ascii=False)
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
+        from .highlights import COLORS
+        swatches=''.join('.passage-actions .highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
         self.css = f'''
+{swatches}
 /* Native edge glow can synchronously JIT-compile a radial-gradient program
    on software OpenGL during wheel reversal. Keep native scrolling without it. */
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}

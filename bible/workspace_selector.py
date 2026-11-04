@@ -9,10 +9,20 @@ class WorkspaceSelector(SegmentedChoice):
         super().__init__([tr('Bible'),tr('Notes')],1 if notes else 0)
         self.add_css_class('workspace-selector')
         self.owner=owner;self.syncing=False
+        self.compact=False
         self.set_selected(1 if notes else 0)
         self.update_property([Gtk.AccessibleProperty.LABEL],[tr('Application space')])
         self.connect('changed',self.changed)
         if hasattr(owner,'main_pages'):owner.main_pages.connect('notify::visible-child-name',lambda *_:self.sync())
+
+    def set_compact(self,compact):
+        if compact==self.compact:return
+        self.compact=compact
+        for button,label,icon in zip(self.buttons,('Bible','Notes'),('accessories-dictionary-symbolic','bible-notes-symbolic')):
+            if compact:button.set_icon_name(icon)
+            else:button.set_label(tr(label))
+            button.set_tooltip_text(tr(label))
+            button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
 
     def sync(self):
         if not hasattr(self.owner,'main_pages'):return

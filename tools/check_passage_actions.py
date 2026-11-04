@@ -101,10 +101,9 @@ def main():
             spin(lambda:actions.target is not None)
             assert actions.target.source.resource==secondary
             assert actions.target.source.reader.versification==system
-            if actions.highlight_button:
+            if actions.highlight_buttons:
                 saved=actions.target
-                native.click(actions.highlight_button)
-                native.click(actions.highlight_popover.get_child().get_first_child())
+                native.click(actions.highlight_buttons['yellow'][0])
                 for reference in saved.references:
                     mark=window.highlights.entries[(system,reference)]
                     assert mark['resource']==secondary and mark['color']=='yellow'
@@ -114,8 +113,9 @@ def main():
             assert editor.context['origin_translation']==secondary and editor.context['versification']==system
             editor.close();spin()
             capture(args.prefix+'-comparison.png')
-            native.click(actions.compare_button)
-            assert tab.state.resource==primary and tab.state.reference=='Gen.1.2'
+            previous_reference=tab.state.reference
+            native.click(window.compared_version)
+            assert tab.state.resource==primary and tab.state.comparison==secondary and tab.state.reference==previous_reference
             assert window.compared_version.popover.get_visible();native.key('Escape')
             actions.dismiss();tab.state.comparison=None;tab.refresh_comparison()
             tab.navigate(primary,'Gen.1.1');spin(lambda:not tab._restoring_scroll)
@@ -133,7 +133,7 @@ def main():
             native.key('Escape');assert window.immersion is None
             print('PASS: native single click without actions, completed drag, exact partial Copy menu, retained selection, '
                   'keyboard extension without focus theft, nested Escape, comparison note source/versification, '
-                  'mapped Compare and immersive action/close lifecycle',flush=True)
+                  'pane-local comparison selection and immersive action/close lifecycle',flush=True)
         finally:window.close();native.close()
 
 

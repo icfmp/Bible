@@ -565,7 +565,7 @@ class CatalogueWindow(Adw.Window):
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr("Failed"))
                 self._failed_resource=resource.id if resource else None
-                context=(resource.id+': ') if resource else ''
+                context=((plain(resource.description)+' ('+resource.name+'): ') if resource.provider_id=='youversion' else resource.id+': ') if resource else ''
                 message=str(error)
                 if resource and resource.kind=='study':
                     from .reference_data import ReferenceDataError

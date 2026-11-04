@@ -81,8 +81,8 @@ class Window(Adw.ApplicationWindow):
         def constrain_labels(widget,maximum=18):
             if isinstance(widget,Gtk.Label):
                 widget.set_max_width_chars(maximum);widget.set_width_chars(1)
-                widget.set_wrap(True);widget.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
-                widget.set_ellipsize(Pango.EllipsizeMode.NONE)
+                widget.set_wrap(False)
+                widget.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
             child=widget.get_first_child()
             while child:
                 constrain_labels(child,maximum);child=child.get_next_sibling()
@@ -90,7 +90,7 @@ class Window(Adw.ApplicationWindow):
         self.heading.set_halign(Gtk.Align.FILL);self.heading.set_hexpand(True)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
-        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic'))
+        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
         self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr('Choose a passage'))
         self.passage_button.set_can_shrink(True)
         self.passage_button.add_css_class('flat')
@@ -159,7 +159,8 @@ class Window(Adw.ApplicationWindow):
         self.reader_overflow=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Reading tools'),visible=False)
         self.reader_overflow_box=Gtk.Box(spacing=6,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
-        self._reading_popovers.append(overflow)
+        self._reading_popovers.extend((overflow,self.menu.get_popover()))
+        self.reading_tools_menu=self.reader_overflow
         self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
         def move_tools(*_):
@@ -181,15 +182,28 @@ class Window(Adw.ApplicationWindow):
             elif not enabled and parent is self.reader_overflow_box:
                 self.reader_overflow_box.remove(self.study_button)
                 header.remove(self.header_tools);header.pack_end(self.study_button);header.pack_end(self.header_tools)
+            parent=self.new_tab_button.get_parent()
+            if enabled and parent is not self.reader_overflow_box:
+                header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
+            elif not enabled and parent is self.reader_overflow_box:
+                self.reader_overflow_box.remove(self.new_tab_button);header.pack_start(self.new_tab_button)
+        def tools_in_main_menu(tiny):
+            parent=self.reader_overflow_box.get_parent()
+            menu_box=self.menu.get_popover().get_child().get_child()
+            if tiny and parent is not menu_box:
+                overflow.set_child(None);menu_box.prepend(self.reader_overflow_box)
+            elif not tiny and parent is menu_box:
+                menu_box.remove(self.reader_overflow_box);overflow.set_child(self.reader_overflow_box)
+            self.reading_tools_menu=self.menu if tiny else self.reader_overflow
+            self.header_tools.set_visible(not tiny)
+            self.menu.get_popover().set_autohide(not tiny)
         def compact_applied(breakpoint,tiny):
             self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
-            if self.header_title.get_parent() is not self.compact_title:
-                header.set_title_widget(Gtk.Box())
-                self.compact_title.append(self.header_title)
-            self.compact_title.set_visible(True)
+            self.space_selector.set_compact(tiny);tools_in_main_menu(tiny)
             self.queue_controls()
         def compact_removed(*_):
             self.space_selector.remove_css_class('compact-space');study_in_overflow(False)
+            self.space_selector.set_compact(False);tools_in_main_menu(False)
             if self.header_title.get_parent() is self.compact_title:
                 self.compact_title.remove(self.header_title)
                 header.set_title_widget(self.header_title)
@@ -200,7 +214,7 @@ class Window(Adw.ApplicationWindow):
             compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}sp'))
             compact_tools.add_setter(self.reader_controls,'visible',False)
             compact_tools.add_setter(self.reader_overflow,'visible',True)
-            compact_tools.add_setter(self.header_title,'orientation',Gtk.Orientation.VERTICAL)
+            compact_tools.add_setter(self.header_title,'spacing',4)
             compact_tools.add_setter(header,'decoration-layout',':close')
             compact_tools.connect('apply',compact_applied,tiny)
             compact_tools.connect('unapply',compact_removed)
@@ -263,7 +277,7 @@ class Window(Adw.ApplicationWindow):
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
-                           b'.compact-space button { padding-left: 4px; padding-right: 4px; } '
+                           b'.compact-space button { padding-left: 2px; padding-right: 2px; } '
                            b'.annotation-navigation { background-color: @sidebar_bg_color; color: @sidebar_fg_color; } '
                            b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
                            b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
@@ -437,7 +451,7 @@ class Window(Adw.ApplicationWindow):
 
     def open_reading_popup(self,button):
         if button.get_parent() is self.reader_overflow_box:
-            self.reader_overflow.popup()
+            self.reading_tools_menu.popup()
             def show():
                 if not self.closed and self.reader_overflow_box.get_mapped():button.popup()
                 return False
@@ -660,20 +674,15 @@ class Window(Adw.ApplicationWindow):
     def switch_translation(self,name):
         """A missing correspondence does not make the target unreadable."""
         from .sword_provider import Reader
-        from .reference_resolution import resolve,VersificationMismatch
+        from .reference_resolution import resolve,available_chapter
         tab=self.active_tab
         if not tab:return False
-        reader=Reader(self.library.root/name,name);independent=False
+        reader=Reader(self.library.root/name,name)
         try:
             reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
-        except VersificationMismatch:
-            # This is an explicit resource-opening action. Do not transfer an
-            # unverified printed reference or change the strict shared resolver.
-            reference=reader.first_reference();independent=True
+        except ValueError:
+            reference=available_chapter(tab.state.reference,reader) or reader.first_reference()
         if not self.navigate_selection(name,reference):return False
-        if independent:
-            tab.status.set_text(tr('The current passage cannot be matched reliably in this translation. Its first available passage is open; you can choose another passage.'))
-            tab.status.set_visible(True)
         return True
 
     def step_chapter(self, direction):
@@ -820,7 +829,7 @@ class Window(Adw.ApplicationWindow):
 
     def toggle_study(self, *_):
         if not self._syncing_study:
-            if self.study_button.get_parent() is self.reader_overflow_box:self.reader_overflow.popdown()
+            if self.study_button.get_parent() is self.reader_overflow_box:self.reading_tools_menu.popdown()
             self.split.set_show_sidebar(self.study_button.get_active())
 
     def sync_header_controls(self):

@@ -27,6 +27,38 @@ def source_canon(system):
     return json.loads((Path(__file__).parent/'versification_data'/(system+'.json')).read_text())['canon']
 
 
+def converted_chapters(archive,edition):
+    """Join consecutive physical sections of one explicitly numbered chapter.
+
+    Every physical file is parsed and retained in the source receipt. Duplicate
+    verse identities still fail the ordinary inventory/readback checks below.
+    No chapter or verse numbers are invented from the position in the archive.
+    """
+    current=None;seen=set()
+    for chapter in archive_chapters(archive,edition,complete=True):
+        try:
+            xml,_=to_osis(chapter,edition);root=E.fromstring(xml)
+        except ValueError as error:
+            raise ValueError(chapter['member']+': '+str(error)) from error
+        ref=chapter['reference'];identity=ref if '.INTRO' in ref else osis_ref(ref)
+        if current and current[0]!=identity:
+            yield current[1],current[2],current[3]
+            seen.add(current[0]);current=None
+        if identity in seen:raise ValueError('Non-contiguous source chapter sections: '+ref)
+        if current:
+            first=current[2].find('{'+NS+'}osisText/{'+NS+'}div/{'+NS+'}chapter')
+            extra=root.find('{'+NS+'}osisText/{'+NS+'}div/{'+NS+'}chapter')
+            if first is None or extra is None:raise ValueError('Duplicate source introduction: '+ref)
+            identities=lambda parent:{ref for node in parent.iter() if node.tag=='{'+NS+'}verse' and node.get('sID')
+                                       for ref in node.get('osisID').split()}
+            if identities(first)&identities(extra):
+                raise ValueError('Overlapping source chapter sections: '+current[1]['reference']+' / '+ref)
+            for child in extra:first.append(child)
+            current[3].append(chapter)
+        else:current=(identity,chapter,root,[chapter])
+    if current:yield current[1],current[2],current[3]
+
+
 def build(archive,metadata,target,compiler,identifier=21):
     name=module_id(identifier);system=storage_system(identifier)
     edition=read_edition(json.loads(metadata.read_text()),identifier)
@@ -42,7 +74,7 @@ def build(archive,metadata,target,compiler,identifier=21):
             book=BOOKS[entry['usfm']]
             role=entry.get('canon')
             if role not in ('ot','nt','dc','ap'):raise ValueError('Unknown source testament')
-            numbers=[int(ref.rsplit('.',1)[1]) for ref in edition.chapters if ref.startswith(entry['usfm']+'.') and '.INTRO' not in ref]
+            numbers=[int(ref.rsplit('.',1)[1].split('_')[0]) for ref in edition.chapters if ref.startswith(entry['usfm']+'.') and '.INTRO' not in ref]
             if not numbers or max(numbers)>255:raise ValueError('Invalid source chapter inventory')
             canon[book]=[0]*max(numbers);testaments[book]=2 if role=='nt' else 1
         # Keep the returned book order inside each native testament.
@@ -50,12 +82,14 @@ def build(archive,metadata,target,compiler,identifier=21):
     total=len(edition.chapters)
     osis=target.parent/'edition.osis.xml'
     with osis.open('wb') as output:
-        for done,chapter in enumerate(archive_chapters(archive,edition,complete=True),1):
+        done=0
+        for chapter,root,parts in converted_chapters(archive,edition):
+            done+=len(parts)
             ref=chapter['reference'];code,number=ref.split('.')
-            source_index.append(dict(reference=ref,source_language=chapter['source_language'],encoded_sha256=chapter['encoded_sha256'],
-                                     html_sha256=chapter['html_sha256']))
+            for part in parts:
+                source_index.append(dict(reference=part['reference'],source_language=part['source_language'],encoded_sha256=part['encoded_sha256'],
+                                         html_sha256=part['html_sha256']))
             book=BOOKS[code]
-            xml,_=to_osis(chapter,edition);root=E.fromstring(xml)
             text=root.find('{'+NS+'}osisText');division=text.find('{'+NS+'}div')
             if done==1:
                 header=text.find('{'+NS+'}header')
@@ -77,9 +111,9 @@ def build(archive,metadata,target,compiler,identifier=21):
                 members=[item for unit in units for item in unit]
                 maximum=max((int(item.rsplit('.',1)[1]) for item in members),default=0)
                 if (not members or len(members)!=len(set(members)) or maximum>2000 or
-                        known and maximum!=canon[book][int(number)-1]):
-                    raise ValueError('Source chapter numbering changed')
-                if not known:canon[book][int(number)-1]=maximum
+                        known and maximum!=canon[book][int(number.split('_')[0])-1]):
+                    raise ValueError('Overlapping or unsupported source verse identities: '+ref)
+                if not known:canon[book][int(number.split('_')[0])-1]=maximum
                 order=[int(item.rsplit('.',1)[1]) for item in members]
                 if order!=sorted(order):verse_order[chapter_ref]=order
                 check=dict(ref=chapter_ref,intro=False,units=units,

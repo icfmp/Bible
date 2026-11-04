@@ -63,9 +63,12 @@ def main():
             from tools.check_passage_actions import hold
             hold(native,'Shift_L',True);native.key('Right');hold(native,'Shift_L',False)
             spin(lambda:w.passage_actions.target is not None)
-            actions=w.passage_actions;native.click(actions.highlight_button);native.key('Escape');spin()
+            actions=w.passage_actions;native.key('Escape');spin()
             assert not w.highlights.entries
-            native.click(actions.highlight_button);native.click(actions.highlight_popover.get_child().get_first_child());spin()
+            assert not actions.bar.get_visible()
+            hold(native,'Shift_L',True);native.key('Right');hold(native,'Shift_L',False)
+            spin(lambda:actions.target is not None)
+            native.click(actions.highlight_buttons['yellow'][0]);spin()
             assert w.highlights.entries[('KJV','Acts.1.23')]['color']=='yellow'
             native.click(actions.note_button);spin()
             assert w.note_editor and w.note_editor.context['start']=='Acts.1.23'

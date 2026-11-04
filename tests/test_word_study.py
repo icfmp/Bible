@@ -32,7 +32,9 @@ class WordStudyTests(unittest.TestCase):
                 history=list(tab.state.history);reference=tab.state.reference
                 words=window.study.words;words.open(value)
                 spin(lambda:not words.pending,duration=.2)
-                self.assertEqual(window.study.tool,'word');self.assertFalse(window.study.tools_switcher.get_visible())
+                self.assertEqual(window.study.tool,'notes');self.assertTrue(window.study.tools_switcher.get_visible())
+                self.assertTrue(words.dialog.get_visible());self.assertTrue(words.dialog.get_modal())
+                self.assertIs(words.dialog.get_transient_for(),window)
                 self.assertIs(window.study.notes.editor,editor)
                 buttons=[c for c in words.children() if hasattr(c,'emit') and c.__class__.__name__=='Button']
                 self.assertTrue(buttons)
@@ -46,6 +48,8 @@ class WordStudyTests(unittest.TestCase):
                 search=window.navigation.text_search;spin(lambda:not search.pending,duration=.3)
                 self.assertEqual(search.lemma_query,('tagnt-na27','G3056'))
                 self.assertEqual([r.start for r in search.rows],['John.1.1','Acts.1.1'])
+                focus=window.get_focus()
+                self.assertTrue(focus is search.entry or focus.is_ancestor(search.entry))
                 window.navigation.popdown();words.leave();spin()
                 self.assertEqual(window.study.tool,'notes')
                 self.assertEqual(editor.body.get_buffer().props.text,'Unsaved draft kept')

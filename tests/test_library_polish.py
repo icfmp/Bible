@@ -97,10 +97,10 @@ class LibraryPolishTests(unittest.TestCase):
     def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self):
         installed_fixture(self.root)
         w=self.window;w.navigate_selection('Test','Gen.1.1');w.main_pages.set_visible_child_name('reading');w.set_default_size(360,700);spin()
-        w.reader_overflow.popup();spin(lambda:w.reader_overflow_box.get_mapped())
+        w.reading_tools_menu.popup();spin(lambda:w.reader_overflow_box.get_mapped())
         for button in [w.new_tab_button,w.space_selector,w.study_button]:
             self.assertTrue(button.get_visible());self.assertTrue(button.get_mapped())
-        w.reader_overflow.popdown()
+        w.reading_tools_menu.popdown()
         self.assertFalse(w.tab_new_button.get_visible())
         before=w.view.get_n_pages();w.new_tab_button.emit('clicked');self.assertEqual(w.view.get_n_pages(),before+1)
         w.space_selector.set_selected(1);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')

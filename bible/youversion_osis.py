@@ -25,11 +25,11 @@ BOOKS.update(dict(zip(
 INLINE = {'content', 'verse', 'label', 'note', 'body', 'fr', 'ft', 'fqa',
           'fq', 'fv', 'ord', 'tl', 'bk', 'em',
           'ref', 'qt', 'wj', 'w', 'heading', 'it', 'bd', 'bdit', 'sc', 'add', 'nd', 'br'}
-INLINE |= {'qs','ior','pn','fk','sls'}
-BLOCK = {'p', 'm', 'ip', 'pm', 'nb', 'd', 'b', 'ib', 'ie', 'imt',
+INLINE |= {'qs','ior','pn','fk','sls','fdc','dc','vp'}
+BLOCK = {'p', 'm', 'ip', 'im', 'pm', 'nb', 'd', 'b', 'ib', 'ie', 'imt',
          'li1', 'li2', 'ili1', 'ili2',
          's1', 's2', 's3', 'ms1', 'r', 'q1', 'q2', 'q3', 'q4'}
-BLOCK |= {'s','ms','ms2','mr','imt1','imt2','imt3','is1','ipi','io1','io2',
+BLOCK |= {'s','ms','ms2','mr','imt1','imt2','imt3','is','is1','ipi','imi','io1','io2','li',
           'q','qa','qr','qc','pi','pi1','pc','lf','iex','table','row','cell','iot',
           'io','io3','ili','iq','iq1','iq2','iq3','is2','ipr','cl','s4','sp','pr'}
 
@@ -42,7 +42,9 @@ def osis_ref(source):
     """Only explicit single refs or explicit plus-joined refs; no guessed ranges."""
     out = []
     for item in source.split('+'):
-        m = re.fullmatch(r'([A-Z0-9]{3})\.([1-9][0-9]*)(?:\.([1-9][0-9]*))?', item)
+        # Source section suffixes split one numbered chapter into consecutive
+        # physical files. Verse identifiers retain the chapter's own numbering.
+        m = re.fullmatch(r'([A-Z0-9]{3})\.([1-9][0-9]*)(?:_[1-9][0-9]*)?(?:\.([1-9][0-9]*))?', item)
         if not m or m[1] not in BOOKS:
             raise Unsupported(f'Unsupported source reference: {source}')
         out.append('.'.join(x for x in (BOOKS[m[1]], m[2], m[3]) if x))
@@ -202,6 +204,11 @@ class Writer:
                 raise Unsupported('Reference without explicit target')
             self.parts(node.parts, element(parent, 'reference', osisRef=osis_ref(target)), in_note)
             return
+        if k in {'fdc','dc','vp'}:
+            if k=='fdc' and not in_note:raise Unsupported('Footnote-only content outside a note')
+            role='x-source-published-verse-number' if k=='vp' else 'x-source-deuterocanonical'
+            self.parts(node.parts,element(parent,'seg',type=role),in_note)
+            return
         if k == 'br':
             element(parent, 'lb')
             return
@@ -241,7 +248,7 @@ class Writer:
         lg = None
         source_list = None
         for index,block in enumerate(blocks):
-            k = {'s':'s1','ms':'ms1','q':'q1','imt':'imt1','pi':'pi1',
+            k = {'s':'s1','ms':'ms1','q':'q1','imt':'imt1','pi':'pi1','li':'li1','is':'is1','imi':'ipi',
                  'io':'io1','ili':'ili1','iq':'iq1'}.get(block.kind,block.kind)
             def contains_verse(node):
                 return isinstance(node,Node) and (node.kind=='verse' or any(contains_verse(child) for child in node.parts))
@@ -267,7 +274,7 @@ class Writer:
                 if following != self.active_source:self.close(parent)
                 if following:self.note_context=self.verse_ids(following)[0]
                 target = element(parent, 'title', type='parallel')
-            elif k in {'p', 'm', 'ip'}:
+            elif k in {'p', 'm', 'ip', 'im'}:
                 target = element(parent, 'p')
             elif k in {'pm','nb'}:
                 target=element(parent,'p',type='x-embedded' if k=='pm' else 'x-no-break')

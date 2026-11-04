@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from bible.reference_data import Relationship
+from bible.i18n import tr
 from tests.test_ui import installed_fixture,spin,close_test_dialogs
 
 
@@ -29,7 +30,7 @@ class StudySearchTests(unittest.TestCase):
         panel.launch(lambda:([Relationship('John.3.16','John.3.16',0,1)],1),'new','KJV');release.set()
         spin(lambda:not panel.pending)
         self.assertEqual([row.start for row in panel.rows],['John.3.16'])
-        self.assertEqual(panel.heading.get_text(),'new');self.assertIsNone(self.window.reference_preview.popover)
+        self.assertEqual(panel.heading.get_text(),tr('{count} result').format(count=1));self.assertIsNone(self.window.reference_preview.popover)
         self.assertEqual(self.window.active_tab.state.reference,'John.1.1')
 
     def test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable(self):

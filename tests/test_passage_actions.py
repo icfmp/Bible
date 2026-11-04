@@ -26,6 +26,12 @@ class PassageActionTests(unittest.TestCase):
                 self.assertEqual(actions.target.references,('Gen.1.2','Gen.1.3'))
                 self.assertEqual(actions.target.source.resource,'Other')
                 self.assertEqual(actions.target.source.reader.versification,'Segond')
+                from bible.highlights import COLORS
+                self.assertEqual(set(actions.highlight_buttons),set(COLORS))
+                for color in ('yellow','green','green','blue'):
+                    actions.highlight_buttons[color][0].emit('clicked')
+                    self.assertEqual([window.highlights.entries[('Segond',ref)]['color'] for ref in actions.target.references],[color,color])
+                self.assertFalse(hasattr(actions,'compare_button'))
                 copied=[];expected=actions.target.text;actions.copy()
                 window.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
                 spin(lambda:bool(copied));self.assertEqual(copied[0],expected)
@@ -38,7 +44,9 @@ class PassageActionTests(unittest.TestCase):
                 # A new selection must invalidate the old frozen action target.
                 changed=tab._comparison_markers['Gen.1.4']
                 buffer.select_range(buffer.get_iter_at_offset(changed),buffer.get_iter_at_offset(changed+5))
-                self.assertFalse(actions.valid());actions.copy();self.assertFalse(actions.bar.get_visible())
+                self.assertFalse(actions.valid());actions.study_word();spin()
+                self.assertIsNone(window.study.words.dialog)
+                actions.copy();self.assertFalse(actions.bar.get_visible())
                 self.assertEqual(tab.state.resource,'Test')
                 if not hasattr(window,'highlights'):self.assertIsNone(actions.highlight_button)
             finally:window.close()

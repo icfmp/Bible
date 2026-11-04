@@ -273,7 +273,10 @@ class OriginalNativeTests(unittest.TestCase):
         check()
         for system in ('YouVersion93','YouVersion131'):
             self.assertIsNotNone(table(system))
-            self.assertEqual(to_base('John.1.1',system),[])
+            self.assertEqual(to_base('John.1.1',system),['John.1.1'] if system=='YouVersion93' else [])
+        # Same printed numbering alone is still not an alignment capability.
+        self.assertEqual(to_base('Gen.12.1','YouVersion93'),[])
+        self.assertEqual(to_base('Ps.3.2','YouVersion93'),to_base('Ps.3.2','Segond'))
         key=Sword.VerseKey();key.setAutoNormalize(False);key.setVersificationSystem('YouVersion93')
         key.setText('Mark.10.53');self.assertEqual(key.getOSISRef(),'Mark.10.53')
         self.assertEqual(key.popError(),'\x00')

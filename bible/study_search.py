@@ -1,6 +1,6 @@
 """Topics and literal text in the existing passage selector, with local previews."""
 from .metadata_workers import MetadataExecutor
-from gi.repository import Gtk,GLib,Gio,GObject,Pango
+from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr,LANGUAGE
 from .topic_vocabulary import VOCABULARY,suggestions,title
 from .topic_data import TopicData,SOURCE_URL,LICENSE_URL,TRANSFORMATIONS
@@ -24,22 +24,35 @@ class StudySearch(Gtk.Box):
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
         self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
-        self.entry.connect('search-changed',self.changed);self.append(self.entry)
+        self.entry.connect('search-changed',self.changed)
+        query=Gtk.Box(spacing=6);self.entry.set_hexpand(True);query.append(self.entry);self.append(query)
         self.source=Gtk.DropDown(enable_search=True)
         from .version_chooser import bounded_choices
         bounded_choices(self.source);self.source.set_enable_search(True)
         self.source.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search translation')])
         self.source.connect('notify::selected',self.source_changed)
-        self.source.set_visible(mode=='text');self.append(self.source)
+        self.source.set_visible(mode=='text')
         self.scope=Gtk.DropDown();self.scope_names=['all']
         self.scope.connect('notify::selected',lambda *_:self.changed())
         self.scope.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search scope')])
-        self.scope.set_visible(mode=='text');self.append(self.scope)
+        self.scope.set_visible(mode=='text')
+        filters=(Adw.WrapBox(child_spacing=12,line_spacing=6,natural_line_length=360)
+                 if hasattr(Adw,'WrapBox') else Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6))
+        filters.set_visible(mode=='text')
+        for label,widget in [('Search translation',self.source),('Search scope',self.scope)]:
+            group=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,hexpand=True)
+            caption=Gtk.Label(label=tr(label),xalign=0);caption.add_css_class('caption');group.append(caption);group.append(widget);filters.append(group)
+        self.append(filters)
         self.submit=Gtk.Button(label=tr('Search'));self.submit.connect('clicked',self.run_text)
         self.entry.connect('activate',self.run_text if mode=='text' else self.activate_first)
-        self.submit.set_visible(mode=='text');self.append(self.submit)
+        self.submit.set_visible(mode=='text');query.append(self.submit)
         self.explanation=Gtk.Label(xalign=0,wrap=True,max_width_chars=55)
-        self.explanation.add_css_class('caption');self.append(self.explanation)
+        self.explanation.add_css_class('caption')
+        self.explanation.set_margin_start(12);self.explanation.set_margin_end(12);self.explanation.set_margin_top(12);self.explanation.set_margin_bottom(12)
+        help_button=Gtk.MenuButton(icon_name='help-about-symbolic',tooltip_text=tr('Search syntax'))
+        help_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search syntax')])
+        help_button.add_css_class('flat');help_button.set_visible(mode=='text')
+        help_pop=Gtk.Popover();help_pop.set_child(self.explanation);help_button.set_popover(help_pop);query.append(help_button)
         self.status=Gtk.Label(xalign=0,wrap=True,max_width_chars=55);self.append(self.status)
         self.download=Gtk.Button(label=tr('Download topic data'));self.download.connect('clicked',self.open_library);self.append(self.download)
         self.topic_model=Gio.ListStore.new(SearchItem)
@@ -101,7 +114,7 @@ class StudySearch(Gtk.Box):
         self._submitted_query=None
         self.generation+=1;self.pending=False;self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
         if hasattr(self.owner,'reference_preview'):self.owner.reference_preview.dismiss()
-        self.heading.set_text('');self.status.set_tooltip_text(None)
+        self.heading.set_text('');self.status.set_tooltip_text(None);self.status.set_visible(True)
 
     def refresh(self):
         names=self.owner.library.installed('bible')
@@ -208,7 +221,7 @@ class StudySearch(Gtk.Box):
     def launch(self,operation,caption,source_system,append=False):
         if not append:self.invalidate()
         if not self.capture_context():return
-        self.source_system=source_system;self.pending=True;self.status.set_text(tr('Searching…'));self.heading.set_text(caption)
+        self.source_system=source_system;self.pending=True;self.status.set_visible(True);self.status.set_text(tr('Searching…'));self.heading.set_text(caption if self.mode=='topics' else '')
         generation=self.generation;epoch=self.epoch;future=self.executor.submit(operation);self.future=future
         def complete():
             if self.owner.closed or generation!=self.generation or epoch!=self.epoch:return False
@@ -222,7 +235,10 @@ class StudySearch(Gtk.Box):
                     self.rows=rows
                     self.model.splice(0,self.model.get_n_items(),[SearchItem((row,generation)) for row in self.rows])
                 self.more.set_visible(self.mode=='text' and len(self.rows)<total)
-                self.status.set_text(tr('Showing {count} of {total} results.').format(count=len(self.rows),total=total) if self.rows else tr('No matching passages.'))
+                count=tr('{count} passage' if total==1 else '{count} passages').format(count=total) if self.mode=='topics' else tr('{count} result' if total==1 else '{count} results').format(count=total)
+                self.heading.set_text(caption+' · '+count if self.mode=='topics' else count)
+                self.status.set_text(tr('No matching passages.') if not self.rows else '')
+                self.status.set_visible(not self.rows)
             except Exception as error:
                 self.status.set_text(tr('Search unavailable. Check the installed resource and try again.'));self.status.set_tooltip_text(str(error))
                 self.download.set_visible(self.mode=='topics')
@@ -319,9 +335,9 @@ class StudySearch(Gtk.Box):
                 attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.change(attribute)
             excerpt.set_attributes(attributes)
         excerpt.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR);excerpt.set_xalign(1 if reader.rtl else 0)
-        score=excerpt.get_next_sibling();score.set_visible(True)
-        score.set_text(tr('Source quality score: {score}').format(score=row.score) if self.mode=='topics' else
-                       tr('Close match') if getattr(row,'kind','strict')=='close' else tr('Matches all search terms') if not self.lemma_query else '')
+        score=excerpt.get_next_sibling()
+        close=self.mode=='text' and not self.lemma_query and getattr(row,'kind','strict')=='close'
+        score.set_visible(close);score.set_text(tr('Close match') if close else '')
 
     def preview(self,button):
         row,generation=button._result

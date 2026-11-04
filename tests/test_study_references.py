@@ -115,19 +115,19 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(len(button._reference_labels),2)
         self.assertEqual(len(refs.rows),2);self.assertFalse(refs.view_all.get_visible())
 
-    def test_inline_footer_exact_total_expand_and_return_preserve_source_and_order(self):
+    def test_all_references_and_inline_credit_preserve_source_order_and_reader(self):
         from bible.reference_data import Relationship
         self.install();refs=self.show();w=self.window;tab=w.active_tab
         rows=[Relationship(f'John.3.{i+1}',f'John.3.{i+1}',99-i,1) for i in range(30)]
         refs.rows=rows;refs.populate();spin()
-        self.assertEqual(refs.model.get_n_items(),5)
-        self.assertIn('30',refs.view_all.get_label());self.assertTrue(refs.view_all.get_visible())
+        self.assertEqual(refs.model.get_n_items(),30)
+        self.assertFalse(refs.view_all.get_visible())
         self.assertIs(refs.footer.get_first_child(),refs.view_all)
         self.assertIsNotNone(refs.footer.get_ancestor(type(refs.list)))
         before=(tab.state.reference,list(tab.state.history))
         refs.show_all();spin();self.assertEqual(refs.model.get_n_items(),30)
-        self.assertTrue(refs.return_results.get_visible());self.assertFalse(refs.view_all.get_visible())
+        self.assertFalse(refs.return_results.get_visible());self.assertFalse(refs.view_all.get_visible())
         self.assertEqual(refs.rows,rows)
-        refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),5)
+        refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),30)
         self.assertFalse(refs.return_results.get_visible())
         self.assertEqual((tab.state.reference,tab.state.history),before)

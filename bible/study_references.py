@@ -44,8 +44,7 @@ class StudyReferences(Gtk.Box):
         self.footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=12,margin_start=8,margin_end=8)
         self.view_all=Gtk.Button(label=tr('View all'),halign=Gtk.Align.START,visible=False);self.view_all.connect('clicked',self.show_all);self.footer.append(self.view_all)
         credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        credit.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>\n'+
-                          GLib.markup_escape_text(tr('Community-ranked suggestions; explore the context.')))
+        credit.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>')
         credit.add_css_class('caption');credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.footer.append(credit)
         self.teaser=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         header=Gtk.Box(spacing=6)
@@ -161,11 +160,10 @@ class StudyReferences(Gtk.Box):
             provenance='OpenBible.info · CC BY 4.0\n'+SOURCE_URL)
 
     def populate(self):
-        items=[ReferenceItem(row,self.context,self.generation) for row in (self.rows if self.all_results else self.rows[:5])]
+        items=[ReferenceItem(row,self.context,self.generation) for row in self.rows]
         self.model.splice(0,self.model.get_n_items(),items)
-        self.view_all.set_visible(not self.all_results and len(self.rows)>5)
-        self.view_all.set_label(tr('See all {count} references').format(count=len(self.rows)))
-        self.return_results.set_visible(self.all_results and len(self.rows)>5)
+        self.view_all.set_visible(False)
+        self.return_results.set_visible(False)
         while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
         for item in items[:3]:
             button=self.button();self.fill(button,item);self.teaser_rows.append(button)

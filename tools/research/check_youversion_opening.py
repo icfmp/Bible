@@ -40,8 +40,9 @@ def main():
     library=Library(args.profile/'translations')
     for identifier in (21,93):
         item=fetch_resource(identifier)
-        with patch('bible.youversion_install.run_conversion',partial(run_conversion,compiler=args.compiler)):
-            library.install(item,permission=acknowledgement(item))
+        if item.id not in library.installed():
+            with patch('bible.youversion_install.run_conversion',partial(run_conversion,compiler=args.compiler)):
+                library.install(item,permission=acknowledgement(item))
     source='youversion~YV21';target='youversion~YV93'
     notes=NoteStore(args.profile/'notes.sqlite3')
     if not notes.all():notes.save('PRESERVED SYNTHETIC OPENING NOTE',('preserve',),versification='Original',
@@ -50,18 +51,19 @@ def main():
     if not preferences.path.exists():preferences.save()
     original_notes=notes.all();original_preferences=preferences.path.read_bytes();files=snapshot(library.root)
     expected=Reader(library.root/target,target)
-    try:resolve('Gen.19.1','Original',expected)
+    assert resolve('Gen.11.3','Original',expected).start=='Gen.11.3'
+    try:resolve('Gen.12.1','Original',expected)
     except VersificationMismatch:pass
-    else:raise AssertionError('This source pair unexpectedly gained a verified mapping')
+    else:raise AssertionError('An unaudited verse unexpectedly gained a verified mapping')
     app=Application.get_default() or Application();app.register()
     window=Window(app,library);window.present();spin();opened=[]
     try:
-        tab=window.active_tab;assert tab.navigate(source,'Gen.19.1');spin()
+        tab=window.active_tab;assert tab.navigate(source,'Gen.11.3');spin()
         with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
             dialog=window.open_library();spin(lambda:not dialog.preparing)
         dialog.read_resource(library.resource(target));spin()
         assert dialog.closed and tab.state.resource==target
-        assert tab.state.reference==expected.first_reference() and tab.status.get_visible()
+        assert tab.state.reference=='Gen.11.3' and not tab.status.get_visible()
         assert 'No verified alignment' not in tab.status.get_text()
         opened.append('Library Read')
         edge=expected.key('Mark.10.1').getVerseMax()
@@ -72,16 +74,20 @@ def main():
             first=tab._document.spans[0]
             displayed=tab._document.copy(first.body,first.end).replace('\ufffc','')
             assert normalized(displayed)==normalized(expected.chapter(reference).unique_verses()[0][1])
+        assert tab.show('Gen.12.1');spin()
         window.primary_version.sync()
         window.primary_version.choices.set_selected(window.primary_version.names.index(source));spin()
-        assert tab.state.resource==source and tab.state.reference==tab.reader.first_reference()
+        assert tab.state.resource==source and tab.state.reference=='Gen.12.1'
         assert not window.primary_version.status.get_visible();opened.append('Primary selector')
-        assert tab.show('Gen.19.1');window.new_tab();spin()
+        assert tab.show('Gen.11.3');window.new_tab();spin()
         assert window.open_installed_resource(target);spin();tab=window.active_tab
-        assert tab.state.resource==target and tab.state.reference==expected.first_reference();opened.append('New tab')
+        assert tab.state.resource==target and tab.state.reference=='Gen.11.3';opened.append('New tab')
         tab.state.comparison=source;tab.refresh_comparison();spin()
-        assert tab._comparison_reader and not tab._comparison_aligned
+        assert tab._comparison_reader and tab._comparison_aligned
         assert tab.comparison_text.get_buffer().get_char_count()>100
+        assert tab.show('Gen.12.1');tab.refresh_comparison();spin()
+        assert tab._comparison_reader and not tab._comparison_aligned
+        assert not tab.status.get_visible()
         window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes');spin()
         assert tab.show('Gen.19.1');spin();window.save_session()
     finally:window.close();close_test_dialogs();spin()
@@ -96,8 +102,8 @@ def main():
     assert notes.all()==original_notes and preferences.path.read_bytes()==original_preferences
     assert snapshot(library.root)==files
     report=dict(result='PASS',app_import=inspect.getfile(Window),packaged=args.require_packaged,
-        opening_routes=opened,verified_owned_references=references,strict_cross_resource_mapping_unchanged=True,
-        independent_comparison=True,study_panel=True,notes_preserved=len(original_notes),preferences_preserved=True,
+        opening_routes=opened,verified_owned_references=references,verified_mapping_and_unaudited_verse_guard=True,
+        independent_comparison=True,verified_comparison=True,study_panel=True,notes_preserved=len(original_notes),preferences_preserved=True,
         module_files_preserved=len(files),existing_client_profile_accessed=False)
     args.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
 
