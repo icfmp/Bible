@@ -4,7 +4,8 @@ from tools.check_client_feedback import Screen
 original=Window.__init__;windows=[]
 def probe(self,*args,**kwargs):
     original(self,*args,**kwargs);windows.append(self)
-    for button in (self.primary_version.download_more,self.compared_version.download_more,self.download_comparison):button.set_can_shrink(True)
+    for button in (self.primary_version.download_more,self.compared_version.download_more,self.download_comparison):
+        button.set_can_shrink(True);button.get_child().set_max_width_chars(1)
 Window.__init__=probe
 original_grab=Screen.grab
 def walk(widget):
@@ -24,3 +25,8 @@ def grab(self,path):
 Screen.grab=grab
 from tools.check_translation_picker import main
 main()
+
+from pathlib import Path
+import sys
+p=Path(sys.argv[2])/'README.md'
+p.write_text('DIAGNOSTIC ONLY: runtime can-shrink and label natural-width cap; not delivery evidence.\n\n'+p.read_text())
