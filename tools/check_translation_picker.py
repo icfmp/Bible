@@ -60,6 +60,9 @@ def main():
                                 assert size<=w.get_width(),(name,size,w.get_width())
                                 assert size>=480 if width==1200 else size>=240
                                 assert choices.rows[choices.get_selected()].get_opacity()==1
+                                selected=choices.list.get_selected_row()
+                                found,bounds=selected.compute_bounds(choices)
+                                assert found and bounds.get_y()>=-1 and bounds.get_y()+bounds.get_height()<=choices.get_height()+1,(name,bounds.get_y(),bounds.get_height(),choices.get_height(),choices.get_vadjustment().get_value())
                             n.key('Escape');spin();assert not pop.get_visible();w.dismiss_popovers();spin()
                     # Native keyboard activation and reselection preserve the close contract.
                     w.set_default_size(1200,820);t.state.comparison=None;w.sync_comparison();spin(duration=.3)

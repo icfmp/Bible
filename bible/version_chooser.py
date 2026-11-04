@@ -42,6 +42,10 @@ def fit_translation_choices(popover,choices,owner):
         choices.set_min_content_width(-1)
         choices.set_max_content_width(width)
         choices.set_min_content_width(width)
+    # Ask GTK for the wrapped rows' height rather than the unconstrained one.
+    # Long lists still scroll, and short windows retain room for the action.
+    height=min(360,max(80,owner.get_height()-160),choices.list.measure(Gtk.Orientation.VERTICAL,width)[1])
+    choices.set_min_content_height(height)
     from .popover_dismissal import fit_reader_popover
     fit_reader_popover(popover,owner)
 
