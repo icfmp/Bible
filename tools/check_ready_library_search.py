@@ -82,6 +82,7 @@ def main():
                     nav=w.navigation if args.baseline else w.search_popover
                     control_key('g' if args.baseline else 'f');spin(lambda:nav.get_visible(),duration=.3)
                     search=nav.text_search;n.click(nav.mode_buttons['text'])
+                    search.source.set_selected(search.search_names.index('FreSegond1910'));spin(duration=.2)
                     search.entry.set_text('commencement');n.click(search.entry);n.key('Return');spin(lambda:not search.pending,duration=.5,timeout=90)
                     assert search.rows;before=list(search.rows);generation=search.generation;shot(prefix+'-text-search')
                     n.key('Escape');spin(lambda:not nav.get_mapped(),duration=.3)
@@ -98,7 +99,7 @@ def main():
                     n.click(nav.mode_buttons['topics']);topics=nav.topic_search
                     topics.entry.set_text('pardon');spin(duration=.4)
                     assert topics.topic_model.get_n_items()==4;shot(prefix+'-topic-search')
-                    report['search'].append(dict(width=w.get_width(),dark=dark,text_results=len(before),pardon_concepts=topics.topic_model.get_n_items(),retained=not args.baseline))
+                    report['search'].append(dict(width=w.get_width(),dark=dark,resource=search.search_names[search.source.get_selected()],text_results=len(before),pardon_concepts=topics.topic_model.get_n_items(),retained=not args.baseline))
                     n.key('Escape');spin(lambda:not nav.get_mapped(),duration=.3)
                     # #150: exercise each directly exposed colour with native
                     # clicks, including repeated selection of the same colour.
