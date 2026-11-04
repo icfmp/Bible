@@ -68,7 +68,15 @@ def main():
             d.open_details(None,index);spin(duration=.3)
             if not args.offline:
                 assert d.download_button.get_visible() and d.download_button.get_sensitive()
-                n.click(d.download_button);spin(lambda:not d._transfer_busy,duration=.3,timeout=150)
+                task=d._task_id;clicked=[]
+                signal=d.download_button.connect('clicked',lambda *_:clicked.append(True))
+                ok,bounds=d.download_button.compute_bounds(d);picked=d.pick(bounds.origin.x+bounds.size.width/2,bounds.origin.y+bounds.size.height/2,Gtk.PickFlags.DEFAULT) if ok else None
+                n.click(d.download_button);d.download_button.disconnect(signal)
+                report['last_click']=dict(requested=name,selected=d.selected_resource().id,clicked=bool(clicked),task_before=task,task_after=d._task_id,picked=type(picked).__name__,toast=getattr(d,'_success_toast',None).get_title() if getattr(d,'_success_toast',None) else None)
+                save()
+                if task==d._task_id:screen.grab(args.output/'update-click-not-started.png')
+                assert task!=d._task_id,report['last_click']
+                spin(lambda:not d._transfer_busy,duration=.3,timeout=150)
                 spin(lambda:name in d._study_current,duration=.3,timeout=90)
             store=d.study_resources.stores[name];metadata=store.metadata()
             assert metadata['source_date']=='2026-11-02',metadata['source_date']
