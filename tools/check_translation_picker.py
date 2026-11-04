@@ -37,7 +37,7 @@ def main():
     app=Application.get_default() or Application();app.register();records=[];actions=[]
     with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
         w=Window(app,Library(args.profile/'translations'));w.present();spin()
-        n=X11Input();n.activate(w);screen=Screen(n);settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+        renderer=type(w.get_renderer()).__name__;n=X11Input();n.activate(w);screen=Screen(n);settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
         try:
             w.study_button.set_active(False);t=w.active_tab;t.navigate('youversion~YV21','John.3.16')
             spin(lambda:not t._restoring_scroll)
@@ -82,10 +82,11 @@ def main():
                     t.navigate('youversion~YV21','John.3.16');spin(lambda:not t._restoring_scroll)
                 settings.props.gtk_font_name='Sans 18';w.set_default_size(360,820);spin(lambda:not w._controls_tick,duration=.4)
                 n.click(w.primary_version);spin(duration=.3);n.key('Up');n.key('Down');screen.grab(args.output/'large-text-360.png')
+                records.append(('large-text-360',w.get_width(),w.primary_version.popover.get_child().get_width()))
                 if not args.baseline:assert w.primary_version.popover.get_child().get_width()<=w.get_width(), (w.primary_version.popover.get_child().get_width(),w.get_width(),w.primary_version.download_more.get_width())
                 w.dismiss_popovers();spin()
         finally:settings.props.gtk_font_name=font;w.close();n.close()
-    lines=['# Translation picker native verification','',f'- Application: `{inspect.getfile(Window)}`',f'- GTK: {Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()}',f'- Baseline: {args.baseline}','- Resources: real CrossWire KJV, FreSegond1910; YouVersion BDS (21), LSG (93).','- Environment: Xvfb/X11; developer automation, not client GNOME acceptance.','','| Case | Window width | Popup content width |','| --- | ---: | ---: |']
+    lines=['# Translation picker native verification','',f'- Application: `{inspect.getfile(Window)}`',f'- GTK: {Gtk.get_major_version()}.{Gtk.get_minor_version()}.{Gtk.get_micro_version()}',f'- Renderer: {renderer}',f'- Baseline: {args.baseline}','- Resources: real CrossWire KJV, FreSegond1910; YouVersion BDS (21), LSG (93).','- Environment: Xvfb/X11; developer automation, not client GNOME acceptance.','','| Case | Window width | Popup content width |','| --- | ---: | ---: |']
     lines += [f'| {case} | {window} | {popup} |' for case,window,popup in records]
     lines += ['','Native input:']+['- '+action for action in actions]
     (args.output/'README.md').write_text('\n'.join(lines)+'\n')
