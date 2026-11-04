@@ -129,7 +129,7 @@ class Window(Adw.ApplicationWindow):
         comparison_box.append(self.download_comparison)
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
-        from .popover_dismissal import install, fit_reader_popover
+        from .popover_dismissal import install
         self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
         self._popover_dismissal = install(self, self._reading_popovers)
         self.comparison_popover.connect_after('show',lambda *_:self.fit_comparison_popup())
