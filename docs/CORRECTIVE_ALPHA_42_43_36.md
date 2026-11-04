@@ -1,5 +1,10 @@
 # Corrective alpha after the client's GNOME test pass
 
+> Historical delivery record: the client cancelled notification suppression and
+> manual Do Not Disturb guidance on 4 November 2026 (#28). Earlier references
+> below are superseded and do not authorize further research or prompts.
+
+
 The client manually validated Bible ↔ commentary scrolling on GNOME in `4a285f3`.
 That core behavior is preserved. This does not close all #25 acceptance criteria.
 This increment addresses #43, #42, #12/#15 and #36 before the drawer redesign.

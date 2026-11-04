@@ -78,11 +78,10 @@ FR = {
     'Source identity':'Identité dans la source',
     'John 3:16 · Jn 3 · Ps 23':'Jean 3:16 · Jn 3 · Ps 23',
     'Source notices':'Mentions des sources',
-    'Study word':'Étudier le mot',
+    'Original text':'Texte original',
     'Search syntax':'Syntaxe de recherche',
     '{count} result':'{count} résultat', '{count} results':'{count} résultats',
     '{count} passage':'{count} passage', '{count} passages':'{count} passages',
-    'Word study':'Étude du mot',
     'Study this word':'Étudier ce mot',
     'Explore the original words of this verse':'Explorer les mots du verset original',
     'These are words of the identified source corpus, not a claimed translation of the selected word.':'Ce sont les mots du corpus source indiqué, sans prétendre traduire le mot sélectionné.',
@@ -97,7 +96,7 @@ FR = {
     'Loading occurrences…':'Chargement des occurrences…',
     'No lexical entry supplied for these identifiers.':'Aucune entrée lexicale fournie pour ces identifiants.',
     'No words supplied for this mapped source verse.':'Aucun mot fourni pour ce verset source après correspondance.',
-    'Word study unavailable. Ordinary reading is unchanged.':'Étude du mot indisponible. La lecture reste disponible.',
+    'Original text unavailable. Ordinary reading is unchanged.':'Texte original indisponible. La lecture reste disponible.',
     'View all occurrences':'Voir toutes les occurrences',
     'Lemma occurrences':'Occurrences du lemme',
     'Lemma occurrences in':'Occurrences du lemme dans',
@@ -488,9 +487,6 @@ FR.update({
     'Previous pages':'Pages précédentes','Next pages':'Pages suivantes',
     'Open this passage in the Bible':'Ouvrir ce passage dans la Bible',
     'Commentary resumed. The Bible passage is unchanged.':'Lecture du commentaire reprise. Le passage biblique est inchangé.',
-    'In GNOME, turn on Do Not Disturb in the clock menu. Bible does not change notifications.':
-        'Dans GNOME, activez Ne pas déranger dans le menu de l’horloge. Bible ne modifie pas les notifications.',
-    'Do not show again':'Ne plus afficher',
 })
 
 FR.update({

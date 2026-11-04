@@ -93,3 +93,9 @@ Le [bilan jusqu’à #25](SUIVI_JUSQU_A_25.md) distingue le code disponible des
 critères manuels et de distribution encore ouverts : App Icon Preview (#13),
 activation et validation HTTPS du canal signé (#17), CI du commit final et
 essai GNOME. Ne pas assimiler ce bilan à la clôture de toutes ces issues.
+
+## Client cancellation — 4 November 2026 (#28)
+
+Notification suppression and its manual fallback are removed from the product
+scope. There is no pending API investigation or replacement setting. Preserve
+ordinary Bible/commentary immersion and existing user data.

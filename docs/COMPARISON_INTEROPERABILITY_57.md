@@ -1,5 +1,10 @@
 # Comparison interoperability (#57)
 
+> Historical delivery record: the client cancelled notification suppression and
+> manual Do Not Disturb guidance on 4 November 2026 (#28). Earlier references
+> below are superseded and do not authorize further research or prompts.
+
+
 ## Corrected behavior
 
 The actual signed alpha at source `87b9803` reproduced empty comparison panes

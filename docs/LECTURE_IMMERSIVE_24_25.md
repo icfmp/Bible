@@ -51,8 +51,9 @@ Bible; Open in Bible is deliberate. Existing commentary selection/position and
 study configuration are preserved on return. Full rich formatting and
 simultaneous comparison of several commentaries remain separate limitations.
 
-Automatic notification suppression belongs to #28. The current manual Do Not
-Disturb help does not change host notification settings or claim suppression.
+The client cancelled notification suppression on 4 November 2026 (#28).
+Immersion has no notification prompt, host-setting integration or related
+research requirement. Reading controls remain independent of desktop alerts.
 
 ## Validation and remaining acceptance
 

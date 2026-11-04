@@ -116,7 +116,7 @@ class ReadingTab(Gtk.Box):
             self.watch_layout_adjustment(scroll)
         context=Gio.Menu()
         context.append(tr('Add a passage note'),'win.note')
-        context.append(tr('Study word'),'win.study-word')
+        context.append(tr('Original text'),'win.study-word')
         context.append(tr('Copy verses without numbers'),'win.copy-passage')
         context.append(tr('Copy verses with reference'),'win.copy-with-reference')
         context.append(tr('Copy reference'),'win.copy-reference')

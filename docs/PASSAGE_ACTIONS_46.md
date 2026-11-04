@@ -1,5 +1,10 @@
 # Deliberate passage selection actions (#46)
 
+> Historical delivery record: the client cancelled notification suppression and
+> manual Do Not Disturb guidance on 4 November 2026 (#28). Earlier references
+> below are superseded and do not authorize further research or prompts.
+
+
 A compact native action bar appears at the bottom of the selected Bible viewport
 after a verse click, completed pointer selection or keyboard extension. It never
 opens from an anchor change, temporary commentary cue, programmatic selection or
