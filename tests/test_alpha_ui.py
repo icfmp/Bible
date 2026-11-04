@@ -43,7 +43,7 @@ class AlphaTests(unittest.TestCase):
                 archive.writestr('modules/padding', os.urandom(16 * 1024))
             payload = data.getvalue()
         self.assertLess(len(payload), 64 * 1024)  # A read(64 KiB) waits until EOF.
-        resource = Resource(name, 'Controlled transfer, not a translation', 'en',
+        resource = Resource(name, f'Controlled transfer {name}, not a translation', 'en',
                             'Public Domain', driver='RawCom' if commentary else 'RawText')
         return resource, Transfer(payload, known, truncated)
 
@@ -118,7 +118,7 @@ class AlphaTests(unittest.TestCase):
         dialog.update_languages()
         dialog.install()
         self.assertTrue(dialog.busy)
-        self.assertIn(resource.name, dialog.status.get_text())
+        self.assertIn(resource.description, dialog.status.get_text())
 
     def test_slow_transfer_renders_bytes_before_eof_and_installation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -152,7 +152,9 @@ class AlphaTests(unittest.TestCase):
                 validation.set()
                 test_ui.spin(lambda: not dialog.busy)
             self.assertIn(resource.name, window.library.installed())
-            self.assertEqual(dialog.progress.get_fraction(), 1)
+            self.assertEqual(dialog.progress.get_fraction(), 0)
+            self.assertFalse(dialog.progress.get_visible());self.assertFalse(dialog.status.get_visible())
+            self.assertIn(resource.description,dialog._success_toast.get_title())
     
     def test_cancelled_transfer_does_not_publish_a_partial_resource(self):
         with tempfile.TemporaryDirectory() as directory:
