@@ -41,18 +41,8 @@ def verify_data(snapshot):
         assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, f'User data changed: {name}'
 
 
-def check(base_url, expected, report_path, *, test_revision=None):
-    """Clean client; GPG verification remains enabled throughout."""
-    with urllib.request.urlopen(base_url + '/alpha/Bible.flatpakref', timeout=30) as response:
-        descriptor = response.read()
-    assert b'GPGKey=' in descriptor and b'Branch=alpha' in descriptor
-    descriptor_path = report_path.parent / 'Bible.flatpakref'
-    descriptor_path.write_bytes(descriptor)
-    subprocess.run(['flatpak','remote-add','--user','--if-not-exists','flathub',
-                    'https://dl.flathub.org/repo/flathub.flatpakrepo'], check=True)
-    subprocess.run(['flatpak','install','--user','--noninteractive', str(descriptor_path)], check=True)
-    installed = run('flatpak','info','--user','--show-commit', APP_ID + '//alpha')
-    assert installed == expected['flatpak_commit']
+def verify_client():
+    """Check the retained channel identity and launch the actual installed GTK app."""
     assert run('flatpak','info','--user','--show-ref', APP_ID + '//alpha') == REF
     assert run('flatpak','info','--user','--show-origin', APP_ID + '//alpha') == REMOTE
     user_repo = Path(os.environ['FLATPAK_USER_DIR']) / 'repo'
@@ -73,6 +63,21 @@ print('Bible GTK startup OK')'''
     subprocess.run(['dbus-run-session','--','xvfb-run','-a','flatpak','run','--user',
                     '--env=PYTHONPATH=/app/lib/bible-python','--env=GSK_RENDERER=cairo',
                     '--command=python3',APP_ID + '//alpha','-c',command], check=True)
+
+
+def check(base_url, expected, report_path, *, test_revision=None):
+    """Clean client; GPG verification remains enabled throughout."""
+    with urllib.request.urlopen(base_url + '/alpha/Bible.flatpakref', timeout=30) as response:
+        descriptor = response.read()
+    assert b'GPGKey=' in descriptor and b'Branch=alpha' in descriptor
+    descriptor_path = report_path.parent / 'Bible.flatpakref'
+    descriptor_path.write_bytes(descriptor)
+    subprocess.run(['flatpak','remote-add','--user','--if-not-exists','flathub',
+                    'https://dl.flathub.org/repo/flathub.flatpakrepo'], check=True)
+    subprocess.run(['flatpak','install','--user','--noninteractive', str(descriptor_path)], check=True)
+    installed = run('flatpak','info','--user','--show-commit', APP_ID + '//alpha')
+    assert installed == expected['flatpak_commit']
+    verify_client()
     result = {'install_commit': installed, 'ref': REF, 'origin': REMOTE,
               'gpg_commit': True, 'gpg_summary': True, 'gtk_startup': True,
               'user_data_snapshot': data_snapshot()}

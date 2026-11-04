@@ -11,11 +11,14 @@ on:
       - 'tests/test_alpha_storage.py'
       - 'tools/flatpak_channel.py'
       - 'tools/check_flatpak_channel.py'
+      - 'tools/validate_public_channel.py'
+      - 'tests/test_channel_publication.py'
       - 'tools/site_render.py'
       - 'tools/site_assets/index.html'
       - '.github/workflows/*channel*.yml'
       - '.github/workflows/prerequisites.yml'
       - 'docs/CANAL_ALPHA_FLATPAK.md'
+      - 'docs/ALPHA_SINGLE_DEPLOYMENT.md'
   workflow_dispatch:
 
 concurrency:
