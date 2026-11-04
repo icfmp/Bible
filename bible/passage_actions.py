@@ -339,6 +339,7 @@ class PassageActions:
             if not source:return
             view.set_cursor_visible(False)
             self.dismiss();self.dragging=True;self.intent+=1;generation=self.intent
+            view.grab_focus()
             bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
             found,iterator=view.get_iter_at_location(bx,by)
             pending[0]=(source,iterator.get_offset() if found else None,generation)
