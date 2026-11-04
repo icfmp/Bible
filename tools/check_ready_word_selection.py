@@ -57,6 +57,7 @@ def main():
         n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);spin(duration=.22)
         bounds=tuple(i.get_offset() for i in b.get_selection_bounds())
         return dict(expected=[start,end],actual=bounds,visible=a.bar.get_visible(),dragging=a.dragging,capture_pending=bool(a.capture_idle))
+    save()
     recorder=None
     try:
         t.state.comparison=None;w.sync_comparison()
@@ -73,6 +74,7 @@ def main():
             n.click(choices[cycle%2]);spin(lambda:not words.pending,duration=.2,timeout=60)
             tokens=[v for v in words.children() if isinstance(v,Gtk.Button)]
             assert tokens
+            report['last_stage']={'cycle':cycle,'phase':'original-token-click'};save()
             n.click(tokens[cycle%len(tokens)]);spin(lambda:not words.pending,duration=.2,timeout=60)
             further=[v for v in words.children() if isinstance(v,Gtk.Button)]
             if not getattr(words,'entry',None) and further:

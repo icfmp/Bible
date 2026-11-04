@@ -16,7 +16,7 @@ permissions:
 jobs:
   picker:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - name: Install exact ordinary Flatpak build in isolated directory
@@ -37,16 +37,18 @@ jobs:
           PY
           FLATPAK_USER_DIR="$RUNNER_TEMP/picker-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           FLATPAK_USER_DIR="$RUNNER_TEMP/picker-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+      - name: Install matching SDK debugger for native backtrace only
+        run: flatpak install --user --noninteractive flathub org.gnome.Sdk//49
       - name: Real BDS Mark 11 word choices and repeated native selection
         run: |
           mkdir reports
           module=tools.check_ready_word_selection
           mode=()
-          timeout 780s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
+          timeout 1000s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --devel --allow=devel --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=gdb io.github.icfmp.Bible//master --batch --return-child-result -ex "set pagination off" -ex run -ex "thread apply all bt 25" --args /usr/bin/python3 -X faulthandler -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
       - name: Bounded failure diagnosis
         if: failure()
         run: |
-          if [ -f "$RUNNER_TEMP/picker.log" ]; then tail -n 45 "$RUNNER_TEMP/picker.log"; fi
+          if [ -f "$RUNNER_TEMP/picker.log" ]; then tail -n 130 "$RUNNER_TEMP/picker.log"; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
