@@ -2,6 +2,10 @@ name: Verify installed translation pickers
 on:
   workflow_dispatch:
     inputs:
+      shrink_probe:
+        description: Diagnostic runtime button-property probe only; not delivery evidence
+        type: boolean
+        default: false
       candidate_run:
         description: Successful ordinary candidate CI run (empty for previous alpha baseline)
         required: false
@@ -40,9 +44,11 @@ jobs:
       - name: Installed native picker captures and real mouse and keyboard input
         run: |
           mkdir reports
+          module=tools.check_translation_picker
+          if [ '${{ inputs.shrink_probe }}' = true ]; then module=tools.check_picker_shrink_probe; fi
           mode=()
           if [ -z '${{ inputs.candidate_run }}' ]; then mode=(--baseline); fi
-          timeout 780s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_translation_picker "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
+          timeout 780s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
       - name: Bounded failure diagnosis
         if: failure()
         run: |
