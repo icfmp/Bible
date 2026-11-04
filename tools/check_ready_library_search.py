@@ -6,7 +6,7 @@ def main():
     faulthandler.enable()
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--baseline',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     marker=args.profile/'.ready-library-search-profile'
     from bible.library import Library,catalogue
@@ -37,7 +37,7 @@ def main():
     w=Window(app,Library(args.profile/'translations'));w.set_default_size(1200,850);w.present();spin()
     w.application_settings.set('automatic_catalogue_refresh',False)
     n=X11Input();n.activate(w);screen=Screen(n);t=w.active_tab
-    report=dict(app_import=inspect.getfile(Window),ui_sha256=hashlib.sha256(Path(inspect.getfile(Window)).read_bytes()).hexdigest(),gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],renderer=type(w.get_renderer()).__name__,language=os.environ.get('LANGUAGE'),captures=[],geometry=[],search=[],exceptions=errors)
+    report=dict(baseline=args.baseline,app_import=inspect.getfile(Window),ui_sha256=hashlib.sha256(Path(inspect.getfile(Window)).read_bytes()).hexdigest(),gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],renderer=type(w.get_renderer()).__name__,language=os.environ.get('LANGUAGE'),captures=[],geometry=[],search=[],exceptions=errors)
     if args.require_packaged:assert 'GL' in report['renderer']
     def save():(args.output/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
     def shot(name):
@@ -53,18 +53,23 @@ def main():
         d=w.open_library('bible');spin(lambda:not d.preparing,duration=.2,timeout=90)
         d.source_filter.set_selected(d.source_ids.index('crosswire'));d.load_catalogue(force=True)
         spin(lambda:not d.busy and not d._building_rows,duration=.3,timeout=150)
+        assert 'fr' in d.language.codes,d._catalogue_errors
+        d.language.set_selected(d.language.codes.index('fr'));spin(lambda:not d._building_rows,duration=.3)
         d.search.set_text('FreSegond1910');d.filter_resources();spin(lambda:not d._building_rows,duration=.3)
         index=next(i for i,r in enumerate(d.filtered_resources) if r.id=='FreSegond1910')
         d.open_details(None,index);spin(duration=.3);n.click(d.download_button)
         spin(lambda:not d._transfer_busy,duration=.2,timeout=180)
         assert 'FreSegond1910' in w.library.installed(),d.status.get_text()
-        assert d._success_toast and d._success_toast.get_title().startswith(tr('Installed: {name}').split('{')[0])
-        assert not d.status.get_visible() and not d.progress.get_visible()
-        report['download']=dict(resource='FreSegond1910',installed=True,toast=d._success_toast.get_title(),footer_visible=d.status.get_visible(),progress_visible=d.progress.get_visible())
-        shot('library-installed-toast');spin(duration=5,timeout=7);shot('library-after-toast')
-        assert not d.status.get_visible() and not d.progress.get_visible()
+        toast=getattr(d,'_success_toast',None)
+        if not args.baseline:
+            assert toast and toast.get_title().startswith(tr('Installed: {name}').split('{')[0])
+            assert not d.status.get_visible() and not d.progress.get_visible()
+        report['download']=dict(resource='FreSegond1910',installed=True,toast=toast.get_title() if toast else None,footer_visible=d.status.get_visible(),progress_visible=d.progress.get_visible())
+        shot('library-install-completion');spin(duration=5,timeout=7);shot('library-after-five-seconds')
+        if not args.baseline:assert not d.status.get_visible() and not d.progress.get_visible()
         d.close();spin();d=w.open_library('bible');spin(lambda:not d.busy,duration=.2,timeout=90)
-        assert d._success_toast is None and not d.status.get_visible();d.close();spin();n.activate(w)
+        if not args.baseline:assert d._success_toast is None and not d.status.get_visible()
+        d.close();spin();n.activate(w)
         assert t.navigate('FreSegond1910','John.1.1');settled()
         with SystemStyleOverride() as style:
             for dark in (False,True):
@@ -74,23 +79,27 @@ def main():
                     prefix=('dark' if dark else 'light')+'-'+str(width)
                     shot(prefix+'-header')
                     # Native shortcut and pointer entry exercise the same dedicated popup.
-                    control_key('f');spin(lambda:w.search_popover.get_visible(),duration=.3)
-                    search=w.search_popover.text_search;n.click(w.search_popover.mode_buttons['text'])
+                    nav=w.navigation if args.baseline else w.search_popover
+                    control_key('g' if args.baseline else 'f');spin(lambda:nav.get_visible(),duration=.3)
+                    search=nav.text_search;n.click(nav.mode_buttons['text'])
                     search.entry.set_text('commencement');n.click(search.entry);n.key('Return');spin(lambda:not search.pending,duration=.5,timeout=90)
                     assert search.rows;before=list(search.rows);generation=search.generation;shot(prefix+'-text-search')
-                    n.key('Escape');spin(lambda:not w.search_popover.get_mapped(),duration=.3)
+                    n.key('Escape');spin(lambda:not nav.get_mapped(),duration=.3)
                     control_key('g');spin(duration=.3)
                     focus=w.get_focus()
-                    report['passage_state']=dict(width=w.get_width(),navigation_visible=w.navigation.get_visible(),navigation_mapped=w.navigation.get_mapped(),search_visible=w.search_popover.get_visible(),search_mapped=w.search_popover.get_mapped(),active=w.is_active(),focus=type(focus).__name__,focus_mapped=focus.get_mapped() if focus else None,passage_button_active=w.passage_button.get_active())
+                    if args.baseline:n.click(w.navigation.mode_buttons['passage'])
+                    report['passage_state']=dict(width=w.get_width(),navigation_visible=w.navigation.get_visible(),navigation_mapped=w.navigation.get_mapped(),active=w.is_active(),focus=type(focus).__name__,focus_mapped=focus.get_mapped() if focus else None,passage_button_active=w.passage_button.get_active())
                     shot(prefix+'-passage-state')
-                    assert w.navigation.get_visible() and not w.search_popover.get_visible()
-                    assert not hasattr(w.navigation,'modes');shot(prefix+'-passage-only');n.key('Escape');spin(lambda:not w.navigation.get_mapped(),duration=.3)
-                    control_key('f');spin();assert search.entry.get_text()=='commencement' and search.rows==before and search.generation==generation
-                    n.click(w.search_popover.mode_buttons['topics']);topics=w.search_popover.topic_search
+                    assert w.navigation.get_visible()
+                    if not args.baseline:assert not w.search_popover.get_visible() and not hasattr(w.navigation,'modes')
+                    shot(prefix+'-passage-only');n.key('Escape');spin(lambda:not w.navigation.get_mapped(),duration=.3)
+                    control_key('g' if args.baseline else 'f');spin()
+                    if not args.baseline:assert search.entry.get_text()=='commencement' and search.rows==before and search.generation==generation
+                    n.click(nav.mode_buttons['topics']);topics=nav.topic_search
                     topics.entry.set_text('pardon');spin(duration=.4)
                     assert topics.topic_model.get_n_items()==4;shot(prefix+'-topic-search')
-                    report['search'].append(dict(width=w.get_width(),dark=dark,text_results=len(before),pardon_concepts=topics.topic_model.get_n_items(),retained=True))
-                    n.key('Escape');spin(lambda:not w.search_popover.get_mapped(),duration=.3)
+                    report['search'].append(dict(width=w.get_width(),dark=dark,text_results=len(before),pardon_concepts=topics.topic_model.get_n_items(),retained=not args.baseline))
+                    n.key('Escape');spin(lambda:not nav.get_mapped(),duration=.3)
                     # #150: exercise each directly exposed colour with native
                     # clicks, including repeated selection of the same colour.
                     actions=w.passage_actions;b=t.text.get_buffer()
@@ -116,7 +125,7 @@ def main():
                     center=bounds.origin.x+bounds.size.width/2
                     record=dict(width=w.get_width(),study=study,comparison=chooser is w.compared_version,button=chooser.get_width(),pane=pane.get_width(),caption_center=center)
                     report['geometry'].append(record);save()
-                    assert chooser.get_width()>=pane.get_width()-4 and abs(center-chooser.get_width()/2)<=2,record
+                    if not args.baseline:assert chooser.get_width()>=pane.get_width()-4 and abs(center-chooser.get_width()/2)<=2,record
                 shot('comparison-'+str(width)+('-study' if study else ''))
         assert not errors,errors
         report['completed']=True;save()

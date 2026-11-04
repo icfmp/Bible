@@ -26,7 +26,9 @@ def main():
         for name,path,digest in [('openbible-cross-references','client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz','9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'),('openbible-topics','alpha-performance/fixtures/openbible-topics.sqlite3.gz','90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209')]:
             target=root/'study-data'/(name+'.sqlite3');target.parent.mkdir(exist_ok=True)
             if not target.exists():
-                payload=gzip.decompress(urllib.request.urlopen(base+path,timeout=60).read(8*1024*1024));assert hashlib.sha256(payload).hexdigest()==digest
+                url=base+path
+                if name=='openbible-cross-references':url=url.replace('1c82609a0947822908fdfab7d3b42f7b79146265','fcfd908857c1c36e1ef0f371849e1a20a62fbeca')
+                payload=gzip.decompress(urllib.request.urlopen(url,timeout=60).read(8*1024*1024));assert hashlib.sha256(payload).hexdigest()==digest
                 target.write_bytes(payload)
         from bible.notes import NoteStore
         from bible.preferences import Preferences

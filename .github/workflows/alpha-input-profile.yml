@@ -10,6 +10,10 @@ on:
         description: Validate the installed Library, dedicated search and comparison selectors
         type: boolean
         default: false
+      library_baseline:
+        description: Capture the previous Library, combined passage/search and pane selectors
+        type: boolean
+        default: false
       study_updates:
         description: Validate actual installed study downloads and an offline restart on the retained profile
         type: boolean
@@ -104,6 +108,7 @@ jobs:
           if [ '${{ inputs.library_search }}' = true ]; then module=tools.check_ready_library_search; fi
           if [ '${{ inputs.study_updates }}' = true ]; then module=tools.check_ready_study_updates; fi
           mode=()
+          if [ '${{ inputs.library_baseline }}' = true ]; then mode+=(--baseline); fi
           if [ '${{ inputs.baseline_captures }}' = true ]; then mode+=(--baseline-captures); fi
           if [ '${{ inputs.selection_only }}' = true ]; then mode+=(--selection-only); fi
           timeout 1000s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE='${{ inputs.language || 'fr' }}' --command=python3 io.github.icfmp.Bible//master -X faulthandler -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
