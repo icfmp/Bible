@@ -279,6 +279,34 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertFalse(d._transfer_busy)
         self.assertIs(w.open_library('study'),d)
 
+    def test_success_confirmation_cannot_cover_the_next_resource_action(self):
+        self.window.application_settings.set('library_language','')
+        d=self.window.open_library();spin(lambda:not d.busy)
+        first=replace(RESOURCE,name='First');second=replace(RESOURCE,name='Second')
+        d.resources=[first,second];d.update_languages();spin(lambda:not d._building_rows)
+        d.task('Download',lambda:None,lambda _:None,success_text='Installed: First',resource=first)
+        spin(lambda:not d._transfer_busy);self.assertIsNotNone(d._success_toast)
+        index=next(i for i,r in enumerate(d.filtered_resources) if r.id==second.id)
+        d.open_details(None,index);spin()
+        self.assertIsNone(d._success_toast)
+        self.assertTrue(d.download_button.get_mapped());self.assertTrue(d.download_button.get_sensitive())
+        # Completion of an older background job in another detail view must
+        # not put its confirmation over this resource's now-available action.
+        d.task('Download',lambda:None,lambda _:None,success_text='Installed: First',resource=first)
+        spin(lambda:not d._transfer_busy);self.assertIsNone(d._success_toast)
+        self.assertFalse(d.status.get_visible());self.assertEqual(d._task_errors,{})
+
+    def test_study_metadata_refresh_is_visible_and_does_not_fetch_bible_catalogues(self):
+        d=self.window.open_library('study');spin(lambda:not d.busy and not d._building_rows)
+        self.assertTrue(d.catalogue_button.get_mapped())
+        before=(d.kind.get_selected(),d.language_choice,d.source_filter.get_selected())
+        with patch.object(d.session,'refresh_study') as refresh,patch('bible.catalogue_window.catalogue') as bibles:
+            d.catalogue_button.emit('clicked');refresh.assert_called_once_with();bibles.assert_not_called()
+        # Complete the isolated metadata request through its existing snapshot
+        # route, without starting an unrelated network worker in this fixture.
+        d.session.publish();spin(lambda:not d.busy)
+        self.assertEqual(before,(d.kind.get_selected(),d.language_choice,d.source_filter.get_selected()))
+
     def test_study_transfer_survives_category_switch_and_cancellation_can_retry(self):
         w=self.window;d=w.open_library('study');spin(lambda:not d.busy)
         resource=d.study_resources.resource('step-word-study')

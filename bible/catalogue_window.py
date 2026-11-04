@@ -340,6 +340,7 @@ class CatalogueWindow(Adw.Window):
         self.status.set_text(message);self.status.set_visible(True)
 
     def open_details(self,_,index):
+        self.dismiss_success_toast()
         self._list_position=self.list_scroll.get_vadjustment().get_value()
         self.choices.set_selected(index);self.selection_changed()
         self.pages.set_visible_child_name('detail');self.back_button.set_visible(True)
@@ -364,6 +365,7 @@ class CatalogueWindow(Adw.Window):
         GLib.timeout_add(16,reveal)
 
     def back_to_list(self,*_):
+        self.dismiss_success_toast()
         self.pages.set_visible_child_name('list');self.back_button.set_visible(False)
         self.list_scroll.get_vadjustment().set_value(getattr(self,'_list_position',0))
 
@@ -381,6 +383,7 @@ class CatalogueWindow(Adw.Window):
         study=self.kind.get_selected()==2
         category=self.kind.get_selected()
         if category!=self._category:
+            self.dismiss_success_toast()
             self._category_queries[self._category]=self.search.get_text()
             self._category=category
             self._filtering=True
@@ -390,7 +393,6 @@ class CatalogueWindow(Adw.Window):
         wording=tr('Search resources') if study else tr('Search commentaries') if self.kind.get_selected()==1 else tr('Search Bibles')
         self.search.set_placeholder_text(wording);self.search.update_property([Gtk.AccessibleProperty.LABEL],[wording])
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
-        self.catalogue_button.set_visible(not study)
         self._filtering=True
         self.languages=['']+sorted(({canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|{'en','fr'})-{''},key=lambda code:self.language_label(code).casefold())
         self.language.set_codes(self.languages,self._language_records)
@@ -521,7 +523,7 @@ class CatalogueWindow(Adw.Window):
 
 
     def on_close(self, *_):
-        if self._success_toast:self._success_toast.dismiss();self._success_toast=None
+        self.dismiss_success_toast()
         if self._transfer_busy and not self.owner.closed:
             self.set_visible(False)
             return True
@@ -534,9 +536,13 @@ class CatalogueWindow(Adw.Window):
         self.executor.shutdown(wait=False, cancel_futures=True)
         return False
 
+    def dismiss_success_toast(self):
+        if self._success_toast:self._success_toast.dismiss();self._success_toast=None
+
     def task(self, message, action, finished, success_text=None, resource=None,executor=None):
         if self._transfer_busy:
             return
+        self.dismiss_success_toast()
         self._transfer_busy = True
         self._cancel.clear();self._install_started=False;self._task_resource=resource.id if resource else None
         self._task_caption=plain(resource.description) if resource else ''
@@ -572,7 +578,10 @@ class CatalogueWindow(Adw.Window):
                 self.status.set_text(remaining[0] if remaining else '')
                 self.status.set_tooltip_text(remaining[1] if remaining else None)
                 self.status.set_visible(bool(remaining))
-                if success_text and self.get_mapped():
+                selected=self.selected_resource()
+                context_current=(self.pages.get_visible_child_name()!='detail' or resource is None
+                                 or selected is not None and selected.id==resource.id)
+                if success_text and self.get_mapped() and context_current:
                     if self._success_toast:self._success_toast.dismiss()
                     toast=Adw.Toast.new(success_text);toast.set_timeout(4)
                     self._success_toast=toast;self.toast_overlay.add_toast(toast)
