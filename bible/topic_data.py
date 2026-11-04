@@ -12,18 +12,26 @@ import stat
 import tempfile
 import time
 import zipfile
-from .reference_data import ReferenceData,ReferenceDataError,Relationship,reference_key,LICENSE_URL,NUMBERING
-from .topic_vocabulary import VOCABULARY
+from .reference_data import ReferenceData,ReferenceDataError,Relationship,reference_key,LICENSE_URL,NUMBERING,archive_generation,generation_date
+from .topic_vocabulary import TopicVocabulary
 
 SOURCE_URL='https://www.openbible.info/topics/'
 DOWNLOAD_URL='https://a.openbible.info/data/topic-scores.zip'
-SOURCE_DATE='2026-10-19'
-ARCHIVE_SHA256='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
+from .study_catalogue import BUNDLED,parse as parse_catalogue
+_DEFAULT=parse_catalogue(BUNDLED.read_bytes())['openbible-topics']
+SOURCE_DATE=_DEFAULT.generation
+ARCHIVE_SHA256=_DEFAULT.sha256
 MAX_ARCHIVE=4*1024*1024
 MAX_TEXT=8*1024*1024
 TRANSFORMATIONS=('Topic identifiers, reference relationships and supplied quality scores only; no Scripture quotations. '
                 'Validated local SQLite index; exact ranges deduplicated by maximum score, then canonical order. '
-                'Only the explicit curated bilingual vocabulary is exposed; community suggestions are not doctrinal conclusions.')
+                'The complete source index is retained; separately maintained reviewed names control UI coverage. Community suggestions are not doctrinal conclusions.')
+
+
+def topic_header(header):
+    if len(header)!=4 or header[:3]!=['Topic','OSIS','Quality Score (based on percentage of votes for the passage)']:
+        raise ReferenceDataError('Unsupported topic data header')
+    return generation_date(header[3],'# Generated ','. CC-BY License: www.openbible.info/topics')
 
 
 def parse_archive(path):
@@ -39,9 +47,7 @@ def parse_archive(path):
         with archive.open(entry) as source:raw=source.read(MAX_TEXT+1)
         if len(raw)>MAX_TEXT:raise ReferenceDataError('Topic expansion exceeds limit')
     source=io.StringIO(raw.decode('utf-8-sig'))
-    if source.readline().rstrip('\r\n').split('\t')!=['Topic','OSIS','Quality Score (based on percentage of votes for the passage)',
-            '# Generated '+SOURCE_DATE+'. CC-BY License: www.openbible.info/topics']:
-        raise ReferenceDataError('Unsupported topic data header')
+    topic_header(source.readline().rstrip('\r\n').split('\t'))
     count=0
     for count,line in enumerate(source,1):
         if count>200000 or len(line)>512:raise ReferenceDataError('Topic data exceeds limits')
@@ -76,17 +82,57 @@ class TopicData(ReferenceData):
         except (sqlite3.Error,TypeError,KeyError,ValueError) as error:raise ReferenceDataError(str(error)) from error
 
     def install(self,progress=lambda done,total:None,installing=lambda:None):
-        from .library import download
+        from .topic_vocabulary import parse as parse_vocabulary
+        from .study_catalogue import atomic_write
+        fresh=True
+        try:revisions=self.catalogue.refresh()
+        except OSError:fresh=False;revisions=self.catalogue.load()
+        except ValueError as error:raise ReferenceDataError(str(error)) from error
+        index=revisions['openbible-topics'];words=revisions['topic-vocabulary']
+        vocabulary=TopicVocabulary(self.root)
+        installed=None
+        try:installed=self.metadata();current=installed['archive_sha256']==index.sha256
+        except (OSError,ValueError,KeyError):current=False
+        if not fresh and installed is not None and (not current or not vocabulary.current(words)):
+            raise ReferenceDataError('The study catalogue could not be refreshed; installed topics and vocabulary were preserved. Retry when metadata is available.')
         self.root.mkdir(parents=True,exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.topic-download-',dir=self.root) as temporary:
-            path=Path(temporary)/'topics.zip'
-            with path.open('wb') as output:download(DOWNLOAD_URL,output,progress,limit=MAX_ARCHIVE)
-            installing();return self.install_archive(path)
+            temporary=Path(temporary);vocabulary_path=None;candidate=None
+            try:
+                if not vocabulary.current(words):
+                    vocabulary_path=temporary/'vocabulary.json'
+                    self.catalogue.download('topic-vocabulary',vocabulary_path,progress,revision=words)
+                    value,_=parse_vocabulary(vocabulary_path.read_bytes())
+                    if value['revision']!=words.revision:raise ReferenceDataError('Topic vocabulary revision mismatch')
+                if not current:
+                    archive=temporary/'topics.zip'
+                    self.catalogue.download('openbible-topics',archive,progress,revision=index)
+                    installing();candidate=TopicData(temporary/'prepared')
+                    candidate.install_archive(archive,revision=index)
+                # Both payloads are checked before replacing either file. Index
+                # and vocabulary stay independently versioned and atomically
+                # replaced; their exact-ID intersection tolerates interruption.
+                previous=vocabulary.path.read_bytes() if vocabulary.path.is_file() else None
+                replaced=False
+                try:
+                    if vocabulary_path:vocabulary.install_file(vocabulary_path,words);replaced=True
+                    if candidate:os.replace(candidate.path,self.path)
+                except OSError:
+                    if replaced:
+                        if previous is None:vocabulary.path.unlink(missing_ok=True)
+                        else:atomic_write(vocabulary.path,previous)
+                    raise
+            except ValueError as error:raise ReferenceDataError(str(error)) from error
+        return self.metadata()
 
-    def install_archive(self,path):
+    def install_archive(self,path,*,revision=None):
         path=Path(path)
-        if path.stat().st_size>MAX_ARCHIVE or hashlib.sha256(path.read_bytes()).hexdigest()!=ARCHIVE_SHA256:
+        expected=revision.sha256 if revision else ARCHIVE_SHA256
+        if path.stat().st_size>MAX_ARCHIVE or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
             raise ReferenceDataError('Topic checksum mismatch; installed data was preserved')
+        if revision:revision.verify(path)
+        generation=archive_generation(path,'topic-scores.txt',topic_header)
+        if revision and generation!=revision.generation:raise ReferenceDataError('Topic generation does not match the checked catalogue')
         self.root.mkdir(parents=True,exist_ok=True);started=time.monotonic()
         with tempfile.TemporaryDirectory(prefix='.topic-index-',dir=self.root) as temporary:
             candidate=Path(temporary)/'index.sqlite3'
@@ -97,12 +143,11 @@ class TopicData(ReferenceData):
                 connection.executemany('INSERT INTO topics VALUES(?,?,?,?,?)',parse_archive(path))
                 connection.execute('CREATE INDEX topic_names ON topics(topic)')
                 names={r[0] for r in connection.execute('SELECT DISTINCT topic FROM topics')}
-                if any(entry[0] not in names for entry in VOCABULARY):raise ReferenceDataError('Curated topic missing from source')
-                value=dict(schema=1,source='OpenBible.info',source_url=SOURCE_URL,download_url=DOWNLOAD_URL,
-                    source_date=SOURCE_DATE,archive_sha256=ARCHIVE_SHA256,license='CC BY 4.0',license_url=LICENSE_URL,
+                value=dict(schema=1,source='OpenBible.info',source_url=SOURCE_URL,download_url=revision.url if revision else DOWNLOAD_URL,
+                    source_date=generation,archive_sha256=expected,license='CC BY 4.0',license_url=LICENSE_URL,
                     numbering=NUMBERING,transformations=TRANSFORMATIONS,topics=len(names),
                     relationships=connection.execute('SELECT count(*) FROM topics').fetchone()[0],
-                    supported_topics=len(VOCABULARY),installed_at=datetime.now(timezone.utc).isoformat(),
+                    installed_at=datetime.now(timezone.utc).isoformat(),
                     index_seconds=round(time.monotonic()-started,3))
                 connection.execute('INSERT INTO metadata VALUES(?,?)',('source',json.dumps(value)))
                 if connection.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise ReferenceDataError('Invalid topic index')
@@ -112,9 +157,14 @@ class TopicData(ReferenceData):
         return value
 
     def query(self,topic):
-        if topic not in {entry[0] for entry in VOCABULARY}:raise ReferenceDataError('Unsupported topic')
+        if not isinstance(topic,str) or not topic.strip() or len(topic)>120 or not topic.isprintable():raise ReferenceDataError('Invalid topic identifier')
         self.metadata()
         with closing(self.connect()) as connection:
             rows=connection.execute('SELECT start,end,max(score),1 FROM topics WHERE topic=? GROUP BY start,end '
                 'ORDER BY max(score) DESC,min(ordering),start,end LIMIT 1000',(topic,)).fetchall()
         return [Relationship(*row) for row in rows]
+
+    def identifiers(self):
+        self.metadata()
+        with closing(self.connect()) as connection:
+            return frozenset(row[0] for row in connection.execute('SELECT DISTINCT topic FROM topics'))

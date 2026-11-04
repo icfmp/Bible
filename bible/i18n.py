@@ -560,3 +560,6 @@ FR.update({'Unable to save this note. Your draft is kept.':'Impossible d’enreg
 FR.update({'Resume following':'Reprendre le suivi', 'No annotations in this chapter.':'Aucune annotation dans ce chapitre.'})
 
 FR.update({'A note passage must be ordered within one book':'Le passage d’une note doit être ordonné dans un même livre.'})
+
+FR.update({'Update available':'Mise à jour disponible'})
+FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {revision}'})

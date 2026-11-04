@@ -1,7 +1,7 @@
 """Pinned OpenBible relationships: bounded parsing and atomic offline indexing."""
 from dataclasses import dataclass
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import date,datetime, timezone
 from functools import lru_cache
 import hashlib
 import io
@@ -18,8 +18,10 @@ import zipfile
 SOURCE_URL = 'https://www.openbible.info/labs/cross-references/'
 DOWNLOAD_URL = 'https://a.openbible.info/data/cross-references.zip'
 LICENSE_URL = 'https://creativecommons.org/licenses/by/4.0/'
-ARCHIVE_SHA256 = '5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f'
-SOURCE_DATE = '2026-10-19'
+from .study_catalogue import StudyCatalogue,BUNDLED,parse as parse_catalogue
+_DEFAULT = parse_catalogue(BUNDLED.read_bytes())['openbible-cross-references']
+ARCHIVE_SHA256 = _DEFAULT.sha256
+SOURCE_DATE = _DEFAULT.generation
 MAX_ARCHIVE = 8 * 1024 * 1024
 MAX_TEXT = 16 * 1024 * 1024
 MAX_DATABASE = 128 * 1024 * 1024
@@ -33,6 +35,28 @@ TRANSFORMATIONS = ('Reference relationships and community scores only; no Script
 
 class ReferenceDataError(ValueError):
     pass
+
+
+def generation_date(value,prefix,suffix=''):
+    if not value.startswith(prefix) or suffix and not value.endswith(suffix):raise ReferenceDataError('Unsupported dataset generation header')
+    text=value[len(prefix):len(value)-len(suffix) if suffix else None]
+    try:
+        if date.fromisoformat(text).isoformat()!=text:raise ValueError('Invalid generation date')
+    except ValueError as error:raise ReferenceDataError('Invalid dataset generation date') from error
+    return text
+
+
+def archive_generation(path,filename,header_parser):
+    try:
+        with zipfile.ZipFile(path) as archive,archive.open(filename) as source:
+            line=source.readline(1024).decode('utf-8-sig').rstrip('\r\n')
+        return header_parser(line.split('\t'))
+    except (KeyError,UnicodeError,zipfile.BadZipFile) as error:raise ReferenceDataError('Unsupported dataset archive') from error
+
+
+def reference_header(header):
+    if len(header)!=4 or header[:3]!=['From Verse','To Verse','Votes']:raise ReferenceDataError('Unsupported reference data header')
+    return generation_date(header[3],'#www.openbible.info CC-BY ')
 
 
 @lru_cache(maxsize=1)
@@ -89,9 +113,7 @@ def parse_archive(path):
         if len(raw) > MAX_TEXT:raise ReferenceDataError('Expanded reference data is too large')
     source = io.StringIO(raw.decode('utf-8-sig'))
     header = source.readline().rstrip('\r\n').split('\t')
-    if (len(header) != 4 or header[:3] != ['From Verse','To Verse','Votes']
-            or header[3] != '#www.openbible.info CC-BY '+SOURCE_DATE):
-        raise ReferenceDataError('Unsupported reference data header')
+    reference_header(header)
     count = 0
     for line in source:
         count += 1
@@ -121,6 +143,7 @@ class Relationship:
 class ReferenceData:
     def __init__(self, root):
         self.root = Path(root)
+        self.catalogue=StudyCatalogue(root)
         self.path = self.root / 'openbible-cross-references.sqlite3'
         self._metadata_revision=None;self._metadata=None
 
@@ -156,21 +179,33 @@ class ReferenceData:
             raise ReferenceDataError(str(error)) from error
 
     def install(self, progress=lambda done,total:None, installing=lambda:None):
-        from .library import download
-        self.root.mkdir(parents=True, exist_ok=True)
+        fresh=True
+        try:revisions=self.catalogue.refresh()
+        except OSError:fresh=False;revisions=self.catalogue.load()
+        except ValueError as error:raise ReferenceDataError(str(error)) from error
+        revision=revisions['openbible-cross-references']
+        if not fresh:
+            try:installed=self.metadata()
+            except (OSError,ValueError):installed=None
+            if installed and installed['archive_sha256']!=revision.sha256:
+                raise ReferenceDataError('The study catalogue could not be refreshed; the installed index was preserved. Retry when metadata is available.')
+        self.root.mkdir(parents=True,exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.reference-download-',dir=self.root) as temporary:
-            archive = Path(temporary)/'references.zip'
-            with archive.open('wb') as output:download(DOWNLOAD_URL,output,progress,limit=MAX_ARCHIVE)
-            if hashlib.sha256(archive.read_bytes()).hexdigest() != ARCHIVE_SHA256:
-                raise ReferenceDataError('Reference data changed. Update Bible and try again; installed data was preserved.')
+            archive=Path(temporary)/'references.zip'
+            try:self.catalogue.download('openbible-cross-references',archive,progress,revision=revision)
+            except ValueError as error:raise ReferenceDataError(str(error)) from error
             installing()
-            return self.install_archive(archive)
+            return self.install_archive(archive,revision=revision)
 
-    def install_archive(self, archive):
+    def install_archive(self, archive,*,revision=None):
         """Verify even local test/integration input; never accept an unpinned update."""
         archive = Path(archive)
-        if archive.stat().st_size > MAX_ARCHIVE or hashlib.sha256(archive.read_bytes()).hexdigest() != ARCHIVE_SHA256:
+        expected=revision.sha256 if revision else ARCHIVE_SHA256
+        if archive.stat().st_size > MAX_ARCHIVE or hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
             raise ReferenceDataError('Reference archive checksum mismatch; installed data was preserved')
+        if revision:revision.verify(archive)
+        generation=archive_generation(archive,'cross_references.txt',reference_header)
+        if revision and generation!=revision.generation:raise ReferenceDataError('Reference generation does not match the checked catalogue')
         self.root.mkdir(parents=True, exist_ok=True)
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix='.reference-index-',dir=self.root) as temporary:
@@ -181,8 +216,8 @@ class ReferenceData:
                 connection.executemany('INSERT INTO relationships VALUES(?,?,?,?,?)',parse_archive(archive))
                 connection.execute('CREATE INDEX relationships_origin ON relationships(origin)')
                 count = connection.execute('SELECT count(*) FROM relationships').fetchone()[0]
-                metadata = dict(schema=1,source='OpenBible.info',source_url=SOURCE_URL,download_url=DOWNLOAD_URL,
-                    source_date=SOURCE_DATE,archive_sha256=ARCHIVE_SHA256,license='CC BY 4.0',license_url=LICENSE_URL,
+                metadata = dict(schema=1,source='OpenBible.info',source_url=SOURCE_URL,download_url=revision.url if revision else DOWNLOAD_URL,
+                    source_date=generation,archive_sha256=expected,license='CC BY 4.0',license_url=LICENSE_URL,
                     numbering=NUMBERING,transformations=TRANSFORMATIONS,relationships=count,
                     installed_at=datetime.now(timezone.utc).isoformat(),index_seconds=round(time.monotonic()-started,3))
                 connection.execute('INSERT INTO metadata VALUES(?,?)',('source',json.dumps(metadata)))

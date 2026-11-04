@@ -155,6 +155,28 @@ class CatalogueSession:
             self.installed_future=self.schedule(work)
             return self.installed_future
 
+    def refresh_study(self):
+        """Refresh only checked resource metadata; never fetch a dataset here."""
+        def finish():
+            self.scan_installed();self.publish()
+        def work():
+            try:
+                self.bootstrap_future.result()
+                self.study.catalogue.refresh()
+                with self.lock:self.errors.pop('Study tools',None)
+            except Exception as error:
+                with self.lock:self.errors['Study tools']=str(error)
+            finally:
+                with self.lock:
+                    self.refreshing=False
+                    if not self.closed:self.schedule(finish)
+        with self.lock:
+            if self.closed:return None
+            if self.refresh_future and not self.refresh_future.done():return self.refresh_future
+            self.refreshing=True;self.generation+=1
+            self.refresh_future=self.network.submit(work)
+            return self.refresh_future
+
     def refresh(self,fetch,force,providers=PROVIDERS):
         with self.lock:
             if self.closed:return None

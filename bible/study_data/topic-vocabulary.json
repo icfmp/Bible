@@ -1,0 +1,607 @@
+{
+  "schema": 1,
+  "revision": "2026-11-04.1",
+  "license": "GPL-2.0-only",
+  "attribution": "Reviewed Bible project vocabulary; maintained independently of the OpenBible source index.",
+  "source_url": "https://www.openbible.info/topics/",
+  "entries": [
+    {
+      "id": "forgiveness of sins",
+      "names": {
+        "en": "Forgiveness of sins",
+        "fr": "Pardon des péchés"
+      },
+      "synonyms": [
+        "pardon reçu",
+        "Dieu pardonne",
+        "forgiveness received",
+        "absolution"
+      ]
+    },
+    {
+      "id": "forgiving others",
+      "names": {
+        "en": "Forgiving others",
+        "fr": "Pardonner aux autres"
+      },
+      "synonyms": [
+        "pardon accordé",
+        "pardonner son prochain",
+        "forgiveness given"
+      ]
+    },
+    {
+      "id": "reconciliation",
+      "names": {
+        "en": "Reconciliation",
+        "fr": "Réconciliation"
+      },
+      "synonyms": [
+        "pardon",
+        "se réconcilier",
+        "restore relationships"
+      ]
+    },
+    {
+      "id": "grace",
+      "names": {
+        "en": "Grace",
+        "fr": "Grâce"
+      },
+      "synonyms": [
+        "faveur",
+        "don gratuit"
+      ]
+    },
+    {
+      "id": "faith",
+      "names": {
+        "en": "Faith",
+        "fr": "Foi"
+      },
+      "synonyms": [
+        "croire",
+        "croyance",
+        "belief"
+      ]
+    },
+    {
+      "id": "hope",
+      "names": {
+        "en": "Hope",
+        "fr": "Espérance"
+      },
+      "synonyms": [
+        "espoir",
+        "attendre avec confiance"
+      ]
+    },
+    {
+      "id": "love",
+      "names": {
+        "en": "Love",
+        "fr": "Amour"
+      },
+      "synonyms": [
+        "aimer",
+        "charité",
+        "charity"
+      ]
+    },
+    {
+      "id": "fear",
+      "names": {
+        "en": "Fear",
+        "fr": "Peur"
+      },
+      "synonyms": [
+        "crainte",
+        "effroi",
+        "afraid"
+      ]
+    },
+    {
+      "id": "fear of the lord",
+      "names": {
+        "en": "Fear of the lord",
+        "fr": "Crainte du Seigneur"
+      },
+      "synonyms": [
+        "respect de Dieu",
+        "fear of God"
+      ]
+    },
+    {
+      "id": "anxiety",
+      "names": {
+        "en": "Anxiety",
+        "fr": "Inquiétude"
+      },
+      "synonyms": [
+        "anxiété",
+        "souci",
+        "soucis",
+        "worry",
+        "worries"
+      ]
+    },
+    {
+      "id": "peace",
+      "names": {
+        "en": "Peace",
+        "fr": "Paix"
+      },
+      "synonyms": [
+        "apaisement",
+        "paix intérieure",
+        "peaceful"
+      ]
+    },
+    {
+      "id": "justice",
+      "names": {
+        "en": "Justice",
+        "fr": "Justice"
+      },
+      "synonyms": [
+        "équité",
+        "juste",
+        "fairness"
+      ]
+    },
+    {
+      "id": "anger",
+      "names": {
+        "en": "Anger",
+        "fr": "Colère"
+      },
+      "synonyms": [
+        "irritation",
+        "fureur",
+        "angry"
+      ]
+    },
+    {
+      "id": "wisdom",
+      "names": {
+        "en": "Wisdom",
+        "fr": "Sagesse"
+      },
+      "synonyms": [
+        "discernement",
+        "wise"
+      ]
+    },
+    {
+      "id": "mercy",
+      "names": {
+        "en": "Mercy",
+        "fr": "Miséricorde"
+      },
+      "synonyms": [
+        "compassion",
+        "pitié",
+        "merciful"
+      ]
+    },
+    {
+      "id": "prayer",
+      "names": {
+        "en": "Prayer",
+        "fr": "Prière"
+      },
+      "synonyms": [
+        "prier",
+        "prieres",
+        "pray"
+      ]
+    },
+    {
+      "id": "suffering",
+      "names": {
+        "en": "Suffering",
+        "fr": "Souffrance"
+      },
+      "synonyms": [
+        "souffrir",
+        "épreuve",
+        "douleur",
+        "pain"
+      ]
+    },
+    {
+      "id": "work",
+      "names": {
+        "en": "Work",
+        "fr": "Travail"
+      },
+      "synonyms": [
+        "travailler",
+        "métier",
+        "working"
+      ]
+    },
+    {
+      "id": "death",
+      "names": {
+        "en": "Death",
+        "fr": "Mort"
+      },
+      "synonyms": [
+        "mourir",
+        "décès",
+        "dying"
+      ]
+    },
+    {
+      "id": "resurrection",
+      "names": {
+        "en": "Resurrection",
+        "fr": "Résurrection"
+      },
+      "synonyms": [
+        "ressusciter",
+        "relever des morts"
+      ]
+    },
+    {
+      "id": "salvation",
+      "names": {
+        "en": "Salvation",
+        "fr": "Salut"
+      },
+      "synonyms": [
+        "sauver",
+        "sauvé",
+        "saved"
+      ]
+    },
+    {
+      "id": "healing",
+      "names": {
+        "en": "Healing",
+        "fr": "Guérison"
+      },
+      "synonyms": [
+        "guérir",
+        "maladie",
+        "heal"
+      ]
+    },
+    {
+      "id": "trust",
+      "names": {
+        "en": "Trust",
+        "fr": "Confiance"
+      },
+      "synonyms": [
+        "se confier",
+        "faire confiance",
+        "trusting"
+      ]
+    },
+    {
+      "id": "gratitude",
+      "names": {
+        "en": "Gratitude",
+        "fr": "Reconnaissance"
+      },
+      "synonyms": [
+        "gratitude",
+        "remerciement",
+        "thankful"
+      ]
+    },
+    {
+      "id": "family",
+      "names": {
+        "en": "Family",
+        "fr": "Famille"
+      },
+      "synonyms": [
+        "foyer",
+        "familial"
+      ]
+    },
+    {
+      "id": "marriage",
+      "names": {
+        "en": "Marriage",
+        "fr": "Mariage"
+      },
+      "synonyms": [
+        "époux",
+        "épouse",
+        "couple",
+        "married"
+      ]
+    },
+    {
+      "id": "children",
+      "names": {
+        "en": "Children",
+        "fr": "Enfants"
+      },
+      "synonyms": [
+        "enfant",
+        "parentalité",
+        "child"
+      ]
+    },
+    {
+      "id": "friendship",
+      "names": {
+        "en": "Friendship",
+        "fr": "Amitié"
+      },
+      "synonyms": [
+        "ami",
+        "amis",
+        "amie",
+        "friends"
+      ]
+    },
+    {
+      "id": "repentance",
+      "names": {
+        "en": "Repentance",
+        "fr": "Repentance"
+      },
+      "synonyms": [
+        "se repentir",
+        "regret",
+        "repentir"
+      ]
+    },
+    {
+      "id": "temptation",
+      "names": {
+        "en": "Temptation",
+        "fr": "Tentation"
+      },
+      "synonyms": [
+        "tenter",
+        "tenté",
+        "tempted"
+      ]
+    },
+    {
+      "id": "humility",
+      "names": {
+        "en": "Humility",
+        "fr": "Humilité"
+      },
+      "synonyms": [
+        "humble",
+        "modestie"
+      ]
+    },
+    {
+      "id": "patience",
+      "names": {
+        "en": "Patience",
+        "fr": "Patience"
+      },
+      "synonyms": [
+        "patient",
+        "persévérer",
+        "waiting"
+      ]
+    },
+    {
+      "id": "generosity",
+      "names": {
+        "en": "Generosity",
+        "fr": "Générosité"
+      },
+      "synonyms": [
+        "donner",
+        "partage",
+        "generous"
+      ]
+    },
+    {
+      "id": "honesty",
+      "names": {
+        "en": "Honesty",
+        "fr": "Honnêteté"
+      },
+      "synonyms": [
+        "intégrité",
+        "honnête",
+        "honest"
+      ]
+    },
+    {
+      "id": "truth",
+      "names": {
+        "en": "Truth",
+        "fr": "Vérité"
+      },
+      "synonyms": [
+        "vrai",
+        "véridique",
+        "truthful"
+      ]
+    },
+    {
+      "id": "courage",
+      "names": {
+        "en": "Courage",
+        "fr": "Courage"
+      },
+      "synonyms": [
+        "bravoure",
+        "hardiesse",
+        "brave"
+      ]
+    },
+    {
+      "id": "joy",
+      "names": {
+        "en": "Joy",
+        "fr": "Joie"
+      },
+      "synonyms": [
+        "réjouir",
+        "réjouissance",
+        "joyful"
+      ]
+    },
+    {
+      "id": "rest",
+      "names": {
+        "en": "Rest",
+        "fr": "Repos"
+      },
+      "synonyms": [
+        "se reposer",
+        "fatigue",
+        "resting"
+      ]
+    },
+    {
+      "id": "creation",
+      "names": {
+        "en": "Creation",
+        "fr": "Création"
+      },
+      "synonyms": [
+        "créateur",
+        "créer",
+        "creator"
+      ]
+    },
+    {
+      "id": "holy spirit",
+      "names": {
+        "en": "Holy spirit",
+        "fr": "Saint-Esprit"
+      },
+      "synonyms": [
+        "Esprit saint",
+        "esprit de Dieu",
+        "spirit of God"
+      ]
+    },
+    {
+      "id": "baptism",
+      "names": {
+        "en": "Baptism",
+        "fr": "Baptême"
+      },
+      "synonyms": [
+        "baptiser",
+        "baptisé",
+        "baptized"
+      ]
+    },
+    {
+      "id": "eternal life",
+      "names": {
+        "en": "Eternal life",
+        "fr": "Vie éternelle"
+      },
+      "synonyms": [
+        "éternité",
+        "eternal"
+      ]
+    },
+    {
+      "id": "poverty",
+      "names": {
+        "en": "Poverty",
+        "fr": "Pauvreté"
+      },
+      "synonyms": [
+        "pauvre",
+        "pauvres",
+        "poor"
+      ]
+    },
+    {
+      "id": "wealth",
+      "names": {
+        "en": "Wealth",
+        "fr": "Richesse"
+      },
+      "synonyms": [
+        "riche",
+        "argent",
+        "rich"
+      ]
+    },
+    {
+      "id": "hospitality",
+      "names": {
+        "en": "Hospitality",
+        "fr": "Hospitalité"
+      },
+      "synonyms": [
+        "accueil",
+        "accueillir",
+        "welcome"
+      ]
+    },
+    {
+      "id": "loneliness",
+      "names": {
+        "en": "Loneliness",
+        "fr": "Solitude"
+      },
+      "synonyms": [
+        "seul",
+        "isolement",
+        "lonely"
+      ]
+    },
+    {
+      "id": "self control",
+      "names": {
+        "en": "Self control",
+        "fr": "Maîtrise de soi"
+      },
+      "synonyms": [
+        "tempérance",
+        "se maîtriser",
+        "self-control"
+      ]
+    },
+    {
+      "id": "obedience",
+      "names": {
+        "en": "Obedience",
+        "fr": "Obéissance"
+      },
+      "synonyms": [
+        "obéir",
+        "obéissant",
+        "obey"
+      ]
+    },
+    {
+      "id": "faithfulness",
+      "names": {
+        "en": "Faithfulness",
+        "fr": "Fidélité"
+      },
+      "synonyms": [
+        "fidèle",
+        "loyauté",
+        "faithful"
+      ]
+    },
+    {
+      "id": "forgiveness",
+      "names": {
+        "en": "Forgiveness",
+        "fr": "Pardon"
+      },
+      "synonyms": [
+        "pardonner",
+        "forgiving",
+        "forgiveness"
+      ]
+    }
+  ]
+}
