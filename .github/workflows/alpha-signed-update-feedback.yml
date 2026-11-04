@@ -131,12 +131,9 @@ jobs:
           for attempt in range(240):
               try:
                   if expected is None:
-                      prs=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/commits/'+expected_head+'/pulls'],text=True))
-                      candidates=[p for p in prs if p['head']['sha']==expected_head and p['base']['ref']=='main']
-                      if not candidates:
-                          time.sleep(15);continue
-                      assert len(candidates)==1
-                      pr=candidates[0]
+                      # The commit-to-pulls endpoint omits this merged head;
+                      # verify the known reviewed PR directly, without inference.
+                      pr=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/pulls/164'],text=True))
                       assert pr['head']['sha']==expected_head and pr['base']['ref']=='main'
                       if not pr['merged_at']:
                           time.sleep(15);continue
