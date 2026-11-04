@@ -183,7 +183,12 @@ def main():
         try:
             settings.props.gtk_font_name='Sans 18';spin(lambda:not w._controls_tick,duration=.4)
             shot('narrow-360-large-text')
-            if not args.baseline:assert w.header.get_width()<=w.get_width()+4
+            if not args.baseline:
+                assert w.header.get_width()<=w.get_width()+4
+                assert w.passage_button.get_height()<=w.menu.get_height()+16
+                caption=w.primary_version.caption
+                if len(caption.get_text())<=4:
+                    assert caption.get_width()>=caption.create_pango_layout(caption.get_text()).get_pixel_size()[0]
         finally:settings.props.gtk_font_name=font
         assert not exceptions,exceptions
         report['result']='PASS';save()

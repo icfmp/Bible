@@ -124,7 +124,7 @@ class VersionChooser(Gtk.MenuButton):
             if isinstance(short,str) and short.strip() and len(short)<=40 and not any(ord(c)<32 for c in short):
                 caption=short
         self.caption.set_wrap(not in_header)
-        self.caption.set_ellipsize(Pango.EllipsizeMode.END if in_header else Pango.EllipsizeMode.NONE)
+        self.caption.set_ellipsize(Pango.EllipsizeMode.END if in_header and len(caption)>4 else Pango.EllipsizeMode.NONE)
         if in_header:self.caption.add_css_class('dim-label')
         else:self.caption.remove_css_class('dim-label')
         self.caption.set_text(caption)

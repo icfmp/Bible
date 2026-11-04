@@ -44,3 +44,21 @@ class ReaderChromeTests(unittest.TestCase):
                                 self.assertTrue(w.reading_tools_menu.get_active());w.dismiss_popovers();spin()
                     self.assertEqual(t.state.reference,'John.3.17')
                 finally:settings.props.gtk_font_name=font;w.close()
+
+    def test_short_public_code_gets_its_natural_width_with_large_ui_text(self):
+        from bible.ui import Application,Window,Library,Gtk
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);module=installed_fixture(root)
+            config=next((module/'mods.d').glob('*.conf'))
+            config.write_text(config.read_text()+'\nAbbreviation=BDS\n')
+            w=Window(app,Library(root/'translations'));w.set_default_size(360,750);w.present()
+            settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+            try:
+                settings.props.gtk_font_name='Sans 18'
+                spin(lambda:not w._controls_tick and not w.active_tab._restoring_scroll,duration=.4)
+                label=w.primary_version.caption
+                self.assertEqual(label.get_text(),'BDS')
+                self.assertGreaterEqual(label.get_width(),label.create_pango_layout('BDS').get_pixel_size()[0])
+                self.assertLessEqual(w.header.get_width(),w.get_width()+4)
+            finally:settings.props.gtk_font_name=font;w.close()
