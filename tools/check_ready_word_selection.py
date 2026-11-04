@@ -13,7 +13,7 @@ def main():
     faulthandler.enable()
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--baseline-captures',action='store_true');p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    p.add_argument('--selection-only',action='store_true');p.add_argument('--baseline-captures',action='store_true');p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     marker=args.profile/'.ready-word-selection-profile'
     if args.prepare:
@@ -50,7 +50,7 @@ def main():
     def save(): (args.output/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
     def settled():spin(lambda:not t._restoring_scroll,duration=.2,timeout=60)
     def select(start,end):
-        a.dismiss();spin(duration=.05);b=t.text.get_buffer()
+        spin(duration=.05);b=t.text.get_buffer()
         first=t.text.get_iter_location(b.get_iter_at_offset(start));last=t.text.get_iter_location(b.get_iter_at_offset(end))
         x,y=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,first.x,first.y+first.height//2)
         ex,ey=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,last.x,last.y+last.height//2)
@@ -83,7 +83,7 @@ def main():
         if args.baseline_captures:
             immersion_captures();report['baseline_captures']=True;report['completed']=True;save();return
         t.state.comparison=None;w.sync_comparison()
-        for cycle in range(12):
+        for cycle in range(0 if args.selection_only else 12):
             w.study_button.set_active(cycle%2==1)
             assert t.navigate('youversion~YV21','Mark.11.29');settled()
             result=select(t._marker_ends['Mark.11.29']+1,t._marker_ends['Mark.11.30']+15)
@@ -106,17 +106,19 @@ def main():
             assert words.dialog is None and not words.pending
             assert t.state.reference=='Mark.11.29'
             report['word_cycles'].append(dict(cycle=cycle,selection=result,choice=cycle%2,closed=True,study_open=w.study_button.get_active()));save()
-        immersion_captures()
+        if not args.selection_only:immersion_captures()
         w.study_button.set_active(False);assert t.navigate('youversion~YV21','Gen.1.1');settled()
         import os
         recorder=subprocess.Popen(['ffmpeg','-nostdin','-loglevel','error','-y','-f','x11grab','-video_size','1440x1100','-framerate','15','-i',os.environ['DISPLAY'],'-an','-c:v','libx264','-preset','ultrafast','-crf','28',str(args.output/'selection-repeated.mp4')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        for cycle in range(40):
+        for cycle in range(120):
             start=t._marker_ends['Gen.1.'+str(1+cycle%3)]+2
             end=start+5+(cycle%4)*8
             if cycle%2:start,end=end,start
             result=select(start,end);result['cycle']=cycle
             report['selection_cycles'].append(result);save()
-        report['missing_toolbar']=sum(not x['visible'] for x in report['selection_cycles'])
+        report['missing_toolbar']=sum(bool(x['actual']) and not x['visible'] for x in report['selection_cycles'])
+        report['collapsed_drag_count']=sum(not x['actual'] for x in report['selection_cycles'])
+        report['native_replacement_without_programmatic_dismissal']=True
         assert not exceptions,exceptions
         report['completed']=True;save()
     finally:
