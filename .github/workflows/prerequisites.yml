@@ -18,6 +18,7 @@ on:
       - '.github/workflows/*channel*.yml'
       - '.github/workflows/prerequisites.yml'
       - 'docs/CANAL_ALPHA_FLATPAK.md'
+      - 'docs/ALPHA_SINGLE_DEPLOYMENT.md'
   workflow_dispatch:
 
 concurrency:
