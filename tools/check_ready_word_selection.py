@@ -13,7 +13,7 @@ def main():
     faulthandler.enable()
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    p.add_argument('--baseline-captures',action='store_true');p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     marker=args.profile/'.ready-word-selection-profile'
     if args.prepare:
@@ -23,7 +23,9 @@ def main():
         from bible.youversion_install import fetch_resource,acknowledgement
         from bible.step_data import StepData
         lib=Library(args.profile/'translations')
-        if 'KJV' not in lib.installed():lib.install(next(r for r in catalogue() if r.name=='KJV'))
+        resources=catalogue()
+        for name in ('KJV','Wesley'):
+            if name not in lib.installed():lib.install(next(r for r in resources if r.name==name))
         if 'youversion~YV21' not in lib.installed():
             item=fetch_resource(21);lib.install(item,permission=acknowledgement(item))
         data=StepData(args.profile/'study-data')
@@ -59,7 +61,27 @@ def main():
         return dict(expected=[start,end],actual=bounds,visible=a.bar.get_visible(),dragging=a.dragging,capture_pending=bool(a.capture_idle))
     save()
     recorder=None
+    def immersion_captures():
+        from tests.test_appearance import SystemStyleOverride
+        t.state.comparison=None;w.sync_comparison();assert t.navigate('KJV','John.1.1');settled()
+        t.state.commentary='Wesley';w.study.tools.set_visible_child_name('commentaries')
+        w.study_button.set_active(True);w.study.refresh(force=True)
+        spin(lambda:bool(w.study.loaded) and not w.study._positioning,duration=.2,timeout=60)
+        with SystemStyleOverride() as style:
+            for dark in (False,True):
+                style.set(dark=dark,high=False);spin(duration=.2)
+                for width in (1200,360):
+                    w.set_default_size(width,820);spin(duration=.3)
+                    for kind in ('bible','commentary'):
+                        assert w.enter_immersion(kind)
+                        spin(lambda:w.immersion and w.immersion.layout_ready,duration=.3,timeout=60)
+                        if not args.baseline_captures:assert not hasattr(w.immersion,'notification_help')
+                        screen.grab(args.output/(('dark' if dark else 'light')+'-'+str(width)+'-'+kind+'-immersion.png'))
+                        w.leave_immersion();spin(lambda:not w.study._positioning,duration=.2)
+        w.set_default_size(1280,900);w.study_button.set_active(False);spin(duration=.3)
     try:
+        if args.baseline_captures:
+            immersion_captures();report['baseline_captures']=True;report['completed']=True;save();return
         t.state.comparison=None;w.sync_comparison()
         for cycle in range(12):
             w.study_button.set_active(cycle%2==1)
@@ -84,6 +106,7 @@ def main():
             assert words.dialog is None and not words.pending
             assert t.state.reference=='Mark.11.29'
             report['word_cycles'].append(dict(cycle=cycle,selection=result,choice=cycle%2,closed=True,study_open=w.study_button.get_active()));save()
+        immersion_captures()
         w.study_button.set_active(False);assert t.navigate('youversion~YV21','Gen.1.1');settled()
         import os
         recorder=subprocess.Popen(['ffmpeg','-nostdin','-loglevel','error','-y','-f','x11grab','-video_size','1440x1100','-framerate','15','-i',os.environ['DISPLAY'],'-an','-c:v','libx264','-preset','ultrafast','-crf','28',str(args.output/'selection-repeated.mp4')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
