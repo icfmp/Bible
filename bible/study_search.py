@@ -1,4 +1,4 @@
-"""Topics and literal text in the existing passage selector, with local previews."""
+"""Topics and literal text in the dedicated search popover, with local previews."""
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr,LANGUAGE

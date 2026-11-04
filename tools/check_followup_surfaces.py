@@ -57,7 +57,7 @@ def main():
                     records.append(dict(surface='references',palette=palette,total=len(refs.rows),first_source_target=target))
                     w.study_button.set_active(False)
                     for width,height in [(1000,800),(360,440)]:
-                        w.set_default_size(width,height);spin(duration=.3);w.choose_passage();nav=w.navigation;nav.modes.set_visible_child_name('topics');panel=nav.topic_search
+                        w.set_default_size(width,height);spin(duration=.3);w.show_search();nav=w.search_popover;nav.modes.set_visible_child_name('topics');panel=nav.topic_search
                         panel.entry.set_text('');panel.changed();spin(duration=.3)
                         panel.topic_scroll.get_vadjustment().set_value(0);spin(duration=.2)
                         screen.grab(a.output/(f'{palette}-topics-{width}.png'))
@@ -82,7 +82,7 @@ def main():
                     if not a.baseline:
                         # Retained real topic relationships: pointer first/subsequent
                         # rows, keyboard activation, dismissal and reopening.
-                        w.set_default_size(1000,800);spin();w.choose_passage();nav.modes.set_visible_child_name('topics')
+                        w.set_default_size(1000,800);spin();w.show_search();nav.modes.set_visible_child_name('topics')
                         panel.entry.set_text('love');panel.changed()
                         topic_button=lambda:next((b for b in walk(panel.topics) if isinstance(b,Gtk.Button)
                             and hasattr(b,'_topic') and b._topic[0]=='love' and b.get_mapped()
@@ -107,7 +107,7 @@ def main():
                                 keyboard=key,target=w.reference_preview.target,generation=generation))
                             if index==0 and not key:screen.grab(a.output/(palette+'-topic-first-preview.png'))
                             w.reference_preview.dismiss();spin()
-                        nav.popdown();spin();w.choose_passage();spin()
+                        nav.popdown();spin();w.show_search();spin()
                         assert len(panel.rows)>1 and panel.generation==generation
                         nav.popdown();spin()
             if a.maps:

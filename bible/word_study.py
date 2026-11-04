@@ -278,8 +278,8 @@ class WordStudy(Gtk.Box):
 
     def all_occurrences(self,corpus,entry):
         resource=self.target.source.resource;self.leave(restore_focus=False)
-        navigation=self.owner.navigation
-        self.owner.choose_passage();navigation.modes.set_visible_child_name('text')
+        navigation=self.owner.search_popover
+        self.owner.show_search('text')
         navigation.text_search.show_lemma(corpus,entry['id'],entry['lemma']+' · '+tr('Lemma occurrences'),resource)
         navigation.text_search.entry.grab_focus()
 

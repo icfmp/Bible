@@ -17,10 +17,25 @@ class StudySearchTests(unittest.TestCase):
         app=Application.get_default() or Application();app.register()
         self.window=Window(app,Library(self.root/'translations'));self.window.present()
         self.window.active_tab.navigate('Test','John.1.1');spin(lambda:not self.window.active_tab._restoring_scroll)
-        self.navigation=self.window.navigation;self.navigation.sync(force=True)
+        self.navigation=self.window.search_popover;self.navigation.sync()
 
     def tearDown(self):
         close_test_dialogs();self.window.close()
+
+    def test_dedicated_search_retains_query_results_while_passage_entry_stays_independent(self):
+        w=self.window;w.show_search('text');spin()
+        panel=w.search_popover.text_search
+        panel.entry.set_text('SENTINEL');panel.run_text();spin(lambda:not panel.pending,duration=.3)
+        rows=list(panel.rows);generation=panel.generation
+        self.assertTrue(rows)
+        w.search_popover.popdown();w.choose_passage();spin()
+        self.assertTrue(w.navigation.direct.get_mapped());self.assertFalse(w.search_popover.get_visible())
+        w.navigation.popdown();w.show_search();spin()
+        self.assertTrue(w.search_popover.get_visible());self.assertFalse(w.navigation.get_visible())
+        self.assertEqual(panel.entry.get_text(),'SENTINEL');self.assertEqual(panel.rows,rows)
+        self.assertEqual(panel.generation,generation)
+        focus=w.get_focus();self.assertTrue(focus is panel.entry or focus.is_ancestor(panel.entry))
+        self.assertIn('<Control>f',w.get_application().get_accels_for_action('win.search'))
 
     def test_superseded_worker_cannot_replace_new_result_or_reopen_preview(self):
         panel=self.navigation.text_search;started=threading.Event();release=threading.Event()
@@ -38,7 +53,7 @@ class StudySearchTests(unittest.TestCase):
         n.modes.set_visible_child_name('topics');p.entry.set_text('pardon');p.changed()
         self.assertEqual(p.topic_model.get_n_items(),4);self.assertTrue(p.download.get_visible())
         p.choose(p.topic_model.get_item(0).value);self.assertFalse(p.pending);self.assertFalse(p.rows)
-        n.modes.set_visible_child_name('passage');n.direct.set_text('John 3:16');n.commit();spin()
+        n.owner.choose_passage();n.owner.navigation.direct.set_text('John 3:16');n.owner.navigation.commit();spin()
         self.assertEqual(self.window.active_tab.state.reference,'John.3.16')
         self.assertEqual(len(self.window.active_tab.state.history),len(before)+1)
 
@@ -50,7 +65,7 @@ class StudySearchTests(unittest.TestCase):
 
     def test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one(self):
         from gi.repository import Gtk
-        n=self.navigation;n.owner.choose_passage();n.modes.set_visible_child_name('text')
+        n=self.navigation;n.owner.show_search();n.modes.set_visible_child_name('text')
         panel=n.text_search;before=(self.window.active_tab.state.reference,list(self.window.active_tab.state.history))
         panel.launch(lambda:([Relationship('Ps.3.0','Ps.3.0',0,1)],1),'Source heading','NRSV')
         spin(lambda:not panel.pending,duration=.2)
@@ -81,7 +96,7 @@ class StudySearchTests(unittest.TestCase):
         from gi.repository import Gtk
         path=self.root/'topics.zip';digest=archive(path)
         with patch('bible.topic_data.ARCHIVE_SHA256',digest):TopicData(self.root/'study-data').install_archive(path)
-        self.window.choose_passage();self.navigation.modes.set_visible_child_name('topics')
+        self.window.show_search();self.navigation.modes.set_visible_child_name('topics')
         panel=self.navigation.topic_search;panel.entry.set_text('love');panel.changed();panel.choose(suggestions('love')[0])
         spin(lambda:not panel.pending,duration=.04)
         def walk(widget):

@@ -234,6 +234,27 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertEqual(editor.body.get_buffer().props.text,'Actual unsaved draft — keep this text')
         editor._discard=True;editor.close()
 
+    def test_success_footer_is_temporary_and_other_job_failures_survive(self):
+        d=self.window.open_library();spin(lambda:not d.busy)
+        first=replace(RESOURCE,name='First');second=replace(RESOURCE,name='Second')
+        def fail():raise OSError('Synthetic failed resource')
+        d.task('Download',fail,lambda _:None,resource=first)
+        spin(lambda:not d._transfer_busy)
+        original=d.status.get_text();self.assertTrue(d.status.get_visible())
+        d.task('Download',lambda:None,lambda _:None,success_text='Installed: Second',resource=second)
+        spin(lambda:not d._transfer_busy)
+        self.assertEqual(d.status.get_text(),original)
+        self.assertIn(first.id,d._task_errors);self.assertNotIn(second.id,d._task_errors)
+        self.assertEqual(d._success_toast.get_title(),'Installed: Second')
+        d.task('Download',lambda:None,lambda _:None,success_text='Installed: First',resource=first)
+        spin(lambda:not d._transfer_busy)
+        self.assertFalse(d.status.get_visible());self.assertFalse(d.progress.get_visible())
+        self.assertEqual(d.status.get_text(),'');self.assertEqual(d.progress.get_text(),'')
+        self.assertEqual(d._task_errors,{})
+        d.close();self.assertIsNone(d._success_toast)
+        reopened=self.window.open_library();spin(lambda:not reopened.busy)
+        self.assertFalse(reopened.status.get_visible());self.assertFalse(reopened.progress.get_visible())
+
     def test_study_category_keeps_queries_filters_and_local_catalogue_independent(self):
         w=self.window;w.application_settings.set('library_language','fr')
         d=w.open_library();spin(lambda:not d.busy)

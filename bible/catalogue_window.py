@@ -63,6 +63,7 @@ class CatalogueWindow(Adw.Window):
         self.timings={}
         self._completed_resource=None
         self._failed_resource=None
+        self._task_errors={};self._success_toast=None
         self.filtered_resources = []
         self.languages = []
         self.source_ids = [None] + [p.id for p in PROVIDERS]
@@ -188,7 +189,8 @@ class CatalogueWindow(Adw.Window):
         self.refresh_status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12,margin_bottom=8)
         self.refresh_status.add_css_class('dim-label');layout.append(self.refresh_status)
         if self.resources:self.refresh_status.set_text(tr('Saved catalogue — available offline.'))
-        self.set_content(layout)
+        self.toast_overlay=Adw.ToastOverlay();self.toast_overlay.set_child(layout)
+        self.set_content(self.toast_overlay)
         self._catalogue_requested=False
         self.update_languages()
         self.refresh_status.set_text(tr('Loading saved resources…'))
@@ -303,7 +305,7 @@ class CatalogueWindow(Adw.Window):
         installed=resource.id in getattr(self,'_installed_ids',set()) and (resource.kind!='study' or resource.id in self._study_current)
         busy=self._transfer_busy and self._task_resource==resource.id
         stamp=(resource,installed,self._transfer_busy,self._phase if busy else None,
-               self.progress.get_text() if busy else None,self._failed_resource==resource.id)
+               self.progress.get_text() if busy else None,resource.id in self._task_errors)
         if getattr(item,'_render_stamp',None)==stamp:return
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
@@ -312,7 +314,7 @@ class CatalogueWindow(Adw.Window):
                             self.progress.get_text() or tr('Downloading…') if busy else tr('Installed') if installed else '')
         item.state.set_visible(busy or installed)
         item.action.set_icon_name('media-playback-start-symbolic' if installed else 'folder-download-symbolic')
-        label=tr('Read') if installed and resource.kind=='bible' else tr('Open') if installed else tr('Retry') if self._failed_resource==resource.id else tr('Download')
+        label=tr('Read') if installed and resource.kind=='bible' else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
         item.action.set_sensitive(installed or (resource.installable and not self._transfer_busy))
@@ -503,7 +505,7 @@ class CatalogueWindow(Adw.Window):
         self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
         self.download_button.set_visible(not current)
         self.download_button.set_label(tr('Update') if installed and not current else
-                                       tr('Retry') if resource and resource.id==self._failed_resource else tr('Download'))
+                                       tr('Retry') if resource and resource.id in self._task_errors else tr('Download'))
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
                                                and not current)
@@ -517,6 +519,7 @@ class CatalogueWindow(Adw.Window):
 
 
     def on_close(self, *_):
+        if self._success_toast:self._success_toast.dismiss();self._success_toast=None
         if self._transfer_busy and not self.owner.closed:
             self.set_visible(False)
             return True
@@ -535,7 +538,7 @@ class CatalogueWindow(Adw.Window):
         self._transfer_busy = True
         self._cancel.clear();self._install_started=False;self._task_resource=resource.id if resource else None
         self._task_caption=plain(resource.description) if resource else ''
-        self._task_id += 1
+        self._task_id += 1;task_id=self._task_id
         self._phase = "downloading"
         self._indeterminate = True
         self.status.set_visible(True)
@@ -549,17 +552,28 @@ class CatalogueWindow(Adw.Window):
         future = (executor or self.executor).submit(action)
 
         def complete():
-            if self.closed:
+            if self.closed or task_id!=self._task_id:
                 return False
             self._transfer_busy = False
             self.stop_animation()
             try:
                 value = future.result()
                 finished(value)
-                self._failed_resource=None
-                self._phase = "complete"
-                self.progress.set_fraction(1 if success_text else 0)
-                self.progress.set_text(success_text or "")
+                # A completion callback may start the next captured job.
+                if task_id!=self._task_id:return False
+                self._task_errors.pop(resource.id if resource else None,None)
+                self._failed_resource=next(reversed(self._task_errors),None)
+                self._phase = "error" if self._task_errors else "complete"
+                self.progress.set_fraction(0)
+                self.progress.set_text(tr('Failed') if self._task_errors else '')
+                remaining=self._task_errors.get(self._failed_resource)
+                self.status.set_text(remaining[0] if remaining else '')
+                self.status.set_tooltip_text(remaining[1] if remaining else None)
+                self.status.set_visible(bool(remaining))
+                if success_text and self.get_mapped():
+                    if self._success_toast:self._success_toast.dismiss()
+                    toast=Adw.Toast.new(success_text);toast.set_timeout(4)
+                    self._success_toast=toast;self.toast_overlay.add_toast(toast)
             except Exception as error:
                 self._phase = "error"
                 self.progress.set_fraction(0)
@@ -577,6 +591,7 @@ class CatalogueWindow(Adw.Window):
                     self.status.set_tooltip_text(str(error))
                 self.status.set_text(f'{context}{message}\n{tr("Retry using the same button.")}')
                 self.status.set_visible(True)
+                self._task_errors[self._failed_resource]=(self.status.get_text(),self.status.get_tooltip_text())
             finally:
                 self.refresh_controls()
             return False
@@ -692,14 +707,13 @@ class CatalogueWindow(Adw.Window):
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
                 dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
                 dialog.present();return
-        caption=plain(resource.description) if resource.kind=='study' or resource.provider_id=='youversion' else resource.name
+        caption=plain(resource.description)
 
         def installed(_):
             self._completed_resource=resource.id
             self.preparing=True;self.session.reload_installed()
             self.on_installed(resource.id)
             self.filter_resources()
-            self.status.set_text(tr('Installed: {name}').format(name=caption))
             self.selection_changed()
         installer=self.study_resources if resource.kind=='study' else self.library
         def perform():

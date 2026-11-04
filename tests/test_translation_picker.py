@@ -44,3 +44,22 @@ class TranslationPickerTests(unittest.TestCase):
                     self.assertFalse(chooser.popover.get_visible())
                     self.assertEqual(w.active_tab.state.resource,'Test')
                 finally:w.close()
+
+    def test_comparison_names_are_centered_in_full_width_pane_controls(self):
+        from bible.ui import Application,Window,Library
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);installed_fixture(root);installed_fixture(root,'Other')
+            w=Window(app,Library(root/'translations'));w.set_default_size(1200,820);w.present();spin()
+            try:
+                tab=w.active_tab;tab.navigate('Test','Gen.1.1');spin(lambda:not tab._restoring_scroll)
+                tab.state.comparison='Other';w.sync_comparison()
+                for width,study in ((1200,False),(1200,True),(850,False)):
+                    w.set_default_size(width,820);w.study_button.set_active(study)
+                    spin(lambda:not w._controls_tick and not getattr(tab,'_comparison_positioning',False),duration=.4)
+                    for chooser,pane in ((w.primary_version,tab.primary_controls),(w.compared_version,tab.comparison_controls)):
+                        self.assertGreater(chooser.get_width(),pane.get_width()-4)
+                        ok,bounds=chooser.caption.compute_bounds(chooser);self.assertTrue(ok)
+                        self.assertAlmostEqual(bounds.origin.x+bounds.size.width/2,chooser.get_width()/2,delta=2)
+                    self.assertAlmostEqual(w.primary_version.get_height(),w.compared_version.get_height(),delta=1)
+            finally:w.close()

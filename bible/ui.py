@@ -109,6 +109,9 @@ class Window(Adw.ApplicationWindow):
         self.menu=application_menu()
         self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-right-symbolic',tooltip_text=tr('Study'))
         self.study_button.connect('toggled',self.toggle_study)
+        from .search_popover import SearchPopover
+        self.search_button=Gtk.MenuButton(icon_name='system-search-symbolic',tooltip_text=tr('Search'))
+        self.search_popover=SearchPopover(self);self.search_button.set_popover(self.search_popover)
         self.immersive_button=Gtk.ToggleButton(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Immersive mode'))
         self.immersive_button.connect('clicked',lambda *_:self.toggle_immersion())
         self.appearance_button=Gtk.MenuButton(child=Gtk.Label(label='Aa'),tooltip_text=tr('Reading appearance'))
@@ -135,18 +138,18 @@ class Window(Adw.ApplicationWindow):
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
         from .popover_dismissal import install
-        self._reading_popovers = [self.navigation, self.appearance, self.comparison_popover]
+        self._reading_popovers = [self.navigation,self.search_popover,self.appearance,self.comparison_popover]
         self._popover_dismissal = install(self, self._reading_popovers)
         self.comparison_popover.connect_after('show',lambda *_:self.fit_comparison_popup())
         self._comparison_syncing=False
         # Notes has a working application-space selector at the top left.
         for widget,label in [(self.menu,'Main menu'),
-                             (self.study_button,'Study')]:
+                             (self.study_button,'Study'),(self.search_button,'Search')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
         # Explicit native symbolic size leaves Header Bar hit targets untouched.
-        for button in (self.study_button,):
+        for button in (self.study_button,self.search_button):
             image=Gtk.Image(icon_name=button.get_icon_name(),pixel_size=16)
             button.set_child(image)
         from .version_chooser import VersionChooser
@@ -181,12 +184,14 @@ class Window(Adw.ApplicationWindow):
         self.header_bin=Adw.BreakpointBin();self.header_bin.set_child(header)
         self.header_bin.set_size_request(300,46)
         def study_in_overflow(enabled):
-            parent=self.study_button.get_parent()
-            if enabled and parent is not self.reader_overflow_box:
-                header.remove(self.study_button);self.reader_overflow_box.append(self.study_button)
-            elif not enabled and parent is self.reader_overflow_box:
-                self.reader_overflow_box.remove(self.study_button)
-                header.remove(self.header_tools);header.pack_end(self.study_button);header.pack_end(self.header_tools)
+            if enabled:
+                for button in (self.search_button,self.study_button):
+                    if button.get_parent() is not self.reader_overflow_box:
+                        header.remove(button);self.reader_overflow_box.append(button)
+            elif self.study_button.get_parent() is self.reader_overflow_box:
+                self.reader_overflow_box.remove(self.study_button);self.reader_overflow_box.remove(self.search_button)
+                header.remove(self.header_tools)
+                header.pack_end(self.study_button);header.pack_end(self.search_button);header.pack_end(self.header_tools)
             parent=self.new_tab_button.get_parent()
             if enabled and parent is not self.reader_overflow_box:
                 header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
@@ -318,6 +323,7 @@ class Window(Adw.ApplicationWindow):
         app.set_accels_for_action('win.shortcuts',['<Control>question'])
         self.add_action_callback('choose-passage', lambda *_: self.choose_passage())
         self.add_action_callback('reference', lambda *_: self.choose_passage(direct=True))
+        self.add_action_callback('search',lambda *_:self.show_search())
         self.add_action_callback('previous-chapter', lambda *_: self.step_chapter(-1))
         self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
         self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
@@ -353,6 +359,7 @@ class Window(Adw.ApplicationWindow):
         app.set_accels_for_action('win.next-verse', ['<Alt>Down'])
         app.set_accels_for_action('win.choose-passage', ['<Control>g'])
         app.set_accels_for_action('win.reference', ['<Control>k'])
+        app.set_accels_for_action('win.search',['<Control>f'])
         app.set_accels_for_action('win.previous-chapter', ['<Alt>Page_Up'])
         app.set_accels_for_action('win.history-back',['<Alt>Left'])
         app.set_accels_for_action('win.next-chapter', ['<Alt>Page_Down'])
@@ -445,6 +452,7 @@ class Window(Adw.ApplicationWindow):
         fit_wrapped_button(self.compared_version,self.compared_version.caption.get_text())
         fit_wrapped_button(self.passage_button,self.heading.get_title())
         self.primary_version.fit_popup();self.compared_version.fit_popup();self.fit_comparison_popup()
+        self.search_popover.adapt()
 
     def fit_comparison_popup(self):
         from .version_chooser import fit_translation_choices
@@ -673,14 +681,18 @@ class Window(Adw.ApplicationWindow):
 
     def choose_passage(self, direct=False):
         if self.immersion and self.immersion.kind=='commentary':self.leave_immersion()
-        self.navigation.modes.set_visible_child_name('passage')
         button=self.immersion.passage_button if self.immersion else self.passage_button
         if self.immersion:self.immersion.reveal_controls()
         button.set_active(True)
         self.navigation.sync(force=True)
-        if direct:self.navigation.modes.set_visible_child_name('passage')
-        mode=self.navigation.modes.get_visible_child_name()
-        (self.navigation.text_search.entry if mode=='text' else self.navigation.topic_search.entry if mode=='topics' else self.navigation.direct).grab_focus()
+        self.navigation.direct.grab_focus()
+
+    def show_search(self,mode=None):
+        if self.immersion:self.leave_immersion()
+        self.dismiss_popovers()
+        if mode is not None:self.search_popover.modes.set_visible_child_name(mode)
+        self.open_reading_popup(self.search_button)
+        self.search_popover.sync();self.search_popover.focus_query()
 
     def switch_translation(self,name):
         """A missing correspondence does not make the target unreadable."""
@@ -738,6 +750,7 @@ class Window(Adw.ApplicationWindow):
         # opening the passage menu always performs a forced fresh sync.
         stamp=self.navigation._stamp
         if self.navigation.get_visible() or stamp is None or stamp[:2]!=(id(tab),tab.state.resource):self.navigation.sync()
+        if self.search_popover.get_visible():self.search_popover.sync()
         self.sync_comparison()
         self.lookup_action('history-back').set_enabled(tab.state.history_index>0)
         self.lookup_action('history-forward').set_enabled(tab.state.history_index+1<len(tab.state.history))
@@ -915,7 +928,7 @@ class Window(Adw.ApplicationWindow):
             for window in self.get_application().get_windows():
                 if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
                     if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
-                    elif name==TOPIC_RESOURCE_ID:window.navigation.topic_search.refresh()
+                    elif name==TOPIC_RESOURCE_ID:window.search_popover.topic_search.refresh()
                     elif name==STEP_RESOURCE_ID:
                         if window.study.tool=='word' and window.study.words.valid():window.study.words.begin()
                     elif name==PLACE_RESOURCE_ID:
@@ -1166,7 +1179,7 @@ class Window(Adw.ApplicationWindow):
         self.study.references.close()
         self.study.notes.close()
         self.study.words.close()
-        self.navigation.close()
+        self.search_popover.close()
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()
