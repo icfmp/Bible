@@ -66,6 +66,12 @@ class SearchPopover(Gtk.Popover):
             if self._focus_idle:GLib.source_remove(self._focus_idle);self._focus_idle=0
             self.text_search.pause();self.topic_search.pause()
             anchor=self.get_parent()
+            if anchor and anchor.get_parent() is self.owner.reader_overflow_box:
+                # The adaptive anchor lives inside another native menu. Leave
+                # that menu too, otherwise it retains focus and inhibits the
+                # window's passage/search accelerators after Escape.
+                self.owner.reading_tools_menu.popdown()
+                anchor=self.owner.reading_tools_menu
             if anchor and anchor.get_mapped():anchor.grab_focus()
 
     def adapt(self):

@@ -48,6 +48,19 @@ class StudySearchTests(unittest.TestCase):
         self.assertEqual(panel.heading.get_text(),tr('{count} result').format(count=1));self.assertIsNone(self.window.reference_preview.popover)
         self.assertEqual(self.window.active_tab.state.reference,'John.1.1')
 
+    def test_closing_adaptive_search_releases_its_parent_menu_and_focus(self):
+        w=self.window;w.set_default_size(360,820)
+        spin(lambda:not w._controls_tick,duration=.4)
+        w.show_search('text');spin(duration=.3)
+        self.assertTrue(w.search_popover.get_mapped())
+        parent=w.reading_tools_menu
+        self.assertTrue(parent.get_popover().get_visible())
+        w.search_popover.popdown();spin(duration=.3)
+        self.assertFalse(parent.get_popover().get_visible())
+        focus=w.get_focus()
+        self.assertIsNotNone(focus);self.assertTrue(focus.get_mapped())
+        self.assertTrue(focus is parent or focus.is_ancestor(parent))
+
     def test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable(self):
         n=self.navigation;p=n.topic_search;before=list(self.window.active_tab.state.history)
         n.modes.set_visible_child_name('topics');p.entry.set_text('pardon');p.changed()
