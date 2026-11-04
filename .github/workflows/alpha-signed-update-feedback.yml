@@ -7,7 +7,7 @@ on:
       candidate_pr:
         description: Exact reviewed pull request number
         required: true
-        default: '173'
+        default: '174'
       candidate_head:
         description: Exact reviewed application PR head to update to
         required: true
@@ -39,8 +39,8 @@ jobs:
           python3 - <<'PY'
           import json,urllib.request
           from pathlib import Path
-          x=json.loads(Path('tools/fixtures/alpha20-provenance.json').read_text())
-          assert x['source_commit']=='fcfd908857c1c36e1ef0f371849e1a20a62fbeca',x
+          x=json.loads(Path('tools/fixtures/alpha21-provenance.json').read_text())
+          assert x['source_commit']=='d7290ee50cb61c5e9e79b20d7a80f4768327272f',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
