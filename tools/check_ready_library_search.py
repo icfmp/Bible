@@ -76,17 +76,38 @@ def main():
                     # Native shortcut and pointer entry exercise the same dedicated popup.
                     control_key('f');spin(lambda:w.search_popover.get_visible(),duration=.3)
                     search=w.search_popover.text_search;n.click(w.search_popover.mode_buttons['text'])
-                    search.entry.set_text('commencement');n.key('Return');spin(lambda:not search.pending,duration=.5,timeout=90)
+                    search.entry.set_text('commencement');n.click(search.entry);n.key('Return');spin(lambda:not search.pending,duration=.5,timeout=90)
                     assert search.rows;before=list(search.rows);generation=search.generation;shot(prefix+'-text-search')
-                    n.key('Escape');spin();n.click(w.passage_button);spin()
+                    n.key('Escape');spin(lambda:not w.search_popover.get_mapped(),duration=.3)
+                    control_key('g');spin(duration=.3)
+                    focus=w.get_focus()
+                    report['passage_state']=dict(width=w.get_width(),navigation_visible=w.navigation.get_visible(),navigation_mapped=w.navigation.get_mapped(),search_visible=w.search_popover.get_visible(),search_mapped=w.search_popover.get_mapped(),active=w.is_active(),focus=type(focus).__name__,focus_mapped=focus.get_mapped() if focus else None,passage_button_active=w.passage_button.get_active())
+                    shot(prefix+'-passage-state')
                     assert w.navigation.get_visible() and not w.search_popover.get_visible()
-                    assert not hasattr(w.navigation,'modes');shot(prefix+'-passage-only');n.key('Escape');spin()
+                    assert not hasattr(w.navigation,'modes');shot(prefix+'-passage-only');n.key('Escape');spin(lambda:not w.navigation.get_mapped(),duration=.3)
                     control_key('f');spin();assert search.entry.get_text()=='commencement' and search.rows==before and search.generation==generation
                     n.click(w.search_popover.mode_buttons['topics']);topics=w.search_popover.topic_search
                     topics.entry.set_text('pardon');spin(duration=.4)
                     assert topics.topic_model.get_n_items()==4;shot(prefix+'-topic-search')
                     report['search'].append(dict(width=w.get_width(),dark=dark,text_results=len(before),pardon_concepts=topics.topic_model.get_n_items(),retained=True))
-                    n.key('Escape');spin()
+                    n.key('Escape');spin(lambda:not w.search_popover.get_mapped(),duration=.3)
+                    # #150: exercise each directly exposed colour with native
+                    # clicks, including repeated selection of the same colour.
+                    actions=w.passage_actions;b=t.text.get_buffer()
+                    start=t._marker_ends['John.1.1']+3;end=start+8
+                    first=t.text.get_iter_location(b.get_iter_at_offset(start));last=t.text.get_iter_location(b.get_iter_at_offset(end))
+                    x,y=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,first.x,first.y+first.height//2)
+                    ex,ey=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,last.x,last.y+last.height//2)
+                    n.move_at(t.text,x,y);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.06)
+                    n.move_at(t.text,ex,ey);n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display)
+                    spin(lambda:actions.bar.get_visible(),duration=.3)
+                    selected=tuple(i.get_offset() for i in b.get_selection_bounds());assert selected
+                    assert set(actions.highlight_buttons)=={'yellow','green','blue'} and not hasattr(actions,'compare_button')
+                    for color in ('yellow','green','blue','blue'):
+                        button=actions.highlight_buttons[color][0];assert button.get_mapped();n.click(button)
+                        assert all(w.highlights.entries[(t.reader.versification,r)]['color']==color for r in actions.target.references)
+                        assert tuple(i.get_offset() for i in b.get_selection_bounds())==selected
+                    shot(prefix+'-direct-colours');n.click(actions.close_button);spin()
             for width,study in ((1200,False),(1200,True),(850,False)):
                 w.set_default_size(width,850);w.study_button.set_active(study)
                 t.state.comparison='KJV';w.sync_comparison();settled();spin(lambda:not w._controls_tick,duration=.4)
