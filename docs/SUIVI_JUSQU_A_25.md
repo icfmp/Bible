@@ -1,5 +1,10 @@
 # Livraison et état des issues jusqu’à la #25
 
+> Historical delivery record: the client cancelled notification suppression and
+> manual Do Not Disturb guidance on 4 November 2026 (#28). Earlier references
+> below are superseded and do not authorize further research or prompts.
+
+
 Périmètre : issues ouvertes #12, #13, #15 à #20, #24 et #25, après relecture de
 leurs descriptions GitHub. Les livraisons déjà réalisées et le correctif de
 revue `2cd501c` sont conservés. Les #26, #27 et #28 restent hors de cette tâche.

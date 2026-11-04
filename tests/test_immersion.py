@@ -152,14 +152,13 @@ class ImmersionTests(unittest.TestCase):
             r=self.entered(w,'commentary');self.assertEqual(r.stream.anchor(),anchor)
             w.leave_immersion();w.close()
 
-    def test_narrow_rtl_notifications_optout_and_suspension(self):
+    def test_narrow_rtl_and_suspension(self):
         from bible.ui import Gtk
         with self.profile() as directory:
             w=self.window(directory,rtl=True);r=self.entered(w)
             self.assertTrue(r.source.rtl);self.assertEqual(r.pages.get_direction(),Gtk.TextDirection.LTR)
             self.assertLess(r.frames[0].get_allocation().x,r.frames[1].get_allocation().x)
             self.assertEqual(r.views[0].get_direction(),Gtk.TextDirection.RTL)
-            r.hide_help();self.assertTrue(w.immersion_hints.disabled)
             w.set_default_size(360,650);spin(lambda:r.count==1,duration=.3)
             self.assertLessEqual(w.get_width(),360)
             self.assertLessEqual(r.views[0].get_height(),650)
@@ -168,8 +167,34 @@ class ImmersionTests(unittest.TestCase):
                 last=r.views[0].get_iter_location(r.views[0].get_buffer().get_iter_at_offset(len(text)-1))
                 self.assertLessEqual(last.y+last.height+r.views[0].get_top_margin(),r.views[0].get_height()+1)
             w.open_notes();self.assertIsNone(w.immersion);self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
-            w.notes_space.leave();r=self.entered(w);self.assertFalse(r.notification_help.get_revealed())
+            w.notes_space.leave();r=self.entered(w)
             w.leave_immersion();w.close()
+
+    def test_retired_hint_profile_restarts_without_changing_resources_or_annotations(self):
+        from bible.ui import Window,Library,Adw
+        import hashlib
+        with self.profile() as directory:
+            root=Path(directory);legacy=root/'immersion-help.json'
+            legacy.write_text('{"disabled": true}')
+            w=self.window(directory)
+            self.assertFalse(legacy.exists())
+            note=w.notes_store.save('Kept annotation',[],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Test',origin_language='en')
+            w.highlights.set('KJV',['Gen.1.1'],'blue','Test')
+            w.preferences.value.size=24;w.preferences.save()
+            digests={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()}
+            for kind in ('bible','commentary'):
+                if kind=='commentary':
+                    w.active_tab.state.commentary='Notes';w.study_button.set_active(True);w.study.refresh();spin(lambda:not w.study._positioning)
+                r=self.entered(w,kind)
+                self.assertFalse(any(isinstance(c,Adw.Banner) for c in (r.top.get_child().get_first_child(),r.top.get_child().get_last_child())))
+                w.leave_immersion()
+            w.close();spin()
+            reopened=Window(self.app,Library(root/'translations'));self._profile_windows.append(reopened);reopened.present();spin()
+            self.assertEqual(reopened.preferences.value.size,24)
+            self.assertEqual(reopened.notes_store.all()[0].id,note.id)
+            self.assertEqual(reopened.highlights.entries[('KJV','Gen.1.1')]['color'],'blue')
+            self.assertEqual(digests,{str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+            self.entered(reopened);reopened.leave_immersion()
 
     def test_native_click_targets_notes_and_context_copy_on_each_page(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':

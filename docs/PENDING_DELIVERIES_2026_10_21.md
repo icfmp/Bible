@@ -1,5 +1,10 @@
 # Reviewed pending deliveries — verified public alpha
 
+> Historical delivery record: the client cancelled notification suppression and
+> manual Do Not Disturb guidance on 4 November 2026 (#28). Earlier references
+> below are superseded and do not authorize further research or prompts.
+
+
 The client authorized completion of the outstanding deliveries. The PRs were
 reviewed and merged sequentially: **#41** page (`8029cf3`), **#38** eBible
 (`3e1ec0d`), **#40** personal highlights (`56c0a6c`), **#39** continuous-book

@@ -152,10 +152,10 @@ class PassageActions:
                 button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
                 self.actions.append(button);self.highlight_buttons[color]=(button,check)
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
-        self.word_button=self.button('bible-word-study-symbolic','Study word',lambda *_:self.study_word())
+        self.word_button=self.button('bible-word-study-symbolic','Original text',lambda *_:self.study_word())
         word_content=Gtk.Box(spacing=6,margin_start=6,margin_end=6)
         word_content.append(Gtk.Image(icon_name='bible-word-study-symbolic',pixel_size=20))
-        self.word_label=Gtk.Label(label=tr('Study word'));word_content.append(self.word_label);self.word_button.set_child(word_content)
+        self.word_label=Gtk.Label(label=tr('Original text'));word_content.append(self.word_label);self.word_button.set_child(word_content)
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
@@ -248,7 +248,7 @@ class PassageActions:
                 text=label if command=='label' else (label+'\n' if command=='reference' else '')+'\n'.join(value.verses)
                 self.owner.get_clipboard().set(text)
         choices=[('Add a passage note','note'),('Copy verses without numbers','verses'),
-                 ('Copy verses with reference','reference'),('Copy reference','label'),('Study word','word')]
+                 ('Copy verses with reference','reference'),('Copy reference','label'),('Original text','word')]
         choices += [(tr('Highlight')+': '+tr(label),'highlight:'+color) for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]]
         choices.append(('Remove highlight','highlight:remove'))
         for index,(label,command) in enumerate(choices):
