@@ -235,9 +235,10 @@ class CatalogueWindow(Adw.Window):
         complete=study or all(p.id in self._covered for p in providers)
         names={p.name for p in providers}
         all_names={p.name for p in PROVIDERS}
-        errors={} if study else {name:error for name,error in self._catalogue_errors.items() if not index or name in names or name not in all_names}
+        errors=({name:error for name,error in self._catalogue_errors.items() if name=='Study tools'} if study else
+                {name:error for name,error in self._catalogue_errors.items() if name!='Study tools' and (not index or name in names or name not in all_names)})
         self.result_retry.set_label(tr('Retry') if errors else tr('Refresh catalogue'))
-        pending=self.preparing or (self.refreshing and not study) or (not self._catalogue_requested and not complete and not errors and self.settings.value['automatic_catalogue_refresh'] and not study)
+        pending=self.preparing or self.refreshing or (not self._catalogue_requested and not complete and not errors and self.settings.value['automatic_catalogue_refresh'] and not study)
         if rows:
             state='rows'
             message=(tr('Refreshing sources…') if pending else tr('Partial catalogue. Retry to reload unavailable sources.') if errors else '')
@@ -302,23 +303,24 @@ class CatalogueWindow(Adw.Window):
     def bind_resource_row(self,_,item):
         resource=item.get_item().resource
         self._bound_rows[item]=resource
-        installed=resource.id in getattr(self,'_installed_ids',set()) and (resource.kind!='study' or resource.id in self._study_current)
+        installed=resource.id in getattr(self,'_installed_ids',set())
+        current=installed and (resource.kind!='study' or resource.id in self._study_current)
         busy=self._transfer_busy and self._task_resource==resource.id
-        stamp=(resource,installed,self._transfer_busy,self._phase if busy else None,
+        stamp=(resource,installed,current,self._transfer_busy,self._phase if busy else None,
                self.progress.get_text() if busy else None,resource.id in self._task_errors)
         if getattr(item,'_render_stamp',None)==stamp:return
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
         item.state.set_text(tr('Installing and checking…') if busy and self._phase=='installing' else
-                            self.progress.get_text() or tr('Downloading…') if busy else tr('Installed') if installed else '')
+                            self.progress.get_text() or tr('Downloading…') if busy else tr('Installed') if current else tr('Update available') if installed else '')
         item.state.set_visible(busy or installed)
-        item.action.set_icon_name('media-playback-start-symbolic' if installed else 'folder-download-symbolic')
-        label=tr('Read') if installed and resource.kind=='bible' else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
+        item.action.set_icon_name('media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
+        label=tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
-        item.action.set_sensitive(installed or (resource.installable and not self._transfer_busy))
-        item.action.set_visible(not (installed and resource.kind=='study'))
+        item.action.set_sensitive(current or (resource.installable and not self._transfer_busy))
+        item.action.set_visible(not (current and resource.kind=='study'))
         item.get_child().set_tooltip_text(resource.name+' · '+resource.language)
 
     def refresh_rows(self):
@@ -487,7 +489,7 @@ class CatalogueWindow(Adw.Window):
     def installed_ids(self):return [*self._installed_metadata,*self._study_installed]
 
     def installed_resource(self,name):
-        return self.study_resources.resource(name) if name in self.study_resources.stores else self._installed_metadata[name]
+        return self.study_resources.installed_resource(name) if name in self.study_resources.stores else self._installed_metadata[name]
 
     def selection_changed(self, *_):
         resource = self.selected_resource()
@@ -500,7 +502,7 @@ class CatalogueWindow(Adw.Window):
         resource = self.selected_resource()
         installed=bool(resource and resource.id in self.installed_ids())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
-        self.installed_state.set_visible(current)
+        self.installed_state.set_visible(installed)
         self.read_button.set_visible(current and resource.kind!='study')
         self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
         self.download_button.set_visible(not current)
@@ -605,6 +607,8 @@ class CatalogueWindow(Adw.Window):
         self.refresh_status.set_visible(True)
         self.update_result_state()
         self.refresh_controls()
+        if self.kind.get_selected()==2:
+            self.session.refresh_study();self._refresh_generation=self.session.generation;return
         index=self.source_filter.get_selected()
         providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
         self.session.refresh(catalogue,force,providers);self._refresh_generation=self.session.generation

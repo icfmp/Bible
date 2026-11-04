@@ -43,7 +43,7 @@ class TopicDataTests(unittest.TestCase):
             rows=store.query('forgiveness')
             self.assertEqual([(r.start,r.score) for r in rows],[('Ps.3.1',30),('John.3.16',30),('3John.1.15',2)])
             self.assertEqual(len(store.query('reconciliation')),1)
-            with self.assertRaises(data.ReferenceDataError):store.query('unreviewed topic')
+            self.assertEqual(store.query('unreviewed topic'),[])
 
     def test_failed_hash_and_invalid_schema_leave_installed_resource_intact(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -55,7 +55,7 @@ class TopicDataTests(unittest.TestCase):
             with patch.object(data,'ARCHIVE_SHA256',sha),self.assertRaises(data.ReferenceDataError):store.install_archive(path)
             self.assertEqual(store.path.read_bytes(),before);self.assertTrue(store.query('forgiveness'))
 
-    def test_zip_path_score_bounds_reference_bounds_and_missing_vocabulary(self):
+    def test_zip_path_score_bounds_reference_bounds_and_partial_vocabulary_coverage(self):
         with tempfile.TemporaryDirectory() as temporary:
             path=Path(temporary)/'data.zip'
             for rows,name in [('forgiveness\tJohn.1.1\t2\n','../topic-scores.txt'),
@@ -66,8 +66,10 @@ class TopicDataTests(unittest.TestCase):
                 archive(path,rows,name)
                 with self.assertRaises(data.ReferenceDataError):list(data.parse_archive(path))
             sha=archive(path,'forgiveness\tJohn.1.1\t2\n')
-            with patch.object(data,'ARCHIVE_SHA256',sha),self.assertRaises(data.ReferenceDataError):
-                data.TopicData(Path(temporary)/'missing').install_archive(path)
+            with patch.object(data,'ARCHIVE_SHA256',sha):
+                store=data.TopicData(Path(temporary)/'partial');store.install_archive(path)
+            self.assertEqual(store.identifiers(),{'forgiveness'})
+            self.assertTrue(store.query('forgiveness'));self.assertEqual(store.query('reconciliation'),[])
 
 
 if __name__=='__main__':unittest.main()

@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 from gi.repository import GLib,Gtk
 from bible.ui import Application,Window,Library
-from bible.reference_data import ReferenceData,ARCHIVE_SHA256,ReferenceDataError
+from bible.reference_data import ReferenceData,MAX_ROWS,ReferenceDataError
 from bible.reference_targets import local_excerpt,source_references
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
@@ -67,8 +67,10 @@ def main():
             # Xvfb has no WM to reactivate the transient parent. Supply only
             # that handoff; all actions below still use actual pointer/keys.
             native.activate(window);refs.invalidate();ready()
-        metadata=refs.data.metadata();assert metadata['archive_sha256']==ARCHIVE_SHA256
-        assert metadata['relationships']==344799
+        metadata=refs.data.metadata()
+        if args.download:assert metadata['archive_sha256']==refs.data.catalogue.load()['openbible-cross-references'].sha256
+        assert 0<metadata['relationships']<=MAX_ROWS
+        installed_digest=metadata['archive_sha256']
         assert window.library.installed()==original_installed
         report['dataset']=metadata
         assert len(refs.rows)>5 and refs.model.get_n_items()==5
@@ -164,7 +166,7 @@ def main():
         try:
             wait(lambda:not restored.study.references.pending)
             assert restored.study.tool=='references'
-            assert restored.study.references.data.metadata()['archive_sha256']==ARCHIVE_SHA256
+            assert restored.study.references.data.metadata()['archive_sha256']==installed_digest
             assert restored.study.references.rows
         finally:restored.close()
         report['restart_with_installed_relationships']=True;report['status']='PASS'
