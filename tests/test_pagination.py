@@ -5,10 +5,9 @@ import unittest
 from bible.pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
 from bible.preferences import ReadingPreferences
 from bible.paged_sources import BiblePages,PagedStream
-from bible.immersion_hints import ImmersionHints
 
 
-class HintTests(unittest.TestCase):
+class AnchorTests(unittest.TestCase):
     def test_chapter_anchor_displays_the_chapter_after_its_leading_separator(self):
         from bible.pagination import Page,PagePlan
         document=Document('fixture','A\n\nChapter\nB',(
@@ -18,14 +17,6 @@ class HintTests(unittest.TestCase):
         self.assertEqual(document.locate(anchor),1)
         self.assertEqual(plan.page_for_anchor(anchor),1)
         self.assertEqual(document.locate(anchor),1)  # Copy/selection offsets stay exact.
-
-    def test_notification_hint_is_only_local_and_preserves_bad_original(self):
-        with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/'hint.json';hints=ImmersionHints(path)
-            self.assertFalse(hints.disabled);self.assertTrue(hints.disable())
-            self.assertTrue(ImmersionHints(path).disabled)
-            path.write_text('{broken');hints=ImmersionHints(path)
-            self.assertFalse(hints.disable());self.assertEqual(path.read_text(),'{broken')
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native Pango/GTK')

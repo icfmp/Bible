@@ -57,6 +57,34 @@ class WordStudyTests(unittest.TestCase):
                 editor._discard=True;editor.close()
             finally:close_test_dialogs();window.close()
 
+    def test_replacing_focused_dynamic_content_moves_focus_before_unparenting(self):
+        from bible.ui import Application,Window,Library,Gtk
+        from bible.passage_actions import target
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);installed_fixture(root)
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(root/'translations'));window.present();spin()
+            try:
+                tab=window.active_tab;actions=window.passage_actions
+                value=target(tab.text,actions.ordinary(tab),lambda:actions.ordinary(tab),tab._marker_ends[tab.state.reference])
+                words=window.study.words;words.open(value);spin()
+                for nested in (False,True):
+                    words.clear()
+                    label=words.label('Synthetic selectable dynamic content')
+                    if nested:
+                        child=Gtk.Box();child.append(label)
+                    else:child=label
+                    words.content.append(child);spin();label.grab_focus();spin()
+                    self.assertIs(words.dialog.get_focus(),label)
+                    words.remove_content(child)
+                    self.assertIs(words.dialog.get_focus(),words.back)
+                    self.assertIsNone(child.get_parent())
+                    words.content.append(words.label('Replacement selectable content'));spin()
+                    self.assertIs(words.dialog.get_focus(),words.back)
+                words.leave();spin()
+            finally:window.close()
+
     def test_numbered_source_heading_is_unavailable_without_changing_reader(self):
         from bible.ui import Application,Window,Library,Gtk
         from bible.passage_actions import target

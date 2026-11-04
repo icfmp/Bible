@@ -20,7 +20,6 @@ from .appearance import AppearancePopover
 from .reading_style import ReadingStyle
 from .reading_sync import ReadingSync
 from .immersion import Immersion
-from .immersion_hints import ImmersionHints
 from .pagination import Anchor
 from .paged_sources import BibleBookPages, CommentaryPages
 from .highlights import HighlightStore,COLORS
@@ -53,8 +52,11 @@ class Window(Adw.ApplicationWindow):
         self.highlights_window=None
         self.reading_style = ReadingStyle(self)
         self.closed = False
-        self.immersion=None;self._immersion_help_seen=False
-        self.immersion_hints=ImmersionHints(library.root.parent/'immersion-help.json')
+        self.immersion=None
+        # Retire the abandoned notification-hint preference only. Unreadable or
+        # read-only legacy state must never prevent opening the existing profile.
+        try:(library.root.parent/'immersion-help.json').unlink(missing_ok=True)
+        except OSError:pass
         self._initializing = True
         self._syncing_study = False
         self._save_id = 0

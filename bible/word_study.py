@@ -19,7 +19,7 @@ class WordStudy(Gtk.Box):
         row=Adw.HeaderBar(show_end_title_buttons=False)
         self.back=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')]);self.back.connect('clicked',lambda *_:self.leave())
-        row.pack_end(self.back);heading=Gtk.Label(label=tr('Word study'));heading.add_css_class('heading');row.set_title_widget(heading)
+        row.pack_end(self.back);heading=Gtk.Label(label=tr('Original text'));heading.add_css_class('heading');row.set_title_widget(heading)
         self.append(row)
         self.context_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             margin_start=16,margin_end=16,margin_top=8,margin_bottom=8)
@@ -36,8 +36,17 @@ class WordStudy(Gtk.Box):
         if heading:label.add_css_class('heading')
         return label
 
+    def remove_content(self,child):
+        # Keep focus in a live, parented widget before replacing dynamic content.
+        # GTK's label focus transfer may inspect its previous focus after the
+        # root releases it; an already-unparented label can then be destroyed.
+        root=self.get_root();focus=root.get_focus() if root else None
+        if focus and (focus is child or focus.is_ancestor(child)):
+            self.back.grab_focus()
+        self.content.remove(child)
+
     def clear(self):
-        while child:=self.content.get_first_child():self.content.remove(child)
+        while child:=self.content.get_first_child():self.remove_content(child)
 
     def button(self,label,callback,parent=None):
         button=Gtk.Button(child=Gtk.Label(label=label,wrap=True))
@@ -81,7 +90,7 @@ class WordStudy(Gtk.Box):
         self.selection_label.set_text(target.text if target.native_selection else '')
         self.selection_label.set_visible(target.native_selection)
         self.owner.passage_actions.dismiss()
-        self.dialog=Adw.Window(title=tr('Word study'),transient_for=self.owner,modal=True,
+        self.dialog=Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
             destroy_with_parent=True,default_width=600,default_height=680)
         self.dialog.add_css_class(self.owner.reading_style.scope+'-window')
         self.dialog.set_content(self)
@@ -132,10 +141,10 @@ class WordStudy(Gtk.Box):
             self.futures.discard(future)
             if generation!=self.generation or not self.valid():return False
             self.pending=False
-            if status.get_parent() is self.content:self.content.remove(status)
+            if status.get_parent() is self.content:self.remove_content(status)
             try:complete(future.result())
             except Exception as error:
-                label=self.label(tr('Word study unavailable. Ordinary reading is unchanged.'));label.set_tooltip_text(str(error));self.content.append(label)
+                label=self.label(tr('Original text unavailable. Ordinary reading is unchanged.'));label.set_tooltip_text(str(error));self.content.append(label)
                 self.button(tr('Download study data'),self.download)
             return False
         future.add_done_callback(lambda _:GLib.idle_add(finished) if self.context and generation==self.generation else None)

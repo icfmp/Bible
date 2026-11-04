@@ -50,7 +50,7 @@ Personal persistent marks are now published, independently from the commentary c
 
 Detailed final source/revision/proof/remaining tests:
 [PENDING_DELIVERIES_2026_10_21.md](PENDING_DELIVERIES_2026_10_21.md).
-No pending PRs remain. #26 is excluded, #28 retains its manual fallback, new
+No pending PRs remain. #26 is excluded, #28 was subsequently cancelled, new
 OpenBible features and the general code review remain deferred. This final
 handoff is documentation only; the published application source above is exact.
 
@@ -80,7 +80,7 @@ historical delivery evidence is retained unchanged.
   CI/channel preservation. Keep **#37** open until public HTTPS installation
   and update links are checked. No redesigned page was published by this review.
 - **#47–#50** remain the approved OpenBible backlog. **#26** stays excluded;
-  **#28** retains manual Do Not Disturb guidance, not automatic suppression.
+  **#28** was cancelled on 4 November 2026; remove the old manual guidance.
 - No general code review, pending PR merge or application-code change was
   performed as part of this bookkeeping and product review.
 
@@ -194,7 +194,7 @@ than the source checkout. This is GTK/Xvfb evidence, not manual GNOME acceptance
 - The client validated GNOME Bible↔commentary scrolling on 4a285f3. Preserve
   it; automated Xvfb evidence does not validate the new layout on GNOME or close
   every #25 criterion. No issue is closed solely on automated evidence.
-- #26 excluded; #28 manual fallback preserved. #31's chooser-location question
+- #26 excluded; #28 cancellation supersedes the historical manual fallback. #31's chooser-location question
   remains unchanged. The general code review is a separate future assignment.
 - All code/captures/review notes are committed and pushed. Working container
   `bible-night`: `/src` is this checkout, `/evidence` is host `/tmp`. Test profiles
@@ -370,14 +370,11 @@ sequentially and run the affected tests before any new alpha. eBible F10's
 inconsistent upstream metadata is not worked around. #31 still needs an approved
 location for the active-translation chooser. #26 has not been changed.
 
-## #28 — researched, honest manual fallback retained
+## #28 — cancelled by the client on 4 November 2026
 
-See `NOTIFICATION_INTEGRATION_28.md`. The pinned public Notification/Inhibit
-contracts do not provide a process-bound global notification suppression lease.
-The actual alpha sandbox's container session lacks a desktop portal; this is not
-a claim about the client's GNOME session. No actual suppression, crash recovery
-or critical-alert filtering has been demonstrated. No host settings or permissions
-were changed. Keep #28 open, retain manual Do Not Disturb guidance.
+The notification feature and manual guidance are cancelled. Dedicated research
+instructions are retired; remove the banner and its exclusively owned state.
+Historical descriptions below record older deliveries and are not current scope.
 
 ## Historical delivery and resumption before the corrective work
 
