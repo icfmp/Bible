@@ -127,7 +127,7 @@ def _native_refs(source, system):
 
 
 def available_chapter(reference,reader):
-    """Explicit source switch only: chapter availability is not verse alignment."""
+    """Explicit opening only: printed chapter availability is not verse alignment."""
     from .book_names import canonical_input
     parts=canonical_input(reference).split('.')
     if len(parts)!=3:return None

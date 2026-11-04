@@ -332,6 +332,7 @@ FR.update({
     'Open in this tab': 'Ouvrir dans cet onglet', 'Download a translation': 'Télécharger une traduction',
     'No readable passage in this translation.': 'Aucun passage lisible dans cette traduction.',
     'This passage is not available in this translation.': 'Ce passage n’est pas disponible dans cette traduction.',
+    'This chapter is not available in this translation.': 'Ce chapitre n’est pas disponible dans cette traduction.',
     'This passage is unavailable. Opened the first available passage.':
         'Ce passage n’est pas disponible. Le premier passage disponible a été ouvert.',
 })

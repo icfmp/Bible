@@ -795,6 +795,7 @@ class Window(Adw.ApplicationWindow):
 
     def end_comparison(self):
         self.active_tab.state.comparison=None
+        self.active_tab.state.comparison_position={}
         self.sync_comparison();self.schedule_save();self.comparison_popover.popdown()
 
     def comparison_selected(self,widget,*_):
