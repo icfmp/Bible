@@ -32,7 +32,7 @@ The full [before matrix](before/README.md) and [after matrix](after/README.md) r
 
 ## Limits
 
-These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. Issues remain open for client validation. Numbered release #87 remains paused.
+These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. #28 remains open. The closure of #163 by icfmp is preserved; distribution verification is still pending independently. Numbered release #87 remains paused.
 
 ## Verified candidate checks
 
@@ -49,9 +49,9 @@ As of 4 November 2026, 11:25 UTC, [GitHub Status](https://www.githubstatus.com/)
 - PR [164](https://github.com/icfmp/Bible/pull/164) is merged. Main source/Flatpak CI [41813732631](https://github.com/icfmp/Bible/actions/runs/41813732631) is green for application source `fcfd908857c1c36e1ef0f371849e1a20a62fbeca`.
 - Publication [41817346966](https://github.com/icfmp/Bible/actions/runs/41817346966) has a signed first revision available but fails public installation with HTTP 503. Earlier attempts also received GitHub Internal Server Error while pushing the second prepared repository revision. This is not a completed controlled publication.
 - Distribution repair PR [170](https://github.com/icfmp/Bible/pull/170), merged as `e22dd2c605a6028e2329238034e92b14038734ce`, adds bounded same-commit server-error recovery, a self-contained Git pack fallback, parent/concurrent-change checks and per-attempt Pages artifact names. Its [real channel restoration/signature/update CI](https://github.com/icfmp/Bible/actions/runs/41818781106) passes. It changes no application or resource data.
-- Retained-profile update check [41813577757](https://github.com/icfmp/Bible/actions/runs/41813577757) cannot advance beyond waiting for a successful final publication. **No successful after-update data-preservation check is claimed.** The prepared old profile has not been reset to hide the blocker.
+- Retained-profile update check [41813577757](https://github.com/icfmp/Bible/actions/runs/41813577757) timed out waiting for a successful final publication; the update and after-update measurement were skipped. **No successful after-update data-preservation check is claimed.** The prepared old profile has not been reset to hide the blocker.
 - The public source catalogue contains46 archives and all45 previous archive records are unchanged. The signing identity remains `47A17230403EA4953745E6E020EB9FFCCECAFD8F`. No source archive was deleted or replaced.
-- #163 remains **In review**, pending successful signed publication and actual update verification. Project access returns `Resource not accessible by integration`, so this status change needs applying in the project. Issues remain open; only the client accepts Done. Numbered release #87 remains paused.
+- Issue #163 was closed as completed by `icfmp` at11:16:35 UTC, with no closing commit or GitHub App recorded. That closure is preserved. The remaining signed-publication/update verification is recorded independently and is not claimed complete. Project access returns `Resource not accessible by integration`; no project status was changed by this work. #28 remains open. Numbered release #87 remains paused.
 
 The final captures above are from the successful unmodified installed application candidate, with capture harness `536c179a7a8f02aa978852a1fb485c373178a50d` and `shrink_probe=false`. They are valid GUI evidence, not evidence of a completed signed-channel update.
 
