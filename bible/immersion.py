@@ -134,12 +134,7 @@ class Immersion(Gtk.Overlay):
             self.preface_action.connect('clicked',open_preface);detail.append(self.preface_action);detail.append(scroll)
             pop.set_child(detail);self.info.set_popover(pop);header.pack_end(self.info)
         controls.append(header)
-        self.notification_help=Adw.Banner(title=tr('In GNOME, turn on Do Not Disturb in the clock menu. Bible does not change notifications.'),
-                                          button_label=tr('Do not show again'))
-        self.notification_help.connect('button-clicked',lambda *_:self.hide_help())
-        self.notification_help.set_revealed(not owner.immersion_hints.disabled and not owner._immersion_help_seen)
-        owner._immersion_help_seen=True
-        controls.append(self.notification_help);self.top.set_child(controls);self.add_overlay(self.top)
+        self.top.set_child(controls);self.add_overlay(self.top)
         self.nav_revealers=[]
         self.back=self.page_button(-1);self.forward=self.page_button(1)
         self.buttons=[self.back,self.forward]
@@ -564,9 +559,6 @@ class Immersion(Gtk.Overlay):
             for button,reveal in zip(self.buttons,self.nav_revealers):
                 button.set_can_target(False);reveal.set_can_target(False);reveal.set_reveal_child(False)
         return False
-
-    def hide_help(self):
-        self.owner.immersion_hints.disable();self.notification_help.set_revealed(False)
 
     def open_in_bible(self):
         section=self.source.reader.index.sections[self.stream.cursor.key]

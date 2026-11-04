@@ -172,8 +172,12 @@ Le prototype conserve un commentaire visible à la fois.
 
 Voir [le guide et ses limites](LECTURE_IMMERSIVE_24_25.md). Ces changements sont
 vérifiés localement ; ils ne constituent pas une nouvelle release Flatpak
-publiée ni un essai manuel GNOME. La suspension automatique des notifications
-n’est pas annoncée : le repli d’aide manuelle prévu par #24 est utilisé.
+publiée ni un essai manuel GNOME.
+
+Client decision, 4 November 2026 (#28): notification suppression and its manual
+Do Not Disturb guidance are cancelled. Remove the dedicated banner/state;
+immersion does not change desktop alerts. No further integration research is
+required.
 
 Le complément de livraison jusqu’à #25 rend explicite la direction de chaque
 ressource dans les lecteurs ordinaires et de comparaison, sans inverser les
