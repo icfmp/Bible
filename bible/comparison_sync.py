@@ -73,6 +73,9 @@ class ComparisonSync(ReadingSync):
             elif self.driver=='comparison':
                 reference=tab.comparison_visible_reference()
                 if not reference:return False
+                # Reuse the reference already sampled for this input frame;
+                # saving an independent pane must not add geometry polling.
+                if tab.remember_comparison(reference):self.owner.schedule_save()
                 resolved=resolve(reference,tab._comparison_reader.versification,tab.reader)
                 target=('primary',resolved.start,id(tab.current))
                 if target!=self.last_target:
