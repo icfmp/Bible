@@ -13,7 +13,7 @@ def main():
     faulthandler.enable()
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('profile',type=Path);p.add_argument('output',type=Path)
-    p.add_argument('--selection-only',action='store_true');p.add_argument('--baseline-captures',action='store_true');p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
+    p.add_argument('--selection-only',action='store_true');p.add_argument('--selection-matrix',action='store_true');p.add_argument('--baseline-captures',action='store_true');p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     marker=args.profile/'.ready-word-selection-profile'
     if args.prepare:
@@ -28,8 +28,9 @@ def main():
             if name not in lib.installed():lib.install(next(r for r in resources if r.name==name))
         if 'youversion~YV21' not in lib.installed():
             item=fetch_resource(21);lib.install(item,permission=acknowledgement(item))
-        data=StepData(args.profile/'study-data')
-        if data.revision is None:data.install()
+        if not args.selection_only:
+            data=StepData(args.profile/'study-data')
+            if data.revision is None:data.install()
     assert marker.is_file()
     from bible.ui import Application,Window,Library,Gtk
     from tests.test_ui import spin
@@ -49,16 +50,20 @@ def main():
     if args.require_packaged:assert 'GL' in report['renderer']
     def save(): (args.output/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
     def settled():spin(lambda:not t._restoring_scroll,duration=.2,timeout=60)
-    def select(start,end):
-        spin(duration=.05);b=t.text.get_buffer()
-        first=t.text.get_iter_location(b.get_iter_at_offset(start));last=t.text.get_iter_location(b.get_iter_at_offset(end))
-        x,y=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,first.x,first.y+first.height//2)
-        ex,ey=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,last.x,last.y+last.height//2)
-        n.move_at(t.text,x,y);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.04)
-        for i in range(1,7):n.move_at(t.text,x+(ex-x)*i/6,y+(ey-y)*i/6);spin(duration=.018)
+    def select(start,end,view=None):
+        view=view or t.text;spin(duration=.05);b=view.get_buffer()
+        first=view.get_iter_location(b.get_iter_at_offset(start));last=view.get_iter_location(b.get_iter_at_offset(end))
+        x,y=view.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,first.x,first.y+first.height//2)
+        ex,ey=view.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,last.x,last.y+last.height//2)
+        n.move_at(view,x,y);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.04)
+        for i in range(1,7):n.move_at(view,x+(ex-x)*i/6,y+(ey-y)*i/6);spin(duration=.018)
         n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);spin(duration=.22)
         bounds=tuple(i.get_offset() for i in b.get_selection_bounds())
-        return dict(expected=[start,end],actual=bounds,visible=a.bar.get_visible(),dragging=a.dragging,capture_pending=bool(a.capture_idle))
+        value=a.target;placement=None
+        if value and a.bar.get_visible():
+            ok,rect=a.bar.compute_bounds(value.source.parent)
+            if ok:placement=dict(x=round(rect.origin.x),y=round(rect.origin.y),width=round(rect.size.width),height=round(rect.size.height),parent_width=value.source.parent.get_width(),parent_height=value.source.parent.get_height())
+        return dict(expected=[start,end],actual=bounds,visible=a.bar.get_visible(),mapped=a.bar.get_mapped(),dragging=a.dragging,capture_pending=bool(a.capture_idle),target_resource=value.source.resource if value else None,target_refs=value.references if value else None,intent=a.intent,placement=placement)
     save()
     recorder=None
     def immersion_captures():
@@ -110,15 +115,73 @@ def main():
         w.study_button.set_active(False);assert t.navigate('youversion~YV21','Gen.1.1');settled()
         import os
         recorder=subprocess.Popen(['ffmpeg','-nostdin','-loglevel','error','-y','-f','x11grab','-video_size','1440x1100','-framerate','15','-i',os.environ['DISPLAY'],'-an','-c:v','libx264','-preset','ultrafast','-crf','28',str(args.output/'selection-repeated.mp4')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        for cycle in range(120):
+        for cycle in range(0 if args.selection_matrix else 120):
             start=t._marker_ends['Gen.1.'+str(1+cycle%3)]+2
             end=start+5+(cycle%4)*8
             if cycle%2:start,end=end,start
             result=select(start,end);result['cycle']=cycle
             report['selection_cycles'].append(result);save()
+        if args.selection_matrix:
+            report['bar_events']=[]
+            a.bar.connect('notify::visible',lambda *_:report['bar_events'].append(dict(visible=a.bar.get_visible(),intent=a.intent,dragging=a.dragging)))
+            for resource,chapter,width,study,comparison in (
+                    ('youversion~YV21','Gen.1',1200,False,None),
+                    ('youversion~YV21','Gen.1',360,False,None),
+                    ('KJV','John.1',1200,True,None),
+                    ('youversion~YV21','Gen.1',1200,False,'KJV'),
+                    ('youversion~YV21','Gen.1',1200,True,'KJV')):
+                t.state.comparison=None;w.sync_comparison();w.set_default_size(width,900)
+                assert t.navigate(resource,chapter+'.1');settled();w.study_button.set_active(study)
+                t.state.comparison=comparison;w.sync_comparison()
+                spin(lambda:not t._restoring_scroll and not getattr(t,'_comparison_positioning',False),duration=.4,timeout=60)
+                for side in ('primary','comparison') if comparison else ('primary',):
+                    view=t.comparison_text if side=='comparison' else t.text
+                    markers=t._comparison_markers if side=='comparison' else t._marker_ends
+                    for cycle in range(24):
+                        start=markers[chapter+'.1']+2
+                        end=markers[chapter+('.3' if cycle%3 else '.1')]+(10 if cycle%3 else 7)
+                        if cycle%2:start,end=end,start
+                        event_start=len(report['bar_events'])
+                        result=select(start,end,view);result.update(case='replacement-multiline',resource=resource,width=width,study=study,side=side,cycle=cycle,bar_events=report['bar_events'][event_start:])
+                        result['expected_resource']=comparison if side=='comparison' else resource
+                        report['selection_cycles'].append(result);save()
+            # Native keyboard completion and deliberate dismissal/reopening.
+            t.state.comparison=None;w.sync_comparison();w.study_button.set_active(False)
+            assert t.navigate('youversion~YV21','Gen.1.1');settled()
+            first=t._marker_ends['Gen.1.1']+3;rect=t.text.get_iter_location(t.text.get_buffer().get_iter_at_offset(first))
+            x,y=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,rect.x,rect.y+rect.height//2)
+            n.click_at(t.text,x,y);spin(duration=.2)
+            code=n.x11.XKeysymToKeycode(n.display,n.x11.XStringToKeysym(b'Shift_L'))
+            n.xtest.XTestFakeKeyEvent(n.display,code,True,0)
+            for _ in range(7):n.key('Right')
+            n.xtest.XTestFakeKeyEvent(n.display,code,False,0);n.x11.XFlush(n.display);spin(duration=.3)
+            bounds=[i.get_offset() for i in t.text.get_buffer().get_selection_bounds()]
+            report['keyboard']=dict(selection=bounds,visible=a.bar.get_visible(),resource=a.target.source.resource if a.target else None)
+            assert bounds and a.bar.get_visible(),report['keyboard']
+            n.key('Escape');spin();assert not a.bar.get_visible()
+            result=select(first,first+12);result['case']='reopen-after-escape';report['selection_cycles'].append(result)
+            n.wheel(t.text,1);assert not a.bar.get_visible() and a.bar.backdrop is None and not a.adapt_tick
+            n.wheel(t.text,-1);spin(duration=.3)
+            result=select(first,first+12);result['case']='reopen-after-wheel';report['selection_cycles'].append(result)
+            # A real drag reaches the viewport edge and invokes GTK's native
+            # selection autoscroll. Release it before observing completion.
+            n.move_at(t.text,x,y);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin(duration=.06)
+            for i in range(1,21):n.move_at(t.text,x,y+(t.text.get_height()-y-2)*i/20);spin(duration=.025)
+            spin(duration=.7)
+            n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);spin(duration=.4)
+            report['selection_cycles'].append(dict(case='viewport-edge-autoscroll',actual=[i.get_offset() for i in t.text.get_buffer().get_selection_bounds()],visible=a.bar.get_visible(),mapped=a.bar.get_mapped(),dragging=a.dragging,capture_pending=bool(a.capture_idle),intent=a.intent,target_resource=a.target.source.resource if a.target else None))
+            # Switching tabs/resources must invalidate the old target without
+            # suppressing the next completed selection in either tab.
+            w.new_tab();t=w.active_tab;assert t.navigate('KJV','John.1.1');settled()
+            result=select(t._marker_ends['John.1.1']+2,t._marker_ends['John.1.2']+12);result.update(case='new-tab-source',expected_resource='KJV');report['selection_cycles'].append(result)
+            w.close_tab();t=w.active_tab;assert t.navigate('youversion~YV21','Gen.1.1');settled()
+            result=select(t._marker_ends['Gen.1.1']+2,t._marker_ends['Gen.1.2']+12);result.update(case='returned-tab-source',expected_resource='youversion~YV21');report['selection_cycles'].append(result)
+            assert all(c.get('target_resource') for c in report['selection_cycles'] if c['visible'])
+            report['wrong_target_count']=sum(c.get('expected_resource')!=c.get('target_resource') for c in report['selection_cycles'] if c.get('expected_resource') and c['visible'])
         report['missing_toolbar']=sum(bool(x['actual']) and not x['visible'] for x in report['selection_cycles'])
         report['collapsed_drag_count']=sum(not x['actual'] for x in report['selection_cycles'])
         report['native_replacement_without_programmatic_dismissal']=True
+        if args.selection_matrix:assert not report['missing_toolbar'] and not report['collapsed_drag_count'] and not report['wrong_target_count'],report['selection_cycles'][-1]
         assert not exceptions,exceptions
         report['completed']=True;save()
     finally:

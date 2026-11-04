@@ -27,6 +27,10 @@ on:
         description: Probe repeated selection without word-study or programmatic toolbar dismissal
         type: boolean
         default: false
+      selection_matrix:
+        description: Exercise real multiline replacements, directions, narrow/study/comparison and keyboard selection
+        type: boolean
+        default: false
       baseline_captures:
         description: Capture the previous unmodified immersion without exercising the known crash
         type: boolean
@@ -111,6 +115,7 @@ jobs:
           if [ '${{ inputs.library_baseline }}' = true ]; then mode+=(--baseline); fi
           if [ '${{ inputs.baseline_captures }}' = true ]; then mode+=(--baseline-captures); fi
           if [ '${{ inputs.selection_only }}' = true ]; then mode+=(--selection-only); fi
+          if [ '${{ inputs.selection_matrix }}' = true ]; then mode+=(--selection-matrix); fi
           timeout 1000s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE='${{ inputs.language || 'fr' }}' --command=python3 io.github.icfmp.Bible//master -X faulthandler -m "$module" "$RUNNER_TEMP/profile" "$PWD/reports" --prepare --require-packaged "${mode[@]}" > "$RUNNER_TEMP/picker.log" 2>&1
           if [ '${{ inputs.study_updates }}' = true ]; then
             timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE='${{ inputs.language || 'fr' }}' --command=python3 io.github.icfmp.Bible//master -X faulthandler -m tools.check_ready_study_updates "$RUNNER_TEMP/profile" "$PWD/reports" --offline --require-packaged >> "$RUNNER_TEMP/picker.log" 2>&1
