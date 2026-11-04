@@ -30,3 +30,7 @@ Batch boundaries follow verified deliveries rather than intermediate commits or 
 Application source `fcfd908857c1c36e1ef0f371849e1a20a62fbeca` (#164) is excluded from this historical backfill: its final controlled signed publication and retained-profile update verification were still pending at audit time. It must satisfy those gates before the next numbered prerelease.
 
 Installation/update: use [the signed alpha reference](https://icfmp.github.io/Bible/alpha/Bible.flatpakref), then `flatpak update io.github.icfmp.Bible//alpha`. The remote/ref and stable signing identity `47A17230403EA4953745E6E020EB9FFCCECAFD8F` are preserved. No client profile was accessed or reset by this audit. Existing issue closures and client acceptance decisions were preserved.
+
+## Current delivery completed after the historical audit
+
+The pending #164 delivery subsequently passed [signed publication41826448325](https://github.com/icfmp/Bible/actions/runs/41826448325) and [retained-profile upgrade41827533843](https://github.com/icfmp/Bible/actions/runs/41827533843). It is published as [0.1.0-alpha.20](https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.20), exact source `fcfd908857c1c36e1ef0f371849e1a20a62fbeca`. [Delivery and preservation evidence](../notifications-picker-28-163/README.md). Existing tags remain unchanged.

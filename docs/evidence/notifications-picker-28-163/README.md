@@ -18,7 +18,7 @@ No real GNOME notification-delivery, crash-restoration or multi-monitor claim is
 
 Before: source `39449e0743c8e8b6fb03fbfc30a7d259046502f3`, ordinary build [41779503655](https://github.com/icfmp/Bible/actions/runs/41779503655), installed native check [41787780543](https://github.com/icfmp/Bible/actions/runs/41787780543).
 
-After: application PR head `30465ec38ccbe95f00c67b534707b7b8f758c80b`. Ordinary source/Flatpak CI [41794196167](https://github.com/icfmp/Bible/actions/runs/41794196167) and the unmodified installed picker check [41797299836](https://github.com/icfmp/Bible/actions/runs/41797299836) passed. Main merge `fcfd908857c1c36e1ef0f371849e1a20a62fbeca` has the same Git tree as that candidate. The signed publication and retained-profile update have not completed; see the blocked delivery status below.
+After: application PR head `30465ec38ccbe95f00c67b534707b7b8f758c80b`. Ordinary source/Flatpak CI [41794196167](https://github.com/icfmp/Bible/actions/runs/41794196167) and the unmodified installed picker check [41797299836](https://github.com/icfmp/Bible/actions/runs/41797299836) passed. Main merge `fcfd908857c1c36e1ef0f371849e1a20a62fbeca` has the same Git tree as that candidate. The signed publication and retained-profile upgrade are now verified; see delivery evidence below.
 
 | Case | Before | After |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ The full [before matrix](before/README.md) and [after matrix](after/README.md) r
 
 ## Limits
 
-These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. #28 remains open. The closure of #163 by icfmp is preserved; distribution verification is still pending independently. The client has withdrawn the mistaken #87 pause instruction; the standing numbered-alpha rule applies.
+These are automated developer checks under Xvfb/X11 in a disposable cloud environment. They do not establish manual acceptance on the client's GNOME/Wayland desktop, hardware graphics driver or monitor arrangement. Test resources and saved annotations/preferences are retained across the signed update; the client's actual profile is not accessed or reset. #28 remains open. The closure of #163 by icfmp is preserved; distribution verification is complete independently. The client has withdrawn the mistaken #87 pause instruction; the standing numbered-alpha rule applies.
 
 ## Verified candidate checks
 
@@ -42,17 +42,25 @@ These are automated developer checks under Xvfb/X11 in a disposable cloud enviro
 - Real resources, SWORD fidelity, offline reopening, retained note drafts/maps, and sustained scrolling with cold OpenGL shader caches passed ordinary CI.
 - All46 PNG files are copied byte-for-byte from the successful installed before/after checks. No diagnostic runtime-property probe captures are included.
 
-## Delivery status — blocked by GitHub service incident
+## Signed delivery and verified update — 4 November 2026
 
-As of 4 November 2026, 11:25 UTC, [GitHub Status](https://www.githubstatus.com/) reports an investigating incident affecting Git Operations, API requests, Pull Requests and Actions.
+[Numbered prerelease 0.1.0-alpha.20](https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.20) tags the exact application source `fcfd908857c1c36e1ef0f371849e1a20a62fbeca`. Source/main CI [41813732631](https://github.com/icfmp/Bible/actions/runs/41813732631), final [signed publication 41826448325](https://github.com/icfmp/Bible/actions/runs/41826448325), and [actual retained-profile upgrade 41827533843](https://github.com/icfmp/Bible/actions/runs/41827533843) passed.
 
-- PR [164](https://github.com/icfmp/Bible/pull/164) is merged. Main source/Flatpak CI [41813732631](https://github.com/icfmp/Bible/actions/runs/41813732631) is green for application source `fcfd908857c1c36e1ef0f371849e1a20a62fbeca`.
-- Publication [41817346966](https://github.com/icfmp/Bible/actions/runs/41817346966) has a signed first revision available but fails public installation with HTTP 503. Earlier attempts also received GitHub Internal Server Error while pushing the second prepared repository revision. This is not a completed controlled publication.
-- Distribution repair PR [170](https://github.com/icfmp/Bible/pull/170), merged as `e22dd2c605a6028e2329238034e92b14038734ce`, adds bounded same-commit server-error recovery, a self-contained Git pack fallback, parent/concurrent-change checks and per-attempt Pages artifact names. Its [real channel restoration/signature/update CI](https://github.com/icfmp/Bible/actions/runs/41818781106) passes. It changes no application or resource data.
-- Retained-profile update check [41813577757](https://github.com/icfmp/Bible/actions/runs/41813577757) timed out waiting for a successful final publication; the update and after-update measurement were skipped. **No successful after-update data-preservation check is claimed.** The prepared old profile has not been reset to hide the blocker.
-- The public source catalogue contains46 archives and all45 previous archive records are unchanged. The signing identity remains `47A17230403EA4953745E6E020EB9FFCCECAFD8F`. No source archive was deleted or replaced.
-- Issue #163 was closed as completed by `icfmp` at11:16:35 UTC, with no closing commit or GitHub App recorded. That closure is preserved. The remaining signed-publication/update verification is recorded independently and is not claimed complete. Project access returns `Resource not accessible by integration`; no project status was changed by this work. #28 remains open. The client has withdrawn the mistaken #87 pause instruction; the standing numbered-alpha rule applies.
+Packaging revision `41826448325-2`, installed OSTree `63bee99a9021161a949173617cfc97ad74ade3c8b7f811a9019c23615cb05272`. Source archive SHA-256 `9773f4b173bbf2cc16db4d3b9a139bfaab6d43dfbb51c1bde2d9434ef899cfb6`; bundle SHA-256 `49e0f0c444a012f562d18adf0f0f6c1a9a1ea762ac67efc85861bed7be5733bc`. The stable signing identity, remote/ref and all previous source archives remain unchanged. [Install the signed alpha](https://icfmp.github.io/Bible/alpha/Bible.flatpakref) or run `flatpak update io.github.icfmp.Bible//alpha`.
 
-The final captures above are from the successful unmodified installed application candidate, with capture harness `536c179a7a8f02aa978852a1fb485c373178a50d` and `shrink_probe=false`. They are valid GUI evidence, not evidence of a completed signed-channel update.
+The actual signed upgrade began with the immutable previous alpha.19 commit `cc68b9d2eb9d79ba7dafe7f544247a19dea9f64c2387352364196a2d125fdd28`. Its signature and application UI hash were checked before seeding the marked disposable profile once. The same profile was retained across before measurements, the real upgrade and after measurements: all55 resource files, six translations/commentaries, four study datasets, the note/highlight and preferences remained identical. The client's profile was not accessed/reset. Curated receipt artifact `13320347273` matches GitHub SHA-256 `cc7112de9ee5b49fdc2aae664c8e4ef698ec6c966f7e91758e0cbd8cf73dd59d`.
 
-Last observed public packaging revision: `41817346966-1`; OSTree commit `4e741fb5ffbc0d17f0776610b4fd8a0351acc260be7fe15d976260c0f4afeff9`. The controlled final revision and after-update preservation remain unverified.
+The upgrade check used VulkanRenderer, scale2, four combined scrollbar cycles and two wheel cycles each in single/comparison/study modes. No adjustment arrived later than500ms after stopping in these checks. The hidden selection toolbar released its backdrop and had no placement tick. These results do not establish client hardware-driver performance or fix the separately reported word-study crash.
+
+Earlier publication attempts failed during GitHub's service incident (HTTP500/503), and the original retained-profile worker expired without updating. A later worker was cancelled because GitHub's commit-to-PR API omitted the known merged head; the corrected verifier checks PR164 directly. Neither incomplete attempt is counted as update evidence. The successful final worker above independently revalidated the immutable old signed application and retained its new isolated test profile throughout the upgrade.
+
+Distribution-only [PR170](https://github.com/icfmp/Bible/pull/170), source `e22dd2c605a6028e2329238034e92b14038734ce`, adds bounded same-commit transport recovery and retry-safe Pages artifact names; no application/resource data changed. Issue163 was closed by the client; that closure is preserved. Issue28's subsequently approved cleanup remains separate and open. Project updates are refused with `Resource not accessible by integration`; no Done/status change was invented.
+
+The original46 before/after captures use the successful unmodified installed candidate, harness `536c179a7a8f02aa978852a1fb485c373178a50d`, `shrink_probe=false`. Later diagnostic probes are not substituted for those captures.
+
+| Same-profile combined test | Startup RSS (MiB) | Peak RSS (MiB) | Scroll CPU (% of one core) | First adjustment / paint (ms) |
+| --- | --- | --- | --- | --- |
+| current-signed-combined | 443.3 | 470.4 | 116.1–120.1 | 3.12 / 5.57 |
+| candidate-signed-combined | 429.2 | 454.9 | 118.2–119.7 | 3.08 / 5.19 |
+
+CPU is process usage on a4-CPU software-rendered worker, not total-machine percentage; samples remain specific to this bounded developer upgrade check. There is no claim that the picker change is a performance fix.
