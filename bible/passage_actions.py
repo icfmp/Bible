@@ -117,6 +117,7 @@ class PassageActions:
         self.owner=owner;self.target=None;self.dragging=False;self.keyboard=False;self.adapt_tick=0;self._adapt_passes=0
         self.clearance=None;self.intent=0
         self.capture_idle=0
+        self._pointer_release=None;self._native_drags={}
         self.bar=ActionSurface(halign=Gtk.Align.CENTER,valign=Gtk.Align.END,
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         self.bar.actions_owner=self
@@ -164,7 +165,7 @@ class PassageActions:
         gesture=Gtk.GestureClick(button=1);gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         def outside(controller,_,x,y):
             event=controller.get_current_event()
-            if self.target and event and event.get_surface()==owner.get_surface():
+            if (self.target or self.dragging) and event and event.get_surface()==owner.get_surface():
                 widget=owner.pick(x,y,Gtk.PickFlags.DEFAULT)
                 if not self.contains(widget):self.dismiss()
         gesture.connect('pressed',outside);owner.add_controller(gesture)
@@ -173,6 +174,54 @@ class PassageActions:
         wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
         wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         wheel.connect('scroll',lambda *_:self.dismiss() or False);owner.add_controller(wheel)
+        # GestureClick can stop before a child TextView releases its selection.
+        # Observe the physical release without claiming GTK's native gesture.
+        release=Gtk.EventControllerLegacy();release.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        def pointer_event(controller,_event):
+            event=controller.get_current_event()
+            if (self._pointer_release and event and event.get_event_type()==Gdk.EventType.BUTTON_RELEASE
+                    and event.get_button()==1 and event.get_surface()==owner.get_surface()):
+                self._pointer_release[0]()
+            return False
+        release.connect('event',pointer_event);owner.add_controller(release)
+        # TextView starts its own Gdk.Drag when pressing inside a selection.
+        # That native grab replaces GestureClick's release. Observe the local
+        # drop passively and finish through the same selection callback.
+        drop=Gtk.DropControllerMotion();drop.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        drop.connect('enter',self.native_drag_motion);drop.connect('motion',self.native_drag_motion)
+        owner.add_controller(drop)
+
+    def native_drag_motion(self,controller,*_):
+        pending=self._pointer_release
+        if not pending:return
+        _,generation,view,_=pending
+        if generation!=self.intent or not view.get_mapped():return
+        drop=controller.get_drop();drag=drop.get_drag() if drop else None
+        if drag is None or drag in self._native_drags:return
+        # A pending press on this reading view owns the current gesture.
+        # get_drag() excludes external applications; GTK text drags expose
+        # TextBuffer content. Backend drag surfaces are not source toplevels.
+        if not (view.get_buffer().get_has_selection()
+                and drag.get_content().ref_formats().contain_gtype(Gtk.TextBuffer)):return
+        import weakref
+        owner=weakref.ref(self)
+        def finished(drag,reason=None):
+            actions=owner()
+            if actions:actions.native_drag_finished(drag,reason,generation)
+        self._native_drags[drag]=(drag.connect('cancel',finished),drag.connect('dnd-finished',finished))
+
+    def native_drag_finished(self,drag,reason,generation):
+        for handler in self._native_drags.pop(drag,()):
+            if drag.handler_is_connected(handler):drag.disconnect(handler)
+        pending=self._pointer_release
+        if not pending or generation!=self.intent or pending[1]!=generation:return
+        # The native grab can leave our observer stopped until another release.
+        # Reset only this application's observer, never TextView's gestures.
+        pending[3].reset()
+        if reason not in (None,Gdk.DragCancelReason.NO_TARGET) or not self.owner.is_active():
+            self.dismiss();return
+        self._pointer_release=None
+        pending[0]()
 
     def contains(self,widget):return bool(widget and (widget is self.bar or widget.is_ancestor(self.bar)))
 
@@ -293,16 +342,21 @@ class PassageActions:
             bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
             found,iterator=view.get_iter_at_location(bx,by)
             pending[0]=(source,iterator.get_offset() if found else None,generation)
-        def released(*_):
+            self._pointer_release=(pointer_released,generation,view,click)
+        def pointer_released(*_):
             value=pending[0];pending[0]=None
             if not value:return
-            source,offset,generation=value;self.dragging=False
+            source,offset,generation=value
+            if generation!=self.intent:return
+            if self._pointer_release and self._pointer_release[:2]==(pointer_released,generation):self._pointer_release=None
+            click.reset()
+            self.dragging=False
             current=factory()
             if (generation==self.intent and current and current.reader is source.reader
                     and current.document.key==source.document.key):
                 self.schedule_capture(view,factory,offset,generation)
-        click.connect('pressed',pressed);click.connect('released',released)
-        click.connect('unpaired-release',released);view.add_controller(click)
+        click.connect('pressed',pressed);click.connect('released',pointer_released)
+        click.connect('unpaired-release',pointer_released);view.add_controller(click)
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         def pressed(_,value,code,state):
             selection_key=value in (Gdk.KEY_Left,Gdk.KEY_Right,Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down)
@@ -418,14 +472,21 @@ class PassageActions:
         return True
 
     def key(self,controller,value,*_):
-        if value==Gdk.KEY_Escape and (self.target or self.capture_idle or self.keyboard):
+        if value==Gdk.KEY_Escape and (self.target or self.capture_idle or self.keyboard or self.dragging):
             if any(p.get_visible() for p in self.owner._reading_popovers):return False
-            self.dismiss();return True
+            native=bool(self._native_drags)
+            self.dismiss();return not native
         return False
 
     def dismiss(self):
         self.intent+=1
         self.keyboard=False;self.dragging=False
+        if self._pointer_release and self._native_drags:self._pointer_release[3].reset()
+        self._pointer_release=None
+        for drag,handlers in tuple(self._native_drags.items()):
+            for handler in handlers:
+                if drag.handler_is_connected(handler):drag.disconnect(handler)
+        self._native_drags.clear()
         self.cancel_capture()
         # Still invalidate a pending selection capture, but do no native popup
         # or backdrop work for each wheel event when everything is already hidden.
