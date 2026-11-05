@@ -23,7 +23,7 @@ Unsupported cross-system comparisons open the requested numbered chapter when th
 
 ## Checks and limitations
 
-Installed GTK 4.20.4/GL checks pass [173 genuine selection cases](https://github.com/icfmp/Bible/actions/runs/41977388624), with zero missing toolbar, collapsed selection or wrong target; [12 BDS Mark 11:29–30 Original text cycles and 120 further pointer selections](https://github.com/icfmp/Bible/actions/runs/41977424310); [actual study updates and a separate network-unshared offline restart](https://github.com/icfmp/Bible/actions/runs/41977400378); and [six real comparison pairs, selector changes and offline position restoration](https://github.com/icfmp/Bible/actions/runs/41977412382). The reproduced selection baseline had 82 missing toolbars among 173 nonempty cases.
+Installed GTK 4.20.4/GL checks pass [173 genuine selection cases](https://github.com/icfmp/Bible/actions/runs/41977388624), with zero missing toolbar, collapsed selection or wrong target; [12 BDS Mark 11:29–30 Original text cycles and 120 further pointer selections](https://github.com/icfmp/Bible/actions/runs/41977424310); [actual study updates and a separate network-unshared offline restart](https://github.com/icfmp/Bible/actions/runs/41977400378); and [six directional cases across three resource pairs, selector changes and offline position restoration](https://github.com/icfmp/Bible/actions/runs/41977412382). The reproduced selection baseline had 82 missing toolbars among 173 nonempty cases.
 
 [French](https://github.com/icfmp/Bible/actions/runs/41978491000), [English](https://github.com/icfmp/Bible/actions/runs/41978503709) and [exact alpha.21 baseline](https://github.com/icfmp/Bible/actions/runs/41978517442) Library/search checks provide original before/after light/dark and narrow captures. Images were visually inspected; an earlier test-harness theme mismatch was corrected before these final captures. Captures remain in workflow artifacts and are supplied privately, rather than copied into a public evidence branch.
 
@@ -51,10 +51,9 @@ Install [Bible.flatpakref](https://icfmp.github.io/Bible/alpha/Bible.flatpakref)
 | #167 | Independent reviewed vocabulary/synonym data and index publication, with explicit partial coverage and English fallback. |
 | #168 | Physical press/release and native text-drag completion retain actual selection/source context; no native gesture reset, copy disable, fabricated selection or polling. The prior touch path remains but was not tested with a physical touch device. |
 | #169 | Native header search and Ctrl+F open Text/Topics; passage navigation remains separate. Narrow adaptive-menu dismissal restores focus/accelerators. |
-| #171 | Common requested-chapter fallback and resource-qualified independent positions; six actual source pairs, source changes and offline restart. Exact unsupported mappings remain unavailable. |
+| #171 | Common requested-chapter fallback and resource-qualified independent positions; six directional cases across three resource pairs, source changes and offline restart. Exact unsupported mappings remain unavailable. |
 | #172 | Both selectors fill their own pane; caption centering and arrow placement checked in both themes, normal/narrow windows and study open/closed. |
 
 The fresh Darby module declares and effectively uses German; this is not silently identified with the client's unspecified Luther build. The additional stale-heading variant was not reproduced in the fresh baseline. Corrected Darby/NBS opening shows Genesis 11 in both documents/headings, explicitly independent; moving the primary to Genesis 12 preserves the independent Genesis 11 comparison and its actual verse position across restart.
 
 Implementation issues remain OPEN. Only the client marks Done. Project 5 access was rechecked and remains `Resource not accessible by integration`; the required manual status for these delivered scopes is In validation. NFC #153 remains In progress with no complete lossless-installation claim. The #151 crash correction, #152 naming complement and #28 cancellation cleanup were already delivered in alpha.21 and remain available.
-
