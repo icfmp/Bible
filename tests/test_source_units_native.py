@@ -169,6 +169,11 @@ class NativeUnitTests(unittest.TestCase):
                 tab.navigate(name,'Sir.1_1.1');spin()
                 self.assertEqual(tab.state.reference,'Sir.1_1.1')
                 self.assertIn('SECOND DISTINCT SECTION',tab._document.copy_text)
+                tab.navigate(name,'Sir.44.23');spin()
+                self.assertEqual(tab.selected_passage(),('Sir.44.23','Sir.44.23'))
+                shared=tab._document.spans[0];buffer=tab.text.get_buffer()
+                buffer.select_range(buffer.get_iter_at_offset(shared.body),buffer.get_iter_at_offset(shared.end))
+                self.assertEqual(tab.selected_passage(),('Sir.44.22','Sir.44.23'))
             finally:window.close();spin()
 
 
