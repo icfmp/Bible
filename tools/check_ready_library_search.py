@@ -78,6 +78,11 @@ def main():
                     w.set_default_size(width,850);spin(lambda:not w._controls_tick,duration=.4)
                     prefix=('dark' if dark else 'light')+'-'+str(width)
                     shot(prefix+'-header')
+                    d=w.open_library('bible');d.set_default_size(width,850)
+                    spin(lambda:not d.busy,duration=.3,timeout=90)
+                    if not args.baseline:assert d._success_toast is None and not d.status.get_visible()
+                    shot(prefix+'-library-installed-state')
+                    d.close();spin();n.activate(w)
                     # Native shortcut and pointer entry exercise the same dedicated popup.
                     nav=w.navigation if args.baseline else w.search_popover
                     control_key('g' if args.baseline else 'f');spin(lambda:nav.get_visible(),duration=.3)
@@ -118,16 +123,18 @@ def main():
                         assert all(w.highlights.entries[(t.reader.versification,r)]['color']==color for r in actions.target.references)
                         assert tuple(i.get_offset() for i in b.get_selection_bounds())==selected
                     shot(prefix+'-direct-colours');n.click(actions.close_button);spin()
-            for width,study in ((1200,False),(1200,True),(850,False)):
-                w.set_default_size(width,850);w.study_button.set_active(study)
-                t.state.comparison='KJV';w.sync_comparison();settled();spin(lambda:not w._controls_tick,duration=.4)
-                for chooser,pane in ((w.primary_version,t.primary_controls),(w.compared_version,t.comparison_controls)):
-                    ok,bounds=chooser.caption.compute_bounds(chooser);assert ok
-                    center=bounds.origin.x+bounds.size.width/2
-                    record=dict(width=w.get_width(),study=study,comparison=chooser is w.compared_version,button=chooser.get_width(),pane=pane.get_width(),caption_center=center)
-                    report['geometry'].append(record);save()
-                    if not args.baseline:assert chooser.get_width()>=pane.get_width()-4 and abs(center-chooser.get_width()/2)<=2,record
-                shot('comparison-'+str(width)+('-study' if study else ''))
+            for dark in (False,True):
+                style.set(dark=dark,high=False)
+                for width,study in ((1200,False),(1200,True),(850,False)):
+                    w.set_default_size(width,850);w.study_button.set_active(study)
+                    t.state.comparison='KJV';w.sync_comparison();settled();spin(lambda:not w._controls_tick,duration=.4)
+                    for chooser,pane in ((w.primary_version,t.primary_controls),(w.compared_version,t.comparison_controls)):
+                        ok,bounds=chooser.caption.compute_bounds(chooser);assert ok
+                        center=bounds.origin.x+bounds.size.width/2
+                        record=dict(width=w.get_width(),dark=dark,study=study,comparison=chooser is w.compared_version,button=chooser.get_width(),pane=pane.get_width(),caption_center=center)
+                        report['geometry'].append(record);save()
+                        if not args.baseline:assert chooser.get_width()>=pane.get_width()-4 and abs(center-chooser.get_width()/2)<=2,record
+                    shot(('dark' if dark else 'light')+'-comparison-'+str(width)+('-study' if study else ''))
         assert not errors,errors
         report['completed']=True;save()
     finally:save();w.close();spin();n.close()
