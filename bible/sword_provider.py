@@ -69,11 +69,12 @@ class Chapter:
 class Book:
     code: str
     name: str
-    chapters: dict[int, tuple[int, ...]]
+    chapters: dict[int | str, tuple[int, ...]]
 
 
 def passage_verses(reader,references,chapter_cache=None):
     """Resolve every requested reference, emitting each native linked unit once."""
+    references=tuple(references)
     chapters={} if chapter_cache is None else chapter_cache
     seen=set();result=[];requested=set(references)
     for reference in references:
@@ -197,7 +198,8 @@ class Reader:
         return tuple(result)
 
     def has_reference(self, reference):
-        return bool(self.module.hasEntry(self.key(reference)))
+        try:return bool(self.module.hasEntry(self.key(reference)))
+        except ValueError:return False
 
     def first_reference(self):
         if not self.books:
@@ -273,7 +275,6 @@ class Reader:
         from .preparation import checkpoint
         checkpoint(cancelled)
         if not getattr(self,'addresses',None):return self._native_chapter(reference,cancelled=cancelled)
-        from dataclasses import replace
         public=self.key(reference).getOSISRef().rsplit('.',1)[0]
         native=self._native_chapter(self.addresses.native_chapter(public)+'.1',cancelled=cancelled)
         description=self.addresses.chapters.get(public)

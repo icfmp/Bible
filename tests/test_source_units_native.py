@@ -54,6 +54,8 @@ class NativeUnitTests(unittest.TestCase):
         self.assertEqual(r.neighbours('Sir.1_1.1'),('Sir.1.1','Sir.43.17'))
         self.assertEqual([c.canonical for c in r.addresses.sections.chapters],[False,True,True,True,True])
         self.assertEqual(r.chapter_label('Sir.1_1'),'1')
+        self.assertFalse(r.has_reference('Gen.1.1'))
+        self.assertFalse(r.has_reference('Sir.1_2.1'))
         from bible.reference_resolution import resolve,VersificationMismatch
         self.assertEqual(resolve('Sir.1_1.1',r.versification,r).start,'Sir.1_1.1')
         from bible.reference_targets import Canon
@@ -79,15 +81,20 @@ class NativeUnitTests(unittest.TestCase):
         positions=[doc.copy_text.index(text) for text in ['FIRST FRAGMENT','MIDDLE VERSE','LAST FRAGMENT']]
         self.assertEqual(positions,sorted(positions))
         self.assertEqual([s.number for s in doc.spans],['17a','16','17b'])
+        self.assertEqual(doc.selected_passage(0,len(doc.text)),('Sir.43.16','Sir.43.17'))
         for span in doc.spans:
             for offset in range(span.body,span.end):self.assertEqual(doc.locate(doc.anchor(offset)),offset)
         self.assertGreater(doc.anchor(positions[2]).offset,0)
         rows=passage_verses(r,['Sir.43.16','Sir.43.17'])
         self.assertEqual([text.strip() for ref,text in rows],['FIRST FRAGMENT','MIDDLE VERSE','LAST FRAGMENT'])
+        self.assertEqual(passage_verses(r,(ref for ref in ['Sir.43.16','Sir.43.17'])),rows)
         bridge=BiblePages(r,None).document('Sir.44',ReadingPreferences())
         self.assertEqual(bridge.copy_text.count('SHARED CONTENT'),1)
         self.assertEqual(bridge.copy_text.count('TAIL CONTENT'),1)
         self.assertEqual([text.strip() for ref,text in passage_verses(r,['Sir.44.22','Sir.44.23'])],['SHARED CONTENT','TAIL CONTENT'])
+        from bible.reference_targets import local_excerpt
+        self.assertNotIn('TAIL CONTENT',local_excerpt(r,'Sir.44.22',source_system=r.versification).text)
+        self.assertIn('TAIL CONTENT',local_excerpt(r,'Sir.44.23',source_system=r.versification).text)
 
     def test_existing_numeric_annotations_and_new_section_annotations_roundtrip(self):
         from bible.notes import NoteStore,parts
@@ -140,7 +147,8 @@ class NativeUnitTests(unittest.TestCase):
             profile=Path(directory);name='youversion~YV'+str(self.identifier)
             target=profile/'translations'/name;shutil.copytree(self.root,target)
             (target/'.complete').write_text(name)
-            (target/'.source.json').write_text(json.dumps(dict(provider_id='youversion',module_name='YV'+str(self.identifier))))
+            (target/'.source.json').write_text(json.dumps(dict(provider_id='youversion',module_name='YV'+str(self.identifier),
+                                                              acquisition=json.dumps(self.edition.metadata))))
             app=Application.get_default() or Application();app.register()
             window=Window(app,Library(profile/'translations'));window.set_default_size(1000,760);window.present();spin()
             self.addCleanup(close_test_dialogs)
@@ -166,6 +174,13 @@ class NativeUnitTests(unittest.TestCase):
                 window.appearance.update('size',22);spin()
                 self.assertEqual(tab._document.copy_text.count('FIRST FRAGMENT'),1)
                 self.assertEqual(tab._document.copy_text.count('LAST FRAGMENT'),1)
+                window.study_button.set_active(True);window.study.tools.set_visible_child_name('notes');spin()
+                window.study.notes.refresh(force=True);spin()
+                window.study.notes.queue_follow('Sir.43.17');spin()
+                self.assertEqual(len(window.study.notes.rows),1,dict(reference=tab.state.reference,
+                    context=window.study.notes.context,stamp=window.study.notes._stamp,
+                    notes=[(n.versification,n.start,n.end) for n in window.notes_store.all()]))
+                window.study_button.set_active(False)
                 tab.navigate(name,'Sir.1_1.1');spin()
                 self.assertEqual(tab.state.reference,'Sir.1_1.1')
                 self.assertIn('SECOND DISTINCT SECTION',tab._document.copy_text)
@@ -174,6 +189,12 @@ class NativeUnitTests(unittest.TestCase):
                 shared=tab._document.spans[0];buffer=tab.text.get_buffer()
                 buffer.select_range(buffer.get_iter_at_offset(shared.body),buffer.get_iter_at_offset(shared.end))
                 self.assertEqual(tab.selected_passage(),('Sir.44.22','Sir.44.23'))
+                window.copy_passage()
+                values=[]
+                window.get_clipboard().read_text_async(None,lambda clipboard,result:values.append(clipboard.read_text_finish(result)))
+                spin(lambda:bool(values));copied=values[0]
+                self.assertEqual(copied.count('SHARED CONTENT'),1)
+                self.assertEqual(copied.count('TAIL CONTENT'),1)
             finally:window.close();spin()
 
 

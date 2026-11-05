@@ -97,6 +97,8 @@ def local_excerpt(reader, start, end=None, *, source_system='openbible', limit=6
     """Map each source verse; never bridge discontinuities using only endpoints."""
     end=end or start
     def native_span():
+        if source_system==reader.versification and getattr(reader,'addresses',None):
+            yield from reader.reference_range(start,end);return
         source=Canon(source_system);key=source.key(start);upper=source.key(end).getIndex()
         if key.getIndex()>upper:raise ValueError('Reversed passage')
         while key.getIndex()<=upper:
@@ -106,6 +108,14 @@ def local_excerpt(reader, start, end=None, *, source_system='openbible', limit=6
     refs=[];seen=set();more=False
     for reference in source:
         mapped=destination(reference,reader) if source_system=='openbible' else resolve(reference,source_system,reader)
+        if getattr(reader,'addresses',None):
+            for ref in reader.reference_range(mapped.start,mapped.end):
+                if ref not in seen:
+                    if len(refs)>=limit:more=True;break
+                    if not reader.has_reference(ref):raise ValueError('Passage unavailable: '+ref)
+                    refs.append(ref);seen.add(ref)
+            if more:break
+            continue
         target=reader.key(mapped.start);last=reader.key(mapped.end).getIndex()
         while target.getIndex()<=last:
             ref=target.getOSISRef()

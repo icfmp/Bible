@@ -490,6 +490,10 @@ class Window(Adw.ApplicationWindow):
         else:first,last=tab.selected_passage();reader=tab.reader;version=module_name(tab.state.resource)
         label=passage_label(first,last,reader.versification)+' — '+version
         if reference_only:value=label
+        elif getattr(reader,'addresses',None):
+            from .sword_provider import passage_verses
+            value='\n'.join(text for _,text in passage_verses(reader,reader.reference_range(first,last)))
+            if with_reference:value=label+'\n'+value
         else:
             start,end=reader.key(first).getIndex(),reader.key(last).getIndex()
             chapter=reader.chapter(first)

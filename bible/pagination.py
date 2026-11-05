@@ -106,7 +106,13 @@ class Document:
 
     def selected_passage(self,start,end):
         spans=[s for s in self.spans if s.body<end and s.end>start]
-        return (spans[0].members[0],spans[-1].members[-1]) if spans else None
+        if not spans:return None
+        members=list(dict.fromkeys(ref for span in spans for ref in span.members))
+        try:
+            from .notes import passage_order
+            members.sort(key=passage_order)
+        except ValueError:pass  # Non-Scripture entry IDs retain their source order.
+        return members[0],members[-1]
 
 
 @dataclass(frozen=True)
