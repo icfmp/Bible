@@ -57,10 +57,12 @@ def main():
         n.click(row);spin(lambda:not button.popover.get_visible(),duration=.2);settled()
     def state():
         t=w.active_tab;b=t.comparison_text.get_buffer();first=b.get_start_iter();last=first.copy();last.forward_line()
+        key=t._comparison_document.key
+        document=key if isinstance(key,str) else key[0]
         return dict(source=t.state.resource,target=t.state.comparison,source_system=t.reader.versification,
                     target_system=t._comparison_reader.versification,primary=t.state.reference,
                     primary_chapter=t.current.reference,comparison=t.comparison_reference,
-                    document=t._comparison_document.key,visible=t.comparison_visible_reference(),
+                    document=document,document_key=key,visible=t.comparison_visible_reference(),
                     title=b.get_text(first,last,False).strip(),aligned=t._comparison_aligned,
                     status=t.comparison_status.get_text(),saved=t.state.comparison_position)
     try:

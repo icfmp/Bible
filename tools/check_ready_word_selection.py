@@ -153,12 +153,20 @@ def main():
             n.click_at(t.text,x,y);spin(duration=.2)
             code=n.x11.XKeysymToKeycode(n.display,n.x11.XStringToKeysym(b'Shift_L'))
             n.xtest.XTestFakeKeyEvent(n.display,code,True,0)
-            for _ in range(7):n.key('Right')
+            for _ in range(7):n.key('Left')
             n.xtest.XTestFakeKeyEvent(n.display,code,False,0);n.x11.XFlush(n.display);spin(duration=.3)
             bounds=[i.get_offset() for i in t.text.get_buffer().get_selection_bounds()]
             report['keyboard']=dict(selection=bounds,visible=a.bar.get_visible(),resource=a.target.source.resource if a.target else None)
             assert bounds and a.bar.get_visible(),report['keyboard']
             n.key('Escape');spin();assert not a.bar.get_visible()
+            # Native keyboard selection can scroll the insert mark into view.
+            # Return to the chapter start before dragging its first-line text.
+            control=n.x11.XKeysymToKeycode(n.display,n.x11.XStringToKeysym(b'Control_L'))
+            n.xtest.XTestFakeKeyEvent(n.display,control,True,0);n.key('Home')
+            n.xtest.XTestFakeKeyEvent(n.display,control,False,0);n.x11.XFlush(n.display);spin(duration=.3)
+            rect=t.text.get_iter_location(t.text.get_buffer().get_iter_at_offset(first))
+            x,y=t.text.buffer_to_window_coords(Gtk.TextWindowType.WIDGET,rect.x,rect.y+rect.height//2)
+            assert 0<=x<t.text.get_width() and 0<=y<t.text.get_height(),(x,y)
             result=select(first,first+12);result['case']='reopen-after-escape';report['selection_cycles'].append(result)
             n.wheel(t.text,1);assert not a.bar.get_visible() and a.bar.backdrop is None and not a.adapt_tick
             n.wheel(t.text,-1);spin(duration=.3)
