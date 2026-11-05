@@ -6,6 +6,7 @@ from .reference_data import ReferenceData,SOURCE_URL,LICENSE_URL
 from .reference_targets import source_references,local_excerpt,local_target_ranges
 from .reference_preview import passage_title
 from .reference_resolution import VersificationMismatch
+from .passage_card import passage_card
 
 
 class ReferenceItem(GObject.Object):
@@ -20,7 +21,7 @@ class StudyReferences(Gtk.Box):
         self.owner=owner;self.data=ReferenceData(owner.library.root.parent/'study-data')
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-references')
         self.generation=0;self.stamp=None;self.context=None;self.rows=[];self.pending=False
-        self.all_results=False;self.chapter_cache={};self.row_cache={}
+        self.all_results=False;self.chapter_cache={};self.row_cache={};self._new_passage=False;self._position_idle=0
         context=Gtk.Label(label=tr('Passage studied'),xalign=0);context.add_css_class('caption');self.append(context)
         self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.append(self.heading)
         self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
@@ -39,6 +40,7 @@ class StudyReferences(Gtk.Box):
         factory.connect('unbind',lambda _,item:item.set_child(None))
         self.list=Gtk.ListView(model=Gtk.NoSelection(model=combined),factory=factory,vexpand=True,show_separators=False)
         self.list.add_css_class('navigation-sidebar')
+        self.list.connect('map',lambda *_:self.position_new_passage())
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.list);self.append(scroll);self.scroll=scroll
         self.footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=12,margin_start=8,margin_end=8)
@@ -60,7 +62,23 @@ class StudyReferences(Gtk.Box):
         self.message(tr('Open a Bible passage to see its references.'))
 
     def close(self):
+        if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
+
+    def position_new_passage(self):
+        if not self._new_passage or self._position_idle or not self.model.get_n_items() or not self.list.get_mapped():return
+        generation=self.generation
+        def position():
+            self._position_idle=0
+            if (self.owner.closed or generation!=self.generation or not self._new_passage
+                    or not self.list.get_mapped() or self.list.get_width()<=0):return False
+            self._new_passage=False
+            self.list.scroll_to(0,Gtk.ListScrollFlags.NONE,None)
+            return False
+        # One request after GTK's first allocation. Calling scroll_to while
+        # an unmapped list has no width triggers invalid size requests in GTK
+        # 4.18. No polling, repeated top reset or hidden-list work is needed.
+        self._position_idle=GLib.idle_add(position)
 
     def invalidate(self):
         self.stamp=None;self.refresh()
@@ -72,6 +90,7 @@ class StudyReferences(Gtk.Box):
         self.download.set_visible(download);self.teaser_download.set_visible(download)
 
     def clear_rows(self):
+        if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.owner.reference_preview.dismiss()
         self.model.remove_all()
         while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
@@ -88,8 +107,11 @@ class StudyReferences(Gtk.Box):
             self.message(tr('Open a Bible passage to see its references.'));return
         start,end=tab.selected_passage();reader=tab.reader
         stamp=(id(tab),id(reader),tab.state.resource,start,end,self.data.revision)
-        if not force and stamp==self.stamp:return
+        # Tool activation forces the study coordinator to refresh. It does not
+        # change this passage or dataset; rebuilding here loses manual scroll.
+        if stamp==self.stamp:return
         self.stamp=stamp;self.generation+=1;generation=self.generation
+        self._new_passage=self.context!=(tab.state.resource,reader,start,end)
         self.context=(tab.state.resource,reader,start,end)
         self.rows=[];self.chapter_cache={};self.row_cache={};self.all_results=False;self.pending=False
         self.clear_rows();self.heading.set_text(passage_title(start,end,reader.versification))
@@ -119,15 +141,7 @@ class StudyReferences(Gtk.Box):
             button=self.button();self.fill(button,item.get_item());item.set_child(button)
 
     def button(self):
-        button=Gtk.Button();button.add_css_class('card');button.add_css_class('annotation-card');button.add_css_class('reference-card')
-        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        title=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        title.add_css_class('study-content')
-        weight=Pango.AttrList();weight.insert(Pango.attr_weight_new(Pango.Weight.SEMIBOLD));title.set_attributes(weight);content.append(title)
-        text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,ellipsize=Pango.EllipsizeMode.END,lines=3,width_chars=1)
-        text.add_css_class('reference-excerpt');text.add_css_class('study-content')
-        content.append(text)
-        button.set_child(content);button._reference_labels=(title,text)
+        button=passage_card()
         button.connect('clicked',self.preview)
         return button
 
@@ -162,6 +176,9 @@ class StudyReferences(Gtk.Box):
     def populate(self):
         items=[ReferenceItem(row,self.context,self.generation) for row in self.rows]
         self.model.splice(0,self.model.get_n_items(),items)
+        # GTK otherwise retains the initially visible footer as its anchor
+        # when cards are inserted above it. Position the first reference once.
+        self.position_new_passage()
         self.view_all.set_visible(False)
         self.return_results.set_visible(False)
         while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())

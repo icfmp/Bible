@@ -8,6 +8,29 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ComparisonTests(unittest.TestCase):
+    def test_a_local_row_mapping_gap_does_not_disable_valid_verse_following(self):
+        from unittest.mock import patch
+        from bible.ui import Application,Window,Library
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            entries=[(f'Gen.1.{i}','TEST WORDS '*100) for i in range(1,8)]
+            for name in ('Left','Right'):installed_fixture(directory,name,entries=entries)
+            window=Window(app,Library(Path(directory)/'translations'));window.present()
+            try:
+                tab=window.active_tab;tab.navigate('Left','Gen.1.1')
+                with patch.object(tab.comparison_rows,'build',side_effect=ValueError('Test local unsupported verse group')):
+                    tab.state.comparison='Right';window.sync_comparison()
+                spin(lambda:not tab._restoring_scroll and not getattr(tab,'_comparison_positioning',False))
+                self.assertFalse(getattr(tab,'_shared_comparison',False));self.assertTrue(tab._comparison_aligned)
+                self.assertEqual(tab.comparison_status.get_text(),'')
+                self.assertIsNotNone(tab._comparison_layout_error)
+                tab.comparison_sync.intent('comparison')
+                buffer=tab.comparison_text.get_buffer();location=tab.comparison_text.get_iter_location(buffer.get_iter_at_offset(tab._comparison_offsets['Gen.1.3']))
+                adjustment=tab.comparison_scroll.get_vadjustment();rect=tab.comparison_text.get_visible_rect()
+                adjustment.set_value(adjustment.get_value()+location.y-rect.y)
+                spin(lambda:tab.state.reference=='Gen.1.3')
+                self.assertEqual(tab.visible_reference(),'Gen.1.3')
+            finally:window.close()
     def test_switching_primary_clears_an_obsolete_alignment_error(self):
         from bible.ui import Application, Window, Library
         app=Application.get_default() or Application();app.register()

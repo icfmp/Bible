@@ -25,6 +25,27 @@ def fixtures(root):
 
 
 class StepDataTests(unittest.TestCase):
+    def test_supplied_hebrew_gloss_metadata_is_structured_without_fabricating_a_translation(self):
+        from bible.step_data import brief_senses
+        self.assertEqual(brief_senses(': awesome(god)»to fear:2_revere'),('awesome(god)','to fear; revere'))
+        self.assertEqual(brief_senses('Abram»Abraham@Gen.11.26-1Pe'),('Abram','Abraham'))
+        self.assertEqual(brief_senses('to create'),('to create',))
+
+    def test_documentation_and_headers_do_not_become_lexical_or_token_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            lexicon=root/'lexicon';lexicon.write_text(
+                'README\tLicense instructions\tInternal/path\n'
+                'G3056\tG3056 documentation\tuStrong\tGreek\tTransliteration\tMorph\tGloss\tDefinition\n'
+                'eStrong\tdStrong\tuStrong\tGreek\tTransliteration\tMorph\tGloss\tDefinition\n'
+                'G3056\tG3056 =\tG3056\tλόγος\tlogos\tG:N-M\tword\tTEST definition\n')
+            self.assertEqual([e['id'] for e in step_data.lexicon_rows(lexicon)],['G3056'])
+            tokens=root/'tokens';tokens.write_text(
+                'Jhn.1.1#Word=NKO\tDocumentation\tREADME\tG3056=N\tlemma=gloss\tNA27\n'
+                '# Jhn.1.1#01=NKO\tExample\tREADME\tG3056=N\tlemma=gloss\tNA27\n'
+                'Jhn.1.1#01=NKO\tλόγος (logos)\tword\tG3056=N\tλόγος=word\tNA27\n')
+            self.assertEqual([t['form'] for _,t in token_rows(tokens,'tagnt-na27')],['λόγος'])
+
     def test_filtered_corpora_lexical_lookup_counts_and_failed_update_retains_data(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);files,pins=fixtures(root);store=StepData(root/'study')

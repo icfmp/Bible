@@ -37,12 +37,16 @@ class FinishingTests(unittest.TestCase):
         self.assertTrue(w.primary_version.choices.list.get_row_at_index(0).get_mapped());w.primary_version.popdown()
         w.comparison_button.popup();spin();self.assertIsInstance(w.comparison_choices,DirectChoices)
         self.assertTrue(w.comparison_choices.list.get_row_at_index(0).get_mapped())
-        for index,expected in ((1,w._comparison_names[1]),(0,None),(0,None)):
-            if not w.comparison_popover.get_visible():w.comparison_button.popup();spin()
-            w.comparison_choices.list.emit('row-activated',w.comparison_choices.list.get_row_at_index(index))
-            spin(lambda:not w.comparison_popover.get_visible())
-            self.assertEqual(w.active_tab.state.comparison,expected)
-            self.assertFalse(w.comparison_popover.get_visible())
+        self.assertNotIn(None,w._comparison_names)
+        primary=(w.active_tab.state.resource,w.active_tab.state.reference)
+        w.comparison_choices.list.emit('row-activated',w.comparison_choices.list.get_row_at_index(0))
+        spin(lambda:not w.comparison_popover.get_visible())
+        self.assertEqual(w.active_tab.state.comparison,w._comparison_names[0])
+        self.assertEqual(w.comparison_button.get_icon_name(),'bible-parallel-off-symbolic')
+        w.comparison_button.emit('clicked');spin()
+        self.assertIsNone(w.active_tab.state.comparison)
+        self.assertFalse(w.comparison_popover.get_visible())
+        self.assertEqual((w.active_tab.state.resource,w.active_tab.state.reference),primary)
 
     def test_immersive_turns_cancel_on_resize_and_disabled_animations(self):
         from bible.ui import Gtk

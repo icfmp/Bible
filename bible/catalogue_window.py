@@ -179,11 +179,22 @@ class CatalogueWindow(Adw.Window):
         self.read_button.connect('clicked',lambda *_:self.read_resource(self.selected_resource()))
         detail.append(self.read_button)
         self.pages.add_named(detail,'detail');layout.append(self.pages)
-        self.progress=Gtk.ProgressBar(margin_start=12,margin_end=12,visible=False)
-        layout.append(self.progress)
-        self.cancel_button=Gtk.Button(child=Gtk.Label(label=tr('Cancel download'),wrap=True),halign=Gtk.Align.CENTER,visible=False)
+        self.transfer_footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,visible=False)
+        self.transfer_footer.append(Gtk.Separator())
+        transfer=Gtk.Box(spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
+        information=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,hexpand=True)
+        self.transfer_phase=Gtk.Label(label=tr('Downloading'),xalign=0,wrap=True,width_chars=1)
+        self.transfer_phase.add_css_class('caption');information.append(self.transfer_phase)
+        self.transfer_name=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
+        self.transfer_name.add_css_class('heading');information.append(self.transfer_name)
+        meter=Gtk.Box(spacing=8)
+        self.progress=Gtk.ProgressBar(hexpand=True,valign=Gtk.Align.CENTER,visible=False)
+        self.transfer_percent=Gtk.Label();self.transfer_percent.add_css_class('caption')
+        meter.append(self.progress);meter.append(self.transfer_percent);information.append(meter);transfer.append(information)
+        self.cancel_button=Gtk.Button(child=Gtk.Label(label=tr('Cancel'),wrap=True),valign=Gtk.Align.CENTER,visible=False)
         self.cancel_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cancel download')])
-        self.cancel_button.connect('clicked',self.cancel_download);layout.append(self.cancel_button)
+        self.cancel_button.connect('clicked',self.cancel_download);transfer.append(self.cancel_button)
+        self.transfer_footer.append(transfer);layout.append(self.transfer_footer)
         self.status=Gtk.Label(xalign=0,wrap=True,selectable=True,margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         layout.append(self.status)
         self.refresh_status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12,margin_bottom=8)
@@ -312,15 +323,14 @@ class CatalogueWindow(Adw.Window):
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
-        item.state.set_text(tr('Installing and checking…') if busy and self._phase=='installing' else
-                            self.progress.get_text() or tr('Downloading…') if busy else tr('Installed') if current else tr('Update available') if installed else '')
-        item.state.set_visible(busy or installed)
+        item.state.set_text(tr('Installed') if current else tr('Update available') if installed else '')
+        item.state.set_visible(installed and not busy)
         item.action.set_icon_name('media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
         label=tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
         item.action.set_sensitive(current or (resource.installable and not self._transfer_busy))
-        item.action.set_visible(not (current and resource.kind=='study'))
+        item.action.set_visible(not busy and not (current and resource.kind=='study'))
         item.get_child().set_tooltip_text(resource.name+' · '+resource.language)
 
     def refresh_rows(self):
@@ -516,7 +526,8 @@ class CatalogueWindow(Adw.Window):
                                            and not self._transfer_busy)
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
-        self.progress.set_visible(self._transfer_busy or self._phase=='error')
+        self.transfer_footer.set_visible(self._transfer_busy)
+        self.progress.set_visible(self._transfer_busy)
         self.cancel_button.set_visible(self._transfer_busy)
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
         self.refresh_rows()
@@ -549,11 +560,14 @@ class CatalogueWindow(Adw.Window):
         self._task_id += 1;task_id=self._task_id
         self._phase = "downloading"
         self._indeterminate = True
-        self.status.set_visible(True)
+        self.status.set_visible(False)
         self.progress.set_visible(True)
         self.status.set_text(tr(message));self.status.set_tooltip_text(None)
         self.progress.set_fraction(0)
-        self.progress.set_show_text(True)
+        self.progress.set_show_text(False)
+        self.transfer_name.set_text(self._task_caption)
+        self.transfer_phase.set_text(tr('Downloading'))
+        self.transfer_percent.set_text('');self.transfer_percent.set_visible(False)
         self.progress.set_text(tr(message))
         self._pulse_id = GLib.timeout_add(80, self.animate_progress)
         self.refresh_controls()
@@ -646,22 +660,25 @@ class CatalogueWindow(Adw.Window):
             _, self._phase, done, total = pending
             self._indeterminate = self._phase in ('installing','preparing','compiling') or not total
             if self._phase == 'preparing':
-                self.status.set_text(tr('Preparing study data…'));self.progress.set_text(tr('Preparing study data…'))
+                self.transfer_phase.set_text(tr('Preparing study data…'));self.progress.set_text(tr('Preparing study data…'))
             elif self._phase in ('converting','compiling','verifying'):
                 label=tr({'converting':'Converting the translation…','compiling':'Preparing the offline translation…',
                           'verifying':'Checking all chapters, introductions and translation notes…'}[self._phase])
-                self.status.set_text(label)
+                self.transfer_phase.set_text(label)
                 self.progress.set_fraction(min(done/total,1) if total else 0)
                 self.progress.set_text(label+(f' {done}/{total}' if total else ''))
             elif self._phase == 'installing':
-                self.status.set_text(tr('Installing {name} and checking…').format(name=self._task_caption) if self._task_caption else tr('Installing and checking…'))
+                self.transfer_phase.set_text(tr('Installing and checking…'))
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr('Installing and checking…'))
             else:
+                self.transfer_phase.set_text(tr('Downloading') if total else tr('Downloading…')+' — '+tr('Size unknown'))
                 self.progress.set_fraction(min(done / total, 1) if total else 0)
                 self.progress.set_text(f'{done / 1024:.1f} KiB' +
                                        (f' / {total / 1024:.1f} KiB ({min(done * 100 // total, 100)}%)'
                                         if total else ' — ' + tr('Size unknown')))
+            self.transfer_percent.set_text(f'{min(done * 100 // total,100)}%' if total and not self._indeterminate else '')
+            self.transfer_percent.set_visible(bool(total) and not self._indeterminate)
         if self._indeterminate:
             self.progress.pulse()
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'));self.refresh_rows()

@@ -47,7 +47,8 @@ class ProviderUITests(unittest.TestCase):
                     spin(lambda:not dialog.busy)
                 self.assertEqual(dialog._phase,'error')
                 self.assertIn('Test: Conditions really changed',dialog.status.get_text())
-                self.assertTrue(dialog.status.get_visible());self.assertTrue(dialog.progress.get_visible())
+                self.assertTrue(dialog.status.get_visible());self.assertFalse(dialog.progress.get_visible())
+                self.assertFalse(dialog.transfer_footer.get_visible())
                 self.assertEqual(dialog.download_button.get_label(),tr('Download'))
                 dialog.choices.set_selected(0);self.assertEqual(dialog.download_button.get_label(),tr('Retry'))
                 with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult(tuple(dialog.resources),{})):

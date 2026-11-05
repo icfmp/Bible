@@ -131,3 +131,21 @@ class StudyReferenceTests(unittest.TestCase):
         refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),30)
         self.assertFalse(refs.return_results.get_visible())
         self.assertEqual((tab.state.reference,tab.state.history),before)
+
+    def test_new_context_starts_at_first_card_but_manual_scroll_survives_refresh(self):
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        refs.rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        refs._new_passage=True;refs.populate();spin(duration=.3)
+        adjustment=refs.scroll.get_vadjustment()
+        self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
+        self.assertEqual(adjustment.get_value(),0)
+        adjustment.set_value(250);spin()
+        previous=adjustment.get_value();refs.refresh();spin()
+        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
+        refs.owner.study.tools.set_visible_child_name('notes');spin()
+        refs.owner.study.tools.set_visible_child_name('references');spin()
+        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
+        refs.owner.active_tab.navigate('Test','John.1.6')
+        spin(lambda:not refs.pending,duration=.3)
+        self.assertEqual(adjustment.get_value(),0)

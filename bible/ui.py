@@ -118,7 +118,8 @@ class Window(Adw.ApplicationWindow):
         self.immersive_button.connect('clicked',lambda *_:self.toggle_immersion())
         self.appearance_button=Gtk.MenuButton(child=Gtk.Label(label='Aa'),tooltip_text=tr('Reading appearance'))
         self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
-        self.comparison_button=Gtk.MenuButton(icon_name='view-dual-symbolic',tooltip_text=tr('Compare translations'))
+        from .comparison_control import ComparisonButton
+        self.comparison_button=ComparisonButton(self)
         self.comparison_popover=Gtk.Popover()
         from .version_chooser import DirectChoices
         self.comparison_choices=DirectChoices()
@@ -126,6 +127,9 @@ class Window(Adw.ApplicationWindow):
         self.comparison_choices.connect('reselected',lambda *_:self.comparison_popover.popdown())
         comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         comparison_box.append(self.comparison_choices)
+        self.comparison_empty=Gtk.Label(label=tr('Download another Bible to compare translations.'),
+            wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,visible=False)
+        comparison_box.append(self.comparison_empty)
         self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
         self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
         self.stop_comparison.set_visible(False)
@@ -508,7 +512,7 @@ class Window(Adw.ApplicationWindow):
 
     def show_comparison(self):
         if self.immersion:self.leave_immersion()
-        if self.active_tab and self.active_tab.state.comparison:self.compared_version.popup()
+        if self.active_tab and self.active_tab.state.comparison:self.end_comparison()
         else:self.open_reading_popup(self.comparison_button)
 
     def toggle_immersion(self):
@@ -783,20 +787,22 @@ class Window(Adw.ApplicationWindow):
     def sync_comparison(self):
         tab=self.active_tab
         self._comparison_syncing=True
-        self._comparison_names=[None]+[name for name in self.library.installed('bible') if name!=tab.state.resource]
+        self._comparison_names=[name for name in self.library.installed('bible') if name!=tab.state.resource]
         from .version_chooser import choice_details
-        details=[(tr('No comparison'),'','')]+[choice_details(self.library.resource(name)) for name in self._comparison_names[1:]]
+        details=[choice_details(self.library.resource(name)) for name in self._comparison_names]
         labels=[item[0] for item in details]
         # Synchronization must not emit another selection for an unchanged row.
         if getattr(self,'_comparison_details',None)!=details:
             self.comparison_choices.set_model(Gtk.StringList.new(labels),details)
             self._comparison_labels=labels;self._comparison_details=details
-        self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else 0)
+        self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else Gtk.INVALID_LIST_POSITION)
         self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
         self._comparison_syncing=False
-        self.comparison_choices.set_visible(True)
+        self.comparison_choices.set_visible(bool(self._comparison_names))
+        self.comparison_empty.set_visible(not self._comparison_names)
         self.stop_comparison.set_visible(False)
-        label=tr('Stop comparison') if tab.state.comparison else tr('Compare translations')
+        label=tr('Exit parallel view') if tab.state.comparison else tr('Compare translations')
+        self.comparison_button.set_icon_name('bible-parallel-off-symbolic' if tab.state.comparison else 'view-dual-symbolic')
         self.comparison_button.set_tooltip_text(label)
         self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
         tab.refresh_comparison()
@@ -812,7 +818,8 @@ class Window(Adw.ApplicationWindow):
     def comparison_selected(self,widget,*_):
         if self._comparison_syncing or not self.active_tab:return
         index=widget.get_selected()
-        self.active_tab.state.comparison=self._comparison_names[index] if index<len(self._comparison_names) else None
+        if index>=len(self._comparison_names):return
+        self.active_tab.state.comparison=self._comparison_names[index]
         self.sync_comparison()
         self.schedule_save()
         # Finish native row activation before dismissing its parent.
@@ -1190,6 +1197,7 @@ class Window(Adw.ApplicationWindow):
         if hasattr(self,'_inline_marker_executor'):self._inline_marker_executor.shutdown(wait=False,cancel_futures=True)
         for tab in self.tabs():tab.inline_markers.executor.shutdown(wait=False,cancel_futures=True)
         self.reference_preview.dismiss()
+        self.comparison_popover.popdown();self.comparison_popover.unparent()
         self.study.references.close()
         self.study.notes.close()
         self.study.words.close()

@@ -10,7 +10,7 @@ import tempfile
 from urllib.parse import quote
 from .step_sources import COMMIT,FILES,SOURCE_URL,NOTICE,BOOKS,OSIS_BOOKS,CORPORA
 
-ROW=re.compile(r'^([1-4]?[A-Za-z]{2,4})\.(\d+)\.(\d+)([^#]*)#([^=]+)=(\S+)$')
+ROW=re.compile(r'^([1-4]?[A-Za-z]{2,4})\.(\d+)\.(\d+)([^#]*)#([0-9]{1,6})=(\S+)$')
 STRONG=re.compile(r'[GH]\d{4,5}[A-Z]?')
 MAX_DATABASE=384*1024*1024
 EXPECTED_COUNTS={'tagnt-na27':137992,'tahot-main':305465}
@@ -63,9 +63,12 @@ def lexicon_rows(path):
         for line in stream:
             fields=line.rstrip('\r\n').split('\t')
             if len(fields)<8 or not re.fullmatch(r'G\d{4,5}',fields[0]):continue
-            match=STRONG.match(fields[1])
+            # The disambiguated lexical-ID column has a defined grammar;
+            # introductory examples/headers are not definitions. Relation text
+            # after '=' belongs to metadata, not to the displayed identifier.
+            match=re.fullmatch(r'(G\d{4,5}[A-Z]?)(?:\s*=.*)?',fields[1])
             if not match:continue
-            yield dict(id=match[0],basic=fields[0],lemma=fields[3],transliteration=fields[4],
+            yield dict(id=match[1],basic=fields[0],lemma=fields[3],transliteration=fields[4],
                        category=fields[5],gloss=fields[6],definition=fields[7],language='grc')
 
 
@@ -79,6 +82,22 @@ def source_header(path):
             if size>256*1024:raise ValueError('STEP source header exceeds safe limits')
             lines.append(line)
     return ''.join(lines)
+
+
+def brief_senses(value):
+    """TAHOT's documented gloss » sub-meaning and named-person address fields.
+
+    Preserve the raw supplied field in the index. This read adapter also works
+    on already installed schema-1 indexes, without a download or migration.
+    """
+    senses=[]
+    for part in value.split('»'):
+        part=part.split('@',1)[0]
+        part=re.sub(r':\s*[0-9]+_', '; ',part)
+        part=re.sub(r'^\s*(?:[0-9]+:|:)\s*','',part)
+        part=' '.join(part.replace('_',' ').split())
+        if part and part not in senses:senses.append(part)
+    return tuple(senses)
 
 
 class StepData:
@@ -172,9 +191,10 @@ class StepData:
             if row:return json.loads(row[0])
             values=db.execute('SELECT form,gloss FROM hebrew_glosses WHERE id=? ORDER BY form,gloss',(identifier,)).fetchall()
             if values:
+                senses=tuple(dict.fromkeys(sense for _,raw in values for sense in brief_senses(raw)))
                 return dict(id=identifier,basic=re.match(r'H\d{4,5}',identifier)[0],
                             lemma=' / '.join(dict.fromkeys(r[0] for r in values)),
-                            gloss='; '.join(dict.fromkeys(r[1] for r in values)),definition='',
+                            gloss='; '.join(senses),senses=senses,definition='',
                             transliteration='',category='',language='hbo',source='TAHOT supplied brief glosses')
         return None
 
