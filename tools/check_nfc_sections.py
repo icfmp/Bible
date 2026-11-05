@@ -41,7 +41,7 @@ def main():
     preferences=Preferences(args.profile/'reading-preferences.json')
     if not preferences.path.exists():preferences.save()
     def hashes():return {str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()}
-    preserved=hashes()
+    preserved=hashes();previous_resources=tuple(library.installed())
     from bible.ui import Application,Window,Gtk
     from tests.test_ui import spin,close_test_dialogs
     from tests.test_appearance import SystemStyleOverride
@@ -161,7 +161,8 @@ def main():
                     window.study.translation_notes.refresh(force=True)
         assert window.notes_store.all()==original_notes
         assert all(hashes().get(path)==value for path,value in preserved.items())
-        report.update(completed=True,existing_modules_preserved=len(preserved),personal_notes_preserved=len(original_notes),provider_agreement_submitted=False)
+        report.update(completed=True,existing_module_files_preserved=len(preserved),existing_resources_preserved=len(previous_resources),
+                      installed_resources=len(library.installed()),personal_notes_preserved=len(original_notes),provider_agreement_submitted=False)
         save()
     except BaseException:
         report['failure']=traceback.format_exc();save();raise
