@@ -2,6 +2,10 @@ name: Probe installed word-study and selection regressions
 on:
   workflow_dispatch:
     inputs:
+      nfc_sections:
+        description: Download real NBS and NFC in Library, validate source sections and restart offline
+        type: boolean
+        default: false
       alignment:
         description: Validate real Darby/NBS and shared comparison contexts, then restart offline
         type: boolean
@@ -117,6 +121,7 @@ jobs:
           if [ '${{ inputs.study_updates }}' = true ]; then module=tools.check_ready_study_updates; fi
           duration=1000
           if [ '${{ inputs.alignment }}' = true ]; then module=tools.check_ready_alignment; duration=2000; fi
+          if [ '${{ inputs.nfc_sections }}' = true ]; then module=tools.check_nfc_sections; duration=2000; fi
           mode=()
           if [ '${{ inputs.library_baseline }}' = true ]; then mode+=(--baseline); fi
           if [ '${{ inputs.baseline_captures }}' = true ]; then mode+=(--baseline-captures); fi
@@ -128,6 +133,9 @@ jobs:
           fi
           if [ '${{ inputs.alignment }}' = true ]; then
             timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE='${{ inputs.language || 'fr' }}' --command=python3 io.github.icfmp.Bible//master -X faulthandler -m tools.check_ready_alignment "$RUNNER_TEMP/profile" "$PWD/reports" --offline --require-packaged >> "$RUNNER_TEMP/picker.log" 2>&1
+          fi
+          if [ '${{ inputs.nfc_sections }}' = true ] && [ '${{ inputs.library_baseline }}' != true ]; then
+            timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE='${{ inputs.language || 'fr' }}' --command=python3 io.github.icfmp.Bible//master -X faulthandler -m tools.check_nfc_sections "$RUNNER_TEMP/profile" "$PWD/reports" --offline --require-packaged >> "$RUNNER_TEMP/picker.log" 2>&1
           fi
       - name: Bounded failure diagnosis
         if: failure()
