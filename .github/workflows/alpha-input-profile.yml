@@ -113,6 +113,11 @@ jobs:
           PY
           FLATPAK_USER_DIR="$RUNNER_TEMP/picker-flatpak" flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           FLATPAK_USER_DIR="$RUNNER_TEMP/picker-flatpak" flatpak install --user --noninteractive "$RUNNER_TEMP/bundle/Bible-alpha.flatpak"
+      - name: Neutral source sections and fragments in the actual installed candidate
+        if: inputs.nfc_sections && !inputs.library_baseline
+        run: |
+          timeout 100s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -X faulthandler -m unittest tests.test_source_sections tests.test_source_section_key tests.test_source_units tests.test_source_units_native -v > "$RUNNER_TEMP/source-units.log" 2>&1
+          tail -n 6 "$RUNNER_TEMP/source-units.log"
       - name: Real BDS Mark 11 word choices and repeated native selection
         run: |
           mkdir reports
@@ -141,6 +146,7 @@ jobs:
         if: failure()
         run: |
           if [ -f "$RUNNER_TEMP/picker.log" ]; then tail -n 130 "$RUNNER_TEMP/picker.log"; fi
+          if [ -f "$RUNNER_TEMP/source-units.log" ]; then tail -n 80 "$RUNNER_TEMP/source-units.log"; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
