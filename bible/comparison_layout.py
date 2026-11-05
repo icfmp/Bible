@@ -32,7 +32,7 @@ def correspondences(primary,secondary,left,right,linked=((),())):
     for side,reader,target,refs in ((0,primary,secondary,left),(1,secondary,primary,right)):
         for ref in refs:
             mapped=resolve(ref,reader.versification,target,require_entry=False)
-            connect(side,ref,_span(mapped.start,mapped.end,target.versification))
+            connect(side,ref,_span(mapped.start,mapped.end,target.versification,target))
     unique={id(group):group for group in nodes.values()}
     def order(group):
         own=[primary.key(ref).getIndex() for side,ref in group if side==0]
@@ -56,7 +56,10 @@ def correspondences(primary,secondary,left,right,linked=((),())):
 def row_document(document, rows, side, gap):
     """Reuse source words/styles, add paragraph boundaries only in comparison."""
     pieces=[];copies=[];spans=[];styles=[];bounds=[];offset=0
-    source={ref:(i,s) for i,s in enumerate(document.spans) for ref in s.members}
+    source={}
+    for i,s in enumerate(document.spans):
+        for ref in s.members:source.setdefault(ref,[]).append((i,s))
+    previous_index=-1
     for row in rows:
         start=offset
         refs=row.primary if side==0 else row.secondary
@@ -66,11 +69,15 @@ def row_document(document, rows, side, gap):
             styles.append(StyleSpan('hidden',offset,offset+len(text)))
             offset+=len(text)
         else:
-            emitted=set()
+            selected={}
             for ref in refs:
-                index,span=source[ref]
-                if index in emitted:continue
-                emitted.add(index)
+                for index,span in source[ref]:selected[index]=span
+            for index,span in sorted(selected.items()):
+                # A shared row must never regroup interleaved source fragments
+                # around another verse. The existing independent-pane fallback
+                # retains reading/comparison instead of changing source order.
+                if index<=previous_index:raise ValueError('Non-monotonic source fragments; shared alignment unavailable')
+                previous_index=index
                 end=document.spans[index+1].start if index+1<len(document.spans) else len(document.text)
                 text=document.text[span.start:end]
                 pieces.append(text);copies.append((document.copy_text or document.text)[span.start:end])

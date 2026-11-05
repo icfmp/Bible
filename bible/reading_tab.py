@@ -412,8 +412,9 @@ class ReadingTab(Gtk.Box):
         offsets = getattr(self, '_comparison_offsets', {})
         if not offsets:return None
         rect = self.comparison_text.get_visible_rect(); buffer = self.comparison_text.get_buffer()
+        entries=[(ref,start) for ref,start,end in getattr(self.comparison_text,'_verse_fragments',())] or list(offsets.items())
         starts = [(ref, self.comparison_text.get_iter_location(buffer.get_iter_at_offset(offset)).y)
-                  for ref, offset in offsets.items()]
+                  for ref, offset in entries]
         visible = [ref for ref, y in starts if rect.y <= y < rect.y+rect.height]
         if visible:return visible[0]
         preceding = [ref for ref, y in starts if y <= rect.y]
@@ -456,13 +457,16 @@ class ReadingTab(Gtk.Box):
         if palette is not None:self._highlight_palette=palette
         from .highlight_ui import paint
         options=(self.preferences.show_highlights,getattr(self,'_highlight_high',False),getattr(self,'_highlight_palette','white'))
-        paint(self.text,store,self.reader.versification,[(ref,*bounds) for ref,bounds in self._verse_ranges.items()],*options)
+        paint(self.text,store,self.reader.versification,getattr(self.text,'_verse_fragments',[(ref,*bounds) for ref,bounds in self._verse_ranges.items()]),*options)
         if self._comparison_reader and self.state.comparison:
             paint(self.comparison_text,store,self._comparison_reader.versification,
-                  [(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()],*options)
+                  getattr(self.comparison_text,'_verse_fragments',[(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()]),*options)
         self.refresh_study_indicator()
 
     def position_anchor(self, offset):
+        document=getattr(self,'_document',None)
+        if document and getattr(self.current,'units',()):
+            anchor=document.anchor(offset);return anchor.reference,anchor
         candidates = [(ref,start,end) for ref,(start,end) in self._verse_ranges.items()
                       if start <= offset]
         if not candidates:return None
@@ -471,6 +475,8 @@ class ReadingTab(Gtk.Box):
 
     def anchor_offset(self, anchor):
         ref,relative = anchor
+        from .pagination import Anchor
+        if isinstance(relative,Anchor):return self._document.locate(relative)
         return min(self._verse_ranges[ref][1],self._marker_ends[ref]+relative)
 
     def apply_appearance(self):
@@ -538,7 +544,7 @@ class ReadingTab(Gtk.Box):
         bx, by = self.text.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, int(x), int(y))
         found, iterator = self.text.get_iter_at_location(bx, by)
         if found:
-            candidates = [ref for ref,(start,end) in self._verse_ranges.items()
+            candidates = [ref for ref,start,end in getattr(self.text,'_verse_fragments',[(ref,*bounds) for ref,bounds in self._verse_ranges.items()])
                           if start <= iterator.get_offset() < end]
             if candidates:
                 reference = candidates[-1]
@@ -551,10 +557,16 @@ class ReadingTab(Gtk.Box):
         selection = self.text.get_buffer().get_selection_bounds()
         if selection:
             start, end = (iterator.get_offset() for iterator in selection)
-            selected = [reference for reference,(first,last) in self._verse_ranges.items()
-                        if first < end and last > start]
+            document=getattr(self,'_document',None)
+            selected = list(dict.fromkeys(ref for span in document.spans if span.start<end and span.end>start for ref in span.members)) if document else []
+            if selected and getattr(self.reader,'addresses',None):selected.sort(key=self.reader.reference_sort_key)
             if selected:
                 return selected[0], selected[-1]
+        if getattr(self.current,'units',()):
+            # A logical verse can share its first fragment with another verse
+            # without sharing the remainder. An explicit text selection above
+            # covers the selected members; a verse action keeps its own ID.
+            return self.state.reference,self.state.reference
         document=getattr(self,'_document',None)
         span=next((s for s in document.spans if self.state.reference in s.members),None) if document else None
         return (span.members[0],span.members[-1]) if span else (self.state.reference,self.state.reference)
@@ -590,7 +602,7 @@ class ReadingTab(Gtk.Box):
         # every offscreen verse on each synchronization event. Display-line
         # starts keep logical order for RTL and mixed-direction text as well.
         from bisect import bisect_left
-        entries=list(self._verse_offsets.items())
+        entries=[(ref,start) for ref,start,end in getattr(self.text,'_verse_fragments',())] or list(self._verse_offsets.items())
         index=bisect_left([offset for _,offset in entries],top.get_offset())
         buffer=self.text.get_buffer()
         while index<len(entries):
@@ -630,6 +642,9 @@ class ReadingTab(Gtk.Box):
         system,start,end=self._study_coverage
         from .reference_resolution import resolve
         try:
+            if getattr(reader,'addresses',None) and system==reader.versification:
+                refs=set(reader.reference_range(start,end))
+                return [(begin,finish) for reference,begin,finish in ranges if reference in refs]
             first=reader.key(resolve(start,system,reader,require_entry=False).start).getIndex()
             last=reader.key(resolve(end,system,reader,require_entry=False).end).getIndex()
             return [(begin,finish) for reference,begin,finish in ranges
@@ -638,10 +653,10 @@ class ReadingTab(Gtk.Box):
 
     def refresh_study_indicator(self):
         if not hasattr(self,'text'):return
-        ranges=[(ref,start,end) for ref,(start,end) in self._verse_ranges.items()]
+        ranges=list(getattr(self.text,'_verse_fragments',())) or [(ref,start,end) for ref,(start,end) in self._verse_ranges.items()]
         self.text.set_study_ranges(self.study_ranges(self.reader,ranges))
         if hasattr(self,'comparison_text'):
-            ranges=[(ref,start,end) for ref,(start,end) in getattr(self,'_comparison_ranges',{}).items()]
+            ranges=list(getattr(self.comparison_text,'_verse_fragments',())) or [(ref,start,end) for ref,(start,end) in getattr(self,'_comparison_ranges',{}).items()]
             self.comparison_text.set_study_ranges(self.study_ranges(getattr(self,'_comparison_reader',None),ranges))
         owner=getattr(getattr(self,'sync_coordinator',None),'owner',None)
         if owner and owner.immersion and owner.immersion.kind=='bible':owner.immersion.update_study_indicator()

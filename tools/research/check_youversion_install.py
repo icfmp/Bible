@@ -26,6 +26,9 @@ def snapshot(root):
 
 def independent_check(archive,edition,root,reader):
     """Source DOM versus compiler, independent of the semantic writer's tree."""
+    if getattr(reader,'addresses',None):
+        from .check_source_units import audit
+        return audit(archive,edition,reader)
     from bible.youversion_source import archive_chapters,to_osis
     from .check_yves_fidelity import check,normalized,canonical_chapter,canonical_unit,dom_verses,suffix
     from lxml import html

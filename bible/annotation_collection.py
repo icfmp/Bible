@@ -1,7 +1,7 @@
 """Read-only unified annotation projection; existing records keep their identity."""
 from dataclasses import dataclass
 from .book_names import FRENCH,normalized
-from .notes import BOOK_ORDER,parts,label_key
+from .notes import BOOK_ORDER,parts,label_key,passage_order
 from .markdown import render
 
 
@@ -32,8 +32,8 @@ def records(notes,marks):
 
 
 def bible_order(item):
-    book,chapter,verse=parts(item.start)
-    return BOOK_ORDER.get(book,10000),book,chapter,verse,parts(item.end),item.key
+    book,chapter,verse=passage_order(item.start)
+    return BOOK_ORDER.get(book,10000),book,chapter,verse,passage_order(item.end),item.key
 
 
 def filter_records(items,query='',labels=(),category='all',book='',color='',order='recent',reference_names=None):

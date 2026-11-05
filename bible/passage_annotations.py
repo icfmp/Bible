@@ -19,7 +19,9 @@ class PassageAnnotations:
             from .reference_resolution import _span
             resolve(start, system, reader, require_entry=False)
             resolve(end, system, reader, require_entry=False)
-            for reference in dict.fromkeys(_span(start, end, system)):
+            source=(reader.reference_range(start,end) if system==reader.versification and getattr(reader,'addresses',None)
+                    else _span(start,end,system))
+            for reference in dict.fromkeys(source):
                 # SWORD traversal includes native chapter introductions.
                 if reference.rsplit('.',1)[-1]=='0':continue
                 mapped = resolve(reference, system, reader, require_entry=False)
@@ -33,6 +35,9 @@ class PassageAnnotations:
         return result
 
     def matches(self, reader, start, end, system, first, last):
+        if system==reader.versification and getattr(reader,'addresses',None):
+            try:return bool(set(reader.reference_range(start,end))&set(reader.reference_range(first,last)))
+            except ValueError:return False
         low, high = reader.key(start).getIndex(), reader.key(end).getIndex()
         return any(left <= high and right >= low for left, right, _, _ in
                    self.positions(reader, system, first, last))

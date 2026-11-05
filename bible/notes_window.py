@@ -8,7 +8,7 @@ from gi.repository import Adw, Gtk, Pango, Gio, GObject, GLib
 from .book_names import display_name
 from .i18n import LANGUAGE, tr
 from .markdown import render
-from .notes import clean_labels, parts
+from .notes import clean_labels, parts,passage_order
 from .highlights import COLORS
 
 
@@ -735,7 +735,7 @@ class NotesSpace(Gtk.Box):
             self._syncing=False
             if self.passage_filter:
                 system,first,last=self.passage_filter
-                items=[a for a in items if a.system==system and parts(a.start)<=parts(last) and parts(a.end)>=parts(first)]
+                items=[a for a in items if a.system==system and passage_order(a.start)<=passage_order(last) and passage_order(a.end)>=passage_order(first)]
             rows=filter_records(items,self.search.get_text(),self.labels.values,self.category,self.books[min(self.book.get_selected(),len(self.books)-1)],(['']+list(COLORS))[min(self.color.get_selected(),len(COLORS))],['recent','oldest','bible'][min(self.sort.get_selected(),2)],names)
             self.refresh_versions()
             position=self.scroll.get_vadjustment().get_value();self.rows=rows
@@ -787,10 +787,10 @@ class NotesSpace(Gtk.Box):
         resolve(a.start,a.system,reader)
         if a.end!=a.start:resolve(a.end,a.system,reader)
         refs=[]
-        for source in dict.fromkeys(_span(a.start,a.end,a.system)):
+        for source in dict.fromkeys(_span(a.start,a.end,a.system,reader)):
             if source.rsplit('.',1)[-1]=='0':continue
             mapped=resolve(source,a.system,reader)
-            for reference in _span(mapped.start,mapped.end,reader.versification):
+            for reference in _span(mapped.start,mapped.end,reader.versification,reader):
                 if reference not in refs:refs.append(reference)
         return refs
 
@@ -804,7 +804,7 @@ class NotesSpace(Gtk.Box):
             from .sword_provider import passage_verses
             text=[value for _,value in passage_verses(reader,refs[:limit])]
             from .reference_resolution import _span
-            mapped_label=(passage_label(refs[0],refs[-1],reader.versification) if _span(refs[0],refs[-1],reader.versification)==refs else '; '.join(passage_label(ref,versification=reader.versification) for ref in refs))
+            mapped_label=(passage_label(refs[0],refs[-1],reader.versification) if _span(refs[0],refs[-1],reader.versification,reader)==refs else '; '.join(passage_label(ref,versification=reader.versification) for ref in refs))
             description=tr('Displayed in')+' '+self.owner.library.resource(self._version).description+' · '+mapped_label
             if len(refs)>limit:description+=' · '+tr('Excerpt')
             result=('\n'.join(text),description,True)

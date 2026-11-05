@@ -35,7 +35,7 @@ _INPUT_ALIASES = {normalized(label): code for code, label in FRENCH.items()}
 
 def canonical_input(reference):
     """Resolve full French names; let SWORD resolve its own names and abbreviations."""
-    match = re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*(?:[.:][1-9][0-9]*)?)', reference.strip())
+    match = re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*(?:_[1-9][0-9]*)?(?:[.:][1-9][0-9]*)?)', reference.strip())
     if match:
         name, numbers = match.groups()
         code = _INPUT_ALIASES.get(normalized(name))

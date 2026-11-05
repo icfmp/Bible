@@ -227,7 +227,7 @@ class PassagePopover(Gtk.Popover):
         try:
             canonical = self.reader.key(reference).getOSISRef() if self.reader else reference
             code, chapter, verse = canonical.split('.')
-            chapter, verse = int(chapter), int(verse)
+            chapter, verse = chapter if '_' in chapter else int(chapter), int(verse)
         except (ValueError, AttributeError):
             code, chapter, verse = '', 1, 1
         codes = [book.code for book in self.books]

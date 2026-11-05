@@ -5,7 +5,9 @@ from .pagination import StyleSpan
 
 def decorate(document, markers):
     # Keep trailing paragraph separators after the compact metadata group.
-    slots=sorted((s.body+len(document.text[s.body:s.end].rstrip()),ref,kind,payload) for s in document.spans
+    last={ref:index for index,s in enumerate(document.spans) for ref in s.members}
+    slots=sorted((s.body+len(document.text[s.body:s.end].rstrip()),ref,kind,payload) for index,s in enumerate(document.spans)
+                 if last[s.reference]==index
                  for ref in (s.reference,) for kind,payload in markers.get(ref,()))
     if not slots:return document
     def shifted(offset,after=False):

@@ -24,7 +24,7 @@ class ComparisonRows:
         for span in primary.spans:
             for reference in span.members:
                 mapped=resolve(reference,left.versification,right,require_entry=False)
-                chapters.update(ref.rsplit('.',1)[0] for ref in _span(mapped.start,mapped.end,right.versification))
+                chapters.update(ref.rsplit('.',1)[0] for ref in _span(mapped.start,mapped.end,right.versification,right))
         key=left.key(tab.current.reference+'.1')
         low=key.getIndex();key.setVerse(key.getVerseMax());high=key.getIndex()
         pieces=[];copies=[];spans=[];styles=[];offset=0

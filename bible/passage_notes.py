@@ -112,13 +112,20 @@ class PassageNotes(Gtk.Box):
         if reader:
             key=reader.key(tab.state.reference)
             first=f'{chapter[0]}.{chapter[1]}.1';last=f'{chapter[0]}.{chapter[1]}.{key.getVerseMax()}'
+            if getattr(reader,'addresses',None):
+                book=next((book for book in reader.books if book.code==chapter[0]),None)
+                verses=book.chapters.get(chapter[1],()) if book else ()
+                if verses:
+                    first=f'{chapter[0]}.{chapter[1]}.{min(verses)}'
+                    last=f'{chapter[0]}.{chapter[1]}.{max(verses)}'
             self.rows=self.annotations.notes(reader,first,last,store) if store else []
             self.marks=self.annotations.highlights(reader,first,last,self.owner.highlights)
         else:
             def original_match(resource,first,last):
                 from .notes import BOOK_ORDER
                 def order(ref):
-                    b,c,v=parts(ref);return BOOK_ORDER.get(b,10000),b,c,v
+                    from .notes import passage_order
+                    b,c,v=passage_order(ref);return BOOK_ORDER.get(b,10000),b,c,v
                 low=f'{chapter[0]}.{chapter[1]}.1';high=f'{chapter[0]}.{chapter[1]}.999'
                 return bool(tab and resource==tab.state.resource and order(first)<=order(high) and order(last)>=order(low))
             self.rows=[n for n in store.all() if original_match(n.origin_translation,n.start,n.end)] if store and chapter else []
@@ -161,6 +168,10 @@ class PassageNotes(Gtk.Box):
                 return False
             position=reader.key(reference).getIndex()
             candidates=[(card,spans) for card,spans in self._card_targets if spans]
+            if getattr(reader,'addresses',None):
+                position=reader.reference_sort_key(reference)
+                candidates=[(card,[(reader.reference_sort_key(first),reader.reference_sort_key(last),first,last)
+                                   for _,_,first,last in spans]) for card,spans in candidates]
             matching=[(card,spans) for card,spans in candidates if any(low<=position<=high for low,high,_,_ in spans)]
             if matching:card=matching[0][0]
             else:
@@ -214,6 +225,8 @@ class PassageNotes(Gtk.Box):
             try:
                 refs=[]
                 for _,_,first,last in self.annotations.positions(reader,system,start,end):
+                    if getattr(reader,'addresses',None):
+                        refs.extend(reader.reference_range(first,last));continue
                     chapter=first.rsplit('.',1)[0]
                     if chapter not in self._chapter_texts:self._chapter_texts[chapter]=reader.chapter(first)
                     if len(self._chapter_texts)>64:self._chapter_texts.pop(next(iter(self._chapter_texts)))
@@ -333,12 +346,9 @@ class PassageNotes(Gtk.Box):
                     if mark:system,refs,resource=snapshot['system'],[snapshot['reference']],snapshot['resource']
                     else:
                         system,resource=snapshot['versification'],snapshot['origin_translation']
-                        key=reader.key(snapshot['start']);last=reader.key(snapshot['end']).getIndex();refs=[]
-                        while key.getIndex()<=last:
-                            if reader.has_reference(key.getOSISRef()):refs.append(key.getOSISRef())
-                            if len(refs)>1000:raise ValueError('Select at most 1000 verses')
-                            key.increment()
-                            if key.popError()!='\x00':break
+                        from .reference_resolution import _span
+                        refs=[ref for ref in _span(snapshot['start'],snapshot['end'],system,reader) if reader.has_reference(ref)]
+                        if len(refs)>1000:raise ValueError('Select at most 1000 verses')
                     self.owner.highlights.set(system,refs,value,resource)
                     popover.popdown();self.owner.refresh_highlights()
                     if annotate:self.open_note(context=snapshot)
