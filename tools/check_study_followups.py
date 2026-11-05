@@ -192,7 +192,19 @@ def main():
                     ok,bounds=last.compute_bounds(search.result_scroll);assert ok
                     assert bounds.get_y()+bounds.get_height()<=search.result_scroll.get_height()+1,(bounds,search.result_scroll.get_height())
                     assert last.has_css_class('reference-card')
-                capture('themes-last-'+mode+'-'+str(width));w.search_popover.popdown()
+                capture('themes-last-'+mode+'-'+str(width))
+                if not a.baseline:
+                    from bible.reference_targets import destination
+                    expected=destination(search.rows[-1].start,t.reader).start
+                    native.click(last);spin()
+                    assert w.reference_preview.target==(t.state.resource,expected)
+                    capture('theme-preview-'+mode+'-'+str(width))
+                    native.click(w.reference_preview.open_here);settled()
+                    assert t.state.reference==expected,(mode,width,expected,t.state.reference,
+                        t is w.active_tab,w.active_tab.state.reference,t.visible_reference(),w.reference_preview.popover is not None)
+                    report.setdefault('native_theme_card_navigation',[]).append(dict(mode=mode,width=width,reference=expected))
+                    t.navigate('youversion~YV21','Ps.34.18');settled()
+                w.search_popover.popdown()
             w.set_default_size(1200,900);t.navigate('youversion~YV21','Ps.34.10');settled()
             buffer=t.text.get_buffer();buffer.select_range(buffer.get_iter_at_offset(t._marker_ends['Ps.34.10']),buffer.get_iter_at_offset(t._verse_ranges['Ps.34.11'][1]))
             source=w.passage_actions.ordinary(t);value=target(t.text,source,lambda:w.passage_actions.ordinary(t))

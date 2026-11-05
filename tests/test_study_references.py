@@ -202,3 +202,15 @@ class StudyReferenceTests(unittest.TestCase):
             spin(lambda:not refs.pending,duration=.3)
         self.assertEqual(refs.rows,updated)
         self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
+
+    def test_recovered_query_starts_at_first_card_after_an_empty_error_state(self):
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        with patch.object(refs.data,'query',side_effect=OSError('Controlled query failure')):
+            refs.invalidate();spin(lambda:not refs.pending)
+        self.assertEqual(refs.model.get_n_items(),0)
+        with patch.object(refs.data,'query',return_value=rows):
+            refs.invalidate();spin(lambda:not refs.pending,duration=.3)
+        self.assertGreater(refs.scroll.get_vadjustment().get_upper(),refs.scroll.get_vadjustment().get_page_size())
+        self.assertEqual(refs.scroll.get_vadjustment().get_value(),0)
