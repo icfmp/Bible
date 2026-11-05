@@ -29,6 +29,8 @@ separately in #185 and is not implemented in this batch.
   footer as anchor: a native regression moved from 250 to 2,501 px. Keeping
   existing rows until the replacement arrives preserves GTK's anchor without
   saving/restoring pixel positions. Missing/failed data still clears the list.
+  First results after an empty/error state also request the first card once;
+  the same recovery previously opened at 2,501 px instead of zero.
   Native loading-label allocation may adjust row estimates by a few pixels;
   broader GTK 4.18 tests still emit some transient allocation warnings.
 - Theme passages reuse the References card builder. Back, topic and actual

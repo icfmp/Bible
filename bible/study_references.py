@@ -111,7 +111,8 @@ class StudyReferences(Gtk.Box):
         # change this passage or dataset; rebuilding here loses manual scroll.
         if stamp==self.stamp:return
         self.stamp=stamp;self.generation+=1;generation=self.generation
-        self._new_passage=self.context!=(tab.state.resource,reader,start,end)
+        self._new_passage=(self.context!=(tab.state.resource,reader,start,end)
+                           or not self.model.get_n_items())
         self.context=(tab.state.resource,reader,start,end)
         self.rows=[];self.chapter_cache={};self.row_cache={};self.all_results=False;self.pending=False
         # Keep the visible list while refreshing the same passage. Emptying it

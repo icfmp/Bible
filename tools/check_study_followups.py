@@ -88,7 +88,7 @@ def main():
                 assert dialog._phase!='error',dialog.status.get_text()
                 assert StepData(a.profile/'study-data').revision is not None
                 if not a.baseline:assert not dialog.transfer_footer.get_visible()
-                capture('library-success');spin(duration=4.5)
+                capture('library-success');spin(duration=4.5,timeout=7)
                 assert not dialog.status.get_visible() and not dialog.progress.get_visible()
                 capture('library-success-dismissed');report['library_real_step_download_success']=True
             dialog.close();native.activate(w)
