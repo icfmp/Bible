@@ -136,6 +136,11 @@ jobs:
         run: |
           timeout 100s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$RUNNER_TEMP/research-python" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -X faulthandler -m unittest tests.test_source_sections tests.test_source_section_key tests.test_source_units tests.test_source_units_native -v > "$RUNNER_TEMP/source-units.log" 2>&1
           tail -n 6 "$RUNNER_TEMP/source-units.log"
+      - name: Verify source conventions and word-study regressions in the installed candidate
+        if: inputs.study_followups && !inputs.library_baseline
+        run: |
+          timeout 180s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//master -X faulthandler -m unittest tests.test_declared_reference_convention tests.test_step_data tests.test_word_study tests.test_study_references tests.test_comparison_sync -v > "$RUNNER_TEMP/followup-tests.log" 2>&1
+          tail -n 6 "$RUNNER_TEMP/followup-tests.log"
       - name: Real BDS Mark 11 word choices and repeated native selection
         run: |
           mkdir reports
@@ -169,6 +174,7 @@ jobs:
         run: |
           if [ -f "$RUNNER_TEMP/picker.log" ]; then tail -n 130 "$RUNNER_TEMP/picker.log"; fi
           if [ -f "$RUNNER_TEMP/source-units.log" ]; then tail -n 80 "$RUNNER_TEMP/source-units.log"; fi
+          if [ -f "$RUNNER_TEMP/followup-tests.log" ]; then tail -n 80 "$RUNNER_TEMP/followup-tests.log"; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -40,22 +40,52 @@ class WordStudyTests(unittest.TestCase):
                 self.assertTrue(buttons)
                 buttons[0].emit('clicked');spin(lambda:not words.pending,duration=.3)
                 self.assertEqual(words.entry['id'],'G3056')
-                samples=[c._word_reference for c in words.children() if hasattr(c,'_word_reference')]
-                self.assertEqual(samples,['Acts.1.1'])
+                self.assertEqual(words.stage,'word')
+                self.assertFalse(any(hasattr(c,'_word_reference') for c in words.children()))
                 self.assertEqual(window.active_tab.state.reference,reference)
                 self.assertEqual(window.active_tab.state.history,history)
                 words.all_occurrences('tagnt-na27',words.entry)
-                search=window.navigation.text_search;spin(lambda:not search.pending,duration=.3)
-                self.assertEqual(search.lemma_query,('tagnt-na27','G3056'))
-                self.assertEqual([r.start for r in search.rows],['John.1.1','Acts.1.1'])
-                focus=window.get_focus()
-                self.assertTrue(focus is search.entry or focus.is_ancestor(search.entry))
-                window.navigation.popdown();words.leave();spin()
+                spin(lambda:not words.pending,duration=.3)
+                self.assertEqual(words.stage,'occurrences')
+                self.assertEqual([c._word_reference for c in words.children() if hasattr(c,'_word_reference')],['John.1.1','Acts.1.1'])
+                self.assertTrue(words.dialog.get_visible())
+                words.go_back.emit('clicked');spin();self.assertEqual(words.stage,'word')
+                words.go_back.emit('clicked');spin(lambda:not words.pending);self.assertEqual(words.stage,'passage')
+                self.assertTrue(any(hasattr(c,'_source_token') for c in words.children()))
+                words.leave();spin()
                 self.assertEqual(window.study.tool,'notes')
                 self.assertEqual(editor.body.get_buffer().props.text,'Unsaved draft kept')
                 self.assertEqual(window.study_settings.tool,'notes')
                 editor._discard=True;editor.close()
             finally:close_test_dialogs();window.close()
+
+    def test_replacing_focused_dynamic_content_moves_focus_before_unparenting(self):
+        from bible.ui import Application,Window,Library,Gtk
+        from bible.passage_actions import target
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);installed_fixture(root)
+            app=Application.get_default() or Application();app.register()
+            window=Window(app,Library(root/'translations'));window.present();spin()
+            try:
+                tab=window.active_tab;actions=window.passage_actions
+                value=target(tab.text,actions.ordinary(tab),lambda:actions.ordinary(tab),tab._marker_ends[tab.state.reference])
+                words=window.study.words;words.open(value);spin()
+                for nested in (False,True):
+                    words.clear()
+                    label=words.label('Synthetic selectable dynamic content')
+                    if nested:
+                        child=Gtk.Box();child.append(label)
+                    else:child=label
+                    words.content.append(child);spin();label.grab_focus();spin()
+                    self.assertIs(words.dialog.get_focus(),label)
+                    words.remove_content(child)
+                    self.assertIs(words.dialog.get_focus(),words.back)
+                    self.assertIsNone(child.get_parent())
+                    words.content.append(words.label('Replacement selectable content'));spin()
+                    self.assertIs(words.dialog.get_focus(),words.back)
+                words.leave();spin()
+            finally:window.close()
 
     def test_numbered_source_heading_is_unavailable_without_changing_reader(self):
         from bible.ui import Application,Window,Library,Gtk
