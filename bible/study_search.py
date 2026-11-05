@@ -1,8 +1,8 @@
-"""Topics and literal text in the existing passage selector, with local previews."""
+"""Topics and literal text in the dedicated search popover, with local previews."""
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr,LANGUAGE
-from .topic_vocabulary import VOCABULARY,suggestions,title
+from .topic_vocabulary import TopicVocabulary,suggestions,title
 from .topic_data import TopicData,SOURCE_URL,LICENSE_URL,TRANSFORMATIONS
 from .reference_data import Relationship
 from .reference_targets import local_excerpt
@@ -19,6 +19,7 @@ class StudySearch(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.navigation=navigation;self.owner=navigation.owner;self.mode=mode
         self.data=TopicData(self.owner.library.root.parent/'study-data')
+        self.vocabulary=TopicVocabulary(self.data.root);self._vocabulary_entries=()
         self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-search')
         self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
@@ -120,11 +121,18 @@ class StudySearch(Gtk.Box):
         names=self.owner.library.installed('bible')
         revision=self.data.revision if self.mode=='topics' else None
         active=self.owner.active_tab if hasattr(self.owner,'view') else None
-        stamp=(tuple(names),revision,bool(active),self.navigation.selected_resource() if self.mode=='topics' else None,LANGUAGE)
+        vocabulary=self.vocabulary.read() if self.mode=='topics' else None
+        stamp=(tuple(names),revision,bool(active),self.navigation.selected_resource() if self.mode=='topics' else None,LANGUAGE,vocabulary[2] if vocabulary else None)
         if stamp==self._refresh_stamp:return
         self._refresh_stamp=stamp
+        if vocabulary:
+            self._vocabulary_entries=vocabulary[1]
+            if revision:
+                try:identifiers=self.data.identifiers()
+                except (OSError,ValueError):identifiers=frozenset()
+                self._vocabulary_entries=tuple(e for e in self._vocabulary_entries if e[0] in identifiers)
         self.invalidate()
-        self.explanation.set_text(tr('{count} reviewed themes').format(count=len(VOCABULARY)) if self.mode=='topics' else
+        self.explanation.set_text(tr('{count} reviewed themes').format(count=len(self._vocabulary_entries)) if self.mode=='topics' else
                                   tr('All words first, then strong close matches. Quoted phrases stay exact. Supported Latin accents are ignored.'))
         if self.mode=='text':
             previous=self.search_names[self.source.get_selected()] if self.source.get_selected()<len(self.search_names) else None
@@ -179,7 +187,7 @@ class StudySearch(Gtk.Box):
         self.invalidate()
         if self.mode=='text':self.status.set_text(tr('Enter a phrase and press Enter.'));return
         if self.mode=='topics':self.show_topics()
-        entries=suggestions(self.entry.get_text())
+        entries=suggestions(self.entry.get_text(),entries=self._vocabulary_entries)
         self.topic_model.splice(0,self.topic_model.get_n_items(),[SearchItem(e) for e in entries])
         self.status.set_text(tr('Download topic data once to explore it offline.') if self.data.revision is None else
                              tr('Choose a topic.') if entries else tr('No topic in the supported vocabulary. Try a shorter word.'))

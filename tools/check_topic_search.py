@@ -50,8 +50,8 @@ def main():
         if name=='Topics':name='Themes'
         native.click(next(b for b in walk(nav.mode_switcher) if isinstance(b,Gtk.ToggleButton) and b.get_child().get_text()==tr(name)));spin()
     def open_search(resource='FreSegond1910'):
-        if w.navigation.get_visible():w.navigation.popdown();spin()
-        w.active_tab.navigate(resource,'John.1.5');settled();native.click(w.passage_button);spin();return w.navigation
+        if w.search_popover.get_visible():w.search_popover.popdown();spin()
+        w.active_tab.navigate(resource,'John.1.5');settled();native.click(w.search_button);spin();return w.search_popover
     def choose(source_id):
         button=next(b for b in walk(search.topics) if isinstance(b,Gtk.Button) and getattr(b,'_topic',('',))[0]==source_id and b.get_mapped())
         native.click(button);wait(lambda:not search.pending);assert search.rows
@@ -109,7 +109,7 @@ def main():
         assert w.reference_preview.body.get_buffer().props.text==local_excerpt(nav.reader,'Matt.5.14',source_system='KJV').text
         native.key('Escape');text.entry.set_text('[not a regex]');text.entry.grab_focus();native.key('Return');wait(lambda:not text.pending)
         assert not text.rows
-        mode('Passage');nav.direct.set_text('John 3:16');nav.direct.grab_focus();native.key('Return');settled()
+        nav.popdown();w.choose_passage();w.navigation.direct.set_text('John 3:16');w.navigation.direct.grab_focus();native.key('Return');settled()
         assert w.active_tab.state.reference=='John.3.16';report['passage_navigation_preserved']=True
         nav=open_search('FreSegond1910');mode('Text');text.source.set_selected(text.search_names.index('FreSegond1910'));text.entry.set_text('"lumière du monde"');spin(duration=.3)
         text.entry.grab_focus();native.key('Return');wait(lambda:not text.pending)

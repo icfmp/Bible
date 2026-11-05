@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "resources": {
+    "openbible-cross-references": {
+      "revision": "2026-11-02",
+      "generation": "2026-11-02",
+      "sha256": "24f07bcd61280f9dc0c5a451151fc9c9d0d2e45fe0cf3c903b5db4ca6b878878",
+      "size": 1984180,
+      "format": "openbible-cross-references-v1",
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-02-24f07bcd6128.zip"
+    },
+    "openbible-topics": {
+      "revision": "2026-11-02",
+      "generation": "2026-11-02",
+      "sha256": "b20499362abe0c71c45bb18cca1dcf386b8caf50381e6246cc531fa7a69aa2cf",
+      "size": 418746,
+      "format": "openbible-topics-v1",
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/topic-scores-2026-11-02-b20499362abe.zip"
+    },
+    "topic-vocabulary": {
+      "revision": "2026-11-04.1",
+      "generation": "2026-11-04",
+      "sha256": "dc9a6ee57d399651e939a0e54c7dcc95cf5baaa1b60365a49254d6f5a874bda8",
+      "size": 10395,
+      "format": "bible-topic-vocabulary-v1",
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/topic-vocabulary-2026-11-04.1-dc9a6ee57d39.json"
+    }
+  }
+}

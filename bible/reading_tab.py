@@ -308,6 +308,7 @@ class ReadingTab(Gtk.Box):
         stamp = (name, self.state.resource, self.reader.versification if self.reader else None,
                  self.state.reference, tuple(vars(self.preferences).items()))
         if stamp == getattr(self, '_comparison_stamp', None):return
+        previous_comparison=(getattr(self,'_comparison_stamp',None) or (None,))[0]
         self._comparison_stamp = stamp
         if bool(name) != self.comparison_box.get_visible() and self.text.get_mapped() and not self._restoring_scroll:
             rect = self.text.get_visible_rect(); _, iterator = self.text.get_iter_at_location(rect.x, rect.y)
@@ -330,18 +331,25 @@ class ReadingTab(Gtk.Box):
                 self._comparison_reader = Reader(self.library.root/name, name); self._comparison_name = name
             reader = self._comparison_reader
             if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
-            from .reference_resolution import resolve
+            from .reference_resolution import resolve,available_chapter
             alignment_error = None
             try:
                 resolved = resolve(self.state.reference, self.reader.versification, reader,require_entry=False)
                 reference, end = resolved.start, resolved.end
             except ValueError as error:
-                # Keep this readable resource accessible in its own canon.
-                # Never pass an unmapped printed source reference to it.
+                # An explicit comparison opening may open an available printed
+                # chapter without asserting cross-edition verse equivalence.
+                # Retained independent positions stay qualified by resource.
                 alignment_error = error
-                same_resource = (getattr(self, '_comparison_signature', None) or (None,))[0] == name
+                same_resource = previous_comparison==name and (getattr(self, '_comparison_signature', None) or (None,))[0] == name
                 reference = self.comparison_visible_reference() if same_resource else None
-                reference = reference or reader.first_reference()
+                saved=self.state.comparison_position
+                if not reference and saved.get('resource')==name:
+                    try:
+                        if reader.has_reference(saved['reference']):reference=saved['reference']
+                    except ValueError:pass
+                reference = reference or available_chapter(self.state.reference,reader)
+                if not reference:raise ValueError(tr('This chapter is not available in this translation.'))
                 end = reference
             chapter = reader.chapter(reference)
             self.comparison_reference=reference;self.comparison_end_reference=end
@@ -375,6 +383,7 @@ class ReadingTab(Gtk.Box):
             sync = getattr(self, 'comparison_sync', None)
             if not (sync and sync.running and sync.driver == 'comparison'):
                 self.reveal_comparison(reference, anchor=anchor, settle=rebuild)
+            self.remember_comparison(reference)
         except Exception as error:
             self.comparison_rows.leave()
             self.comparison_text.get_buffer().set_text('')
@@ -388,8 +397,16 @@ class ReadingTab(Gtk.Box):
         error=error or getattr(self,'_comparison_layout_error',None)
         self._comparison_aligned = error is None
         self.comparison_status.set_visible(error is not None)
-        self.comparison_status.set_text((tr('Automatic following unavailable. Reading independently.')+' '+str(error))
+        self.comparison_status.set_text(tr('Automatic following unavailable. Reading independently.')
                                         if error is not None else '')
+        self.comparison_status.set_tooltip_text(str(error) if error is not None else None)
+
+    def remember_comparison(self,reference):
+        if not reference or not self.state.comparison:return False
+        value=dict(resource=self.state.comparison,reference=reference)
+        if value==self.state.comparison_position:return False
+        self.state.comparison_position=value
+        return True
 
     def comparison_visible_reference(self):
         offsets = getattr(self, '_comparison_offsets', {})

@@ -21,6 +21,7 @@ class TabState:
     comparison: str | None = None
     commentary_positions: dict = field(default_factory=dict)
     reading_palette: dict = field(default_factory=dict)
+    comparison_position: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -82,6 +83,14 @@ class SessionStore:
                 comparison = item.get('comparison')
                 if comparison is not None and (not isinstance(comparison,str) or not re.fullmatch(RESOURCE_ID,comparison)):
                     raise ValueError('Invalid comparison')
+                comparison_position=item.get('comparison_position',{})
+                if (not isinstance(comparison_position,dict) or comparison_position and (
+                        set(comparison_position)!={'resource','reference'}
+                        or not isinstance(comparison_position['resource'],str)
+                        or not re.fullmatch(RESOURCE_ID,comparison_position['resource'])
+                        or not isinstance(comparison_position['reference'],str)
+                        or not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}\.[1-9][0-9]{0,3}',comparison_position['reference']))):
+                    raise ValueError('Invalid comparison position')
                 positions=item.get('commentary_positions',{})
                 if not isinstance(positions,dict) or len(positions)>50:raise ValueError('Invalid commentary positions')
                 for name,anchor in positions.items():
@@ -95,7 +104,7 @@ class SessionStore:
                 allowed={'mode':('system','day','night'),'day_palette':('white','paper'),'night_palette':('dark','black')}
                 if not isinstance(palette,dict) or (palette and (set(palette)!=set(allowed) or any(palette[k] not in v for k,v in allowed.items()))):
                     raise ValueError('Invalid tab palette')
-                tabs.append(TabState(resource, reference, float(scroll), study, commentary, history, cursor, comparison, positions, palette))
+                tabs.append(TabState(resource, reference, float(scroll), study, commentary, history, cursor, comparison, positions, palette, comparison_position))
             selected = value.get('selected', 0)
             if type(selected) is not int or selected < 0 or (selected >= len(tabs) if tabs else selected != 0):
                 raise ValueError('Invalid selected tab')

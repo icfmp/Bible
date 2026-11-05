@@ -24,7 +24,15 @@ def main():
         resources=catalogue()
         for name in ('FreSegond1910','KJV','Wesley'):
             if name not in library.installed():library.install(next(r for r in resources if r.name==name))
-        if data.revision is None:data.install()
+        if data.revision is None:
+            # A transient read timeout must not require rebuilding the entire
+            # Flatpak. Every attempt still uses the packaged installer and its
+            # full pinned-input verification; never skip unavailable resources.
+            for attempt in range(3):
+                try:data.install();break
+                except TimeoutError:
+                    if attempt==2:raise
+                    print('STEP preparation read timed out; retrying installation',flush=True)
     assert all(name in library.installed() for name in ('FreSegond1910','KJV','Wesley'))
     from bible.ui import Application,Window,GLib
     from bible.passage_actions import target
@@ -84,9 +92,9 @@ def main():
         assert words.entry['id']=='H1254A'
         counts=data.occurrences('tahot-main','H1254A');assert (counts['tokens'],counts['verses'])==(53,45)
         greek=data.occurrences('tagnt-na27','G3056');assert (greek['tokens'],greek['verses'])==(330,317)
-        words.all_occurrences('tahot-main',words.entry);search=window.navigation.text_search;wait(lambda:not search.pending)
+        words.all_occurrences('tahot-main',words.entry);search=window.search_popover.text_search;wait(lambda:not search.pending)
         assert search.total==counts['addresses'] and search.lemma_query==('tahot-main','H1254A')
-        window.navigation.popdown();words.leave()
+        window.search_popover.popdown();words.leave()
         report['real_step']=dict(greek_tokens=greek['tokens'],greek_verses=greek['verses'],hebrew_tokens=counts['tokens'],hebrew_verses=counts['verses'],source_words=len(tokens),shared_occurrence_search=True)
         assert [asdict(n) for n in window.notes_store.all()]==notes_before
         assert window.notes_store.db.execute('PRAGMA user_version').fetchone()[0]==schema

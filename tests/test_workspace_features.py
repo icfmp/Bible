@@ -81,6 +81,9 @@ class WorkspaceFeaturesTests(unittest.TestCase):
         from bible.ui import Window, Library, Gtk
         from bible.library import Resource
         from bible.language_picker import LanguagePicker
+        # This local picker test does not own dynamic-provider HTTP, which is
+        # covered separately. Do not let that worker outlive its temp cache.
+        self.enterContext(patch('bible.catalogue_session.CatalogueSession.load_youversion_language',return_value=None))
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             w=Window(self.app,Library(Path(directory)/'translations'));w.present()

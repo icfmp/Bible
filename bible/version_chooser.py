@@ -106,8 +106,9 @@ class VersionChooser(Gtk.MenuButton):
         self.add_css_class('flat')
         self.caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=24,width_chars=1)
         self.caption.set_hexpand(True)
-        row=Gtk.Box(spacing=4);row.append(self.caption);row.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
-        self.set_child(row)
+        row=Gtk.Overlay();self.caption.set_margin_end(16);row.set_child(self.caption)
+        self.chevron=Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12,halign=Gtk.Align.END)
+        row.add_overlay(self.chevron);self.set_child(row)
         self.popover=Gtk.Popover(autohide=False)
         self.choices=DirectChoices()
         self.choices.connect('notify::selected',self.selected)
@@ -171,6 +172,8 @@ class VersionChooser(Gtk.MenuButton):
             if current.startswith('youversion~') and short==module_name(current):short=None
             if isinstance(short,str) and short.strip() and len(short)<=40 and not any(ord(c)<32 for c in short):
                 caption=short
+        self.set_hexpand(not in_header)
+        self.caption.set_margin_start(0 if in_header else 16)
         self.caption.set_wrap(not in_header)
         self.caption.set_ellipsize(Pango.EllipsizeMode.END if in_header and len(caption)>4 else Pango.EllipsizeMode.NONE)
         if in_header:self.caption.add_css_class('dim-label')

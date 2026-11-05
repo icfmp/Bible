@@ -1,0 +1,39 @@
+name: Update checked study resources independently
+on:
+  workflow_dispatch:
+    inputs:
+      vocabulary_only:
+        description: Deliver the reviewed data-branch vocabulary while keeping index snapshots unchanged
+        type: boolean
+        default: false
+  schedule:
+    - cron: '30 12 * * 1'
+permissions:
+  contents: write
+concurrency:
+  group: bible-study-resource-update
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify metadata, parsers and atomic resource updates
+        run: python3 -m unittest tests.test_study_catalogue tests.test_topic_data tests.test_reference_data.ReferenceDataTests
+      - name: Archive validated source snapshots and publish checked metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VOCABULARY_ONLY: ${{ inputs.vocabulary_only }}
+        run: |
+          args=()
+          if [ "$VOCABULARY_ONLY" = true ]; then args+=(--vocabulary-only); fi
+          python3 -m tools.study_resource_updates "$RUNNER_TEMP/study-resource-update" --publish "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: study-resource-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/study-resource-update/catalogue.json
+            ${{ runner.temp }}/study-resource-update/provenance.json
+          if-no-files-found: warn

@@ -41,7 +41,7 @@ def main():
                 for dark in (False,True):
                     style.set(dark=dark,high=False);w.appearance.update('mode','night' if dark else 'day');w.appearance.update('night_palette' if dark else 'day_palette','dark' if dark else 'white')
                     for module,query,expected in [('youversion~YV21','Car Dieu a tant aimé le monde','close'),('youversion~YV21','"Car Dieu a tant aimé le monde"','none'),('youversion~YV21','DIEU TANT AIME MONDE','strict'),('KJV','For God so loved the world','strict'),('KJV','For God dearly loved the world','close')]:
-                        w.choose_passage();nav=w.navigation;nav.modes.set_visible_child_name('text');panel=nav.text_search
+                        w.show_search();nav=w.search_popover;nav.modes.set_visible_child_name('text');panel=nav.text_search
                         panel.source.set_selected(panel.search_names.index(module));panel.scope.set_selected(panel.scope_names.index('all'))
                         panel.entry.set_text(query);panel.changed();spin(duration=.2)
                         intervals=[];previous=time.monotonic()
@@ -68,7 +68,7 @@ def main():
                             w.reference_preview.dismiss()
                         nav.popdown();spin()
                     # Same query with an explicit scope excluding John must not leak it.
-                    w.choose_passage();nav.modes.set_visible_child_name('text');panel.source.set_selected(panel.search_names.index('KJV'))
+                    w.show_search();nav.modes.set_visible_child_name('text');panel.source.set_selected(panel.search_names.index('KJV'))
                     panel.scope.set_selected(panel.scope_names.index('book'));panel.entry.set_text('For God dearly loved the world');panel.changed();spin(duration=.2);panel.run_text();spin(lambda:not panel.pending,timeout=90)
                     assert 'John.3.16' not in [r.start for r in panel.rows]
                     nav.popdown()

@@ -92,7 +92,7 @@ def show_shortcuts(owner):
     for label,action in [
         ('Library','translations'),('Preferences','preferences'),('Keyboard Shortcuts','shortcuts'),
         ('New tab','new-tab'),('Close tab','close-tab'),('Choose a passage','choose-passage'),
-        ('Reference','reference'),('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
+        ('Reference','reference'),('Search','search'),('Previous chapter','previous-chapter'),('Next chapter','next-chapter'),
         ('Previous verse','previous-verse'),('Next verse','next-verse'),
         ('History back','history-back'),('History forward','history-forward'),
         ('Study','study'),('Passage note','note'),('My notes','notes'),('Immersive mode','immersive')]:

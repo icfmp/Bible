@@ -332,6 +332,7 @@ FR.update({
     'Open in this tab': 'Ouvrir dans cet onglet', 'Download a translation': 'Télécharger une traduction',
     'No readable passage in this translation.': 'Aucun passage lisible dans cette traduction.',
     'This passage is not available in this translation.': 'Ce passage n’est pas disponible dans cette traduction.',
+    'This chapter is not available in this translation.': 'Ce chapitre n’est pas disponible dans cette traduction.',
     'This passage is unavailable. Opened the first available passage.':
         'Ce passage n’est pas disponible. Le premier passage disponible a été ouvert.',
 })
@@ -556,3 +557,6 @@ FR.update({'Unable to save this note. Your draft is kept.':'Impossible d’enreg
 FR.update({'Resume following':'Reprendre le suivi', 'No annotations in this chapter.':'Aucune annotation dans ce chapitre.'})
 
 FR.update({'A note passage must be ordered within one book':'Le passage d’une note doit être ordonné dans un même livre.'})
+
+FR.update({'Update available':'Mise à jour disponible'})
+FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {revision}'})

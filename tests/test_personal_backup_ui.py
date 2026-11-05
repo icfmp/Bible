@@ -32,7 +32,10 @@ class PersonalBackupUITests(unittest.TestCase):
         def decline(owner,heading,body,accepted,*args):return None
         with patch('bible.notes_window.message',side_effect=decline) as confirm:
             choose_personal_backup(w,status,True);chooser=w._personal_backup_chooser
-            chooser.set_file(Gio.File.new_for_path(str(path)));spin()
+            chooser.set_file(Gio.File.new_for_path(str(path)))
+            spin(lambda:bool(chooser.get_file() and chooser.get_file().get_path()==str(path)),timeout=10)
+            self.assertIsNotNone(chooser.get_file(),'Wait for GTK to select the file before accepting it')
+            self.assertEqual(chooser.get_file().get_path(),str(path))
             chooser.emit('response',Gtk.ResponseType.ACCEPT);self.assertEqual(confirm.call_count,1)
         self.assertEqual(personal_backup.snapshot(w.notes_store,w.highlights),before)
         self.assertFalse((self.root/'backups').exists())

@@ -158,13 +158,13 @@ def main():
                         n.activate(words.dialog);n.key('Escape');spin();assert words.dialog is None and not words.pending
                     else:words.leave();w.study_button.set_active(previous[1]);spin()
                     n.activate(w);pointer_selection(True);shot(prefix+'-multi-selection');actions.dismiss()
-                    w.choose_passage();w.navigation.modes.set_visible_child_name('text');search=w.navigation.text_search
+                    w.show_search();w.search_popover.modes.set_visible_child_name('text');search=w.search_popover.text_search
                     search.source.set_selected(search.search_names.index('youversion~YV21'));search.entry.set_text('Je suis le chemin la vérité la vie');search.changed();search.run_text()
                     spin(lambda:not search.pending,duration=.3,timeout=90);shot(prefix+'-text-results');assert search.rows
-                    w.navigation.modes.set_visible_child_name('topics');topics=w.navigation.topic_search
+                    w.search_popover.modes.set_visible_child_name('topics');topics=w.search_popover.topic_search
                     if topics.data.revision is not None:
                         topics.choose(next(e for e in VOCABULARY if e[0]=='anger'));spin(lambda:not topics.pending,duration=.25,timeout=90);shot(prefix+'-topic-results')
-                    w.navigation.popdown();assert t.navigate('youversion~YV21','Gen.11.3');settled();w.study_button.set_active(True)
+                    w.search_popover.popdown();assert t.navigate('youversion~YV21','Gen.11.3');settled();w.study_button.set_active(True)
                     w.study.tools.set_visible_child_name('references');w.study.refresh(force=True);refs=w.study.references
                     spin(lambda:not refs.pending,duration=.2,timeout=90);shot(prefix+'-references')
                     if not args.baseline:assert refs.model.get_n_items()==len(refs.rows) and not refs.view_all.get_visible()
