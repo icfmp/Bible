@@ -28,7 +28,7 @@ class WordStudy(Gtk.Box):
             margin_start=16,margin_end=16,margin_top=8,margin_bottom=8)
         self.context_label.add_css_class('dim-label');self.append(self.context_label)
         self.selection_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-            lines=3,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
+            lines=2,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
         self.append(self.selection_label)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12,margin_bottom=16)
         self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
@@ -100,7 +100,10 @@ class WordStudy(Gtk.Box):
         self.context=(target,self.owner.active_tab,self.owner.active_tab.state.reference)
         resource=self.owner.library.resource(target.source.resource)
         self.context_label.set_text(passage_title(target.references[0],target.references[-1],target.source.reader.versification)+' — '+resource.description)
-        self.selection_label.set_text(target.text if target.native_selection else '')
+        # This is a compact context excerpt, not the original-word display.
+        # Explicit translation line breaks otherwise each get their own line
+        # limit and can consume the entire small dialog before any source word.
+        self.selection_label.set_text(' '.join(target.text.split()) if target.native_selection else '')
         self.selection_label.set_visible(target.native_selection)
         self.owner.passage_actions.dismiss()
         self.dialog=Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
