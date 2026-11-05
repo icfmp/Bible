@@ -12,6 +12,34 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class StudyReferenceTests(unittest.TestCase):
+    def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self):
+        from dataclasses import replace
+        from bible.ui import Gtk
+        from tools.check_alpha_ui import X11Input
+        from tools.check_client_feedback import Screen
+        self.install();refs=self.show();w=self.window
+        settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+        native=X11Input();screen=Screen(native)
+        try:
+            settings.props.gtk_font_name='Sans 18';w.set_default_size(360,480);spin(duration=.3)
+            w.split.set_show_sidebar(True);spin(duration=.3)
+            resource=replace(w.library.resource('Test'),description='TEST very long translation title for constrained preview layout')
+            with patch.object(w.library,'resource',return_value=resource):
+                popup=w.reference_preview.show(refs.heading,'Test',w.active_tab.reader,'John.3.16',
+                    provenance='OpenBible.info · CC BY 4.0\nhttps://www.openbible.info/labs/cross-references/')
+            spin(duration=.3);self.assertIsNotNone(popup)
+            x,y=screen.point(w,0,0)
+            for widget in (w.reference_preview.open_here,w.reference_preview.open_new):
+                px,py=screen.point(widget,0,0)
+                self.assertGreaterEqual(px,x);self.assertGreaterEqual(py,y)
+                self.assertLessEqual(px+widget.get_width(),x+w.get_width())
+                self.assertLessEqual(py+widget.get_height(),y+w.get_height())
+            outer=popup.get_child().get_vadjustment()
+            self.assertLessEqual(outer.get_upper(),outer.get_page_size()+1)
+            self.assertEqual(w.reference_preview.body.get_buffer().props.text,'DESTINATION SIXTEEN')
+        finally:
+            w.reference_preview.dismiss();settings.props.gtk_font_name=font;native.close()
+
     def setUp(self):
         self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
         installed_fixture(self.directory,entries=[('John.1.5','SOURCE VERSE FIVE'),('John.1.6','SOURCE VERSE SIX'),
