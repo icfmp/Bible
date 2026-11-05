@@ -65,6 +65,17 @@ def main():
             dialog=w.open_library('study');wait(lambda:not dialog.busy)
             resource=dialog.study_resources.resource('step-word-study')
             if StepData(a.profile/'study-data').revision is None:
+                if not a.baseline:
+                    # Controlled installer failure exercises the installed UI
+                    # without relying on an intermittent upstream outage.
+                    from unittest.mock import patch
+                    with patch.object(dialog.study_resources,'install',side_effect=OSError('Controlled recovery check')):
+                        dialog.install(resource=resource);wait(lambda:not dialog._transfer_busy)
+                    assert dialog._phase=='error' and dialog.status.get_visible()
+                    assert not dialog.transfer_footer.get_visible()
+                    assert dialog._failed_resource==resource.id
+                    assert StepData(a.profile/'study-data').revision is None
+                    report['library_controlled_failure_actionable']=True;capture('library-controlled-failure')
                 dialog.install(resource=resource)
                 wait(lambda:dialog.progress.get_fraction()>0 or not dialog._transfer_busy)
                 assert dialog._transfer_busy,'Download completed before cancellation observation'
