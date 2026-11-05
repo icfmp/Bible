@@ -220,6 +220,8 @@ def main():
                 buttons=[b for b in words.children() if hasattr(b,'_source_token')];assert buttons
                 refs_in_order=tuple(dict.fromkeys(b._source_token['reference'] for b in buttons));assert len(refs_in_order)>=2
                 native.click(buttons[0]);wait(lambda:not words.pending);assert words.stage=='word';capture('original-word-'+mode)
+                spin(duration=1)
+                capture('original-word-settled-'+mode)
                 assert not any(isinstance(c,Gtk.Expander) and c.get_label()==tr('Source notices') for c in words.children())
                 action=next(b for b in words.children() if isinstance(b,Gtk.Button) and isinstance(b.get_child(),Gtk.Label) and b.get_child().get_text()==tr('Occurrences of this lemma'))
                 native.click(action);wait(lambda:not words.pending);assert words.stage=='occurrences';capture('original-occurrences-'+mode)
