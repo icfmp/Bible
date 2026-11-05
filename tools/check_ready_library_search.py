@@ -80,6 +80,9 @@ def main():
                     shot(prefix+'-header')
                     d=w.open_library('bible');d.set_default_size(width,850)
                     spin(lambda:not d.busy,duration=.3,timeout=90)
+                    d.search.set_text('FreSegond1910');d.filter_resources()
+                    spin(lambda:not d._building_rows,duration=.3)
+                    assert any(r.id=='FreSegond1910' for r in d.filtered_resources)
                     if not args.baseline:assert d._success_toast is None and not d.status.get_visible()
                     shot(prefix+'-library-installed-state')
                     d.close();spin();n.activate(w)
@@ -124,7 +127,7 @@ def main():
                         assert tuple(i.get_offset() for i in b.get_selection_bounds())==selected
                     shot(prefix+'-direct-colours');n.click(actions.close_button);spin()
             for dark in (False,True):
-                style.set(dark=dark,high=False)
+                style.set(dark=dark,high=False);w.appearance.update('mode','night' if dark else 'day')
                 for width,study in ((1200,False),(1200,True),(850,False)):
                     w.set_default_size(width,850);w.study_button.set_active(study)
                     t.state.comparison='KJV';w.sync_comparison();settled();spin(lambda:not w._controls_tick,duration=.4)
