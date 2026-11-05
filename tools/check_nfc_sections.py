@@ -67,7 +67,7 @@ def main():
     def save():(args.output/('nfc-offline.json' if args.offline else 'nfc.json')).write_text(json.dumps(report,indent=2)+'\n')
     def shot(name):
         native.move_at(window,2,2);spin(duration=.1);screen.grab(args.output/(name+'.png'))
-        report['captures'].append(name+'.png')
+        report['captures'].append(dict(file=name+'.png',width=window.get_width(),height=window.get_height()))
     def download(identifier):
         original_preferences=preferences.path.read_bytes()
         from bible.youversion_catalogue import editions
@@ -133,10 +133,17 @@ def main():
                             window.set_default_size(width,850);spin(duration=.3)
                             shot(reference.replace('.','-')+'-'+str(width)+('-dark' if dark else '-light'))
                     window.set_default_size(1200,900)
-                tab.navigate('youversion~YV2367','Sir.43.17');spin()
+                # NBS has no Sirach: first establish the real independent pane
+                # on a chapter present in both resources, then retain it while
+                # the primary opens the deuterocanonical source chapter.
+                tab.navigate('youversion~YV2367','Gen.11.1');spin()
                 tab.state.comparison='youversion~YV104';window.sync_comparison();spin()
                 assert tab._comparison_reader and tab.comparison_text.get_buffer().get_char_count()>100
                 assert not tab._comparison_aligned,'No NFC/NBS alignment has been verified'
+                comparison=tab.comparison_visible_reference()
+                assert comparison and comparison.startswith('Gen.11.')
+                tab.show('Sir.43.17');spin()
+                assert tab._comparison_reader and tab.comparison_visible_reference().startswith('Gen.11.')
                 window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes')
                 spin(lambda:window.study.translation_notes.text.get_buffer().get_char_count()>100,timeout=30)
                 shot('parallel-study'+('-dark' if dark else '-light'))
