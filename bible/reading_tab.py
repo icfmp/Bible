@@ -562,6 +562,11 @@ class ReadingTab(Gtk.Box):
             if selected and getattr(self.reader,'addresses',None):selected.sort(key=self.reader.reference_sort_key)
             if selected:
                 return selected[0], selected[-1]
+        if getattr(self.current,'units',()):
+            # A logical verse can share its first fragment with another verse
+            # without sharing the remainder. An explicit text selection above
+            # covers the selected members; a verse action keeps its own ID.
+            return self.state.reference,self.state.reference
         document=getattr(self,'_document',None)
         span=next((s for s in document.spans if self.state.reference in s.members),None) if document else None
         return (span.members[0],span.members[-1]) if span else (self.state.reference,self.state.reference)
