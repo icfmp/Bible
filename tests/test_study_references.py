@@ -12,6 +12,34 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class StudyReferenceTests(unittest.TestCase):
+    def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self):
+        from dataclasses import replace
+        from bible.ui import Gtk
+        from tools.check_alpha_ui import X11Input
+        from tools.check_client_feedback import Screen
+        self.install();refs=self.show();w=self.window
+        settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+        native=X11Input();screen=Screen(native)
+        try:
+            settings.props.gtk_font_name='Sans 18';w.set_default_size(360,480);spin(duration=.3)
+            w.split.set_show_sidebar(True);spin(duration=.3)
+            resource=replace(w.library.resource('Test'),description='TEST very long translation title for constrained preview layout')
+            with patch.object(w.library,'resource',return_value=resource):
+                popup=w.reference_preview.show(refs.heading,'Test',w.active_tab.reader,'John.3.16',
+                    provenance='OpenBible.info · CC BY 4.0\nhttps://www.openbible.info/labs/cross-references/')
+            spin(duration=.3);self.assertIsNotNone(popup)
+            x,y=screen.point(w,0,0)
+            for widget in (w.reference_preview.open_here,w.reference_preview.open_new):
+                px,py=screen.point(widget,0,0)
+                self.assertGreaterEqual(px,x);self.assertGreaterEqual(py,y)
+                self.assertLessEqual(px+widget.get_width(),x+w.get_width())
+                self.assertLessEqual(py+widget.get_height(),y+w.get_height())
+            outer=popup.get_child().get_vadjustment()
+            self.assertLessEqual(outer.get_upper(),outer.get_page_size()+1)
+            self.assertEqual(w.reference_preview.body.get_buffer().props.text,'DESTINATION SIXTEEN')
+        finally:
+            w.reference_preview.dismiss();settings.props.gtk_font_name=font;native.close()
+
     def setUp(self):
         self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
         installed_fixture(self.directory,entries=[('John.1.5','SOURCE VERSE FIVE'),('John.1.6','SOURCE VERSE SIX'),
@@ -131,3 +159,58 @@ class StudyReferenceTests(unittest.TestCase):
         refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),30)
         self.assertFalse(refs.return_results.get_visible())
         self.assertEqual((tab.state.reference,tab.state.history),before)
+
+    def test_new_context_starts_at_first_card_but_manual_scroll_survives_refresh(self):
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        refs.rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        refs._new_passage=True;refs.populate();spin(duration=.3)
+        adjustment=refs.scroll.get_vadjustment()
+        self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
+        self.assertEqual(adjustment.get_value(),0)
+        adjustment.set_value(250);spin()
+        previous=adjustment.get_value();refs.refresh();spin()
+        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
+        refs.owner.study.tools.set_visible_child_name('notes');spin()
+        refs.owner.study.tools.set_visible_child_name('references');spin()
+        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
+        refs.owner.active_tab.navigate('Test','John.1.6')
+        spin(lambda:not refs.pending,duration=.3)
+        self.assertEqual(adjustment.get_value(),0)
+
+    def test_async_data_refresh_keeps_the_manually_scrolled_list_in_place(self):
+        from threading import Event
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        refs.rows=rows;refs._new_passage=True;refs.populate();spin(duration=.3)
+        adjustment=refs.scroll.get_vadjustment();adjustment.set_value(250);spin()
+        position=adjustment.get_value()
+        release=Event();updated=[Relationship(row.start,row.end,100+i,1) for i,row in enumerate(rows)]
+        def query(*_):
+            release.wait(3)
+            return updated
+        with patch.object(refs.data,'query',side_effect=query):
+            try:
+                refs.invalidate();spin(duration=.1)
+                self.assertTrue(refs.pending)
+                self.assertEqual(refs.model.get_n_items(),len(rows))
+                # GTK's virtual row estimates can move by a couple of pixels
+                # when the loading label changes the viewport allocation.
+                self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
+            finally:release.set()
+            spin(lambda:not refs.pending,duration=.3)
+        self.assertEqual(refs.rows,updated)
+        self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
+
+    def test_recovered_query_starts_at_first_card_after_an_empty_error_state(self):
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        with patch.object(refs.data,'query',side_effect=OSError('Controlled query failure')):
+            refs.invalidate();spin(lambda:not refs.pending)
+        self.assertEqual(refs.model.get_n_items(),0)
+        with patch.object(refs.data,'query',return_value=rows):
+            refs.invalidate();spin(lambda:not refs.pending,duration=.3)
+        self.assertGreater(refs.scroll.get_vadjustment().get_upper(),refs.scroll.get_vadjustment().get_page_size())
+        self.assertEqual(refs.scroll.get_vadjustment().get_value(),0)

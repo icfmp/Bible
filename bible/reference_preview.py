@@ -52,7 +52,7 @@ class ReferencePreview:
     def show(self,anchor,resource,reader,start,end=None,*,source_system='openbible',provenance='',navigation_guard=None,pointing_to=None):
         self.dismiss()
         root=anchor.get_root()
-        if not isinstance(root,Gtk.Window):return
+        if not isinstance(root,Gtk.Window) or not anchor.get_mapped():return
         popover=Gtk.Popover(autohide=False)
         self.popover=popover
         if not hasattr(root,'_reading_popovers'):
@@ -74,6 +74,16 @@ class ReferencePreview:
         popover.connect('closed',lambda *_:self.detach(popover))
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
                     margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
+        width=min(440,max(240,root.get_width()-48))
+        box.set_size_request(width-24,-1)
+        found,bounds=anchor.compute_bounds(root)
+        above=bounds.origin.y if found else 0
+        below=root.get_height()-(bounds.origin.y+bounds.size.height) if found else root.get_height()
+        if pointing_to is not None and found:
+            above=bounds.origin.y+pointing_to.y
+            below=root.get_height()-(bounds.origin.y+pointing_to.y+pointing_to.height)
+        popover.set_position(Gtk.PositionType.TOP if above>below else Gtk.PositionType.BOTTOM)
+        available=min(540,max(80,int(max(above,below))-24))
         header=Gtk.Box(spacing=6)
         title=Gtk.Label(label=tr('Passage preview'),xalign=0,hexpand=True,wrap=True)
         title.add_css_class('heading');header.append(title)
@@ -82,25 +92,38 @@ class ReferencePreview:
         box.append(header)
         try:version_title=self.owner.library.resource(resource).description if resource else tr('No active Bible translation')
         except (OSError,ValueError):version_title=tr('Translation unavailable.')
-        version=Gtk.Label(label=version_title,xalign=0,wrap=True,max_width_chars=36)
+        version=Gtk.Label(label=version_title,xalign=0,ellipsize=Pango.EllipsizeMode.END,
+                          width_chars=1,max_width_chars=36,tooltip_text=version_title)
         version.add_css_class('dim-label');box.append(version)
         body=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                           left_margin=4,right_margin=4,top_margin=4,bottom_margin=4)
         body.add_css_class('study-content')
         body.update_property([Gtk.AccessibleProperty.LABEL],[tr('Local passage text')])
-        scroll=Gtk.ScrolledWindow(min_content_width=240,min_content_height=160,max_content_height=300,
+        scroll=Gtk.ScrolledWindow(min_content_width=240,max_content_height=300,
                                   propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(body);box.append(scroll)
         status=Gtk.Label(xalign=0,wrap=True,max_width_chars=36);status.add_css_class('dim-label');box.append(status)
-        actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-        here=Gtk.Button(label=tr('Open in current tab'));new=Gtk.Button(label=tr('Open in new tab'))
-        actions.append(here);actions.append(new);box.append(actions)
+        actions=Gtk.Box(spacing=6)
+        here=Gtk.Button(label=tr('Open'),tooltip_text=tr('Open in current tab'))
+        new=Gtk.Button(label=tr('New tab'),tooltip_text=tr('Open in new tab'))
+        for button,name in ((here,'Open in current tab'),(new,'Open in new tab')):
+            button.update_property([Gtk.AccessibleProperty.LABEL],[tr(name)])
+            button.get_child().set_wrap(True);button.set_hexpand(True);actions.append(button)
+        needed=sum(button.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for button in (here,new))+6
+        if needed>width-24:
+            # Retain the complete accessible action/tooltip when enlarged UI
+            # text leaves insufficient width for both labels.
+            here.set_icon_name('go-jump-symbolic')
+            needed=sum(button.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for button in (here,new))+6
+        actions.set_orientation(Gtk.Orientation.HORIZONTAL if needed<=width-24 else Gtk.Orientation.VERTICAL)
+        box.append(actions)
         try:
             if reader is None:raise ValueError('No active Bible translation')
             excerpt=local_excerpt(reader,start,end,source_system=source_system)
             title.set_text(passage_title(excerpt.start,excerpt.end,reader.versification))
             body.get_buffer().set_text(excerpt.text);apply_direction(body,reader)
-            status.set_text(tr('Beginning of passage; open it to read more.') if excerpt.more else tr('Text from your installed translation.'))
+            status.set_text(tr('Beginning of passage; open it to read more.') if excerpt.more else '')
+            status.set_visible(excerpt.more)
             target=(resource,excerpt.start)
             self.target=target
         except (ValueError,OSError) as error:
@@ -125,15 +148,22 @@ class ReferencePreview:
             else:navigate()
         here.connect('clicked',lambda *_:open_target(False));new.connect('clicked',lambda *_:open_target(True))
         if provenance:
-            attribution=Gtk.Label(label=provenance,xalign=0,wrap=True,max_width_chars=36)
-            attribution.add_css_class('caption');attribution.set_selectable(True);box.append(attribution)
+            from .source_credit import source_credit
+            box.append(source_credit(provenance))
+        # Reserve controls/credit before giving the remaining height to the
+        # text viewport. Long passages scroll there; actions remain reachable.
+        children=[];child=box.get_first_child()
+        while child:children.append(child);child=child.get_next_sibling()
+        fixed=24+8*(len(children)-1)+sum(child.measure(Gtk.Orientation.VERTICAL,width-40)[1]
+            for child in children if child is not scroll and child.get_visible())
+        scroll.set_max_content_height(max(24,min(300,available-fixed)))
         # Let GTK constrain the entire preview when large UI text leaves too
         # little space above/below a result. A fixed minimum for all controls
         # could otherwise make the native popup close immediately on allocation.
         content=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-            propagate_natural_width=True,min_content_width=240,
-            max_content_width=min(440,max(240,root.get_width()-48)),
-            propagate_natural_height=True,max_content_height=min(540,max(160,root.get_height()-96)))
+            propagate_natural_width=False,min_content_width=width,
+            max_content_width=width,
+            propagate_natural_height=True,max_content_height=available)
         content.set_child(box);popover.set_child(content);popover.set_parent(anchor)
         if pointing_to is not None:popover.set_pointing_to(pointing_to)
         popover.popup()

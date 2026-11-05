@@ -16,8 +16,12 @@ def table(system):
     path = next((p for p in Path(__file__).with_name('versification_data').glob('*.json')
                  if p.stem == system), None)
     if path is None:
-        return None
-    data = json.loads(path.read_text())
+        from .source_versification import reference_convention
+        convention=reference_convention(system)
+        if convention is None:return None
+        data=table(convention)
+        if data is None:return None
+    else:data = json.loads(path.read_text())
     key = Sword.VerseKey()
     key.setVersificationSystem(system)
     if key.getVersificationSystem() != system:

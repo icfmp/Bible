@@ -378,7 +378,10 @@ class ReadingTab(Gtk.Box):
                 except ValueError as error:
                     self.comparison_rows.leave()
                     self._comparison_layout_error=error
-                    self.set_comparison_alignment(error)
+                    # Failure to build shared padded rows is not a failure of
+                    # the current reference mapping. Keep per-reference follow
+                    # active; report only a genuinely unmapped current location.
+                    self.set_comparison_alignment(None)
             else:self.comparison_rows.leave()
             sync = getattr(self, 'comparison_sync', None)
             if not (sync and sync.running and sync.driver == 'comparison'):
@@ -394,7 +397,6 @@ class ReadingTab(Gtk.Box):
             self.comparison_status.set_text(str(error));self.comparison_status.set_visible(True)
 
     def set_comparison_alignment(self, error):
-        error=error or getattr(self,'_comparison_layout_error',None)
         self._comparison_aligned = error is None
         self.comparison_status.set_visible(error is not None)
         self.comparison_status.set_text(tr('Automatic following unavailable. Reading independently.')

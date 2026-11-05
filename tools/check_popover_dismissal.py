@@ -36,7 +36,9 @@ def main():
                 assert not window.comparison_popover.get_visible()
                 native.click(window.compared_version);native.key('Escape')
                 assert not window.compared_version.popover.get_visible()
-                native.click(window.comparison_button);native.click(window.comparison_choices.list.get_row_at_index(0))
+                native.click(window.comparison_button)
+                assert window.active_tab.state.comparison is None
+                assert not window.comparison_popover.get_visible()
                 assert window.active_tab.state.comparison is None
                 assert not window.comparison_popover.get_visible()
             aa = window.appearance

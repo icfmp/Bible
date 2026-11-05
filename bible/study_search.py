@@ -8,6 +8,7 @@ from .reference_data import Relationship
 from .reference_targets import local_excerpt
 from .reference_preview import passage_title
 from .reference_resolution import VersificationMismatch
+from .passage_card import passage_card
 
 
 class SearchItem(GObject.Object):
@@ -63,9 +64,16 @@ class StudySearch(Gtk.Box):
                                             hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.topic_scroll.set_child(self.topics);self.topic_scroll.set_visible(mode=='topics')
         if mode!='topics':self.append(self.topic_scroll)
-        self.back_topics=Gtk.Button(label=tr('All themes'),halign=Gtk.Align.START,visible=False)
-        self.back_topics.add_css_class('flat');self.back_topics.connect('clicked',self.show_topics);self.append(self.back_topics)
-        self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.heading.set_visible(mode!='topics');self.append(self.heading)
+        self.back_topics=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('All themes'),halign=Gtk.Align.START,visible=False)
+        self.back_topics.update_property([Gtk.AccessibleProperty.LABEL],[tr('All themes')])
+        self.back_topics.add_css_class('flat');self.back_topics.connect('clicked',self.show_topics)
+        self.heading=Gtk.Label(xalign=0,wrap=True,width_chars=1,hexpand=True);self.heading.add_css_class('heading');self.heading.set_visible(mode!='topics')
+        self.topic_count=Gtk.Label(xalign=1);self.topic_count.add_css_class('dim-label')
+        if mode=='topics':self.heading.set_wrap(False);self.heading.set_ellipsize(Pango.EllipsizeMode.END)
+        self.topic_header=Gtk.Box(spacing=8,visible=mode!='topics')
+        self.topic_header.append(self.back_topics);self.topic_header.append(self.heading)
+        if mode=='topics':self.topic_header.append(self.topic_count)
+        self.append(self.topic_header)
         self.model=Gio.ListStore.new(SearchItem)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.result_setup);factory.connect('bind',self.result_bind)
         self.results=Gtk.ListView(model=Gtk.NoSelection(model=self.model),factory=factory)
@@ -195,7 +203,7 @@ class StudySearch(Gtk.Box):
 
     def show_topics(self,*_):
         if self.mode!='topics':return
-        self.topic_pages.set_visible_child_name('topics');self.back_topics.set_visible(False);self.heading.set_visible(False)
+        self.topic_pages.set_visible_child_name('topics');self.back_topics.set_visible(False);self.heading.set_visible(False);self.topic_header.set_visible(False)
         if _:self._topic_filter=None;self.changed()
 
     def open_library(self,*_):
@@ -244,7 +252,11 @@ class StudySearch(Gtk.Box):
                     self.model.splice(0,self.model.get_n_items(),[SearchItem((row,generation)) for row in self.rows])
                 self.more.set_visible(self.mode=='text' and len(self.rows)<total)
                 count=tr('{count} passage' if total==1 else '{count} passages').format(count=total) if self.mode=='topics' else tr('{count} result' if total==1 else '{count} results').format(count=total)
-                self.heading.set_text(caption+' · '+count if self.mode=='topics' else count)
+                self.heading.set_text(caption if self.mode=='topics' else count)
+                if self.mode=='topics':self.heading.set_tooltip_text(caption)
+                if self.mode=='topics':
+                    self.topic_count.set_text(count)
+                    self.results.scroll_to(0,Gtk.ListScrollFlags.NONE,None)
                 self.status.set_text(tr('No matching passages.') if not self.rows else '')
                 self.status.set_visible(not self.rows)
             except Exception as error:
@@ -260,7 +272,7 @@ class StudySearch(Gtk.Box):
         if self.data.revision is None:self.status.set_text(tr('Download topic data once to explore it offline.'));return
         def operation():
             rows=self.data.query(entry[0]);return rows,len(rows)
-        self.topic_pages.set_visible_child_name('results');self.back_topics.set_visible(True);self.heading.set_visible(True)
+        self.topic_pages.set_visible_child_name('results');self.back_topics.set_visible(True);self.heading.set_visible(True);self.topic_header.set_visible(True);self.topic_count.set_text('')
         self.launch(operation,title(entry),'openbible')
 
     def run_text(self,*_,append=False):
@@ -306,12 +318,15 @@ class StudySearch(Gtk.Box):
         self.launch(operation,self._lemma_caption,'NRSV',append=append)
 
     def result_setup(self,_,item):
-        button=Gtk.Button();button.add_css_class('flat')
-        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        for _ in range(3):content.append(Gtk.Label(xalign=0,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
-        heading=content.get_first_child();heading.add_css_class('heading');heading.add_css_class('accent')
-        excerpt=heading.get_next_sibling();excerpt.set_lines(3);excerpt.set_ellipsize(Pango.EllipsizeMode.END)
-        score=excerpt.get_next_sibling();score.add_css_class('caption')
+        if self.mode=='topics':
+            button=passage_card();content=button.get_child()
+        else:
+            button=Gtk.Button();button.add_css_class('flat')
+            content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+            for _ in range(2):content.append(Gtk.Label(xalign=0,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
+            heading=content.get_first_child();heading.add_css_class('heading');heading.add_css_class('accent')
+            excerpt=heading.get_next_sibling();excerpt.set_lines(3);excerpt.set_ellipsize(Pango.EllipsizeMode.END)
+        score=Gtk.Label(xalign=0,wrap=True);score.add_css_class('caption');content.append(score)
         button.set_child(content);button.connect('clicked',self.preview);item.set_child(button)
 
     def result_bind(self,_,item):

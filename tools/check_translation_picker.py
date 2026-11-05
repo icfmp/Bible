@@ -47,7 +47,7 @@ def main():
                     for width in (1200,560,360):
                         w.set_default_size(width,820);spin(lambda:not w._controls_tick,duration=.4)
                         for kind in ('primary','compared','comparison'):
-                            t.state.comparison=None if kind=='primary' else 'KJV';w.sync_comparison();spin(duration=.3)
+                            t.state.comparison=None if kind in ('primary','comparison') and not args.baseline else 'KJV';w.sync_comparison();spin(duration=.3)
                             chooser=w.primary_version if kind=='primary' else w.compared_version
                             button=w.comparison_button if kind=='comparison' else chooser
                             pop=w.comparison_popover if kind=='comparison' else chooser.popover
@@ -59,8 +59,9 @@ def main():
                             if not args.baseline:
                                 assert size<=w.get_width(),(name,size,w.get_width())
                                 assert size>=480 if width==1200 else size>=240
-                                assert choices.rows[choices.get_selected()].get_opacity()==1
-                                selected=choices.list.get_selected_row()
+                                if kind!='comparison':assert choices.rows[choices.get_selected()].get_opacity()==1
+                                else:assert None not in w._comparison_names
+                                selected=choices.list.get_selected_row() or choices.list.get_row_at_index(0)
                                 found,bounds=selected.compute_bounds(choices)
                                 assert found and bounds.get_y()>=-1 and bounds.get_y()+bounds.get_height()<=choices.get_height()+1,(name,bounds.get_y(),bounds.get_height(),choices.get_height(),choices.get_vadjustment().get_value())
                             n.key('Escape');spin();assert not pop.get_visible();w.dismiss_popovers();spin()

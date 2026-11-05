@@ -3,7 +3,7 @@ from gi.repository import Adw,Gtk,Gdk,GLib,Pango
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
 from .step_data import StepData
-from .step_sources import CORPORA,NOTICE,DOWNLOAD_BYTES
+from .step_sources import DOWNLOAD_BYTES
 from .word_metadata import selected_metadata,source_verse_references
 from .reference_targets import local_excerpt
 from .reference_preview import passage_title
@@ -20,20 +20,33 @@ class WordStudy(Gtk.Box):
         self.back=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')]);self.back.connect('clicked',lambda *_:self.leave())
         row.pack_end(self.back);heading=Gtk.Label(label=tr('Original text'));heading.add_css_class('heading');row.set_title_widget(heading)
+        self.go_back=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back'),visible=False)
+        self.go_back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back')])
+        self.go_back.connect('clicked',self.previous);row.pack_start(self.go_back)
         self.append(row)
         self.context_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             margin_start=16,margin_end=16,margin_top=8,margin_bottom=8)
         self.context_label.add_css_class('dim-label');self.append(self.context_label)
         self.selection_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-            lines=3,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
+            lines=2,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
         self.append(self.selection_label)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12,margin_bottom=16)
         self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.scroll.set_child(self.content);self.append(self.scroll)
+        from .source_credit import source_credit
+        from .step_sources import SOURCE_URL
+        credit=source_credit('STEPBible / Tyndale House · CC BY 4.0\n'+SOURCE_URL)
+        credit.set_margin_start(16);credit.set_margin_end(16);credit.set_margin_bottom(12);self.append(credit)
 
     def label(self,value,heading=False):
         label=Gtk.Label(label=value,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,selectable=True)
         if heading:label.add_css_class('heading')
+        return label
+
+    def script_label(self,value,language):
+        label=self.label(value,True)
+        if language in ('hbo','arc'):
+            label.set_direction(Gtk.TextDirection.RTL);label.set_xalign(1)
         return label
 
     def remove_content(self,child):
@@ -87,11 +100,15 @@ class WordStudy(Gtk.Box):
         self.context=(target,self.owner.active_tab,self.owner.active_tab.state.reference)
         resource=self.owner.library.resource(target.source.resource)
         self.context_label.set_text(passage_title(target.references[0],target.references[-1],target.source.reader.versification)+' — '+resource.description)
-        self.selection_label.set_text(target.text if target.native_selection else '')
+        # This is a compact context excerpt, not the original-word display.
+        # Explicit translation line breaks otherwise each get their own line
+        # limit and can consume the entire small dialog before any source word.
+        self.selection_label.set_text(' '.join(target.text.split()) if target.native_selection else '')
         self.selection_label.set_visible(target.native_selection)
         self.owner.passage_actions.dismiss()
         self.dialog=Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
-            destroy_with_parent=True,default_width=600,default_height=680)
+            destroy_with_parent=True,default_width=min(640,max(320,self.owner.get_width()-48)),
+            default_height=min(620,max(280,self.owner.get_height()-48)))
         self.dialog.add_css_class(self.owner.reading_style.scope+'-window')
         self.dialog.set_content(self)
         self.dialog.connect('close-request',self.dialog_closed)
@@ -115,17 +132,12 @@ class WordStudy(Gtk.Box):
 
     def begin(self):
         self.clear()
+        self.stage='passage';self.go_back.set_visible(False)
         if self.data.revision is None:
             self.content.append(self.label(tr('Download study data once to use word lookup offline.')))
             self.button(tr('Download study data ({size} MB)').format(size=f'{DOWNLOAD_BYTES/1000000:.1f}'),self.download)
             return
-        target=self.target
-        if self.lexical_metadata:
-            self.content.append(self.label(tr('Strong lexical lookup. Exact STEP token or extended-sense alignment is not established.')))
-            identifiers=self.lexical_metadata['identifiers']
-            self.request(lambda:[e for identifier in identifiers for e in self.data.candidates(identifier)],self.lexical_choices)
-            self.button(tr('Explore the original words of this verse'),self.verse_choices)
-        else:self.verse_choices()
+        self.verse_choices()
 
     def download(self):
         from .study_resources import STEP_RESOURCE_ID
@@ -159,37 +171,74 @@ class WordStudy(Gtk.Box):
 
     def verse_choices(self):
         self.generation+=1;self.clear()
-        self.content.append(self.label(tr('These are words of the identified source corpus, not a claimed translation of the selected word.')))
-        if len(self.target.references)==1:self.explore(self.target.references[0]);return
-        for ref in self.target.references:
-            self.button(passage_title(ref,system=self.target.source.reader.versification),lambda r=ref:self.explore(r))
+        self.stage='passage';self.go_back.set_visible(False)
+        self.content.append(self.label(tr('Choose an original word. Word-for-word alignment with the selected translation is not established.')))
+        references=self.target.references
+        self._verse_offset=0
+        self.passage_words(references)
 
     def explore(self,reference):
-        source=self.target.source
-        try:
-            refs=source_verse_references(reference,source.reader)
-        except ValueError:
-            self.content.append(self.label(tr('No verified alignment for this passage.')));return
-        self.clear();self.content.append(self.label(tr('These are words of the identified source corpus, not a claimed translation of the selected word.')))
-        corpus='tagnt-na27' if source.reader.key(reference).getTestament() in (2,'\x02') else 'tahot-main'
-        self.content.append(self.label(CORPORA[corpus]))
-        def operation():return [(ref,self.data.verse(corpus,ref)) for ref in refs]
+        self.generation+=1;self.clear();self.stage='passage';self.go_back.set_visible(False)
+        self._verse_offset=0;self.passage_words((reference,))
+
+    def passage_words(self,references):
+        source=self.target.source;batch=references[self._verse_offset:self._verse_offset+5]
+        def operation():
+            rows=[]
+            for reference in batch:
+                try:refs=source_verse_references(reference,source.reader)
+                except ValueError:rows.append((reference,None,()));continue
+                corpus='tagnt-na27' if source.reader.key(reference).getTestament() in (2,'\x02') else 'tahot-main'
+                rows.append((reference,corpus,tuple((ref,self.data.verse(corpus,ref)) for ref in refs)))
+            return rows
         def show(rows):
-            found=False
-            for ref,tokens in rows:
-                self.content.append(self.label(passage_title(ref,system='NRSV'),True))
-                for token in tokens:
-                    found=True
-                    button=self.button(token['form']+'\n'+token['transliteration']+' · '+token['gloss'],lambda t=token:self.token_detail(corpus,t))
-                    if token['language'] in ('hbo','arc'):button.get_child().set_direction(Gtk.TextDirection.RTL)
-            if not found:self.content.append(self.label(tr('No words supplied for this mapped source verse.')))
+            for reference,corpus,verses in rows:
+                self.content.append(self.label(passage_title(reference,system=source.reader.versification),True))
+                if corpus is None:
+                    self.content.append(self.label(tr('No verified alignment for this passage.')));continue
+                self.content.append(self.label(tr('Greek original · TAGNT' if corpus=='tagnt-na27' else 'Hebrew / Aramaic original · TAHOT')))
+                found=False
+                for ref,tokens in verses:
+                    if len(verses)>1 or ref!=reference:
+                        self.content.append(self.label(tr('Source reference: {reference}').format(reference=passage_title(ref,system='NRSV'))))
+                    flow=Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,min_children_per_line=1,
+                                     max_children_per_line=30,column_spacing=6,row_spacing=6)
+                    if corpus=='tahot-main':flow.set_direction(Gtk.TextDirection.RTL)
+                    self.content.append(flow)
+                    for token in tokens:
+                        found=True
+                        button=Gtk.Button(child=Gtk.Label(label=token['form'],wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR))
+                        button._source_token=token;button._source_corpus=corpus
+                        button.connect('clicked',lambda _,c=corpus,t=token:self.token_detail(c,t))
+                        flow.append(button)
+                        if token['source_key']==getattr(self,'passage_anchor',None):button.grab_focus()
+                if not found:self.content.append(self.label(tr('No words supplied for this mapped source verse.')))
+            self._verse_offset+=len(batch)
+            if self._verse_offset<len(references):
+                more=self.button(tr('More verses'),lambda:more_clicked())
+                def more_clicked():
+                    self.remove_content(more);self.passage_words(references)
+            if self.lexical_metadata:
+                self.button(tr('Lexical entries for the selected translation word'),self.selected_lexemes)
         self.request(operation,show)
+
+    def selected_lexemes(self):
+        self.clear();self.stage='word';self.go_back.set_visible(True)
+        self.content.append(self.label(tr('Strong lexical lookup. Exact STEP token or extended-sense alignment is not established.')))
+        identifiers=self.lexical_metadata['identifiers']
+        self.request(lambda:[e for identifier in identifiers for e in self.data.candidates(identifier)],self.lexical_choices)
+
+    def previous(self,*_):
+        if self.stage=='occurrences':self.detail(self.entry,self.corpus,getattr(self,'token',None))
+        else:self.verse_choices()
 
     def token_detail(self,corpus,token):
         tags=[row[0] for row in token.get('lexical',[])] if corpus=='tahot-main' else token['tags']
         tags=list(dict.fromkeys(tags))
-        self.clear();self.content.append(self.label(token['form'],True))
+        self.passage_anchor=token['source_key']
+        self.clear();self.stage='word';self.go_back.set_visible(True);self.content.append(self.script_label(token['form'],token['language']))
         self.content.append(self.label(token['transliteration']+' · '+token['gloss']))
+        self.content.append(self.label(tr('English lexical content')))
         self.token=token;self.corpus=corpus
         self.request(lambda:[entry for tag in tags if (entry:=self.data.lookup(tag))],lambda entries:self.token_choices(entries,corpus,token))
 
@@ -200,12 +249,13 @@ class WordStudy(Gtk.Box):
         else:self.content.append(self.label(tr('No lexical entry supplied for these identifiers.')))
 
     def detail(self,entry,corpus=None,token=None):
-        self.clear();self.entry=entry
+        self.clear();self.stage='word';self.go_back.set_visible(True);self.entry=entry;self.token=token
         corpus=corpus or ('tagnt-na27' if entry['id'].startswith('G') else 'tahot-main')
+        self.corpus=corpus
         if token:
-            self.content.append(self.label(token['form'],True))
+            self.content.append(self.script_label(token['form'],token['language']))
             if token['transliteration']:self.content.append(self.label(token['transliteration']))
-        self.content.append(self.label(entry['lemma'],True))
+        self.content.append(self.label(tr('Lemma')+': '+(entry['lemma'] or entry['id']),True))
         if entry.get('transliteration'):self.content.append(self.label(entry['transliteration']))
         self.content.append(self.label(tr({'grc':'Greek','hbo':'Hebrew','arc':'Aramaic'}.get(token['language'] if token else entry['language'],'Hebrew'))+' · '+tr('English lexical content')))
         # Basic dictionary categories are defined by the TBESG file header.
@@ -222,52 +272,13 @@ class WordStudy(Gtk.Box):
         self.content.append(self.label(entry['gloss'][:800]))
         self.content.append(self.label(tr('Dictionary meanings describe possible senses, not all meanings intended in this passage.')))
         from .resource_details import plain
-        self.content.append(self.label('STEPBible / Tyndale House · CC BY 4.0'))
-        self.content.append(self.label(CORPORA[corpus]))
-        counts=self.label(tr('Loading occurrences…'));self.content.append(counts)
-        occurrence_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-        self.content.append(occurrence_rows)
-        excluded=set()
-        for reference in self.target.references:
-            try:
-                excluded.update(source_verse_references(reference,self.target.source.reader))
-            except ValueError:pass
-        def show(result):
-            counts.set_text(tr('{tokens} source tokens · {verses} distinct verses').format(**result))
-            for ref in [r for r in result['references'] if r not in excluded][:4]:
-                try:
-                    excerpt=local_excerpt(self.target.source.reader,ref,source_system='NRSV',limit=1)
-                    caption=passage_title(excerpt.start,excerpt.end,self.target.source.reader.versification)+'\n'+excerpt.text
-                except ValueError:caption=passage_title(ref,system='NRSV')+'\n'+tr('This passage is unavailable in the selected translation.')
-                button=self.button(caption,lambda r=ref:self.preview(r),parent=occurrence_rows)
-                button.add_css_class('flat')
-                content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-                title,_,body=caption.partition('\n')
-                title_label=self.label(title,True);title_label.set_selectable(False);title_label.add_css_class('accent');content.append(title_label)
-                body_label=self.label(body);body_label.set_selectable(False);body_label.set_lines(2);body_label.set_ellipsize(Pango.EllipsizeMode.END)
-                attributes=Pango.AttrList();attributes.insert(Pango.attr_weight_new(Pango.Weight.NORMAL));body_label.set_attributes(attributes)
-                content.append(body_label);button.set_child(content)
-                button._word_reference=ref
-            self.button(tr('View all occurrences'),lambda:self.all_occurrences(corpus,entry),parent=occurrence_rows)
-        self.request(lambda:self.data.occurrences(corpus,entry['id'],limit=min(200,4+len(excluded))),show)
+        self.content.append(self.label(entry['id']))
+        self.button(tr('Occurrences of this lemma'),lambda:self.all_occurrences(corpus,entry))
         details=Gtk.Expander(label=tr('Details'))
         text=entry['id']+'\n'+(entry.get('category') or '')+'\n'+(token['morphology'] if token else '')
         if self.lexical_metadata:text+='\n'+self.lexical_metadata['source_lemma']+'\n'+self.lexical_metadata['source_morphology']
-        text+='\n'+plain(entry.get('definition',''))+'\n'+NOTICE
+        text+='\n'+plain(entry.get('definition',''))
         details.set_child(self.label(text));self.content.append(details)
-        notices=Gtk.Expander(label=tr('Source notices'))
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);notices.set_child(box)
-        self.content.append(notices)
-        def load_notices(expander,*_):
-            if expander.get_expanded() and not box.get_first_child():
-                try:
-                    headers=self.data.metadata().get('headers',{})
-                    for name,header in headers.items():
-                        inner=Gtk.Expander(label=name);inner.set_child(self.label(header));box.append(inner)
-                    if not headers:box.append(self.label(NOTICE))
-                except (OSError,ValueError):box.append(self.label(NOTICE))
-        notices.connect('notify::expanded',load_notices)
-        self.button(tr('Explore the original words of this verse'),self.verse_choices)
 
     def preview(self,reference):
         source=self.target.source
@@ -286,11 +297,31 @@ class WordStudy(Gtk.Box):
         yield from walk(self.content)
 
     def all_occurrences(self,corpus,entry):
-        resource=self.target.source.resource;self.leave(restore_focus=False)
-        navigation=self.owner.search_popover
-        self.owner.show_search('text')
-        navigation.text_search.show_lemma(corpus,entry['id'],entry['lemma']+' · '+tr('Lemma occurrences'),resource)
-        navigation.text_search.entry.grab_focus()
+        self.clear();self.stage='occurrences';self.go_back.set_visible(True)
+        self.content.append(self.label((entry['lemma'] or entry['id'])+' — '+tr('Lemma occurrences'),True))
+        self.content.append(self.label(tr('Counts refer to this source corpus; a word can have different meanings in context.')))
+        self.occurrence_offset=0
+        self.occurrence_rows(corpus,entry)
+
+    def occurrence_rows(self,corpus,entry):
+        def show(result):
+            if not self.occurrence_offset:
+                self.content.append(self.label(tr('{tokens} source tokens · {verses} distinct verses').format(**result)))
+            from .passage_card import passage_card
+            for ref in result['references']:
+                button=passage_card();heading,body=button._reference_labels
+                try:
+                    excerpt=local_excerpt(self.target.source.reader,ref,source_system='NRSV',limit=1)
+                    heading.set_text(passage_title(excerpt.start,excerpt.end,self.target.source.reader.versification));body.set_text(excerpt.text)
+                except ValueError:
+                    heading.set_text(passage_title(ref,system='NRSV'));body.set_text(tr('This passage is unavailable in the selected translation.'))
+                button._word_reference=ref;button.connect('clicked',lambda _,r=ref:self.preview(r));self.content.append(button)
+            self.occurrence_offset+=len(result['references'])
+            if self.occurrence_offset<result['addresses']:
+                more=self.button(tr('More results'),lambda:more_clicked())
+                def more_clicked():
+                    self.remove_content(more);self.occurrence_rows(corpus,entry)
+        self.request(lambda:self.data.occurrences(corpus,entry['id'],offset=self.occurrence_offset,limit=30),show)
 
     def leave(self,restore_focus=True):
         if self.dialog:self.restore_focus=restore_focus;self.dialog.close()

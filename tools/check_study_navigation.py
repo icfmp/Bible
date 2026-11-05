@@ -92,10 +92,24 @@ def main():
         assert words.entry['id']=='H1254A'
         counts=data.occurrences('tahot-main','H1254A');assert (counts['tokens'],counts['verses'])==(53,45)
         greek=data.occurrences('tagnt-na27','G3056');assert (greek['tokens'],greek['verses'])==(330,317)
-        words.all_occurrences('tahot-main',words.entry);search=window.search_popover.text_search;wait(lambda:not search.pending)
+        words.all_occurrences('tahot-main',words.entry);wait(lambda:not words.pending)
+        assert words.stage=='occurrences' and words.dialog.get_visible()
+        samples=[c._word_reference for c in words.children() if hasattr(c,'_word_reference')]
+        assert len(samples)==min(30,counts['addresses'])
+        if len(samples)<counts['addresses']:
+            words.occurrence_rows('tahot-main',words.entry);wait(lambda:not words.pending)
+            samples=[c._word_reference for c in words.children() if hasattr(c,'_word_reference')]
+        assert len(samples)==counts['addresses'] and len(set(samples))==len(samples)
+        words.go_back.emit('clicked');assert words.stage=='word'
+        words.go_back.emit('clicked');wait(lambda:not words.pending);assert words.stage=='passage'
+        words.leave()
+        # The existing lexical search remains available independently of the
+        # dialog's newly requested passage -> word -> occurrences navigation.
+        window.show_search('text');search=window.search_popover.text_search
+        search.show_lemma('tahot-main','H1254A','TEST lexical search','FreSegond1910');wait(lambda:not search.pending)
         assert search.total==counts['addresses'] and search.lemma_query==('tahot-main','H1254A')
-        window.search_popover.popdown();words.leave()
-        report['real_step']=dict(greek_tokens=greek['tokens'],greek_verses=greek['verses'],hebrew_tokens=counts['tokens'],hebrew_verses=counts['verses'],source_words=len(tokens),shared_occurrence_search=True)
+        window.search_popover.popdown()
+        report['real_step']=dict(greek_tokens=greek['tokens'],greek_verses=greek['verses'],hebrew_tokens=counts['tokens'],hebrew_verses=counts['verses'],source_words=len(tokens),dialog_occurrences=len(samples),shared_occurrence_search=True)
         assert [asdict(n) for n in window.notes_store.all()]==notes_before
         assert window.notes_store.db.execute('PRAGMA user_version').fetchone()[0]==schema
         assert hashes()==resources_before
