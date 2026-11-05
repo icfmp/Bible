@@ -9,5 +9,6 @@
   "source_archive": "Bible-7c76aaaa14ee605d71c45ec3e634ed14c787678c-sources.tar.gz",
   "source_sha256": "c6a1e9f3bec569f8938aa3542d07c293fa1d2a7277a80e9bf69d5edba7aaec68",
   "bundle_sha256": "04f1929ca7a8569fc5cbca3c708c95c1f2ee2be83256929b7545a3d809b684f5",
-  "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-7c76aaaa14ee605d71c45ec3e634ed14c787678c-sources.tar.gz"
+  "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-7c76aaaa14ee605d71c45ec3e634ed14c787678c-sources.tar.gz",
+  "app_ui_sha256": "09bbca63a9310b370ef1d08a79dc44c5a5a8e27cd68569b3d9d428414adf20d6"
 }
