@@ -25,6 +25,12 @@ separately in #185 and is not implemented in this batch.
   first allocation also produced invalid INT_MIN-sized requests; an isolated
   probe confirmed their absence when that early call was suppressed. The
   corrected lifecycle uses one guarded idle request, with no polling loop.
+  A delayed same-passage data refresh also emptied the model, leaving the
+  footer as anchor: a native regression moved from 250 to 2,501 px. Keeping
+  existing rows until the replacement arrives preserves GTK's anchor without
+  saving/restoring pixel positions. Missing/failed data still clears the list.
+  Native loading-label allocation may adjust row estimates by a few pixels;
+  broader GTK 4.18 tests still emit some transient allocation warnings.
 - Theme passages reuse the References card builder. Back, topic and actual
   count share a row; the native back icon retains an accessible All themes
   name. The list has its own viewport above the source control so its final
@@ -40,6 +46,10 @@ separately in #185 and is not implemented in this batch.
   The parser now classifies complete numeric token keys and lexical-ID fields.
   TAHOT's documented gloss/sub-meaning/person-address syntax is decoded on read
   for existing indexes; there is no database migration or required redownload.
+  The selected-translation context is a compact two-line excerpt with display
+  whitespace collapsed; full source text and the immutable selection remain
+  unchanged. This leaves original words visible immediately in a 360 × 480
+  dialog rather than consuming its height with explicit paragraph breaks.
 - The contextual comparison action lists actual translations/download-more
   when off, and exits directly with a crossed-out symbolic icon when on.
   The secondary pane's selector continues to change its translation. Tab and

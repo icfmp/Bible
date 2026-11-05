@@ -114,11 +114,16 @@ class StudyReferences(Gtk.Box):
         self._new_passage=self.context!=(tab.state.resource,reader,start,end)
         self.context=(tab.state.resource,reader,start,end)
         self.rows=[];self.chapter_cache={};self.row_cache={};self.all_results=False;self.pending=False
-        self.clear_rows();self.heading.set_text(passage_title(start,end,reader.versification))
+        # Keep the visible list while refreshing the same passage. Emptying it
+        # first makes GTK anchor the footer and jump down when results arrive.
+        if self._new_passage:self.clear_rows()
+        self.heading.set_text(passage_title(start,end,reader.versification))
         if self.data.revision is None:
+            self.clear_rows()
             self.message(tr('Download OpenBible reference data once to use it offline.'),download=True);return
         try:origins=source_references(reader,start,end)
         except ValueError as error:
+            self.clear_rows()
             self.message(tr('No verified alignment for this passage.'));self.status.set_tooltip_text(str(error));return
         self.pending=True;self.message(tr('Loading references…'))
         revision=self.data.revision
@@ -129,6 +134,7 @@ class StudyReferences(Gtk.Box):
             if revision!=self.data.revision:self.invalidate();return False
             try:self.rows=future.result()
             except Exception as error:
+                self.clear_rows()
                 self.message(tr('Reference data is unavailable. Download it again from Library.'),download=True)
                 self.status.set_tooltip_text(str(error));return False
             self.message(tr('No cross-references for this passage.') if not self.rows else '')
