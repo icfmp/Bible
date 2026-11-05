@@ -189,6 +189,10 @@ def main():
             words=w.study.words;words.open(value);wait(lambda:not words.pending);capture('original-passage-'+mode)
             if not a.baseline:
                 words.dialog.set_default_size(360,480);spin(duration=.3);capture('original-passage-small-'+mode)
+                tokens=[b for b in words.children() if hasattr(b,'_source_token')]
+                assert tokens
+                assert any((bounds:=button.compute_bounds(words.scroll))[0] and bounds[1].get_y()>=0
+                    and bounds[1].get_y()+bounds[1].get_height()<=words.scroll.get_height() for button in tokens), 'No original word visible in small dialog'
                 words.dialog.set_default_size(640,620);spin(duration=.3)
                 buttons=[b for b in words.children() if hasattr(b,'_source_token')];assert buttons
                 refs_in_order=tuple(dict.fromkeys(b._source_token['reference'] for b in buttons));assert len(refs_in_order)>=2
