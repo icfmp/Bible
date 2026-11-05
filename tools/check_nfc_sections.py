@@ -126,7 +126,14 @@ def main():
                     assert tab.navigate('youversion~YV2367',reference);spin()
                     assert tab.reader.key(tab.state.reference).getOSISRef()==reference
                     assert tab._document.spans and tab.text.get_buffer().get_char_count()>100
-                    if tab.current.units:assert tab.selected_passage()==(reference,reference)
+                    if tab.current.units:
+                        assert tab.selected_passage()==(reference,reference)
+                        window.lookup_action('copy-passage').activate(None)
+                        copied=[]
+                        window.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
+                        spin(lambda:bool(copied))
+                        from bible.youversion_content import normalized
+                        assert normalized(copied[0])==normalized(tab.current.text_by_reference[reference]),'Whole-verse clipboard differs'
                     record=dict(reference=reference,chapter=tab.current.reference,dark=dark,units=len(tab.current.display_units),labels=[s.number for s in tab._document.spans] if tab.current.units else None)
                     report['reading'].append(record)
                     if reference in ('Sir.1_1.1','Sir.43.17','Sir.44.23'):
