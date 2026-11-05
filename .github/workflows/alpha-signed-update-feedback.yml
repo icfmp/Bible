@@ -7,7 +7,7 @@ on:
       candidate_pr:
         description: Exact reviewed pull request number
         required: true
-        default: '174'
+        default: '178'
       candidate_head:
         description: Exact reviewed application PR head to update to
         required: true
@@ -39,8 +39,8 @@ jobs:
           python3 - <<'PY'
           import json,urllib.request
           from pathlib import Path
-          x=json.loads(Path('tools/fixtures/alpha21-provenance.json').read_text())
-          assert x['source_commit']=='d7290ee50cb61c5e9e79b20d7a80f4768327272f',x
+          x=json.loads(Path('tools/fixtures/alpha22-provenance.json').read_text())
+          assert x['source_commit']=='583b734a3f65385e7aedc469729753bbd5676e19',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
@@ -83,7 +83,7 @@ jobs:
           for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
               if name not in library.installed():library.install(next(r for r in resources if r.name==name))
           from bible.youversion_install import acknowledgement,fetch_resource
-          for edition in (21,93):
+          for edition in (21,93,104):
               item=fetch_resource(edition)
               if item.id not in library.installed():library.install(item,permission=acknowledgement(item))
           notes=NoteStore(root/'notes.sqlite3')
