@@ -38,10 +38,10 @@ def main():
     from bible.i18n import tr
     from tests.test_ui import spin
     from tools.check_alpha_ui import X11Input
-    from PIL import ImageGrab
+    from tools.check_client_feedback import Screen
     if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
     app=Application();app.register();w=Window(app,library);w.set_default_size(1200,900);w.present()
-    native=X11Input();Gtk.Settings.get_default().props.gtk_enable_animations=False
+    native=X11Input();screen=Screen(native);Gtk.Settings.get_default().props.gtk_enable_animations=False
     report=dict(app_import=inspect.getfile(Window),ui_sha256=hashlib.sha256(Path(inspect.getfile(Window)).read_bytes()).hexdigest(),
         gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],renderer=type(w.get_renderer()).__name__,
         baseline=a.baseline,offline=a.offline,cases=[])
@@ -51,7 +51,7 @@ def main():
     def save():(a.output/('followups-offline.json' if a.offline else 'followups.json')).write_text(json.dumps(report,indent=2)+'\n')
     def settled():spin(lambda:not w.active_tab._restoring_scroll and not getattr(w.active_tab,'_comparison_positioning',False),duration=.25,timeout=60)
     def capture(name):
-        native.move_at(w,2,2);spin(duration=.2);ImageGrab.grab().save(a.output/(('offline-' if a.offline else '')+name+'.png'))
+        native.move_at(w,2,2);spin(duration=.2);screen.grab(a.output/(('offline-' if a.offline else '')+name+'.png'))
     def wait(predicate,seconds=180):
         spin(predicate,duration=.1,timeout=seconds)
     def walk(widget):

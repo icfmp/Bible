@@ -17,7 +17,7 @@ def reference_convention(system):
     return _reference_conventions.get(system)
 
 
-def register_convention(path,receipt):
+def declared_convention(path,receipt):
     convention=SOURCE_CONVENTIONS.get(receipt.get('source_numbering'))
     if (not convention or receipt.get('source_addresses_sha256')
             or receipt.get('all_text_notes_headings_verified') is not True):return
@@ -30,8 +30,16 @@ def register_convention(path,receipt):
     from .versification_mapping import table
     declared=table(convention)
     if declared is None or canon!=declared['canon']:return
+    return convention
+
+
+def register_convention(path,receipt):
+    system=path.read_text('ascii').splitlines()[0].removeprefix('BIBLE-VRS-1 ')
+    convention=declared_convention(path,receipt)
     if _reference_conventions.get(system)==convention:return
-    _reference_conventions[system]=convention
+    if convention:_reference_conventions[system]=convention
+    else:_reference_conventions.pop(system,None)
+    from .versification_mapping import table
     table.cache_clear()
 
 

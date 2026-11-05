@@ -41,3 +41,10 @@ class DeclaredConventionTests(unittest.TestCase):
             system=self.register(number,**options)
             self.assertIsNone(reference_convention(system));self.assertIsNone(table(system))
             with self.assertRaises(VersificationMismatch):resolve('Gen.11.3',system,Canon('KJV'),require_entry=False)
+
+    def test_changed_source_declaration_revokes_a_previously_cached_capability(self):
+        system=self.register(900189)
+        self.assertIsNotNone(table(system))
+        self.assertEqual(self.register(900189,code='unknown'),system)
+        self.assertIsNone(reference_convention(system));self.assertIsNone(table(system))
+        with self.assertRaises(VersificationMismatch):resolve('Gen.11.3',system,Canon('KJV'),require_entry=False)
