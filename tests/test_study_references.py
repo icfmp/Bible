@@ -177,3 +177,28 @@ class StudyReferenceTests(unittest.TestCase):
         refs.owner.active_tab.navigate('Test','John.1.6')
         spin(lambda:not refs.pending,duration=.3)
         self.assertEqual(adjustment.get_value(),0)
+
+    def test_async_data_refresh_keeps_the_manually_scrolled_list_in_place(self):
+        from threading import Event
+        from bible.reference_data import Relationship
+        self.install();refs=self.show()
+        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
+        refs.rows=rows;refs._new_passage=True;refs.populate();spin(duration=.3)
+        adjustment=refs.scroll.get_vadjustment();adjustment.set_value(250);spin()
+        position=adjustment.get_value()
+        release=Event();updated=[Relationship(row.start,row.end,100+i,1) for i,row in enumerate(rows)]
+        def query(*_):
+            release.wait(3)
+            return updated
+        with patch.object(refs.data,'query',side_effect=query):
+            try:
+                refs.invalidate();spin(duration=.1)
+                self.assertTrue(refs.pending)
+                self.assertEqual(refs.model.get_n_items(),len(rows))
+                # GTK's virtual row estimates can move by a couple of pixels
+                # when the loading label changes the viewport allocation.
+                self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
+            finally:release.set()
+            spin(lambda:not refs.pending,duration=.3)
+        self.assertEqual(refs.rows,updated)
+        self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
