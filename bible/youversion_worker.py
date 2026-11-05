@@ -27,7 +27,7 @@ def source_canon(system):
     return json.loads((Path(__file__).parent/'versification_data'/(system+'.json')).read_text())['canon']
 
 
-def converted_chapters(archive,edition):
+def converted_chapters(archive,edition,addresses=None):
     """Join consecutive physical sections of one explicitly numbered chapter.
 
     Every physical file is parsed and retained in the source receipt. Duplicate
@@ -37,10 +37,18 @@ def converted_chapters(archive,edition):
     current=None;seen=set()
     for chapter in archive_chapters(archive,edition,complete=True):
         try:
-            xml,_=to_osis(chapter,edition);root=E.fromstring(xml)
+            if addresses and '.INTRO' not in chapter['reference']:
+                from .youversion_source import source_document
+                from .youversion_osis import convert
+                xml,_=convert(addresses.storage_document(source_document(chapter,edition)))
+            else:xml,_=to_osis(chapter,edition)
+            root=E.fromstring(xml)
         except ValueError as error:
             raise ValueError(chapter['member']+': '+str(error)) from error
         ref=chapter['reference'];identity=ref if '.INTRO' in ref else osis_ref(ref)
+        if addresses and '.INTRO' not in ref:
+            from .source_units import source_reference
+            identity=addresses.native_chapter(source_reference(ref))
         if current and current[0]!=identity:
             yield current[1],current[2],current[3]
             seen.add(current[0]);current=None
@@ -66,6 +74,8 @@ def build(archive,metadata,target,compiler,identifier=21):
     if known and edition.language!=EDITIONS[identifier][2]:raise ValueError('Unexpected edition language')
     if known and edition.metadata.get('vrs')!=EDITIONS[identifier][0]:raise ValueError('Source numbering changed')
     target.mkdir(parents=True,exist_ok=False)
+    from .source_units import plan_addresses,source_reference
+    addresses=plan_addresses(archive,edition) if not known else None
     canon=source_canon(system) if known else {};checks=[];seen=set();active_book=None;source_index=[];verse_order={}
     testaments={}
     if not known:
@@ -76,14 +86,15 @@ def build(archive,metadata,target,compiler,identifier=21):
             if role not in ('ot','nt','dc','ap'):raise ValueError('Unknown source testament')
             numbers=[int(ref.rsplit('.',1)[1].split('_')[0]) for ref in edition.chapters if ref.startswith(entry['usfm']+'.') and '.INTRO' not in ref]
             if not numbers or max(numbers)>255:raise ValueError('Invalid source chapter inventory')
-            canon[book]=[0]*max(numbers);testaments[book]=2 if role=='nt' else 1
+            size=len(addresses.sections.order[book]) if addresses and addresses.sections and book in addresses.sections.order else max(numbers)
+            canon[book]=[0]*size;testaments[book]=2 if role=='nt' else 1
         # Keep the returned book order inside each native testament.
         canon={book:canon[book] for testament in (1,2) for book in canon if testaments[book]==testament}
     total=len(edition.chapters)
     osis=target.parent/'edition.osis.xml'
     with osis.open('wb') as output:
         done=0
-        for chapter,root,parts in converted_chapters(archive,edition):
+        for chapter,root,parts in converted_chapters(archive,edition,addresses):
             done+=len(parts)
             ref=chapter['reference'];code,number=ref.split('.')
             for part in parts:
@@ -105,7 +116,7 @@ def build(archive,metadata,target,compiler,identifier=21):
                            expected=digest((normalized(''.join(division.itertext())),
                                             project(division),semantic_roles(division))))
             else:
-                chapter_ref=osis_ref(ref);seen.add(chapter_ref)
+                chapter_ref=(addresses.native_chapter(source_reference(ref)) if addresses else osis_ref(ref));seen.add(chapter_ref)
                 units=[node.get('osisID').split() for node in division.iter()
                        if node.tag=='{'+NS+'}verse' and node.get('sID')]
                 members=[item for unit in units for item in unit]
@@ -113,7 +124,7 @@ def build(archive,metadata,target,compiler,identifier=21):
                 if (not members or len(members)!=len(set(members)) or maximum>2000 or
                         known and maximum!=canon[book][int(number.split('_')[0])-1]):
                     raise ValueError('Overlapping or unsupported source verse identities: '+ref)
-                if not known:canon[book][int(number.split('_')[0])-1]=maximum
+                if not known:canon[book][int(chapter_ref.split('.')[1])-1]=maximum
                 order=[int(item.rsplit('.',1)[1]) for item in members]
                 if order!=sorted(order):verse_order[chapter_ref]=order
                 check=dict(ref=chapter_ref,intro=False,units=units,
@@ -121,7 +132,7 @@ def build(archive,metadata,target,compiler,identifier=21):
             checks.append(check);emit('converting',done,total)
         output.write(b'</div></osisText></osis>')
     expected=({f'{book}.{number}' for book,chapters in canon.items() for number in range(1,len(chapters)+1)} if known else
-              {osis_ref(ref) for ref in edition.chapters if '.INTRO' not in ref})
+              {addresses.native_chapter(source_reference(ref)) if addresses else osis_ref(ref) for ref in edition.chapters if '.INTRO' not in ref})
     if seen!=expected or sum(item['intro'] for item in checks)!=sum('.INTRO' in ref for ref in edition.chapters):
         raise ValueError('Incomplete source canon')
     relative='modules/texts/rawtext/'+name.lower()
@@ -181,10 +192,16 @@ def build(archive,metadata,target,compiler,identifier=21):
         raw=json.dumps(verse_order,sort_keys=True,separators=(',',':')).encode()
         (target/'.source-verse-order.json').write_bytes(raw)
         order_sha256=hashlib.sha256(raw).hexdigest()
+    addresses_sha256=None
+    if addresses:
+        raw=json.dumps(addresses.data(),sort_keys=True,separators=(',',':')).encode()
+        (target/'.source-addresses.json').write_bytes(raw)
+        addresses_sha256=hashlib.sha256(raw).hexdigest()
     (target/'.verified.json').write_text(json.dumps(dict(entries=len(checks),
         source_numbering=edition.metadata.get('vrs'),storage_numbering=system,
         reference_index_sha256=reference_index_sha256,
         source_verse_order_sha256=order_sha256,
+        source_addresses_sha256=addresses_sha256,
         archive_sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),
         all_text_notes_headings_verified=True)))
     (target/'.source-index.json').write_text(json.dumps(dict(parser_version=1,entries=source_index)))

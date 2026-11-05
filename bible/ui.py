@@ -540,9 +540,12 @@ class Window(Adw.ApplicationWindow):
                 rect=tab.text.get_visible_rect();_,iterator=tab.text.get_iter_at_location(rect.x,rect.y)
                 position=tab.position_anchor(iterator.get_offset())
                 if position:
-                    reference,offset=position;buffer=tab.text.get_buffer();first=tab._marker_ends[reference]
-                    text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
-                    anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
+                    reference,offset=position
+                    if isinstance(offset,Anchor):anchor=offset
+                    else:
+                        buffer=tab.text.get_buffer();first=tab._marker_ends[reference]
+                        text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
+                        anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
             key=source.key(anchor.reference)
         for popover in self._reading_popovers:popover.popdown()
         self.reading_sync.driver=None
@@ -565,15 +568,19 @@ class Window(Adw.ApplicationWindow):
             try:tab.show(anchor.reference)
             finally:tab._travelling=False
             if anchor.reference in tab._verse_ranges:
-                first,last=tab._verse_ranges[anchor.reference];body=tab._marker_ends[anchor.reference]
-                buffer=tab.text.get_buffer();text=buffer.get_text(buffer.get_iter_at_offset(body),buffer.get_iter_at_offset(last),False)
-                remaining=anchor.offset;offset=0
-                for offset,char in enumerate(text):
-                    if not char.isspace():
-                        if remaining<=0:break
-                        remaining-=1
-                tab._appearance_anchor=(anchor.reference,offset) if anchor.at_body else None
-                tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
+                if getattr(tab.current,'units',()):
+                    tab._appearance_anchor=(anchor.reference,anchor) if anchor.at_body else None
+                    tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
+                else:
+                    first,last=tab._verse_ranges[anchor.reference];body=tab._marker_ends[anchor.reference]
+                    buffer=tab.text.get_buffer();text=buffer.get_text(buffer.get_iter_at_offset(body),buffer.get_iter_at_offset(last),False)
+                    remaining=anchor.offset;offset=0
+                    for offset,char in enumerate(text):
+                        if not char.isspace():
+                            if remaining<=0:break
+                            remaining-=1
+                    tab._appearance_anchor=(anchor.reference,offset) if anchor.at_body else None
+                    tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
         elif immersion.kind=='commentary':
             section=immersion.source.reader.index.sections[key]
             tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor.offset,canonical=True,immersive=True)

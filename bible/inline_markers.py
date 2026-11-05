@@ -21,7 +21,9 @@ class InlineMarkers:
                 try:
                     from .reference_resolution import _span
                     mapped=resolve(note.start,note.versification,reader,require_entry=False)
-                    reference=next((r for r in _span(mapped.start,mapped.end,reader.versification) if reader.has_reference(r)),None)
+                    candidates=(reader.reference_range(mapped.start,mapped.end) if getattr(reader,'addresses',None)
+                                else _span(mapped.start,mapped.end,reader.versification))
+                    reference=next((r for r in candidates if reader.has_reference(r)),None)
                 except ValueError:continue
                 if reference in refs:
                     entry=result.setdefault(primary[reference],{})

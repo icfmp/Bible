@@ -9,12 +9,27 @@ from .reference_resolution import VersificationMismatch, resolve
 
 
 @dataclass(frozen=True)
+class ChapterUnit:
+    reference: str
+    text: str
+    members: tuple[str,...]
+    label: str | None = None
+    native_reference: str | None = None
+
+
+@dataclass(frozen=True)
 class Chapter:
     reference: str
     verses: tuple[tuple[str, str], ...]
     previous: str | None
     following: str | None
     links: tuple[tuple[str,str], ...] = ()
+    units: tuple[ChapterUnit,...] = ()
+
+    @property
+    def display_units(self):
+        return self.units or tuple(ChapterUnit(ref,text,self.members(ref),self.label(ref) if len(self.members(ref))>1 else None)
+                                   for ref,text in self.unique_verses())
 
     @cached_property
     def primary_references(self):
@@ -60,13 +75,20 @@ class Book:
 def passage_verses(reader,references,chapter_cache=None):
     """Resolve every requested reference, emitting each native linked unit once."""
     chapters={} if chapter_cache is None else chapter_cache
-    seen=set();result=[]
+    seen=set();result=[];requested=set(references)
     for reference in references:
         name=reference.rsplit('.',1)[0]
         if name not in chapters:
             chapters[name]=reader.chapter(reference)
             if len(chapters)>64:chapters.pop(next(iter(chapters)))
         chapter=chapters[name];identity=chapter.primary(reference)
+        if chapter.units:
+            if reference not in chapter.text_by_reference:raise ValueError('Passage unavailable: '+reference)
+            if name in seen:continue
+            for unit in chapter.units:
+                matches=[ref for ref in unit.members if ref in requested]
+                if matches:result.append((matches[0],unit.text))
+            seen.add(name);continue
         if identity in seen:continue
         value=chapter.text_by_reference.get(reference)
         if value is None:raise ValueError('Passage unavailable: '+reference)
@@ -95,6 +117,11 @@ class Reader:
         short=self.module.getConfigEntry('Abbreviation') or module_name(name)
         self.short_name=short if isinstance(short,str) and len(short)<=40 and not any(ord(c)<32 for c in short) else module_name(name)
         self._source_osis=name.startswith('youversion~') and self.module.getConfigEntry('BibleSource')=='YouVersion'
+        from .source_units import AddressIndex
+        self.addresses=AddressIndex.load(self.root) if self._source_osis else None
+        if self.addresses:
+            from .source_section_key import key_type
+            self._source_key=key_type(Sword,self.addresses,self.versification)
         probe = Sword.VerseKey()
         probe.setVersificationSystem(self.versification)
         if probe.getVersificationSystem() != self.versification:
@@ -109,6 +136,13 @@ class Reader:
     def key(self, reference):
         if isinstance(reference, str):
             reference = canonical_input(reference)
+        if self.addresses:
+            key=self._source_key(reference)
+            native=self.sword.VerseKey(key)
+            if (key.popError()!='\x00' or not 1<=native.getChapter()<=native.getChapterMax()
+                    or not 1<=native.getVerse()<=native.getVerseMax()):
+                raise ValueError(f'Invalid reference: {reference}')
+            return key
         if not isinstance(reference, str) or not re.fullmatch(
                 r"(?:[1-4]\s*)?[A-Za-z][A-Za-z0-9]*(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?", reference):
             raise ValueError(f'Invalid reference: {reference}')
@@ -151,8 +185,16 @@ class Reader:
             key.increment()
             if key.popError() != '\x00':
                 break
-        return tuple(Book(code, name, {chapter: tuple(verses) for chapter, verses in chapters.items()})
-                     for code, (name, chapters) in entries.items())
+        result=[]
+        for code,(name,chapters) in entries.items():
+            mapped={}
+            for chapter,verses in chapters.items():
+                public=self.addresses.source_chapter(f'{code}.{chapter}') if self.addresses else f'{code}.{chapter}'
+                number=public.split('.')[1];number=number if '_' in number else int(number)
+                units=self.addresses.chapters.get(public) if self.addresses else None
+                mapped[number]=tuple(dict.fromkeys(int(ref.rsplit('.',1)[1]) for unit in units.units for ref in unit.members)) if units else tuple(verses)
+            result.append(Book(code,name,mapped))
+        return tuple(result)
 
     def has_reference(self, reference):
         return bool(self.module.hasEntry(self.key(reference)))
@@ -164,6 +206,35 @@ class Reader:
         chapter = next(iter(book.chapters))
         verse=self.source_verse_order.get(f'{book.code}.{chapter}',book.chapters[chapter])[0]
         return f'{book.code}.{chapter}.{verse}'
+
+    def chapter_label(self,reference):
+        reference=reference if reference.count('.')==1 else reference.rsplit('.',1)[0]
+        if self.addresses and self.addresses.sections:
+            label=self.addresses.sections.labels.get(reference)
+            if label:return label
+        return reference.split('.')[1]
+
+    def reference_range(self,start,end):
+        """Canonical source addresses, independent of fragment presentation order."""
+        start=self.key(start).getOSISRef();end=self.key(end).getOSISRef()
+        refs=[];active=False
+        for book in self.books:
+            if not active and book.code!=start.split('.')[0]:continue
+            for chapter,verses in book.chapters.items():
+                if not active and f'{book.code}.{chapter}'!=start.rsplit('.',1)[0]:continue
+                for verse in sorted(verses):
+                    reference=f'{book.code}.{chapter}.{verse}'
+                    if reference==start:active=True
+                    if active:
+                        refs.append(reference)
+                        if len(refs)>100000:raise ValueError('Source reference range too large')
+                        if reference==end:return tuple(refs)
+        raise ValueError('Invalid source reference range')
+
+    def reference_sort_key(self,reference):
+        key=self.key(reference);verse=key.getVerse()
+        native=self.sword.VerseKey(key);native.setVerse(1)
+        return native.getIndex(),verse
 
     def neighbours(self, reference):
         chapter = self.key(reference).getOSISRef().rsplit('.', 1)[0]
@@ -201,7 +272,33 @@ class Reader:
     def chapter(self, reference='Gen.1.1', *, cancelled=None):
         from .preparation import checkpoint
         checkpoint(cancelled)
-        key = self.key(reference)
+        if not getattr(self,'addresses',None):return self._native_chapter(reference,cancelled=cancelled)
+        from dataclasses import replace
+        public=self.key(reference).getOSISRef().rsplit('.',1)[0]
+        native=self._native_chapter(self.addresses.native_chapter(public)+'.1',cancelled=cancelled)
+        description=self.addresses.chapters.get(public)
+        if description:
+            units=[];combined={ref:[] for ref in description.inventory}
+            for position,source in enumerate(description.units,1):
+                storage=native.reference+'.'+str(position)
+                text=native.text_by_reference[storage]
+                for ref in source.members:combined[ref].append(text)
+                units.append(ChapterUnit(source.members[0],text,source.members,source.label,storage))
+            verses=tuple((ref,''.join(parts)) for ref,parts in combined.items());links=()
+        else:
+            units=[]
+            verses=tuple((self.addresses.to_source(ref),text) for ref,text in native.verses)
+            links=tuple((self.addresses.to_source(alias),self.addresses.to_source(primary)) for alias,primary in native.links)
+        before,after=self.neighbours(public)
+        return Chapter(public,verses,before,after,links,tuple(units))
+
+    def _native_chapter(self, reference='Gen.1.1', *, cancelled=None):
+        from .preparation import checkpoint
+        checkpoint(cancelled)
+        if self.addresses:
+            key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
+            key.setAutoNormalize(False);key.setText(reference)
+        else:key = self.key(reference)
         key.setVerse(1)
         first = key.getOSISRef()
         verses = []
@@ -270,7 +367,8 @@ class Reader:
             from .structured_text import Segment,SourceParser,checked_segments
             parser=SourceParser()
             key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
-            key.setIntros(True);key.setAutoNormalize(False);key.setText(chapter.reference+'.0')
+            native_chapter=self.addresses.native_chapter(chapter.reference) if self.addresses else chapter.reference
+            key.setIntros(True);key.setAutoNormalize(False);key.setText(native_chapter+'.0')
             self.module.setKey(key);raw=self.module.getRawEntry()
             parser.feed(raw if isinstance(raw,str) else raw.c_str())
             # Ordinary unnumbered source prose is outside the verse body, but
@@ -280,9 +378,13 @@ class Reader:
                 prefix=tuple(Segment(s.text,s.kind if s.kind in ('heading','editorial') else 'preface',s.styles)
                              for s in checked_segments(parser.segments,plain))
             parser.segments=[]
-        for reference, plain in chapter.unique_verses():
+        for unit in chapter.display_units:
+            reference,plain=unit.native_reference or unit.reference,unit.text
             checkpoint(cancelled)
-            self.module.setKey(self.key(reference))
+            if unit.native_reference:
+                key=self.sword.VerseKey();key.setVersificationSystem(self.versification);key.setText(unit.native_reference)
+            else:key=self.key(reference)
+            self.module.setKey(key)
             raw = self.module.getRawEntry()
             raw = raw if isinstance(raw,str) else raw.c_str()
             if parser is None:result[reference] = extract(raw,plain,source_type)
@@ -309,10 +411,17 @@ class Reader:
         if self.module.getConfigEntry('SourceType')!='OSIS':return ()
         from .youversion_content import native_chapter,project
         chapter=self.chapter(reference)
+        if self.addresses:
+            from dataclasses import replace
+            native=self._native_chapter(self.addresses.native_chapter(chapter.reference)+'.1')
+        else:native=chapter
         key=self.sword.VerseKey();key.setVersificationSystem(self.versification)
         key.setIntros(True);key.setAutoNormalize(False)
-        root=native_chapter(self.module,key,chapter.reference,[ref for ref,_ in chapter.unique_verses()])
-        return project(root)[1]
+        root=native_chapter(self.module,key,native.reference,[ref for ref,_ in native.unique_verses()])
+        notes=project(root)[1]
+        if not self.addresses:return notes
+        return tuple(replace(note,reference=' '.join(dict.fromkeys(ref for word in note.reference.split()
+                      for ref in self.addresses.to_sources(word,allow_zero=True)))) for note in notes)
 
 
 class CommentaryReader(Reader):

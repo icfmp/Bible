@@ -344,8 +344,8 @@ def _semantic(node):
     return Node(kind, attrs, parts)
 
 
-def to_osis(chapter, edition):
-    """Strict semantic conversion; unknown raw source stays intact on failure."""
+def source_document(chapter, edition):
+    """Ordered semantic source, before assigning native storage coordinates."""
     node = chapter['tree']
     for index in chapter['chapter_path']:
         node = node['children'][index]
@@ -361,11 +361,15 @@ def to_osis(chapter, edition):
         if block.kind not in BLOCK:
             raise Unsupported('Unreviewed chapter block')
         blocks.append(block)
-    document = Document(chapter['reference'], blocks, chapter['encoded_sha256'],
-                        edition.archive_url or 'urn:local:authorized-yves', edition.attribution,
-                        work_id=f'YouVersion{edition.identifier}', title=edition.title,
-                        language=edition.language)
-    return convert(document)
+    return Document(chapter['reference'], blocks, chapter['encoded_sha256'],
+                    edition.archive_url or 'urn:local:authorized-yves', edition.attribution,
+                    work_id=f'YouVersion{edition.identifier}', title=edition.title,
+                    language=edition.language)
+
+
+def to_osis(chapter, edition):
+    """Strict semantic conversion; unknown raw source stays intact on failure."""
+    return convert(source_document(chapter,edition))
 
 
 def main():

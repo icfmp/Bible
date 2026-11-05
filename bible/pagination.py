@@ -21,6 +21,7 @@ class Anchor:
     offset: int = 0
     at_body: bool = False
     spacing: int = 0
+    fragment: int | None = None
 
 
 @dataclass(frozen=True)
@@ -31,12 +32,15 @@ class PassageSpan:
     end: int
     aliases: tuple[str,...] = ()
     label: str | None = None
+    bases: tuple[int,...] = ()
 
     @property
     def members(self):return (self.reference,*self.aliases)
 
     @property
-    def number(self):return self.label or self.reference.rsplit('.',1)[-1]
+    def number(self):return self.label if self.label is not None else self.reference.rsplit('.',1)[-1]
+
+    def base(self,reference):return self.bases[self.members.index(reference)] if self.bases else 0
 
 
 @dataclass(frozen=True)
@@ -73,7 +77,9 @@ class Document:
         candidates=[span for span in self.spans if span.start<=offset]
         span=candidates[-1] if candidates else self.spans[0]
         body=self.text[span.body:min(span.end,max(span.body,offset))]
-        anchor=Anchor(span.reference,sum(not c.isspace() for c in body),offset>=span.body)
+        matching=[s for s in self.spans if span.reference in s.members]
+        fragment=matching.index(span) if len(matching)>1 else None
+        anchor=Anchor(span.reference,span.base(span.reference)+sum(not c.isspace() for c in body),offset>=span.body,fragment=fragment)
         if anchor.at_body:
             from dataclasses import replace
             anchor=replace(anchor,spacing=min(span.end,offset)-self.locate(anchor))
@@ -87,9 +93,11 @@ class Document:
     def locate(self,anchor):
         source=getattr(self,'source_document',None)
         if source is not None:return self.source_shift(source.locate(anchor))
-        span=next((s for s in self.spans if anchor.reference in s.members),self.spans[0])
+        candidates=[s for s in self.spans if anchor.reference in s.members]
+        span=next((s for s in reversed(candidates) if s.base(anchor.reference)<=anchor.offset),candidates[0] if candidates else self.spans[0])
+        if anchor.fragment is not None and 0<=anchor.fragment<len(candidates):span=candidates[anchor.fragment]
         if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
-        remaining=anchor.offset
+        remaining=anchor.offset-span.base(anchor.reference)
         for pos in range(span.body,span.end):
             if not self.text[pos].isspace():
                 if remaining<=0:return max(span.body,min(span.end,pos+anchor.spacing))

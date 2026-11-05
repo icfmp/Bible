@@ -14,16 +14,19 @@ class BiblePages:
     def key(self,reference):return self.reader.key(reference).getOSISRef().rsplit('.',1)[0]
     def document(self,key,preferences,*,cancelled=None):
         checkpoint(cancelled)
-        chapter=self.reader.chapter(key+'.1',cancelled=cancelled)
+        chapter=self.reader.chapter(key if getattr(self.reader,'addresses',None) else key+'.1',cancelled=cancelled)
         structured=self.reader.structured_chapter(chapter,cancelled=cancelled)
-        native=self.reader.key(key+'.1')
+        native=self.reader.key(chapter.verses[0][0] if getattr(self.reader,'addresses',None) else key+'.1')
         title=display_name(native.getOSISBookName(),native.getBookName(),LANGUAGE)
-        if preferences.chapter_numbers:title+=' '+str(native.getChapter())
+        if preferences.chapter_numbers:
+            title+=' '+(self.reader.chapter_label(key) if hasattr(self.reader,'chapter_label') else str(native.getChapter()))
         pieces=[title+'\n\n'];styles=[StyleSpan('chapter',0,len(title))];spans=[];offset=len(pieces[0])
-        for reference,plain in chapter.unique_verses():
+        bases={}
+        for unit in chapter.display_units:
+            reference,plain=unit.reference,unit.text
             checkpoint(cancelled)
             start=offset if spans else 0
-            segments=structured[reference]
+            segments=structured[unit.native_reference or reference]
             for segment in segments:
                 if segment.kind in ('heading','editorial') and segment.text.strip():
                     text=segment.text.strip()+'\n';pieces.append(text)
@@ -42,9 +45,9 @@ class BiblePages:
                 leading='\n'*max(0,min(2,leading.count('\n'))-trailing)
             if leading:pieces.append(leading);offset+=len(leading)
             body=body[source_leading:]
-            members=chapter.members(reference)
-            label=chapter.label(reference) if len(members)>1 else None
-            number=(label or reference.rsplit('.',1)[-1])+' ' if preferences.verse_numbers else ''
+            members=unit.members;label=unit.label
+            printed=label if label is not None else reference.rsplit('.',1)[-1]
+            number=printed+' ' if preferences.verse_numbers and printed else ''
             if number:styles.append(StyleSpan('number',offset,offset+len(number)))
             pieces.append(number);offset+=len(number);body_start=offset
             position=0
@@ -57,7 +60,10 @@ class BiblePages:
                 position+=len(segment.text)
             pieces.append(body);offset+=len(body)
             if number:styles.append(StyleSpan('verse-start',body_start-len(number),body_start+first_word_length(body)))
-            spans.append(PassageSpan(reference,start,body_start,offset,members[1:],label))
+            spans.append(PassageSpan(reference,start,body_start,offset,members[1:],label,
+                                     tuple(bases.get(ref,0) for ref in members)))
+            count=sum(not c.isspace() for c in body)
+            for ref in members:bases[ref]=bases.get(ref,0)+count
             if not body.endswith('\n'):pieces.append(' ');offset+=1
         original=''.join(pieces)
         display=list(original)
@@ -67,7 +73,7 @@ class BiblePages:
                     if display[index].isspace():display[index]='\u00a0'
         return Document(key,''.join(display),tuple(spans),tuple(styles),original)
     def neighbour(self,key,direction):
-        before,after=self.reader.neighbours(key+'.1')
+        before,after=self.reader.neighbours(key)
         reference=before if direction<0 else after
         return self.key(reference) if reference else None
     @property

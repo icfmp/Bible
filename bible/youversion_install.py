@@ -260,6 +260,20 @@ def install(library,resource,progress,installing,cancelled,phase,permission):
                     temporary=Path(output.name);output.write(data);output.flush();os.fsync(output.fileno())
                 try:os.replace(temporary,saved)
                 finally:temporary.unlink(missing_ok=True)
+        addresses=target/'.source-addresses.json'
+        if addresses.is_file():
+            from .source_units import AddressIndex
+            AddressIndex.load(target)
+            directory=library.root.parent/'reference-indexes';directory.mkdir(exist_ok=True)
+            saved=directory/(actual.versification+'.addresses.json')
+            if directory.is_symlink() or saved.is_symlink():raise ValueError('Unsafe source address-index path')
+            data=addresses.read_bytes()
+            if saved.exists() and saved.read_bytes()!=data:raise ValueError('Stored source address index differs')
+            if not saved.exists():
+                with tempfile.NamedTemporaryFile('wb',dir=directory,delete=False) as output:
+                    temporary=Path(output.name);output.write(data);output.flush();os.fsync(output.fileno())
+                try:os.replace(temporary,saved)
+                finally:temporary.unlink(missing_ok=True)
         source={'provider_id':YOUVERSION.id,'module_name':resource.name,
                 'source':YOUVERSION.name,'url':YOUVERSION.url,'acquisition':actual.acquisition,
                 'source_versification':edition.metadata.get('vrs'),'storage_versification':actual.versification,

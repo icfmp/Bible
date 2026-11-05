@@ -74,11 +74,12 @@ def render(view, reader, chapter, preferences, document=None):
     buffer.apply_tag(tags['body'],buffer.get_start_iter(),buffer.get_end_iter())
     for style in document.styles:
         buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
-    offsets,ranges,markers,labels = {},{},{},{}
+    offsets,ranges,markers,labels = {},{},{},{};fragments=[]
     for span in document.spans:
-        marker=span.body-(len(span.number)+1 if preferences.verse_numbers else 0)
+        marker=span.body-(len(span.number)+1 if preferences.verse_numbers and span.number else 0)
         for reference in span.members:
-            offsets[reference]=marker;ranges[reference]=(marker,span.end);markers[reference]=span.body
-            labels[reference]=span.number
+            offsets.setdefault(reference,marker);ranges.setdefault(reference,(marker,span.end));markers.setdefault(reference,span.body)
+            labels.setdefault(reference,span.number);fragments.append((reference,marker,span.end))
     view._verse_labels=labels
+    view._verse_fragments=tuple(fragments)
     return document, offsets, ranges, markers

@@ -34,8 +34,10 @@ class Target:
 
 def references(source,first,last):
     numbers=source.tab.preferences.verse_numbers
-    return tuple(ref for s in source.document.spans
-                 if s.end>first and s.body-(len(s.number)+1 if numbers else 0)<last for ref in s.members)
+    refs=tuple(dict.fromkeys(ref for s in source.document.spans
+                 if s.end>first and s.body-(len(s.number)+1 if numbers and s.number else 0)<last for ref in s.members))
+    if getattr(source.reader,'addresses',None):refs=tuple(sorted(refs,key=source.reader.reference_sort_key))
+    return refs
 
 
 def target(view,source,factory,clicked=None):

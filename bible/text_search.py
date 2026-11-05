@@ -32,7 +32,7 @@ def index(root,name,reader):
     old_latin=language.split('-')[0] in LATIN_LANGUAGES
     new_latin=canonical_language(language).split('-')[0] in LATIN_LANGUAGES
     # Keep compatible installed caches; only changed normalization needs rebuilding.
-    generation=5 if old_latin!=new_latin else 4
+    generation=6 if getattr(reader,'addresses',None) else 5 if old_latin!=new_latin else 4
     signature=hashlib.sha256(json.dumps([generation,files]).encode()).hexdigest()
     cache=Path(root).parent/'search-indexes';cache.mkdir(exist_ok=True)
     path=cache/(name+'.sqlite3')
@@ -48,13 +48,16 @@ def index(root,name,reader):
             db.executescript('CREATE TABLE metadata(signature TEXT,language TEXT);'
                              'CREATE TABLE verses(position INTEGER PRIMARY KEY,reference TEXT,book TEXT,testament INTEGER,normalized TEXT);')
             db.execute('INSERT INTO metadata VALUES(?,?)',(signature,language))
+            source_position=0
             for book in reader.books:
                 for chapter,verses in book.chapters.items():
                     if not verses:continue
                     for reference,text in reader.chapter(f'{book.code}.{chapter}.{verses[0]}').unique_verses():
                         key=reader.key(reference);testament=key.getTestament()
                         testament=ord(testament) if isinstance(testament,str) else int(testament)
-                        db.execute('INSERT INTO verses VALUES(?,?,?,?,?)',(key.getIndex(),reference,book.code,testament,' '+normalized(text,language).strip()+' '))
+                        source_position+=1
+                        position=source_position if getattr(reader,'addresses',None) else key.getIndex()
+                        db.execute('INSERT INTO verses VALUES(?,?,?,?,?)',(position,reference,book.code,testament,' '+normalized(text,language).strip()+' '))
         with candidate.open('rb') as stream:os.fsync(stream.fileno())
         os.replace(candidate,path)
     return path

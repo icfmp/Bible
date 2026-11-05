@@ -22,9 +22,15 @@ def resolve(reference, source_system, target_reader, require_entry=True, *, incl
     import Sword
     from .book_names import canonical_input
     reference=canonical_input(reference)
+    target_system = target_reader.versification
+    if source_system==target_system and getattr(target_reader,'addresses',None):
+        key=target_reader.key(reference);public=key.getOSISRef()
+        if require_entry and not target_reader.has_reference(public):raise ValueError('Passage unavailable: '+public)
+        return ResolvedPassage(public,public)
+    if '_' in reference:
+        raise VersificationMismatch(f'No verified source section alignment: {source_system} {reference} / {target_system}')
     if not re.fullmatch(r'(?:[1-5]\s*)?[A-Za-z][A-Za-z0-9]*(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?',reference):
         raise ValueError(f'Invalid source reference: {reference}')
-    target_system = target_reader.versification
     source = Sword.VerseKey()
     source.setVersificationSystem(source_system)
     if source.getVersificationSystem() != source_system:
@@ -100,8 +106,10 @@ def resolve(reference, source_system, target_reader, require_entry=True, *, incl
     return ResolvedPassage(start, end)
 
 
-def _span(start, end, system):
+def _span(start, end, system,reader=None):
     """Enumerate actual consecutive verses, excluding introductions."""
+    if reader is not None and system==reader.versification and getattr(reader,'addresses',None):
+        return list(reader.reference_range(start,end))
     import Sword
     key = Sword.VerseKey(); key.setVersificationSystem(system); key.setText(start)
     refs = []
@@ -132,7 +140,7 @@ def available_chapter(reference,reader):
     parts=canonical_input(reference).split('.')
     if len(parts)!=3:return None
     book,chapter,_=parts
-    try:chapter=int(chapter)
+    try:chapter=chapter if '_' in chapter else int(chapter)
     except ValueError:return None
     entry=next((item for item in reader.books if item.code==book),None)
     verses=entry.chapters.get(chapter) if entry else None

@@ -35,10 +35,17 @@ class NoteConflict(NotesError):
 
 def parts(reference):
     if not isinstance(reference, str) or not re.fullmatch(
-            r'[1-4]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}\.[1-9][0-9]{0,2}', reference):
+            r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}(?:_[1-9][0-9]{0,2})?\.[1-9][0-9]{0,3}', reference):
         raise NotesError('Invalid passage reference')
     book, chapter, verse = reference.split('.')
-    return book, int(chapter), int(verse)
+    if int(verse)>2000:raise NotesError('Invalid passage reference')
+    return book, chapter if '_' in chapter else int(chapter), int(verse)
+
+
+def passage_order(reference):
+    book,chapter,verse=parts(reference)
+    values=str(chapter).split('_')
+    return book,(int(values[0]),int(values[1]) if len(values)>1 else 0),verse
 
 
 def label_key(value):
@@ -75,8 +82,8 @@ class Note:
     revision: int = 1
 
     def covers(self, reference):
-        book, chapter, verse = parts(reference)
-        first, last = parts(self.start), parts(self.end)
+        book, chapter, verse = passage_order(reference)
+        first, last = passage_order(self.start), passage_order(self.end)
         return book==first[0]==last[0] and first[1:]<=(chapter,verse)<=last[1:]
 
 
@@ -84,7 +91,7 @@ def validate(note):
     try:
         if str(uuid.UUID(note.id)) != note.id:
             raise ValueError('Invalid note identifier')
-        first, last = parts(note.start), parts(note.end)
+        first, last = passage_order(note.start), passage_order(note.end)
         if first[0] != last[0] or first[1:] > last[1:]:
             raise ValueError('A note passage must be ordered within one book')
         for value in (note.versification, note.origin_translation, note.origin_language):
@@ -212,10 +219,10 @@ class NoteStore:
         self.db.execute('DELETE FROM labels WHERE key NOT IN (SELECT label_key FROM note_labels)')
 
     def passage(self, versification, start, end=None):
-        first, last = parts(start), parts(end or start)
+        first, last = passage_order(start), passage_order(end or start)
         return [note for note in self.all() if note.versification == versification
                 and parts(note.start)[0] == first[0] == last[0] == parts(note.end)[0]
-                and parts(note.start)[1:] <= last[1:] and parts(note.end)[1:] >= first[1:]]
+                and passage_order(note.start)[1:] <= last[1:] and passage_order(note.end)[1:] >= first[1:]]
 
     def search(self, query='', labels=(), order='recent'):
         keys = {label_key(value) for value in labels}
@@ -229,7 +236,7 @@ class NoteStore:
             if keys <= {label_key(label) for label in note.labels} and all(word in haystack for word in words):
                 result.append(note)
         if order == 'bible':
-            result.sort(key=lambda n: (BOOK_ORDER.get(parts(n.start)[0], 10000), parts(n.start),
+            result.sort(key=lambda n: (BOOK_ORDER.get(parts(n.start)[0], 10000), passage_order(n.start),
                                        n.versification, n.created, n.id))
         elif order in {'recent', 'oldest'}:
             result.sort(key=lambda n: (datetime.fromisoformat(n.modified), n.id), reverse=order == 'recent')

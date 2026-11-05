@@ -89,7 +89,7 @@ class SessionStore:
                         or not isinstance(comparison_position['resource'],str)
                         or not re.fullmatch(RESOURCE_ID,comparison_position['resource'])
                         or not isinstance(comparison_position['reference'],str)
-                        or not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}\.[1-9][0-9]{0,3}',comparison_position['reference']))):
+                        or not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}(?:_[1-9][0-9]{0,2})?\.[1-9][0-9]{0,3}',comparison_position['reference']))):
                     raise ValueError('Invalid comparison position')
                 positions=item.get('commentary_positions',{})
                 if not isinstance(positions,dict) or len(positions)>50:raise ValueError('Invalid commentary positions')

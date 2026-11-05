@@ -118,7 +118,8 @@ class PassageNotes(Gtk.Box):
             def original_match(resource,first,last):
                 from .notes import BOOK_ORDER
                 def order(ref):
-                    b,c,v=parts(ref);return BOOK_ORDER.get(b,10000),b,c,v
+                    from .notes import passage_order
+                    b,c,v=passage_order(ref);return BOOK_ORDER.get(b,10000),b,c,v
                 low=f'{chapter[0]}.{chapter[1]}.1';high=f'{chapter[0]}.{chapter[1]}.999'
                 return bool(tab and resource==tab.state.resource and order(first)<=order(high) and order(last)>=order(low))
             self.rows=[n for n in store.all() if original_match(n.origin_translation,n.start,n.end)] if store and chapter else []
@@ -333,12 +334,9 @@ class PassageNotes(Gtk.Box):
                     if mark:system,refs,resource=snapshot['system'],[snapshot['reference']],snapshot['resource']
                     else:
                         system,resource=snapshot['versification'],snapshot['origin_translation']
-                        key=reader.key(snapshot['start']);last=reader.key(snapshot['end']).getIndex();refs=[]
-                        while key.getIndex()<=last:
-                            if reader.has_reference(key.getOSISRef()):refs.append(key.getOSISRef())
-                            if len(refs)>1000:raise ValueError('Select at most 1000 verses')
-                            key.increment()
-                            if key.popError()!='\x00':break
+                        from .reference_resolution import _span
+                        refs=[ref for ref in _span(snapshot['start'],snapshot['end'],system,reader) if reader.has_reference(ref)]
+                        if len(refs)>1000:raise ValueError('Select at most 1000 verses')
                     self.owner.highlights.set(system,refs,value,resource)
                     popover.popdown();self.owner.refresh_highlights()
                     if annotate:self.open_note(context=snapshot)
