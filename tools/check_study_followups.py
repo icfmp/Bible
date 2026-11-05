@@ -88,7 +88,7 @@ def main():
                 assert dialog._phase!='error',dialog.status.get_text()
                 assert StepData(a.profile/'study-data').revision is not None
                 if not a.baseline:assert not dialog.transfer_footer.get_visible()
-                capture('library-success');spin(duration=4.5)
+                capture('library-success');spin(duration=4.5,timeout=7)
                 assert not dialog.status.get_visible() and not dialog.progress.get_visible()
                 capture('library-success-dismissed');report['library_real_step_download_success']=True
             dialog.close();native.activate(w)
@@ -188,6 +188,8 @@ def main():
             assert value.references==('Ps.34.10','Ps.34.11'),value.references
             words=w.study.words;words.open(value);wait(lambda:not words.pending);capture('original-passage-'+mode)
             if not a.baseline:
+                words.dialog.set_default_size(360,480);spin(duration=.3);capture('original-passage-small-'+mode)
+                words.dialog.set_default_size(640,620);spin(duration=.3)
                 buttons=[b for b in words.children() if hasattr(b,'_source_token')];assert buttons
                 refs_in_order=tuple(dict.fromkeys(b._source_token['reference'] for b in buttons));assert len(refs_in_order)>=2
                 native.click(buttons[0]);wait(lambda:not words.pending);assert words.stage=='word';capture('original-word-'+mode)
@@ -204,6 +206,36 @@ def main():
                 assert tokens and all(token['language']=='grc' for token in tokens)
             capture('original-greek-'+mode);words.leave();spin()
             t.navigate('youversion~YV21','Ps.34.18');settled()
+        if not a.baseline:
+            # Real comparison control/selector and session paths share the
+            # same resolver as the wheel matrix, rather than setting only
+            # internal state and declaring the UI correct.
+            w.set_default_size(1200,900);w.split.set_show_sidebar(False)
+            w.end_comparison();t=w.active_tab;t.navigate('FreJND','Gen.11.1');settled()
+            native.click(w.comparison_button);spin()
+            assert None not in w._comparison_names
+            row=w.comparison_choices.list.get_row_at_index(w._comparison_names.index('youversion~YV104'))
+            native.click(row);settled();assert t.state.comparison=='youversion~YV104'
+            assert t.comparison_reference=='Gen.11.1' and t._comparison_aligned
+            native.click(w.compared_version);spin()
+            row=w.compared_version.choices.list.get_row_at_index(w.compared_version.names.index('KJV'))
+            native.click(row);settled();assert t.state.comparison=='KJV'
+            original=(t.state.resource,t.state.reference)
+            capture('parallel-exit-control')
+            native.click(w.comparison_button);spin()
+            assert t.state.comparison is None and not w.comparison_popover.get_visible()
+            assert (t.state.resource,t.state.reference)==original
+            first_page=w.view.get_page(t);second=w.new_tab();second.navigate('KJV','Gen.31.55')
+            second.state.comparison='youversion~YV104';w.sync_comparison();settled()
+            assert second.comparison_reference=='Gen.32.1'
+            second_page=w.view.get_page(second)
+            w.view.set_selected_page(first_page);spin();assert w.comparison_button.get_icon_name()=='view-dual-symbolic'
+            w.view.set_selected_page(second_page);spin();assert w.comparison_button.get_icon_name()=='bible-parallel-off-symbolic'
+            w.close();spin();w=Window(app,library);w.set_default_size(1200,900);w.present();settled()
+            assert w.active_tab.state.comparison=='youversion~YV104' and w.active_tab.comparison_reference=='Gen.32.1'
+            report['native_comparison_controls_and_session']=dict(selector_change=True,immediate_exit=True,
+                primary_preserved=True,tab_state=True,restart=True)
+            capture('parallel-restored-session')
         assert before==hashes(),'Existing translations changed'
         assert notes_before==w.notes_store.all(),'Notes changed'
         report['existing_resource_files_preserved']=len(before);report['notes_preserved']=True;report['completed']=True;save()
