@@ -59,7 +59,10 @@ def main():
         button=next(b for b in w.active_tab.comparison_text._inline_buttons if b._marker_kind=='translation-note')
         n.click(button);spin();assert button._source_note_popover and button._source_note_popover.get_visible()
         assert button._source_note_popover.get_parent() is w.active_tab.comparison_overlay
-        shot('source-note-secondary-pane');n.key('Escape');w.end_comparison();settle()
+        shot('source-note-secondary-pane');n.key('Escape')
+        for selector,label in ((w.primary_version,'primary'),(w.compared_version,'secondary')):
+            selector.popup();spin(duration=.4);shot('translation-download-footer-'+label);selector.popdown();spin()
+        w.end_comparison();settle()
         report['checks']['secondary_pane_source_note_native_popup']=True
         editor=w.edit_note(note=note);spin();n.activate(editor)
         c=editor.body.citations[0];rect=editor.body.get_iter_location(editor.body.get_buffer().get_iter_at_offset(c.begin+1))
@@ -74,6 +77,9 @@ def main():
             w.appearance.update('mode',mode);editor.set_default_size(360,700);gtk.props.gtk_font_name='Sans 16';spin(duration=.6)
             assert editor.get_width()<=400,(editor.get_width(),editor.get_height())
             shot('quick-note-360-large-text-'+mode)
+            editor.links.add_button.popup();spin(duration=.8)
+            if editor.links.suggestions.get_visible():editor.links.suggestions.set_expanded(True)
+            spin();shot('linked-passages-360-large-text-'+mode);editor.links.add_button.popdown();spin()
         gtk.props.gtk_font_name=font
         for link in tuple(editor.links.values):editor.links.remove(link)
         assert editor.save();unlinked=w.notes_store.get(note.id)

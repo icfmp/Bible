@@ -39,6 +39,8 @@ def main():
         paths=[prefix+'/'+name+'.png' for name in files for prefix in ('alpha24-fr','candidate-fr','candidate-en')]
         body+=gallery(label,paths)
     body+=gallery('Narrow windows with enlarged interface text',[str(p.relative_to(root)) for p in sorted(root.glob('*/quick-note-360-*.png'))]+[str(p.relative_to(root)) for p in sorted(root.glob('*/appearance-360-large-ui-text.png'))])
+    body+=gallery('#190 Translation download footers',[str(p.relative_to(root)) for p in sorted(root.glob('*/translation-download-footer-*.png'))])
+    body+=gallery('#202 Manual and suggested linked passages',[str(p.relative_to(root)) for p in sorted(root.glob('*/linked-passages-360-*.png'))])
     body+='<h2>#199 Entry-to-first-usable-paint</h2><p>Cold means a fresh application process; OS/font/disk caches were not flushed. Warm means re-entry in that same process. The book stream is recreated normally. Compare alpha and master rows for the same resource/reference on this runner.</p><table><tr><th>Installed branch</th><th>Case</th><th>Entry</th><th>Seconds</th><th>Main-loop max gap (ms)</th></tr>'
     for path in sorted(root.glob('entry-*/entry.json')):
         data=json.loads(path.read_text())
