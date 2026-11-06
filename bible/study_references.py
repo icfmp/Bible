@@ -22,8 +22,7 @@ class StudyReferences(Gtk.Box):
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-references')
         self.generation=0;self.stamp=None;self.context=None;self.rows=[];self.pending=False
         self.all_results=False;self.chapter_cache={};self.row_cache={};self._new_passage=False;self._position_idle=0
-        context=Gtk.Label(label=tr('Passage studied'),xalign=0);context.add_css_class('caption');self.append(context)
-        self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.append(self.heading)
+        self.heading=Gtk.Label(xalign=0,wrap=True)
         self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.append(self.status)
         self.download=Gtk.Button(label=tr('Download reference data'))

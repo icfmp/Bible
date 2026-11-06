@@ -133,14 +133,10 @@ class Window(Adw.ApplicationWindow):
         self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
         self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
         self.stop_comparison.set_visible(False)
-        self.download_comparison=Gtk.Button(label=tr('Download more…'))
-        self.download_comparison.set_can_shrink(True)
-        self.download_comparison.get_child().set_ellipsize(Pango.EllipsizeMode.END)
-        self.download_comparison.get_child().set_width_chars(1)
-        self.download_comparison.get_child().set_max_width_chars(1)
-        self.download_comparison.set_tooltip_text(tr('Download more…'))
+        from .version_chooser import download_translations_action
+        self.download_comparison=download_translations_action()
         self.download_comparison.connect('clicked',lambda *_:self.contextual_library('bible','comparison'))
-        comparison_box.append(self.download_comparison)
+        comparison_box.append(Gtk.Separator());comparison_box.append(self.download_comparison)
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
         from .popover_dismissal import install
@@ -150,7 +146,7 @@ class Window(Adw.ApplicationWindow):
         self._comparison_syncing=False
         # Notes has a working application-space selector at the top left.
         for widget,label in [(self.menu,'Main menu'),
-                             (self.study_button,'Study'),(self.search_button,'Search')]:
+                             (self.study_button,'Study')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             header.pack_end(widget)
@@ -166,7 +162,7 @@ class Window(Adw.ApplicationWindow):
         self.header_title.append(self.passage_button);self.header_title.append(self.primary_version)
         header.set_title_widget(self.header_title)
         self.reader_controls=Gtk.Box(spacing=4)
-        for widget,label in [(self.comparison_button,'Compare translations'),(self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
+        for widget,label in [(self.search_button,'Search'),(self.comparison_button,'Compare translations'),(self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
             widget.add_css_class('flat')
             widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             self.reader_controls.append(widget)
@@ -179,7 +175,7 @@ class Window(Adw.ApplicationWindow):
         header.pack_end(self.header_tools)
         def move_tools(*_):
             target=self.reader_overflow_box if self.reader_overflow.get_visible() else self.reader_controls
-            for widget in (self.comparison_button,self.appearance_button,self.immersive_button):
+            for widget in (self.search_button,self.comparison_button,self.appearance_button,self.immersive_button):
                 parent=widget.get_parent()
                 if parent is not target:
                     if parent:parent.remove(widget)
@@ -191,13 +187,13 @@ class Window(Adw.ApplicationWindow):
         self.header_bin.set_size_request(300,46)
         def study_in_overflow(enabled):
             if enabled:
-                for button in (self.search_button,self.study_button):
+                for button in (self.study_button,):
                     if button.get_parent() is not self.reader_overflow_box:
                         header.remove(button);self.reader_overflow_box.append(button)
             elif self.study_button.get_parent() is self.reader_overflow_box:
-                self.reader_overflow_box.remove(self.study_button);self.reader_overflow_box.remove(self.search_button)
+                self.reader_overflow_box.remove(self.study_button)
                 header.remove(self.header_tools)
-                header.pack_end(self.study_button);header.pack_end(self.search_button);header.pack_end(self.header_tools)
+                header.pack_end(self.study_button);header.pack_end(self.header_tools)
             parent=self.new_tab_button.get_parent()
             if enabled and parent is not self.reader_overflow_box:
                 header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
@@ -777,7 +773,8 @@ class Window(Adw.ApplicationWindow):
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
-        if self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.preferences.value.study_font:
+        if (self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.preferences.value.study_font
+                or self.study.sidebar_preferences.size!=(self.preferences.value.study_size or 12)):
             self.study.apply_typography()
         if not reflow:return
         for tab in self.tabs():tab.apply_appearance()

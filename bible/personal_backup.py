@@ -5,7 +5,7 @@ No schema migration: the recovery record is scoped to a deliberate restore.
 from dataclasses import asdict,replace
 import hashlib,json,os,tempfile,uuid
 from pathlib import Path
-from .notes import Note,validate
+from .notes import Note,validate,BACKUP_VERSION
 from .highlights import payload as read_marks,write as write_marks
 
 LIMIT=48*1024*1024
@@ -40,14 +40,17 @@ def decode(data):
         if len(data)>32*1024*1024:raise ValueError('Legacy notes backup exceeds the size limit')
         value={**value,'format':'bible-personal-annotations','highlights':[]}
     elif isinstance(value,dict) and set(value)=={'version','marks'}:
+        if type(value['version']) is not int or value['version']!=1:
+            raise ValueError('Unsupported highlights backup format')
         value=dict(format='bible-personal-annotations',version=value['version'],notes=[],highlights=value['marks'])
     if (not isinstance(value,dict) or set(value)!={'format','version','notes','highlights'}
-            or value['format']!='bible-personal-annotations' or type(value['version']) is not int or value['version']!=1
+            or value['format']!='bible-personal-annotations' or type(value['version']) is not int or value['version'] not in (1,BACKUP_VERSION)
             or not isinstance(value['notes'],list) or not isinstance(value['highlights'],list)):
         raise ValueError('Unsupported personal backup format')
     try:notes=[validate(Note(**item)) for item in value['notes']]
     except (TypeError,KeyError) as error:raise ValueError('Invalid notes in personal backup') from error
     if len({n.id for n in notes})!=len(notes):raise ValueError('Duplicate note identifiers in backup')
+    if value['version']==1 and any(n.links for n in notes):raise ValueError('Linked passages require backup version 2')
     # Reuse the established strict highlight validator, never a permissive importer.
     with tempfile.TemporaryDirectory() as directory:
         path=Path(directory)/'marks.json';path.write_text(json.dumps(dict(version=1,marks=value['highlights'])))
@@ -60,7 +63,7 @@ def snapshot(notes,highlights):
     if highlights.error:raise ValueError('Original highlights file preserved; cannot export an incomplete backup')
     with notes.db:
         notes.db.execute('BEGIN IMMEDIATE')
-        value=dict(format='bible-personal-annotations',version=1,notes=[asdict(n) for n in notes.all()],highlights=list(highlights.entries.values()))
+        value=dict(format='bible-personal-annotations',version=BACKUP_VERSION,notes=[asdict(n) for n in notes.all()],highlights=list(highlights.entries.values()))
         if highlights.path.exists() and read_marks(highlights.path)!=highlights.entries:
             raise ValueError('Highlights changed elsewhere. Reopen Bible before continuing.')
         data=json.dumps(value,ensure_ascii=False).encode();decode(data);return data

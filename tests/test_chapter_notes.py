@@ -74,7 +74,7 @@ class ChapterNotesTests(unittest.TestCase):
         self.w.active_tab.navigate('Base','Gen.32.1');self.p.refresh();spin()
         self.assertEqual([n.id for n in self.p.rows].count(crossing.id),1)
         self.assertEqual(self.w.notes_store.get(crossing.id),crossing)
-        space=self.w.open_notes();space.versions.set_selected(space.version_names.index('Base'));space.open_note(crossing);spin()
+        space=self.w.open_notes();space.open_note(crossing);spin()
         self.assertTrue(space.open_button.get_sensitive())
         self.assertIn('SOURCE TWO',space.excerpt.get_text());self.assertIn('THIRD',space.excerpt.get_text());space.leave()
         self.w.notes_store.delete(crossing)

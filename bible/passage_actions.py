@@ -128,7 +128,7 @@ class PassageActions:
         content.add_css_class('passage-actions-content')
         self.bar.add_overlay(content);self.bar.set_measure_overlay(content,True)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
-        identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
+        identity=Gtk.Box(spacing=8)
         self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
         self.label.add_css_class('heading')
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
@@ -156,9 +156,8 @@ class PassageActions:
                 self.actions.append(button);self.highlight_buttons[color]=(button,check)
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
         self.word_button=self.button('bible-word-study-symbolic','Original text',lambda *_:self.study_word())
-        word_content=Gtk.Box(spacing=6,margin_start=6,margin_end=6)
-        word_content.append(Gtk.Image(icon_name='bible-word-study-symbolic',pixel_size=20))
-        self.word_label=Gtk.Label(label=tr('Original text'));word_content.append(self.word_label);self.word_button.set_child(word_content)
+        self.word_button.set_tooltip_text(tr('Study original text'))
+        self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
@@ -410,7 +409,7 @@ class PassageActions:
         resource=self.owner.library.resource(source.resource)
         version=resource.description+' — '+resource.source
         self.label.set_text(label);self.label.set_tooltip_text(label)
-        self.version_label.set_text(version);self.version_label.set_tooltip_text(version)
+        self.version_label.set_text(resource.public_code or resource.description);self.version_label.set_tooltip_text(version)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+version])
         self.copy_button.set_tooltip_text(tr('Copy'))
         self.note_button.set_sensitive(self.owner.notes_store is not None)
@@ -441,7 +440,6 @@ class PassageActions:
         em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
         chars=max(8,min(38,available//em))
         self.label.set_max_width_chars(chars);self.version_label.set_max_width_chars(chars)
-        self.word_label.set_visible(available>=440)
         margin_bottom=12
         from gi.repository import Graphene
         buffer=value.view.get_buffer()

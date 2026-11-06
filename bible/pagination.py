@@ -5,7 +5,7 @@ Pango byte offsets are converted before slicing Python text; pages partition the
 entire display document exactly, including paragraph separators and headings.
 """
 from dataclasses import dataclass
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 import unicodedata
 import gi
 
@@ -207,6 +207,45 @@ def heading_groups(document):
     return result
 
 
+def shaped_lines(widget,document,preferences,width,first,last,*,cancelled=None):
+    """Shape independent paragraphs in bounded layouts, retaining exact lines.
+
+    Pango shapes paragraphs independently. A single book-sized AttrList makes
+    native layout disproportionately expensive; split only at real paragraph
+    boundaries, never inside words, source spans or a shaped paragraph.
+    """
+    position=first;y=0
+    while position<last:
+        checkpoint(cancelled)
+        boundary=document.text.find('\n',position+4096,last)
+        end=boundary+1 if boundary>=0 else last
+        text=document.text[position:end]
+        layout=widget.create_pango_layout(text)
+        layout.set_font_description(Pango.FontDescription(f'{preferences.font} {preferences.size}'))
+        layout.set_width(max(20,int(width))*Pango.SCALE)
+        layout.set_wrap(Pango.WrapMode.WORD_CHAR)
+        layout.set_justify(preferences.alignment=='justified')
+        layout.set_spacing(line_spacing(preferences)*Pango.SCALE)
+        layout.set_attributes(attributes(document,position,end,context=widget.get_pango_context(),
+            preferences=preferences,cancelled=cancelled))
+        offsets={0:0};byte=0
+        for index,char in enumerate(text):
+            if index%2048==0:checkpoint(cancelled)
+            byte+=len(char.encode());offsets[byte]=index+1
+        iterator=layout.get_iter()
+        while True:
+            checkpoint(cancelled)
+            line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
+            offset=offsets[line.start_index]
+            if offset==len(text) and end<last:
+                # Its empty trailing paragraph is the next layout's first
+                # paragraph. Use its native position without counting it twice.
+                y+=logical.y/Pango.SCALE;break
+            yield position-first+offset,y+logical.y/Pango.SCALE,logical.height/Pango.SCALE
+            if not iterator.next_line():break
+        position=end
+
+
 def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=None):
     """Measure real shaped lines. No verse/chapter-length estimates or columns."""
     checkpoint(cancelled)
@@ -234,26 +273,7 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
     for first,last in boundaries:
         checkpoint(cancelled)
         if first==last:continue
-        text=document.text[first:last]
-        layout=widget.create_pango_layout(text)
-        layout.set_font_description(Pango.FontDescription(f'{preferences.font} {preferences.size}'))
-        layout.set_width(max(20,int(width))*Pango.SCALE)
-        layout.set_wrap(Pango.WrapMode.WORD_CHAR)
-        layout.set_justify(preferences.alignment=='justified')
-        layout.set_spacing(line_spacing(preferences)*Pango.SCALE)
-        layout.set_attributes(attributes(document,first,last,context=widget.get_pango_context(),preferences=preferences,
-                                         cancelled=cancelled))
-        byte_to_char={0:0};n=0
-        for i,char in enumerate(text):
-            if i%2048==0:checkpoint(cancelled)
-            n+=len(char.encode());byte_to_char[n]=i+1
-        checkpoint(cancelled)
-        iterator=layout.get_iter();lines=[]
-        while True:
-            checkpoint(cancelled)
-            line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
-            lines.append((byte_to_char[line.start_index],logical.y/Pango.SCALE,logical.height/Pango.SCALE))
-            if not iterator.next_line():break
+        lines=list(shaped_lines(widget,document,preferences,width,first,last,cancelled=cancelled))
         # A trailing newline creates an additional GTK paragraph line in a page
         # buffer. Reserve a shaped font line, including paragraph spacing, so
         # separators remain copied verbatim without clipping the last glyph.
@@ -261,18 +281,23 @@ def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=No
         # Treat a heading and the first shaped body line as one block when it
         # fits. Oversized titles still make progress one line at a time.
         protected=list(groups)+[(s.start,s.end) for s in document.styles if s.kind=='verse-start']
-        intervals=[]
+        intervals=[];beginnings=[];endings=[]
         for start,end in protected:
             if start<first or end>last:continue
             begin=bisect_right(starts,start)-1;finish=bisect_right(starts,end-1)-1
             if lines[finish][1]+lines[finish][2]-lines[begin][1]<=capacity:
                 # Ranges may share the heading's first body line. Merge them
                 # only if the combined group can still fit on an empty page.
-                overlaps=[(a,b) for a,b in intervals if a<=finish and b>=begin]
+                # Accepted blocks are disjoint and sorted. Find overlaps
+                # directly instead of scanning every earlier verse twice.
+                # The old quadratic scan dominated long-book preparation.
+                left_index=bisect_left(endings,begin)
+                right_index=bisect_right(beginnings,finish)
+                overlaps=intervals[left_index:right_index]
                 left=min([begin]+[a for a,b in overlaps]);right=max([finish]+[b for a,b in overlaps])
                 if lines[right][1]+lines[right][2]-lines[left][1]>capacity:continue
-                intervals=[item for item in intervals if item not in overlaps]
-                intervals.append((left,right))
+                intervals[left_index:right_index]=[(left,right)]
+                beginnings[left_index:right_index]=[left];endings[left_index:right_index]=[right]
         blocks=dict(intervals)
         page_start=first;top=lines[0][1];index=0
         while index<len(lines):

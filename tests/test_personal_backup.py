@@ -35,7 +35,7 @@ class PersonalBackupTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);notes,marks=self.stores(root);create(notes);marks.set('KJV',['Gen.1.1'],'green','Test')
             good=backup.snapshot(notes,marks);path=root/'incoming.json'
-            for mutate in (lambda v:v.update(version=2),lambda v:v['notes'].append({'bad':'note'}),lambda v:v['highlights'].append({'bad':'mark'})):
+            for mutate in (lambda v:v.update(version=99),lambda v:v['notes'].append({'bad':'note'}),lambda v:v['highlights'].append({'bad':'mark'})):
                 value=json.loads(good);mutate(value);path.write_text(json.dumps(value))
                 with self.assertRaises((ValueError,KeyError)):backup.restore(notes,marks,path)
                 self.assertEqual(backup.snapshot(notes,marks),good)

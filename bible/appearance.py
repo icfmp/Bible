@@ -21,15 +21,16 @@ class AppearancePopover(Gtk.Popover):
         title = Gtk.Label(label=tr('Reading appearance'),wrap=True);title.add_css_class('heading');box.append(title)
         self.fonts = {}
         fonts = Gtk.Box(spacing=6, homogeneous=True)
-        for family, label in [('DejaVu Serif', 'Book'), ('DejaVu Sans', 'Simple')]:
+        for style, label in [('book', 'Book'), ('simple', 'Simple')]:
+            family=getattr(owner.preferences.value,'serif_font' if style=='book' else 'sans_font')
             button = Gtk.ToggleButton(tooltip_text=tr('Reading font')+': '+family)
             if self.fonts:button.set_group(next(iter(self.fonts.values())))
             preview = Gtk.Label(label=tr(label))
             attrs = Pango.AttrList();attrs.insert(Pango.attr_family_new(family));preview.set_attributes(attrs)
             button.set_child(preview)
             button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading font')+': '+tr(label)])
-            button.connect('clicked',lambda _, name=family:self.update('font',name))
-            fonts.append(button);self.fonts[family]=button
+            button.connect('clicked',lambda _, name=style:self.update('font_style',name))
+            fonts.append(button);self.fonts[style]=button
         box.append(fonts)
         self.font_name=Gtk.Label(wrap=True,max_width_chars=28,xalign=0)
         box.append(self.font_name)
@@ -44,7 +45,11 @@ class AppearancePopover(Gtk.Popover):
         self.size.update_property([Gtk.AccessibleProperty.LABEL],[tr('Text size')])
         for widget in [self.smaller,self.size,self.larger]:size_row.append(widget)
         box.append(size_row)
-        self.mode=self.choice(box,'Reading mode','mode',[('system','System'),('day','Light'),('night','Dark')])
+        from .segmented_choice import SegmentedChoice
+        self.mode=SegmentedChoice([tr(label) for label in ('System','Light','Dark')])
+        self.mode.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading mode')])
+        self.mode.connect('changed',lambda widget,*_:self.update('mode',('system','day','night')[widget.get_selected()]))
+        box.append(self.mode)
         self.palettes={};self.palette_rows={}
         for group,label,options in [('day_palette','Day palettes',[('white','White'),('paper','Paper (sepia)')]),
                                     ('night_palette','Night palettes',[('dark','Dark grey'),('black','Black')])]:
@@ -63,21 +68,25 @@ class AppearancePopover(Gtk.Popover):
             box.append(row)
         self.system_status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0)
         box.append(self.system_status)
-        layout_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-        box.append(Gtk.Separator());box.append(layout_box)
-        self.line_spacing=self.choice(layout_box,'Line spacing','line_spacing',[('tight','Tight'),('normal','Normal'),('airy','Airy'),('very-airy','Very airy')])
-        self.column_width=self.choice(layout_box,'Text width','column_width',[('narrow','Narrow'),('normal','Normal'),('wide','Wide')])
         box.append(Gtk.Separator())
-        for attr,label in [('chapter_numbers','Chapter numbers'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights'),
+        self.visible_elements=Gtk.Expander(label=tr('Visible elements'),expanded=owner.preferences.value.visible_elements_expanded)
+        self.visible_elements.connect('notify::expanded',lambda widget,*_:self.update('visible_elements_expanded',widget.get_expanded()))
+        visible_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        self.visible_elements.set_child(visible_box);box.append(self.visible_elements)
+        for attr,label in [('chapter_numbers','Chapter headings'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights'),
                            ('note_indicators','Show note indicators'),('place_markers','Show place markers')]:
             row=Gtk.Box(spacing=12)
             row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True))
             button=Gtk.Switch(valign=Gtk.Align.CENTER)
             button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             button.connect('notify::active',lambda widget,_,key=attr:self.update(key,widget.get_active()))
-            row.append(button);setattr(self,attr,button);box.append(row)
-        reset=Gtk.Button(child=Gtk.Label(label=tr('Reset reading settings'),wrap=True))
-        reset.add_css_class('flat');reset.connect('clicked',lambda *_:self.reset());box.append(reset)
+            row.append(button);setattr(self,attr,button);visible_box.append(row)
+        advanced=Gtk.Button(label=tr('More reading settings…'))
+        def open_settings(*_):
+            self.popdown()
+            from .application_surfaces import show_preferences
+            dialog=show_preferences(owner);dialog.set_visible_page(dialog.reading_settings.page)
+        advanced.add_css_class('flat');advanced.connect('clicked',open_settings);box.append(advanced)
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,label=owner.preferences.error)
         box.append(self.status)
         if not owner.preferences.writable:box.set_sensitive(False)
@@ -108,18 +117,16 @@ class AppearancePopover(Gtk.Popover):
     def sync(self):
         self._syncing=True
         p=self.owner.preferences.value
-        for family,button in self.fonts.items():button.set_active(p.font==family)
-        self.font_name.set_text(tr('Custom')+': '+p.font);self.font_name.set_visible(p.font not in self.fonts)
+        for style,button in self.fonts.items():
+            family=p.serif_font if style=='book' else p.sans_font
+            button.set_active(p.font_style==style);button.set_tooltip_text(tr('Reading font')+': '+family)
+            attrs=Pango.AttrList();attrs.insert(Pango.attr_family_new(family));button.get_child().set_attributes(attrs)
+        self.font_name.set_visible(False)
+        self.visible_elements.set_expanded(p.visible_elements_expanded)
         self.size.set_text(f'{p.size} pt')
         self.size.update_property([Gtk.AccessibleProperty.LABEL],[f'{tr("Text size")}: {p.size} pt (12–64)'])
         self.smaller.set_sensitive(p.size>12);self.larger.set_sensitive(p.size<64)
-        for attr,values in [('mode',['system','day','night']),('line_spacing',['tight','normal','airy','very-airy']),('column_width',['narrow','normal','wide'])]:
-            control=getattr(self,attr);labels=list(control._preset_titles)
-            custom=getattr(p,'line_spacing_px' if attr=='line_spacing' else 'text_width_px' if attr=='column_width' else '_unused',None)
-            if custom is not None:labels.append(tr('Custom')+f' ({custom} px)')
-            model=control.get_model()
-            if [model.get_string(i) for i in range(model.get_n_items())]!=labels:control.set_model(Gtk.StringList.new(labels))
-            control.set_selected(len(values) if custom is not None else values.index(getattr(p,attr)))
+        self.mode.set_selected(['system','day','night'].index(p.mode))
         for key,button in self.palettes.items():button.set_active(key in (p.day_palette,p.night_palette))
         self.chapter_numbers.set_active(p.chapter_numbers);self.verse_numbers.set_active(p.verse_numbers)
         self.show_highlights.set_active(p.show_highlights)
@@ -150,11 +157,18 @@ class AppearancePopover(Gtk.Popover):
         if key in {'mode','day_palette','night_palette'}:
             self.owner.reading_style.remember_tab_palettes()
         setattr(self.owner.preferences.value,key,value)
+        p=self.owner.preferences.value
+        if key=='font_style':p.font=p.serif_font if value=='book' else p.sans_font
+        elif key in ('serif_font','sans_font'):
+            if (key=='serif_font')==(p.font_style=='book'):p.font=value
+        elif key=='font':
+            # Preserve callers of the original reading-font preference.
+            setattr(p,'serif_font' if p.font_style=='book' else 'sans_font',value)
         if key=='line_spacing':self.owner.preferences.value.line_spacing_px=None
         if key=='column_width':self.owner.preferences.value.text_width_px=None
         if key in {'mode','day_palette','night_palette'} and self.owner.active_tab:
             self.owner.active_tab.state.reading_palette=self.owner.reading_style.palette_settings()
-        self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights','study_font'},defer=defer)
+        self.persist(reflow=key not in {'mode','day_palette','night_palette','show_highlights','study_font','study_size','visible_elements_expanded'},defer=defer)
 
     def cancel_pending(self):
         if self._apply_id:GLib.source_remove(self._apply_id)

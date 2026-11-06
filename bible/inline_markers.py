@@ -3,11 +3,12 @@ from gi.repository import Gtk, GLib, Pango, Gdk
 from .i18n import tr
 from .reference_resolution import resolve
 from .metadata_workers import MetadataExecutor
+from xml.etree.ElementTree import ParseError
 
 
 class InlineMarkers:
     def __init__(self,tab):
-        self.tab=tab;self.geo={};self.pending=set();self.executor=MetadataExecutor()
+        self.tab=tab;self.geo={};self.editorial={};self.pending=set();self.executor=MetadataExecutor()
 
     @property
     def owner(self):
@@ -16,18 +17,34 @@ class InlineMarkers:
     def markers(self,reader,document):
         tab=self.tab;result={};primary={ref:s.reference for s in document.spans for ref in s.members};refs=set(primary)
         if tab.preferences.note_indicators and tab.notes_store:
+            from .passage_annotations import PassageAnnotations
+            annotations=getattr(self,'annotations',None)
+            if annotations is None:self.annotations=annotations=PassageAnnotations()
+            indices={ref:reader.key(ref).getIndex() for ref in primary}
             for note in tab.notes_store.all():
                 if not note.body.strip():continue
-                try:
-                    from .reference_resolution import _span
-                    mapped=resolve(note.start,note.versification,reader,require_entry=False)
-                    candidates=(reader.reference_range(mapped.start,mapped.end) if getattr(reader,'addresses',None)
-                                else _span(mapped.start,mapped.end,reader.versification))
-                    reference=next((r for r in candidates if reader.has_reference(r)),None)
-                except ValueError:continue
-                if reference in refs:
-                    entry=result.setdefault(primary[reference],{})
-                    entry.setdefault('note',[]).append(note.id)
+                for link in note.passages:
+                    if link.versification==reader.versification and getattr(reader,'addresses',None):
+                        try:covered=set(reader.reference_range(link.start,link.end))
+                        except ValueError:covered=set()
+                        reference=next((ref for ref in primary if ref in covered),None)
+                    else:
+                        positions=annotations.positions(reader,link.versification,link.start,link.end)
+                        reference=next((ref for ref,index in indices.items()
+                                        if any(left<=index<=right for left,right,_,_ in positions)),None)
+                    if reference:
+                        values=result.setdefault(primary[reference],{}).setdefault('note',[])
+                        if note.id not in values:values.append(note.id)
+        if tab.preferences.note_indicators and document.spans:
+            key=(reader,document.key)
+            if key not in self.editorial:
+                try:self.editorial[key]=reader.editorial_notes(document.spans[0].reference)
+                except (ValueError,RuntimeError,ParseError):self.editorial[key]=()
+                if len(self.editorial)>8:self.editorial.pop(next(iter(self.editorial)))
+            for index,note in enumerate(self.editorial[key]):
+                reference=next((ref for ref in note.reference.split() if ref in refs),None)
+                if reference and note.text:
+                    result.setdefault(primary[reference],{})['translation-note:'+str(index)]=note
         if tab.preferences.place_markers:
             owner=self.owner
             if owner:
@@ -75,10 +92,14 @@ class InlineMarkers:
         future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def button(self,view,reader,ref,kind,payload):
+        if kind.startswith('translation-note:'):
+            from .source_note_marker import source_note_marker
+            return source_note_marker(self.owner,reader,ref,payload,int(kind.split(':')[1])+1)
         title=tr('Notes on this verse' if kind=='note' else 'Places in this verse')
         button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'bible-place-symbolic',
                           tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
         button.add_css_class('flat');button.add_css_class('inline-marker')
+        button.set_cursor_from_name('pointer')
         from .reference_preview import passage_title
         button.update_property([Gtk.AccessibleProperty.LABEL],[title+' · '+passage_title(ref,system=reader.versification)])
         button._marker_reference=ref;button._marker_kind=kind

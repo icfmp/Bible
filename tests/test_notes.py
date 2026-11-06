@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from bible.notes import NoteStore, NoteConflict, NotesError, APPLICATION_ID
+from bible.notes import NoteStore, NoteConflict, NotesError, APPLICATION_ID, SCHEMA_VERSION
 from bible.markdown import render
 
 
@@ -26,7 +26,7 @@ class NoteTests(unittest.TestCase):
             store = self.store(directory)
             first = create(store, end='John.3.18')
             second = create(store, 'Second note', 'Gen.1.1', labels=('foi', 'Ancien'))
-            self.assertEqual(store.db.execute('PRAGMA user_version').fetchone()[0], 1)
+            self.assertEqual(store.db.execute('PRAGMA user_version').fetchone()[0], SCHEMA_VERSION)
             self.assertEqual(store.db.execute('PRAGMA application_id').fetchone()[0], APPLICATION_ID)
             reopened = self.store(directory)
             self.assertEqual(reopened.get(first.id), first)
@@ -48,7 +48,7 @@ class NoteTests(unittest.TestCase):
             self.assertTrue(crossing.covers('John.4.1'));self.assertFalse(crossing.covers('John.4.3'))
             self.assertEqual(store.passage('KJV','John.4.1'),[crossing])
             self.assertEqual(store.passage('KJV','John.3.1','John.3.36'),[legacy,crossing])
-            self.assertEqual(store.db.execute('PRAGMA user_version').fetchone()[0],1)
+            self.assertEqual(store.db.execute('PRAGMA user_version').fetchone()[0],SCHEMA_VERSION)
             backup=Path(directory)/'backup.json';store.export(backup)
             reopened=self.store(directory);self.assertEqual(reopened.get(crossing.id),crossing)
             self.assertEqual(reopened.get(legacy.id),legacy)
@@ -57,7 +57,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(target.get(legacy.id),legacy)
 
     def test_future_or_unrelated_database_is_not_modified(self):
-        for version, app in [(2, APPLICATION_ID), (1, 0), (0, 0)]:
+        for version, app in [(99, APPLICATION_ID), (1, 0), (0, 0)]:
             with self.subTest(version=version, app=app), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / 'notes.sqlite3'
                 with sqlite3.connect(path) as db:
@@ -120,7 +120,7 @@ class NoteTests(unittest.TestCase):
             store = self.store(directory)
             original = create(store)
             backup = Path(directory) / 'bad.json'
-            for value in [{}, {'format': 'bible-notes', 'version': 2, 'notes': []},
+            for value in [{}, {'format': 'bible-notes', 'version': 99, 'notes': []},
                           {'format': 'bible-notes', 'version': 1, 'notes': [asdict(original), {'body': 'invalid'}]},
                           {'format': 'bible-notes', 'version': 1, 'notes': [asdict(original), asdict(original)]}]:
                 backup.write_text(json.dumps(value))

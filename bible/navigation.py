@@ -34,7 +34,7 @@ class PassagePopover(Gtk.Popover):
         self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
         self.version = self.dropdown('Version', self.version_changed)
         # Kept as an internal source model for navigation/search, not a duplicate chooser.
-        self.columns = Gtk.Box(spacing=16)
+        self.columns = Gtk.Box(spacing=16,vexpand=True)
         self.left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.left.add_css_class('navigation-books')
         self.search = Gtk.SearchEntry(placeholder_text=tr('Search books'))
@@ -50,19 +50,21 @@ class PassagePopover(Gtk.Popover):
         book_keys.connect('key-released', self.book_key_released)
         self.book_list.add_controller(book_keys)
         self.book_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                              vexpand=True, propagate_natural_height=True)
+                                              vexpand=True, propagate_natural_height=False)
         self.book_scroll.set_child(self.book_list)
         self.left.append(self.book_scroll)
         self.no_books = Gtk.Label(label=tr('No matching book.'), wrap=True, visible=False)
         self.left.append(self.no_books)
         self.columns.append(self.left)
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True)
-        self.book_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=22)
-        self.book_title.add_css_class('title-1')
-        right.append(self.book_title)
-        self.introduction_button=Gtk.Button(label=tr('Book introduction'),halign=Gtk.Align.START)
+        self.book_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=22,hexpand=True,width_chars=1)
+        self.book_title.add_css_class('heading')
+        book_header=Gtk.Box(spacing=6);book_header.append(self.book_title);right.append(book_header)
+        self.introduction_button=Gtk.Button(icon_name='dialog-information-symbolic',tooltip_text=tr('Book introduction'),valign=Gtk.Align.CENTER)
+        self.introduction_button.add_css_class('flat')
+        self.introduction_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book introduction')])
         self.introduction_button.connect('clicked',self.open_introduction)
-        right.append(self.introduction_button)
+        book_header.append(self.introduction_button)
         self.chapter_grid = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
                                          min_children_per_line=2, max_children_per_line=5,
                                          column_spacing=8, row_spacing=8,
@@ -70,12 +72,12 @@ class PassagePopover(Gtk.Popover):
         self.chapter_grid.update_property([Gtk.AccessibleProperty.LABEL], [tr('Chapters')])
         self.chapter_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                                  min_content_height=120, max_content_height=300,
-                                                 propagate_natural_height=True, vexpand=True)
+                                                 propagate_natural_height=False, vexpand=True)
         self.chapter_scroll.set_child(self.chapter_grid)
         right.append(self.chapter_scroll)
         self.columns.append(right)
-        self.pages=Gtk.Stack()
-        books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+        books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
         books_page.append(self.columns)
         self.pages.add_titled(books_page,'books',tr('Books'))
         self.history_list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
@@ -97,6 +99,7 @@ class PassagePopover(Gtk.Popover):
         self.scroll.set_child(self.content)
         self.set_child(self.scroll)
         self.connect('notify::visible', self.visibility_changed)
+        self.connect('map',lambda *_:self.reveal_book())
         preview_keys=Gtk.EventControllerKey()
         preview_keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         preview_keys.connect('key-pressed',self.preview_key_pressed)
@@ -172,13 +175,17 @@ class PassagePopover(Gtk.Popover):
             self.columns.set_orientation(Gtk.Orientation.VERTICAL if narrow else Gtk.Orientation.HORIZONTAL)
             self.left.set_size_request(-1 if narrow else 210, -1)
             self.book_scroll.set_max_content_height(-1)
-            self.book_scroll.set_min_content_height(100 if narrow else 260)
-            self.book_scroll.set_max_content_height(120 if narrow else 300)
+            self.book_scroll.set_min_content_height(60 if narrow else 100)
+            if narrow:self.book_scroll.set_max_content_height(100)
             self.content.set_size_request(min(680, max(280, size[0] - 64)), -1)
             available=min(540,max(160,size[1]-140))
             self.scroll.set_min_content_height(-1)
             self.scroll.set_max_content_height(available)
-            self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
+            self.scroll.set_min_content_height(available)
+            self.scroll.set_size_request(-1,available)
+            self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
+            self.chapter_scroll.set_min_content_height(60 if narrow else 100)
+            self.chapter_scroll.set_max_content_height(-1)
         return True
 
     def sync(self, force=False):
@@ -303,6 +310,9 @@ class PassagePopover(Gtk.Popover):
         self.chapter_buttons = {}
         book = self.books[self.book_index] if self.book_index < len(self.books) else None
         self.introduction_button.set_sensitive(bool(book and self.reader))
+        try:introduction=self.reader.introduction(book.code) if book and self.reader else None
+        except (ValueError,RuntimeError):introduction=None
+        self.introduction_button.set_visible(introduction is not None and bool(''.join(introduction.itertext()).strip()))
         self.book_title.set_text(self.book_name(book) if book else tr('Choose a passage'))
         self.chapters = list(book.chapters) if book else []
         self.chapter_number = preferred if preferred in self.chapters else (self.chapters[0] if self.chapters else None)
@@ -419,6 +429,7 @@ class PassagePopover(Gtk.Popover):
             self.populate_chapters()
             self._updating = False
             self.update_direct()
+            if len(self.chapters)==1:self.open_selected()
 
     def book_key_released(self, _, keyval, keycode, state):
         if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End,

@@ -26,6 +26,47 @@ class PaginationTests(unittest.TestCase):
         from bible.ui import Gtk
         Gtk.init();cls.widget=Gtk.TextView()
 
+    def test_bounded_shaping_matches_one_native_layout_exactly(self):
+        from bible.pagination import attributes,shaped_lines
+        from bible.reading_metrics import line_spacing
+        from gi.repository import Pango
+        # Exercise real paragraph boundaries, neutral lines, bidi, combining
+        # marks and formatting that crosses the bounded-layout boundary.
+        text=('Title\n\nÉcriture e\u0301 Ελληνικά עברית العربية — '+('mixed words '*28)+'\n123 —\n')*30
+        document=Document('fixture',text,(),(StyleSpan('heading',0,5),
+            StyleSpan('italic',2800,6500),StyleSpan('number',4400,4402)))
+        for size,alignment in [(12,'left'),(19,'justified'),(64,'left')]:
+            with self.subTest(size=size,alignment=alignment):
+                prefs=ReadingPreferences(size=size,alignment=alignment)
+                layout=self.widget.create_pango_layout(text)
+                layout.set_font_description(Pango.FontDescription(f'{prefs.font} {size}'))
+                layout.set_width(290*Pango.SCALE);layout.set_wrap(Pango.WrapMode.WORD_CHAR)
+                layout.set_justify(alignment=='justified');layout.set_spacing(line_spacing(prefs)*Pango.SCALE)
+                layout.set_attributes(attributes(document,context=self.widget.get_pango_context(),preferences=prefs))
+                offsets={0:0};byte=0
+                for index,char in enumerate(text):byte+=len(char.encode());offsets[byte]=index+1
+                iterator=layout.get_iter();expected=[]
+                while True:
+                    line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
+                    expected.append((offsets[line.start_index],logical.y/Pango.SCALE,logical.height/Pango.SCALE))
+                    if not iterator.next_line():break
+                self.assertEqual(list(shaped_lines(self.widget,document,prefs,290,0,len(text))),expected)
+
+    def test_heading_visibility_removes_generated_prefix_only(self):
+        from tests.test_ui import installed_fixture
+        from bible.sword_provider import Reader
+        from bible.library import Library
+        with tempfile.TemporaryDirectory() as directory:
+            root=installed_fixture(directory,entries=[('Gen.1.1','SOURCE TEXT'),('Gen.1.2','SECOND VERSE')])
+            source=BiblePages(Reader(root,'Test'),Library(Path(directory)/'translations').resource('Test'))
+            shown=source.document('Gen.1',ReadingPreferences())
+            hidden=source.document('Gen.1',ReadingPreferences(chapter_numbers=False))
+            prefix=shown.text.index('1\u00a0SOURCE')
+            self.assertEqual(hidden.text,shown.text[prefix:])
+            self.assertFalse(any(s.kind=='chapter' for s in hidden.styles))
+            self.assertEqual([s.reference for s in hidden.spans],[s.reference for s in shown.spans])
+            self.assertEqual(hidden.copy(0,len(hidden.text)),shown.copy(prefix,len(shown.text)))
+
     def test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor(self):
         text='TITLE\n\n'+('Écriture Ελληνικά עברית العربية e\u0301 — source text. '*230)
         doc=Document('test',text,(PassageSpan('Gen.1.1',0,7,len(text)),),(StyleSpan('heading',0,5),))

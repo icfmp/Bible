@@ -42,10 +42,12 @@ def filter_records(items,query='',labels=(),category='all',book='',color='',orde
     for item in items:
         if category=='notes' and not item.note or category=='highlights' and not item.mark:continue
         code,chapter,verse=parts(item.start)
-        if book and code!=book or color and item.color!=color:continue
+        links=item.note.passages if item.note else ()
+        if book and code!=book and not any(parts(link.start)[0]==book for link in links) or color and item.color!=color:continue
         if not wanted <= {label_key(label) for label in item.labels}:continue
         text=normalized(' '.join((render(item.body)[0],item.start,item.end,FRENCH.get(code,code),
-                                  f'{chapter}:{verse}',(reference_names or {}).get(code,''),item.origin,item.system,item.color or '',*item.labels)))
+                                  f'{chapter}:{verse}',(reference_names or {}).get(code,''),item.origin,item.system,item.color or '',*item.labels,
+                                  *(value for link in links for value in (link.start,link.end,FRENCH.get(parts(link.start)[0],parts(link.start)[0]))))))
         if not all(word in text for word in words):continue
         result.append(item)
     result.sort(key=bible_order)
