@@ -10,11 +10,12 @@ class ReadingSettings:
         self.page=Adw.PreferencesPage(title=tr('Reading'),name='reading',icon_name='format-text-symbolic')
         self.families={family.get_name().casefold():family
                        for family in self.page.get_pango_context().get_font_map().list_families()}
-        font=Adw.PreferencesGroup(title=tr('Font'));self.page.add(font)
-        self.serif_font=self.family(font,'Serif reading font','serif_font')
-        self.sans_font=self.family(font,'Sans reading font','sans_font')
+        self.typography_heading=Adw.PreferencesGroup(title=tr('Typography'));self.page.add(self.typography_heading)
+        font=Adw.PreferencesGroup(title=tr('Bible reading'));self.page.add(font)
+        self.serif_font=self.family(font,'Serif font','serif_font')
+        self.sans_font=self.family(font,'Sans-serif font','sans_font')
         self.size=self.number(font,'Text size (pt)','size',12,64)
-        study=Adw.PreferencesGroup(title=tr('Study content font'),description=tr('Notes, references and commentaries. Interface controls keep the system font.'))
+        study=Adw.PreferencesGroup(title=tr('Study content'),description=tr('Notes, references and commentaries. Interface controls keep the system font.'))
         self.page.add(study);self.study_font=self.family(study,'Font family','study_font')
         self.study_size=self.number(study,'Study text size (pt)','study_size',8,64)
         row=Adw.ActionRow(title=tr('Use the default study font'),activatable=True)

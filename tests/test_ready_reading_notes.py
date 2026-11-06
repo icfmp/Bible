@@ -49,11 +49,15 @@ class ReadyReadingNotesTests(unittest.TestCase):
         button=next(b for b in view._inline_buttons if b._marker_kind=='translation-note')
         original=w.active_tab._document.copy(0,len(w.active_tab._document.text))
         self.assertNotIn('SOURCE NOTE',original);self.assertEqual(button.get_cursor().get_name(),'pointer')
+        self.native.move_at(button,button.get_width()/2,button.get_height()/2);spin(duration=.9)
+        self.assertFalse(w.has_css_class('source-note-tooltip'))
         for keyboard in (False,True,False):
             if keyboard:button.grab_focus();self.native.key('space')
             else:self.native.click(button)
-            spin();self.assertTrue(button.get_popover().get_visible())
-            self.native.key('Escape');spin();self.assertFalse(button.get_popover().get_visible())
+            spin();self.assertTrue(button._source_note_popover and button._source_note_popover.get_visible())
+            self.assertIs(button._source_note_popover.get_parent(),w.active_tab.reading_overlay)
+            self.assertGreater(button._source_note_popover.get_child().get_width(),200)
+            self.native.key('Escape');spin();self.assertFalse(button._source_note_popover and button._source_note_popover.get_visible())
         self.assertEqual(w.active_tab._document.copy(0,len(w.active_tab._document.text)),original)
         self.assertEqual(w.active_tab.state.reference,'Gen.1.1')
 
@@ -137,6 +141,10 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertEqual(p.size,14);w.appearance.fonts['book'].emit('clicked');self.assertEqual(p.font,'DejaVu Serif')
         from bible.preferences import Preferences
         self.assertEqual(Preferences(self.root/'reading-preferences.json').value,p)
+        from bible.application_surfaces import show_preferences
+        dialog=show_preferences(w);dialog.set_visible_page(dialog.reading_settings.page);spin()
+        self.assertTrue(dialog.reading_settings.typography_heading.get_mapped())
+        dialog.close()
 
     def test_196_single_sidebar_owner_and_keyboard_resizing(self):
         w=self.w;w.study_button.set_active(True);spin()

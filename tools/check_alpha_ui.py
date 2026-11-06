@@ -209,7 +209,9 @@ def main():
                     inputs.click(window.menu);spin(lambda:window.reader_overflow_box.get_mapped())
                     inputs.click(window.appearance_button);spin(lambda:aa.get_visible())
                     spin(duration=.3)
-                    assert aa.get_width() <= window.get_width(), (aa.get_width(),window.get_width())
+                    # Native surface widths include transparent shadows, whose
+                    # extent differs between GTK versions/renderers.
+                    assert aa.get_child().get_width()+24 <= window.get_width(), (aa.get_child().get_width(),window.get_width())
                     size=window.preferences.value.size
                     inputs.click(aa.larger);assert window.preferences.value.size==size+1
                     inputs.click(aa.smaller);assert window.preferences.value.size==size

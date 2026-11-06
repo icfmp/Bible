@@ -1,15 +1,15 @@
 """Native, keyboard-accessible source-note actions, separate from personal data."""
-from gi.repository import Gtk,Pango
+from gi.repository import Gtk,Pango,Gdk,GLib
 from .i18n import tr
 from .reference_preview import passage_title
 
 
-def source_note_marker(markers,reader,reference,note,number):
+def source_note_marker(markers,view,reader,reference,note,number):
     caption=note.locator or str(number)
     label=Gtk.Label(label=caption)
     attrs=Pango.AttrList();attrs.insert(Pango.attr_scale_new(.7))
     attrs.insert(Pango.attr_rise_new(6*Pango.SCALE));label.set_attributes(attrs)
-    button=Gtk.MenuButton(child=label,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
+    button=Gtk.Button(child=label,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
     button.add_css_class('flat');button.add_css_class('inline-marker');button.add_css_class('source-note-marker')
     button.set_cursor_from_name('pointer')
     title=tr('Translation notes')+' · '+passage_title(reference,system=reader.versification)
@@ -20,24 +20,39 @@ def source_note_marker(markers,reader,reference,note,number):
         preview=Gtk.Label(label=note.text if len(note.text)<=220 else note.text[:220]+'…',
             wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=42,
             margin_top=4,margin_bottom=4,margin_start=4,margin_end=4)
+        preview.add_css_class('source-note-tooltip')
         # GTK owns the tooltip lifetime; scope the dark surface to this tooltip
         # and remove its class before the native window is reused elsewhere.
         roots=[]
         def mapped(widget):
-            root=widget.get_root()
-            if root:root.add_css_class('source-note-tooltip');roots.append(root)
+            # GtkTooltipWindow can be parented to the application window;
+            # get_root() would style that entire window instead of the tooltip.
+            root=widget.get_parent()
+            while root and root.get_css_name()!='tooltip':root=root.get_parent()
+            if root:
+                root.add_css_class('source-note-tooltip');roots.append(root)
         def unmapped(*_):
             for root in roots:root.remove_css_class('source-note-tooltip')
             roots.clear()
         preview.connect('map',mapped);preview.connect('unmap',unmapped)
         tip.set_custom(preview);return True
     button.connect('query-tooltip',tooltip)
+    button._source_note_popover=None
     def create(*_):
         # The first chapter can render before the tab is bound to its window.
         # Resolve the action owner when activated, as other marker kinds do.
         owner=markers.owner
         if not owner or owner.closed:return
-        pop=Gtk.Popover();pop.add_css_class('source-note-popover')
+        previous=button._source_note_popover
+        if previous and previous.get_visible():previous.popdown();return
+        tab=markers.tab
+        anchor=tab.comparison_overlay if view is tab.comparison_text else tab.reading_overlay
+        found,bounds=button.compute_bounds(anchor)
+        if not found:return
+        pop=Gtk.Popover();pop.add_css_class('source-note-popover');pop.set_parent(anchor)
+        rect=Gdk.Rectangle();rect.x=round(bounds.origin.x);rect.y=round(bounds.origin.y)
+        rect.width=round(bounds.size.width);rect.height=round(bounds.size.height);pop.set_pointing_to(rect)
+        button._source_note_popover=pop
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
         heading=Gtk.Label(label=title,xalign=0,wrap=True,max_width_chars=34);heading.add_css_class('caption')
@@ -51,19 +66,26 @@ def source_note_marker(markers,reader,reference,note,number):
         credit.add_css_class('caption');box.append(credit)
         scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,propagate_natural_height=True,
             min_content_width=max(180,min(340,owner.get_width()-64)),max_content_height=max(100,min(360,owner.get_height()-120)))
-        scroll.set_child(box);pop.set_child(scroll);button.set_popover(pop)
+        scroll.set_size_request(max(180,min(340,owner.get_width()-64)),-1)
+        scroll.set_child(box);pop.set_child(scroll)
         def visibility(*_):
             if pop.get_visible():
                 scroll.set_min_content_width(max(160,min(340,owner.get_width()-64)))
+                scroll.set_size_request(max(160,min(340,owner.get_width()-64)),-1)
                 scroll.set_max_content_height(max(100,min(360,owner.get_height()-120)))
                 if pop not in owner._reading_popovers:owner._reading_popovers.append(pop)
                 from .popover_dismissal import fit_reader_popover
                 fit_reader_popover(pop,owner)
             elif pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
         pop.connect('notify::visible',visibility)
-    button.set_create_popup_func(create)
+        def closed(*_):
+            if pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
+            if button._source_note_popover is pop:button._source_note_popover=None
+            GLib.idle_add(lambda:pop.unparent() or False)
+        pop.connect('closed',closed);pop.popup()
+    button.connect('clicked',create)
     def hidden(*_):
-        pop=button.get_popover()
+        pop=button._source_note_popover
         if pop:pop.popdown()
     button.connect('unmap',hidden)
     return button

@@ -94,7 +94,7 @@ class InlineMarkers:
     def button(self,view,reader,ref,kind,payload):
         if kind.startswith('translation-note:'):
             from .source_note_marker import source_note_marker
-            return source_note_marker(self,reader,ref,payload,int(kind.split(':')[1])+1)
+            return source_note_marker(self,view,reader,ref,payload,int(kind.split(':')[1])+1)
         title=tr('Notes on this verse' if kind=='note' else 'Places in this verse')
         button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'bible-place-symbolic',
                           tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)

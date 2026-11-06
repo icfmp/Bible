@@ -128,7 +128,7 @@ class PassageActions:
         content.add_css_class('passage-actions-content')
         self.bar.add_overlay(content);self.bar.set_measure_overlay(content,True)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
-        identity=Gtk.Box(spacing=8)
+        identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
         self.label.add_css_class('heading')
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)

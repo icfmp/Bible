@@ -83,9 +83,9 @@ def main():
                 tab.text.scroll_to_iter(tab.text.get_buffer().get_iter_at_offset(offset),.1,True,.5,.3);spin(duration=.5)
                 native.move_at(button,button.get_width()/2,button.get_height()/2);spin(duration=1.2)
                 capture('source-note-tooltip-'+mode,True)
-                native.click(button);spin();assert button.get_popover().get_visible()
+                native.click(button);spin();assert button._source_note_popover and button._source_note_popover.get_visible()
                 capture('source-note-popover-'+mode);native.key('Escape')
-                button.grab_focus();native.key('space');assert button.get_popover().get_visible();native.key('Escape')
+                button.grab_focus();native.key('space');assert button._source_note_popover and button._source_note_popover.get_visible();native.key('Escape')
             buffer=tab.text.get_buffer();start=tab._marker_ends['Mark.11.29']
             buffer.select_range(buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(start+20))
             actions=w.passage_actions;actions.capture(tab.text,lambda:actions.ordinary(tab),None);spin()
@@ -114,13 +114,14 @@ def main():
                 # At narrow widths the reading controls have one adaptive owner.
                 if w.appearance_button.get_parent() is w.reader_overflow_box:w.reading_tools_menu.popup();spin()
                 w.appearance_button.popup();spin(duration=.4);capture(f'appearance-{width}-{mode}');w.dismiss_popovers()
-                if not args.baseline:assert w.appearance.get_width()<=w.get_width()
+                if not args.baseline:assert w.appearance.get_child().get_width()+24<=w.get_width()
         if not args.baseline:
             settings_gtk=Gtk.Settings.get_default();old_font=settings_gtk.props.gtk_font_name
             try:
                 settings_gtk.props.gtk_font_name='Sans 18';spin(duration=.4)
                 w.reading_tools_menu.popup();spin();w.appearance_button.popup();spin(duration=.4)
-                assert w.appearance.get_width()<=w.get_width()
+                # Composited native surfaces include transparent outer shadows.
+                assert w.appearance.get_child().get_width()+24<=w.get_width()
                 capture('appearance-360-large-ui-text');w.dismiss_popovers()
             finally:settings_gtk.props.gtk_font_name=old_font
         w.set_default_size(1200,860);w.study_button.set_active(False);settled()
