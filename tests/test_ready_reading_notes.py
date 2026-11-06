@@ -63,10 +63,15 @@ class ReadyReadingNotesTests(unittest.TestCase):
 
     def test_187_execution_uses_current_translation_and_enter(self):
         w=self.w;w.show_search('text');panel=w.search_popover.text_search
+        spin(duration=.3)
+        self.assertLess(w.search_popover.get_height(),240)
         panel.entry.set_text('SECOND');w.active_tab.navigate('Second','Gen.1.1');spin()
         panel.entry.grab_focus();self.native.key('Return');spin(lambda:not panel.pending,timeout=20)
         self.assertEqual(panel.context[0],'Second');self.assertFalse(panel.source.get_visible())
         self.assertTrue(panel.rows)
+        self.assertTrue(panel.result_scroll.get_mapped())
+        panel.entry.set_text('');spin(duration=.3)
+        self.assertLess(w.search_popover.get_height(),240)
 
     def test_188_text_and_topics_keep_the_same_bounded_width(self):
         w=self.w;widths=[]
