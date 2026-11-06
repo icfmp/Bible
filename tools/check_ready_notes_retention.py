@@ -11,8 +11,8 @@ from pathlib import Path
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--require-packaged',action='store_true');a=p.parse_args()
-    assert (a.profile/'.ready-reading-notes-profile').is_file();a.output.mkdir(parents=True,exist_ok=True)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--require-packaged',action='store_true');p.add_argument('--selection-only',action='store_true');a=p.parse_args()
+    assert (a.profile/'.ready-reading-notes-profile').is_file() or (a.selection_only and (a.profile/'preservation-before.json').is_file());a.output.mkdir(parents=True,exist_ok=True)
     from bible.ui import Application,Window,Library,Gtk
     from bible.notes import NoteStore,PassageLink
     from bible.highlights import HighlightStore
@@ -29,6 +29,22 @@ def main():
     before=tree()
     try:
         if a.require_packaged:assert report['app_import'].startswith('/app/') and 'GL' in report['renderer']
+        if a.selection_only:
+            w.active_tab.navigate('youversion~YV21','Mark.11.29');settle()
+            for mode in ('day','night'):
+                w.appearance.update('mode',mode);settle()
+                tab=w.active_tab;buffer=tab.text.get_buffer();start=tab._marker_ends['Mark.11.29']
+                tab.text.scroll_to_iter(buffer.get_iter_at_offset(start),.1,True,.5,.3);spin(duration=.4)
+                buffer.select_range(buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(start+20))
+                actions=w.passage_actions;actions.capture(tab.text,lambda:actions.ordinary(tab),None);spin()
+                icon=actions.word_button.get_child().get_icon_name()
+                assert icon=='accessories-dictionary-symbolic' and Gtk.IconTheme.get_for_display(w.get_display()).has_icon(icon)
+                shot('selection-final-'+mode);w.dismiss_popovers();buffer.place_cursor(buffer.get_iter_at_offset(start))
+            assert tree()==before and w.notes_store.all()==retained
+            from bible.passage_actions import PassageActions
+            report.update(action_icon=icon,app_action_sha256=hashlib.sha256(Path(inspect.getfile(PassageActions)).read_bytes()).hexdigest(),complete=True)
+            report['checks'].update(final_signed_selection=True,retained_notes_and_translations_preserved=True)
+            return
         w.active_tab.navigate('youversion~YV21','Mark.11.29');settle();system=w.active_tab.reader.versification
         note=w.notes_store.save('**Developer validation**. Jean 3:16.\n- Existing item',('Linked-note validation',),versification=system,start='Mark.11.29',end='Mark.11.30',origin_translation='youversion~YV21',origin_language='fr')
         editor=w.edit_note(note=note);spin();n.activate(editor)
