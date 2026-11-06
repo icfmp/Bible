@@ -7,7 +7,7 @@ on:
       candidate_pr:
         description: Exact reviewed pull request number
         required: true
-        default: '186'
+        default: '203'
       candidate_head:
         description: Exact reviewed application PR head to update to
         required: true
@@ -39,8 +39,8 @@ jobs:
           python3 - <<'PY'
           import json,urllib.request
           from pathlib import Path
-          x=json.loads(Path('tools/fixtures/alpha23-provenance.json').read_text())
-          assert x['source_commit']=='7c76aaaa14ee605d71c45ec3e634ed14c787678c',x
+          x=json.loads(Path('tools/fixtures/alpha24-provenance.json').read_text())
+          assert x['source_commit']=='6d260ff5e788653e6ee79c719dfcba71ed034fa9',x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
@@ -114,7 +114,7 @@ jobs:
           highlights=HighlightStore(root/'highlights.json')
           if not highlights.entries:highlights.set('Segond',['Ps.119.1'],'blue','FreSegond1910')
           preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
-          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),highlights_sha256=hashlib.sha256(highlights.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
+          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),preferences=json.loads(preferences.path.read_text()),highlights_sha256=hashlib.sha256(highlights.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
           (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
           PY
       - name: Measure the old signed alpha before upgrade
@@ -209,13 +209,34 @@ jobs:
           from dataclasses import asdict
           from bible.notes import NoteStore
           root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
-          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),highlights_sha256=hashlib.sha256((root/'highlights.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),preferences=json.loads((root/'reading-preferences.json').read_text()),highlights_sha256=hashlib.sha256((root/'highlights.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
           after=json.loads(json.dumps(after))
-          differences=[key for key in before if before[key]!=after[key]]
+          # Schema 2 is additive. Prove every legacy field is retained rather
+          # than rejecting a safe extra field or silently ignoring changed data.
+          for note in after['notes']:
+              assert not note.pop('links',[]), 'Unexpected links added during upgrade'
+          assert {k:after['preferences'][k] for k in before['preferences']}==before['preferences']
+          allowed={'serif_font','sans_font','font_style','study_size','visible_elements_expanded'}
+          assert set(after['preferences'])-set(before['preferences'])<=allowed
+          comparable=dict(after);comparable['preferences']=before['preferences'];comparable['preferences_sha256']=before['preferences_sha256']
+          differences=[key for key in before if before[key]!=comparable[key]]
+          import sqlite3
+          snapshots=list((root/'backups').glob('notes-before-schema-2-*.sqlite3'))
+          assert snapshots, 'Verified pre-migration snapshot missing'
+          snapshot=sqlite3.connect('file:'+str(snapshots[0])+'?mode=ro',uri=True)
+          assert snapshot.execute('PRAGMA user_version').fetchone()[0]==1
+          assert snapshot.execute('PRAGMA quick_check').fetchone()[0]=='ok'
+          assert snapshot.execute('SELECT COUNT(*) FROM notes').fetchone()[0]==len(before['notes'])
+          snapshot.row_factory=sqlite3.Row
+          old=[]
+          for row in snapshot.execute('SELECT * FROM notes'):
+              note=dict(row);note['labels']=[r[0] for r in snapshot.execute('SELECT labels.name FROM labels JOIN note_labels ON labels.key=note_labels.label_key WHERE note_id=? ORDER BY labels.key',(row['id'],))];old.append(note)
+          assert sorted(old,key=lambda n:n['id'])==sorted(before['notes'],key=lambda n:n['id'])
+          snapshot.close()
           Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
           assert not differences, 'Changed persisted components: '+str(differences)
           assert not (root/'immersion-help.json').exists(), 'Retired hint state remains after upgrade'
-          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,highlights_preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
+          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,migration_snapshot_verified=True,legacy_preferences_preserved=True,highlights_preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
           PY
       - name: Log the bounded signed update and preservation receipts
         if: always()
