@@ -25,6 +25,10 @@ class StudySearch(Gtk.Box):
         self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
+        # GtkSearchEntry's default delegated minimum can widen the horizontal
+        # fallback on older libadwaita. Let the entry expand into the remaining
+        # row width rather than impose its desktop-sized default on both modes.
+        self.entry.get_delegate().set_width_chars(8)
         self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
         self.entry.connect('search-changed',self.changed)
         query=(Adw.WrapBox(child_spacing=6,line_spacing=6,natural_line_length=480)
