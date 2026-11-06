@@ -208,10 +208,12 @@ def main():
                     spin(lambda:not window._controls_tick and not second._restoring_scroll,duration=.4)
                     inputs.click(window.menu);spin(lambda:window.reader_overflow_box.get_mapped())
                     inputs.click(window.appearance_button);spin(lambda:aa.get_visible())
+                    spin(duration=.3)
+                    assert aa.get_width() <= window.get_width(), (aa.get_width(),window.get_width())
                     size=window.preferences.value.size
                     inputs.click(aa.larger);assert window.preferences.value.size==size+1
                     inputs.click(aa.smaller);assert window.preferences.value.size==size
-                    inputs.click(aa.line_spacing);inputs.key('Home');inputs.key('Return')
+                    inputs.click_at(aa.visible_elements,12,12)
                     assert aa.get_visible()
                     inputs.click_at(window.header,4,20)
                     assert not aa.get_visible() and not window.menu.get_active()

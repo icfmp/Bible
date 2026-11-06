@@ -2,7 +2,7 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Pango, GLib
+from gi.repository import Gtk, Pango, GLib, Adw
 from .i18n import tr
 from .preferences import ReadingPreferences
 
@@ -14,11 +14,14 @@ class AppearancePopover(Gtk.Popover):
         self._syncing = False
         self._apply_id=0;self._pending_reflow=False
         scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                    max_content_height=620, propagate_natural_height=True)
+                                    max_content_height=620, propagate_natural_height=True,
+                                    propagate_natural_width=True)
+        self.scroll=scroll
         self.controls = box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8,
                                      margin_top=12, margin_bottom=12, margin_start=12, margin_end=12)
-        scroll.set_child(box)
-        title = Gtk.Label(label=tr('Reading appearance'),wrap=True);title.add_css_class('heading');box.append(title)
+        self.width_clamp=Adw.Clamp(child=box,maximum_size=320,tightening_threshold=320,unit=Adw.LengthUnit.PX)
+        scroll.set_child(self.width_clamp)
+        title = Gtk.Label(label=tr('Reading appearance'),wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR);title.add_css_class('heading');box.append(title)
         self.fonts = {}
         fonts = Gtk.Box(spacing=6, homogeneous=True)
         for style, label in [('book', 'Book'), ('simple', 'Simple')]:
@@ -58,7 +61,7 @@ class AppearancePopover(Gtk.Popover):
             group_button=None
             for key,title in options:
                 button=Gtk.ToggleButton(tooltip_text=tr(title))
-                button.set_child(Gtk.Label(label=tr(title),wrap=True,max_width_chars=12))
+                button.set_child(Gtk.Label(label=tr(title),wrap=True,width_chars=1,max_width_chars=12,wrap_mode=Pango.WrapMode.WORD_CHAR))
                 if group_button:button.set_group(group_button)
                 else:group_button=button
                 button.add_css_class('palette-'+key)
@@ -76,12 +79,13 @@ class AppearancePopover(Gtk.Popover):
         for attr,label in [('chapter_numbers','Chapter headings'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights'),
                            ('note_indicators','Show note indicators'),('place_markers','Show place markers')]:
             row=Gtk.Box(spacing=12)
-            row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True))
+            row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
             button=Gtk.Switch(valign=Gtk.Align.CENTER)
             button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             button.connect('notify::active',lambda widget,_,key=attr:self.update(key,widget.get_active()))
             row.append(button);setattr(self,attr,button);visible_box.append(row)
-        advanced=Gtk.Button(label=tr('More reading settings…'))
+        advanced=Gtk.Button(child=Gtk.Label(label=tr('More reading settings…'),wrap=True,
+            width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
         def open_settings(*_):
             self.popdown()
             from .application_surfaces import show_preferences
@@ -90,13 +94,23 @@ class AppearancePopover(Gtk.Popover):
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,label=owner.preferences.error)
         box.append(self.status)
         if not owner.preferences.writable:box.set_sensitive(False)
-        box.set_size_request(292,-1)
         self.set_child(scroll)
         def shown(*_):
             anchor=self.get_parent()
             found,bounds=anchor.compute_bounds(owner)
             below=owner.get_height()-(bounds.origin.y+bounds.size.height)-44 if found else owner.get_height()-100
             scroll.set_max_content_height(max(120,min(620,int(below))))
+            width=max(180,min(320,owner.get_width()-40))
+            self.width_clamp.set_maximum_size(width);self.width_clamp.set_tightening_threshold(width)
+            scroll.set_min_content_width(-1);scroll.set_max_content_width(width);scroll.set_min_content_width(width)
+            # Keep all three direct choices at large UI text sizes. Native
+            # symbolic controls retain their localized labels and tooltips.
+            modes=[('System','computer-symbolic'),('Light','weather-clear-symbolic'),('Dark','weather-clear-night-symbolic')]
+            for button,(label,_) in zip(self.mode.buttons,modes):button.set_label(tr(label))
+            if self.mode.measure(Gtk.Orientation.HORIZONTAL,-1)[0]>width-24:
+                for button,(label,icon) in zip(self.mode.buttons,modes):
+                    button.set_child(Gtk.Image(icon_name=icon,pixel_size=20));button.set_tooltip_text(tr(label))
+                    button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             from .popover_dismissal import fit_reader_popover
             fit_reader_popover(self,owner)
         self.connect('show',shown)
