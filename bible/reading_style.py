@@ -186,6 +186,11 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 {window} .passage-actions {{ background-color: transparent; color: white; }}
 {window} .passage-actions popover contents, {window} .passage-actions popover arrow {{ background-color: #202020; color: white; }}
 """
+        # Override the owner-scoped reading background on the native tooltip
+        # surface too, including its padding around the text.
+        self.css+=f'''
+.{self.scope}-window tooltip.background, .{self.scope}-window tooltip.background label {{ background-color: #101010; color: #ffffff; }}
+'''
         for name,(background,foreground,*_) in PALETTES.items():
             if name.startswith('contrast'):continue
             self.css+=f'.{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n'
