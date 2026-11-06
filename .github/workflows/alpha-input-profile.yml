@@ -291,6 +291,9 @@ jobs:
           for language in fr en; do
             timeout 300s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD:$PWD/candidate-checks" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$language" --command=python3 io.github.icfmp.Bible//master -m tools.check_ready_notes_retention "$READY_PROFILE" "$PWD/reports/retention-$language" --require-packaged > "reports/retention-$language.log" 2>&1
           done
+      - name: Index original screenshots and exact measurement receipts
+        if: always()
+        run: python3 -m tools.ready_evidence_index reports
       - name: Bounded diagnostic logs
         if: failure()
         run: |
