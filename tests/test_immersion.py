@@ -202,7 +202,7 @@ class ImmersionTests(unittest.TestCase):
             # intentionally create modal dialogs and may retain GTK grabs.
             environment=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1')
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                                   '-m','unittest',self.id(),'-v'],env=environment,
+                                   '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],env=environment,
                                   capture_output=True,text=True,timeout=45)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             return

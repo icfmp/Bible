@@ -88,7 +88,7 @@ class NoteCitationTests(unittest.TestCase):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             import subprocess,sys
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                '-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
+                '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
                 capture_output=True,text=True,timeout=60)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
         from bible.ui import Gtk

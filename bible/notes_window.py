@@ -259,7 +259,9 @@ class NoteEditor(Adw.Window):
 
     def queue_autosave(self):
         if self.closed or self._discard or self._saving:return
-        self.cancel_autosave()
+        # A continuous typing burst must not postpone every write forever.
+        # Keep one bounded write window; schedule again only after later edits.
+        if self._autosave_id:return
         self.status.set_text(tr('Saving…'))
         self._autosave_id=GLib.timeout_add(600,self.autosave_pending)
 

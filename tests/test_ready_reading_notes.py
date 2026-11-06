@@ -188,6 +188,29 @@ class ReadyReadingNotesTests(unittest.TestCase):
         editor.close();spin();editor=w.edit_note(note=w.notes_store.get(note.id));spin()
         self.assertEqual(editor.body.source(),original);self.assertFalse(editor.dirty)
 
+    def test_201_continuous_typing_is_committed_before_the_burst_ends(self):
+        from gi.repository import GLib
+        from bible.notes import NoteStore
+        from bible.notes_window import buffer_text
+        w=self.w;note=self.note();space=w.open_notes();space.open_note(note);spin()
+        editor=space.editor;typed=[0]
+        def type_more():
+            editor.body.get_buffer().insert_at_cursor('x');typed[0]+=1
+            return typed[0]<20
+        timer=GLib.timeout_add(80,type_more)
+        try:
+            spin(lambda:typed[0]>=12,duration=.01,timeout=5)
+            self.assertLess(typed[0],20)
+            # A separate connection observes a durable write during typing.
+            witness=NoteStore(self.root/'notes.sqlite3')
+            try:self.assertNotEqual(witness.get(note.id).body,note.body)
+            finally:witness.close()
+            self.assertIs(space.editor,editor)
+            spin(lambda:typed[0]==20,timeout=5)
+            spin(lambda:w.notes_store.get(note.id).body==buffer_text(editor.body),timeout=5)
+        finally:
+            if typed[0]<20:GLib.source_remove(timer)
+
     def test_202_offline_manual_links_are_shared_and_restored_once(self):
         from bible.notes import NoteStore
         from bible.highlights import HighlightStore

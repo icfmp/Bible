@@ -31,7 +31,7 @@ class InlineMarkerTests(unittest.TestCase):
     def test_native_multi_place_chooser_after_scrolling_the_anchor(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                                   '-m','unittest',self.id(),'-v'],
+                                   '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],
                                   env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
                                   capture_output=True,text=True,timeout=45)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
@@ -73,7 +73,7 @@ class InlineMarkerTests(unittest.TestCase):
     def test_native_note_click_and_hovered_marker_rebuild_in_both_readers(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                                   '-m','unittest',self.id(),'-v'],
+                                   '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],
                                   env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
                                   capture_output=True,text=True,timeout=45)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr);return

@@ -13,7 +13,7 @@ class SelectionLifecycleTests(unittest.TestCase):
     def test_native_text_drag_completion_cancel_and_copy_preserve_selection(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                                   '-m','unittest',self.id(),'-v'],
+                                   '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],
                                   env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
                                   capture_output=True,text=True,timeout=60)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
@@ -100,7 +100,7 @@ class SelectionLifecycleTests(unittest.TestCase):
     def test_pending_keyboard_capture_cannot_cancel_a_new_mouse_selection(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
             result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                                   '-m','unittest',self.id(),'-v'],
+                                   '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],
                                   env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
                                   capture_output=True,text=True,timeout=50)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
