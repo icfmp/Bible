@@ -31,6 +31,19 @@ def main():
         if a.require_packaged:assert report['app_import'].startswith('/app/') and 'GL' in report['renderer']
         if a.selection_only:
             w.active_tab.navigate('youversion~YV21','Mark.11.29');settle()
+            w.study_button.set_active(True);settle();original_width=w.study_settings.width
+            reference=w.active_tab.state.reference
+            for direction in (-1,1):
+                previous=w.study_settings.width
+                found,bounds=w.study_divider.compute_bounds(w);assert found and w.study_divider.get_mapped()
+                x,y=bounds.origin.x+bounds.size.width/2,bounds.origin.y+100
+                n.move_at(w,x,y);n.xtest.XTestFakeButtonEvent(n.display,1,True,0);n.x11.XFlush(n.display);spin()
+                for index in range(1,5):n.move_at(w,x+direction*8*index,y);spin(duration=.04)
+                n.xtest.XTestFakeButtonEvent(n.display,1,False,0);n.x11.XFlush(n.display);settle()
+                assert (w.study_settings.width-previous)*direction<0
+                assert w.active_tab.state.reference==reference
+            w.study_settings.width=original_width;w.study_divider.apply();w.study_settings.save()
+            report['checks']['native_study_divider_drag_both_directions']=True
             for mode in ('day','night'):
                 w.appearance.update('mode',mode);settle()
                 tab=w.active_tab;buffer=tab.text.get_buffer();start=tab._marker_ends['Mark.11.29']
