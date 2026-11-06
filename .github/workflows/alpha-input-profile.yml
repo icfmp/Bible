@@ -2,6 +2,10 @@ name: Probe installed word-study and selection regressions
 on:
   workflow_dispatch:
     inputs:
+      ready_reading_notes:
+        description: Compare alpha24 and the exact Ready reading/notes Flatpak, with native evidence
+        type: boolean
+        default: false
       study_followups:
         description: Verify real study previews, topics, original words and bidirectional comparison
         type: boolean
@@ -94,7 +98,7 @@ jobs:
             ${{ runner.temp }}/study-resource-update/catalogue.json
             ${{ runner.temp }}/study-resource-update/provenance.json
   picker:
-    if: ${{ !inputs.publish_study_data }}
+    if: ${{ !inputs.publish_study_data && !inputs.ready_reading_notes }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -183,4 +187,74 @@ jobs:
             reports/*.png
             reports/*.json
             reports/*.mp4
+          if-no-files-found: error
+  ready-reading-notes:
+    if: inputs.ready_reading_notes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.candidate_source }}
+          path: candidate-checks
+      - name: Install verified signed alpha24 and exact candidate bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ inputs.candidate_source }}
+          BUILD: ${{ inputs.candidate_run }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ostree
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/ready-flatpak" >> "$GITHUB_ENV"
+          echo "READY_PROFILE=$RUNNER_TEMP/ready-profile" >> "$GITHUB_ENV"
+          gh run download "$BUILD" --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
+          python3 - <<'PY'
+          import os,json,hashlib,re,subprocess
+          from pathlib import Path
+          source=os.environ['SOURCE'];assert re.fullmatch('[0-9a-f]{40}',source)
+          assert subprocess.check_output(['git','-C','candidate-checks','rev-parse','HEAD'],text=True).strip()==source
+          p=Path(os.environ['RUNNER_TEMP'])/'candidate-bundle';x=json.loads((p/'build-info.json').read_text())
+          assert x['commit']==source and hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
+          PY
+          export FLATPAK_USER_DIR="$RUNNER_TEMP/ready-flatpak"
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+          flatpak update --user --noninteractive --commit=b69b230c39958e81c574c8bf7e714789693027d5e96a9e2f1e4b6b857259f32e io.github.icfmp.Bible//alpha
+          mkdir reports
+          ostree show --repo="$FLATPAK_USER_DIR/repo" --gpg-verify-remote=bible-alpha b69b230c39958e81c574c8bf7e714789693027d5e96a9e2f1e4b6b857259f32e > reports/alpha24-signature.txt
+          flatpak install --user --noninteractive "$RUNNER_TEMP/candidate-bundle/Bible-alpha.flatpak"
+          cp "$RUNNER_TEMP/candidate-bundle/build-info.json" reports/candidate-build-info.json
+          flatpak run --user --unshare=network --command=python3 io.github.icfmp.Bible//alpha -c "import hashlib;from pathlib import Path;assert hashlib.sha256(Path('/app/lib/bible-python/bible/ui.py').read_bytes()).hexdigest()=='8b020a66454e65eb6c7417e115eeada1233da2c8fa9600e09d2ffe3766bb1918'"
+      - name: Capture baseline and candidate on the same retained real-resource profile
+        run: |
+          run_ready() {
+            app="$1"; shift
+            timeout 1800s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD/candidate-checks":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$language" --command=python3 "io.github.icfmp.Bible//$app" -X faulthandler -m tools.check_ready_reading_notes "$READY_PROFILE" "$PWD/reports/$label" --require-packaged "$@" > "reports/$label.log" 2>&1
+          }
+          language=fr;label=alpha24-fr;run_ready alpha --prepare --baseline
+          for app in alpha master; do
+            for case in 'youversion~YV21:Ps.34.2' 'KJV:Ps.119.1' 'KJV:Phlm.1.1'; do
+              key=$(echo "$case" | tr '~:.' '---')
+              timeout 400s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD/candidate-checks":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 "io.github.icfmp.Bible//$app" -X faulthandler -m tools.profile_immersion_entry "$READY_PROFILE" "$PWD/reports/entry-$app-$key" --case "$case" --require-packaged > "reports/entry-$app-$key.log" 2>&1
+            done
+          done
+          for language in fr en; do label="candidate-$language";run_ready master;done
+          label=candidate-offline;language=fr
+          timeout 500s dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD/candidate-checks":ro --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_ready_reading_notes "$READY_PROFILE" "$PWD/reports/$label" --require-packaged --offline > "reports/$label.log" 2>&1
+      - name: Distinct Ready acceptance tests against installed application in both languages
+        run: |
+          for language in fr en; do
+            timeout 300s dbus-run-session -- xvfb-run -a flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD/candidate-checks":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=BIBLE_TEST_ISOLATED_CLICK=1 --env=LANGUAGE="$language" --command=python3 io.github.icfmp.Bible//master -X faulthandler -m unittest tests.test_ready_reading_notes tests.test_note_links tests.test_pagination -v > "reports/installed-tests-$language.log" 2>&1
+            tail -n 5 "reports/installed-tests-$language.log"
+          done
+      - name: Bounded diagnostic logs
+        if: failure()
+        run: |
+          for log in reports/*.log; do echo "$log";tail -n 40 "$log";done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-ready-reading-notes
+          path: reports
           if-no-files-found: error
