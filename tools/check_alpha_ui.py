@@ -11,7 +11,7 @@ import tempfile
 import gi
 
 gi.require_version('GdkX11', '4.0')
-from gi.repository import GdkX11  # noqa: F401 — register X11 surface methods
+from gi.repository import GdkX11, Graphene  # noqa: F401 — register X11 surface methods
 
 from tests.test_ui import installed_fixture, spin
 from bible.ui import Application, Gtk, Library, Window
@@ -66,7 +66,7 @@ class X11Input:
 
     def move_at(self, widget, local_x, local_y):
         native = widget.get_native()
-        found, bounds = widget.compute_bounds(native)
+        found, point = widget.compute_point(native, Graphene.Point().init(local_x,local_y))
         assert found and widget.get_mapped()
         dx, dy = native.get_surface_transform()
         root_x, root_y, child = ctypes.c_int(), ctypes.c_int(), ctypes.c_ulong()
@@ -74,8 +74,10 @@ class X11Input:
             self.display, native.get_surface().get_xid(),
             self.x11.XDefaultRootWindow(self.display), 0, 0,
             ctypes.byref(root_x), ctypes.byref(root_y), ctypes.byref(child))
-        x = int(root_x.value + dx + bounds.origin.x + local_x)
-        y = int(root_y.value + dy + bounds.origin.y + local_y)
+        # Bounds include CSS margins; pointer coordinates belong to the
+        # widget's content. GtkNative's transform is surface -> widget.
+        x = int(root_x.value - dx + point.x)
+        y = int(root_y.value - dy + point.y)
         self.xtest.XTestFakeMotionEvent(self.display, -1, x, y, 0)
         self.x11.XFlush(self.display)
 

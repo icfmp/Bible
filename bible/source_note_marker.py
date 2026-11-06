@@ -21,20 +21,6 @@ def source_note_marker(markers,view,reader,reference,note,number):
             wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=42,
             margin_top=4,margin_bottom=4,margin_start=4,margin_end=4)
         preview.add_css_class('source-note-tooltip')
-        # GTK owns the tooltip lifetime; scope the dark surface to this tooltip
-        # and remove its class before the native window is reused elsewhere.
-        roots=[]
-        def mapped(widget):
-            # GtkTooltipWindow can be parented to the application window;
-            # get_root() would style that entire window instead of the tooltip.
-            root=widget.get_parent()
-            while root and root.get_css_name()!='tooltip':root=root.get_parent()
-            if root:
-                root.add_css_class('source-note-tooltip');roots.append(root)
-        def unmapped(*_):
-            for root in roots:root.remove_css_class('source-note-tooltip')
-            roots.clear()
-        preview.connect('map',mapped);preview.connect('unmap',unmapped)
         tip.set_custom(preview);return True
     button.connect('query-tooltip',tooltip)
     button._source_note_popover=None
