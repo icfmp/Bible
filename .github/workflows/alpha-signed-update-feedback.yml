@@ -273,10 +273,5 @@ jobs:
         if: always()
         with:
           name: alpha-signed-update-performance
-          path: |
-            reports/before-provenance.json
-            reports/after-provenance.json
-            reports/signed-update.json
-            reports/preservation.json
-            reports/performance-summary.json
+          path: reports
           if-no-files-found: error
