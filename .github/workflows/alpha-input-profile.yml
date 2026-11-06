@@ -215,7 +215,7 @@ jobs:
           BIBLE_TEST_ISOLATED_CLICK: '1'
         run: |
           mkdir reports
-          dbus-run-session -- xvfb-run -a gdb --batch --return-child-result -ex run -ex 'thread apply all bt' --args /usr/bin/python3 -X faulthandler -m unittest tests.test_ready_reading_notes.ReadyReadingNotesTests.test_185_source_note_mouse_and_keyboard_keep_scripture_and_other_markers -v > reports/source-note-backtrace.log 2>&1
+          dbus-run-session -- xvfb-run -a gdb --batch --return-child-result -ex run -ex 'py-bt' -ex 'bt 40' --args /usr/bin/python3 -X faulthandler -m unittest tests.test_ready_reading_notes.ReadyReadingNotesTests.test_185_source_note_mouse_and_keyboard_keep_scripture_and_other_markers -v > reports/source-note-backtrace.log 2>&1 || { tail -n 100 reports/source-note-backtrace.log; exit 1; }
           tail -n 12 reports/source-note-backtrace.log
       - uses: actions/upload-artifact@v4
         if: always()
