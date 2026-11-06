@@ -155,7 +155,7 @@ class PassageActions:
                 button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
                 self.actions.append(button);self.highlight_buttons[color]=(button,check)
         self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
-        self.word_button=self.button('bible-word-study-symbolic','Original text',lambda *_:self.study_word())
+        self.word_button=self.button('accessories-dictionary-symbolic','Original text',lambda *_:self.study_word())
         self.word_button.set_tooltip_text(tr('Study original text'))
         self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())

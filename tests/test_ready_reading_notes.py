@@ -130,6 +130,8 @@ class ReadyReadingNotesTests(unittest.TestCase):
         first=tab._marker_ends['Gen.1.1'];buffer.select_range(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+5))
         actions.capture(tab.text,lambda:actions.ordinary(tab,False),None);spin()
         self.assertIsInstance(actions.word_button.get_child(),Gtk.Image)
+        self.assertEqual(actions.word_button.get_child().get_icon_name(),'accessories-dictionary-symbolic')
+        self.assertTrue(Gtk.IconTheme.get_for_display(w.get_display()).has_icon('accessories-dictionary-symbolic'))
         self.assertEqual(actions.word_button.get_tooltip_text(),tr('Study original text'))
         for color,(hexcolor,_) in COLORS.items():
             actions.highlight_buttons[color][0].emit('clicked');spin()
