@@ -1,5 +1,12 @@
 """Native tabbed GNOME reader; downloads live in a dedicated window."""
 from pathlib import Path
+import os
+import sys
+
+# GTK 4.20's Vulkan path retains growing native memory while scrolling live
+# text-view children. Use GSK's native OpenGL renderer; honor explicit overrides.
+if sys.platform.startswith('linux'):
+    os.environ.setdefault('GSK_RENDERER', 'gl')
 
 import gi
 
