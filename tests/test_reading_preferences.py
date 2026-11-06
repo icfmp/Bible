@@ -39,8 +39,8 @@ class ReadingSettingsTests(unittest.TestCase):
                 full.size.set_value(23);spin(lambda:not w.appearance._apply_id,duration=.2)
                 p=w.preferences.value
                 self.assertEqual((p.size,p.line_spacing_px,p.text_width_px,p.side_margin_px),(23,12,713,82))
-                self.assertIn('12 px',w.appearance.line_spacing.get_model().get_string(w.appearance.line_spacing.get_selected()))
-                self.assertIn('713 px',w.appearance.column_width.get_model().get_string(w.appearance.column_width.get_selected()))
+                self.assertFalse(hasattr(w.appearance,'line_spacing'))
+                self.assertFalse(hasattr(w.appearance,'column_width'))
                 d.close();spin();d=show_preferences(w);full=d.reading_settings
                 self.assertEqual((full.line_spacing_px.get_value(),full.text_width_px.get_value()),(12,713))
                 self.assertEqual(Preferences(root/'reading-preferences.json').value,p)

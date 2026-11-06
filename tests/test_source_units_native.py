@@ -165,7 +165,7 @@ class NativeUnitTests(unittest.TestCase):
                 tag=tab.text.get_buffer().get_tag_table().lookup('highlight-yellow')
                 for span in doc.spans:
                     self.assertEqual(tab.text.get_buffer().get_iter_at_offset(span.body+1).has_tag(tag),span.reference=='Sir.43.17')
-                self.assertEqual(len([b for b in tab.text._inline_buttons if b._marker_reference=='Sir.43.17']),1)
+                self.assertEqual(len([b for b in tab.text._inline_buttons if b._marker_reference=='Sir.43.17' and b._marker_kind=='note']),1)
                 for span in doc.spans:
                     for offset in range(span.body,span.end):
                         # Inline child objects and their adjacent whitespace are

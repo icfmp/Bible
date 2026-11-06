@@ -61,6 +61,11 @@ class Immersion(Gtk.Overlay):
         self.footer=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,margin_start=24,margin_end=24,margin_bottom=12)
         self.footer.add_css_class('dim-label');self.footer.set_valign(Gtk.Align.END)
         self.set_child(body);self.add_overlay(self.footer)
+        self.preparing=Gtk.Spinner(width_request=24,height_request=24,visible=False,
+            halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER,can_target=False,
+            tooltip_text=tr('Preparing reading pages…'))
+        self.preparing.update_property([Gtk.AccessibleProperty.LABEL],[tr('Preparing reading pages…')])
+        self.add_overlay(self.preparing);self._waiting_since=time.monotonic()
         # Keyboard focus belongs to the stationary viewport. Painting it in a
         # text page would bake its vertical inset into the moving slide image.
         self.focus_cue=Gtk.Box(can_target=False,hexpand=True,vexpand=True)
@@ -105,7 +110,7 @@ class Immersion(Gtk.Overlay):
         if self.kind=='commentary':
             contextual=Gtk.MenuButton(icon_name='view-more-symbolic',menu_model=commands,tooltip_text=tr('Commentary actions'))
             header.pack_start(contextual)
-        header.pack_start(self.menu);header.pack_end(self.aa);header.pack_end(self.leave_button)
+        header.pack_end(self.menu);header.pack_end(self.leave_button);header.pack_end(self.aa)
         self.header=header
         if self.kind=='bible':
             owner.primary_version.get_parent().remove(owner.primary_version)
@@ -173,6 +178,11 @@ class Immersion(Gtk.Overlay):
             changed=self.stream.poll()
             if changed=='current':self.render()
             elif changed=='controls' and self.stream.cursor:self.update_page_buttons()
+        waiting=not self.stream.cursor and not getattr(self.stream,'error',None)
+        if not waiting:self._waiting_since=None
+        elif self._waiting_since is None:self._waiting_since=time.monotonic()
+        indicate=waiting and time.monotonic()-self._waiting_since>=.2
+        self.preparing.set_visible(indicate);self.preparing.set_spinning(indicate)
         width,height=self.get_width(),self.get_height()
         if width<100 or height<100:return True
         from .navigation_overlay import position
@@ -570,6 +580,7 @@ class Immersion(Gtk.Overlay):
     def finish(self):
         self.cancel_slide()
         self._closed=True
+        self.preparing.set_spinning(False);self.preparing.set_visible(False)
         for handler in self._focus_handlers:self.owner.disconnect(handler)
         if self._hide_id:GLib.source_remove(self._hide_id);self._hide_id=0
         if self._tick:self.remove_tick_callback(self._tick);self._tick=0

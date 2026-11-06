@@ -20,7 +20,11 @@ class BiblePages:
         title=display_name(native.getOSISBookName(),native.getBookName(),LANGUAGE)
         if preferences.chapter_numbers:
             title+=' '+(self.reader.chapter_label(key) if hasattr(self.reader,'chapter_label') else str(native.getChapter()))
-        pieces=[title+'\n\n'];styles=[StyleSpan('chapter',0,len(title))];spans=[];offset=len(pieces[0])
+        # This switch controls the whole generated heading, not source-supplied
+        # editorial titles or the independent passage selector.
+        prefix=title+'\n\n' if preferences.chapter_numbers else ''
+        pieces=[prefix];styles=[StyleSpan('chapter',0,len(title))] if prefix else []
+        spans=[];offset=len(prefix)
         bases={}
         for unit in chapter.display_units:
             reference,plain=unit.reference,unit.text

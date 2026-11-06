@@ -88,7 +88,7 @@ class AppearanceTests(unittest.TestCase):
             try:
                 spin()
                 self.assertIs(window.reader_controls.get_parent(),window.header_tools)
-                self.assertIs(window.reader_controls.get_first_child(),window.comparison_button)
+                self.assertIs(window.reader_controls.get_first_child(),window.search_button)
                 self.assertIs(window.appearance_button.get_parent(),window.reader_controls)
                 self.assertTrue(window.appearance_button.is_ancestor(window.header))
                 self.assertFalse(window.navigation.version.get_parent())
@@ -162,11 +162,11 @@ class AppearanceTests(unittest.TestCase):
                 buffer=tab.text.get_buffer();start=tab._marker_ends['Gen.1.1']
                 buffer.select_range(buffer.get_iter_at_offset(start+3),buffer.get_iter_at_offset(start+19))
                 before=buffer.get_text(*buffer.get_selection_bounds(),False)
-                w.appearance.fonts['DejaVu Sans'].emit('clicked')
+                w.appearance.fonts['simple'].emit('clicked')
                 self.assertEqual(w.preferences.value.font,'DejaVu Sans')
                 w.appearance.larger.emit('clicked');self.assertEqual(w.preferences.value.size,15)
                 w.appearance.smaller.emit('clicked');self.assertEqual(w.preferences.value.size,14)
-                w.appearance.line_spacing.set_selected(2);w.appearance.column_width.set_selected(0)
+                w.appearance.update('line_spacing','airy');w.appearance.update('column_width','narrow')
                 self.assertEqual(w.preferences.value.line_spacing,'airy')
                 self.assertEqual(w.preferences.value.column_width,'narrow')
                 w.appearance.verse_numbers.set_active(False);w.appearance.chapter_numbers.set_active(False)

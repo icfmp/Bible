@@ -91,6 +91,11 @@ class ReadingTab(Gtk.Box):
         self.comparison_scroll=Gtk.ScrolledWindow(vexpand=True,hexpand=True,min_content_height=140)
         self.comparison_scroll.add_css_class('reading-scroll')
         self.comparison_text._marker_context=self.inline_markers
+        self._active_source_side='primary'
+        for view,side in ((self.text,'primary'),(self.comparison_text,'comparison')):
+            focus=Gtk.EventControllerFocus()
+            focus.connect('enter',lambda *_,s=side:setattr(self,'_active_source_side',s))
+            view.add_controller(focus)
         self.comparison_scroll.set_child(self.comparison_text)
         self.comparison_overlay=Gtk.Overlay(vexpand=True,hexpand=True)
         self.comparison_scroll.set_margin_top(0)

@@ -1,5 +1,6 @@
 """Map annotation identity to the current reader, without migrating annotations."""
 from collections import OrderedDict
+import weakref
 from .reference_resolution import resolve
 from .notes import parts
 
@@ -7,8 +8,14 @@ from .notes import parts
 class PassageAnnotations:
     def __init__(self):
         self.cache = OrderedDict()
+        self._reader=None
 
     def positions(self, reader, system, start, end):
+        # Providers can share a numbering-system name but use distinct native
+        # address maps. Never reuse another reader's native positions or keep
+        # its SWORD handles alive through this metadata cache.
+        if self._reader is None or self._reader() is not reader:
+            self.cache.clear();self._reader=weakref.ref(reader)
         key = (reader.versification, system, start, end)
         if key in self.cache:return self.cache[key]
         # Enumerate the source range before mapping: a source chapter can
@@ -43,7 +50,8 @@ class PassageAnnotations:
                    self.positions(reader, system, first, last))
 
     def notes(self, reader, start, end, store):
-        return [note for note in store.all() if self.matches(reader, start, end, note.versification, note.start, note.end)]
+        return [note for note in store.all() if any(self.matches(reader,start,end,
+            link.versification,link.start,link.end) for link in note.passages)]
 
     def highlights(self, reader, start, end, store):
         return [mark for mark in store.entries.values() if self.matches(reader, start, end,

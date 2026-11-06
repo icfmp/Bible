@@ -10,11 +10,14 @@ class ReadingSettings:
         self.page=Adw.PreferencesPage(title=tr('Reading'),name='reading',icon_name='format-text-symbolic')
         self.families={family.get_name().casefold():family
                        for family in self.page.get_pango_context().get_font_map().list_families()}
-        font=Adw.PreferencesGroup(title=tr('Font'));self.page.add(font)
-        self.font=self.family(font,'Reading font','font')
+        self.typography_heading=Adw.PreferencesGroup(title=tr('Typography'));self.page.add(self.typography_heading)
+        font=Adw.PreferencesGroup(title=tr('Bible reading'));self.page.add(font)
+        self.serif_font=self.family(font,'Serif font','serif_font')
+        self.sans_font=self.family(font,'Sans-serif font','sans_font')
         self.size=self.number(font,'Text size (pt)','size',12,64)
-        study=Adw.PreferencesGroup(title=tr('Study content font'),description=tr('Notes, references and commentaries. Interface controls keep the system font.'))
+        study=Adw.PreferencesGroup(title=tr('Study content'),description=tr('Notes, references and commentaries. Interface controls keep the system font.'))
         self.page.add(study);self.study_font=self.family(study,'Font family','study_font')
+        self.study_size=self.number(study,'Study text size (pt)','study_size',8,64)
         row=Adw.ActionRow(title=tr('Use the default study font'),activatable=True)
         row.add_suffix(Gtk.Image(icon_name='edit-clear-symbolic'));row.connect('activated',lambda *_:self.update('study_font','sans-serif'));study.add(row)
         layout=Adw.PreferencesGroup(title=tr('Layout'));self.page.add(layout)
@@ -97,7 +100,8 @@ class ReadingSettings:
 
     def sync(self):
         self.syncing=True;p=self.owner.preferences.value
-        self.sync_family(self.font,p.font);self.sync_family(self.study_font,p.study_font)
+        self.sync_family(self.serif_font,p.serif_font);self.sync_family(self.sans_font,p.sans_font)
+        self.sync_family(self.study_font,p.study_font);self.study_size.set_value(p.study_size or 12)
         self.size.set_value(p.size);self.line_spacing_px.set_value(line_spacing(p))
         self.text_width_px.set_value(text_width(p));self.side_margin_px.set_value(side_margin(p,66))
         for key in ('alignment','immersion_columns','mode'):

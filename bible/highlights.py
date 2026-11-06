@@ -7,7 +7,7 @@ import tempfile
 from .notes import parts
 from .providers import RESOURCE_ID
 
-COLORS={'yellow':('#fff1a8','Yellow'),'green':('#c9edce','Green'),'blue':('#cce5ff','Blue')}
+COLORS={'yellow':('#f6cd45','Yellow'),'green':('#79c793','Green'),'blue':('#7bb2e8','Blue')}
 MAX_BYTES=8*1024*1024
 
 

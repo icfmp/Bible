@@ -123,6 +123,8 @@ class ReadingStyle:
         marker_color=NUMBER_COLORS[self.palette]
         import json
         study_family=json.dumps(self.owner.preferences.value.study_font,ensure_ascii=False)
+        study_size=self.owner.preferences.value.study_size
+        study_size_css=f'font-size: {study_size}pt;' if study_size is not None else ''
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         from .highlights import COLORS
         swatches=''.join('.passage-actions .highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
@@ -141,6 +143,10 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions button:hover {{ background-color: rgba(255,255,255,.12); }}
 .passage-actions button:active {{ background-color: rgba(255,255,255,.22); }}
 .passage-actions button:focus-visible {{ outline: 2px solid #ffffff; outline-offset: -2px; }}
+.source-note-popover contents, .source-note-popover arrow,
+.{self.scope}-window tooltip, .{self.scope}-window tooltip label {{ background-color: #101010; color: #ffffff; }}
+.source-note-popover label {{ color: #ffffff; }}
+textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-width: 12px; min-height: 0; padding: 0; margin: 0; }}
 .passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}
 .passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
@@ -148,8 +154,8 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
 {selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
-.{self.scope}-window .study-drawer .study-content,
-.{self.scope}-window .study-drawer .study-content text {{ font-family: {study_family}; }}
+.{self.scope}-window .study-content,
+.{self.scope}-window .study-content text {{ font-family: {study_family}; {study_size_css} }}
 /* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque
    background cannot cover the focus mark. Inset shadows do not change layout. */
 {selector}:not(.immersive-page):focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
@@ -176,9 +182,15 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 {window} .study-drawer headerbar .start, {window} .study-drawer headerbar .end {{ background-color: {sidebar}; color: {fg}; }}
 {window} popover {{ background: transparent; }}
 {window} popover arrow {{ background-color: {bg}; }}
+{window} popover.source-note-popover contents, {window} popover.source-note-popover arrow {{ background-color: #101010; color: white; }}
 {window} .passage-actions {{ background-color: transparent; color: white; }}
 {window} .passage-actions popover contents, {window} .passage-actions popover arrow {{ background-color: #202020; color: white; }}
 """
+        # Override the owner-scoped reading background on the native tooltip
+        # surface too, including its padding around the text.
+        self.css+=f'''
+.{self.scope}-window tooltip.background, .{self.scope}-window tooltip.background label {{ background-color: #101010; color: #ffffff; }}
+'''
         for name,(background,foreground,*_) in PALETTES.items():
             if name.startswith('contrast'):continue
             self.css+=f'.{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n'

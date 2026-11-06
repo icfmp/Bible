@@ -54,6 +54,18 @@ def choice_details(resource):
     return resource.description,resource.source,resource.public_code
 
 
+def download_translations_action():
+    button=Gtk.Button(tooltip_text=tr('Download other translations…'))
+    button.add_css_class('flat')
+    row=Gtk.Box(spacing=6,halign=Gtk.Align.CENTER)
+    row.append(Gtk.Image(icon_name='folder-download-symbolic',pixel_size=14))
+    label=Gtk.Label(label=tr('Download other translations…'),wrap=True,
+        wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,hexpand=True)
+    label.add_css_class('caption');row.append(label);button.set_child(row)
+    button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Download other translations…')])
+    return button
+
+
 class DirectChoices(Gtk.ScrolledWindow):
     """One native list, with the same selection contract in every pane."""
     __gsignals__={'reselected':(GObject.SignalFlags.RUN_LAST,None,())}
@@ -115,15 +127,9 @@ class VersionChooser(Gtk.MenuButton):
         self.choices.connect('reselected',lambda *_:self.popover.popdown())
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
         box.append(self.choices)
-        self.download_more=Gtk.Button(label=tr('Download more…'))
-        self.download_more.set_can_shrink(True)
-        # The list controls the popup width, including with enlarged UI text.
-        self.download_more.get_child().set_ellipsize(Pango.EllipsizeMode.END)
-        self.download_more.get_child().set_width_chars(1)
-        self.download_more.get_child().set_max_width_chars(1)
-        self.download_more.set_tooltip_text(tr('Download more…'))
+        self.download_more=download_translations_action()
         self.download_more.connect('clicked',lambda *_:owner.contextual_library('bible','comparison' if comparison else 'bible'))
-        box.append(self.download_more)
+        box.append(Gtk.Separator());box.append(self.download_more)
         self.status=Gtk.Label(wrap=True,max_width_chars=28,xalign=0,visible=False);box.append(self.status)
         self.popover.set_child(box);self.set_popover(self.popover)
         self.popover.connect_after('show',lambda *_:self.fit_popup())

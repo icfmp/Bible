@@ -32,9 +32,21 @@ class SearchPopover(Gtk.Popover):
 
     def selected_resource(self):return self._resource
 
-    def sync(self):
+    def reading_context(self):
         tab=self.owner.active_tab if hasattr(self.owner,'view') else None
-        self.reader=tab.reader if tab else None;self._resource=tab.state.resource if tab else None
+        if tab and tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison' and tab._comparison_reader:
+            return tab.state.comparison,tab._comparison_reader
+        return (tab.state.resource,tab.reader) if tab else (None,None)
+
+    def current_reference(self):
+        tab=self.owner.active_tab if hasattr(self.owner,'view') else None
+        if not tab:return None
+        if tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison':
+            return tab.comparison_visible_reference() or tab.comparison_reference
+        return tab.state.reference
+
+    def sync(self):
+        self._resource,self.reader=self.reading_context()
         self.active_panel().refresh()
 
     def active_panel(self):
@@ -78,14 +90,14 @@ class SearchPopover(Gtk.Popover):
         if not self.get_visible():return
         size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name())
         if size==self._layout_stamp:return
-        self._layout_stamp=size;topics=size[2]=='topics'
-        self.content.set_size_request(min(680,max(240,size[0]-64)),-1)
+        self._layout_stamp=size
+        self.content.set_size_request(min(480,max(240,size[0]-64)),-1)
         available=min(540,max(160,size[1]-140))
         self.scroll.set_min_content_height(-1);self.scroll.set_max_content_height(available)
-        self.scroll.set_min_content_height(available if topics else -1)
-        self.scroll.set_size_request(-1,available if topics else -1)
-        self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER if topics else Gtk.PolicyType.AUTOMATIC)
-        self.modes.set_vexpand(topics)
+        self.scroll.set_min_content_height(available)
+        self.scroll.set_size_request(-1,available)
+        self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
+        self.modes.set_vexpand(True)
         from .popover_dismissal import fit_reader_popover
         fit_reader_popover(self,self.owner)
 

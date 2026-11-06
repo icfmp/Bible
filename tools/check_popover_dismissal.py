@@ -42,17 +42,23 @@ def main():
                 assert window.active_tab.state.comparison is None
                 assert not window.comparison_popover.get_visible()
             aa = window.appearance
-            for index in [0, 1, 2, 3, 0, 3]:
+            for index in [0, 1, 2, 0, 2]:
                 native.click(window.appearance_button)
-                native.click(aa.line_spacing); native.key('Home')
-                for _ in range(index): native.key('Down')
-                native.key('Return'); spin(duration=.2)
-                assert window.preferences.value.line_spacing == ['tight','normal','airy','very-airy'][index]
+                native.click(aa.mode.buttons[index]);spin(duration=.2)
+                assert window.preferences.value.mode == ['system','day','night'][index]
                 assert aa.get_visible()  # Further immediate adjustments are intentional.
                 native.click(aa.larger); native.click(aa.smaller)
                 native.click_at(window.active_tab.text, 8, 100); assert not aa.get_visible()
+            search=window.search_popover
+            for index in range(4):
+                native.click(window.search_button);scope=search.text_search.scope
+                native.click(scope);native.key('Home')
+                for _ in range(index):native.key('Down')
+                native.key('Return');spin()
+                assert scope.get_selected()==index and search.get_visible()
+                native.click_at(window.active_tab.text,8,100);assert not search.get_visible()
             print('PASS: repeated trigger/outside/Escape; parent-surface fallback; comparison '
-                  'apply/close; nested four spacing choices and continued Aa adjustment', flush=True)
+                  'apply/close; direct Aa modes; nested search scopes and continued adjustment', flush=True)
         finally:
             window.close(); native.close()
 

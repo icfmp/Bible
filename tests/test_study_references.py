@@ -25,7 +25,7 @@ class StudyReferenceTests(unittest.TestCase):
             w.split.set_show_sidebar(True);spin(duration=.3)
             resource=replace(w.library.resource('Test'),description='TEST very long translation title for constrained preview layout')
             with patch.object(w.library,'resource',return_value=resource):
-                popup=w.reference_preview.show(refs.heading,'Test',w.active_tab.reader,'John.3.16',
+                popup=w.reference_preview.show(w.study.context_heading,'Test',w.active_tab.reader,'John.3.16',
                     provenance='OpenBible.info · CC BY 4.0\nhttps://www.openbible.info/labs/cross-references/')
             spin(duration=.3);self.assertIsNotNone(popup)
             x,y=screen.point(w,0,0)
@@ -72,7 +72,7 @@ class StudyReferenceTests(unittest.TestCase):
         before=(tab.state.reference,list(tab.state.history),w.view.get_n_pages())
         anchor=refs.teaser_rows.get_first_child()
         # A mapped anchor is needed; use the References header in this test.
-        popover=w.reference_preview.show(refs.heading,'Test',tab.reader,'John.3.16')
+        popover=w.reference_preview.show(w.study.context_heading,'Test',tab.reader,'John.3.16')
         spin();self.assertTrue(popover.get_visible())
         self.assertEqual(w.reference_preview.body.get_buffer().props.text,'DESTINATION SIXTEEN')
         self.assertEqual((tab.state.reference,tab.state.history,w.view.get_n_pages()),before)
@@ -82,7 +82,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.resource,'Test')
         self.assertEqual((tab.state.reference,tab.state.history),(before[0],before[1]))
         w.view.set_selected_page(w.view.get_page(tab));w.study_button.set_active(True);spin()
-        w.reference_preview.show(refs.heading,'Test',tab.reader,'John.3.17');spin()
+        w.reference_preview.show(w.study.context_heading,'Test',tab.reader,'John.3.17');spin()
         w.reference_preview.open_here.emit('clicked');spin()
         self.assertEqual(tab.state.reference,'John.3.17')
         self.assertEqual(len(tab.state.history),len(before[1])+1)
@@ -94,7 +94,7 @@ class StudyReferenceTests(unittest.TestCase):
                             buffer.get_iter_at_offset(tab._verse_ranges['John.1.6'][1]))
         spin(lambda:not refs.pending and refs.context[2:] == ('John.1.5','John.1.6'),duration=.2)
         self.assertEqual(refs.rows[0].score,19);self.assertEqual(refs.rows[0].source_count,2)
-        w.reference_preview.show(refs.heading,'Test',tab.reader,'John.3.16')
+        w.reference_preview.show(w.study.context_heading,'Test',tab.reader,'John.3.16')
         tab.navigate('Test','John.1.5');tab.navigate('Test','Ps.3.1');tab.navigate('Test','John.1.6')
         spin(lambda:not refs.pending and refs.context[2:] == ('John.1.6','John.1.6'),duration=.2)
         self.assertIsNone(w.reference_preview.popover)
@@ -120,7 +120,7 @@ class StudyReferenceTests(unittest.TestCase):
     def test_missing_local_text_keeps_preview_non_navigating_and_data_available(self):
         self.install();refs=self.show();w=self.window;tab=w.active_tab
         before=(tab.state.reference,list(tab.state.history))
-        w.reference_preview.show(refs.heading,'Test',tab.reader,'Gen.1.1');spin()
+        w.reference_preview.show(w.study.context_heading,'Test',tab.reader,'Gen.1.1');spin()
         self.assertFalse(w.reference_preview.open_here.get_sensitive())
         self.assertFalse(w.reference_preview.open_new.get_sensitive())
         self.assertEqual((tab.state.reference,tab.state.history),before)

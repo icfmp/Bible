@@ -27,8 +27,9 @@ class StudyPanel(Gtk.Box):
         self._loading=False;self._missing_near=0
         self._scroll_idle=0;self._load_idle=0;self._processing_scroll=False
         self.translate=tr
-        self.add_css_class('sidebar-pane')
-        self.add_css_class('end')
+        # OverlaySplitView owns the native sidebar boundary. Reusing its CSS
+        # classes here paints a second border inside the resize handle.
+        self.add_css_class('study-panel')
         self.add_css_class('study-drawer')
         self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
         self.header.add_css_class('flat')
@@ -88,6 +89,8 @@ class StudyPanel(Gtk.Box):
         if isinstance(layout, Gtk.BoxLayout):layout.set_homogeneous(False)
         switcher.set_margin_start(12); switcher.set_margin_end(12)
         self.append(switcher)
+        self.context_heading=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12)
+        self.context_heading.add_css_class('heading');self.append(self.context_heading)
         from .passage_notes import PassageNotes
         self.notes = PassageNotes(owner)
         from .study_references import StudyReferences
@@ -106,18 +109,26 @@ class StudyPanel(Gtk.Box):
         self.tools.add_titled(self.commentaries, 'commentaries', tr('Commentaries'))
         from .editorial_view import TranslationNotes
         self.translation_notes=TranslationNotes(owner)
-        source_notes_page=self.tools.add_titled(self.translation_notes,'translation-notes',tr('Translation notes'))
-        source_notes_page.set_icon_name('dialog-information-symbolic')
         tool = owner.study_settings.tool
-        self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries','translation-notes') else 'commentaries')
+        self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries') else 'commentaries')
         def compact_labels(widget):
             if isinstance(widget,Gtk.Label):widget.set_ellipsize(Pango.EllipsizeMode.END);widget.set_width_chars(1)
             if isinstance(widget,Gtk.ToggleButton) and isinstance(widget.get_child(),Gtk.Label):widget.set_tooltip_text(widget.get_child().get_text())
+            if isinstance(widget,Gtk.ToggleButton):
+                widget.connect('clicked',lambda button:self.content_pages.set_visible_child_name('tools') if button.get_active() else None)
             child=widget.get_first_child()
             while child:compact_labels(child);child=child.get_next_sibling()
         compact_labels(switcher)
         self.content_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
         self.content_pages.add_named(self.tools,'tools')
+        self.content_pages.add_named(self.translation_notes,'translation-notes')
+        self.translation_notes_button=Gtk.ToggleButton(icon_name='dialog-information-symbolic',tooltip_text=tr('Translation notes'))
+        self.translation_notes_button.add_css_class('flat')
+        self.translation_notes_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Translation notes')])
+        self.translation_notes_button.connect('toggled',lambda button:self.content_pages.set_visible_child_name(
+            'translation-notes' if button.get_active() else 'tools'))
+        self.header.pack_end(self.translation_notes_button)
+        if tool=='translation-notes':self.translation_notes_button.set_active(True)
         self.append(self.content_pages)
         self.tools.connect('notify::visible-child-name', self.tool_changed)
         self.popovers = [actions,info]
@@ -127,6 +138,8 @@ class StudyPanel(Gtk.Box):
         # and accessible tooltips, without duplicating long in-content banners.
         self.source = Gtk.Label()
         self.passage = Gtk.Label()
+        for label in (self.passage,self.notes.heading,self.references.heading):
+            label.connect('notify::label',lambda *_:self.update_context_heading())
         self.source.connect('notify::label',lambda *_:self.choices.set_tooltip_text(self.source.get_text()))
         self.passage.connect('notify::label',lambda *_:self.text.update_property(
             [Gtk.AccessibleProperty.LABEL],[tr('Commentary text')+': '+self.passage.get_text()]))
@@ -145,11 +158,11 @@ class StudyPanel(Gtk.Box):
         self.motion=ScrollMotion(self.scroll)
         self.pages = Gtk.Stack(vexpand=True)
         self.pages.add_named(self.scroll,'reading')
-        self.empty = Adw.StatusPage(title=tr('Choose a commentary'),
-                                    description=tr('Choose or download a commentary.'),icon_name='accessories-dictionary-symbolic')
+        self.empty = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
+            margin_start=16,margin_end=16,margin_top=12,valign=Gtk.Align.START)
         self.download = Gtk.Button(child=Gtk.Label(label=tr('Download a commentary'),wrap=True),halign=Gtk.Align.CENTER)
         self.download.connect('clicked',lambda *_:self.open_library())
-        self.empty.set_child(self.download);self.pages.add_named(self.empty,'empty')
+        self.empty.append(self.download);self.pages.add_named(self.empty,'empty')
         self.pages.set_visible_child_name('empty');self.commentaries.append(self.pages)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
         self._layout_geometry = None;self._layout_anchor = None
@@ -168,13 +181,27 @@ class StudyPanel(Gtk.Box):
 
     @property
     def tool(self):
-        return 'word' if hasattr(self,'content_pages') and self.content_pages.get_visible_child_name()=='word' else self.tools.get_visible_child_name()
+        name=self.content_pages.get_visible_child_name() if hasattr(self,'content_pages') else 'tools'
+        return name if name in ('word','translation-notes') else self.tools.get_visible_child_name()
+
+    def update_context_heading(self):
+        if not hasattr(self,'context_heading') or not hasattr(self,'passage'):return
+        tab=self.owner.active_tab
+        label=(self.notes.heading.get_text() if self.tool=='notes' else self.references.heading.get_text()
+               if self.tool=='references' else self.passage.get_text())
+        if self.tool=='translation-notes':label=tab.passage_title(chapter_only=True) if tab else ''
+        self.context_heading.set_text(label);self.context_heading.set_visible(bool(label) and self.tool!='word')
 
     def tool_controls(self):
         self.tools_switcher.set_visible(self.tool!='word')
         for widget in (self.more,self.immersive_button):widget.set_visible(self.tool=='commentaries')
+        self.update_context_heading()
 
     def tool_changed(self, *_):
+        if _ and _[0] is self.tools and self.content_pages.get_visible_child_name()!='tools':
+            self.content_pages.set_visible_child_name('tools')
+        active=self.tool=='translation-notes'
+        if self.translation_notes_button.get_active()!=active:self.translation_notes_button.set_active(active)
         self.tool_controls()
         if self.tool=='word':
             self.cancel_reveal();self.notes.cancel_follow();self.update_indicator()
@@ -191,11 +218,12 @@ class StudyPanel(Gtk.Box):
 
     def apply_typography(self):
         from .preferences import ReadingPreferences
-        self.sidebar_preferences = ReadingPreferences(font=self.owner.preferences.value.study_font, size=12, line_spacing='normal')
+        size=self.owner.preferences.value.study_size or 12
+        self.sidebar_preferences = ReadingPreferences(font=self.owner.preferences.value.study_font, size=size, line_spacing='normal')
         self.text.set_pixels_inside_wrap(0); self.text.set_pixels_below_lines(0)
         buffer=self.text.get_buffer(); tag=buffer.get_tag_table().lookup('reader-typography')
         if tag is None:tag=buffer.create_tag('reader-typography')
-        tag.props.family=self.owner.preferences.value.study_font; tag.props.size_points=12; tag.props.line_height=1.5
+        tag.props.family=self.owner.preferences.value.study_font; tag.props.size_points=size; tag.props.line_height=1.5
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
 
     def queue_adapt(self,*_,frames=8):
@@ -259,7 +287,7 @@ class StudyPanel(Gtk.Box):
         for name in self.names[1:]:
             if name in installed:
                 resource = self.owner.library.resource(name)
-                labels.append(f'{name} — {plain(resource.description)}')
+                labels.append(resource.public_code or resource.name)
             else:
                 labels.append(f'{name} ({tr("Missing commentary")})')
         self.names.append(self._download_choice);labels.append(tr('Download more…'))

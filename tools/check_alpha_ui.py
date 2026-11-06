@@ -11,7 +11,7 @@ import tempfile
 import gi
 
 gi.require_version('GdkX11', '4.0')
-from gi.repository import GdkX11  # noqa: F401 — register X11 surface methods
+from gi.repository import GdkX11, Graphene  # noqa: F401 — register X11 surface methods
 
 from tests.test_ui import installed_fixture, spin
 from bible.ui import Application, Gtk, Library, Window
@@ -66,7 +66,7 @@ class X11Input:
 
     def move_at(self, widget, local_x, local_y):
         native = widget.get_native()
-        found, bounds = widget.compute_bounds(native)
+        found, point = widget.compute_point(native, Graphene.Point().init(local_x,local_y))
         assert found and widget.get_mapped()
         dx, dy = native.get_surface_transform()
         root_x, root_y, child = ctypes.c_int(), ctypes.c_int(), ctypes.c_ulong()
@@ -74,8 +74,10 @@ class X11Input:
             self.display, native.get_surface().get_xid(),
             self.x11.XDefaultRootWindow(self.display), 0, 0,
             ctypes.byref(root_x), ctypes.byref(root_y), ctypes.byref(child))
-        x = int(root_x.value + dx + bounds.origin.x + local_x)
-        y = int(root_y.value + dy + bounds.origin.y + local_y)
+        # Bounds include CSS margins; pointer coordinates belong to the
+        # widget's content. GtkNative's transform is surface -> widget.
+        x = int(root_x.value - dx + point.x)
+        y = int(root_y.value - dy + point.y)
         self.xtest.XTestFakeMotionEvent(self.display, -1, x, y, 0)
         self.x11.XFlush(self.display)
 
@@ -190,12 +192,12 @@ def main():
                 assert window.preferences.value.size == 15
                 aa.smaller.grab_focus();inputs.key('space')
                 assert window.preferences.value.size == 14
-                aa.fonts['DejaVu Sans'].grab_focus();inputs.key('space')
+                aa.fonts['simple'].grab_focus();inputs.key('space')
                 assert window.preferences.value.font == 'DejaVu Sans'
                 inputs.click(aa.palettes['paper'])
                 assert window.preferences.value.day_palette == 'paper'
                 assert window.preferences.value.mode == 'system'
-                inputs.click(aa.mode);inputs.key('End');inputs.key('Return')
+                inputs.click(aa.mode.buttons[2])
                 assert window.preferences.value.mode == 'night'
                 aa.verse_numbers.grab_focus();inputs.key('Return')
                 assert not window.preferences.value.verse_numbers
@@ -208,10 +210,14 @@ def main():
                     spin(lambda:not window._controls_tick and not second._restoring_scroll,duration=.4)
                     inputs.click(window.menu);spin(lambda:window.reader_overflow_box.get_mapped())
                     inputs.click(window.appearance_button);spin(lambda:aa.get_visible())
+                    spin(duration=.3)
+                    # Native surface widths include transparent shadows, whose
+                    # extent differs between GTK versions/renderers.
+                    assert aa.get_child().get_width()+24 <= window.get_width(), (aa.get_child().get_width(),window.get_width())
                     size=window.preferences.value.size
                     inputs.click(aa.larger);assert window.preferences.value.size==size+1
                     inputs.click(aa.smaller);assert window.preferences.value.size==size
-                    inputs.click(aa.line_spacing);inputs.key('Home');inputs.key('Return')
+                    inputs.click_at(aa.visible_elements,12,12)
                     assert aa.get_visible()
                     inputs.click_at(window.header,4,20)
                     assert not aa.get_visible() and not window.menu.get_active()

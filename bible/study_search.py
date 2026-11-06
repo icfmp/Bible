@@ -25,27 +25,30 @@ class StudySearch(Gtk.Box):
         self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
+        # GtkSearchEntry's default delegated minimum can widen the horizontal
+        # fallback on older libadwaita. Let the entry expand into the remaining
+        # row width rather than impose its desktop-sized default on both modes.
+        self.entry.get_delegate().set_width_chars(8)
         self.entry.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search for a theme…' if mode=='topics' else 'A word or phrase…')])
         self.entry.connect('search-changed',self.changed)
-        query=Gtk.Box(spacing=6);self.entry.set_hexpand(True);query.append(self.entry);self.append(query)
+        query=(Adw.WrapBox(child_spacing=6,line_spacing=6,natural_line_length=480)
+               if hasattr(Adw,'WrapBox') else Gtk.Box(spacing=6))
+        self.entry.set_hexpand(True);self.entry.set_size_request(110,-1);query.append(self.entry);self.append(query)
         self.source=Gtk.DropDown(enable_search=True)
         from .version_chooser import bounded_choices
         bounded_choices(self.source);self.source.set_enable_search(True)
         self.source.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search translation')])
         self.source.connect('notify::selected',self.source_changed)
-        self.source.set_visible(mode=='text')
+        # Retained as an internal source model for lexical occurrence searches.
+        # Ordinary text searches always use the active reading translation.
+        self.source.set_visible(False)
         self.scope=Gtk.DropDown();self.scope_names=['all']
         self.scope.connect('notify::selected',lambda *_:self.changed())
         self.scope.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search scope')])
         self.scope.set_visible(mode=='text')
-        filters=(Adw.WrapBox(child_spacing=12,line_spacing=6,natural_line_length=360)
-                 if hasattr(Adw,'WrapBox') else Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6))
-        filters.set_visible(mode=='text')
-        for label,widget in [('Search translation',self.source),('Search scope',self.scope)]:
-            group=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,hexpand=True)
-            caption=Gtk.Label(label=tr(label),xalign=0);caption.add_css_class('caption');group.append(caption);group.append(widget);filters.append(group)
-        self.append(filters)
-        self.submit=Gtk.Button(label=tr('Search'));self.submit.connect('clicked',self.run_text)
+        bounded_choices(self.scope);query.append(self.scope)
+        self.submit=Gtk.Button(icon_name='system-search-symbolic',tooltip_text=tr('Search'))
+        self.submit.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search')]);self.submit.connect('clicked',self.run_text)
         self.entry.connect('activate',self.run_text if mode=='text' else self.activate_first)
         self.submit.set_visible(mode=='text');query.append(self.submit)
         self.explanation=Gtk.Label(xalign=0,wrap=True,max_width_chars=55)
@@ -80,8 +83,9 @@ class StudySearch(Gtk.Box):
         scroll=Gtk.ScrolledWindow(min_content_height=100,max_content_height=280,propagate_natural_height=True,
                                    hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.results);self.result_scroll=scroll
+        self.set_vexpand(True)
+        scroll.set_max_content_height(-1);scroll.set_propagate_natural_height(False);scroll.set_vexpand(True)
         if mode=='topics':
-            self.set_vexpand(True)
             self.topic_scroll.set_min_content_height(80);self.topic_scroll.set_max_content_height(-1)
             self.topic_scroll.set_propagate_natural_height(False);self.topic_scroll.set_vexpand(True)
             scroll.set_max_content_height(-1);scroll.set_propagate_natural_height(False);scroll.set_vexpand(True)
@@ -130,7 +134,7 @@ class StudySearch(Gtk.Box):
         revision=self.data.revision if self.mode=='topics' else None
         active=self.owner.active_tab if hasattr(self.owner,'view') else None
         vocabulary=self.vocabulary.read() if self.mode=='topics' else None
-        stamp=(tuple(names),revision,bool(active),self.navigation.selected_resource() if self.mode=='topics' else None,LANGUAGE,vocabulary[2] if vocabulary else None)
+        stamp=(tuple(names),revision,bool(active),self.navigation.selected_resource(),LANGUAGE,vocabulary[2] if vocabulary else None)
         if stamp==self._refresh_stamp:return
         self._refresh_stamp=stamp
         if vocabulary:
@@ -147,14 +151,14 @@ class StudySearch(Gtk.Box):
             self.search_names=names
             self._source_syncing=True
             self.source.set_model(Gtk.StringList.new([self.owner.library.resource(n).description for n in names]))
-            if active and not getattr(self,'_had_active_context',False):previous=active.state.resource
+            if active and not self.lemma_query:previous=self.navigation.selected_resource()
             self._had_active_context=bool(active)
             selected=previous if previous in names else active.state.resource if active and active.state.resource in names else names[0] if names else None
             self.source.set_selected(names.index(selected) if selected in names else Gtk.INVALID_LIST_POSITION)
             self._source_syncing=False;self.source_changed()
         self.download.set_visible(self.mode=='topics' and self.data.revision is None)
         if self.mode=='topics':self._topic_filter=None;self.changed()
-        else:self.status.set_text(tr('Enter a phrase and press Enter.'))
+        else:self.status.set_text('');self.status.set_visible(False)
 
     def source_changed(self,*_):
         if self.mode!='text' or getattr(self,'_source_syncing',False):return
@@ -173,8 +177,8 @@ class StudySearch(Gtk.Box):
                 testaments.add(ord(value) if isinstance(value,str) else int(value))
             self.scope_names=['all']
             if {1,2}<=testaments:self.scope_names+=['ot','nt']
-            active=self.owner.active_tab if hasattr(self.owner,'view') else None
-            code=active.state.reference.split('.')[0] if active else None
+            reference=self.navigation.current_reference()
+            code=reference.split('.')[0] if reference else None
             if code in {b.code for b in self.search_reader.books}:self.scope_names.append('book')
             labels={'all':'Whole Bible','ot':'Old Testament','nt':'New Testament','book':'Current Book'}
             self.scope.set_model(Gtk.StringList.new([tr(labels[s]) for s in self.scope_names]))
@@ -193,7 +197,7 @@ class StudySearch(Gtk.Box):
         self.lemma_query=None
         if self.mode=='text':self.scope.set_visible(True)
         self.invalidate()
-        if self.mode=='text':self.status.set_text(tr('Enter a phrase and press Enter.'));return
+        if self.mode=='text':self.status.set_text('');self.status.set_visible(False);return
         if self.mode=='topics':self.show_topics()
         entries=suggestions(self.entry.get_text(),entries=self._vocabulary_entries)
         self.topic_model.splice(0,self.topic_model.get_n_items(),[SearchItem(e) for e in entries])
@@ -226,6 +230,7 @@ class StudySearch(Gtk.Box):
 
     def capture_context(self):
         if self.mode=='text':
+            if not self.lemma_query:self.navigation.sync()
             index=self.source.get_selected()
             resource=self.search_names[index] if index<len(self.search_names) else None
             reader=self.search_reader
@@ -288,7 +293,7 @@ class StudySearch(Gtk.Box):
         except ValueError as error:self.status.set_text(tr(str(error)));return
         root=self.owner.library.root
         scope=self.scope_names[self.scope.get_selected()] if self.scope.get_selected()<len(self.scope_names) else 'all'
-        book=self.owner.active_tab.state.reference.split('.')[0] if self.owner.active_tab else None
+        reference=self.navigation.current_reference();book=reference.split('.')[0] if reference else None
         offset=len(self.rows) if append else 0
         def operation():
             value=search(root,resource,query,scope,book,offset)

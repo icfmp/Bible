@@ -6,6 +6,7 @@ including real native popups. Works inside the installed Flatpak without PIL.
 import argparse,ctypes,inspect,json,os,struct,time,zlib,subprocess,signal
 from pathlib import Path
 from bible.ui import Application,Window,Library,Gtk
+from gi.repository import Graphene
 from tests.test_ui import spin
 from tests.test_appearance import SystemStyleOverride
 from tools.check_alpha_ui import X11Input
@@ -22,11 +23,11 @@ class Screen:
         x.XDestroyImage.argtypes=[p]
         self.width=x.XDisplayWidth(native.display,0);self.height=x.XDisplayHeight(native.display,0)
     def point(self,widget,x,y):
-        native=widget.get_native();found,bounds=widget.compute_bounds(native);assert found
+        native=widget.get_native();found,point=widget.compute_point(native,Graphene.Point().init(x,y));assert found
         rx,ry,child=ctypes.c_int(),ctypes.c_int(),ctypes.c_ulong()
         assert self.n.x11.XTranslateCoordinates(self.n.display,native.get_surface().get_xid(),self.n.x11.XDefaultRootWindow(self.n.display),0,0,ctypes.byref(rx),ctypes.byref(ry),ctypes.byref(child))
         dx,dy=native.get_surface_transform()
-        return round(rx.value+dx+bounds.origin.x+x),round(ry.value+dy+bounds.origin.y+y)
+        return round(rx.value-dx+point.x),round(ry.value-dy+point.y)
     def color(self,raw,stride,widget,x,y):
         px,py=self.point(widget,x,y);offset=py*stride+px*4
         return list(raw[offset:offset+3][::-1])

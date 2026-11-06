@@ -146,19 +146,19 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(w.notes_store.all()),1);self.assertIn(('Luther','Gen.32.1'),w.highlights.entries)
         self.assertEqual(len(s.all_records),2)
 
-    def test_real_numbering_difference_explicit_new_tab_and_notes_context(self):
+    def test_original_translation_is_static_and_opening_keeps_the_note_context(self):
         from tests.test_ui import spin
         w=self.window;s=self.space;tab=w.active_tab
         tab.state.comparison='KingJames';w.sync_comparison();s.open_note(self.first)
         before=(tab.state.resource,tab.state.reference,list(tab.state.history),tab.state.comparison)
         s.search.set_text('editable');s.refresh();selected=s.selected_key
-        s.versions.set_selected(s.version_names.index('KingJames'));spin()
-        self.assertIn('KJV ACTUAL MAPPED TEXT',s.excerpt.get_text());self.assertNotIn('LUTHER SOURCE TEXT',s.excerpt.get_text())
-        self.assertIn('31:55',s.excerpt_caption.get_text());self.assertEqual(s.editor.context['start'],'Gen.32.1')
+        self.assertFalse(hasattr(s,'versions'))
+        self.assertIn('LUTHER SOURCE TEXT',s.editor.excerpt.get_text())
+        self.assertEqual(s.editor.context['start'],'Gen.32.1')
         self.assertEqual((tab.state.resource,tab.state.reference,list(tab.state.history),tab.state.comparison),before)
         count=w.view.get_n_pages();s.open_passage();spin()
-        self.assertEqual(w.view.get_n_pages(),count+1);self.assertEqual(w.active_tab.state.reference,'Gen.31.55')
-        self.assertEqual(w.active_tab.state.resource,'KingJames');self.assertEqual(tab.state.reference,'Gen.32.1');self.assertEqual(tab.state.comparison,'KingJames')
+        self.assertEqual(w.view.get_n_pages(),count);self.assertEqual(w.active_tab.state.reference,'Gen.32.1')
+        self.assertEqual(w.active_tab.state.resource,'Luther');self.assertEqual(tab.state.comparison,'KingJames')
         w.open_notes();spin();self.assertEqual(s.search.get_text(),'editable');self.assertEqual(s.selected_key,selected)
         self.assertEqual(s.editor.note.id,self.first.id)
 

@@ -111,15 +111,17 @@ class EditorialUITests(unittest.TestCase):
                 with patch.object(tab.reader,'editorial_notes',wraps=tab.reader.editorial_notes) as read:
                     window.study.translation_notes.refresh(force=True);read.assert_not_called()
                     window.study_button.set_active(True)
-                    window.study.tools.set_visible_child_name('translation-notes');spin()
+                    window.study.translation_notes_button.set_active(True);spin()
                     self.assertIn('EDITORIAL ONLY',window.study.translation_notes.text.get_buffer().props.text)
                     self.assertFalse(window.study.translation_notes.text.get_editable())
                     calls=read.call_count;tab.select_verse('John.1.2');window.study.refresh();spin()
                     self.assertEqual(read.call_count,calls)
                     window.study_button.set_active(False);spin();window.study.translation_notes.refresh(force=True)
                     self.assertEqual(read.call_count,calls)
+                    previous_stamp=window.study.translation_notes.stamp
                     tab.show('John.2.1');spin()
-                    self.assertEqual(read.call_count,calls)
+                    self.assertEqual(window.study.translation_notes.stamp,previous_stamp)
+                    calls=read.call_count
                     window.study_button.set_active(True)
                     spin(lambda:'SECOND EDITORIAL' in window.study.translation_notes.text.get_buffer().props.text)
                     self.assertEqual(read.call_count,calls+1)

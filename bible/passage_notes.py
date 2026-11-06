@@ -14,7 +14,7 @@ class PassageNotes(Gtk.Box):
                          margin_start=12,margin_end=12,margin_top=12,margin_bottom=16)
         self.owner=owner;self.annotations=PassageAnnotations()
         self.context=None;self._stamp=None;self.rows=[];self.marks=[];self.cards=[];self.editor=None
-        self.heading=Gtk.Label(xalign=0,wrap=True);self.heading.add_css_class('heading');self.append(self.heading)
+        self.heading=Gtk.Label(xalign=0,wrap=True)
         self.following=True;self._follow_idle=0;self._follow_serial=0;self._card_targets=[]
         self.resume=Gtk.Button(label=tr('Resume following'),halign=Gtk.Align.START,visible=False)
         self.resume.add_css_class('flat');self.resume.connect('clicked',lambda *_:self.resume_following())
@@ -108,7 +108,7 @@ class PassageNotes(Gtk.Box):
             if tab:self.queue_follow(tab.state.reference)
             return
         self.cancel_follow();self._stamp=stamp
-        self.heading.set_text(tr('Notes on')+' '+passage_label(f'{chapter[0]}.{chapter[1]}.1',versification=reader.versification if reader else None).rsplit(' ',1)[0]+f' {chapter[1]}' if chapter else tr('Passage notes'))
+        self.heading.set_text(tab.passage_title(chapter_only=True) if chapter else tr('Passage notes'))
         if reader:
             key=reader.key(tab.state.reference)
             first=f'{chapter[0]}.{chapter[1]}.1';last=f'{chapter[0]}.{chapter[1]}.{key.getVerseMax()}'
@@ -128,14 +128,18 @@ class PassageNotes(Gtk.Box):
                     b,c,v=passage_order(ref);return BOOK_ORDER.get(b,10000),b,c,v
                 low=f'{chapter[0]}.{chapter[1]}.1';high=f'{chapter[0]}.{chapter[1]}.999'
                 return bool(tab and resource==tab.state.resource and order(first)<=order(high) and order(last)>=order(low))
-            self.rows=[n for n in store.all() if original_match(n.origin_translation,n.start,n.end)] if store and chapter else []
+            self.rows=[n for n in store.all() if any(link.versification==n.versification and
+                original_match(n.origin_translation,link.start,link.end) for link in n.passages)] if store and chapter else []
             self.marks=[m for m in self.owner.highlights.entries.values() if original_match(m['resource'],m['reference'],m['reference'])] if chapter else []
         self.status.set_text(tr('Notes unavailable. The original file has been preserved.') if not store else
                              tr('No annotations in this chapter.') if not self.rows and not self.marks else '')
         from .annotation_collection import records,bible_order
         entries=records(self.rows,self.marks)
         def targets(a):
-            return self.annotations.positions(reader,a.system,a.start,a.end) if reader else ()
+            if not reader:return ()
+            if a.note:return tuple(position for link in a.note.passages for position in
+                self.annotations.positions(reader,link.versification,link.start,link.end))
+            return self.annotations.positions(reader,a.system,a.start,a.end)
         mapped={a.key:targets(a) for a in entries}
         def order(a):
             spans=mapped[a.key]
@@ -315,7 +319,7 @@ class PassageNotes(Gtk.Box):
     def _expand_editor(self,editor):
         if not editor or self.editor is not editor or editor.closed or not editor.embedded:return
         self.editor_panel.remove(editor.embedded_content);self.editor_panel.set_visible(False)
-        editor.stack.set_vexpand(True);editor.body_scroll.set_min_content_height(0)
+        editor.body_scroll.set_min_content_height(0)
         editor.body_scroll.set_max_content_height(-1);editor.body_scroll.set_propagate_natural_height(False);editor.body_scroll.set_vexpand(True)
         editor.embedded=False;editor.dialog_parent=editor
         editor.header.set_visible(True);editor.set_content(editor.embedded_content);editor.present()
