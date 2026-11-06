@@ -239,6 +239,9 @@ jobs:
           SOURCE: ${{ inputs.candidate_source }}
           BUILD: ${{ inputs.candidate_run }}
         run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
           sudo apt-get update -qq
           sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ostree
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/ready-flatpak" >> "$GITHUB_ENV"
