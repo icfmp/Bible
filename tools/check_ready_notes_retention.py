@@ -85,6 +85,20 @@ def main():
         assert editor.save();unlinked=w.notes_store.get(note.id)
         assert unlinked.id==note.id and unlinked.start==note.start and unlinked.body==note.body and not unlinked.links
         report['checks']['unlink_preserves_primary_and_body']=True
+        # Supplement the client gallery with both Aa states and a selection
+        # explicitly scrolled into view, using the installed shared controls.
+        w.active_tab.navigate('youversion~YV21','Mark.11.29');settle()
+        for mode in ('day','night'):
+            w.appearance.update('mode',mode);settle()
+            w.appearance.visible_elements.set_expanded(False)
+            w.appearance_button.popup();spin(duration=.4)
+            shot('appearance-collapsed-'+mode);w.dismiss_popovers()
+            w.appearance.visible_elements.set_expanded(True)
+            tab=w.active_tab;buffer=tab.text.get_buffer();start=tab._marker_ends['Mark.11.29']
+            tab.text.scroll_to_iter(buffer.get_iter_at_offset(start),.1,True,.5,.3);spin(duration=.4)
+            buffer.select_range(buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(start+20))
+            actions=w.passage_actions;actions.capture(tab.text,lambda:actions.ordinary(tab),None);spin()
+            shot('selection-visible-'+mode);w.dismiss_popovers();buffer.place_cursor(buffer.get_iter_at_offset(start))
         # Retain one relationship for the new backup and real window restart.
         note=w.notes_store.save(unlinked.body,unlinked.labels,existing=unlinked,links=note.links[:1]);w.notes_changed()
         backup=a.output/'combined.json';personal_backup.export(w.notes_store,w.highlights,backup)
