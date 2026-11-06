@@ -27,6 +27,7 @@ class SearchPopover(Gtk.Popover):
         self.scroll.set_child(self.content);self.set_child(self.scroll)
         self.modes.connect('notify::visible-child-name',self.mode_changed)
         self.connect('notify::visible',self.visibility_changed)
+        self.text_search.model.connect('items-changed',lambda *_:self.adapt())
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         keys.connect('key-pressed',self.preview_key_pressed);self.add_controller(keys)
 
@@ -88,16 +89,22 @@ class SearchPopover(Gtk.Popover):
 
     def adapt(self):
         if not self.get_visible():return
-        size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name())
+        empty=self.modes.get_visible_child_name()=='text' and not self.text_search.model.get_n_items()
+        size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name(),empty)
         if size==self._layout_stamp:return
         self._layout_stamp=size
         self.content.set_size_request(min(480,max(240,size[0]-64)),-1)
         available=min(540,max(160,size[1]-140))
         self.scroll.set_min_content_height(-1);self.scroll.set_max_content_height(available)
-        self.scroll.set_min_content_height(available)
-        self.scroll.set_size_request(-1,available)
+        self.text_search.result_scroll.set_visible(not empty)
+        if empty:
+            # Let GTK measure just the toolbar/status until results exist.
+            self.scroll.set_size_request(-1,-1)
+        else:
+            self.scroll.set_min_content_height(available)
+            self.scroll.set_size_request(-1,available)
         self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
-        self.modes.set_vexpand(True)
+        self.modes.set_vexpand(not empty)
         from .popover_dismissal import fit_reader_popover
         fit_reader_popover(self,self.owner)
 
