@@ -4,7 +4,7 @@ from .i18n import tr
 from .reference_preview import passage_title
 
 
-def source_note_marker(owner,reader,reference,note,number):
+def source_note_marker(markers,reader,reference,note,number):
     caption=note.locator or str(number)
     label=Gtk.Label(label=caption)
     attrs=Pango.AttrList();attrs.insert(Pango.attr_scale_new(.7))
@@ -33,7 +33,10 @@ def source_note_marker(owner,reader,reference,note,number):
         tip.set_custom(preview);return True
     button.connect('query-tooltip',tooltip)
     def create(*_):
-        if owner.closed:return
+        # The first chapter can render before the tab is bound to its window.
+        # Resolve the action owner when activated, as other marker kinds do.
+        owner=markers.owner
+        if not owner or owner.closed:return
         pop=Gtk.Popover();pop.add_css_class('source-note-popover')
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)

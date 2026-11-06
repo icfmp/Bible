@@ -85,6 +85,12 @@ class NoteCitationTests(unittest.TestCase):
         self.assertEqual(w.notes_store.get(self.note.id),self.note)
 
     def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
+            import subprocess,sys
+            result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+                '-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
+                capture_output=True,text=True,timeout=60)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
         from bible.ui import Gtk
         w=self.window;editor=self.editor();preview=editor.body
         from tools.check_alpha_ui import X11Input

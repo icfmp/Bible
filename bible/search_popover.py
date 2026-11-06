@@ -34,9 +34,16 @@ class SearchPopover(Gtk.Popover):
 
     def reading_context(self):
         tab=self.owner.active_tab if hasattr(self.owner,'view') else None
-        if tab and getattr(tab,'_active_source_side','primary')=='comparison' and tab._comparison_reader:
+        if tab and tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison' and tab._comparison_reader:
             return tab.state.comparison,tab._comparison_reader
         return (tab.state.resource,tab.reader) if tab else (None,None)
+
+    def current_reference(self):
+        tab=self.owner.active_tab if hasattr(self.owner,'view') else None
+        if not tab:return None
+        if tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison':
+            return tab.comparison_visible_reference() or tab.comparison_reference
+        return tab.state.reference
 
     def sync(self):
         self._resource,self.reader=self.reading_context()

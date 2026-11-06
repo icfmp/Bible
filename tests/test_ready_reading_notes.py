@@ -3,6 +3,9 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import subprocess
+import sys
+from functools import wraps
 from unittest.mock import patch
 from tests.test_ui import installed_fixture,spin,close_test_dialogs
 
@@ -10,6 +13,7 @@ from tests.test_ui import installed_fixture,spin,close_test_dialogs
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK and native X11 input')
 class ReadyReadingNotesTests(unittest.TestCase):
     def setUp(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':return
         from bible.ui import Application,Window,Library
         from tools.check_alpha_ui import X11Input
         self.root=Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -21,10 +25,12 @@ class ReadyReadingNotesTests(unittest.TestCase):
         installed_fixture(self.root,'Second',entries=[('Gen.1.1','SECOND SOURCE'),('Gen.2.1','SECOND CHAPTER')])
         app=Application.get_default() or Application();app.register()
         self.w=Window(app,Library(self.root/'translations'));self.w.set_default_size(1200,860);self.w.present()
-        self.w.active_tab.navigate('First','Gen.1.1');spin()
+        self.assertEqual((self.w.active_tab.state.resource,self.w.active_tab.state.reference),('First','Gen.1.1'))
+        spin(lambda:not self.w._controls_tick and not self.w.active_tab._restoring_scroll,duration=.3,timeout=15)
         self.native=X11Input();self.native.activate(self.w)
 
     def tearDown(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':return
         if self.w.note_editor:self.w.note_editor._discard=True;self.w.note_editor.cancel_autosave()
         close_test_dialogs();self.w.close();self.native.close()
 
@@ -61,8 +67,8 @@ class ReadyReadingNotesTests(unittest.TestCase):
     def test_188_text_and_topics_keep_the_same_bounded_width(self):
         w=self.w;widths=[]
         for mode in ('text','topics','text'):
-            w.show_search(mode);spin();widths.append(w.search_popover.content.get_width())
-        self.assertEqual(len(set(widths)),1);self.assertGreaterEqual(widths[0],450);self.assertLessEqual(widths[0],500)
+            w.show_search(mode);spin(lambda:w.search_popover.get_mapped(),duration=.3);widths.append(w.search_popover.content.get_width())
+        self.assertEqual(len(set(widths)),1,widths);self.assertGreaterEqual(widths[0],450);self.assertLessEqual(widths[0],500)
 
     def test_189_three_tabs_and_separate_translation_notes_action(self):
         w=self.w;w.study_button.set_active(True);spin()
@@ -193,3 +199,40 @@ class ReadyReadingNotesTests(unittest.TestCase):
             marks=HighlightStore(target/'highlights.json');personal_backup.restore(notes,marks,file)
             self.assertEqual(notes.get(note.id),saved);self.assertEqual(len(notes.all()),1)
         finally:notes.close()
+
+    def test_202_existing_cross_references_offer_explicit_non_blocking_suggestions(self):
+        from tests.test_reference_data import archive
+        from bible import reference_data
+        w=self.w;file=self.root/'references.zip';digest=archive(file,'Gen.1.1\tJohn.3.16\t15\n')
+        with patch.object(reference_data,'ARCHIVE_SHA256',digest):w.study.references.data.install_archive(file)
+        note=self.note();editor=w.edit_note(note=note);spin();self.native.activate(editor)
+        links=editor.links;self.native.click(links.add_button)
+        spin(lambda:links.suggestions.get_visible(),timeout=10)
+        self.assertEqual(links.values,());self.assertEqual(w.notes_store.get(note.id).links,())
+        links.suggestions.set_expanded(True);spin()
+        choice=next(child for child in self.children(links.suggestion_rows) if hasattr(child,'_linked_passage'))
+        self.native.click(choice);spin()
+        self.assertEqual([(link.start,link.end) for link in links.values],[('John.3.16','John.3.16')])
+        self.assertEqual(w.notes_store.get(note.id).links,())
+        self.assertTrue(editor.save(close=False));self.assertEqual(w.notes_store.get(note.id).links,links.values)
+
+    @staticmethod
+    def children(widget):
+        child=widget.get_first_child()
+        while child:yield child;child=child.get_next_sibling()
+
+
+def isolated_input(method):
+    """Native grabs/focus must not be inherited from unrelated suite windows."""
+    @wraps(method)
+    def run(self):
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':return method(self)
+        result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+            '-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
+            capture_output=True,text=True,timeout=90)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+    return run
+
+
+for name in unittest.defaultTestLoader.getTestCaseNames(ReadyReadingNotesTests):
+    setattr(ReadyReadingNotesTests,name,isolated_input(getattr(ReadyReadingNotesTests,name)))

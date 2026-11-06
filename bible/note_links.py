@@ -1,6 +1,6 @@
 """Explicit offline passage relationships; body citations are never auto-linked."""
 import re
-from gi.repository import Gtk,Pango
+from gi.repository import Gtk,Pango,GLib
 from .i18n import tr
 from .notes import PassageLink,validate_link,BOOK_ORDER
 from .citations import grammar,fold
@@ -24,9 +24,10 @@ def parse_link(text,system):
 
 
 class PassageLinks(Gtk.Box):
-    def __init__(self,context,values,changed):
+    def __init__(self,owner,context,values,changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        self.context=context;self.values=tuple(values);self.changed=changed
+        self.owner=owner;self.context=context;self.values=tuple(values);self.changed=changed
+        self._suggestion_epoch=0;self._suggestion_future=None
         self.primary=PassageLink(context['versification'],context['start'],context['end'])
         self.expander=Gtk.Expander(label=tr('Linked passages'))
         self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);self.expander.set_child(self.rows)
@@ -42,9 +43,74 @@ class PassageLinks(Gtk.Box):
             wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=32,xalign=0)
         hint.add_css_class('caption');box.append(hint)
         add=Gtk.Button(label=tr('Add'));add.connect('clicked',lambda *_:self.add());box.append(add)
+        self.suggestions=Gtk.Expander(label=tr('Suggested passages'),visible=False)
+        self.suggestion_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        suggestions_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            max_content_height=180,propagate_natural_height=True)
+        suggestions_scroll.set_child(self.suggestion_rows);self.suggestions.set_child(suggestions_scroll);box.append(self.suggestions)
         self.error=Gtk.Label(wrap=True,max_width_chars=32,xalign=0);box.append(self.error)
-        pop.set_child(box);self.add_button.set_popover(pop);row.append(self.add_button);self.append(row)
+        outer=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
+            max_content_height=max(160,min(420,owner.get_height()-100)),propagate_natural_height=True)
+        outer.set_child(box);pop.set_child(outer);self.add_button.set_popover(pop);row.append(self.add_button);self.append(row)
+        def shown(*_):
+            root=self.get_root() or owner
+            outer.set_max_content_height(max(120,min(420,root.get_height()-100)))
+            outer.set_propagate_natural_width(True);outer.set_min_content_width(-1)
+            outer.set_max_content_width(max(160,min(340,root.get_width()-64)))
+            outer.set_min_content_width(max(160,min(280,root.get_width()-64)))
+            self.load_suggestions(pop)
+        pop.connect('show',shown)
+        def hidden(*_):
+            self._suggestion_epoch+=1
+            if self._suggestion_future:self._suggestion_future.cancel();self._suggestion_future=None
+        pop.connect('unmap',hidden)
         self.refresh()
+
+    def load_suggestions(self,pop):
+        """Optional existing reference data; manual entry never waits on it."""
+        self._suggestion_epoch+=1;epoch=self._suggestion_epoch
+        if self._suggestion_future:self._suggestion_future.cancel()
+        self.suggestions.set_visible(False)
+        while self.suggestion_rows.get_first_child():self.suggestion_rows.remove(self.suggestion_rows.get_first_child())
+        panel=self.owner.study.references
+        if panel.data.revision is None or self.context['origin_translation'] not in self.owner.library.installed('bible'):return
+        try:
+            from .sword_provider import Reader
+            from .reference_targets import source_references
+            reader=Reader(self.owner.library.root/self.context['origin_translation'],self.context['origin_translation'])
+            if reader.versification!=self.context['versification']:return
+            origins=source_references(reader,self.primary.start,self.primary.end)
+        except (ValueError,OSError,RuntimeError):return
+        future=panel.executor.submit(panel.data.query,origins);self._suggestion_future=future
+        def complete():
+            if self.owner.closed or epoch!=self._suggestion_epoch or not pop.get_visible():return False
+            self._suggestion_future=None
+            try:rows=future.result()
+            except (ValueError,OSError,RuntimeError):return False
+            from .reference_targets import local_target_ranges
+            from .notes_window import passage_label
+            choices=[]
+            for result in rows:
+                try:ranges=local_target_ranges(reader,result.start,result.end)
+                except ValueError:continue
+                for start,end in ranges:
+                    link=PassageLink(reader.versification,start,end)
+                    if link!=self.primary and link not in self.values and link not in choices:choices.append(link)
+                if len(choices)>=8:break
+            for link in choices[:8]:
+                button=Gtk.Button(child=Gtk.Label(label=passage_label(link.start,link.end,link.versification),
+                    xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
+                button.add_css_class('flat')
+                def choose(*_,value=link):
+                    self.entry.set_text(value.start+('–'+value.end if value.end!=value.start else ''));self.add()
+                button.connect('clicked',choose);button._linked_passage=link;self.suggestion_rows.append(button)
+            if choices:
+                from .reference_data import SOURCE_URL,LICENSE_URL
+                from .source_credit import source_credit
+                self.suggestion_rows.append(source_credit('OpenBible.info · CC BY 4.0\n'+SOURCE_URL+'\n'+LICENSE_URL))
+                self.suggestions.set_visible(True)
+            return False
+        future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def refresh(self):
         from .notes_window import passage_label

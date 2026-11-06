@@ -454,6 +454,7 @@ FR.update({
     'Ctrl+click or Ctrl+Enter to preview a Bible reference.':'Ctrl+clic ou Ctrl+Entrée pour afficher l’aperçu d’une référence biblique.',
     'Original translation unavailable. Your note is kept.':'Traduction d’origine indisponible. Votre note est conservée.',
     'Linked passages':'Passages liés','Add a linked passage':'Ajouter un passage lié',
+    'Suggested passages':'Passages suggérés',
     'Linked passage':'Passage lié','Remove linked passage':'Retirer le passage lié',
     'John 3:16–18':'Jean 3:16–18',
     'Numbering follows the original passage. Availability is checked when opening.':'La numérotation suit le passage d’origine. La disponibilité est vérifiée à l’ouverture.',

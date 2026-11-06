@@ -220,7 +220,7 @@ class NoteEditor(Adw.Window):
             self.status.set_visible(bool(self.status.get_text()))
         layout.append(self.labels)
         from .note_links import PassageLinks
-        self.links=PassageLinks(self.context,note.links if note else (),lambda:self.queue_autosave() if self.autosave else None)
+        self.links=PassageLinks(owner,self.context,note.links if note else (),lambda:self.queue_autosave() if self.autosave else None)
         self.links.set_margin_start(16);self.links.set_margin_end(16);layout.append(self.links)
         if note:
             menu=Gtk.MenuButton(icon_name='open-menu-symbolic',tooltip_text=tr('Note actions'))

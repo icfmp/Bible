@@ -16,7 +16,7 @@ class ScrollMotionTests(unittest.TestCase):
         settings=Gtk.Settings.get_default();old=settings.get_property('gtk-enable-animations')
         try:
             settings.set_property('gtk-enable-animations',True)
-            motion.move(300);spin(duration=.06)
+            motion.move(300);spin(lambda:adjustment.get_value()>0,duration=0,timeout=2)
             self.assertTrue(motion.running);self.assertGreater(adjustment.get_value(),0)
             self.assertLess(adjustment.get_value(),300)
             motion.move(100);spin(lambda:not motion.running,duration=.3)

@@ -173,8 +173,8 @@ class StudySearch(Gtk.Box):
                 testaments.add(ord(value) if isinstance(value,str) else int(value))
             self.scope_names=['all']
             if {1,2}<=testaments:self.scope_names+=['ot','nt']
-            active=self.owner.active_tab if hasattr(self.owner,'view') else None
-            code=active.state.reference.split('.')[0] if active else None
+            reference=self.navigation.current_reference()
+            code=reference.split('.')[0] if reference else None
             if code in {b.code for b in self.search_reader.books}:self.scope_names.append('book')
             labels={'all':'Whole Bible','ot':'Old Testament','nt':'New Testament','book':'Current Book'}
             self.scope.set_model(Gtk.StringList.new([tr(labels[s]) for s in self.scope_names]))
@@ -289,7 +289,7 @@ class StudySearch(Gtk.Box):
         except ValueError as error:self.status.set_text(tr(str(error)));return
         root=self.owner.library.root
         scope=self.scope_names[self.scope.get_selected()] if self.scope.get_selected()<len(self.scope_names) else 'all'
-        book=self.owner.active_tab.state.reference.split('.')[0] if self.owner.active_tab else None
+        reference=self.navigation.current_reference();book=reference.split('.')[0] if reference else None
         offset=len(self.rows) if append else 0
         def operation():
             value=search(root,resource,query,scope,book,offset)
