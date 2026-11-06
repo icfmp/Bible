@@ -190,12 +190,12 @@ def main():
                 assert window.preferences.value.size == 15
                 aa.smaller.grab_focus();inputs.key('space')
                 assert window.preferences.value.size == 14
-                aa.fonts['DejaVu Sans'].grab_focus();inputs.key('space')
+                aa.fonts['simple'].grab_focus();inputs.key('space')
                 assert window.preferences.value.font == 'DejaVu Sans'
                 inputs.click(aa.palettes['paper'])
                 assert window.preferences.value.day_palette == 'paper'
                 assert window.preferences.value.mode == 'system'
-                inputs.click(aa.mode);inputs.key('End');inputs.key('Return')
+                inputs.click(aa.mode.buttons[2])
                 assert window.preferences.value.mode == 'night'
                 aa.verse_numbers.grab_focus();inputs.key('Return')
                 assert not window.preferences.value.verse_numbers
