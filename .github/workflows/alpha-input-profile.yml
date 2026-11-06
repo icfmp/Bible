@@ -2,6 +2,10 @@ name: Probe installed word-study and selection regressions
 on:
   workflow_dispatch:
     inputs:
+      ready_reindex_run:
+        description: Reindex original successful application checks without rerunning them
+        type: string
+        default: ''
       ready_host_debug:
         description: Diagnose native Ready input and tooltip lifetime on the CI GTK host
         type: boolean
@@ -102,7 +106,7 @@ jobs:
             ${{ runner.temp }}/study-resource-update/catalogue.json
             ${{ runner.temp }}/study-resource-update/provenance.json
   picker:
-    if: ${{ !inputs.publish_study_data && !inputs.ready_reading_notes && !inputs.ready_host_debug }}
+    if: ${{ !inputs.publish_study_data && !inputs.ready_reading_notes && !inputs.ready_host_debug && !inputs.ready_reindex_run }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -302,5 +306,42 @@ jobs:
         if: always()
         with:
           name: installed-ready-reading-notes
+          path: reports
+          if-no-files-found: error
+
+  ready-evidence-index:
+    if: inputs.ready_reindex_run != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify the original application checks and preserve their reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.ready_reindex_run }}
+          SOURCE: ${{ inputs.candidate_source }}
+        run: |
+          python3 - <<'PYCODE'
+          import os,json,subprocess,hashlib,re
+          from pathlib import Path
+          run=os.environ['SOURCE_RUN'];assert run.isdigit()
+          source=os.environ['SOURCE'];assert re.fullmatch('[0-9a-f]{40}',source)
+          data=json.loads(subprocess.check_output(['gh','api',f'repos/icfmp/Bible/actions/runs/{run}/jobs'],text=True))
+          job=next(j for j in data['jobs'] if j['name']=='ready-reading-notes')
+          required={'Install verified signed alpha24 and exact candidate bundle','Capture baseline and candidate on the same retained real-resource profile','Distinct Ready acceptance tests against installed application in both languages','Shared notes on real translations, native citations, divider drag and narrow editors'}
+          passed={s['name'] for s in job['steps'] if s['conclusion']=='success'}
+          assert required<=passed,(required-passed)
+          failed={s['name'] for s in job['steps'] if s['conclusion']=='failure'}
+          assert failed<={'Index original screenshots and exact measurement receipts'},failed
+          subprocess.run(['gh','run','download',run,'--repo','icfmp/Bible','--name','installed-ready-reading-notes','--dir','reports'],check=True)
+          root=Path('reports');assert json.loads((root/'candidate-build-info.json').read_text())['commit']==source
+          receipt={'original_run':int(run),'candidate_source':source,'application_checks_verified':True,'files':{str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.rglob('*')) if p.is_file()}}
+          (root/'original-reports-receipt.json').write_text(json.dumps(receipt,indent=2))
+          PYCODE
+      - name: Index the unchanged original screenshots and measurements
+        run: python3 -m tools.ready_evidence_index reports
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installed-ready-reading-notes-indexed
           path: reports
           if-no-files-found: error

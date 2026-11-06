@@ -35,7 +35,7 @@ def main():
     body+='<p>Unmodified screenshots from real installed Flatpaks, real requested resources, composited X11 and software OpenGL. These are developer checks, not acceptance on the client’s GNOME desktop. Publication is a separate step.</p>'
     body+='<p>Report completion: '+html.escape(json.dumps(checks))+'</p>'
     body+='<p>Download the artifact and open this file locally. Click an image for its original full size. <code>alpha24-fr</code> is before; <code>candidate-fr</code> and <code>candidate-en</code> are after. JSON receipts and test logs are retained alongside the images.</p>'
-    for label,files in cases:
+    for label,*files in cases:
         paths=[prefix+'/'+name+'.png' for name in files for prefix in ('alpha24-fr','candidate-fr','candidate-en')]
         body+=gallery(label,paths)
     body+=gallery('Narrow windows with enlarged interface text',[str(p.relative_to(root)) for p in sorted(root.glob('*/quick-note-360-*.png'))]+[str(p.relative_to(root)) for p in sorted(root.glob('*/appearance-360-large-ui-text.png'))])
