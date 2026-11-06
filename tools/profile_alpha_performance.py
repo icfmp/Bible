@@ -59,8 +59,16 @@ def main():
             def do_snapshot(self,snapshot):pass
         actions.Backdrop=NoBackdrop
         actions.ActionSurface.set_backdrop=lambda surface,view:surface.clear_backdrop()
+    tracked_markers=[]
     if args.instrument:
-        import tracemalloc
+        import tracemalloc,weakref
+        from bible.inline_markers import InlineMarkers
+        create_marker=InlineMarkers.button
+        def track_marker(self,view,reader,reference,kind,payload):
+            button=create_marker(self,view,reader,reference,kind,payload)
+            tracked_markers.append((kind,weakref.ref(button)))
+            return button
+        InlineMarkers.button=track_marker
         tracemalloc.start(15)
     app=Application();app.register();window=Window(app,Library(args.profile/'translations'))
     window.set_default_size(1180,780);window.present();spin()
@@ -180,6 +188,14 @@ def main():
             _fields_=[(name,ctypes.c_size_t) for name in ('arena','ordblks','smblks','hblks','hblkhd','usmblks','fsmblks','uordblks','fordblks','keepcost')]
         libc=ctypes.CDLL(None);libc.mallinfo2.restype=MallInfo
         report['native_malloc_end']={name:getattr(value:=libc.mallinfo2(),name) for name,_ in MallInfo._fields_}
+        from collections import Counter
+        def alive_markers():return dict(Counter(kind for kind,ref in tracked_markers if ref() is not None))
+        report['marker_lifetime_before_gc']=dict(created=len(tracked_markers),alive=alive_markers(),active=sum(len(getattr(view,'_inline_buttons',())) for view in (tab.text,tab.comparison_text)))
+        report['diagnostic_gc_before']=sample(os.getpid())
+        report['diagnostic_gc_collected']=gc.collect()
+        report['marker_lifetime_after_gc']=alive_markers()
+        report['diagnostic_gc_after']=sample(os.getpid())
+        report['native_malloc_after_gc']={name:getattr(value:=libc.mallinfo2(),name) for name,_ in MallInfo._fields_}
     args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:v for k,v in report.items() if k not in ('measurements','python_profile','python_allocation_changes')},indent=2),flush=True)
     window.study_button.set_active(False);tab.state.comparison=None;window.sync_comparison();window.close();native.close()
