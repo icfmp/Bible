@@ -144,8 +144,7 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .passage-actions button:active {{ background-color: rgba(255,255,255,.22); }}
 .passage-actions button:focus-visible {{ outline: 2px solid #ffffff; outline-offset: -2px; }}
 .source-note-popover contents, .source-note-popover arrow,
-.{self.scope}-window tooltip, .{self.scope}-window tooltip label,
-.source-note-tooltip {{ background-color: #101010; color: #ffffff; }}
+.{self.scope}-window tooltip, .{self.scope}-window tooltip label {{ background-color: #101010; color: #ffffff; }}
 .source-note-popover label {{ color: #ffffff; }}
 textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-width: 12px; min-height: 0; padding: 0; margin: 0; }}
 .passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}

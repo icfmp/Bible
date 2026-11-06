@@ -236,6 +236,7 @@ def isolated_input(method):
     def run(self):
         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':return method(self)
         result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
+            '-m','tools.composited_x11',sys.executable,'-X','faulthandler',
             '-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
             capture_output=True,text=True,timeout=90)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)

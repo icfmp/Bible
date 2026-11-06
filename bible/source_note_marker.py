@@ -15,27 +15,22 @@ def source_note_marker(markers,view,reader,reference,note,number):
     title=tr('Translation notes')+' · '+passage_title(reference,system=reader.versification)
     button.update_property([Gtk.AccessibleProperty.LABEL],[title+' · '+caption])
     button._marker_reference=reference;button._marker_kind='translation-note'
-    button.set_has_tooltip(True)
-    def tooltip(_button,x,y,keyboard,tip):
-        preview=Gtk.Label(label=note.text if len(note.text)<=220 else note.text[:220]+'…',
-            wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=42,
-            margin_top=4,margin_bottom=4,margin_start=4,margin_end=4)
-        preview.add_css_class('source-note-tooltip')
-        tip.set_custom(preview);return True
-    button.connect('query-tooltip',tooltip)
+    # Let GTK own tooltip text, wrapping and lifetime; replacing a custom
+    # tooltip widget during repeated queries can invalidate its native surface.
+    button.set_tooltip_text(note.text if len(note.text)<=220 else note.text[:220]+'…')
     button._source_note_popover=None
     def create(*_):
         # The first chapter can render before the tab is bound to its window.
         # Resolve the action owner when activated, as other marker kinds do.
         owner=markers.owner
-        if not owner or owner.closed:return
+        if not owner or owner.closed or not button.get_mapped() or owner.active_tab is not markers.tab:return
         previous=button._source_note_popover
         if previous and previous.get_visible():previous.popdown();return
         tab=markers.tab
         anchor=tab.comparison_overlay if view is tab.comparison_text else tab.reading_overlay
         found,bounds=button.compute_bounds(anchor)
         if not found:return
-        pop=Gtk.Popover();pop.add_css_class('source-note-popover');pop.set_parent(anchor)
+        pop=Gtk.Popover(autohide=False);pop.add_css_class('source-note-popover');pop.set_parent(anchor)
         rect=Gdk.Rectangle();rect.x=round(bounds.origin.x);rect.y=round(bounds.origin.y)
         rect.width=round(bounds.size.width);rect.height=round(bounds.size.height);pop.set_pointing_to(rect)
         button._source_note_popover=pop
