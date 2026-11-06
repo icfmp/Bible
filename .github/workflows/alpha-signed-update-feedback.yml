@@ -24,6 +24,10 @@ jobs:
     timeout-minutes: 80
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.candidate_head }}
+          path: candidate-checks
       - name: Install isolated validation tools
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then
@@ -70,7 +74,7 @@ jobs:
       - name: Prepare real resources and persistent annotations once
         id: prepare_profile
         run: |
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
           import json,sys,hashlib
           from pathlib import Path
           from dataclasses import asdict
@@ -120,7 +124,7 @@ jobs:
       - name: Measure the old signed alpha before upgrade
         run: |
           version=current
-          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
+          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
       - name: Wait for this source pull request merge and its signed publication
         env:
           GH_TOKEN: ${{ github.token }}
@@ -196,14 +200,14 @@ jobs:
       - name: Measure the updated signed alpha on the same retained profile
         run: |
           version=candidate
-          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
+          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
           for mode in single comparison study; do
-            timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/candidate-signed-$mode.json" --require-packaged --mode "$mode" --resource FreSegond1910 --reference Ps.119.1 --cycles 2 --input-kind wheel > "reports/candidate-signed-$mode.log" 2>&1
+            timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/candidate-signed-$mode.json" --require-packaged --mode "$mode" --resource FreSegond1910 --reference Ps.119.1 --cycles 2 --input-kind wheel > "reports/candidate-signed-$mode.log" 2>&1
           done
       - name: Verify retained profile data and translations
         if: always() && steps.prepare_profile.outcome == 'success'
         run: |
-          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
+          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD/candidate-checks:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
           import json,sys,hashlib
           from pathlib import Path
           from dataclasses import asdict
