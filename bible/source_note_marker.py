@@ -32,26 +32,35 @@ def source_note_marker(owner,reader,reference,note,number):
         preview.connect('map',mapped);preview.connect('unmap',unmapped)
         tip.set_custom(preview);return True
     button.connect('query-tooltip',tooltip)
-    pop=Gtk.Popover();pop.add_css_class('source-note-popover')
-    box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
-        margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-    heading=Gtk.Label(label=title,xalign=0,wrap=True,max_width_chars=34);heading.add_css_class('caption')
-    box.append(heading)
-    text=Gtk.Label(label=note.text,xalign=0,selectable=True,wrap=True,
-        wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=38)
-    box.append(text)
-    resource=owner.library.resource(reader.name)
-    credit=Gtk.Label(label=resource.description,xalign=0,wrap=True,width_chars=1,max_width_chars=38)
-    credit.add_css_class('caption');box.append(credit)
-    scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,propagate_natural_height=True,
-        min_content_width=max(180,min(340,owner.get_width()-64)),max_content_height=max(100,min(360,owner.get_height()-120)))
-    scroll.set_child(box);pop.set_child(scroll);button.set_popover(pop)
-    def visibility(*_):
-        if pop.get_visible():
-            if pop not in owner._reading_popovers:owner._reading_popovers.append(pop)
-            from .popover_dismissal import fit_reader_popover
-            fit_reader_popover(pop,owner)
-        elif pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
-    pop.connect('notify::visible',visibility)
-    button.connect('unmap',lambda *_:pop.popdown())
+    def create(*_):
+        if owner.closed:return
+        pop=Gtk.Popover();pop.add_css_class('source-note-popover')
+        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
+            margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
+        heading=Gtk.Label(label=title,xalign=0,wrap=True,max_width_chars=34);heading.add_css_class('caption')
+        box.append(heading)
+        text=Gtk.Label(label=note.text,xalign=0,selectable=True,wrap=True,
+            wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=38)
+        box.append(text)
+        try:source=owner.library.resource(reader.name).description
+        except (OSError,ValueError):source=reader.short_name
+        credit=Gtk.Label(label=source,xalign=0,wrap=True,width_chars=1,max_width_chars=38)
+        credit.add_css_class('caption');box.append(credit)
+        scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,propagate_natural_height=True,
+            min_content_width=max(180,min(340,owner.get_width()-64)),max_content_height=max(100,min(360,owner.get_height()-120)))
+        scroll.set_child(box);pop.set_child(scroll);button.set_popover(pop)
+        def visibility(*_):
+            if pop.get_visible():
+                scroll.set_min_content_width(max(160,min(340,owner.get_width()-64)))
+                scroll.set_max_content_height(max(100,min(360,owner.get_height()-120)))
+                if pop not in owner._reading_popovers:owner._reading_popovers.append(pop)
+                from .popover_dismissal import fit_reader_popover
+                fit_reader_popover(pop,owner)
+            elif pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
+        pop.connect('notify::visible',visibility)
+    button.set_create_popup_func(create)
+    def hidden(*_):
+        pop=button.get_popover()
+        if pop:pop.popdown()
+    button.connect('unmap',hidden)
     return button

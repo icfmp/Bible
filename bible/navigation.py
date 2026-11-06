@@ -429,7 +429,7 @@ class PassagePopover(Gtk.Popover):
             self.populate_chapters()
             self._updating = False
             self.update_direct()
-            if len(self.chapters)==1:self.open_selected()
+            if len(self.chapters)==1 and self.reader.key(self.selected_reference()).getChapterMax()==1:self.open_selected()
 
     def book_key_released(self, _, keyval, keycode, state):
         if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End,

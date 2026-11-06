@@ -4,19 +4,22 @@ Only presentation tags change while typing. Hidden delimiters stay in the
 buffer for exact persistence, undo and old backups; no HTML or URL is executed.
 """
 import re
-from gi.repository import Gtk,Pango,Gdk
+from bisect import bisect_left
+from dataclasses import replace
+from gi.repository import Gtk,Gdk
 from .markdown import markup_regions
+from .note_preview import NotePreview
+from .i18n import tr
 
 
-class NoteTextView(Gtk.TextView):
-    def __init__(self):
-        super().__init__(wrap_mode=Gtk.WrapMode.WORD_CHAR,left_margin=16,right_margin=16,
-            top_margin=12,bottom_margin=12,pixels_inside_wrap=5)
+class NoteTextView(NotePreview):
+    def __init__(self,owner,system,navigation_guard):
+        super().__init__(owner=owner,system=system,navigation_guard=navigation_guard)
+        self.set_editable(True);self.set_cursor_visible(True)
+        self.set_left_margin(16);self.set_right_margin(16);self.set_pixels_inside_wrap(5)
         buffer=self.get_buffer();buffer.set_enable_undo(True)
-        self.tags={'hidden':buffer.create_tag('note-markup',invisible=True),
-            'bold':buffer.create_tag('note-bold',weight=Pango.Weight.BOLD),
-            'italic':buffer.create_tag('note-italic',style=Pango.Style.ITALIC),
-            'link':buffer.create_tag('note-inert-link',underline=Pango.Underline.SINGLE)}
+        self._original_source='';self._original_display=''
+        self.tags['hidden']=buffer.create_tag('note-markup',invisible=True)
         buffer.connect('changed',self.decorate)
         keys=Gtk.EventControllerKey()
         def shortcut(_,key,code,state):
@@ -25,14 +28,53 @@ class NoteTextView(Gtk.TextView):
             return False
         keys.connect('key-pressed',shortcut);self.add_controller(keys)
 
+    def do_focus(self,direction):return Gtk.TextView.do_focus(self,direction)
+
+    def pressed(self,gesture,count,x,y):
+        if gesture.get_current_event_state()&Gdk.ModifierType.CONTROL_MASK:
+            NotePreview.pressed(self,gesture,count,x,y)
+        else:self._pressed=None
+
+    def motion(self,controller,x,y):
+        active=controller.get_current_event_state()&Gdk.ModifierType.CONTROL_MASK
+        self.set_cursor_from_name('pointer' if active and self.at_point(x,y) is not None else 'text')
+
+    def key_pressed(self,controller,key,code,state):
+        if key in (Gdk.KEY_Return,Gdk.KEY_KP_Enter) and state&Gdk.ModifierType.CONTROL_MASK:
+            index=self.at_offset(self.get_buffer().get_iter_at_mark(self.get_buffer().get_insert()).get_offset())
+            if index is not None:self.activate(index);return True
+        return False
+
     def source(self):
-        buffer=self.get_buffer();return buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True)
+        buffer=self.get_buffer();value=buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True)
+        return self._original_source if value==self._original_display else value
+
+    def set_source(self,source):
+        self._original_source=source
+        self._original_display=re.sub(r'(?m)^([ \t]*)[-*] ',r'\1• ',source)
+        self.get_buffer().set_text(self._original_display)
 
     def decorate(self,*_):
+        preview=self.owner.reference_preview.popover
+        if preview and getattr(preview,'_note_preview',None) is self:self.owner.reference_preview.dismiss()
         buffer=self.get_buffer();start,end=buffer.get_bounds()
         for tag in self.tags.values():buffer.remove_tag(tag,start,end)
-        for kind,first,last in markup_regions(self.source()):
+        buffer.remove_tag(self.citation_tag,start,end)
+        source=buffer.get_text(*buffer.get_bounds(),True);regions=list(markup_regions(source))
+        for kind,first,last in regions:
             buffer.apply_tag(self.tags[kind],buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(last))
+        hidden={index for kind,first,last in regions if kind=='hidden' for index in range(first,last)}
+        positions=[index for index in range(len(source)) if index not in hidden]
+        visible=''.join(source[index] for index in positions)
+        links=[('link',bisect_left(positions,first),bisect_left(positions,last))
+               for kind,first,last in regions if kind=='link']
+        from .citations import citations
+        try:self.citations=[replace(c,begin=positions[c.begin],finish=positions[c.finish-1]+1)
+                            for c in citations(visible,self.system,links)]
+        except ValueError:self.citations=[]  # Retain notes whose numbering system is unavailable.
+        for c in self.citations:
+            buffer.apply_tag(self.citation_tag,buffer.get_iter_at_offset(c.begin),buffer.get_iter_at_offset(c.finish))
+        self.set_tooltip_text(tr('Ctrl+click or Ctrl+Enter to preview a Bible reference.') if self.citations else None)
 
     def format(self,kind):
         buffer=self.get_buffer();selection=buffer.get_selection_bounds()

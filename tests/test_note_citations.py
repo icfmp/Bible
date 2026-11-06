@@ -29,7 +29,7 @@ class NoteCitationTests(unittest.TestCase):
         if embedded:
             notes=self.window.open_notes();notes.open_note(self.note);editor=notes.editor
         else:editor=self.window.edit_note(note=self.note)
-        editor.stack.set_visible_child_name('preview');spin(duration=.2)
+        spin(duration=.2)
         return editor
 
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(self):
@@ -50,7 +50,7 @@ class NoteCitationTests(unittest.TestCase):
         self.assertEqual((w.active_tab.state.reference,w.active_tab.state.history,w.view.get_n_pages()),before)
         w.reference_preview.dismiss();editor=self.editor()
         cursor=editor.body.get_buffer().get_iter_at_mark(editor.body.get_buffer().get_insert()).get_offset()
-        editor.preview.activate(0);spin()
+        editor.body.activate(0);spin()
         self.assertEqual(w.reference_preview.target,('English','Ps.3.1'))
         w.reference_preview.dismiss()
         self.assertEqual(editor.body.get_buffer().get_iter_at_mark(editor.body.get_buffer().get_insert()).get_offset(),cursor)
@@ -62,12 +62,12 @@ class NoteCitationTests(unittest.TestCase):
         before=(w.active_tab.state.reference,w.view.get_n_pages())
         from unittest.mock import patch
         with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
-            editor.preview.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
+            editor.body.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
         self.assertTrue(editor._confirmation.get_visible())
         self.assertEqual((w.active_tab.state.reference,w.view.get_n_pages()),before)
         editor._confirmation.response('cancel');editor._confirmation.destroy();spin()
         self.assertFalse(editor.closed);self.assertIn('unsaved',buffer_text(editor.body))
-        editor.preview.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
+        editor.body.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
         self.assertTrue(editor.closed)
         self.assertEqual(w.view.get_n_pages(),before[1]+1)
         self.assertEqual(w.active_tab.state.reference,'Ps.3.1');self.assertEqual(w.active_tab.state.resource,'English')
@@ -77,20 +77,27 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(self):
         w=self.window;editor=self.editor(embedded=False)
-        editor.preview.activate(1);spin();self.assertIsNotNone(w.reference_preview.popover)
-        editor.stack.set_visible_child_name('edit');spin();self.assertIsNone(w.reference_preview.popover)
-        editor.stack.set_visible_child_name('preview');spin();editor.preview.activate(1);spin()
+        editor.body.activate(1);spin();self.assertIsNotNone(w.reference_preview.popover)
+        editor.body_scroll.set_visible(False);spin();self.assertIsNone(w.reference_preview.popover)
+        editor.body_scroll.set_visible(True);spin();editor.body.activate(1);spin()
         w.reference_preview.open_here.emit('clicked');spin()
         self.assertTrue(editor.closed);self.assertEqual(w.active_tab.state.reference,'John.3.16')
         self.assertEqual(w.notes_store.get(self.note.id),self.note)
 
     def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
         from bible.ui import Gtk
-        w=self.window;editor=self.editor();preview=editor.preview
-        self.assertTrue(preview.child_focus(Gtk.DirectionType.TAB_FORWARD))
-        self.assertEqual(preview._citation_focus,0)
-        self.assertTrue(preview.child_focus(Gtk.DirectionType.TAB_FORWARD));self.assertEqual(preview._citation_focus,1)
-        self.assertFalse(preview.child_focus(Gtk.DirectionType.TAB_FORWARD))
+        w=self.window;editor=self.editor();preview=editor.body
+        from tools.check_alpha_ui import X11Input
+        native=X11Input()
+        try:
+            native.activate(w);preview.grab_focus()
+            first=preview.citations[0];preview.get_buffer().place_cursor(preview.get_buffer().get_iter_at_offset(first.begin))
+            code=native.x11.XKeysymToKeycode(native.display,native.x11.XStringToKeysym(b'Control_L'))
+            native.xtest.XTestFakeKeyEvent(native.display,code,True,0);native.key('Return')
+            native.xtest.XTestFakeKeyEvent(native.display,code,False,0);native.x11.XFlush(native.display);spin()
+            self.assertIsNotNone(w.reference_preview.popover)
+            w.reference_preview.dismiss()
+        finally:native.close()
         w.active_tab.state.resource=None;w.active_tab.load_resource();w.tab_changed(w.active_tab);spin()
         preview.activate(0);spin()
         self.assertFalse(w.reference_preview.open_here.get_sensitive());self.assertFalse(w.reference_preview.open_new.get_sensitive())

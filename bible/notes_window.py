@@ -33,6 +33,7 @@ def passage_label(start, end=None, versification=None):
 
 
 def buffer_text(view):
+    if callable(getattr(view,'source',None)):return view.source()
     buffer = view.get_buffer()
     return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
 
@@ -168,7 +169,7 @@ class NoteEditor(Adw.Window):
         except (ValueError,OSError,RuntimeError):excerpt_text=tr('Original translation unavailable. Your note is kept.')
         self.excerpt=Gtk.Label(label=excerpt_text,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             width_chars=1,lines=2,ellipsize=Pango.EllipsizeMode.END,selectable=True,margin_start=16,margin_end=16)
-        self.excerpt.add_css_class('caption');layout.append(self.excerpt)
+        self.excerpt.add_css_class('study-content');layout.append(self.excerpt)
         self.status = Gtk.Label(label=explanation, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
                                  xalign=0, margin_start=12, margin_end=12)
         layout.append(self.status)
@@ -193,10 +194,10 @@ class NoteEditor(Adw.Window):
             delete.add_css_class('flat');delete.update_property([Gtk.AccessibleProperty.LABEL],[tr('Delete note…')])
             delete.connect('clicked',self.ask_delete);commands.append(delete)
         from .note_editing import NoteTextView
-        self.body = NoteTextView()
+        self.body = NoteTextView(owner,self.context['versification'],self.guard_navigation)
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
-        self.body.get_buffer().set_text(note.body if note else '')
+        self.body.set_source(note.body if note else '')
         scroll = Gtk.ScrolledWindow(vexpand=not compact, min_content_height=180 if compact else 0,
                                     max_content_height=240 if compact else -1,propagate_natural_height=compact)
         self.body_scroll=scroll
@@ -670,6 +671,7 @@ class NotesSpace(Gtk.Box):
             label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36)
             if index==0:label.add_css_class('heading')
             if index==1:label.set_lines(2);label.set_ellipsize(Pango.EllipsizeMode.END)
+            if index==1:label.add_css_class('study-content')
             if index>=2:label.add_css_class('dim-label');label.add_css_class('caption')
             box.append(label)
         item.set_child(box)

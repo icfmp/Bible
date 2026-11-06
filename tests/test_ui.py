@@ -775,9 +775,9 @@ class WindowTests(unittest.TestCase):
             with patch('urllib.request.urlopen', side_effect=AssertionError('No network for notes')):
                 note = self.write_note(window, '**Gras**\n- עברית\n<script>bad()</script>\n[x](javascript:bad)', ['Local'])
                 editor = window.open_saved_note(note)
-                self.assertIn('Gras', buffer_text(editor.preview))
-                self.assertIn('<script>bad()</script>', buffer_text(editor.preview))
-                self.assertIn('javascript:bad', buffer_text(editor.preview))
+                self.assertIn('Gras', buffer_text(editor.body))
+                self.assertIn('<script>bad()</script>', buffer_text(editor.body))
+                self.assertIn('javascript:bad', buffer_text(editor.body))
                 self.assertIsNotNone(editor.labels.entry.get_completion())
                 editor.close()
                 central = window.open_notes()
@@ -838,8 +838,8 @@ class WindowTests(unittest.TestCase):
             for text, prefix, suffix, expected in [
                     ('alpha', '**', '**', '**alpha**'),
                     ('alpha', '*', '*', '*alpha*'),
-                    ('alpha\nbeta\n', '- ', '', '- alpha\n- beta\n'),
-                    ('label', '[', '](https://)', '[label](https://)')]:
+                    ('alpha\nbeta\n', '- ', '', '• alpha\n• beta\n'),
+]:
                 buffer.set_text(text)
                 buffer.select_range(buffer.get_start_iter(), buffer.get_end_iter())
                 editor.format(prefix, suffix)

@@ -162,6 +162,18 @@ class ReadyReadingNotesTests(unittest.TestCase):
         spin(lambda:w.notes_store.get(note.id).body.endswith(' Updated'),timeout=5)
         self.assertEqual(w.notes_store.get(note.id).id,note.id)
 
+    def test_200_legacy_lists_remain_rendered_and_unchanged_when_only_labels_change(self):
+        w=self.w;note=self.note()
+        original='- Legacy **bold** item\n* Another *italic* item'
+        note=w.notes_store.save(original,note.labels,existing=note)
+        editor=w.edit_note(note=note);spin();buffer=editor.body.get_buffer()
+        self.assertEqual(buffer.get_text(*buffer.get_bounds(),False),'• Legacy bold item\n• Another italic item')
+        self.assertEqual(editor.body.source(),original);self.assertFalse(editor.dirty)
+        editor.labels.entry.set_text('Added');self.assertTrue(editor.save(close=False))
+        self.assertEqual(w.notes_store.get(note.id).body,original)
+        editor.close();spin();editor=w.edit_note(note=w.notes_store.get(note.id));spin()
+        self.assertEqual(editor.body.source(),original);self.assertFalse(editor.dirty)
+
     def test_202_offline_manual_links_are_shared_and_restored_once(self):
         from bible.notes import NoteStore
         from bible.highlights import HighlightStore
