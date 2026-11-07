@@ -176,19 +176,14 @@ def main():
                     assert tab._comparison_reader is not None
                     assert len(tab.comparison_text.get_buffer().props.text)>20
                     parallel=True
-                window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes')
-                try:spin(lambda:window.study.translation_notes.stamp==(id(tab.reader),display_chapter))
-                except AssertionError as error:
-                    raise AssertionError(dict(expected_reader=id(tab.reader),stamp=window.study.translation_notes.stamp,
-                        reference=tab.state.reference,resource=tab.state.resource,tool=window.study.tool,
-                        sidebar=window.split.get_show_sidebar(),mapped=window.study.translation_notes.get_mapped(),
-                        size=(window.get_width(),window.get_height()))) from error
-                assert window.study.translation_notes.stamp==(id(tab.reader),display_chapter)
-                assert window.study.translation_notes.text.get_buffer().get_char_count()>0
+                window.study_button.set_active(True);window.study.tools.set_visible_child_name('notes');spin()
+                assert not hasattr(window.study,'translation_notes')
+                if args.version==21:
+                    assert any(getattr(button,'_marker_kind',None)=='translation-note' for button in tab.text._inline_buttons)
                 for width in (1100,360):window.set_default_size(width,600);spin()
                 window.study_button.set_active(False);spin()
                 with patch.object(tab.reader,'editorial_notes',side_effect=AssertionError('Hidden work')):
-                    window.study.translation_notes.refresh(force=True)
+                    window.study.refresh(force=True)
                 assert window.notes_store.all()==original_notes
                 gtk=True
             finally:window.close();close_test_dialogs();spin()

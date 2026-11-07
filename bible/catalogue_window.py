@@ -446,7 +446,13 @@ class CatalogueWindow(Adw.Window):
                                    and (not query or query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language))))))]
         self._installed_ids=set(self.installed_ids())
         self.update_result_state(rows)
-        if rows==self.filtered_resources:
+        # Installed attribution can replace catalogue summaries without changing
+        # row identity/order. Keep GtkListView's native visible-item anchor and
+        # selection; clearing the model collapses its adjustment before layout.
+        if [r.id for r in rows]==[r.id for r in self.filtered_resources]:
+            self.filtered_resources[:]=rows
+            for index in range(self.choice_model.get_n_items()):
+                self.choice_model.get_item(index).resource=rows[index]
             self.refresh_rows();self.selection_changed()
             return
         self.filtered_resources=rows

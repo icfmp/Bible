@@ -1,7 +1,7 @@
 """Lazy, read-only source notes and introductions; no timers or personal data."""
 import gi
 gi.require_version('Gtk','4.0')
-from gi.repository import Adw,Gtk
+from gi.repository import Adw,Gtk,Pango
 from .i18n import tr
 from .youversion_content import tag
 from xml.etree.ElementTree import ParseError
@@ -36,44 +36,67 @@ def introduction_text(root):
     return re.sub(r'\n(?:[ \t\r]*\n)+','\n\n',''.join(parts)).strip()
 
 
+def fill_introduction(view,root):
+    """Apply native source styles; GTK marks preserve offsets during whitespace cleanup."""
+    buffer=view.get_buffer();buffer.set_text('')
+    for name,properties in (
+            ('intro-heading',dict(weight=Pango.Weight.BOLD,scale=1.15,pixels_above_lines=12,pixels_below_lines=6)),
+            ('intro-bold',dict(weight=Pango.Weight.BOLD)),
+            ('intro-italic',dict(style=Pango.Style.ITALIC)),
+            ('intro-super',dict(rise=5*Pango.SCALE,scale=.8)),
+            ('intro-list',dict(left_margin=16,indent=-8))):
+        if not buffer.get_tag_table().lookup(name):buffer.create_tag(name,**properties)
+    def append(text):
+        if text:buffer.insert(buffer.get_end_iter(),text)
+    def visit(node):
+        name=tag(node)
+        block=name in ('div','p','title','l','item','table','row')
+        end=buffer.get_end_iter()
+        if block and end.get_offset() and not buffer.props.text.endswith('\n'):append('\n\n')
+        if name=='lb':append('\n')
+        if name=='cell' and end.get_offset() and not buffer.props.text.endswith(('\n','\t')):append('\t')
+        first=buffer.create_mark(None,buffer.get_end_iter(),True)
+        append(node.text)
+        for child in node:
+            visit(child);append(child.tail)
+        style=('intro-heading' if name=='title' else 'intro-list' if name=='item' else
+               {'bold':'intro-bold','b':'intro-bold','italic':'intro-italic','i':'intro-italic',
+                'super':'intro-super'}.get(node.attrib.get('type')) if name=='hi' else None)
+        if style:buffer.apply_tag_by_name(style,buffer.get_iter_at_mark(first),buffer.get_end_iter())
+        buffer.delete_mark(first)
+        if block:append('\n\n')
+    visit(root)
+    # Same paragraph normalization as introduction_text(). Tags remain attached
+    # to their actual source characters when redundant source whitespace is removed.
+    raw=buffer.props.text
+    for match in reversed(list(re.finditer(r'\n(?:[ \t\r]*\n)+',raw))):
+        buffer.delete(buffer.get_iter_at_offset(match.start()+1),buffer.get_iter_at_offset(match.end()-1))
+    text=buffer.props.text
+    tail=len(text.rstrip());head=len(text)-len(text.lstrip())
+    if tail<len(text):buffer.delete(buffer.get_iter_at_offset(tail),buffer.get_end_iter())
+    if head:buffer.delete(buffer.get_start_iter(),buffer.get_iter_at_offset(min(head,buffer.get_char_count())))
+
+
 def show_introduction(parent,reader,book):
-    window=Adw.Window(transient_for=parent,modal=True,title=tr('Book introduction'),
-                      default_width=600,default_height=600)
+    from .book_names import display_name
+    from .i18n import LANGUAGE
+    entry=next((item for item in reader.books if item.code==book),None)
+    name=display_name(book,entry.name if entry else book,LANGUAGE)
+    title=tr('Book introduction')+' · '+name
+    window=Adw.Window(transient_for=parent,modal=True,title=title,default_width=600,default_height=600)
     window.set_size_request(280,240)
     layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    header=Adw.HeaderBar();header.set_title_widget(Adw.WindowTitle(title=tr('Book introduction')))
+    header=Adw.HeaderBar();header.set_title_widget(Adw.WindowTitle(title=name,subtitle=tr('Book introduction')))
     layout.append(header)
-    view=text_view('Book introduction');scroll=Gtk.ScrolledWindow(vexpand=True)
-    scroll.set_child(view);layout.append(scroll)
+    view=text_view('Book introduction');view.set_pixels_below_lines(6)
+    view.set_bottom_margin(32);scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+    clamp=Adw.Clamp(child=view,maximum_size=640,tightening_threshold=480,unit=Adw.LengthUnit.PX)
+    scroll.set_child(clamp);layout.append(scroll)
     try:
         root=reader.introduction(book)
-        text=introduction_text(root) if root is not None else tr('No introduction supplied by this edition.')
-    except (ValueError,RuntimeError,ParseError):text=tr('Unable to read this passage.')
-    view.get_buffer().set_text(text)
+        if root is not None:fill_introduction(view,root)
+        else:view.get_buffer().set_text(tr('No introduction supplied by this edition.'))
+    except (ValueError,RuntimeError,ParseError):view.get_buffer().set_text(tr('Unable to read this passage.'))
+    window.text=view;window.source_document=root if 'root' in locals() else None
     window.set_content(layout);window.present()
     return window
-
-
-class TranslationNotes(Gtk.ScrolledWindow):
-    def __init__(self,owner):
-        super().__init__(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        self.owner=owner;self.stamp=None
-        self.text=text_view('Translation notes');self.set_child(self.text)
-        self.connect('map',lambda *_:self.refresh())
-
-    def refresh(self,force=False):
-        if self.owner.closed or not self.get_mapped() or not self.owner.split.get_show_sidebar():return
-        tab=self.owner.active_tab
-        if not tab or not tab.reader:
-            self.stamp=None;self.text.get_buffer().set_text(tr('Choose a passage'));return
-        chapter=tab.state.reference.rsplit('.',1)[0]
-        stamp=(id(tab.reader),chapter)
-        if stamp==self.stamp and not force:return
-        self.stamp=stamp
-        try:
-            notes=tab.reader.editorial_notes(tab.state.reference)
-            resource=self.owner.library.resource(tab.state.resource)
-            text=resource.description+' · '+chapter+'\n\n'
-            text+='\n\n'.join((note.locator or note.reference)+'\n'+note.text for note in notes) if notes else tr('No translation notes in this chapter.')
-        except (ValueError,RuntimeError,ParseError):text=tr('Translation notes unavailable.')
-        self.text.get_buffer().set_text(text)

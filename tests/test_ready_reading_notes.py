@@ -79,14 +79,15 @@ class ReadyReadingNotesTests(unittest.TestCase):
             w.show_search(mode);spin(lambda:w.search_popover.get_mapped(),duration=.3);widths.append(w.search_popover.content.get_width())
         self.assertEqual(len(set(widths)),1,widths);self.assertGreaterEqual(widths[0],450);self.assertLessEqual(widths[0],500)
 
-    def test_189_three_tabs_and_separate_translation_notes_action(self):
+    def test_219_three_tabs_without_standalone_translation_notes_action(self):
         w=self.w;w.study_button.set_active(True);spin()
         self.assertEqual(w.study.tools.get_pages().get_n_items(),3)
         self.assertFalse(w.study.notes.heading.get_parent());self.assertFalse(w.study.references.heading.get_parent())
         for tool in ('notes','references','commentaries'):
             w.study.tools.set_visible_child_name(tool);spin();self.assertTrue(w.study.context_heading.get_mapped())
-        self.native.click(w.study.translation_notes_button);spin();self.assertEqual(w.study.tool,'translation-notes')
-        self.native.click(w.study.translation_notes_button);spin();self.assertEqual(w.study.tool,'commentaries')
+        self.assertFalse(hasattr(w.study,'translation_notes_button'))
+        self.assertFalse(hasattr(w.study,'content_pages'))
+        self.assertEqual(w.study.tool,'commentaries')
 
     def test_190_download_actions_are_secondary_and_share_the_library_route(self):
         w=self.w
@@ -122,15 +123,16 @@ class ReadyReadingNotesTests(unittest.TestCase):
         from bible.preferences import Preferences
         self.assertFalse(Preferences(self.root/'reading-preferences.json').value.chapter_numbers)
 
-    def test_198_swatches_match_applied_highlights_and_original_text_is_icon_only(self):
+    def test_227_swatches_match_applied_highlights_and_original_text_has_visible_label(self):
         from bible.highlights import COLORS
         from gi.repository import Gtk,Gdk
         from bible.i18n import tr
         w=self.w;tab=w.active_tab;actions=w.passage_actions;buffer=tab.text.get_buffer()
         first=tab._marker_ends['Gen.1.1'];buffer.select_range(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+5))
         actions.capture(tab.text,lambda:actions.ordinary(tab,False),None);spin()
-        self.assertIsInstance(actions.word_button.get_child(),Gtk.Image)
-        self.assertEqual(actions.word_button.get_child().get_icon_name(),'accessories-dictionary-symbolic')
+        self.assertIsInstance(actions.word_button.get_child(),Gtk.Box)
+        self.assertEqual(actions.word_button.get_child().get_first_child().get_icon_name(),'accessories-dictionary-symbolic')
+        self.assertEqual(actions.word_button.get_child().get_last_child().get_text(),tr('Original text'))
         self.assertTrue(Gtk.IconTheme.get_for_display(w.get_display()).has_icon('accessories-dictionary-symbolic'))
         self.assertEqual(actions.word_button.get_tooltip_text(),tr('Study original text'))
         for color,(hexcolor,_) in COLORS.items():

@@ -46,8 +46,8 @@ class ChapterNotesTests(unittest.TestCase):
     def test_manual_browsing_suspends_and_explicit_resume_uses_same_records(self):
         p=self.p;tab=self.w.active_tab;p.suspend_following();p.scroll.get_vadjustment().set_value(120)
         before=p.scroll.get_vadjustment().get_value();tab.state.reference='Acts.1.15';p.refresh();spin()
-        self.assertEqual(p.scroll.get_vadjustment().get_value(),before);self.assertTrue(p.resume.get_visible())
-        p.resume_following();spin();self.assertTrue(p.following);self.assertFalse(p.resume.get_visible())
+        self.assertEqual(p.scroll.get_vadjustment().get_value(),before);self.assertFalse(p.following);self.assertFalse(hasattr(p,'resume'))
+        p.resume_following();spin();self.assertTrue(p.following);self.assertFalse(hasattr(p,'footer'))
         p.suspend_following();tab.select_verse('Acts.1.2');spin();self.assertTrue(p.following)
 
     def test_draft_keeps_context_across_chapter_tab_callbacks_and_restart(self):

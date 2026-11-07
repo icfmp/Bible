@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.icfmp.Bible</id>
+  <name>Bible</name>
+  <summary>Read and study downloaded Bible translations</summary>
+  <summary xml:lang="fr">Lire et étudier des traductions bibliques téléchargées</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-only</project_license>
+  <developer id="io.github.icfmp"><name>icfmp</name></developer>
+  <description>
+    <p>Bible is a native desktop application for reading and studying Scripture. Choose translations and study resources from the Library, then read downloaded resources offline.</p>
+    <p>Compare translations side by side, explore references and original words when the corresponding study data is installed, and keep personal passage notes, labels and highlights locally.</p>
+    <p>No complete Bible translation is bundled. Available editions and their download conditions depend on their providers. No Bible account is required for ordinary reading and local annotations.</p>
+    <p xml:lang="fr">Bible est une application de bureau native pour lire et étudier les Écritures. Choisissez les traductions et les outils dans la Bibliothèque, puis consultez les ressources téléchargées hors connexion.</p>
+    <p xml:lang="fr">Comparez les traductions côte à côte, explorez les renvois et les mots originaux lorsque les données d’étude correspondantes sont installées, et conservez localement vos notes de passage, étiquettes et surlignages.</p>
+    <p xml:lang="fr">Aucune traduction biblique complète n’est préinstallée. Les éditions disponibles et les conditions de téléchargement dépendent de leurs fournisseurs. Aucun compte Bible n’est nécessaire pour la lecture courante et les annotations locales.</p>
+  </description>
+  <launchable type="desktop-id">io.github.icfmp.Bible.desktop</launchable>
+  <provides><binary>bible</binary></provides>
+  <categories><category>Education</category></categories>
+  <keywords><keyword>Bible</keyword><keyword>Scripture</keyword><keyword>Study</keyword></keywords>
+  <url type="homepage">https://icfmp.github.io/Bible/</url>
+  <url type="bugtracker">https://github.com/icfmp/Bible/issues</url>
+  <url type="vcs-browser">https://github.com/icfmp/Bible</url>
+  <url type="help">https://github.com/icfmp/Bible/wiki</url>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://icfmp.github.io/Bible/assets/reading.png</image>
+      <caption>Reading and parallel study in the native application</caption>
+      <caption xml:lang="fr">Lecture et étude en parallèle dans l’application native</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1" />
+  <supports><control>pointing</control><control>keyboard</control></supports>
+  <releases>
+    <release version="0.1.0-alpha.27" date="2026-11-07" type="development">
+      <url>https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.27</url>
+    </release>
+    <release version="0.1.0-alpha.26" date="2026-11-07" type="development">
+      <url>https://github.com/icfmp/Bible/releases/tag/0.1.0-alpha.26</url>
+    </release>
+  </releases>
+</component>

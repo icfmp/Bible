@@ -46,7 +46,39 @@ jobs:
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update
-          sudo apt-get install -y python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
+          sudo apt-get install -y python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel appstream desktop-file-utils iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
+      - name: Prepare the same pinned reader fonts for native host tests
+        run: |
+          python3 - <<'PY_FONTS'
+          import hashlib,json,os,urllib.request
+          from pathlib import Path
+          directory=Path(os.environ['RUNNER_TEMP'])/'reader-font-validation';directory.mkdir()
+          manifest=json.loads(Path('packaging/io.github.icfmp.Bible.json').read_text())
+          module=next(m for m in manifest['modules'] if m['name']=='reader-fonts')
+          for source in module['sources']:
+              name=source.get('dest-filename','')
+              if not name.startswith('Roboto') or not name.endswith('.ttf'):continue
+              with urllib.request.urlopen(source['url'],timeout=60) as response:data=response.read(8*1024*1024)
+              assert hashlib.sha256(data).hexdigest()==source['sha256'],name
+              (directory/name).write_bytes(data)
+          config=directory/'fonts.conf'
+          config.write_text('<?xml version="1.0"?><fontconfig><include>/etc/fonts/fonts.conf</include><dir>'+str(directory)+'</dir><cachedir>'+str(directory/'cache')+'</cachedir></fontconfig>')
+          with Path(os.environ['GITHUB_ENV']).open('a') as output:output.write('FONTCONFIG_FILE='+str(config)+'\n')
+          PY_FONTS
+      - name: Check native reader font resolution
+        run: |
+          fc-match 'Roboto Serif'
+          fc-match 'Roboto'
+          python3 - <<'PY_FONTS'
+          import subprocess
+          for family in ('Roboto Serif','Roboto'):
+              actual=subprocess.check_output(['fc-match','--format=%{file}',family],text=True)
+              assert '/reader-font-validation/Roboto' in actual,actual
+          PY_FONTS
+      - name: Validate AppStream and desktop identity
+        run: |
+          appstreamcli validate --no-net --pedantic packaging/io.github.icfmp.Bible.metainfo.xml
+          desktop-file-validate packaging/io.github.icfmp.Bible.desktop
       - name: Examiner les paquets SWORD disponibles
         run: |
           apt-cache search --names-only 'sword|libsword' | head -80
@@ -144,7 +176,7 @@ jobs:
       - name: Vérifier les cartes et brouillons dans le Flatpak installé
         run: |
           set -o pipefail
-          dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=BIBLE_REQUIRE_NATIVE_MAP=1 --env=BIBLE_TEST_ISOLATED_CLICK=1 --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations", "tests.test_study_references", "tests.test_reference_data", "tests.test_library_polish", "tests.test_library_startup", "tests.test_annotation_workspace", "tests.test_chapter_notes", "tests.test_notes", "tests.test_finishing", "tests.test_client_feedback", "tests.test_passage_actions", "tests.test_personal_backup", "tests.test_personal_backup_ui", "tests.test_visual_polish", "tests.test_appearance", "tests.test_reading_preferences", "tests.test_study_navigation", "tests.test_scroll_motion", "tests.test_comparison_rows", "tests.test_place_cards", "tests.test_place_map", "tests.test_word_study", "tests.test_text_search", "tests.test_step_data", "tests.test_word_metadata", "tests.test_study_search", "tests.test_scroll_position", "tests.test_reader_layout_idle", "tests.test_reader_chrome", "tests.test_library_metadata", "tests.test_viewport_reference", "tests.test_linked_verses", "tests.test_youversion", "tests.test_youversion_sections", "tests.test_youversion_ui", "tests.test_independent_opening", "tests.test_verse_typography", "tests.test_youversion_catalogue", "tests.test_source_versification", "tests.test_declared_reference_convention", "tests.test_reference_resolution", "tests.test_versification_mapping", "tests.test_source_rendering", "tests.test_commentary_context", "tests.test_commentary_format"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
+          dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=BIBLE_REQUIRE_NATIVE_MAP=1 --env=BIBLE_TEST_ISOLATED_CLICK=1 --command=python3 io.github.icfmp.Bible -c 'import inspect, unittest; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); suite=unittest.defaultTestLoader.loadTestsFromNames(["tests.test_passage_note_cards", "tests.test_note_citations", "tests.test_study_references", "tests.test_reference_data", "tests.test_library_polish", "tests.test_library_startup", "tests.test_library_position", "tests.test_reading_lifecycle", "tests.test_reading_sync", "tests.test_comparison_sync", "tests.test_annotation_workspace", "tests.test_chapter_notes", "tests.test_notes", "tests.test_finishing", "tests.test_client_feedback", "tests.test_passage_actions", "tests.test_personal_backup", "tests.test_personal_backup_ui", "tests.test_visual_polish", "tests.test_appearance", "tests.test_reading_preferences", "tests.test_study_navigation", "tests.test_scroll_motion", "tests.test_comparison_rows", "tests.test_place_context", "tests.test_place_cards", "tests.test_place_map", "tests.test_word_study", "tests.test_text_search", "tests.test_step_data", "tests.test_word_metadata", "tests.test_study_search", "tests.test_scroll_position", "tests.test_reader_layout_idle", "tests.test_reader_chrome", "tests.test_library_metadata", "tests.test_viewport_reference", "tests.test_linked_verses", "tests.test_youversion", "tests.test_youversion_sections", "tests.test_youversion_ui", "tests.test_independent_opening", "tests.test_verse_typography", "tests.test_youversion_catalogue", "tests.test_source_versification", "tests.test_declared_reference_convention", "tests.test_reference_resolution", "tests.test_versification_mapping", "tests.test_source_rendering", "tests.test_commentary_context", "tests.test_commentary_format", "tests.test_commentary_continuity"]); result=unittest.TextTestRunner(verbosity=2).run(suite); raise SystemExit(not result.wasSuccessful())' 2>&1 | tee packaged-note-cards-results.log
           dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=BIBLE_TEST_ISOLATED_CLICK=1 --command=python3 io.github.icfmp.Bible -m unittest tests.test_immersion -v 2>&1 | tee -a packaged-note-cards-results.log
           dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --env=BIBLE_TEST_ISOLATED_CLICK=1 --command=python3 io.github.icfmp.Bible -m unittest tests.test_inline_markers tests.test_selection_lifecycle -v 2>&1 | tee -a packaged-note-cards-results.log
           dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=cairo --command=python3 io.github.icfmp.Bible -c 'import inspect; from bible.ui import Window; assert inspect.getfile(Window).startswith("/app/"); from tools.check_annotation_workspace import main; main()' 2>&1 | tee packaged-annotation-workspace-results.log

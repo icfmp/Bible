@@ -39,6 +39,13 @@ def main():
             assert w.reference_preview.target==('Test','John.3.16')
             assert notes.editor is None and w.active_tab.state.reference=='Acts.1.22'
             native.key('Escape');spin()
+            for key in ('Return','space'):
+                card.primary_action.grab_focus();native.key(key);spin()
+                assert notes.editor and notes.editor.note.id==note.id
+                notes.editor.close();spin();card=notes.cards[0];preview=card.preview
+            preview.grab_focus();native.key('Return');spin()
+            assert w.reference_preview.target==('Test','John.3.16') and notes.editor is None
+            native.key('Escape');spin()
             native.click_at(preview,preview.get_width()/2,preview.get_height()-3);spin()
             assert notes.editor and notes.editor.note.id==note.id,'Preview click must open inline editor'
             editor=notes.editor;editor.body.get_buffer().set_text('Deliberate draft **kept**')
@@ -51,6 +58,7 @@ def main():
             assert not editor.embedded and editor.body.get_buffer() is original
             assert editor.save();assert w.notes_store.get(note.id).body=='Deliberate draft **kept**'
             report['native_citation_preview_and_inline_click']=True
+            report['native_primary_return_space_and_citation_keyboard']=True
             report['draft_context_buffer_and_expansion_preserved']=True
             w.active_tab.navigate('Test','Acts.1.22');spin();native.activate(w)
             # Creation remains in the real contextual selection toolbar.

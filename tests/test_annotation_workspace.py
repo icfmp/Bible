@@ -190,15 +190,15 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual((added,skipped,conflicts),(1,1,1));self.assertEqual(len(w.highlights.entries),1)
         w.highlights.restore(self.root/'legacy-highlights.json');self.assertEqual(len(w.highlights.entries),1)
 
-    def test_passage_footer_reveals_actual_record_in_unified_workspace(self):
+    def test_232_main_notes_route_keeps_existing_filters_and_no_redundant_footer(self):
         from tests.test_ui import spin
         w=self.window;s=self.space;s.search.set_text('unmatched filter');s.set_category('highlights');s.leave()
-        w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh(force=True);spin()
+        w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');spin()
         before=(w.active_tab.state.resource,w.active_tab.state.reference,list(w.active_tab.state.history))
-        w.study.notes.footer.emit('clicked');spin()
+        self.assertFalse(hasattr(w.study.notes,'footer'));self.assertFalse(hasattr(w.study.notes,'resume'))
+        w.open_notes();spin()
         self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
-        self.assertEqual(s.search.get_text(),'');self.assertEqual(s.category,'all')
-        self.assertEqual(s.editor.note.id,self.first.id)
+        self.assertEqual(s.search.get_text(),'unmatched filter');self.assertEqual(s.category,'highlights')
         self.assertEqual((w.active_tab.state.resource,w.active_tab.state.reference,w.active_tab.state.history),before)
 
     def test_unavailable_imported_reference_keeps_note_without_guessing_passage(self):

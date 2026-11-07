@@ -37,6 +37,21 @@ class StudySearchTests(unittest.TestCase):
         focus=w.get_focus();self.assertTrue(focus is panel.entry or focus.is_ancestor(panel.entry))
         self.assertIn('<Control>f',w.get_application().get_accels_for_action('win.search'))
 
+    def test_loading_keeps_completed_rows_inert_without_a_status_line_or_control_resize(self):
+        panel=self.navigation.text_search;self.window.show_search('text');spin()
+        panel.entry.set_text('SENTINEL');panel.run_text();spin(lambda:not panel.pending,duration=.3)
+        previous=list(panel.rows);self.assertTrue(previous)
+        width=panel.submit.get_width();started=threading.Event();release=threading.Event();self.addCleanup(release.set)
+        def operation():started.set();release.wait(3);return [Relationship('John.3.16','John.3.16',0,1)],1
+        panel.entry.set_text('updated query');panel.changed();panel.launch(operation,'updated query','KJV')
+        self.assertTrue(started.wait(2));spin(duration=.1)
+        self.assertEqual(panel.rows,previous);self.assertFalse(panel.results.get_sensitive())
+        self.assertFalse(panel.status.get_visible());self.assertTrue(panel.spinner.get_spinning())
+        self.assertEqual(panel.submit_display.get_visible_child_name(),'busy');self.assertEqual(panel.submit.get_width(),width)
+        release.set();spin(lambda:not panel.pending)
+        self.assertEqual([row.start for row in panel.rows],['John.3.16']);self.assertTrue(panel.results.get_sensitive())
+        self.assertFalse(panel.spinner.get_spinning());self.assertEqual(panel.result_query,'updated query')
+
     def test_superseded_worker_cannot_replace_new_result_or_reopen_preview(self):
         panel=self.navigation.text_search;started=threading.Event();release=threading.Event()
         self.addCleanup(release.set)
@@ -99,7 +114,9 @@ class StudySearchTests(unittest.TestCase):
         spin(lambda:not panel.pending,duration=.4)
         self.assertEqual([r.start for r in panel.rows],['Gen.1.1','Gen.1.2'])
         panel.entry.set_text('different query');spin(duration=.3)
-        self.assertEqual(panel.rows,[])
+        self.assertEqual([r.start for r in panel.rows],['Gen.1.1','Gen.1.2'])
+        self.assertFalse(panel.results.get_sensitive())
+        panel.entry.set_text('');spin(duration=.3);self.assertEqual(panel.rows,[])
 
     def test_delayed_topic_notification_keeps_selected_results_and_preview(self):
         from unittest.mock import patch

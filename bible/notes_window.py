@@ -3,7 +3,7 @@ import gi
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gtk, Pango, Gio, GObject, GLib
+from gi.repository import Adw, Gtk, Gdk, Pango, Gio, GObject, GLib
 
 from .book_names import display_name
 from .i18n import LANGUAGE, tr
@@ -149,7 +149,9 @@ class NoteEditor(Adw.Window):
         layout.append(header)
         reference=Gtk.Label(label=passage_label(self.context['start'],self.context['end'],self.context['versification']),
                             wrap=True,xalign=0,margin_start=16,margin_end=16,margin_top=8)
-        reference.add_css_class('heading');layout.append(reference)
+        reference.add_css_class('heading');reference.set_hexpand(True)
+        self.reference_row=Gtk.Box(spacing=8,margin_start=4,margin_end=12)
+        self.reference_row.append(reference);layout.append(self.reference_row)
         origin=self.context['origin_translation']
         try:origin=owner.library.resource(origin).description
         except (ValueError,OSError):pass
@@ -170,11 +172,19 @@ class NoteEditor(Adw.Window):
         self.excerpt=Gtk.Label(label=excerpt_text,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             width_chars=1,lines=2,ellipsize=Pango.EllipsizeMode.END,selectable=True,margin_start=16,margin_end=16)
         self.excerpt.add_css_class('study-content');layout.append(self.excerpt)
+        self.scripture_context=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12,margin_top=4)
+        self.scripture_context.add_css_class('note-scripture-context')
+        for widget in (self.reference_row,context_label,self.excerpt):
+            layout.remove(widget);widget.set_margin_start(0);widget.set_margin_end(0);widget.set_margin_top(0)
+            self.scripture_context.append(widget)
+        layout.insert_child_after(self.scripture_context,header)
         self.status = Gtk.Label(label=explanation, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
                                  xalign=0, margin_start=12, margin_end=12)
         layout.append(self.status)
         self.status.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
         self.status.set_visible(bool(explanation))
+        note_heading=Gtk.Label(label=tr('My note'),xalign=0,margin_start=16,margin_end=16,margin_top=8)
+        note_heading.add_css_class('heading');layout.append(note_heading)
         commands = Gtk.Box(spacing=4, margin_start=12, margin_end=12)
         self.format_buttons={}
         for label,kind,glyph,icon in [('Bold','bold','B',None),('Italic','italic','I',None),
@@ -188,18 +198,13 @@ class NoteEditor(Adw.Window):
             button.connect('clicked',lambda _,value=kind:self.body.format(value))
             commands.append(button);self.format_buttons[kind]=button
         layout.append(commands)
-        if embedded and not compact and note:
-            commands.append(Gtk.Box(hexpand=True))
-            delete=Gtk.Button(icon_name='user-trash-symbolic',tooltip_text=tr('Delete note…'))
-            delete.add_css_class('flat');delete.update_property([Gtk.AccessibleProperty.LABEL],[tr('Delete note…')])
-            delete.connect('clicked',self.ask_delete);commands.append(delete)
         from .note_editing import NoteTextView
         self.body = NoteTextView(owner,self.context['versification'],self.guard_navigation)
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
         self.body.set_source(note.body if note else '')
-        scroll = Gtk.ScrolledWindow(vexpand=not compact, min_content_height=180 if compact else 0,
-                                    max_content_height=240 if compact else -1,propagate_natural_height=compact)
+        scroll = Gtk.ScrolledWindow(vexpand=False,min_content_height=96,
+                                    max_content_height=240 if compact else 300,propagate_natural_height=True)
         self.body_scroll=scroll
         scroll.set_child(self.body)
         layout.append(scroll)
@@ -214,7 +219,6 @@ class NoteEditor(Adw.Window):
             for widget in (self.status, commands, self.labels):
                 widget.set_margin_start(20);widget.set_margin_end(20)
             commands.add_css_class('toolbar')
-            layout.insert_child_after(Gtk.Separator(margin_start=20,margin_end=20), context_label)
             layout.insert_child_after(Gtk.Separator(margin_start=20,margin_end=20), scroll)
             self.status.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
             self.status.set_visible(bool(self.status.get_text()))
@@ -223,15 +227,21 @@ class NoteEditor(Adw.Window):
         self.links=PassageLinks(owner,self.context,note.links if note else (),lambda:self.queue_autosave() if self.autosave else None)
         self.links.set_margin_start(16);self.links.set_margin_end(16);layout.append(self.links)
         if note:
-            menu=Gtk.MenuButton(icon_name='open-menu-symbolic',tooltip_text=tr('Note actions'))
-            popover=Gtk.Popover();actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-            delete=Gtk.Button(label=tr('Delete note…'));delete.add_css_class('flat')
-            delete.connect('clicked',self.ask_delete);actions.append(delete)
-            help_text=Gtk.Label(label=tr('Links are displayed as text and never opened automatically.'),wrap=True,max_width_chars=30)
-            actions.append(help_text);popover.set_child(actions);menu.set_popover(popover);header.pack_end(menu)
-        if embedded:self.embedded_content=layout
-        else:self.set_content(layout)
+            footer=Gtk.Box(margin_start=12,margin_end=12,margin_bottom=8)
+            self.delete_button=Gtk.Button(label=tr('Delete note…'),halign=Gtk.Align.START)
+            self.delete_button.add_css_class('flat');self.delete_button.add_css_class('destructive-action')
+            self.delete_button.connect('clicked',self.ask_delete);footer.append(self.delete_button);layout.append(footer)
+        self.embedded_content=layout
+        if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
+
+    def use_window_layout(self):
+        """Keep native window actions visible while short windows scroll the editor."""
+        layout=self.embedded_content
+        if self.header.get_parent() is layout:layout.remove(self.header)
+        root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);root.append(self.header)
+        scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.set_child(layout);root.append(scroll);self.set_content(root)
 
     def guard_navigation(self,action):
         self.after_close=action;self.close()
@@ -589,8 +599,8 @@ class NotesSpace(Gtk.Box):
         self.space_selector=WorkspaceSelector(owner,notes=True);header.pack_start(self.space_selector)
         self.workspace_title=Gtk.Label(label=tr('Notes and highlights'),ellipsize=Pango.EllipsizeMode.END,width_chars=1,max_width_chars=24,visible=owner.get_width()>=760)
         self.workspace_title.add_css_class('heading');header.set_title_widget(self.workspace_title)
-        self.filter_button=Gtk.ToggleButton(icon_name='bible-filter-symbolic',tooltip_text=tr('Filters'))
-        self.filter_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Filters')]);self.filter_button.add_css_class('flat')
+        self.sidebar_button=Gtk.ToggleButton(icon_name='sidebar-show-left-symbolic',tooltip_text=tr('Show filters'),visible=False)
+        self.sidebar_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Show filters')]);self.sidebar_button.add_css_class('flat');header.pack_start(self.sidebar_button)
         from .application_surfaces import application_menu
         self.main_menu=application_menu();header.pack_end(self.main_menu);self.append(header)
         self.filters=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=12,margin_bottom=12,margin_start=12,margin_end=12)
@@ -615,13 +625,20 @@ class NotesSpace(Gtk.Box):
         self.sort=Gtk.DropDown(model=Gtk.StringList.new([tr('Most recent'),tr('Oldest first'),tr('Bible order')]))
         from .version_chooser import bounded_choices
         for control in (self.book,self.color,self.sort):bounded_choices(control)
-        self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort annotations')]);self.sort.connect('notify::selected',lambda *_:self.refresh());tools.append(self.sort);tools.append(self.filter_button);self.side.append(tools)
+        self.sort.update_property([Gtk.AccessibleProperty.LABEL],[tr('Sort annotations')]);self.sort.connect('notify::selected',lambda *_:self.refresh());tools.append(self.sort);self.side.append(tools)
         self.sort.set_tooltip_text(tr('Date sorting uses note modification dates. Highlights without dates follow in Bible order.'))
         self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12);self.side.append(self.status)
         self.model=Gio.ListStore.new(AnnotationItem);self.selection=Gtk.SingleSelection(model=self.model,autoselect=False)
         factory=Gtk.SignalListItemFactory();factory.connect('setup',self.row_setup);factory.connect('bind',self.row_bind)
         self.list=Gtk.ListView(model=self.selection,factory=factory,single_click_activate=True);self.list.connect('activate',self.activate)
         self.list.add_css_class('annotation-list');self.side.add_css_class('annotation-sidebar')
+        keys=Gtk.EventControllerKey()
+        def activate_space(_,key,code,state):
+            if key!=Gdk.KEY_space or state:return False
+            index=self.selection.get_selected()
+            if index==Gtk.INVALID_LIST_POSITION:return False
+            self.activate(self.list,index);return True
+        keys.connect('key-pressed',activate_space);self.list.add_controller(keys)
         self.scroll=Gtk.ScrolledWindow(vexpand=True);self.scroll.set_child(self.list);self.side.append(self.scroll)
         self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
         detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -630,7 +647,8 @@ class NotesSpace(Gtk.Box):
         self.detail_back.connect('clicked',lambda *_:self.back_to_list());detail.append(self.detail_back)
         self.detail_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.detail_scroll.set_overflow(Gtk.Overflow.HIDDEN)
-        self.detail_scroll.set_child(self.editor_panel)
+        self.editor_clamp=Adw.Clamp(child=self.editor_panel,maximum_size=760,tightening_threshold=560,unit=Adw.LengthUnit.PX)
+        self.detail_scroll.set_child(self.editor_clamp)
         viewport=self.detail_scroll.get_child()
         if isinstance(viewport,Gtk.Viewport):viewport.set_scroll_to_focus(True)
         detail.append(self.detail_scroll)
@@ -651,8 +669,8 @@ class NotesSpace(Gtk.Box):
         list_pane.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
         self.split=Adw.OverlaySplitView(sidebar=list_pane,content=detail,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
         self.outer=Adw.OverlaySplitView(sidebar=filters_scroll,content=self.split,min_sidebar_width=210,max_sidebar_width=240,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,collapsed=True,show_sidebar=False)
-        self.filter_button.connect('toggled',lambda widget:self.outer.set_show_sidebar(widget.get_active()))
-        self.outer.connect('notify::show-sidebar',lambda *_:self.filter_button.set_active(self.outer.get_show_sidebar()))
+        self.sidebar_button.connect('toggled',lambda widget:self.outer.set_show_sidebar(widget.get_active()))
+        self.outer.connect('notify::show-sidebar',lambda *_:self.sidebar_button.set_active(self.outer.get_show_sidebar()))
         self.append(self.outer);self.add_tick_callback(self.adapt);self.refresh()
 
     def adapt(self,*_):
@@ -660,6 +678,7 @@ class NotesSpace(Gtk.Box):
         wide=self.get_width()>=1120
         if wide!=self._wide:
             self._wide=wide;self.outer.set_collapsed(not wide);self.outer.set_show_sidebar(wide)
+            self.sidebar_button.set_visible(not wide)
         collapsed=self.split.get_width()<760
         self.workspace_title.set_visible(self.get_width()>=760)
         if self.split.get_collapsed()!=collapsed:
@@ -668,15 +687,20 @@ class NotesSpace(Gtk.Box):
         return True
 
     def row_setup(self,_,item):
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3,margin_start=12,margin_end=12,margin_top=8,margin_bottom=8)
+        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=8,margin_end=8,margin_top=4,margin_bottom=4)
+        box.add_css_class('action-card');box.set_cursor_from_name('pointer')
+        header=Gtk.Box(spacing=8);box.append(header);labels=[]
         for index in range(3):
             label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36)
-            if index==0:label.add_css_class('heading')
-            if index==1:label.set_lines(2);label.set_ellipsize(Pango.EllipsizeMode.END)
-            if index==1:label.add_css_class('study-content')
+            if index==0:
+                label.add_css_class('heading');label.set_hexpand(True);header.append(label)
+                arrow=Gtk.Image(icon_name='go-next-symbolic',pixel_size=12,valign=Gtk.Align.START)
+                arrow.add_css_class('dim-label');header.append(arrow)
+            else:box.append(label)
+            if index==1:label.set_lines(2);label.set_ellipsize(Pango.EllipsizeMode.END);label.add_css_class('study-content')
             if index>=2:label.add_css_class('dim-label');label.add_css_class('caption')
-            box.append(label)
-        item.set_child(box)
+            labels.append(label)
+        box._summary_labels=labels;item.set_child(box)
 
     def row_bind(self,_,item):
         from .highlights import COLORS
@@ -686,9 +710,8 @@ class NotesSpace(Gtk.Box):
         date,exact=readable_date(a.modified) if a.modified else ('','')
         strings=[passage_label(a.start,a.end,a.system),snippet,
                  ' · '.join(value for value in (kind,' · '.join(a.labels),date) if value)]
-        label=item.get_child().get_first_child()
-        for value in strings:label.set_text(value);label=label.get_next_sibling()
-        item.get_child().set_tooltip_text((tr('Modified')+': '+exact+'\n' if exact else '')+tr('Original source')+': '+a.origin+' · '+a.system)
+        for label,value in zip(item.get_child()._summary_labels,strings):label.set_text(value)
+        item.get_child().update_property([Gtk.AccessibleProperty.LABEL],[strings[0]+' · '+snippet])
 
     def set_category(self,key):
         if self._syncing or key not in self.categories:return
@@ -795,7 +818,7 @@ class NotesSpace(Gtk.Box):
 
     def update_context(self,a):
         if self.selected_key!=a.key:self.related_expander.set_expanded(False)
-        self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(True);self.placeholder.set_visible(False)
+        self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(not bool(a.note));self.placeholder.set_visible(False)
         selected=next((i for i,row in enumerate(self.rows) if row.key==a.key),Gtk.INVALID_LIST_POSITION)
         self.selection.set_selected(selected)
         self._version=a.origin
@@ -864,11 +887,13 @@ class NotesSpace(Gtk.Box):
     def mount(self,note):
         if note is None:return
         editor=NoteEditor(self.owner,note=note,embedded=True);editor.embedded_host=self
-        editor.body_scroll.set_min_content_height(180)
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
         self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
         from .annotation_collection import records
         self.update_context(records([note],[])[0])
+        parent=self.open_button.get_parent()
+        if parent:parent.remove(self.open_button)
+        editor.reference_row.append(self.open_button)
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
         def focus():
@@ -881,6 +906,8 @@ class NotesSpace(Gtk.Box):
         GLib.idle_add(focus);return editor
 
     def editor_closed(self,editor):
+        if self.open_button.get_parent() is editor.reference_row:
+            editor.reference_row.remove(self.open_button);self.context_panel.prepend(self.open_button)
         parent=editor.embedded_content.get_parent()
         if parent:parent.remove(editor.embedded_content)
         if self.editor is editor:

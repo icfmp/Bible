@@ -97,7 +97,7 @@ def main():
                 if not args.baseline and not high:assert all(max(abs(a-b) for a,b in zip(c,body_color))<=1 for c in header_colors),(palette,header_colors,body_color)
                 w.study.tools.set_visible_child_name('references');settled();shot(palette+'-study-references')
                 w.study.tools.set_visible_child_name('commentaries');settled();shot(palette+'-study-commentary')
-                menu(w.study.more,palette+'-study-actions');w.study.more.popup();spin();menu(w.study.info,palette+'-source-notices');w.study.more.popdown();spin()
+                assert not hasattr(w.study,'more') and w.study.text.get_extra_menu() is not None
                 w.study_button.set_active(False);settled();shot(palette+'-reading')
                 menu(w.menu,palette+'-main-menu')
                 menu(w.passage_button,palette+'-passage-picker')

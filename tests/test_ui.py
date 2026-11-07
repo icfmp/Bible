@@ -259,7 +259,7 @@ class WindowTests(unittest.TestCase):
             self.assertIsNone(window.active_tab.state.resource)
             window.close()
 
-    def test_hidden_download_window_finishes_without_selecting_an_empty_tab(self):
+    def test_first_download_finishes_into_active_reader_even_when_library_is_hidden(self):
         import threading
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
@@ -276,8 +276,9 @@ class WindowTests(unittest.TestCase):
                 self.assertFalse(dialog.get_visible())
                 release.set()
                 spin(lambda: not dialog.busy)
-                self.assertIsNone(window.active_tab.state.resource)
-                self.assertIsNone(window.active_tab.reader)
+                self.assertEqual(window.active_tab.state.resource,'Test')
+                self.assertIsNotNone(window.active_tab.reader)
+                self.assertEqual(window.main_pages.get_visible_child_name(),'reading')
                 self.assertIsNone(first.state.resource)
                 window.view.set_selected_page(window.view.get_nth_page(0))
                 window.choose_passage()
@@ -521,7 +522,8 @@ class WindowTests(unittest.TestCase):
             spin(lambda: not tab._restoring_scroll)
             self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
             self.assertIn('CrossWire', window.study.source.get_text())
-            self.assertIn('Public Domain', window.study.metadata.get_text())
+            from bible.resource_details import details
+            self.assertIn('Public Domain', details(window.library.resource('Notes')))
             self.assertIn('עברית', self.study_text(window))
             iterator = tab.text.get_buffer().get_iter_at_offset(tab._verse_offsets['Gen.1.2'] + 3)
             rect = tab.text.get_iter_location(iterator)
@@ -595,7 +597,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(self.study_text(window), '')
             installed_fixture(directory)
             window.resource_installed('Test')
-            self.assertIsNone(window.active_tab.state.resource)
+            self.assertEqual(window.active_tab.state.resource,'Test')
             window.open_installed_resource('Test')
             self.assertEqual(window.active_tab.state.resource, 'Test')
             self.assertIn('COMMENTARY TEST DATA', self.study_text(window))
@@ -647,9 +649,8 @@ class WindowTests(unittest.TestCase):
         self.assertLessEqual(window.study.get_width(), window.get_width())
         self.choose_commentary(window, 'OtherNotes')
         self.assertEqual(window.study.entry_text, 'OTHER COMMENTARY TEST DATA')
-        window.study.info.set_active(True)
-        spin(lambda: window.study.info.get_popover().get_visible())
-        self.assertLessEqual(window.study.info.get_popover().get_width(), 360)
+        self.assertFalse(hasattr(window.study,'info'))
+        self.assertIsNotNone(window.study.text.get_extra_menu())
         window.close()
 
 

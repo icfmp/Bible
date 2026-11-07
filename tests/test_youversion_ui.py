@@ -108,26 +108,27 @@ class EditorialUITests(unittest.TestCase):
             try:
                 tab=window.active_tab;tab.navigate('Test','John.1.1');spin()
                 before=window.notes_store.all()
-                with patch.object(tab.reader,'editorial_notes',wraps=tab.reader.editorial_notes) as read:
-                    window.study.translation_notes.refresh(force=True);read.assert_not_called()
-                    window.study_button.set_active(True)
-                    window.study.translation_notes_button.set_active(True);spin()
-                    self.assertIn('EDITORIAL ONLY',window.study.translation_notes.text.get_buffer().props.text)
-                    self.assertFalse(window.study.translation_notes.text.get_editable())
-                    calls=read.call_count;tab.select_verse('John.1.2');window.study.refresh();spin()
-                    self.assertEqual(read.call_count,calls)
-                    window.study_button.set_active(False);spin();window.study.translation_notes.refresh(force=True)
-                    self.assertEqual(read.call_count,calls)
-                    previous_stamp=window.study.translation_notes.stamp
-                    tab.show('John.2.1');spin()
-                    self.assertEqual(window.study.translation_notes.stamp,previous_stamp)
-                    calls=read.call_count
-                    window.study_button.set_active(True)
-                    spin(lambda:'SECOND EDITORIAL' in window.study.translation_notes.text.get_buffer().props.text)
-                    self.assertEqual(read.call_count,calls+1)
+                # The legacy tool name must no longer create a standalone page.
+                self.assertFalse(hasattr(window.study,'translation_notes'))
+                self.assertFalse(hasattr(window.study,'translation_notes_button'))
+                window.study_button.set_active(True);spin()
+                def markers():
+                    return [b for b in tab.text._inline_buttons if b._marker_kind=='translation-note']
+                spin(lambda:bool(markers()))
+                first=markers()[0];first.emit('clicked');spin()
+                pop=first._source_note_popover
+                self.assertTrue(pop and pop.get_visible())
+                self.assertIn('EDITORIAL ONLY',first.get_tooltip_text())
+                pop.popdown();spin()
+                # Changing selection within the chapter retains the source notes;
+                # moving to another chapter replaces them without stale contents.
+                tab.select_verse('John.1.2');spin()
+                self.assertTrue(any('EDITORIAL ONLY' in b.get_tooltip_text() for b in markers()))
+                tab.show('John.2.1');spin(lambda:any('SECOND EDITORIAL' in b.get_tooltip_text() for b in markers()))
+                self.assertFalse(any('EDITORIAL ONLY' in b.get_tooltip_text() for b in markers()))
                 self.assertNotIn('EDITORIAL ONLY',tab.text.get_buffer().props.text)
                 self.assertEqual(window.notes_store.all(),before)
-                self.assertEqual(window.study_settings.tool,'translation-notes')
+                self.assertIn(window.study_settings.tool,('notes','references','commentaries'))
             finally:window.close();close_test_dialogs();spin()
 
     def test_introduction_preserves_inline_words_and_leaves_passage_unchanged(self):
