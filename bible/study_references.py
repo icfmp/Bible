@@ -125,7 +125,10 @@ class StudyReferences(Gtk.Box):
         except ValueError as error:
             self.clear_rows()
             self.message(tr('No verified alignment for this passage.'));self.status.set_tooltip_text(str(error));return
-        self.pending=True;self.message(tr('Loading references…'))
+        # Keep the existing cards' viewport unchanged during a same-passage
+        # refresh. Adding a loading row above them moves the visible content
+        # and makes GTK re-estimate its virtualized scroll adjustment.
+        self.pending=True;self.message(tr('Loading references…') if self._new_passage else '')
         revision=self.data.revision
         future=self.executor.submit(self.data.query,origins)
         def complete():

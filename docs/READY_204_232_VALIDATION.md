@@ -211,3 +211,15 @@ native tests changes that same40-test sequence to40 passes, including all eight
 native chapter-wheel cases. No commentary implementation, timeout, assertion or
 wheel distance was changed to obtain that result. The full installed pipeline
 must still pass on the revised exact source.
+
+## Retained reference viewport during refresh
+
+Source `abcd833` passed497 host tests and183 French tests, but the installed
+264-test suite detected a7px adjustment change while reference data refreshed.
+The existing same-passage list was retained, yet its temporary loading label
+inserted a new row above it. A native geometry trace measured the viewport
+shrinking by27px and the card's window position moving by27px during that state.
+The refresh now keeps the existing cards without inserting that loading row;
+new passages and empty states retain their loading feedback. The regression
+also checks the unchanged viewport and absence of the extra status row, without
+loosening its scroll-position assertion. Exact-source full CI is still required.
