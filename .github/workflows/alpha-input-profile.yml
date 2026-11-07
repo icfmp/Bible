@@ -13,7 +13,7 @@ jobs:
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt; fi
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak gnome-software gnome-software-plugin-flatpak appstream xvfb xauth xcompmgr dbus-x11 xdotool python3-gi
+          sudo apt-get install -y flatpak gnome-software gnome-software-plugin-flatpak appstream xvfb xauth xcompmgr dbus-x11 xdotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-sword
           mkdir reports
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/baseline-flatpak" >> "$GITHUB_ENV"
           export FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak"
@@ -38,6 +38,7 @@ jobs:
       - name: Open actual installed application details in GNOME Software
         run: |
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' /usr/bin/python3 -m tools.composited_x11 bash -c '
+            set -euo pipefail
             export XDG_DATA_DIRS="$FLATPAK_USER_DIR/exports/share:/usr/local/share:/usr/share"
             gnome-software --details=io.github.icfmp.Bible > reports/gnome-software.log 2>&1 &
             software_pid=$!
