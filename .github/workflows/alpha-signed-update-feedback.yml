@@ -48,7 +48,7 @@ jobs:
       - name: Prepare real resources, saved preferences and linked annotations once
         id: prepare
         run: |
-          flatpak run --user --filesystem="$RUNNER_TEMP" --command=python3 io.github.icfmp.Bible//alpha - "$READY_PROFILE" <<'PY'
+          flatpak run --user --filesystem="$RUNNER_TEMP" --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible//alpha - "$READY_PROFILE" <<'PY'
           from dataclasses import asdict
           import hashlib,json,sys
           from pathlib import Path
@@ -120,7 +120,7 @@ jobs:
       - name: Verify notes, linked references, preferences, highlights and all real resource files
         if: always() && steps.prepare.outcome == 'success'
         run: |
-          flatpak run --user --unshare=network --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --command=python3 io.github.icfmp.Bible//alpha - "$READY_PROFILE" "$PWD/reports/preservation.json" <<'PY'
+          flatpak run --user --unshare=network --filesystem="$RUNNER_TEMP" --filesystem="$PWD/reports" --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible//alpha - "$READY_PROFILE" "$PWD/reports/preservation.json" <<'PY'
           from dataclasses import asdict
           import hashlib,json,sys
           from pathlib import Path

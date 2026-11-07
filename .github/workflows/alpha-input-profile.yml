@@ -101,7 +101,7 @@ jobs:
           '
       - name: Prepare the reported real Semeur case with the packaged installer
         run: |
-          flatpak run --user --filesystem="$RUNNER_TEMP" --command=python3 io.github.icfmp.Bible//master - "$RUNNER_TEMP/ready-semeur-profile" <<'PY'
+          flatpak run --user --filesystem="$RUNNER_TEMP" --env=PYTHONPATH=/app/lib/bible-python --command=python3 io.github.icfmp.Bible//master - "$RUNNER_TEMP/ready-semeur-profile" <<'PY'
           import json,sys
           from pathlib import Path
           from bible.library import Library
