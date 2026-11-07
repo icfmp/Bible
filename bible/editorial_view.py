@@ -86,7 +86,9 @@ def show_introduction(parent,reader,book):
     window=Adw.Window(transient_for=parent,modal=True,title=title,default_width=600,default_height=600)
     window.set_size_request(280,240)
     layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    header=Adw.HeaderBar();header.set_title_widget(Adw.WindowTitle(title=name,subtitle=tr('Book introduction')))
+    # The window title identifies the action accessibly; the visible header
+    # names the book without repeating the source's own introduction heading.
+    header=Adw.HeaderBar();header.set_title_widget(Adw.WindowTitle(title=name))
     layout.append(header)
     view=text_view('Book introduction');view.set_pixels_below_lines(6)
     view.set_bottom_margin(32);scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)

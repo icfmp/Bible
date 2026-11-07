@@ -157,3 +157,23 @@ class EditorialUITests(unittest.TestCase):
             finally:
                 if dialog:dialog.close()
                 window.close();close_test_dialogs();spin()
+
+    def test_rich_introduction_normalizes_nested_blocks_without_losing_source_styles(self):
+        from bible.editorial_view import fill_introduction,introduction_text,text_view
+        from bible.youversion_content import parse
+        source=parse('<root><div><title>ÉTUDE Ω</title><p>1<hi type="super">er</hi> '
+                     '<hi type="bold">mot exact</hi> et <hi type="italic">sens</hi>.</p></div>'
+                     '\n<div><p>Suite conservée.</p><list><item>Premier</item>'
+                     '<item>Second</item></list></div></root>')
+        view=text_view('Book introduction');fill_introduction(view,source)
+        buffer=view.get_buffer();text=buffer.props.text
+        self.assertEqual(text,introduction_text(source))
+        self.assertNotIn('\n\n\n',text)
+        for fragment,tag in [('ÉTUDE Ω','intro-heading'),('er','intro-super'),
+                             ('mot exact','intro-bold'),('sens','intro-italic'),
+                             ('Premier','intro-list'),('Second','intro-list')]:
+            start=text.index(fragment)
+            self.assertTrue(all(buffer.get_iter_at_offset(offset).has_tag(
+                buffer.get_tag_table().lookup(tag)) for offset in range(start,start+len(fragment))),fragment)
+        self.assertFalse(buffer.get_iter_at_offset(text.index('Suite')).has_tag(
+            buffer.get_tag_table().lookup('intro-bold')))

@@ -211,6 +211,13 @@ jobs:
             dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=MESA_SHADER_CACHE_DISABLE=true --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible -m tools.check_sustained_scroll "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/scroll-gl-$scroll_case.json" --require-packaged --check --mode "$mode" "${toolbar_option[@]}" 2>&1 | tee -a packaged-client-feedback.log
           done
           cp -r "$RUNNER_TEMP/client-feedback" .
+      - name: Verify the beginner word flow and bundled fonts/icons in the installed Flatpak
+        run: |
+          set -o pipefail
+          for ui_language in fr en; do
+            dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$ui_language" --command=python3 io.github.icfmp.Bible -m tools.research.check_ready_words "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/ready-words-$ui_language" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
+          done
+          cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Retain installed visual diagnostics even if an assertion fails
         if: always()
         uses: actions/upload-artifact@v4
