@@ -10,6 +10,7 @@ from .reading_style import apply_direction
 from .resource_details import details, plain
 from .sword_provider import CommentaryReader, VersificationMismatch
 from .reference_resolution import resolve,introduction_key
+from .scroll_motion import stop_native_scroll
 
 
 class StudyPanel(Gtk.Box):
@@ -477,6 +478,7 @@ class StudyPanel(Gtk.Box):
         if not force and (top<=visible.y<bottom or visible.y<=top<visible.y+visible.height):return
         self._layout_anchor=(position,offset)
         self.cancel_reveal();self._positioning=True
+        if not animate:stop_native_scroll(self.scroll)
         frames=[0]
         def restore(*_):
             if self.owner.closed or position not in self.ranges:self._reveal_tick=0;self._positioning=False;return False

@@ -2,6 +2,15 @@
 from gi.repository import Gtk
 
 
+def stop_native_scroll(scroll):
+    """Cancel an old GTK deceleration without changing its kinetic setting."""
+    # GtkScrolledWindow otherwise ignores external adjustment changes while
+    # decelerating and can overwrite a new target with its old edge rebound.
+    kinetic=scroll.get_kinetic_scrolling()
+    scroll.set_kinetic_scrolling(not kinetic)
+    scroll.set_kinetic_scrolling(kinetic)
+
+
 class ScrollMotion:
     def __init__(self, scroll):
         self.scroll = scroll
@@ -32,6 +41,8 @@ class ScrollMotion:
         if self.running and self.target == target:
             return
         self.cancel()
+        if not valid():return
+        stop_native_scroll(self.scroll)
         start = adjustment.get_value()
         settings = self.scroll.get_settings()
         if (not animate or not settings.get_property('gtk-enable-animations')

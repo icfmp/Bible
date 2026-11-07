@@ -4,6 +4,7 @@ import gi
 
 gi.require_version('Gtk','4.0')
 from gi.repository import Gdk, GLib, GObject, Gtk
+from .scroll_motion import stop_native_scroll
 
 
 class ReadingSync:
@@ -46,6 +47,9 @@ class ReadingSync:
 
     def intent(self,side,tab=None):
         if tab is not None and tab is not self.owner.active_tab:return False
+        if self.driver!=side and self.owner.active_tab:
+            target=self.owner.study.scroll if side=='bible' else self.owner.active_tab.scroll
+            stop_native_scroll(target)
         self.driver=side;self.armed_until=time.monotonic()+.4;self.forced_position=None;self.needs_sync=True
         if side=='bible' and tab:
             # Actual user input overrides an outstanding automatic restore.

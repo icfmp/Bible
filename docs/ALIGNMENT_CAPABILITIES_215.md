@@ -9,7 +9,7 @@ directions opened Genesis 1 but the three editions could not follow it. MHC
 worked with LSG primary and became unavailable with each reported edition.
 The first reproduction used native GTK 4.18.6/X11/Cairo, not the packaged runtime.
 
-Two shared capability checks were responsible:
+Two shared capability checks were responsible for the unavailable mappings:
 
 1. `source_versification` required a complete source canon to equal a supported
    convention and rejected every resource carrying a source-address index.
@@ -22,6 +22,25 @@ Two shared capability checks were responsible:
    reported 90 verses; asking for chapter 4 moved to chapter 13 and reported 64.
    This made the unchanged verified index appear inconsistent. Disabling
    normalization during index inspection returns the real bounds, including 0.
+
+Stronger viewport checks then exposed a separate native scrolling defect.
+The followed commentary index changed correctly, but an old GTK edge rebound
+could overwrite its new adjustment: a synthetic explicit target changed from
+300 to 0, and a real MHC target around 20,644 pixels returned to 0 after the
+Bible reached Genesis 1:14. The expected entry was completely off screen.
+An overshoot in one parallel pane could similarly overwrite a subsequent
+downward gesture in the other pane. Checking only reference/current-entry
+state had incorrectly allowed these physical following failures to pass.
+
+GTK 4.20.4's `gtk_scrolled_window_adjustment_value_changed` ignores external
+adjustment changes while a native deceleration is running; its next tick can
+therefore apply the obsolete position. Programmatic motion and input-driver
+handoff now stop that old native movement through GTK's public kinetic setting,
+restoring its exact previous value synchronously. This is not a permanent
+kinetic/animation disable, a new scrolling engine or a preference change.
+The shared helper covers programmatic Bible/Study motion, nonanimated Study
+restores and transfer between comparison panes. Ordinary ongoing input retains
+GTK scrolling. Native regressions exercise both initial kinetic settings.
 
 The displayed Genesis chapter was not missing, and MHC's content was present.
 No SWORD engine replacement, new numbering tables or translation-specific UI
@@ -95,6 +114,13 @@ annotation identities/content, preference bytes and resource-file hashes.
 The baseline option explicitly requires the reported failures on unchanged
 alpha.25. Screenshots and JSON name the actual imported source/runtime; this
 document does not claim a candidate or signed release passed before it did.
+
+`tools/check_alignment_commentary_gestures.py` additionally requires the actual
+expected commentary/Bible range to intersect the native viewport, rather than
+trusting current-entry state. It repeats alternating input on five Bibles and
+tests nine boundary transfers among the Bible, comparison and commentary panes.
+The content matrix also checks rendered verse bodies against independently
+opened requested-resource readers, detecting stale documents with correct labels.
 
 Final CI, installed Flatpak results, source/build/publication provenance and
 remaining platform limits belong to the issue and numbered release evidence.

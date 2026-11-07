@@ -2,6 +2,7 @@
 import time
 from .reading_sync import ReadingSync
 from .reference_resolution import resolve
+from .scroll_motion import stop_native_scroll
 
 
 class ComparisonSync(ReadingSync):
@@ -15,7 +16,9 @@ class ComparisonSync(ReadingSync):
 
     def intent(self, side, tab=None):
         if self.tab is not self.owner.active_tab or self.running:return False
-        if self.driver != side:self.last_target=None
+        if self.driver != side:
+            self.last_target=None
+            stop_native_scroll(self.tab.comparison_scroll if side=='primary' else self.tab.scroll)
         self.driver=side;self.armed_until=time.monotonic()+.4
         if self.owner.study.tool=='notes':
             self.owner.study.notes.resume_following()
