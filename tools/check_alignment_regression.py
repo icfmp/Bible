@@ -9,6 +9,7 @@ import hashlib
 import inspect
 import itertools
 import json
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -66,7 +67,7 @@ def main():
     readers={name:Reader(lib.root/name,name) for name in BIBLES}
     report=dict(app_import=inspect.getfile(Window),source_sha256=hashlib.sha256(Path(inspect.getfile(resolve)).read_bytes()).hexdigest(),
         mapping_sha256=hashlib.sha256(Path(inspect.getfile(source_metadata)).read_bytes()).hexdigest(),
-        language=LANGUAGE,baseline=a.baseline,offline=a.offline,resources={},resolver=[],gui=[],gestures=[],commentaries=[],unsupported=[],captures=[],complete=False)
+        language=LANGUAGE,baseline=a.baseline,offline=a.offline,resources={},resolver=[],gui=[],gestures=[],commentaries=[],unsupported=[],captures=[],fidelity_verses=0,complete=False)
     def save():(a.output/'alignment.json').write_text(json.dumps(report,indent=2)+'\n')
     for name,r in readers.items():
         capability=reference_mapping(r.versification)
@@ -127,12 +128,27 @@ def main():
         assert t.navigate(left,ref),(left,ref,t.status.get_text())
         t.state.comparison=right;w.sync_comparison();settled()
         assert t._comparison_reader and t._comparison_document,(left,right,t.comparison_status.get_text())
+        assert t.reader.name==left and t._comparison_reader.name==right
         assert t.current.reference==ref.rsplit('.',1)[0]
         row=dict(primary=left,secondary=right,requested=ref,primary_chapter=t.current.reference,
             comparison_reference=t.comparison_reference,comparison_document=str(t._comparison_document.key),
             aligned=t._comparison_aligned,shared_rows=getattr(t,'_shared_comparison',False),status=t.comparison_status.get_text())
         if not a.baseline:assert row['aligned'],row
         assert t._comparison_document.spans and t._document.spans
+        # Independent readers opened by requested resource ID catch a stale
+        # document even when its printed chapter/verse labels happen to match.
+        from bible.paged_sources import BiblePages
+        for name,document in ((left,t._document),(right,t._comparison_document)):
+            expected={}
+            for span in document.spans:
+                chapter=span.reference.rsplit('.',1)[0]
+                if chapter not in expected:
+                    source=BiblePages(readers[name],lib.resource(name)).document(chapter,t.preferences)
+                    expected[chapter]={s.reference:source.copy(s.body,s.end) for s in source.spans}
+                actual=re.sub(r'\s+',' ',document.copy(span.body,span.end)).strip()
+                wanted=re.sub(r'\s+',' ',expected[chapter][span.reference]).strip()
+                assert actual==wanted,(name,span.reference,'Rendered content does not match requested resource')
+                report['fidelity_verses']+=1
         if ref.startswith('Gen.'):
             assert all(s.reference.startswith(ref.rsplit('.',1)[0]+'.') for s in t._comparison_document.spans),row
         report['gui'].append(row);return t
