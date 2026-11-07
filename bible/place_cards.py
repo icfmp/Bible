@@ -60,7 +60,7 @@ class PlaceCards(Adw.Window):
         credit.set_markup(f'<a href="{SOURCE_URL}">OpenBible.info</a> · <a href="{LICENSE_URL}">CC BY 4.0</a>'
                           f' · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>'
                           f' · <a href="{ODBL_URL}">ODbL</a>')
-        credit.add_css_class('caption');box.append(credit)
+        credit.add_css_class('caption');credit.add_css_class('dim-label');credit.add_css_class('source-attribution');box.append(credit)
         self.set_content(box);self.refresh()
 
     def present(self,parent=None):
