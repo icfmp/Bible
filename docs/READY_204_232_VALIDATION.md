@@ -173,7 +173,7 @@ Source `a7b02d34be914fe52ce55e31b280b40759b15d35`, run42379203195:
 Additional real GTK Library validation used a fresh, marked test profile, the
 actual CrossWire catalogue, native wheel traversal and row-download clicks.
 Geneva1669 opens immediately at Matthew1:1 as a real NT-only first install;
-installing Wesley leaves that Bible open. The full321-row Bible and41-row
+installing Wesley leaves that Bible open. The displayed279-row Bible and41-row
 commentary models retain their exact objects, with zero `items-changed` events.
 The same actually displayed surrounding row stays within3px for the Bible and
 exactly in place for the commentary, after the final installation frame.
