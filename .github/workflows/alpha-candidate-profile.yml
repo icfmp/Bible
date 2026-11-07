@@ -1,186 +1,101 @@
-name: Measure installed reading feedback
+name: Verify installed alignment regression across real resources
 on:
-  push:
-    branches: [perf/alpha-native-trace]
   workflow_dispatch:
+    inputs:
+      candidate_run:
+        description: Exact candidate main-check workflow run
+        required: true
+      candidate_head:
+        description: Exact candidate application source
+        required: true
 permissions:
   contents: read
   actions: read
+concurrency:
+  group: alignment215-installed-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   compare:
     runs-on: ubuntu-24.04
-    timeout-minutes: 65
+    timeout-minutes: 80
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CANDIDATE_RUN: ${{ inputs.candidate_run }}
+      CANDIDATE_HEAD: ${{ inputs.candidate_head }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-      - name: Install isolated validation tools
+      - name: Install isolated Flatpak and native input tools
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic ffmpeg
-          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
-          echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
-      - name: Wait for successful exact-head GNOME checks and obtain candidate
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 120); do
-            run=$(gh api 'repos/${{ github.repository }}/actions/runs?head_sha=${{ github.sha }}&per_page=100' --jq '.workflow_runs[] | select(.name=="Vérifier le socle GNOME") | [.id,.status,(.conclusion // "pending")] | @tsv' | head -1)
-            if [ -n "$run" ]; then
-              read -r build_run status conclusion <<< "$run"
-              if [ "$status" = completed ]; then test "$conclusion" = success; break; fi
-            fi
-            sleep 20
-          done
-          test "${conclusion:-pending}" = success
-          echo "Verified candidate CI: $build_run"
-          gh run download "$build_run" --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
-      - name: Download current published application's verified CI bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: Bible-alpha-linux-x86_64
-          run-id: 40454566453
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/current-bundle
-      - name: Verify exact published build inputs and install an isolated CI ref
-        run: |
+          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr ostree
+          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/alignment-flatpak" >> "$GITHUB_ENV"
+          echo "ALIGNMENT_PROFILE=$RUNNER_TEMP/alignment-profile" >> "$GITHUB_ENV"
           mkdir reports
-          python3 - "$RUNNER_TEMP" <<'PYTHON'
-          import hashlib,json,pathlib,sys
-          import os
-          root=pathlib.Path(sys.argv[1]);expected={
-            'current-bundle':('d39a99eb44be1c3257a9ba75f60f7f324282b1b1','b17bc4e1f85c7f1b679f4dd9dd5994ec9b6e539521886249890f928567b46fff'),
-            'candidate-bundle':(os.environ['GITHUB_SHA'],None)}
-          receipt={}
-          for name,(source,digest) in expected.items():
-              folder=root/name;info=json.loads((folder/'build-info.json').read_text())
-              assert info['commit']==source and (digest is None or info['sha256']==digest)
-              assert hashlib.sha256((folder/'Bible-alpha.flatpak').read_bytes()).hexdigest()==info['sha256']
-              receipt[name]=info
-          pathlib.Path('reports/ci-input-verification.json').write_text(json.dumps(dict(inputs=receipt,limitation='Baseline is the exact verified CI bundle imported into signed alpha; candidate is a tested feature-branch CI master ref. Candidate is not yet published on the signed channel. Application imports must be packaged.'),indent=2))
-          PYTHON
+      - name: Install and verify unchanged signed alpha25
+        run: |
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user --noninteractive "$RUNNER_TEMP/current-bundle/Bible-alpha.flatpak"
-          flatpak info --user io.github.icfmp.Bible//master > reports/installation.txt
-      - name: Obtain frozen previously validated optional topic data
-        run: |
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/openbible-topics.sqlite3.gz" https://raw.githubusercontent.com/icfmp/Bible/1c82609a0947822908fdfab7d3b42f7b79146265/docs/evidence/alpha-performance/fixtures/openbible-topics.sqlite3.gz
-          echo "f8d8ebe33c339f3f910c930fef1af5713ee9a154bdbb363d7abf1844452a8c2e  $RUNNER_TEMP/openbible-topics.sqlite3.gz" | sha256sum --check
-      - name: Prepare real resources and persistent annotations once
-        run: |
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
-          import json,sys,hashlib
+          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
+          python3 - <<'PY'
+          import json,subprocess,urllib.request
           from pathlib import Path
-          from dataclasses import asdict
-          from bible.library import Library,catalogue
-          from bible.notes import NoteStore
-          from bible.preferences import Preferences
-          root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
-          for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
-              if name not in library.installed():library.install(next(r for r in resources if r.name==name))
-          notes=NoteStore(root/'notes.sqlite3')
-          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
-          from bible.step_data import StepData
-          from bible.place_data import PlaceData
-          StepData(root/'study-data').install()
-          PlaceData(root/'study-data').install()
-          from bible.reference_data import ReferenceData
-          from bible.topic_data import TopicData
-          # Reuse the unchanged, previously validated installed reference index.
-          # The mutable upstream ZIP now correctly fails the application's pin.
-          import gzip
-          ref_bytes=gzip.decompress(Path('${{ github.workspace }}/docs/evidence/client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz').read_bytes())
-          assert hashlib.sha256(ref_bytes).hexdigest()=='9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'
-          references=ReferenceData(root/'study-data');references.path.write_bytes(ref_bytes)
-          assert references.metadata()['archive_sha256']=='5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f'
-          # Reuse an attributed, validated installed index. Today's weekly upstream
-          # archive differs from the source pinned by the published application.
-          import gzip
-          topic_bytes=gzip.decompress(Path(sys.argv[2]).read_bytes())
-          assert len(topic_bytes)==4964352 and hashlib.sha256(topic_bytes).hexdigest()=='90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209'
-          topics=TopicData(root/'study-data')
-          if topics.path.exists():assert topics.path.read_bytes()==topic_bytes
-          else:topics.path.write_bytes(topic_bytes)
-          assert topics.metadata()['archive_sha256']=='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
-          preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
-          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
-          (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
+          x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
+          assert x['source_commit']=='c7009d0162c0b2b85cc8f99e5b024e17e764bd3e'
+          assert x['flatpak_commit']=='0841dca6e6d3cd1d191314e2ffde228151f298c3186773ab4972d3b185cbaba2'
+          assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
+          assert subprocess.check_output(['flatpak','info','--user','--show-commit','io.github.icfmp.Bible//alpha'],text=True).strip()==x['flatpak_commit']
+          Path('reports/baseline-provenance.json').write_text(json.dumps(x,indent=2))
           PY
-      - name: Compare actual wheel and native scrollbar input at scale two
+          ostree show --repo="$FLATPAK_USER_DIR/repo" --gpg-verify-remote=bible-alpha 0841dca6e6d3cd1d191314e2ffde228151f298c3186773ab4972d3b185cbaba2 > reports/baseline-signature.txt
+      - name: Reproduce all reported failures and working MHC control before upgrade
         run: |
-          set -euo pipefail
-          run_case() {
-            local label="$1"; shift
-            local renderer=()
-            if [ -n "${PERF_RENDERER:-}" ]; then renderer=(--env=GSK_RENDERER="$PERF_RENDERER"); fi
-            flatpak info --user --show-commit io.github.icfmp.Bible//master > "reports/$label.commit"
-            timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none "${renderer[@]}" --command=python3 io.github.icfmp.Bible//master -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$label.json" --require-packaged --resource FreSegond1910 --reference Ps.119.1 "$@" > "reports/$label.log" 2>&1
-          }
-          for version in current candidate; do
-            if [ "$version" = candidate ]; then flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"; fi
-            run_case "$version-scrollbar" --input-kind scrollbar --cycles 8
-            run_case "$version-wheel" --cycles 2
-            run_case "$version-combined-scrollbar" --mode combined --input-kind scrollbar --cycles 8
-            run_case "$version-combined-wheel" --mode combined --cycles 4
-            PERF_RENDERER=gl run_case "$version-combined-gl" --mode combined --input-kind scrollbar --cycles 2
-            run_case "$version-combined-cache-ablation" --mode combined --cache-resource-metadata --input-kind scrollbar --cycles 2
-            run_case "$version-comparison" --mode comparison --cycles 2
-            run_case "$version-study" --mode study --cycles 2
-            run_case "$version-toolbar-native" --toolbar --cycles 2
-            run_case "$version-toolbar-scrollbar" --toolbar --input-kind scrollbar --cycles 2
-            run_case "$version-toolbar-disabled" --toolbar --backdrop disabled --cycles 2
-            run_case "$version-python" --instrument --mode combined --input-kind scrollbar --cycles 2
-            perf_bin=$(find -L /usr/lib/linux-tools -type f -name perf | head -1)
-            test -n "$perf_bin"
-            run_case "$version-native-cpu" --input-kind scrollbar --mode combined --cycles 2 &
-            task_pid=$!
-            sudo python3 tools/sample_alpha_cpu.py "$perf_bin" "$PWD/reports/$version-native-cpu.json" "$RUNNER_TEMP/perf-symbols-$version"
-            wait "$task_pid"
-          done
-      - name: Prepare the already-reviewed Semeur resource for isolated visual checks
+          timeout 900s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//alpha -m tools.check_alignment_regression "$ALIGNMENT_PROFILE" "$PWD/reports/baseline-fr" --prepare --baseline --require-packaged > reports/baseline-fr.log 2>&1
+      - name: Wait for the exact candidate to pass ordinary CI
         run: |
-          python3 -m tools.research.fetch_yves_probe "$RUNNER_TEMP/feedback-input"
-          mkdir -p "$RUNNER_TEMP/feedback-visuals"
-          cp -a "$PERF_PROFILE" "$RUNNER_TEMP/feedback-visuals/shared-proof-profile"
-          touch "$RUNNER_TEMP/feedback-visuals/shared-proof-profile/.youversion-proof-profile"
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master -m tools.research.check_youversion_install "$RUNNER_TEMP/feedback-input/source.zip" --metadata "$RUNNER_TEMP/feedback-input/metadata.json" --version 21 --output "$RUNNER_TEMP/feedback-visuals/seed" --shared-profile --require-packaged
-          cp "$RUNNER_TEMP/feedback-visuals/seed/verification.json" reports/semeur-visual-source.json
-      - name: Record installed native before and after surfaces and motion
+          python3 - <<'PY'
+          import json,os,subprocess,time
+          def api(path):return json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/'+path],text=True))
+          for attempt in range(120):
+              run=api('actions/runs/'+os.environ['CANDIDATE_RUN'])
+              assert run['head_sha']==os.environ['CANDIDATE_HEAD'] and run['path']=='.github/workflows/prerequisites.yml'
+              if run['status']=='completed':
+                  assert run['conclusion']=='success',run['conclusion'];break
+              time.sleep(20)
+          else:raise RuntimeError('Exact candidate CI did not finish')
+          PY
+          gh run download "$CANDIDATE_RUN" --repo '${{ github.repository }}' --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
+      - name: Verify and install the exact candidate without replacing the profile
         run: |
-          set -euo pipefail
-          for version in current candidate; do
-            flatpak install --user --noninteractive --reinstall "$RUNNER_TEMP/$version-bundle/Bible-alpha.flatpak"
-            cp -a "$RUNNER_TEMP/feedback-visuals/shared-proof-profile" "$RUNNER_TEMP/feedback-visuals/$version"
-            baseline=()
-            if [ "$version" = current ]; then baseline=(--baseline); fi
-            for section in comparison markers notes preferences navigation immersion; do
-              timeout 240s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_reading_feedback "$RUNNER_TEMP/feedback-visuals/$version" "$PWD/reports/visual-$version-$section" --section "$section" --require-packaged "${baseline[@]}" > "reports/visual-$version-$section.log" 2>&1
-            done
-          done
-          timeout 180s dbus-run-session -- xvfb-run -a flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --command=python3 io.github.icfmp.Bible//master -m tools.check_alpha_ui > reports/candidate-native-navigation.log 2>&1
-      - name: Verify retained profile data and translations
-        if: always()
-        run: |
-          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//master - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
-          import json,sys,hashlib
+          python3 - <<'PY'
+          import hashlib,json,os
           from pathlib import Path
-          from dataclasses import asdict
-          from bible.notes import NoteStore
-          root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
-          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
-          after=json.loads(json.dumps(after))
-          differences=[key for key in before if before[key]!=after[key]]
-          Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
-          assert not differences, 'Changed persisted components: '+str(differences)
-          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
+          p=Path(os.environ['RUNNER_TEMP'])/'candidate-bundle';x=json.loads((p/'build-info.json').read_text())
+          assert x['commit']==os.environ['CANDIDATE_HEAD']
+          assert hashlib.sha256((p/'Bible-alpha.flatpak').read_bytes()).hexdigest()==x['sha256']
+          Path('reports/candidate-build-info.json').write_text(json.dumps(x,indent=2))
+          PY
+          flatpak install --user --noninteractive "$RUNNER_TEMP/candidate-bundle/Bible-alpha.flatpak"
+      - name: Run the complete French and English nine-Bible native matrix
+        run: |
+          for language in fr en; do
+            timeout 900s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$language" --command=python3 io.github.icfmp.Bible//master -m tools.check_alignment_regression "$ALIGNMENT_PROFILE" "$PWD/reports/candidate-$language" --require-packaged > "reports/candidate-$language.log" 2>&1
+          done
+      - name: Restart offline and verify retained source-qualified parallel session
+        run: |
+          timeout 600s dbus-run-session -- xvfb-run -a -s '-screen 0 1600x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible//master -m tools.check_alignment_regression "$ALIGNMENT_PROFILE" "$PWD/reports/candidate-offline" --offline --quick --require-packaged > reports/candidate-offline.log 2>&1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for name in ('baseline-fr','candidate-fr','candidate-en','candidate-offline'):
+              d=json.loads(Path('reports',name,'alignment.json').read_text())
+              assert d['complete'] and d['preserved'] and d['app_import'].startswith('/app/') and d['renderer']=='GLRenderer'
+              if name!='baseline-fr':assert len(d['resolver'])==294 and d['native_selector_changes']==4
+              if name=='candidate-offline':assert d['offline'] and d['restored_session_verified']
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: alpha-candidate-performance
-          path: reports/
-          if-no-files-found: error
+          name: installed-alignment215-evidence
+          path: reports
