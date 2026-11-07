@@ -25,7 +25,7 @@
   <url type="help">https://github.com/icfmp/Bible/wiki</url>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://icfmp.github.io/Bible/assets/reading.png</image>
+      <image type="source">https://raw.githubusercontent.com/icfmp/Bible/baf1c797f55c927cc0d20e7bf5f0641ce75b9a61/tools/site_assets/reading.png</image>
       <caption>Reading and parallel study in the native application</caption>
       <caption xml:lang="fr">Lecture et étude en parallèle dans l’application native</caption>
     </screenshot>
