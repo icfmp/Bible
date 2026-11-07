@@ -304,6 +304,8 @@ class Window(Adw.ApplicationWindow):
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; } '
                            b'.reference-excerpt { font-weight: normal; } '
+                           b'.source-attribution { color: alpha(currentColor, .72); } '
+                           b'.source-attribution link { color: inherit; } '
                            b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
