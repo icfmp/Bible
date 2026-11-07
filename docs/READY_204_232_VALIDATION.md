@@ -150,3 +150,51 @@ host run ran495 tests with one intermittent citation-preview failure; a20-repeat
 local reproduction passed. This is recorded as an unresolved CI gate until the
 exact revised source passes. No merge, signed alpha update or numbered release
 is claimed by these native checks.
+
+## Exact-source host and installed-candidate checkpoint
+
+Source `a7b02d34be914fe52ce55e31b280b40759b15d35`, run42379203195:
+
+- Host prerequisites passed:496 tests (26 skips),183 French tests (2 skips),
+  native focus-pixel verification, all real X11 action/workspace/navigation
+  checks, and actual CrossWire/commentary integration.
+- The GNOME49 Flatpak was actually built and installed. Its263-test suite,
+  13 immersive tests,7 selection/inline tests, actual YouVersion opening,
+  real STEP/navigation/offline checks and sustained scrolling passed.
+- The complete packaging job still failed: the blur diagnostic changed the
+  radius but invalidated the controls, whose cached background is now a separate
+  widget. It reported identical pixels because GTK correctly reused that cache.
+  The diagnostic now invalidates `bar.background`; its assertions remain intact.
+  A full local GLRenderer run passes, with24307 changed pixels and edge energy
+  89078→12526. No production blur change or weakened assertion is involved.
+- New place/word diagnostics were skipped after that failure. No verified
+  distributable bundle or signed publication is claimed from this run.
+
+Additional real GTK Library validation used a fresh, marked test profile, the
+actual CrossWire catalogue, native wheel traversal and row-download clicks.
+Geneva1669 opens immediately at Matthew1:1 as a real NT-only first install;
+installing Wesley leaves that Bible open. The full321-row Bible and41-row
+commentary models retain their exact objects, with zero `items-changed` events.
+The same actually displayed surrounding row stays within3px for the Bible and
+exactly in place for the commentary, after the final installation frame.
+The numerical adjustment can change because GTK estimates offscreen row heights;
+intermediate measurements while the footer resizes the viewport are not a final
+scroll-position result. Experimental focus/anchor restorations were rejected
+and removed. The product retains the simple in-place model update and GTK's
+native anchoring, including user scrolling during transfers.
+
+A separate native SQLite write-prohibition test confirms that installing the
+first Bible cannot dismiss an unsavable note draft. Existing note identity,
+passage and original-source context remain intact; the established guard saves
+the draft and returns to reading once writes are allowed.
+
+The actual narrow place check also found that an unwrapped alias disclosure
+forced a533px dialog. Its native label now wraps; actual360px English/dark and
+French/light wide checks pass with the real reviewed photo and unchanged source
+names. Installed diagnostics now expose explicit theme/width options for that
+verification. Obsolete research-script attempts to open the removed translation
+notes page have been replaced with the real Notes tab and an absence check.
+
+The revised exact source must pass the complete required CI, candidate Software
+details verification and retained-profile signed update before merge/delivery
+claims are upgraded.

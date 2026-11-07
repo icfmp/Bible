@@ -7,21 +7,25 @@ from bible.place_cards import PlaceCards
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
-p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--resource',default='FreSegond1910');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--prepare',action='store_true');p.add_argument('--require-packaged',action='store_true');p.add_argument('--resource',default='FreSegond1910');p.add_argument('--dark',action='store_true');p.add_argument('--narrow',action='store_true');a=p.parse_args()
 root=a.profile;assert (root/'.ready-batch-test-profile').is_file() or root.name=='study-navigation-real','Disposable profile required'
 if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
 from bible.place_data import PlaceData
 if a.prepare and PlaceData(root/'study-data').revision is None:PlaceData(root/'study-data').install()
 out=a.output;out.mkdir(exist_ok=True,parents=True)
 app=Application();app.register();w=Window(app,Library(root/'translations'));w.set_default_size(1280,900);w.present();spin();native=X11Input();screen=Screen(native)
-report=dict(app_import=inspect.getfile(Window),complete=False,cases=[])
+w.appearance.update('mode','night' if a.dark else 'day')
+report=dict(app_import=inspect.getfile(Window),complete=False,cases=[],dark=a.dark,narrow=a.narrow)
 notes=w.notes_store.all()
 def walk(widget):
  yield widget;child=widget.get_first_child()
  while child:yield from walk(child);child=child.get_next_sibling()
 def open_case(ref,identity):
  tab=w.active_tab;tab.navigate(a.resource,ref);spin(lambda:not tab._restoring_scroll)
- dialog=PlaceCards(w,context=(tab.state.resource,tab.reader,ref,ref));dialog.present();spin(lambda:not dialog.pending,timeout=30)
+ dialog=PlaceCards(w,context=(tab.state.resource,tab.reader,ref,ref))
+ if a.narrow:dialog.set_default_size(360,600)
+ dialog.present();spin(lambda:not dialog.pending,timeout=30)
+ if a.narrow:assert dialog.get_width()<=360,dialog.get_width()
  place=next(p for p in dialog.rows if p['id']==identity);dialog.open_place(place);spin(duration=.4);native.activate(dialog)
  return dialog,place
 try:

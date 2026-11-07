@@ -176,7 +176,11 @@ class PlaceCards(Adw.Window):
             card.append(self.link_label(source['url'],source['name'],source['license_url'],source['license']))
         aliases=list(dict.fromkeys(place_name(alias) for alias in place.get('aliases',[]) if alias!=place['name']))
         if aliases:
-            names=Gtk.Expander(label=tr('Names recorded by the source')+' · '+', '.join(aliases[:3]))
+            caption=tr('Names recorded by the source')+' · '+', '.join(aliases[:3])
+            names=Gtk.Expander()
+            names.set_label_widget(Gtk.Label(label=caption,xalign=0,wrap=True,
+                width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
+            names.update_property([Gtk.AccessibleProperty.LABEL],[caption])
             names.set_child(self.label(', '.join(aliases),caption=True));card.append(names)
         map_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.append(map_box)
         if located:

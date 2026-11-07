@@ -48,3 +48,27 @@ class ReadingLifecycleTests(unittest.TestCase):
             installed_fixture(root,'Added');w.resource_installed('Added');spin()
             self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
             self.assertEqual((w.active_tab.state.resource,w.active_tab.state.reference),('Existing','John.3.16'))
+
+    def test_first_install_keeps_an_unsavable_note_draft_until_the_existing_guard_allows_leaving(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);w=self.window(root)
+            note=w.notes_store.save('Retained original note',[],versification='KJV',
+                start='John.3.16',end='John.3.16',origin_translation='Removed',origin_language='en')
+            w.open_notes();spin();editor=w.notes_space.open_note(note);spin()
+            editor.body.get_buffer().insert_at_cursor(' unsaved draft')
+            draft=editor.body.source();w.notes_store.db.execute('PRAGMA query_only=ON')
+            try:
+                installed_fixture(root,'First');w.resource_installed('First');spin()
+                self.assertEqual(w.active_tab.state.resource,'First')
+                self.assertEqual(w.main_pages.get_visible_child_name(),'notes')
+                self.assertIs(w.note_editor,editor);self.assertFalse(editor.closed)
+                self.assertEqual(editor.body.source(),draft)
+                self.assertEqual(w.notes_store.get(note.id),note)
+                self.assertTrue(editor._confirmation.get_visible())
+                editor._confirmation.response('cancel');spin()
+            finally:w.notes_store.db.execute('PRAGMA query_only=OFF')
+            w.notes_space.leave();spin()
+            self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
+            saved=w.notes_store.get(note.id)
+            self.assertEqual(saved.body,draft)
+            self.assertEqual((saved.id,saved.start,saved.origin_translation),(note.id,note.start,note.origin_translation))
