@@ -15,11 +15,11 @@ def main():
     assert (a.profile/'.alignment-test-profile').is_file();a.output.mkdir(parents=True,exist_ok=True)
     if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
     app=Application.get_default() or Application();app.register();w=Window(app,Library(a.profile/'translations'))
-    Gtk.Settings.get_default().set_property('gtk-enable-animations',False)
+    Gtk.Settings.get_default().set_property('gtk-enable-animations',True)
     w.set_default_size(1440,960);w.present();spin()
     n=X11Input();n.activate(w);screen=Screen(n)
     report=dict(app_import=inspect.getfile(Window),renderer=type(w.get_renderer()).__name__,
-        network_isolated=len(Path('/proc/net/route').read_text().splitlines())<=1,checks=[],handoffs=[],complete=False)
+        animations_enabled=Gtk.Settings.get_default().get_property('gtk-enable-animations'),network_isolated=len(Path('/proc/net/route').read_text().splitlines())<=1,checks=[],handoffs=[],complete=False)
     success=False
     def settled():
         spin(lambda:not w.active_tab._restoring_scroll and not w.study._positioning and not w.reading_sync.pending

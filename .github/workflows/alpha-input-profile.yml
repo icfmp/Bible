@@ -1,4 +1,4 @@
-name: Verify independent native Bible and commentary gestures
+name: Verify native animated Bible and commentary gestures
 on:
   workflow_dispatch:
     inputs:
@@ -99,7 +99,7 @@ jobs:
           modules={str(f.relative_to(root/'translations')):hashlib.sha256(f.read_bytes()).hexdigest() for f in (root/'translations').rglob('*') if f.is_file()}
           assert modules==before['modules'];notes.close()
           for language in ('fr','en'):
-              d=json.loads((out/('study-'+language)/'commentary-gestures.json').read_text());assert d['complete'] and len(d['checks'])==30 and len(d['handoffs'])==9 and d['renderer']=='GLRenderer'
+              d=json.loads((out/('study-'+language)/'commentary-gestures.json').read_text());assert d['animations_enabled'] and d['complete'] and len(d['checks'])==30 and len(d['handoffs'])==9 and d['renderer']=='GLRenderer'
               assert all('viewport' in c for c in d['checks'] if c['driver']=='bible')
           assert json.loads((out/'study-en/commentary-gestures.json').read_text())['network_isolated']
           (out/'preservation.json').write_text(json.dumps(dict(preserved=True,module_files=len(modules),notes=1)))
@@ -107,5 +107,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: installed-alignment215-study-evidence
+          name: installed-alignment215-animations-evidence
           path: reports
