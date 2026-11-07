@@ -16,14 +16,15 @@ def table(system):
     path = next((p for p in Path(__file__).with_name('versification_data').glob('*.json')
                  if p.stem == system), None)
     if path is None:
-        from .source_versification import reference_convention
-        convention=reference_convention(system)
-        if convention is None:return None
-        data=table(convention)
+        from .source_versification import reference_mapping
+        data=reference_mapping(system)
         if data is None:return None
     else:data = json.loads(path.read_text())
     key = Sword.VerseKey()
     key.setVersificationSystem(system)
+    # Inspect the declared index, not normalized positions in the next
+    # nonempty chapter (source canons can legitimately contain zero bounds).
+    key.setAutoNormalize(False)
     if key.getVersificationSystem() != system:
         return None
     canon = {}
@@ -67,6 +68,10 @@ def to_base(reference, system):
     base = table('KJVA')
     if data is None or base is None:
         return None
+    convention=data.get('declared_convention')
+    if convention:
+        return (to_base(reference,convention['system'])
+                if reference.split('.')[0] in convention['books'] else [])
     bridge=data.get('verified_identity')
     if bridge:
         return to_base(reference,bridge['system']) if verified_identity(reference,data) else []
@@ -84,6 +89,10 @@ def from_base(qualified, system):
     data = table(system)
     if data is None:
         return None
+    convention=data.get('declared_convention')
+    if convention:
+        refs=from_base(qualified,convention['system'])
+        return refs if refs and all(ref.split('.')[0] in convention['books'] for ref in refs) else []
     bridge=data.get('verified_identity')
     if bridge:
         refs=from_base(qualified,bridge['system'])

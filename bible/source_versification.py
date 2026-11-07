@@ -8,19 +8,24 @@ import re
 
 # Declared Paratext source conventions. These are not guesses from a title,
 # language or the shape of a canon. A verified source index must independently
-# match the complete declared convention before this capability is registered.
+# match the declared convention for each enabled book. Other books must not
+# revoke an independently verified capability or acquire an inferred mapping.
 SOURCE_CONVENTIONS={'org':'Original','eng':'KJV'}
 _reference_conventions={}
 
 
 def reference_convention(system):
+    data=reference_mapping(system)
+    return data['declared_convention']['system'] if data else None
+
+
+def reference_mapping(system):
     return _reference_conventions.get(system)
 
 
-def declared_convention(path,receipt):
+def declared_mapping(path,receipt):
     convention=SOURCE_CONVENTIONS.get(receipt.get('source_numbering'))
-    if (not convention or receipt.get('source_addresses_sha256')
-            or receipt.get('all_text_notes_headings_verified') is not True):return
+    if not convention or receipt.get('all_text_notes_headings_verified') is not True:return
     lines=path.read_text('ascii').splitlines();system=lines[0].removeprefix('BIBLE-VRS-1 ')
     if receipt.get('storage_numbering')!=system:return
     canon={}
@@ -29,15 +34,29 @@ def declared_convention(path,receipt):
         if int(count)!=len(maxima):return
     from .versification_mapping import table
     declared=table(convention)
-    if declared is None or canon!=declared['canon']:return
-    return convention
+    if declared is None:return
+    # Address remapping is a storage detail, not proof of verse equivalence.
+    # Its presence elsewhere must not disable unchanged public books. Keep
+    # every transformed book unavailable until its correspondence is verified.
+    transformed=set()
+    if receipt.get('source_addresses_sha256'):
+        from .source_units import AddressIndex
+        try:addresses=AddressIndex.load(path.parent)
+        except (OSError,ValueError):return
+        if addresses is None:return
+        transformed.update(ref.split('.')[0] for ref in addresses.chapters)
+        if addresses.sections:transformed.update(addresses.sections.order)
+    books=sorted(book for book,sizes in canon.items()
+                 if book not in transformed and sizes==declared['canon'].get(book))
+    if not books:return
+    return dict(canon=canon,declared_convention=dict(system=convention,books=books))
 
 
 def register_convention(path,receipt):
     system=path.read_text('ascii').splitlines()[0].removeprefix('BIBLE-VRS-1 ')
-    convention=declared_convention(path,receipt)
-    if _reference_conventions.get(system)==convention:return
-    if convention:_reference_conventions[system]=convention
+    data=declared_mapping(path,receipt)
+    if _reference_conventions.get(system)==data:return
+    if data:_reference_conventions[system]=data
     else:_reference_conventions.pop(system,None)
     from .versification_mapping import table
     table.cache_clear()
