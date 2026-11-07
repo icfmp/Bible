@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Other occurrences':'Autres occurrences',
     'No meaning supplied by the installed lexicon.':'Aucun sens fourni par le lexique installé.',
     'Dictionary headword':'Entrée du dictionnaire',
     'Names recorded by the source':'Noms relevés dans la source',

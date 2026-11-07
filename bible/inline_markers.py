@@ -96,7 +96,7 @@ class InlineMarkers:
             from .source_note_marker import source_note_marker
             return source_note_marker(self,view,reader,ref,payload,int(kind.split(':')[1])+1)
         title=tr('Notes on this verse' if kind=='note' else 'Places in this verse')
-        button=Gtk.Button(icon_name='bible-notes-symbolic' if kind=='note' else 'mark-location-symbolic',
+        button=Gtk.Button(icon_name='notebook-symbolic' if kind=='note' else 'mark-location-symbolic',
                           tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
         button.add_css_class('flat');button.add_css_class('inline-marker')
         button.set_cursor_from_name('pointer')

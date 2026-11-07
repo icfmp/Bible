@@ -10,7 +10,7 @@ def application_menu():
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2,margin_top=6,margin_bottom=6,margin_start=6,margin_end=6)
     menu.global_actions=[]
     for label,action,icon,shortcut in [
-        ('Library','translations','bible-library-symbolic','<Control>l'),
+        ('Library','translations','dictionary-symbolic','<Control>l'),
         ('Preferences','preferences','emblem-system-symbolic','<Control>comma'),
         ('Keyboard Shortcuts','shortcuts','preferences-desktop-keyboard-shortcuts-symbolic','<Control>question'),
         ('About Bible','about','help-about-symbolic','')]:

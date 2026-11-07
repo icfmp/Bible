@@ -6,10 +6,8 @@ from .reference_preview import passage_title
 
 def source_note_marker(markers,view,reader,reference,note,number):
     caption=note.locator or str(number)
-    # Some supported GNOME runtimes do not ship talking-symbolic. Use the
-    # native information glyph there, retaining the exact source locator below.
-    theme=Gtk.IconTheme.get_for_display(view.get_display())
-    icon='talking-symbolic' if theme.has_icon('talking-symbolic') else 'dialog-information-symbolic'
+    # Official bundled devkit asset; the exact icon is verified in the Flatpak.
+    icon='talking-symbolic'
     image=Gtk.Image(icon_name=icon,pixel_size=10,valign=Gtk.Align.START,margin_bottom=6)
     button=Gtk.Button(child=image,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
     button.add_css_class('flat');button.add_css_class('inline-marker');button.add_css_class('source-note-marker')

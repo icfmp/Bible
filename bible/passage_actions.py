@@ -167,7 +167,7 @@ class PassageActions:
                 check=Gtk.Image(icon_name='object-select-symbolic',pixel_size=14,opacity=0);circle.append(check)
                 button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
                 self.actions.append(button);self.highlight_buttons[color]=(button,check)
-        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
+        self.note_button=self.button('notebook-symbolic','Add a passage note',lambda *_:self.note())
         self.word_button=self.button('accessories-dictionary-symbolic','Original text',lambda *_:self.study_word())
         word=Gtk.Box(spacing=6)
         word.append(Gtk.Image(icon_name='accessories-dictionary-symbolic',pixel_size=20))
@@ -175,6 +175,12 @@ class PassageActions:
         self.word_button.set_tooltip_text(tr('Study original text'))
         self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
+        if isinstance(self.actions,Gtk.FlowBox):
+            # Older Adwaita uses FlowBox wrappers; only the actual controls
+            # belong in the toolbar's keyboard traversal order.
+            child=self.actions.get_first_child()
+            while child:
+                child.set_focusable(False);child=child.get_next_sibling()
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
         self.bar.connect('notify::visible',lambda *_:self.dismiss() if not self.bar.get_visible() and self.target else None)

@@ -245,8 +245,10 @@ class PlaceCards(Adw.Window):
         generation=self.generation;root=self.data.root
         frame=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         card.append(frame)
-        picture=Gtk.Picture(can_shrink=True,content_fit=Gtk.ContentFit.CONTAIN,height_request=160)
-        enlarge=Gtk.Button(child=picture,visible=False);enlarge.add_css_class('flat')
+        picture=Gtk.Picture(can_shrink=True,content_fit=Gtk.ContentFit.CONTAIN)
+        aspect=Gtk.AspectFrame(ratio=image['width']/image['height'],obey_child=False)
+        aspect.set_child(picture)
+        enlarge=Gtk.Button(child=aspect,visible=False);enlarge.add_css_class('flat')
         caption=localized(image['caption'])
         enlarge.update_property([Gtk.AccessibleProperty.LABEL],[caption+' · '+tr('Enlarge photo')])
         def full(*_):

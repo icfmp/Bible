@@ -662,7 +662,7 @@ class NotesSpace(Gtk.Box):
         self.related=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         self.related_expander=Gtk.Expander(label=tr('Related annotations'),visible=False,margin_start=20,margin_end=20,margin_top=8,margin_bottom=12);self.related_expander.set_child(self.related)
         self.editor_panel.append(self.context_panel)
-        self.placeholder=Adw.StatusPage(title=tr('Choose an annotation'),description=tr('Your annotations remain available offline.'),icon_name='bible-notes-symbolic');self.editor_panel.append(self.placeholder)
+        self.placeholder=Adw.StatusPage(title=tr('Choose an annotation'),description=tr('Your annotations remain available offline.'),icon_name='notebook-symbolic');self.editor_panel.append(self.placeholder)
         self.highlight_detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,visible=False);self.editor_panel.append(self.highlight_detail)
         self.editor_panel.append(self.related_expander)
         list_pane=Gtk.Box();self.side.set_hexpand(True);list_pane.append(self.side)

@@ -11,8 +11,8 @@ The only pre-existing open PR was the unrelated research PR #59, left untouched.
 | #204 | Shared compact cards, pointer, focus and small primary arrow | Native passage card mouse/citation/Return/Space checks pass; final app-wide visual audit and packaged checks pending |
 | #205 | Reference/theme/text/occurrence/place cards; note summaries prioritize passage and the user's note | Note storage/citation tests and actual pointer/keyboard checks pass; FR/EN narrow/contrast captures pending |
 | #206 | Original passage → word → occurrences; actual form/transliteration, honest English meanings, collapsed linguistic details | Real STEP G2532 inspected; latest real Greek/Hebrew walkthrough and beginner acceptance pending |
-| #207 | Requested dictionary-symbolic Library replacement | Blocked: that exact native icon is absent in tested GNOME49; no silent substitution |
-| #208 | Requested dictionary-symbolic / notebook-symbolic switcher and Notes icons | Blocked: both absent in tested GNOME49 and issue disallows new assets; client clarification pending |
+| #207 | Requested dictionary-symbolic Library replacement | Exact upstream SVG imported with client approval after verifying its absence in GNOME49; pinned CC0 provenance; packaged resolution pending |
+| #208 | Requested dictionary-symbolic / notebook-symbolic switcher and Notes icons | Client authorized official assets on 7 November; exact dictionary/notebook SVGs replace all custom usages; native tests pass, packaged proof pending |
 | #209 | Native mark-location-symbolic at both former custom-place usages | Availability checked in development GTK and actual installed GTK49; screenshots pending |
 | #210 | Remove obsolete filter SVG alongside #231's semantic sidebar-control cleanup | The former icon had one production use, opening a sidebar, not applying a filter; no obsolete filter operation retained |
 | #211 | Pinned actual Roboto and Roboto Serif, OFL notices; defaults for new profiles, saved choices retained | Fontconfig resolves downloaded families in isolated native tests; actual offline packaged font resolution pending |
@@ -21,7 +21,7 @@ The only pre-existing open PR was the unrelated research PR #59, left untouched.
 | #214 | First readable install opens the active reader immediately; invalid saved resource recovers deterministically | First install, restart, valid-reader preservation, Notes return and corrupt metadata/data preservation pass |
 | #218 | Existing place names/evidence/bibliography plus separately licensed reviewed Jerusalem context and optional photo | Source licenses/identity/photo inspected; integrity/offline/explicit-download unit checks pass; real photo UI and packaged cases pending |
 | #219 | Remove standalone translation-notes page/action; preserve inline notes and exact locators | Native source-note mouse/keyboard and chapter-change tests pass; legacy tool falls back to a valid tab |
-| #220 | Small raised native source-note icon with exact locator in accessible context/popover | Native talking icon absent; allowed information fallback used; mouse/keyboard tests pass |
+| #220 | Small raised native source-note icon with exact locator in accessible context/popover | Exact official talking SVG now bundled with client approval; locator preserved; native mouse/keyboard tests pass |
 | #221 | Spinner inside submit button, compact native scope, inert previous results during pending search, no redundant topic instruction | Controlled asynchronous/stale-response/empty-query tests pass; final FR/EN layout captures pending |
 | #222 | Remove commentary overflow; retain sparse previous/next and unique preface through native text context menu | Source preface fidelity/navigation tests pass; Library retains existing attribution/download route |
 | #223 | Native view, quiet empty states, three underlined study tabs, one reference heading | Native three-tab checks pass; final theme/width screenshots pending |
@@ -77,3 +77,24 @@ Applicable manual status transitions must be requested in the delivery report.
 Merge, exact-source green CI, signed alpha deployment, actual retained-profile
 update verification and one numbered alpha prerelease are outstanding. The
 prospective alpha27 metadata is not a claim that alpha27 has been published.
+
+## Official icon approval and compatibility follow-up
+
+After the runtime availability report, the client explicitly authorized the
+official SVG additions on 7 November 2026, superseding #208's no-new-assets
+constraint for these exact upstream assets. Four unmodified 16px icons by Jakub
+Steiner are pinned to GNOME Icon Development Kit commit
+`cf705cdad8b594295cabe84cac3b6efe4c0f7972`, with CC0 license, embedded creator
+metadata, file hashes and installed notices. Dictionary and notebook replace
+all former custom Library/Notes usages. Talking replaces the temporary allowed
+information fallback. Filter is available without restoring #231's redundant
+sidebar button. Native availability and existing action tests pass; actual
+packaged resolution and light/dark rendering remain publication gates.
+
+The first candidate CI validated AppStream, desktop identity and real host
+Roboto resolution. It ran 494 tests with one failure: an older Adwaita fallback
+adds a native FlowBoxChild around Copy, so a structural ordering assertion needed
+to inspect that wrapper. A native compatibility test also exposed an extra
+keyboard focus stop on those wrappers; only the actual toolbar controls now
+participate in traversal. No failure was skipped or relabeled as a successful
+Flatpak build; the packaging job did not run for that failed source.

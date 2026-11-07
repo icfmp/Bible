@@ -313,6 +313,8 @@ class WordStudy(Gtk.Box):
 
     def all_occurrences(self,corpus,entry):
         self.clear();self.stage='occurrences';self.go_back.set_visible(True)
+        self.heading.set_text(tr('Other occurrences'))
+        if self.dialog:self.dialog.set_title(self.heading.get_text())
         self.content.append(self.label((entry['lemma'] or entry['id'])+' — '+tr('Lemma occurrences'),True))
         self.content.append(self.label(tr('Counts refer to this source corpus; a word can have different meanings in context.')))
         self.occurrence_offset=0

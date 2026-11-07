@@ -146,7 +146,7 @@ class AppearanceTests(unittest.TestCase):
                 self.assertEqual(w.preferences.value.day_palette,'paper')
                 from bible.ui import Gtk
                 theme=Gtk.IconTheme.get_for_display(w.get_display())
-                for icon_name in ['bible-library-symbolic','bible-notes-symbolic']:
+                for icon_name in ['dictionary-symbolic','notebook-symbolic','filter-symbolic','talking-symbolic']:
                     icon=theme.lookup_icon(icon_name,None,16,1,Gtk.TextDirection.LTR,Gtk.IconLookupFlags.FORCE_SYMBOLIC)
                     self.assertTrue(icon.is_symbolic(),icon_name)
             finally:w.close()

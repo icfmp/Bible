@@ -233,3 +233,15 @@ crop and Wikimedia-generated thumbnail remain separately licensed. No photograph
 is bundled; the exact source, author, license, transformation and checksum are
 recorded with the download. See `docs/PLACE_CONTEXT_218.md` for verification and
 offline/cache behavior.
+
+## GNOME Icon Development Kit symbolics
+
+The unmodified dictionary, notebook, filter and talking SVGs are by **Jakub
+Steiner**, from the official [GNOME Icon Development Kit](https://gitlab.gnome.org/Teams/Design/icon-development-kit),
+commit `cf705cdad8b594295cabe84cac3b6efe4c0f7972`, under **CC0 1.0 Universal**.
+Each SVG retains its creator/license metadata. The upstream license and exact
+file hashes/paths are included in `third_party/icon-development-kit/` and in the
+installed package's license directory. Filenames gain `-symbolic` to use GTK's
+legacy symbolic SVG rendering, as documented upstream. No SVG geometry or
+colors were edited. The filter asset is available for the requested vocabulary;
+#231 deliberately retains no redundant wide sidebar-toggle button.
