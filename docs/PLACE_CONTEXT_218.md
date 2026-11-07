@@ -59,3 +59,18 @@ coastline prototype; it is historical, not the current renderer specification.
 
 Developer GTK checks, actual packaged checks, screenshots and client acceptance
 must be reported separately. This document does not itself assert publication.
+
+## Native first-frame loading follow-up
+
+An installed-candidate test exposed an intermittent map left on Loading. A
+controlled local HTTP failure also reproduced it: the mapped541×260 native
+canvas emitted no tile request. A trace-only libshumate1.5.5 build identified
+the exact layer: its deferred callback ran in the same frame which requested
+deferral, kept `deferring` true, and removed its only callback. No tile existed
+and no future callback remained. The existing vendored load-notification patch
+now rearms that missing one-shot GTK tick. Native movement deferral and tile
+cache remain intact; no application polling or separate map engine is added.
+The controlled HTTP fixture retains the original timeout and checks actual
+requests, error state, metadata, references and reading context. Repeated native
+checks and the installed Flatpak must verify the revised exact source before
+publication is claimed.

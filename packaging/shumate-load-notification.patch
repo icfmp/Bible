@@ -1,6 +1,21 @@
 --- a/shumate/shumate-map-layer.c
 +++ b/shumate/shumate-map-layer.c
-@@ -425,7 +425,7 @@
+@@ -310,7 +310,13 @@
+   /* Only compare between frames, otherwise we might mistakenly think the
+      velocity is 0. */
+   if (frame_time == self->defer_frame_time)
+-    return self->deferring;
++    {
++      /* A one-shot tick can run in the frame which requested deferral.
++       * Keep its next-frame wakeup instead of leaving pending tiles asleep. */
++      if (self->deferring && self->defer_callback_id == 0)
++        self->defer_callback_id = gtk_widget_add_tick_callback (GTK_WIDGET (self), defer_tick_callback, NULL, NULL);
++      return self->deferring;
++    }
+ 
+   if (velocity > diagonal * 0.25 || fabs (zoom_velocity) > 0.25)
+     {
+@@ -425,7 +431,7 @@
          }
      }
  
@@ -9,7 +24,7 @@
      {
        g_autofree char *desc = g_strdup_printf ("Visible tiles done (%d)", n_tiles);
        SHUMATE_PROFILE_COLLECT (self->profile_all_tiles_done_begin, desc, NULL);
-@@ -433,7 +433,7 @@
+@@ -433,7 +439,7 @@
  
        g_signal_emit (self, signals[MAP_LOADED], 0, !all_succeeded);
      }

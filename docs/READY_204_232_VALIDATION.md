@@ -223,3 +223,33 @@ The refresh now keeps the existing cards without inserting that loading row;
 new passages and empty states retain their loading feedback. The regression
 also checks the unchanged viewport and absence of the extra status row, without
 loosening its scroll-position assertion. Exact-source full CI is still required.
+
+## Measured native map wakeup failure
+
+Source90b43df passed497 host and183 French tests; the installed264-test suite
+then timed out waiting for the intentionally unavailable map. Reference refresh
+and commentary wheel cases passed. A local32-case run did not reproduce it;
+replacing a guessed closed port with a controlled native HTTP404 fixture did.
+The same mapped541×260 canvas remained on Loading with zero tile requests.
+
+A trace-only native build reproduced the failure in64 tests and captured the
+same layer first deferring with a scheduled callback, then still deferring in
+that same frame with callback0 and tiles0. The one-shot callback had consumed
+its own wakeup without scheduling another. The existing libshumate patch now
+rearms that missing GTK tick while preserving native deferral/cache/lifetime.
+The functional test timeout and assertions are unchanged; the fixture additionally
+requires a real HTTP request. The revised native library is under repeated
+validation, including cache and no-work-after-close checks.
+
+The corrected native build passes the same128 controlled place-card cases in
+159 seconds, with the original4-second assertions intact. The separate native
+HTTP/cache/image-error/lifetime check passes, including unchanged-view disk
+cache reuse and zero requests after closing, even when retaining its viewport.
+The patch was applied to the SHA-256-verified upstream1.5.5 archive and compared
+byte-for-byte with the compiled correction. These are local native results;
+the new exact-source installed pipeline remains required.
+
+Independent installed diagnostics now continue after a synthetic suite failure
+when the candidate is installed and its real study profile is prepared. This
+collects the other actual failures in the same run; it does not permit an
+unsuccessful job to upload a verified distributable bundle or publish an alpha.
