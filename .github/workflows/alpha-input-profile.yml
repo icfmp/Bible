@@ -99,6 +99,33 @@ jobs:
           PY
             kill "$software_pid" || true
           '
+      - name: Prepare the reported real Semeur case with the packaged installer
+        run: |
+          flatpak run --user --filesystem="$RUNNER_TEMP" --command=python3 io.github.icfmp.Bible//master - "$RUNNER_TEMP/ready-semeur-profile" <<'PY'
+          import json,sys
+          from pathlib import Path
+          from bible.library import Library
+          from bible.youversion_install import fetch_resource,acknowledgement
+          from bible.step_data import StepData
+          root=Path(sys.argv[1]);root.mkdir();(root/'.ready-batch-test-profile').write_text('Disposable native candidate validation\n')
+          library=Library(root/'translations');resource=fetch_resource(21)
+          library.install(resource,permission=acknowledgement(resource))
+          assert (library.root/resource.id/'.verified.json').is_file()
+          data=StepData(root/'study-data')
+          for attempt in range(3):
+              try:data.install();break
+              except TimeoutError:
+                  if attempt==2:raise
+          print(json.dumps(dict(resource=resource.id,step_revision=data.revision,packaged_installer=True)))
+          PY
+      - name: Verify actual Semeur Greek and Hebrew beginner paths offline in both languages
+        run: |
+          for ui_language in fr en; do
+            dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$ui_language" --command=python3 io.github.icfmp.Bible//master -m tools.research.check_ready_words "$RUNNER_TEMP/ready-semeur-profile" "$PWD/reports/ready-semeur-$ui_language" --resource 'youversion~YV21' --require-packaged > "reports/ready-semeur-$ui_language.log" 2>&1
+          done
+      - name: Verify actual narrow dark place cards in the installed candidate
+        run: |
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=en --command=python3 io.github.icfmp.Bible//master -m tools.research.check_ready_places "$RUNNER_TEMP/ready-semeur-profile" "$PWD/reports/ready-places-narrow-dark" --prepare --dark --narrow --resource 'youversion~YV21' --require-packaged > reports/ready-places-narrow-dark.log 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
