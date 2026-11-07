@@ -54,7 +54,7 @@ jobs:
           from pathlib import Path
           from bible.library import Library,catalogue
           from bible.notes import NoteStore,PassageLink
-          from bible.highlights import Highlights
+          from bible.highlights import HighlightStore
           from bible.preferences import Preferences
           from bible.step_data import StepData
           from bible.place_data import PlaceData
@@ -66,7 +66,7 @@ jobs:
               library.install(next(r for r in resources if r.name==name))
           for cls in (StepData,PlaceData,ReferenceData,TopicData):cls(root/'study-data').install()
           notes=NoteStore(root/'notes.sqlite3');notes.save('**Retained update test** — John3:16. A synthetic personal note.',('keep','étiquette'),versification='KJV',start='John.3.16',end='John.3.16',origin_translation='KJV',origin_language='en',links=(PassageLink('KJV','Gen.1.1','Gen.1.1'),))
-          marks=Highlights(root/'highlights.json');marks.set('KJV',['John.3.16'],'yellow','KJV')
+          marks=HighlightStore(root/'highlights.json');marks.set('KJV',['John.3.16'],'yellow','KJV')
           prefs=Preferences(root/'reading-preferences.json');prefs.value.size=24;prefs.value.font='DejaVu Serif';prefs.value.serif_font='DejaVu Serif';prefs.value.sans_font='DejaVu Sans';prefs.save()
           SessionStore(root/'session.json').save(Session([TabState(resource='FreSegond1910',reference='Ps.119.1',comparison='KJV',commentary='Wesley',study_visible=True)]))
           receipt=dict(notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(prefs.path.read_bytes()).hexdigest(),highlights_sha256=hashlib.sha256(marks.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()},study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()})
