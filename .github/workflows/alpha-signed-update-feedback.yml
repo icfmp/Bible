@@ -23,7 +23,7 @@ jobs:
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt; fi
           sudo apt-get update -qq
-          sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11 xcompmgr
+          sudo apt-get install -y flatpak ostree gnupg xvfb xauth dbus-x11 xcompmgr gnome-software gnome-software-plugin-flatpak appstream python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-sword
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/ready-retained-flatpak" >> "$GITHUB_ENV"
           echo "READY_PROFILE=$RUNNER_TEMP/ready-retained-profile" >> "$GITHUB_ENV"
           mkdir reports
@@ -131,6 +131,29 @@ jobs:
           assert not differences,'Changed retained components: '+str(differences)
           Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),linked_passages=sum(len(n['links']) for n in after['notes']),module_files=len(after['modules']),study_files=len(after['study_data']),profile_reused=True),indent=2))
           PY
+      - name: Verify the updated signed alpha details in GNOME Software
+        run: |
+          flatpak update --user --appstream --noninteractive bible-alpha
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' /usr/bin/python3 -m tools.composited_x11 bash -c '
+            set -euo pipefail
+            export XDG_DATA_DIRS="$FLATPAK_USER_DIR/exports/share:/usr/local/share:/usr/share"
+            export GTK_A11Y=none
+            gnome-software --mode=overview > reports/gnome-software.log 2>&1 &
+            software_pid=$!
+            python3 - <<'"'"'PY'"'"'
+          import os,subprocess,time,json
+          from pathlib import Path
+          from tools.check_alpha_ui import X11Input
+          from tools.check_client_feedback import Screen
+          native=X11Input();screen=Screen(native);time.sleep(10);results=[]
+          for component in ("io.github.icfmp.Bible","io.github.icfmp.Bible.desktop"):
+              p=subprocess.run(["gnome-software","--details="+component],capture_output=True,text=True,timeout=30)
+              results.append(dict(component=component,status=p.returncode,stdout=p.stdout,stderr=p.stderr))
+              time.sleep(8);screen.grab(Path("reports/software-"+component+".png"))
+          Path("reports/software-requests.json").write_text(json.dumps(results,indent=2));native.close()
+          PY
+            kill "$software_pid" || true
+          '
       - uses: actions/upload-artifact@v4
         if: always()
         with:
