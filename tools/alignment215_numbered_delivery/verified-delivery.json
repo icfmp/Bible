@@ -1,0 +1,93 @@
+{
+  "source": "6faab9201d4fdf496ccb931c62b1cf9aa9e7f233",
+  "candidate": "6a2ad37e726b5fa8ba32ab82141e23e1b064c5a3",
+  "ci": 42337813257,
+  "candidate_ci": 42335336880,
+  "publication": 42339636693,
+  "installed_run": 42335483951,
+  "study_run": 42335486123,
+  "signed_run": 42337263134,
+  "animations_run": 42337880646,
+  "provenance": {
+    "source_commit": "6faab9201d4fdf496ccb931c62b1cf9aa9e7f233",
+    "ci_run": "42337813257",
+    "packaging_revision": "42339636693-1",
+    "flatpak_commit": "d2f999a4bb057de100984fe96ffbb36aeac07c308554b8084b2d96dac6932d0b",
+    "ref": "app/io.github.icfmp.Bible/x86_64/alpha",
+    "remote": "bible-alpha",
+    "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+    "source_archive": "Bible-6faab9201d4fdf496ccb931c62b1cf9aa9e7f233-sources.tar.gz",
+    "source_sha256": "147cf06faf7ae3f92aa965b9704570ceb1da90f79b34dd0d51e5715068e4928b",
+    "bundle_sha256": "32a080dc7d52d0ac08130fa44f22a5ba7712e413b3bfcbff1cc996795dc4fe5c",
+    "source_url": "https://github.com/icfmp/Bible/releases/download/alpha-source-archives/Bible-6faab9201d4fdf496ccb931c62b1cf9aa9e7f233-sources.tar.gz"
+  },
+  "source_files": {
+    "source_versification.py": "554e60cac36d09fff4eee0a985bd96057e5431514faf83dbf491acbc91e3f5bd",
+    "versification_mapping.py": "6dca752fa4801e380aabce767e6d0fd173ba9aafca2638e91562a89f46358fd2",
+    "scroll_motion.py": "f848950ef6f23ec72aae9d7f4dd0d23ea90b5b50954404cae2af3f0f7f05ff3a",
+    "reading_sync.py": "52de2466563f296dc8bbbf67873d37178192d3e11392b171f4337acb6d37ecbf",
+    "comparison_sync.py": "e01c613b401fa1aae9e3cca87c72ad7fa1958d02f9d496d8a05facafd9933f3f",
+    "study_panel.py": "68880daddf9cc5cdfc4703f9659cb612f7113ed50817f2e3ac6685364dbb619d"
+  },
+  "numbered_tag": "0.1.0-alpha.26",
+  "previous_tag_preserved": true,
+  "issue_state": "open",
+  "agent_issue_state_mutations": false,
+  "physical_viewports_verified": true,
+  "native_handoffs_verified": true,
+  "retained_data": {
+    "preserved": true,
+    "linked_notes_preserved": true,
+    "unavailable_source_references_preserved": true,
+    "notes": 2,
+    "module_files": 106,
+    "reference_indexes": 6,
+    "canonical_routes": [
+      {
+        "resource": "FreSegond1910",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "KJV",
+        "local": "Ps.3.2",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "FreJND",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV21",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV93",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV104",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV133",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV152",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      },
+      {
+        "resource": "youversion~YV2367",
+        "local": "Ps.3.3",
+        "canonical": "Ps.3.2"
+      }
+    ]
+  }
+}

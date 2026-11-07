@@ -1,203 +1,93 @@
-name: Verify signed alpha update with retained resources
+name: Publish verified alignment alpha26 and original GTK evidence
 on:
-  push:
-    branches: [feat/client-feedback-reading, feat/26-youversion-language-catalogue]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   actions: read
+  pull-requests: read
 concurrency:
-  group: signed-feedback-update-${{ github.ref }}
-  cancel-in-progress: true
+  group: numbered-alpha26-publication
+  cancel-in-progress: false
 jobs:
-  compare:
+  publish:
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: icfmp/Bible
     steps:
       - uses: actions/checkout@v6
-      - name: Install isolated validation tools
-        run: |
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
-          fi
-          sudo apt-get update -qq
-          sudo apt-get install -y flatpak xvfb xauth dbus-x11 xcompmgr linux-tools-generic
-          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
-          echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
-      - name: Install the still-published previous signed alpha
-        run: |
-          mkdir reports
-          python3 - <<'PY'
-          import json,urllib.request
-          from pathlib import Path
-          x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
-          assert x['source_commit']=='be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289',x
-          assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
-          Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
-          PY
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          installed=false
-          for attempt in 1 2 3 4 5; do
-            if flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref; then installed=true; break; fi
-            sleep 15
-          done
-          test "$installed" = true
-          flatpak info --user io.github.icfmp.Bible//alpha > reports/installation-before.txt
-          python3 - <<'PY'
-          import subprocess,json
-          from pathlib import Path
-          x=json.loads(Path('reports/before-provenance.json').read_text())
-          assert subprocess.check_output(['flatpak','info','--user','--show-commit','io.github.icfmp.Bible//alpha'],text=True).strip()==x['flatpak_commit']
-          PY
-      - name: Obtain frozen previously validated optional topic data
-        run: |
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/openbible-topics.sqlite3.gz" https://raw.githubusercontent.com/icfmp/Bible/1c82609a0947822908fdfab7d3b42f7b79146265/docs/evidence/alpha-performance/fixtures/openbible-topics.sqlite3.gz
-          echo "f8d8ebe33c339f3f910c930fef1af5713ee9a154bdbb363d7abf1844452a8c2e  $RUNNER_TEMP/openbible-topics.sqlite3.gz" | sha256sum --check
-      - name: Prepare real resources and persistent annotations once
-        id: prepare_profile
-        run: |
-          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$RUNNER_TEMP/openbible-topics.sqlite3.gz" <<'PY'
-          import json,sys,hashlib
-          from pathlib import Path
-          from dataclasses import asdict
-          from bible.library import Library,catalogue
-          from bible.notes import NoteStore
-          from bible.preferences import Preferences
-          root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
-          for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
-              if name not in library.installed():library.install(next(r for r in resources if r.name==name))
-          from bible.youversion_install import acknowledgement,fetch_resource
-          for edition in (21,93):
-              item=fetch_resource(edition)
-              if item.id not in library.installed():library.install(item,permission=acknowledgement(item))
-          notes=NoteStore(root/'notes.sqlite3')
-          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
-          from bible.step_data import StepData
-          from bible.place_data import PlaceData
-          StepData(root/'study-data').install()
-          PlaceData(root/'study-data').install()
-          from bible.reference_data import ReferenceData
-          from bible.topic_data import TopicData
-          # Reuse the unchanged, previously validated installed reference index.
-          # The mutable upstream ZIP now correctly fails the application's pin.
-          import gzip
-          ref_bytes=gzip.decompress(Path('${{ github.workspace }}/docs/evidence/client-feedback-20261027/fixtures/openbible-cross-references.sqlite3.gz').read_bytes())
-          assert hashlib.sha256(ref_bytes).hexdigest()=='9b3659752c477e1e3be89ae55562734eae55328d2299eac4b7985b8825b9e993'
-          references=ReferenceData(root/'study-data');references.path.write_bytes(ref_bytes)
-          assert references.metadata()['archive_sha256']=='5f61f4525156b7c7b8f7ae07e3a4225038cf4b60def39247df8b92916e14c56f'
-          # Reuse an attributed, validated installed index. Today's weekly upstream
-          # archive differs from the source pinned by the published application.
-          import gzip
-          topic_bytes=gzip.decompress(Path(sys.argv[2]).read_bytes())
-          assert len(topic_bytes)==4964352 and hashlib.sha256(topic_bytes).hexdigest()=='90db0daa43b1981a82d66481dc07211e395eba5ab56c15a8ee57cdb06d1ec209'
-          topics=TopicData(root/'study-data')
-          if topics.path.exists():assert topics.path.read_bytes()==topic_bytes
-          else:topics.path.write_bytes(topic_bytes)
-          assert topics.metadata()['archive_sha256']=='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
-          preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
-          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
-          (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
-          PY
-      - name: Measure the old signed alpha before upgrade
-        run: |
-          version=current
-          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
-      - name: Wait for this source pull request merge and its signed publication
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify final source, required checks and immutable channel identity
         run: |
           python3 - <<'PY'
-          import json,time,urllib.request
+          import json,subprocess,time,urllib.request
           from pathlib import Path
-          import os,subprocess
-          expected_head=os.environ['GITHUB_SHA']
-          expected=expected_head if os.environ.get('GITHUB_REF')=='refs/heads/main' else None
-          for attempt in range(240):
-              try:
-                  if expected is None:
-                      prs=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/commits/'+expected_head+'/pulls'],text=True))
-                      candidates=[p for p in prs if p['head']['sha']==expected_head and p['base']['ref']=='main']
-                      if not candidates:
-                          time.sleep(15);continue
-                      assert len(candidates)==1
-                      pr=candidates[0]
-                      assert pr['head']['sha']==expected_head and pr['base']['ref']=='main'
-                      if not pr['merged_at']:
-                          time.sleep(15);continue
-                      expected=pr['merge_commit_sha']
-                  url='https://icfmp.github.io/Bible/alpha/provenance.json?update-check='+str(time.time_ns())
-                  x=json.load(urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=20))
-                  revision=x.get('packaging_revision','')
-                  if x['source_commit']==expected and revision.endswith('-2'):
-                      publication=int(revision.rsplit('-',1)[0])
-                      run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
-                      if run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success':
-                          break
-              except Exception as e:print(type(e).__name__,flush=True)
-              time.sleep(15)
-          else:raise RuntimeError('Corrected signed alpha was not published within the verification window')
-          before=json.loads(Path('reports/before-provenance.json').read_text())
-          assert x['signing_fingerprint']==before['signing_fingerprint']
-          assert x['ref']==before['ref'] and x['remote']==before['remote']
-          Path('reports/after-provenance.json').write_text(json.dumps(x,indent=2))
+          def api(path):return json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/'+path],text=True))
+          root=Path('tools/alignment215_numbered_delivery');r=json.loads((root/'verified-delivery.json').read_text())
+          m=json.loads((root/'delivery.json').read_text());assert m['source']==r['source']
+          assert r['candidate']=='6a2ad37e726b5fa8ba32ab82141e23e1b064c5a3' and r['numbered_tag']=='0.1.0-alpha.26'
+          pr=api('pulls/234');assert pr['merged'] and pr['head']['sha']==r['candidate'] and pr['merge_commit_sha']==r['source']
+          assert api('git/commits/'+r['source'])['tree']['sha']==api('git/commits/'+r['candidate'])['tree']['sha']
+          for run in (r['ci'],r['candidate_ci'],r['installed_run'],r['study_run'],r['signed_run'],r['animations_run'],r['publication']):
+              x=api('actions/runs/'+str(run));assert x['status']=='completed' and x['conclusion']=='success',(run,x['conclusion'])
+          for key,path in (('ci','.github/workflows/prerequisites.yml'),('publication','.github/workflows/alpha-channel.yml')):
+              x=api('actions/runs/'+str(r[key]));assert x['head_sha']==r['source'] and x['head_branch']=='main' and x['path']==path
+          live=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json?release='+str(time.time_ns())))
+          assert live==r['provenance']
+          assert live['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
+          assert live['ref']=='app/io.github.icfmp.Bible/x86_64/alpha' and live['remote']=='bible-alpha'
+          assert api('git/ref/tags/0.1.0-alpha.25')['object']['sha']=='c7009d0162c0b2b85cc8f99e5b024e17e764bd3e'
           PY
-      - name: Update the retained installed alpha without changing its profile
+      - name: Reuse existing verified native artifacts without rebuilding the app
         run: |
           python3 - <<'PY'
-          import json,subprocess,time
-          from pathlib import Path
-          x=json.loads(Path('reports/after-provenance.json').read_text());app='io.github.icfmp.Bible//alpha'
-          before={key:subprocess.check_output(['flatpak','info','--user','--show-'+key,app],text=True).strip() for key in ['origin','ref','commit']}
-          for attempt in range(20):
-              subprocess.run(['flatpak','update','--user','--noninteractive',app],check=True)
-              actual=subprocess.check_output(['flatpak','info','--user','--show-commit',app],text=True).strip()
-              if actual==x['flatpak_commit']:break
-              time.sleep(10)
-          else:raise RuntimeError('The installed signed commit did not reach the publication')
-          after={key:subprocess.check_output(['flatpak','info','--user','--show-'+key,app],text=True).strip() for key in ['origin','ref','commit']}
-          assert before['origin']==after['origin'] and before['ref']==after['ref'] and before['commit']!=after['commit']
-          Path('reports/signed-update.json').write_text(json.dumps(dict(before=before,after=after,updated=True),indent=2))
+          import hashlib,json,shutil,subprocess,zipfile
+          from pathlib import Path,PurePosixPath
+          root=Path('tools/alignment215_numbered_delivery');base=Path('/tmp/alignment215-numbered');base.mkdir()
+          m=json.loads((root/'delivery.json').read_text())
+          for key,value in m['artifacts'].items():
+              folder=PurePosixPath(value['folder']);assert not folder.is_absolute() and '..' not in folder.parts
+              archive=base/(key+'.zip')
+              with archive.open('wb') as stream:subprocess.run(['gh','api','repos/icfmp/Bible/actions/artifacts/'+str(value['id'])+'/zip'],stdout=stream,check=True)
+              assert hashlib.sha256(archive.read_bytes()).hexdigest()==value['digest'].removeprefix('sha256:')
+              with zipfile.ZipFile(archive) as z:
+                  assert all(not PurePosixPath(n).is_absolute() and '..' not in PurePosixPath(n).parts for n in z.namelist())
+                  z.extractall(base/folder)
+          for p in root.iterdir():
+              if p.is_file():shutil.copyfile(p,base/p.name)
           PY
-      - name: Measure the updated signed alpha on the same retained profile
+          python3 /tmp/alignment215-numbered/assemble_release_evidence.py
+      - name: Publish exactly one numbered prerelease on the verified source
         run: |
-          version=candidate
-          timeout 200s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/$version-signed-combined.json" --require-packaged --mode combined --resource FreSegond1910 --reference Ps.119.1 --cycles 4 --input-kind scrollbar > "reports/$version-signed-combined.log" 2>&1
-          for mode in single comparison study; do
-            timeout 120s dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$PWD/reports" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GDK_SCALE=2 --env=GTK_A11Y=none --command=python3 io.github.icfmp.Bible//alpha -m tools.profile_alpha_performance "$PERF_PROFILE" "$PWD/reports/candidate-signed-$mode.json" --require-packaged --mode "$mode" --resource FreSegond1910 --reference Ps.119.1 --cycles 2 --input-kind wheel > "reports/candidate-signed-$mode.log" 2>&1
-          done
-      - name: Verify retained profile data and translations
-        if: always() && steps.prepare_profile.outcome == 'success'
-        run: |
-          flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD" --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible//alpha - "$PERF_PROFILE" "$PWD/reports/preservation.json" <<'PY'
-          import json,sys,hashlib
-          from pathlib import Path
-          from dataclasses import asdict
-          from bible.notes import NoteStore
-          root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
-          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
-          after=json.loads(json.dumps(after))
-          differences=[key for key in before if before[key]!=after[key]]
-          Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))
-          assert not differences, 'Changed persisted components: '+str(differences)
-          Path(sys.argv[2]).write_text(json.dumps(dict(preserved=True,notes=len(after['notes']),module_files=len(after['modules']),profile_reused=True),indent=2))
-          PY
-      - name: Log the bounded signed update and preservation receipts
-        if: always()
-        run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import json
+          import json,subprocess
           from pathlib import Path
-          for name in ['signed-update.json','preservation.json']:
-              p=Path('reports')/name
-              if p.exists():print(name,p.read_text())
-          for p in Path('reports').glob('*-signed-*.json'):
-              if '.input.' in p.name:continue
-              x=json.loads(p.read_text())
-              print(p.name,json.dumps({k:x[k] for k in ['app_import','app_ui_sha256','startup_ready_memory','phases','after_stop','first_scroll_latency_seconds','first_paint_latency_seconds']}))
+          result=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/git/matching-refs/tags/0.1.0-alpha.26'],text=True))
+          assert all(x['ref']!='refs/tags/0.1.0-alpha.26' for x in result),'Tag already exists; never move a published tag'
+          m=json.loads(Path('/tmp/alignment215-numbered/delivery.json').read_text())
+          assets=sorted(str(p) for p in Path('/tmp/alignment215-numbered/alpha26-assets').iterdir() if p.is_file())
+          assert len(assets)==7
+          subprocess.run(['gh','release','create','0.1.0-alpha.26','--target',m['source'],'--prerelease','--title','Bible 0.1.0-alpha.26','--notes-file','/tmp/alignment215-numbered/release-notes.md',*assets],check=True)
+          PY
+          python3 - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          def api(path):return json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/'+path],text=True))
+          base=Path('/tmp/alignment215-numbered');m=json.loads((base/'delivery.json').read_text())
+          tag=api('git/ref/tags/0.1.0-alpha.26');assert tag['object']['type']=='commit' and tag['object']['sha']==m['source']
+          r=api('releases/tags/0.1.0-alpha.26');assert r['prerelease'] and not r['draft']
+          expected={p.name:p for p in (base/'alpha26-assets').iterdir() if p.is_file()}
+          assert {a['name'] for a in r['assets']}==set(expected)
+          for a in r['assets']:
+              p=expected[a['name']];assert a['size']==p.stat().st_size and a['digest']=='sha256:'+hashlib.sha256(p.read_bytes()).hexdigest()
+          (base/'numbered-publication.json').write_text(json.dumps(dict(url=r['html_url'],source=m['source'],release_id=r['id'],assets=[dict(name=a['name'],digest=a['digest'],size=a['size']) for a in r['assets']]),indent=2))
+          print(r['html_url'])
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: alpha-signed-update-performance
-          path: reports/
-          if-no-files-found: error
+          name: numbered-alpha26-publication-evidence
+          path: |
+            /tmp/alignment215-numbered/alpha26-assets
+            /tmp/alignment215-numbered/numbered-publication.json
