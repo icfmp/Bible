@@ -20,7 +20,7 @@ This directory contains **developer and maintainer documentation**, not a second
 
 ## Historical material and evidence
 
-The many issue-numbered implementation reviews, delivery handoffs and screenshots currently under `docs/` are **historical evidence, not live instructions**. Do not infer current product behavior or release state from them. The long-term cleanup in [issue #86](https://github.com/icfmp/Bible/issues/86) will curate and relocate them only after checking inbound references from tests, scripts, workflows and other documents.
+The many issue-numbered implementation reviews, delivery handoffs and screenshots currently under `docs/` are **historical evidence, not live instructions**. Do not infer current product behavior or release state from them. The first curated example is the [early delivery snapshot](archive/2026/LIVRAISON_12_20.md), moved after checking its indexed inbound references and correcting its relative link. The remaining cleanup in [issue #86](https://github.com/icfmp/Bible/issues/86) will curate and relocate them only after checking inbound references from tests, scripts, workflows and other documents.
 
 - `docs/captures/` — historical UI captures; not necessarily current UI.
 - `docs/evidence/` — prior validation output and diagnostic material; not a substitute for current CI.
