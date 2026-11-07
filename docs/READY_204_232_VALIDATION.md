@@ -198,3 +198,16 @@ notes page have been replaced with the real Notes tab and an absence check.
 The revised exact source must pass the complete required CI, candidate Software
 details verification and retained-profile signed update before merge/delivery
 claims are upgraded.
+
+## Test-isolation follow-up
+
+The revised source `77a480f` passed the host checks, but its264-test installed
+suite stopped on the synthetic commentary wheel test. Repeating the lifecycle
+suite immediately before that wheel test reproduced eight failures in eight
+cycles locally. The new write-prohibition test emitted the confirmation's Cancel
+response directly but did not destroy its artificial dialog, retaining an input
+grab for subsequent windows. Matching the established cleanup used by the other
+native tests changes that same40-test sequence to40 passes, including all eight
+native chapter-wheel cases. No commentary implementation, timeout, assertion or
+wheel distance was changed to obtain that result. The full installed pipeline
+must still pass on the revised exact source.

@@ -65,7 +65,8 @@ class ReadingLifecycleTests(unittest.TestCase):
                 self.assertEqual(editor.body.source(),draft)
                 self.assertEqual(w.notes_store.get(note.id),note)
                 self.assertTrue(editor._confirmation.get_visible())
-                editor._confirmation.response('cancel');spin()
+                dialog=editor._confirmation
+                dialog.response('cancel');dialog.destroy();spin()
             finally:w.notes_store.db.execute('PRAGMA query_only=OFF')
             w.notes_space.leave();spin()
             self.assertEqual(w.main_pages.get_visible_child_name(),'reading')
