@@ -297,12 +297,13 @@ class Window(Adw.ApplicationWindow):
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
                            b'.compact-space button { padding-left: 2px; padding-right: 2px; } '
-                           b'.annotation-navigation { background-color: @sidebar_bg_color; color: @sidebar_fg_color; } '
+                           b'.annotation-navigation { background-color: @sidebar_bg_color; color: @view_fg_color; } '
                            b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
                            b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
-                           b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @sidebar_fg_color; } '
+                           b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @view_fg_color; } '
                            b'.study-drawer listview { background-color: transparent; } '
-                           b'.study-tools button { min-width: 0; } '
+                           b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
+                           b'.study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } '
                            b'.reference-excerpt { font-weight: normal; } '
                            b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
@@ -393,15 +394,7 @@ class Window(Adw.ApplicationWindow):
         from .application_surfaces import welcome_page
         self.welcome=welcome_page(self);self.main_pages.add_named(self.welcome,'welcome')
         self.startup_resource_error=''
-        readable=False
-        for name in self.library.installed():
-            try:
-                if self.library.resource(name).kind=='bible':
-                    from .sword_provider import Reader
-                    reader=Reader(self.library.root/name,name);first=reader.first_reference()
-                    if not any(text.strip() for _,text in reader.chapter(first).verses):raise ValueError('No readable text in installed Bible')
-                    readable=True;break
-            except (OSError,ValueError) as error:self.startup_resource_error=str(error)
+        readable=self.ensure_readable_tab()
         if not readable:
             self.main_pages.set_visible_child_name('welcome')
             if self.startup_resource_error:self.welcome_status.set_description(GLib.markup_escape_text(tr('Some installed Bibles could not be read. They are preserved. Retry from Library.')+' '+self.startup_resource_error))
@@ -661,8 +654,28 @@ class Window(Adw.ApplicationWindow):
         return page
 
     def return_to_reading(self):
-        readable=any(tab.reader is not None and tab.current is not None for tab in self.tabs())
+        readable=self.ensure_readable_tab()
         self.main_pages.set_visible_child_name('reading' if readable else 'welcome')
+
+    def ensure_readable_tab(self, preferred=None):
+        """Repair only an unusable active reader, preserving valid sessions."""
+        tab=self.active_tab
+        if tab is None:return False
+        if tab.reader and tab.current and any(text.strip() for _,text in tab.current.verses):return True
+        from .sword_provider import Reader
+        names=self.library.installed('bible')
+        if self.library.discovery_errors:
+            self.startup_resource_error='; '.join(self.library.discovery_errors.values())
+        for name in dict.fromkeys(([preferred] if preferred in names else [])+names):
+            try:
+                reader=Reader(self.library.root/name,name)
+                reference='Gen.1.1' if reader.has_reference('Gen.1.1') else reader.first_reference()
+                if not any(text.strip() for _,text in reader.chapter(reference).verses):continue
+                if tab.navigate(name,reference):
+                    tab.download_bible.set_visible(False)
+                    return True
+            except (OSError,ValueError) as error:self.startup_resource_error=str(error)
+        return False
 
     def new_tab(self):
         if self.immersion:self.leave_immersion()
@@ -901,8 +914,6 @@ class Window(Adw.ApplicationWindow):
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
-        if not visible:
-            for popover in self.study.popovers:popover.popdown()
         self._syncing_study = True
         self.study_button.set_active(visible)
         if self.active_tab:
@@ -933,7 +944,6 @@ class Window(Adw.ApplicationWindow):
 
     def dismiss_popovers(self):
         for popover in self._reading_popovers:popover.popdown()
-        for popover in self.study.popovers:popover.popdown()
 
     def open_library(self, kind=None, context=None):
         if self.catalogue_window is None or self.catalogue_window.closed:
@@ -955,17 +965,22 @@ class Window(Adw.ApplicationWindow):
                     if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
                     elif name==TOPIC_RESOURCE_ID:window.search_popover.topic_search.refresh()
                     elif name==STEP_RESOURCE_ID:
-                        if window.study.tool=='word' and window.study.words.valid():window.study.words.begin()
+                        if window.study.words.valid():window.study.words.begin()
                     elif name==PLACE_RESOURCE_ID:
                         for tab in window.tabs():tab.apply_appearance();tab.refresh_comparison()
                         if getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
             return
-        # Installation refreshes choices, never the user's selected resource.
+        # Preserve usable readers; the first readable install repairs an empty view.
         for window in self.get_application().get_windows():
             if not isinstance(window,Window) or window.closed or window.library.root!=self.library.root:continue
             if getattr(window,'catalogue_session',None):window.catalogue_session.reload_installed()
             for tab in window.tabs():
                 if tab.state.resource==name:tab.load_resource();window.tab_changed(tab)
+            had_reader=bool(window.active_tab and window.active_tab.reader and window.active_tab.current
+                            and any(text.strip() for _,text in window.active_tab.current.verses))
+            if not had_reader and window.ensure_readable_tab(name):
+                if window.main_pages.get_visible_child_name()=='notes':window.notes_space.leave()
+                else:window.return_to_reading()
             window.study._readers.pop(name,None)
             window.study.refresh(force=True)
             window.primary_version.sync();window.compared_version.sync();window.sync_comparison()

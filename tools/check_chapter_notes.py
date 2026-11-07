@@ -19,7 +19,7 @@ def main():
             w.highlights.set('KJV',['Acts.1.8'],'blue','Test');p.refresh(force=True)
             spin(lambda:not tab._restoring_scroll and bool(p.cards) and p.cards[-1].get_height()>0)
             cards=list(p.cards);history=list(tab.state.history);native.activate(w)
-            p.resume.grab_focus();focus=w.get_focus();before=tab.state.reference
+            w.study.hide_button.grab_focus();focus=w.get_focus();before=tab.state.reference
             def wheel_state(phase):
                 a=tab.scroll.get_vadjustment()
                 return dict(phase=phase,reference=tab.state.reference,visible=tab.visible_reference(),
@@ -36,21 +36,21 @@ def main():
             assert tab.state.history==history
             # A real notes wheel suspends following and never navigates Scripture.
             reference=tab.state.reference;native.wheel(p.list,4);spin()
-            assert not p.following and p.resume.get_visible() and tab.state.reference==reference
-            native.click(p.resume);spin();assert p.following
+            assert not p.following and not hasattr(p,'resume') and tab.state.reference==reference
+            tab.select_verse(tab.state.reference);spin();assert p.following
             # A marker reveals the chapter list without editing.
             tab.reveal_reference('Acts.1.2');spin(lambda:not tab._restoring_scroll)
             native.click_at(tab.text,*point(tab.text,tab._verse_offsets['Acts.1.2']));spin()
             assert w.study.tool=='notes' and p.editor is None
             # Keyboard editing remains on the captured note through Bible input.
             p.scroll.get_vadjustment().set_value(0);spin();card=next(c for c in p.cards if hasattr(c,'note_id'))
-            native.click(card.open_button);spin(lambda:p.editor is not None);editor=p.editor
+            native.click(card);spin(lambda:p.editor is not None);editor=p.editor
             native.click(editor.body);native.key('x');spin();body=editor.body.get_buffer().props.text;context=dict(editor.context)
             native.wheel(tab.text,5);spin()
             assert not p.following and editor.body.get_buffer().props.text==body and editor.context==context
             editor._discard=True;editor.close();p.resume_following();spin()
             assert not hasattr(tab,'note_button') and not hasattr(p,'add')
-            print(json.dumps(dict(status='PASS',app_import=inspect.getfile(Window),native_bible_wheel_both_directions=True,native_notes_wheel_suspends_without_navigation=True,native_resume=True,stable_cards_and_history=True,focus_preserved=True,marker_reveals_without_edit=True,captured_draft_retained=True,redundant_controls_absent=True,manual_client_gnome_validation=False)))
+            print(json.dumps(dict(status='PASS',app_import=inspect.getfile(Window),native_bible_wheel_both_directions=True,native_notes_wheel_suspends_without_navigation=True,explicit_bible_navigation_resumes=True,stable_cards_and_history=True,focus_preserved=True,marker_reveals_without_edit=True,captured_draft_retained=True,redundant_controls_absent=True,manual_client_gnome_validation=False)))
         finally:
             if w.note_editor and not w.note_editor.closed:w.note_editor._discard=True;w.note_editor.close()
             w.close();native.close()

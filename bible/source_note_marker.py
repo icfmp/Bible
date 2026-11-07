@@ -6,10 +6,10 @@ from .reference_preview import passage_title
 
 def source_note_marker(markers,view,reader,reference,note,number):
     caption=note.locator or str(number)
-    label=Gtk.Label(label=caption)
-    attrs=Pango.AttrList();attrs.insert(Pango.attr_scale_new(.7))
-    attrs.insert(Pango.attr_rise_new(6*Pango.SCALE));label.set_attributes(attrs)
-    button=Gtk.Button(child=label,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
+    # Official bundled devkit asset; the exact icon is verified in the Flatpak.
+    icon='talking-symbolic'
+    image=Gtk.Image(icon_name=icon,pixel_size=10,valign=Gtk.Align.START,margin_bottom=6)
+    button=Gtk.Button(child=image,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
     button.add_css_class('flat');button.add_css_class('inline-marker');button.add_css_class('source-note-marker')
     button.set_cursor_from_name('pointer')
     title=tr('Translation notes')+' · '+passage_title(reference,system=reader.versification)
@@ -36,7 +36,7 @@ def source_note_marker(markers,view,reader,reference,note,number):
         button._source_note_popover=pop
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-        heading=Gtk.Label(label=title,xalign=0,wrap=True,max_width_chars=34);heading.add_css_class('caption')
+        heading=Gtk.Label(label=title+' · '+caption,xalign=0,wrap=True,max_width_chars=34);heading.add_css_class('caption')
         box.append(heading)
         text=Gtk.Label(label=note.text,xalign=0,selectable=True,wrap=True,
             wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=38)

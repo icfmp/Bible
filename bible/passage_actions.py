@@ -1,6 +1,6 @@
 """Intent-driven passage actions with frozen source/range/copy targets."""
 from dataclasses import dataclass
-from gi.repository import Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
 from .providers import module_name
@@ -85,12 +85,21 @@ class Backdrop(Gtk.Widget):
 
 
 class ActionSurface(Gtk.Overlay):
+    def do_get_request_mode(self):
+        return Gtk.SizeRequestMode.HEIGHT_FOR_WIDTH
+
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
         self.backdrop=None;self._backdrop_signals=()
         self.background=Backdrop(hexpand=True,vexpand=True)
-        self.set_child(self.background)
+        self.background.set_can_target(False);self.add_overlay(self.background)
         self.connect('notify::visible',lambda *_:self.clear_backdrop() if not self.get_visible() else None)
+
+    def do_snapshot(self,snapshot):
+        # Keep GTK measuring/allocating the actual content as the main child.
+        # Paint its cached backdrop first, then its controls and translucent tint.
+        self.snapshot_child(self.background,snapshot)
+        if self.get_child():self.snapshot_child(self.get_child(),snapshot)
 
     def clear_backdrop(self):
         if self.backdrop:
@@ -126,7 +135,7 @@ class PassageActions:
         self.bar.add_css_class('passage-actions')
         content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         content.add_css_class('passage-actions-content')
-        self.bar.add_overlay(content);self.bar.set_measure_overlay(content,True)
+        self.bar.set_child(content)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
         identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
@@ -134,8 +143,12 @@ class PassageActions:
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
         self.version_label.add_css_class('dim-label')
         identity.append(self.label);identity.append(self.version_label);content.append(identity)
-        self.actions=Gtk.Box(spacing=4,halign=Gtk.Align.CENTER)
-        self.actions.add_css_class('toolbar');content.append(self.actions)
+        self.actions=(Adw.WrapBox(child_spacing=4,line_spacing=4,natural_line_length=340)
+            if hasattr(Adw,'WrapBox') else Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,column_spacing=4,row_spacing=4,
+                min_children_per_line=1,max_children_per_line=20,halign=Gtk.Align.FILL))
+        self.actions.add_css_class('toolbar')
+        self.actions_clamp=Adw.Clamp(child=self.actions,maximum_size=340,tightening_threshold=340,unit=Adw.LengthUnit.PX)
+        content.append(self.actions_clamp)
         self.copy_button=Gtk.MenuButton(icon_name='edit-copy-symbolic',tooltip_text=tr('Copy'))
         self.copy_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy')])
         self.actions.append(self.copy_button)
@@ -154,11 +167,20 @@ class PassageActions:
                 check=Gtk.Image(icon_name='object-select-symbolic',pixel_size=14,opacity=0);circle.append(check)
                 button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
                 self.actions.append(button);self.highlight_buttons[color]=(button,check)
-        self.note_button=self.button('bible-notes-symbolic','Add a passage note',lambda *_:self.note())
+        self.note_button=self.button('notebook-symbolic','Add a passage note',lambda *_:self.note())
         self.word_button=self.button('accessories-dictionary-symbolic','Original text',lambda *_:self.study_word())
+        word=Gtk.Box(spacing=6)
+        word.append(Gtk.Image(icon_name='accessories-dictionary-symbolic',pixel_size=20))
+        word.append(Gtk.Label(label=tr('Original text')));self.word_button.set_child(word)
         self.word_button.set_tooltip_text(tr('Study original text'))
         self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
         self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
+        if isinstance(self.actions,Gtk.FlowBox):
+            # Older Adwaita uses FlowBox wrappers; only the actual controls
+            # belong in the toolbar's keyboard traversal order.
+            child=self.actions.get_first_child()
+            while child:
+                child.set_focusable(False);child=child.get_next_sibling()
         for button in (self.copy_options,self.highlight_button):
             if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
         self.bar.connect('notify::visible',lambda *_:self.dismiss() if not self.bar.get_visible() and self.target else None)
@@ -436,6 +458,9 @@ class PassageActions:
         if not value:return True
         parent=value.source.parent
         available=max(1,parent.get_width()-48)
+        if hasattr(self.actions,'set_natural_line_length'):
+            self.actions.set_natural_line_length(min(520,available))
+        self.actions_clamp.set_maximum_size(available);self.actions_clamp.set_tightening_threshold(available)
         # Pango wrapping gives the reference priority; secondary metadata ellipsizes.
         em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
         chars=max(8,min(38,available//em))

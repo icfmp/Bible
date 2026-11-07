@@ -135,14 +135,15 @@ class ImmersionTests(unittest.TestCase):
             r.key_pressed(None,Gdk.KEY_Escape,0,0);self.assertIsNone(w.immersion)
             w.close()
 
-    def test_commentary_entry_limits_resume_and_bible_unchanged(self):
+    def test_commentary_continuous_entries_resume_and_bible_unchanged(self):
         with self.profile() as directory:
             w=self.window(directory);tab=w.active_tab;tab.state.commentary='Notes'
             w.study_button.set_active(True);w.study.refresh();spin(lambda:not w.study._positioning)
             original=tab.state.reference;history=len(tab.state.history)
-            r=self.entered(w,'commentary');self.assertEqual(len(r.addresses),1)
-            self.assertFalse(r.turn(1))  # Short first entry, explicit next entry required.
-            r.change_entry(1);self.assertGreater(len(r.stream.plan(r.stream.cursor.key).pages),2)
+            r=self.entered(w,'commentary');self.assertEqual(len(r.addresses),2)
+            first=r.stream.cursor.key
+            self.assertTrue(r.turn(1));self.assertGreater(r.stream.cursor.key,first)
+            self.assertGreater(len(r.stream.plan(r.stream.cursor.key).pages),2)
             self.assertTrue(r.turn(1));anchor=r.stream.anchor();position=r.stream.cursor.key
             self.assertEqual(tab.state.reference,original)
             w.leave_immersion();spin(lambda:not w.study._positioning)

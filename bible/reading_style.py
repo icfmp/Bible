@@ -135,6 +135,12 @@ class ReadingStyle:
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
 button.reference-card {{ padding: 10px; margin-top: 4px; margin-bottom: 4px; }}
 button.reference-card:hover {{ background-image: image(alpha(currentColor,.05)); }}
+.{self.scope}-window .action-card {{ background-color: {bg}; color: {fg}; border: 1px solid alpha(currentColor,.14); border-radius: 10px; box-shadow: none; padding: 12px; }}
+.{self.scope}-window .action-card:hover {{ background-color: mix({bg},{fg},.06); }}
+.{self.scope}-window .action-card:focus-visible, .{self.scope}-window .action-card:focus-within {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
+.{self.scope}-window listview > row:selected .action-card {{ background-color: mix({bg},@accent_color,.15); }}
+.{self.scope}-window .action-card .card-primary {{ padding: 0; min-height: 0; background: transparent; box-shadow: none; }}
+.{self.scope}-window .note-scripture-context {{ background-color: mix({bg},{fg},.035); border-radius: 8px; padding: 8px; }}
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 textview.{self.scope} button.inline-marker {{ color: {marker_color}; min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
 textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
@@ -150,10 +156,11 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 .passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}
 .passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
+.passage-actions flowboxchild {{ padding: 0; background: none; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}
 {selector} text selection {{ background-color: {selection}; color: {selected}; }}
 {selector} text link {{ color: {link}; }}
-{selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @sidebar_fg_color; }}
+{selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @view_fg_color; }}
 .{self.scope}-window .study-content,
 .{self.scope}-window .study-content text {{ font-family: {study_family}; {study_size_css} }}
 /* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque

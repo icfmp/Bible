@@ -169,8 +169,9 @@ class StudyReferences(Gtk.Box):
                         else tr('This passage is unavailable in the selected translation.'))
             self.row_cache[key]=result
         caption,body=self.row_cache[key];title.set_text(caption);text.set_text(body)
-        button.set_tooltip_text(tr('OpenBible target: {reference}').format(reference=passage_title(row.start,row.end))+'\n'+
-                               tr('Related to {count} selected verses.').format(count=row.source_count))
+        button.set_tooltip_text(None)
+        button.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
+            [caption,tr('Related to {count} selected verses.').format(count=row.source_count)])
 
     def preview(self,button):
         item=button._reference_item

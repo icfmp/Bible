@@ -60,8 +60,8 @@ def main():
                                     focus=s.text.get_iter_location(s.text.get_buffer().get_iter_at_offset(s.ranges[position][0]));row['focus_delta_pixels']=focus.y-s.text.get_visible_rect().y
                             n.move_at(w,2,2);screen.grab(args.output/(case+'.png'));report['cases'].append(row)
                             if comment=='MHC' and reference=='Gen.1.1' and not args.baseline:
-                                assert s.preface_button.get_visible()
-                                s.preface_button.emit('clicked');spin(duration=.3)
+                                assert s.entry_actions['source-preface'].get_enabled()
+                                s.entry_actions['source-preface'].activate(None);spin(duration=.3)
                                 preface=w.commentary_preface;assert preface and preface.get_mapped()
                                 preface.set_default_size(640 if width==1200 else 380,600);spin(duration=.3)
                                 n.activate(preface);screen.grab(args.output/(case+'-preface.png'))

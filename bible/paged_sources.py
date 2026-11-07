@@ -142,7 +142,7 @@ class CommentaryPages:
         from .commentary_format import preverse_layout
         text,styles,_=preverse_layout(self.reader.index.raw(key))
         return Document(('preverse',key),text,(),tuple(StyleSpan(*s) for s in styles))
-    def neighbour(self,key,direction):return None  # Page navigation stops at entry boundaries.
+    def neighbour(self,key,direction):return self.entry_neighbour(key,direction)
     def entry_neighbour(self,key,direction):
         position=key+direction
         return position if 0<=position<len(self.reader.index.sections) else None
