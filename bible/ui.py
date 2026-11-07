@@ -810,6 +810,7 @@ class Window(Adw.ApplicationWindow):
         self.comparison_button.set_tooltip_text(label)
         self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
         tab.refresh_comparison()
+        self.view.get_page(tab).set_title(tab.title())
         self.position_primary_version()
         self.primary_version.sync();self.compared_version.sync()
         self.immersive_button.set_visible(not bool(tab.state.comparison))
