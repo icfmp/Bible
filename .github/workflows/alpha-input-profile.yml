@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   inspect:
     runs-on: ubuntu-24.04
@@ -15,8 +16,6 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y flatpak gnome-software gnome-software-plugin-flatpak appstream xvfb xauth xcompmgr dbus-x11 xdotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-sword
           mkdir reports
-          echo "FLATPAK_USER_DIR=$RUNNER_TEMP/baseline-flatpak" >> "$GITHUB_ENV"
-          export FLATPAK_USER_DIR="$RUNNER_TEMP/baseline-flatpak"
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
           flatpak info --user io.github.icfmp.Bible//alpha > reports/flatpak-info.txt
@@ -35,19 +34,41 @@ jobs:
           PY
           flatpak update --user --appstream --noninteractive bible-alpha > reports/remote-appstream.txt 2>&1 || true
           gnome-software --version > reports/software-version.txt
-      - name: Open actual installed application details in GNOME Software
+      - name: Download exact verified alpha26 local bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/icfmp/Bible/actions/artifacts/13561440844/zip > "$RUNNER_TEMP/alpha26.zip"
+          echo 'ca304eb97fd3e08dfae861a44f32f321916c0dac47e223e0df531ee621e261d0  '"$RUNNER_TEMP/alpha26.zip" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/alpha26-bundle"
+          unzip -q "$RUNNER_TEMP/alpha26.zip" -d "$RUNNER_TEMP/alpha26-bundle"
+          find "$RUNNER_TEMP/alpha26-bundle" -type f -maxdepth 2 > reports/local-bundle-files.txt
+      - name: Inspect repository and local-bundle details in GNOME Software
         run: |
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' /usr/bin/python3 -m tools.composited_x11 bash -c '
             set -euo pipefail
-            export XDG_DATA_DIRS="$FLATPAK_USER_DIR/exports/share:/usr/local/share:/usr/share"
-            gnome-software --details=io.github.icfmp.Bible > reports/gnome-software.log 2>&1 &
+            export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/usr/local/share:/usr/share"
+            export GTK_A11Y=none
+            gnome-software --help > reports/gnome-software-help.txt
+            gnome-software --mode=overview > reports/gnome-software.log 2>&1 &
             software_pid=$!
             python3 - <<'"'"'PY'"'"'
-          import time
+          import os,subprocess,time,json
           from pathlib import Path
           from tools.check_alpha_ui import X11Input
           from tools.check_client_feedback import Screen
-          n=X11Input();time.sleep(15);Screen(n).grab(Path("reports/gnome-software-before.png"));n.close()
+          native=X11Input();screen=Screen(native)
+          time.sleep(10)
+          results=[]
+          for component in ("io.github.icfmp.Bible","io.github.icfmp.Bible.desktop"):
+              p=subprocess.run(["gnome-software","--details="+component],capture_output=True,text=True,timeout=30)
+              results.append(dict(component=component,status=p.returncode,stdout=p.stdout,stderr=p.stderr))
+              time.sleep(8);screen.grab(Path("reports/software-"+component+".png"))
+          bundle=next(Path(os.environ["RUNNER_TEMP"],"alpha26-bundle").rglob("*.flatpak"))
+          p=subprocess.run(["gnome-software","--local-filename="+str(bundle)],capture_output=True,text=True,timeout=30)
+          results.append(dict(local_bundle=bundle.name,status=p.returncode,stdout=p.stdout,stderr=p.stderr))
+          time.sleep(12);screen.grab(Path("reports/software-local-bundle.png"))
+          Path("reports/software-requests.json").write_text(json.dumps(results,indent=2));native.close()
           PY
             kill "$software_pid" || true
           '
