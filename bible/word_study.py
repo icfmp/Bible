@@ -19,7 +19,8 @@ class WordStudy(Gtk.Box):
         row=Adw.HeaderBar(show_end_title_buttons=False)
         self.back=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')]);self.back.connect('clicked',lambda *_:self.leave())
-        row.pack_end(self.back);heading=Gtk.Label(label=tr('Original text'));heading.add_css_class('heading');row.set_title_widget(heading)
+        row.pack_end(self.back);self.heading=Gtk.Label(label=tr("Explore the verse's words"),wrap=True)
+        self.heading.add_css_class('heading');row.set_title_widget(self.heading)
         self.go_back=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back'),visible=False)
         self.go_back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back')])
         self.go_back.connect('clicked',self.previous);row.pack_start(self.go_back)
@@ -31,7 +32,8 @@ class WordStudy(Gtk.Box):
             lines=2,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
         self.append(self.selection_label)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12,margin_bottom=16)
-        self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+        self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_height=False,min_content_height=160,max_content_height=420)
         self.scroll.set_child(self.content);self.append(self.scroll)
         from .source_credit import source_credit
         from .step_sources import SOURCE_URL
@@ -103,12 +105,13 @@ class WordStudy(Gtk.Box):
         # This is a compact context excerpt, not the original-word display.
         # Explicit translation line breaks otherwise each get their own line
         # limit and can consume the entire small dialog before any source word.
-        self.selection_label.set_text(' '.join(target.text.split()) if target.native_selection else '')
-        self.selection_label.set_visible(target.native_selection)
+        self.selection_label.set_text(' '.join(target.text.split()))
+        self.selection_label.set_visible(bool(target.text))
         self.owner.passage_actions.dismiss()
         self.dialog=Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
             destroy_with_parent=True,default_width=min(640,max(320,self.owner.get_width()-48)),
-            default_height=min(620,max(280,self.owner.get_height()-48)))
+            default_height=min(600,max(360,self.owner.get_height()-96)))
+        self.scroll.set_max_content_height(max(160,min(420,self.owner.get_height()-250)))
         self.dialog.add_css_class(self.owner.reading_style.scope+'-window')
         self.dialog.set_content(self)
         self.dialog.connect('close-request',self.dialog_closed)
@@ -172,7 +175,9 @@ class WordStudy(Gtk.Box):
     def verse_choices(self):
         self.generation+=1;self.clear()
         self.stage='passage';self.go_back.set_visible(False)
-        self.content.append(self.label(tr('Choose an original word. Word-for-word alignment with the selected translation is not established.')))
+        self.heading.set_text(tr("Explore the verse's words"))
+        if self.dialog:self.dialog.set_title(self.heading.get_text())
+        self.content.append(self.label(tr('Select a word to discover its meaning.')))
         references=self.target.references
         self._verse_offset=0
         self.passage_words(references)
@@ -196,7 +201,7 @@ class WordStudy(Gtk.Box):
                 self.content.append(self.label(passage_title(reference,system=source.reader.versification),True))
                 if corpus is None:
                     self.content.append(self.label(tr('No verified alignment for this passage.')));continue
-                self.content.append(self.label(tr('Greek original · TAGNT' if corpus=='tagnt-na27' else 'Hebrew / Aramaic original · TAHOT')))
+                self.content.append(self.label(tr('Greek text' if corpus=='tagnt-na27' else 'Hebrew / Aramaic text'),True))
                 found=False
                 for ref,tokens in verses:
                     if len(verses)>1 or ref!=reference:
@@ -208,11 +213,14 @@ class WordStudy(Gtk.Box):
                     for token in tokens:
                         found=True
                         button=Gtk.Button(child=Gtk.Label(label=token['form'],wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR))
+                        button.set_cursor_from_name('pointer')
                         button._source_token=token;button._source_corpus=corpus
                         button.connect('clicked',lambda _,c=corpus,t=token:self.token_detail(c,t))
                         flow.append(button)
                         if token['source_key']==getattr(self,'passage_anchor',None):button.grab_focus()
                 if not found:self.content.append(self.label(tr('No words supplied for this mapped source verse.')))
+                note=self.label(tr('Original words do not necessarily match translation words one for one.'))
+                note.add_css_class('caption');note.add_css_class('dim-label');self.content.append(note)
             self._verse_offset+=len(batch)
             if self._verse_offset<len(references):
                 more=self.button(tr('More verses'),lambda:more_clicked())
@@ -252,30 +260,37 @@ class WordStudy(Gtk.Box):
         self.clear();self.stage='word';self.go_back.set_visible(True);self.entry=entry;self.token=token
         corpus=corpus or ('tagnt-na27' if entry['id'].startswith('G') else 'tahot-main')
         self.corpus=corpus
-        if token:
-            self.content.append(self.script_label(token['form'],token['language']))
-            if token['transliteration']:self.content.append(self.label(token['transliteration']))
-        self.content.append(self.label(tr('Lemma')+': '+(entry['lemma'] or entry['id']),True))
-        if entry.get('transliteration'):self.content.append(self.label(entry['transliteration']))
-        self.content.append(self.label(tr({'grc':'Greek','hbo':'Hebrew','arc':'Aramaic'}.get(token['language'] if token else entry['language'],'Hebrew'))+' · '+tr('English lexical content')))
+        language=token['language'] if token else entry['language']
+        self.heading.set_text(tr('Understand a Greek word' if language=='grc' else 'Understand a Hebrew word' if language=='hbo' else 'Understand an Aramaic word'))
+        if self.dialog:self.dialog.set_title(self.heading.get_text())
+        form=token['form'] if token else entry['lemma'] or entry['id']
+        surface=self.script_label(form,language);surface.add_css_class('title-1');self.content.append(surface)
+        transliteration=(token.get('transliteration') if token else '') or entry.get('transliteration')
+        if transliteration:self.content.append(self.label(transliteration))
+        self.content.append(self.label(tr('Common meanings'),True))
+        self.content.append(self.label(entry['gloss'] or tr('No meaning supplied by the installed lexicon.')))
+        source=self.label(tr('The installed STEP lexicon provides English meanings.'))
+        source.add_css_class('caption');self.content.append(source)
         # Basic dictionary categories are defined by the TBESG file header.
         categories={'N':'Noun','V':'Verb','A':'Adjective','ADV':'Adverb','ART':'Article',
                     'PREP':'Preposition','CONJ':'Conjunction','PRT':'Particle'}
         code=entry.get('category','').split(':')[-1].split('-')[0].upper()
-        if code in categories:self.content.append(self.label(tr(categories[code])))
-        elif token and token['language'] in ('hbo','arc'):
+        category=tr(categories[code]) if code in categories else ''
+        if not category and token and token['language'] in ('hbo','arc'):
             # TEHMC at the pinned STEP commit defines N/V at the start of
             # each Hebrew/Aramaic word-function segment; do not infer tense.
             functions=[part[:1] for part in token['morphology'][1:].split('/')]
             function=next((c for c in functions if c in ('N','V')),None)
-            if function:self.content.append(self.label(tr(categories[function])))
-        self.content.append(self.label(entry['gloss'][:800]))
-        self.content.append(self.label(tr('Dictionary meanings describe possible senses, not all meanings intended in this passage.')))
+            if function:category=tr(categories[function])
+        hint=self.label(tr('Dictionary meanings describe possible senses, not all meanings intended in this passage.'))
+        hint.add_css_class('caption');hint.add_css_class('dim-label');self.content.append(hint)
         from .resource_details import plain
-        self.content.append(self.label(entry['id']))
-        self.button(tr('Occurrences of this lemma'),lambda:self.all_occurrences(corpus,entry))
-        details=Gtk.Expander(label=tr('Details'))
-        text=entry['id']+'\n'+(entry.get('category') or '')+'\n'+(token['morphology'] if token else '')
+        self.button(tr('See other occurrences'),lambda:self.all_occurrences(corpus,entry))
+        details=Gtk.Expander(label=tr('Linguistic details'))
+        text=tr('Dictionary headword')+': '+(entry['lemma'] or entry['id'])+'\n'+entry['id']
+        if entry.get('transliteration'):text+='\n'+entry['transliteration']
+        if category:text+='\n'+category
+        text+='\n'+(entry.get('category') or '')+'\n'+(token['morphology'] if token else '')
         if self.lexical_metadata:text+='\n'+self.lexical_metadata['source_lemma']+'\n'+self.lexical_metadata['source_morphology']
         text+='\n'+plain(entry.get('definition',''))
         details.set_child(self.label(text));self.content.append(details)
@@ -298,6 +313,8 @@ class WordStudy(Gtk.Box):
 
     def all_occurrences(self,corpus,entry):
         self.clear();self.stage='occurrences';self.go_back.set_visible(True)
+        self.heading.set_text(tr('Other occurrences'))
+        if self.dialog:self.dialog.set_title(self.heading.get_text())
         self.content.append(self.label((entry['lemma'] or entry['id'])+' — '+tr('Lemma occurrences'),True))
         self.content.append(self.label(tr('Counts refer to this source corpus; a word can have different meanings in context.')))
         self.occurrence_offset=0

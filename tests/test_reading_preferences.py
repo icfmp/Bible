@@ -51,7 +51,7 @@ class ReadingSettingsTests(unittest.TestCase):
                 self.assertEqual(p.study_font,'Saved unavailable study family')
                 self.assertIn('Saved unavailable study family',full.study_font._family_row.get_subtitle())
                 full.update('study_font','DejaVu Sans Mono');spin(lambda:not w.appearance._apply_id)
-                self.assertEqual(p.font,'DejaVu Serif');self.assertEqual(w.study.sidebar_preferences.font,'DejaVu Sans Mono')
+                self.assertEqual(p.font,'Roboto Serif');self.assertEqual(w.study.sidebar_preferences.font,'DejaVu Sans Mono')
                 full.update('font','DejaVu Sans');spin(lambda:not w.appearance._apply_id)
                 self.assertEqual(p.study_font,'DejaVu Sans Mono')
                 full.update('immersion_columns','one');d.close();spin()

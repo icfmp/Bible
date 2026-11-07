@@ -32,7 +32,7 @@ class PassageLinks(Gtk.Box):
         self.expander=Gtk.Expander(label=tr('Linked passages'))
         self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);self.expander.set_child(self.rows)
         row=Gtk.Box(spacing=6);self.expander.set_hexpand(True);row.append(self.expander)
-        self.add_button=Gtk.MenuButton(icon_name='list-add-symbolic',tooltip_text=tr('Add a linked passage'),valign=Gtk.Align.START)
+        self.add_button=Gtk.MenuButton(label=tr('Add'),tooltip_text=tr('Add a linked passage'),valign=Gtk.Align.START)
         self.add_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Add a linked passage')])
         pop=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)

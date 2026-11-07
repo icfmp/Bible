@@ -97,7 +97,7 @@ def main():
                 if not args.baseline and not high:assert all(max(abs(a-b) for a,b in zip(c,body_color))<=1 for c in header_colors),(palette,header_colors,body_color)
                 w.study.tools.set_visible_child_name('references');settled();shot(palette+'-study-references')
                 w.study.tools.set_visible_child_name('commentaries');settled();shot(palette+'-study-commentary')
-                menu(w.study.more,palette+'-study-actions');w.study.more.popup();spin();menu(w.study.info,palette+'-source-notices');w.study.more.popdown();spin()
+                assert not hasattr(w.study,'more') and w.study.text.get_extra_menu() is not None
                 w.study_button.set_active(False);settled();shot(palette+'-reading')
                 menu(w.menu,palette+'-main-menu')
                 menu(w.passage_button,palette+'-passage-picker')
@@ -115,7 +115,7 @@ def main():
             energies={}
             samples={};diagnostic={}
             for radius in (0,original):
-                module.BACKDROP_BLUR=radius;a.bar.get_child().queue_draw();spin();raw,stride=shot('blur-diagnostic-'+str(radius))
+                module.BACKDROP_BLUR=radius;a.bar.background.queue_draw();spin();raw,stride=shot('blur-diagnostic-'+str(radius))
                 assert a.target and a.bar.get_mapped(),'Blur diagnostic requires the selection bar to be visibly open'
                 x,y=screen.point(a.bar,16,12);width=a.bar.get_width()-32;height=a.bar.get_height()-24
                 samples[radius]=[tuple(raw[(y+dy)*stride+(x+dx)*4:(y+dy)*stride+(x+dx)*4+3]) for dy in range(height) for dx in range(width)]
@@ -133,7 +133,7 @@ def main():
                 assert not diagnostic[original]['high_contrast'],diagnostic
                 assert report['blur_changed_pixels']>len(samples[0])*.01,(energies,diagnostic)
                 assert energies[original]<energies[0]*.85,(energies,diagnostic)
-            module.BACKDROP_BLUR=original;a.bar.get_child().queue_draw();a.dismiss();b.place_cursor(b.get_iter_at_offset(start))
+            module.BACKDROP_BLUR=original;a.bar.background.queue_draw();a.dismiss();b.place_cursor(b.get_iter_at_offset(start))
             # Use the client's actual source when available; never manufacture text.
             resource='FreBDM1707' if 'FreBDM1707' in w.library.installed() else 'FreSegond1910'
             t.navigate(resource,'Gen.6.1');settled();w.enter_immersion('bible');v=w.immersion;spin(lambda:v.layout_ready,timeout=30)

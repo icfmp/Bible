@@ -185,7 +185,7 @@ class StudyReferenceTests(unittest.TestCase):
         rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
         refs.rows=rows;refs._new_passage=True;refs.populate();spin(duration=.3)
         adjustment=refs.scroll.get_vadjustment();adjustment.set_value(250);spin()
-        position=adjustment.get_value()
+        position=adjustment.get_value();viewport=adjustment.get_page_size()
         release=Event();updated=[Relationship(row.start,row.end,100+i,1) for i,row in enumerate(rows)]
         def query(*_):
             release.wait(3)
@@ -195,8 +195,8 @@ class StudyReferenceTests(unittest.TestCase):
                 refs.invalidate();spin(duration=.1)
                 self.assertTrue(refs.pending)
                 self.assertEqual(refs.model.get_n_items(),len(rows))
-                # GTK's virtual row estimates can move by a couple of pixels
-                # when the loading label changes the viewport allocation.
+                self.assertFalse(refs.status.get_visible())
+                self.assertEqual(adjustment.get_page_size(),viewport)
                 self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
             finally:release.set()
             spin(lambda:not refs.pending,duration=.3)

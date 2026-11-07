@@ -56,7 +56,9 @@ class ReadingSync:
             if tab._tick_id:tab.remove_tick_callback(tab._tick_id);tab._tick_id=0
             tab._appearance_anchor=None;tab._jump_reference=None;tab._restoring_scroll=False
         if side=='bible' and self.owner.study.tool=='notes':self.owner.study.notes.resume_following()
-        if side=='commentary':self.owner.study.cancel_reveal()
+        if side=='commentary':
+            self.owner.study.cancel_reveal()
+            self.owner.study.scrolled()
         self.schedule();return False
 
     def begin_drag(self,side,tab):

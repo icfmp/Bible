@@ -1,0 +1,23 @@
+{
+  "application_source": "b0d069184a6cfb434fc63374050fcf3a38cca833",
+  "source_import": "/tmp/bible-ready-204-232/bible/ui.py",
+  "gtk_version": [
+    4,
+    18,
+    6
+  ],
+  "renderer": "CairoRenderer",
+  "capture_size": [
+    1400,
+    900
+  ],
+  "reference": "John.3.16",
+  "primary": "FreSegond1910",
+  "secondary": "KJV",
+  "commentary": "Wesley",
+  "reading_font": "Roboto Serif",
+  "font_file": "/tmp/bible-ready-evidence/roboto/RobotoSerif.ttf",
+  "packaged": false,
+  "notes": "Unedited real GTK/X11 capture of candidate source; disposable profile, actual downloaded resources. This is not evidence of installed Flatpak acceptance.",
+  "sha256": "f3ee77162eddabe35800b7272ac3b15bb2b5f76c274db6b4f554d15da6da1482"
+}

@@ -8,7 +8,7 @@ import tempfile
 
 @dataclass
 class ReadingPreferences:
-    font: str = 'DejaVu Serif'
+    font: str = 'Roboto Serif'
     size: int = 14
     chapter_numbers: bool = True
     verse_numbers: bool = True
@@ -27,11 +27,11 @@ class ReadingPreferences:
     side_margin_px: int | None = None
     alignment: str = 'left'
     immersion_columns: str = 'automatic'
-    serif_font: str = 'DejaVu Serif'
-    sans_font: str = 'DejaVu Sans'
+    serif_font: str = 'Roboto Serif'
+    sans_font: str = 'Roboto'
     font_style: str = 'book'
     study_size: int | None = None
-    visible_elements_expanded: bool = True
+    visible_elements_expanded: bool = False
 
 
 class Preferences:

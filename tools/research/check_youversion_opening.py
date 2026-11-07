@@ -88,7 +88,8 @@ def main():
         assert tab.show('Gen.12.1');tab.refresh_comparison();spin()
         assert tab._comparison_reader and not tab._comparison_aligned
         assert not tab.status.get_visible()
-        window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes');spin()
+        window.study_button.set_active(True);window.study.tools.set_visible_child_name('notes');spin()
+        assert not hasattr(window.study,'translation_notes')
         assert tab.show('Gen.19.1');spin();window.save_session()
     finally:window.close();close_test_dialogs();spin()
     with (patch('urllib.request.urlopen',side_effect=AssertionError('Offline restore')),

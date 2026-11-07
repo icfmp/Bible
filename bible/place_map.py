@@ -68,7 +68,7 @@ class PlaceMap(Gtk.Box):
             marker=Shumate.Marker();marker.set_location(candidate['latitude'],candidate['longitude'])
             if len(self.candidates)>1:
                 child=Gtk.Label(label=str(index+1));child.add_css_class('heading');child.add_css_class('accent')
-            else:child=Gtk.Image(icon_name='bible-place-symbolic',pixel_size=24)
+            else:child=Gtk.Image(icon_name='mark-location-symbolic',pixel_size=24)
             badge=Gtk.Box();badge.add_css_class('place-map-marker')
             for side in ('start','end','top','bottom'):getattr(child,'set_margin_'+side)(4)
             badge.append(child);marker.set_child(badge)

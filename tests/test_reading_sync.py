@@ -34,6 +34,31 @@ class CommentaryIndexTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ReadingSyncTests(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1','Requires isolated native X11 input')
+    def test_commentary_wheel_reaches_the_next_sparse_chapter_and_returns(self):
+        from tools.check_alpha_ui import X11Input
+        with tempfile.TemporaryDirectory() as directory:
+            w=self.setup_window(directory);s=w.study;t=w.active_tab;n=X11Input();n.activate(w)
+            try:
+                last=s.reader.index.locate('Gen.1.5');following=s.reader.index.locate('Gen.2.1')
+                self.assertNotIn(following,s.loaded)
+                s.current_position=last;s.reveal(last,force=True);spin(lambda:not s._positioning)
+                n.wheel(s.text,12);spin(lambda:following in s.loaded,timeout=5)
+                for _ in range(4):
+                    if s.current_position==following:break
+                    n.wheel(s.text,12);spin(duration=.3)
+                self.assertEqual(s.current_position,following)
+                self.assertEqual(t.state.reference,'Gen.2.1')
+                self.assertLessEqual(len(s.loaded),20)
+                n.wheel(s.text,-12)
+                try:spin(lambda:t.state.reference.startswith('Gen.1.'),duration=.2,timeout=3)
+                except AssertionError:
+                    a=s.scroll.get_vadjustment();print('BOUNDARY FAILURE',a.get_value(),a.get_upper(),a.get_page_size(),t.state.reference,s.current_position,s.visible_section(),s.loaded,s._positioning,s._chapter_context,w.reading_sync.driver,w.reading_sync.pending,t._restoring_scroll,flush=True)
+                    raise
+                self.assertTrue(t.state.reference.startswith('Gen.1.'))
+                self.assertFalse(s._positioning)
+            finally:n.close();w.close();spin()
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application,Gtk
