@@ -15,7 +15,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-24.04
-    timeout-minutes: 85
+    timeout-minutes: 125
     env:
       GH_TOKEN: ${{ github.token }}
       CANDIDATE_HEAD: ${{ inputs.candidate_head }}
@@ -68,7 +68,7 @@ jobs:
           import json,os,subprocess,time,urllib.request
           from pathlib import Path
           def api(path):return json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/'+path],text=True))
-          for attempt in range(180):
+          for attempt in range(300):
               p=api('pulls/234');assert p['head']['sha']==os.environ['CANDIDATE_HEAD']
               if p['merged']:
                   source=p['merge_commit_sha']
