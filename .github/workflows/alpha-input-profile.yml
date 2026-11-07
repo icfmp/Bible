@@ -1,6 +1,13 @@
-name: Inspect published alpha26 icons and GNOME Software baseline
+name: Inspect candidate Flatpak in GNOME Software
 on:
   workflow_dispatch:
+    inputs:
+      candidate_run:
+        description: Successful exact-source prerequisites run
+        required: true
+      source:
+        description: Full verified candidate source commit
+        required: true
 permissions:
   contents: read
   actions: read
@@ -8,48 +15,70 @@ jobs:
   inspect:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      CANDIDATE_RUN: ${{ inputs.candidate_run }}
+      CANDIDATE_SOURCE: ${{ inputs.source }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
-      - name: Install native software center and isolated alpha26
+        with:
+          ref: ${{ inputs.source }}
+      - name: Install isolated native inspection tools
         run: |
           if [ -f /etc/apt/apt-mirrors.txt ]; then sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt; fi
           sudo apt-get update -qq
           sudo apt-get install -y flatpak gnome-software gnome-software-plugin-flatpak appstream xvfb xauth xcompmgr dbus-x11 xdotool python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 python3-sword
           mkdir reports
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user --noninteractive https://icfmp.github.io/Bible/alpha/Bible.flatpakref
-          flatpak info --user io.github.icfmp.Bible//alpha > reports/flatpak-info.txt
-      - name: Inspect actual packaged icons and distribution metadata
+      - name: Verify and install only the exact green candidate bundle
         run: |
-          dbus-run-session -- xvfb-run -a flatpak run --user --filesystem="$PWD/reports" --command=python3 io.github.icfmp.Bible//alpha - "$PWD/reports" <<'PY'
-          import json,sys
+          python3 - <<'PY'
+          import json,os,re,subprocess
+          from pathlib import Path
+          run=os.environ['CANDIDATE_RUN'];source=os.environ['CANDIDATE_SOURCE']
+          assert run.isdigit() and re.fullmatch('[0-9a-f]{40}',source)
+          x=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+run],text=True))
+          assert x['head_sha']==source and x['conclusion']=='success' and x['path']=='.github/workflows/prerequisites.yml'
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==source
+          Path('reports/input-run.json').write_text(json.dumps({k:x[k] for k in ('id','head_sha','path','conclusion')},indent=2))
+          PY
+          gh run download "$CANDIDATE_RUN" --repo icfmp/Bible --name Bible-alpha-linux-x86_64 --dir "$RUNNER_TEMP/candidate-bundle"
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'],'candidate-bundle');info=json.loads((root/'build-info.json').read_text())
+          assert info['commit']==os.environ['CANDIDATE_SOURCE'] and info['prerequisites']=='success'
+          assert hashlib.sha256((root/'Bible-alpha.flatpak').read_bytes()).hexdigest()==info['sha256']
+          Path('reports/build-info.json').write_text(json.dumps(info,indent=2))
+          PY
+          flatpak install --user --noninteractive "$RUNNER_TEMP/candidate-bundle/Bible-alpha.flatpak"
+          flatpak info --user io.github.icfmp.Bible//master > reports/flatpak-info.txt
+          gnome-software --version > reports/software-version.txt
+      - name: Inspect actual installed metadata, icons and font paths
+        run: |
+          dbus-run-session -- xvfb-run -a flatpak run --user --filesystem="$PWD/reports" --command=python3 io.github.icfmp.Bible//master - "$PWD/reports" <<'PY'
+          import hashlib,json,subprocess,sys
           from pathlib import Path
           import gi
           gi.require_version('Gtk','4.0')
           from gi.repository import Gtk,Gdk
           Gtk.init();theme=Gtk.IconTheme.get_for_display(Gdk.Display.get_default());theme.add_search_path('/app/lib/bible-python/bible/icons')
           names=('dictionary-symbolic','notebook-symbolic','mark-location-symbolic','filter-symbolic','talking-symbolic')
-          data=dict(gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],icons={n:theme.has_icon(n) for n in names},metainfo=[str(p) for folder in ('metainfo','appdata') for p in Path('/app/share',folder).glob('*')],desktop=Path('/app/share/applications/io.github.icfmp.Bible.desktop').read_text(),icon_files=[str(p) for p in Path('/app/share/icons').rglob('*Bible*')])
-          Path(sys.argv[1],'installed-metadata.json').write_text(json.dumps(data,indent=2));print(json.dumps(data,indent=2))
+          meta=Path('/app/share/metainfo/io.github.icfmp.Bible.metainfo.xml');assert meta.is_file()
+          fonts={f:subprocess.check_output(['fc-match','-f','%{file}',f],text=True) for f in ('Roboto','Roboto Serif')}
+          assert all(p.startswith('/app/share/fonts/roboto/') for p in fonts.values()),fonts
+          data=dict(gtk=[Gtk.get_major_version(),Gtk.get_minor_version(),Gtk.get_micro_version()],icons={n:theme.has_icon(n) for n in names},fonts=fonts,metainfo_sha256=hashlib.sha256(meta.read_bytes()).hexdigest(),desktop=Path('/app/share/applications/io.github.icfmp.Bible.desktop').read_text(),icon_files=[str(p) for p in Path('/app/share/icons').rglob('*Bible*')])
+          assert all(data['icons'].values())
+          Path(sys.argv[1],'installed.metainfo.xml').write_bytes(meta.read_bytes())
+          Path(sys.argv[1],'installed-metadata.json').write_text(json.dumps(data,indent=2))
           PY
-          flatpak update --user --appstream --noninteractive bible-alpha > reports/remote-appstream.txt 2>&1 || true
-          gnome-software --version > reports/software-version.txt
-      - name: Download exact verified alpha26 local bundle
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/icfmp/Bible/actions/artifacts/13561440844/zip > "$RUNNER_TEMP/alpha26.zip"
-          echo 'ca304eb97fd3e08dfae861a44f32f321916c0dac47e223e0df531ee621e261d0  '"$RUNNER_TEMP/alpha26.zip" | sha256sum -c -
-          mkdir "$RUNNER_TEMP/alpha26-bundle"
-          unzip -q "$RUNNER_TEMP/alpha26.zip" -d "$RUNNER_TEMP/alpha26-bundle"
-          find "$RUNNER_TEMP/alpha26-bundle" -type f -maxdepth 2 > reports/local-bundle-files.txt
-      - name: Inspect repository and local-bundle details in GNOME Software
+          appstreamcli validate --no-net reports/installed.metainfo.xml > reports/appstream-validation.txt
+      - name: Inspect installed and local-bundle details in the real Software application
         run: |
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' /usr/bin/python3 -m tools.composited_x11 bash -c '
             set -euo pipefail
             export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/usr/local/share:/usr/share"
             export GTK_A11Y=none
-            gnome-software --help > reports/gnome-software-help.txt
             gnome-software --mode=overview > reports/gnome-software.log 2>&1 &
             software_pid=$!
             python3 - <<'"'"'PY'"'"'
@@ -57,17 +86,15 @@ jobs:
           from pathlib import Path
           from tools.check_alpha_ui import X11Input
           from tools.check_client_feedback import Screen
-          native=X11Input();screen=Screen(native)
-          time.sleep(10)
-          results=[]
+          native=X11Input();screen=Screen(native);time.sleep(10);results=[]
           for component in ("io.github.icfmp.Bible","io.github.icfmp.Bible.desktop"):
               p=subprocess.run(["gnome-software","--details="+component],capture_output=True,text=True,timeout=30)
               results.append(dict(component=component,status=p.returncode,stdout=p.stdout,stderr=p.stderr))
               time.sleep(8);screen.grab(Path("reports/software-"+component+".png"))
-          bundle=next(Path(os.environ["RUNNER_TEMP"],"alpha26-bundle").rglob("*.flatpak"))
+          bundle=Path(os.environ["RUNNER_TEMP"],"candidate-bundle/Bible-alpha.flatpak")
           p=subprocess.run(["gnome-software","--local-filename="+str(bundle)],capture_output=True,text=True,timeout=30)
           results.append(dict(local_bundle=bundle.name,status=p.returncode,stdout=p.stdout,stderr=p.stderr))
-          time.sleep(12);screen.grab(Path("reports/software-local-bundle.png"))
+          time.sleep(15);screen.grab(Path("reports/software-local-bundle.png"))
           Path("reports/software-requests.json").write_text(json.dumps(results,indent=2));native.close()
           PY
             kill "$software_pid" || true
@@ -75,5 +102,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ready-204-232-packaged-baseline
+          name: ready-204-232-packaged-candidate-software
           path: reports
