@@ -305,6 +305,7 @@ class Window(Adw.ApplicationWindow):
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
                            b'.study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } '
+                           b'.passage-study-tabs > button { min-width: 0; } '
                            b'.reference-excerpt { font-weight: normal; } '
                            b'.source-attribution { color: alpha(@window_fg_color, .72); } '
                            b'.source-attribution link { color: inherit; } '

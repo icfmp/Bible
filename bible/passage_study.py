@@ -29,6 +29,7 @@ class PassageStudy(Adw.Window):
         self.passage.add_css_class('heading');root.append(self.passage)
         self.tabs=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
         switcher=Gtk.StackSwitcher(stack=self.tabs,halign=Gtk.Align.FILL,margin_start=12,margin_end=12,margin_bottom=8)
+        switcher.add_css_class('passage-study-tabs')
         self.switcher=switcher;root.append(switcher);root.append(self.tabs)
         if target:
             self.words=owner.study.words;self.words.attach(target,metadata,host=self,start=mode=='original')
