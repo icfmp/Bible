@@ -94,7 +94,7 @@ class ReadingSync:
         self.pending=False
         owner=self.owner;tab=owner.active_tab;study=owner.study
         if (owner.closed or getattr(owner,'immersion',None) or self.running or not tab
-                or getattr(owner,'_study_resizing',False) or study.tool not in ('commentaries','notes')
+                or getattr(owner,'_study_resizing',False) or study.tool not in ('commentaries','notes','references')
                 or not tab.reader or not owner.split.get_show_sidebar()
                 or not tab.text.get_mapped()
                 or (study.tool=='commentaries' and (not study.reader or not study.text.get_mapped()))):return False
@@ -109,6 +109,7 @@ class ReadingSync:
                 if reference and reference!=tab.state.reference:tab.select_verse(reference)
                 elif reference:
                     if study.tool=='notes':study.notes.queue_follow(reference)
+                    elif study.tool=='references':study.references.refresh()
                     else:study.follow(reference)
             elif study.tool=='commentaries' and self.driver=='commentary' and not study.text.get_buffer().get_has_selection():
                 position=self.forced_position if self.forced_position is not None else study.visible_section()

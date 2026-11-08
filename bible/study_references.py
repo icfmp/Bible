@@ -105,6 +105,13 @@ class StudyReferences(Gtk.Box):
             self.heading.set_text(tr('References'))
             self.message(tr('Open a Bible passage to see its references.'));return
         start,end=tab.selected_passage();reader=tab.reader
+        coordinator=getattr(self.owner,'reading_sync',None)
+        if (coordinator and coordinator.driver=='bible' and not tab._restoring_scroll
+                and not tab.text.get_buffer().get_has_selection() and tab.text.get_mapped()):
+            # Scrolling while this tool/drawer was hidden intentionally did not
+            # run queries. Reopening must use that actual visible anchor, not
+            # the last explicit verse selection. Preserve explicit selections.
+            start=end=tab.visible_reference() or start
         stamp=(id(tab),id(reader),tab.state.resource,start,end,self.data.revision)
         # Tool activation forces the study coordinator to refresh. It does not
         # change this passage or dataset; rebuilding here loses manual scroll.

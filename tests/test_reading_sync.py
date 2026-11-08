@@ -83,6 +83,25 @@ class ReadingSyncTests(unittest.TestCase):
         adjustment=tab.scroll.get_vadjustment();adjustment.set_value(adjustment.get_value()+target.y-rect.y)
         spin(lambda:tab.state.reference==reference and not w.study._positioning,duration=.25)
 
+    def test_references_follow_visible_anchor_and_reopen_without_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            w=self.setup_window(directory);tab=w.active_tab
+            w.study.tools.set_visible_child_name('references');spin()
+            history=list(tab.state.history)
+            self.scroll_reference(w,'Gen.1.2')
+            self.assertEqual(w.study.references.context[2:],('Gen.1.2','Gen.1.2'))
+            self.scroll_reference(w,'Gen.1.1')
+            self.assertEqual(w.study.references.context[2:],('Gen.1.1','Gen.1.1'))
+            w.study_button.set_active(False);spin()
+            w.reading_sync.intent('bible',tab)
+            view=tab.text;iterator=view.get_buffer().get_iter_at_offset(tab._verse_offsets['Gen.1.2'])
+            y=view.get_iter_location(iterator).y;rect=view.get_visible_rect();a=tab.scroll.get_vadjustment()
+            a.set_value(a.get_value()+y-rect.y);spin(duration=.3)
+            visible=tab.visible_reference()
+            w.study_button.set_active(True);spin(duration=.3)
+            self.assertEqual(w.study.references.context[2:],(visible,visible))
+            self.assertEqual(tab.state.history,history)
+
     def test_both_directions_ranges_missing_history_focus_and_long_entry(self):
         with tempfile.TemporaryDirectory() as directory:
             w=self.setup_window(directory);tab=w.active_tab;study=w.study

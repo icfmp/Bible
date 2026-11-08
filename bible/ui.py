@@ -926,6 +926,10 @@ class Window(Adw.ApplicationWindow):
                 # after notification as well as on map, including a restored
                 # tool whose selection has not changed while hidden.
                 self.study.refresh();self.study.update_indicator()
+                if self.reading_sync.driver=='bible':
+                    # Hidden tools do no scroll work. Reconcile once after the
+                    # restored reader layout settles when the drawer reopens.
+                    self.reading_sync.needs_sync=True;self.reading_sync.schedule()
             else:self.active_tab.mark_commentary_range(None,None)
         self._syncing_study = False
         self.schedule_save()
