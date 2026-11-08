@@ -56,6 +56,8 @@ class AppearancePopover(Gtk.Popover):
         self.mode.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading mode')])
         self.mode.connect('changed',lambda widget,*_:self.update('mode',('system','day','night')[widget.get_selected()]))
         self.mode.set_hexpand(True);box.append(self.mode)
+        self.mode.set_homogeneous(True)
+        for button in self.mode.buttons:button.set_hexpand(True)
         self.palettes={};self.palette_rows={}
         for group,label,options in [('day_palette','Day palettes',[('white','White'),('paper','Paper (sepia)')]),
                                     ('night_palette','Night palettes',[('dark','Dark grey'),('black','Black')])]:

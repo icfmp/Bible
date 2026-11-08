@@ -84,7 +84,8 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertEqual(w.study.tools.get_pages().get_n_items(),3)
         self.assertFalse(w.study.notes.heading.get_parent());self.assertFalse(w.study.references.heading.get_parent())
         for tool in ('notes','references','commentaries'):
-            w.study.tools.set_visible_child_name(tool);spin();self.assertTrue(w.study.context_heading.get_mapped())
+            w.study.tools.set_visible_child_name(tool);spin()
+            self.assertEqual(w.study.context_heading.get_visible(),w.split.get_collapsed())
         self.assertFalse(hasattr(w.study,'translation_notes_button'))
         self.assertFalse(hasattr(w.study,'content_pages'))
         self.assertEqual(w.study.tool,'commentaries')

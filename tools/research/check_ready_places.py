@@ -3,7 +3,6 @@ import argparse,inspect,json,hashlib
 from pathlib import Path
 from unittest.mock import patch
 from bible.ui import Application,Window,Library,Gtk
-from bible.place_cards import PlaceCards
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
@@ -22,11 +21,11 @@ def walk(widget):
  while child:yield from walk(child);child=child.get_next_sibling()
 def open_case(ref,identity):
  tab=w.active_tab;tab.navigate(a.resource,ref);spin(lambda:not tab._restoring_scroll)
- dialog=PlaceCards(w,context=(tab.state.resource,tab.reader,ref,ref))
- if a.narrow:dialog.set_default_size(360,600)
- dialog.present();spin(lambda:not dialog.pending,timeout=30)
+ host=w.open_passage_study(context=(tab.state.resource,tab.reader,ref,ref),mode="map");dialog=host.places
+ if a.narrow:host.set_default_size(360,600)
+ host.present();spin(lambda:not dialog.pending,timeout=30)
  if a.narrow:assert dialog.get_width()<=360,dialog.get_width()
- place=next(p for p in dialog.rows if p['id']==identity);dialog.open_place(place);spin(duration=.4);native.activate(dialog)
+ place=next(p for p in dialog.rows if p['id']==identity);dialog.open_place(place);spin(duration=.4);native.activate(dialog.host)
  return dialog,place
 try:
  dialog,place=open_case('Mark.7.1','a15257a')
@@ -38,7 +37,7 @@ try:
  digest=hashlib.sha256(hero.photo_path.read_bytes()).hexdigest();assert digest=='4fcf697ce4d9605241f5412b6951823546f688b52ec890a5a7804e98092cb501'
  assert any('askii' in x.get_text() and '2.0' in x.get_text() for x in walk(dialog) if isinstance(x,Gtk.Label))
  screen.grab(out/'jerusalem-photo.png');report['hero_size']=[hero.get_child().get_width(),hero.get_child().get_height()];native.click(hero);spin()
- photo=next(x for x in Gtk.Window.list_toplevels() if x is not dialog and x is not w and x.get_visible() and x.get_transient_for() is dialog)
+ photo=next(x for x in Gtk.Window.list_toplevels() if x is not dialog and x is not w and x.get_visible() and x.get_transient_for() is dialog.host)
  assert photo.get_title() and '2013' in photo.get_title();photo.close();spin();dialog.close();spin()
  with patch('urllib.request.urlopen',side_effect=AssertionError('Offline verification')):
   dialog,place=open_case('Mark.7.1','a15257a')

@@ -262,7 +262,7 @@ class LibraryPolishTests(unittest.TestCase):
         d.search.set_text('French');d.filter_resources();d.source_filter.set_selected(1)
         d.study_tools_button.set_active(True);spin(lambda:not d.busy)
         self.assertEqual(d.search.get_text(),'')
-        self.assertEqual(len(d.filtered_resources),4)
+        self.assertEqual({r.id for r in d.filtered_resources},{'openbible-cross-references','openbible-places','openbible-topics','step-word-study','place-context'})
         self.assertTrue(d.type_tabs.get_visible());self.assertFalse(d.language.get_visible())
         self.assertFalse(d.source_filter.get_visible())
         with patch.object(d,'load_catalogue') as fetch:

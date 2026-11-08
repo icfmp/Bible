@@ -112,12 +112,11 @@ def main():
                         nav.popdown();spin()
             if a.maps:
                 w.set_default_size(1200,820);spin()
-                from bible.place_cards import PlaceCards
                 from bible.place_data import PlaceData
                 store=PlaceData(data_root)
                 for reference,name in [('Gen.11.2','Shinar'),('Josh.10.1','Jerusalem'),('Luke.24.13','Emmaus'),('Gen.4.16','Nod')]:
                     t.navigate('FreSegond1910',reference);spin(lambda:not t._restoring_scroll)
-                    dialog=PlaceCards(w);dialog.present();spin(lambda:not dialog.pending)
+                    host=w.open_places();dialog=host.places;spin(lambda:not dialog.pending)
                     place=next(row for row in dialog.rows if row['name']==name)
                     dialog.open_place(place)
                     if dialog.map_widget:spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=40)

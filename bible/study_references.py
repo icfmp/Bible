@@ -106,7 +106,7 @@ class StudyReferences(Gtk.Box):
             self.message(tr('Open a Bible passage to see its references.'));return
         start,end=tab.selected_passage();reader=tab.reader
         coordinator=getattr(self.owner,'reading_sync',None)
-        if (coordinator and coordinator.driver=='bible' and not tab._restoring_scroll
+        if (coordinator and coordinator.driver=='bible' and coordinator.armed_until>0 and not tab._restoring_scroll
                 and not tab.text.get_buffer().get_has_selection() and tab.text.get_mapped()):
             # Scrolling while this tool/drawer was hidden intentionally did not
             # run queries. Reopening must use that actual visible anchor, not
@@ -125,6 +125,8 @@ class StudyReferences(Gtk.Box):
         # first makes GTK anchor the footer and jump down when results arrive.
         if self._new_passage:self.clear_rows()
         self.heading.set_text(passage_title(start,end,reader.versification))
+        self.list.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cross-references')+': '+self.heading.get_text()])
+        self.owner.study.update_indicator()
         if self.data.revision is None:
             self.clear_rows()
             self.message(tr('Download OpenBible reference data once to use it offline.'),download=True);return

@@ -60,8 +60,9 @@ class Labels(Gtk.Box):
         self.flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=False,
                                  min_children_per_line=1, max_children_per_line=8)
         chips=Gtk.Box(spacing=6)
-        caption=Gtk.Label(label=tr('Labels'),xalign=0);caption.add_css_class('caption');chips.append(caption)
-        self.flow.set_hexpand(True);chips.append(self.flow);self.append(chips)
+        caption=Gtk.Label(label=tr('Labels'),xalign=0,hexpand=True);self.caption=caption
+        caption.add_css_class('caption');chips.append(caption)
+        self.flow.set_hexpand(True);self.append(chips);self.append(self.flow)
         row = Gtk.Box(spacing=6)
         self.entry = Gtk.Entry(hexpand=True, placeholder_text=tr('Add a label'))
         self.entry.update_property([Gtk.AccessibleProperty.LABEL], [tr('Labels')])
@@ -99,6 +100,7 @@ class Labels(Gtk.Box):
 
     def set_values(self, values):
         self.values = list(values)
+        self.flow.set_visible(bool(self.values))
         child = self.flow.get_first_child()
         while child:
             following = child.get_next_sibling()
@@ -138,7 +140,7 @@ class NoteEditor(Adw.Window):
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         header = Adw.HeaderBar();self.header=header
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        header.set_title_widget(Gtk.Label())  # The passage below is the visible heading; keep the window's accessible title.
+        header.set_title_widget(Gtk.Label(label=tr('Edit note')))
         self.save_button = Gtk.Button(label=tr('Save'))
         self.save_button.add_css_class('suggested-action')
         self.save_button.connect('clicked', lambda *_: self.save())
@@ -159,6 +161,7 @@ class NoteEditor(Adw.Window):
         context_text=origin+' · '+language_name(self.context['origin_language'])+' · '+tr('Excerpt')
         context_label=Gtk.Label(label=context_text,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0,margin_start=20,margin_end=20)
         context_label.add_css_class('dim-label');context_label.set_tooltip_text(self.context['origin_translation']+' · '+self.context['versification'])
+        context_label.add_css_class('caption')
         layout.append(context_label)
         from .reference_targets import local_excerpt
         try:
@@ -200,6 +203,7 @@ class NoteEditor(Adw.Window):
         layout.append(commands)
         from .note_editing import NoteTextView
         self.body = NoteTextView(owner,self.context['versification'],self.guard_navigation)
+        self.body.set_left_margin(6);self.body.set_right_margin(6)
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
         self.body.set_source(note.body if note else '')
@@ -212,25 +216,26 @@ class NoteEditor(Adw.Window):
         self.labels.set_margin_start(12)
         self.labels.set_margin_end(12)
         self.labels.set_values(note.labels if note else [])
-        if embedded and not compact:
-            # The collection editor has separate context, writing and label
-            # bands. The drawer's compact editor keeps its existing layout.
-            self.embedded_content = layout
-            for widget in (self.status, commands, self.labels):
-                widget.set_margin_start(20);widget.set_margin_end(20)
-            commands.add_css_class('toolbar')
-            layout.insert_child_after(Gtk.Separator(margin_start=20,margin_end=20), scroll)
-            self.status.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
-            self.status.set_visible(bool(self.status.get_text()))
+        self.writing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12)
+        for widget in (note_heading,commands,scroll):
+            layout.remove(widget);widget.set_margin_start(0);widget.set_margin_end(0);widget.set_margin_top(0)
+            self.writing.append(widget)
+        commands.add_css_class('toolbar');layout.append(self.writing)
         layout.append(self.labels)
         from .note_links import PassageLinks
         self.links=PassageLinks(owner,self.context,note.links if note else (),lambda:self.queue_autosave() if self.autosave else None)
-        self.links.set_margin_start(16);self.links.set_margin_end(16);layout.append(self.links)
-        if note:
-            footer=Gtk.Box(margin_start=12,margin_end=12,margin_bottom=8)
-            self.delete_button=Gtk.Button(label=tr('Delete note…'),halign=Gtk.Align.START)
-            self.delete_button.add_css_class('flat');self.delete_button.add_css_class('destructive-action')
-            self.delete_button.connect('clicked',self.ask_delete);footer.append(self.delete_button);layout.append(footer)
+        self.links.set_margin_start(12);self.links.set_margin_end(12);layout.append(self.links)
+        self.metadata_height=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
+        for widget in (self.labels.caption,self.labels.add_menu,self.links.expander.get_label_widget(),self.links.add_button):
+            self.metadata_height.add_widget(widget)
+        self.actions_menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'),visible=bool(note))
+        self.actions_menu.add_css_class('flat')
+        self.actions_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Note actions')])
+        popover=Gtk.Popover()
+        self.delete_button=Gtk.Button(label=tr('Delete note…'))
+        self.delete_button.add_css_class('flat');self.delete_button.add_css_class('destructive-action')
+        self.delete_button.connect('clicked',lambda *_:(self.actions_menu.popdown(),self.ask_delete()))
+        popover.set_child(self.delete_button);self.actions_menu.set_popover(popover);header.pack_start(self.actions_menu)
         self.embedded_content=layout
         if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
@@ -240,6 +245,8 @@ class NoteEditor(Adw.Window):
         layout=self.embedded_content
         if self.header.get_parent() is layout:layout.remove(self.header)
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);root.append(self.header)
+        self.writing.set_vexpand(True);self.body_scroll.set_vexpand(True)
+        layout.set_vexpand(True)
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(layout);root.append(scroll);self.set_content(root)
 
@@ -306,6 +313,7 @@ class NoteEditor(Adw.Window):
                 raise ValueError(tr('Write some text before saving the note.'))
             self.note = self.owner.notes_store.save(buffer_text(self.body), self.labels.values,links=self.links.values,
                                                     existing=self.note, **self.context)
+            self.actions_menu.set_visible(True)
             self._initial = (self.note.body, tuple(self.labels.values),self.note.links)
             host=self.embedded_host
             if host and hasattr(host,'note_saved'):host.note_saved(self)
@@ -894,6 +902,7 @@ class NotesSpace(Gtk.Box):
         parent=self.open_button.get_parent()
         if parent:parent.remove(self.open_button)
         editor.reference_row.append(self.open_button)
+        editor.header.remove(editor.actions_menu);editor.reference_row.append(editor.actions_menu)
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
         def focus():

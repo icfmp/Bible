@@ -284,6 +284,7 @@ class Window(Adw.ApplicationWindow):
         self.split.set_sidebar(sidebar)
         self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
+        self.split.connect('notify::collapsed',lambda *_:self.study.update_context_heading())
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
         self.main_pages.connect('notify::visible-child-name',self.workspace_changed)
         self.main_pages.add_named(self.split,'reading')
@@ -926,7 +927,7 @@ class Window(Adw.ApplicationWindow):
                 # after notification as well as on map, including a restored
                 # tool whose selection has not changed while hidden.
                 self.study.refresh();self.study.update_indicator()
-                if self.reading_sync.driver=='bible':
+                if self.reading_sync.driver=='bible' and self.reading_sync.armed_until>0:
                     # Hidden tools do no scroll work. Reconcile once after the
                     # restored reader layout settles when the drawer reopens.
                     self.reading_sync.needs_sync=True;self.reading_sync.schedule()
@@ -935,11 +936,16 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def open_places(self):
-        if getattr(self,'place_dialog',None) is None or self.place_dialog.closed:
-            from .place_cards import PlaceCards
-            self.place_dialog=PlaceCards(self)
-        self.place_dialog.present(self)
-        return self.place_dialog
+        return self.open_passage_study(mode='map')
+
+    def open_passage_study(self,*,target=None,context=None,mode='original',place=None,metadata=None):
+        previous=getattr(self,'passage_study_dialog',None)
+        if previous and not previous.closed:previous.close()
+        from .passage_study import PassageStudy
+        dialog=PassageStudy(self,target=target,context=context,mode=mode,place=place,metadata=metadata)
+        self.passage_study_dialog=dialog;self.place_dialog=dialog
+        dialog.present();dialog.close_button.grab_focus()
+        return dialog
 
     def library_context(self,tab,destination):
         import weakref

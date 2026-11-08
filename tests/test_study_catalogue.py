@@ -4,7 +4,7 @@ from dataclasses import asdict
 from pathlib import Path
 import hashlib,json,tempfile,unittest,zipfile
 from unittest.mock import patch
-from bible.study_catalogue import BUNDLED,CATALOGUE_URL,FORMATS,ResourceRevision,StudyCatalogue,parse
+from bible.study_catalogue import BUNDLED,CATALOGUE_URL,PLACE_CATALOGUE_URL,FORMATS,ResourceRevision,StudyCatalogue,parse
 from bible.topic_vocabulary import BUNDLED as WORDS,TopicVocabulary,suggestions,title
 from bible.reference_data import ReferenceData,ReferenceDataError
 from bible.topic_data import TopicData
@@ -32,7 +32,8 @@ def archive(path,kind,generation,rows):
 class StudyCatalogueTests(unittest.TestCase):
     def transport(self,payloads,called):
         def receive(url,output,progress=lambda *_:None,limit=None,**_):
-            called.append(url);data=payloads[url]
+            called.append(url)
+            data=(json.dumps(dict(schema=1,resources={'place-context':json.loads(BUNDLED.read_bytes())['resources']['place-context']})).encode() if url==PLACE_CATALOGUE_URL else payloads[url])
             if isinstance(data,BaseException):raise data
             self.assertLessEqual(len(data),limit)
             output.write(data);progress(len(data),len(data))

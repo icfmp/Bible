@@ -57,14 +57,17 @@ class PlaceCardTests(unittest.TestCase):
 
     def test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab(self):
         w=self.window;self.install();before=(w.active_tab.state.reference,list(w.active_tab.state.history),w.view.get_n_pages())
-        dialog=w.open_places();spin(lambda:not dialog.pending,duration=.2)
+        host=w.open_places();dialog=host.places;spin(lambda:not dialog.pending,duration=.2)
         self.assertEqual([p['name'] for p in dialog.rows],['Jerusalem'])
         dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
-        self.assertIs(dialog.get_transient_for(),w);self.assertTrue(w.get_mapped())
+        self.assertIs(host.get_transient_for(),w);self.assertTrue(w.get_mapped())
         self.assertNotIn('French',dialog.passage_context.get_text())
         self.assertFalse(any(getattr(x,'get_label',lambda:None)()=='Sources and technical details' for x in self.walk(dialog)))
         self.assertEqual(dialog.current_place['status'],'known')
         button=next(x for x in self.walk(dialog.references) if hasattr(x,'_reference'))
+        adjustment=dialog.card_scroll.get_vadjustment()
+        adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());spin(duration=.3)
+        self.assertTrue(button.get_mapped())
         button.emit('clicked');spin()
         self.assertEqual(w.reference_preview.target,('French','Ps.3.2'))
         self.assertEqual(w.reference_preview.body.get_buffer().props.text,'EXACT FRENCH PSALM TEST')
@@ -81,7 +84,7 @@ class PlaceCardTests(unittest.TestCase):
 
     def test_map_failure_keeps_place_metadata_and_related_references(self):
         self.install()
-        dialog=self.window.open_places();spin(lambda:not dialog.pending,duration=.2)
+        host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending,duration=.2)
         dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
         self.assertTrue(self.tile_requests,'The actual native map must receive the controlled HTTP failure')
         self.assertFalse(dialog.map_widget.ready)
@@ -91,7 +94,7 @@ class PlaceCardTests(unittest.TestCase):
 
     def test_region_reference_point_keeps_its_historical_uncertainty_visible(self):
         from bible.i18n import tr
-        self.install();dialog=self.window.open_places();spin(lambda:not dialog.pending)
+        self.install();host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending)
         place=dialog.rows[0];place['candidates'][0]['role']='representative point'
         dialog.open_place(place);spin()
         labels=[x.get_text() for x in self.walk(dialog) if hasattr(x,'get_text')]
@@ -100,7 +103,7 @@ class PlaceCardTests(unittest.TestCase):
 
     def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):
         from bible.study_resources import PLACE_RESOURCE_ID
-        w=self.window;before=w.library.installed();dialog=w.open_places();spin()
+        w=self.window;before=w.library.installed();host=w.open_places();dialog=host.places;spin()
         self.assertTrue(dialog.download.get_visible())
         with patch('bible.catalogue_window.catalogue',side_effect=AssertionError('No SWORD refresh for place data')):
             dialog.open_library();library=w.catalogue_window;spin()
@@ -108,6 +111,7 @@ class PlaceCardTests(unittest.TestCase):
             self.assertFalse(library._catalogue_requested)
             self.assertIn('opendatacommons.org',library.metadata.get_text())
             self.install();w.resource_installed(PLACE_RESOURCE_ID);library.filter_resources()
+            library.close();host=w.open_places();dialog=host.places
             spin(lambda:not dialog.pending,duration=.2)
             self.assertTrue(dialog.rows);self.assertEqual(w.library.installed(),before)
             self.assertNotIn(PLACE_RESOURCE_ID,w.library.installed('bible'))

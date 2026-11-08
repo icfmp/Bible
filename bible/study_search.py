@@ -89,13 +89,12 @@ class StudySearch(Gtk.Box):
         scroll=Gtk.ScrolledWindow(min_content_height=100,max_content_height=280,propagate_natural_height=True,
                                    hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.results);self.result_scroll=scroll
-        self.set_vexpand(True)
-        scroll.set_max_content_height(-1);scroll.set_propagate_natural_height(False);scroll.set_vexpand(True)
+        self.set_vexpand(False)
+        scroll.set_min_content_height(0);scroll.set_propagate_natural_height(True)
         if mode=='topics':
-            self.topic_scroll.set_min_content_height(80);self.topic_scroll.set_max_content_height(-1)
-            self.topic_scroll.set_propagate_natural_height(False);self.topic_scroll.set_vexpand(True)
-            scroll.set_max_content_height(-1);scroll.set_propagate_natural_height(False);scroll.set_vexpand(True)
-            self.topic_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+            self.topic_scroll.set_min_content_height(0)
+            self.topic_scroll.set_propagate_natural_height(True)
+            self.topic_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
             self.topic_pages.add_named(self.topic_scroll,'topics');self.topic_pages.add_named(scroll,'results')
             self.append(self.topic_pages)
         else:self.append(scroll)

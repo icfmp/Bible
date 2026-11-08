@@ -8,6 +8,37 @@ from tests.test_reading_sync import linked_commentary
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ContextIndicatorTests(unittest.TestCase):
+    def test_notes_and_references_share_transient_indicator_and_adaptive_context(self):
+        from bible.ui import Application,Window,Library
+        from bible.notes import PassageLink
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory,entries=[(f'Gen.1.{i}',f'Verse {i} words '*12) for i in range(1,9)]+[('Gen.2.1','Next chapter')])
+            w=Window(app,Library(Path(directory)/'translations'));w.set_default_size(1440,900);w.present()
+            try:
+                tab=w.active_tab;tab.navigate('Test','Gen.1.2');w.study_button.set_active(True)
+                w.study.tools.set_visible_child_name('notes');spin(lambda:not tab._restoring_scroll)
+                self.assertIsNone(tab._study_coverage)
+                note=w.notes_store.save('Preserved note',[],versification='KJV',start='Gen.1.2',end='Gen.1.3',
+                    origin_translation='Test',origin_language='en',links=[PassageLink('KJV','Gen.2.1','Gen.2.1')])
+                w.study.notes.refresh();spin()
+                self.assertEqual(tab._study_coverage,('KJV','Gen.1.2','Gen.1.3'))
+                self.assertFalse(w.study.context_heading.get_visible())
+                text=tab.text.get_buffer().props.text
+                tab.select_verse('Gen.1.7');spin()
+                self.assertIsNone(tab._study_coverage)
+                tab.navigate('Test','Gen.2.1');spin(lambda:not tab._restoring_scroll)
+                self.assertEqual(tab._study_coverage,('KJV','Gen.2.1','Gen.2.1'))
+                w.study.tools.set_visible_child_name('references');spin()
+                self.assertEqual(tab._study_coverage,('KJV','Gen.2.1','Gen.2.1'))
+                self.assertFalse(w.study.context_heading.get_visible())
+                w.set_default_size(560,700);spin(duration=.3)
+                self.assertTrue(w.split.get_collapsed());self.assertTrue(w.study.context_heading.get_visible())
+                self.assertTrue(w.study.context_heading.get_text())
+                self.assertEqual(w.notes_store.get(note.id),note)
+                self.assertFalse((Path(directory)/'highlights.json').exists())
+            finally:w.close()
+
     def test_true_range_is_paint_only_and_clears_without_navigation(self):
         from bible.ui import Application,Window,Library
         app=Application.get_default() or Application();app.register()

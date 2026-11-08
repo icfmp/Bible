@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/icfmp/Bible-Resources",
+  "commit": "f6900c2de0bdbbf7e559d9a017507d12d1d783ba",
+  "path": "datasets/place-context-v2.json",
+  "sha256": "ae110c87bfcf621ebf8aa67f223d6f4992ed539657deed969d45590eb53b5d95",
+  "notice": "Generated offline seed; independent resource updates retain source-specific licenses and provenance."
+}

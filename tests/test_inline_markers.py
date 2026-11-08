@@ -168,7 +168,7 @@ class InlineMarkerTests(unittest.TestCase):
                 geographic=next(b for b in tab.text._inline_buttons if b._marker_kind=='place')
                 with patch('urllib.request.urlopen',side_effect=AssertionError('Offline')):
                     geographic.emit('clicked');spin()
-                    self.assertEqual(window.place_dialog.current_place['id'],'a123456')
+                    self.assertEqual(window.place_dialog.places.current_place['id'],'a123456')
                     window.place_dialog.close();spin()
                 window.appearance.update('place_markers',False);spin()
                 self.assertEqual(len(tab.text._inline_buttons),1)

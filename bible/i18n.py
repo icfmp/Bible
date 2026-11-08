@@ -277,8 +277,23 @@ FR = {
     'Community score: {score}':'Pertinence communautaire : {score}',
     'Related to {count} selected verses.':'Associé à {count} versets sélectionnés.',
     'OpenBible.info · CC BY 4.0. Community suggestions; explore the context.':'OpenBible.info · CC BY 4.0. Suggestions communautaires ; consultez le contexte.',
-    'Passage study': 'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
+    'Study passage': 'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
     'Add note': 'Ajouter une note', 'Edit note': 'Modifier la note',
+    'About original words':'À propos des mots originaux','Lexical content':'Contenu lexical',
+    'Occurrence data is unavailable.':'Les données d’occurrences sont indisponibles.',
+    'Dictionary':'Dictionnaire','Map':'Carte','People':'Personnes',
+    'Choose a Bible passage to study.':'Choisissez un passage biblique à étudier.',
+    'No linked dictionary data is available.':'Aucune donnée de dictionnaire liée n’est disponible.',
+    'No source-backed people data is available.':'Aucune donnée sourcée sur les personnes n’est disponible.',
+    'Library actions':'Actions de la bibliothèque','Check for module updates':'Vérifier les mises à jour des modules',
+    'Module updates':'Mises à jour des modules','Checking installed modules…':'Vérification des modules installés…',
+    'This check reports installed versions and curated edition availability. It does not install or replace modules.':'Cette vérification indique les versions installées et la disponibilité des éditions vérifiées. Elle n’installe ni ne remplace de module.',
+    'Saved catalogue — the network check failed.':'Catalogue enregistré — la vérification en ligne a échoué.',
+    'Unable to check the curated catalogue.':'Impossible de vérifier le catalogue validé.',
+    'No curated modules have been published yet.':'Aucun module validé n’a encore été publié.',
+    'Module check complete.':'Vérification des modules terminée.','Installed version':'Version installée',
+    'Edition identity not verified':'Identité de l’édition non vérifiée','No verified curated edition':'Aucune édition validée vérifiée',
+    'No installed SWORD modules found.':'Aucun module SWORD installé trouvé.',
     'Notes on': 'Notes sur', 'No notes for this passage.': 'Aucune note pour ce passage.',
     'No highlights for this passage.': 'Aucun surlignage pour ce passage.',
     'Add highlight': 'Ajouter un surlignage', 'Show more notes': 'Afficher plus de notes',
@@ -625,3 +640,12 @@ FR.update({'A note passage must be ordered within one book':'Le passage d’une 
 
 FR.update({'Update available':'Mise à jour disponible'})
 FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {revision}'})
+
+FR.update({
+    'Place descriptions and photographs':'Descriptions et photographies des lieux',
+    'Source-backed context for recorded places':'Contexte sourcé pour les lieux répertoriés',
+    'Source language, identity and revision retained. Photographs download only on request; file credits and licenses accompany each image.':'Langue, identité et révision des sources conservées. Les photographies sont téléchargées sur demande ; les crédits et licences accompagnent chaque image.',
+    'Coordinate-source entity: {name}':'Entité de la source des coordonnées : {name}',
+    'Related to the proposed site {name}; this does not establish its identity with the biblical place.':'Associée au site proposé {name} ; cela n’établit pas son identité avec le lieu biblique.',
+    '{count} source proposals for this site':'{count} propositions de la source pour ce site',
+})

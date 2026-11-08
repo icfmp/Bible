@@ -82,7 +82,7 @@ class PassageActionTests(unittest.TestCase):
                         offset=tab._marker_ends['Gen.1.1']+3
                         buffer.select_range(buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(offset+12))
                         a=w.passage_actions;a.capture(tab.text,lambda:a.ordinary(tab),None);spin(duration=.4)
-                        buttons=[a.copy_button,*[v[0] for v in a.highlight_buttons.values()],a.note_button,a.word_button,a.close_button]
+                        buttons=[a.copy_button,*[v[0] for v in a.highlight_buttons.values()],a.note_button,a.word_button]
                         for button in buttons:
                             found,bounds=button.compute_bounds(w);self.assertTrue(found)
                             self.assertGreaterEqual(bounds.get_x(),0);self.assertLessEqual(bounds.get_x()+bounds.get_width(),w.get_width())
