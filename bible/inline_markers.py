@@ -125,15 +125,15 @@ class InlineMarkers:
                 owner._reading_popovers.append(pop)
                 box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
                 from .place_names import place_name
-                from .place_cards import STATUS
-                names=[place_name(p['name']) for p in payload]
                 for place in {p['id']:p for p in payload}.values():
                     name=place_name(place['name'])
-                    modern='; '.join(dict.fromkeys(place_name(c['name']) for c in place['candidates'] if c['longitude'] is not None))
-                    caption=name+'\n'+(modern+' · ' if modern else '')+tr(STATUS[place['status']])
-                    if names.count(name)>1:
-                        caption+='\n'+tr('Related Bible references')+': '+', '.join(passage_title(r) for r in place['references'][:2])
-                    choice=Gtk.Button(child=Gtk.Label(label=caption,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32));choice.add_css_class('flat')
+                    row=Gtk.Box(spacing=12)
+                    row.append(Gtk.Label(label=name,xalign=0,wrap=True,
+                        wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32,hexpand=True))
+                    row.append(Gtk.Image(icon_name='go-next-symbolic'))
+                    choice=Gtk.Button(child=row)
+                    choice.set_cursor_from_name('pointer')
+                    choice.update_property([Gtk.AccessibleProperty.LABEL],[name])
                     choice._place_id=place['id']
                     choice.connect('clicked',lambda _,p=place:(pop.popdown(),self.place(reader,ref,p)))
                     box.append(choice)
