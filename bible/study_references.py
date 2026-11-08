@@ -46,7 +46,7 @@ class StudyReferences(Gtk.Box):
         self.view_all=Gtk.Button(label=tr('View all'),halign=Gtk.Align.START,visible=False);self.view_all.connect('clicked',self.show_all);self.footer.append(self.view_all)
         credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
         credit.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>')
-        credit.add_css_class('caption');credit.add_css_class('dim-label');credit.add_css_class('source-attribution');credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.footer.append(credit)
+        credit.add_css_class('caption');credit.add_css_class('source-attribution');credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.footer.append(credit)
         self.teaser=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         header=Gtk.Box(spacing=6)
         title=Gtk.Label(label=tr('Cross-references'),xalign=0,hexpand=True);title.add_css_class('heading');header.append(title)

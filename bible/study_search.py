@@ -107,7 +107,7 @@ class StudySearch(Gtk.Box):
         information=Gtk.Popover()
         notice=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,max_width_chars=36,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12,selectable=True)
-        notice.add_css_class('source-attribution');notice.add_css_class('dim-label')
+        notice.add_css_class('source-attribution')
         notice.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>\n'+
             GLib.markup_escape_text(tr('Community suggestions; explore the context.'))+'\n\n'+GLib.markup_escape_text(TRANSFORMATIONS))
         notice_scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
