@@ -207,7 +207,7 @@ class NoteEditor(Adw.Window):
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
         self.body.set_source(note.body if note else '')
-        scroll = Gtk.ScrolledWindow(vexpand=False,min_content_height=160,
+        scroll = Gtk.ScrolledWindow(vexpand=False,min_content_height=96 if compact else 160,
                                     max_content_height=240 if compact else 300,propagate_natural_height=True)
         self.body_scroll=scroll
         scroll.set_child(self.body)
@@ -895,8 +895,6 @@ class NotesSpace(Gtk.Box):
     def mount(self,note):
         if note is None:return
         editor=NoteEditor(self.owner,note=note,embedded=True);editor.embedded_host=self
-        editor.embedded_content.set_vexpand(True)
-        editor.writing.set_vexpand(True);editor.body_scroll.set_vexpand(True)
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
         self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
         from .annotation_collection import records
