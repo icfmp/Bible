@@ -42,7 +42,7 @@ class PlaceMap(Gtk.Box):
         self.retry=Gtk.Button(label=tr('Retry'),halign=Gtk.Align.START,visible=False)
         self.retry.connect('clicked',lambda *_:self.start())
         self.credit=Gtk.LinkButton(uri=TILE_TERMS,label='OpenStreetMap France',halign=Gtk.Align.START)
-        self.credit.add_css_class('caption')
+        self.credit.add_css_class('caption');self.credit.add_css_class('source-attribution')
         self.append(self.credit);self.append(self.status);self.append(self.retry)
         self.connect('map',lambda *_:self.start() if self.canvas is None else None)
         self.connect('unmap',lambda *_:self.stop())

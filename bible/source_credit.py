@@ -8,7 +8,7 @@ def source_credit(provenance):
     lines=provenance.splitlines();caption=lines[0] if lines else ''
     urls=[line for line in lines[1:] if urlsplit(line).scheme=='https' and urlsplit(line).netloc]
     credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-    credit.add_css_class('caption');credit.add_css_class('dim-label')
+    credit.add_css_class('caption');credit.add_css_class('source-attribution')
     if urls:
         parts=caption.split(' · ')
         markup='<a href="'+GLib.markup_escape_text(urls[0])+'">'+GLib.markup_escape_text(parts[0])+'</a>'

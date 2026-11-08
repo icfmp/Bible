@@ -305,6 +305,8 @@ class Window(Adw.ApplicationWindow):
                            b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
                            b'.study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } '
                            b'.reference-excerpt { font-weight: normal; } '
+                           b'.source-attribution { color: alpha(@window_fg_color, .72); } '
+                           b'.source-attribution link { color: inherit; } '
                            b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
                            b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
                            b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
