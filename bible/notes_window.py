@@ -121,7 +121,7 @@ class Labels(Gtk.Box):
 class NoteEditor(Adw.Window):
     def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False):
         super().__init__(transient_for=owner, modal=True, title=tr('Passage note'),
-                         default_width=700, default_height=min(680,max(480,owner.get_height()-96)))
+                         default_width=700, default_height=480)
         self.set_size_request(360, 360)
         self.owner, self.note = owner, note
         self.embedded=embedded;self.compact=compact;self.embedded_host=None

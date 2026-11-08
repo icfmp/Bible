@@ -12,6 +12,7 @@ from tests.test_ui import installed_fixture, spin
 from tools.check_alpha_ui import X11Input
 from bible.ui import Application, Window, Library, Gtk
 from bible.notes_window import buffer_text
+from bible.i18n import tr
 
 
 def main():
@@ -53,7 +54,9 @@ def main():
             w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');spin()
             assert buffer_text(editor.body)=='Deliberate draft **kept**' and editor.context==context
             # Actual keyboard activation of Expand keeps the exact buffer.
-            original=editor.body.get_buffer();expand=notes.editor_commands.get_last_child()
+            original=editor.body.get_buffer();expand=notes.editor_commands.get_first_child()
+            while expand and expand.get_tooltip_text()!=tr('Expand note'):expand=expand.get_next_sibling()
+            assert expand is not None,'The accessible Expand note action must remain available'
             expand.grab_focus();native.key('space');spin()
             assert not editor.embedded and editor.body.get_buffer() is original
             assert editor.save();assert w.notes_store.get(note.id).body=='Deliberate draft **kept**'

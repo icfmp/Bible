@@ -96,6 +96,20 @@ class StudyCatalogueTests(unittest.TestCase):
             self.assertEqual(installed.path.read_bytes(),saved);self.assertEqual(store.path.read_bytes(),original)
             self.assertEqual(TopicData(store.root).query('forgiveness')[0].start,'John.3.16')
 
+    def test_existing_reference_install_does_not_depend_on_optional_place_context_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);data=archive(root/'data.zip','references','2026-11-02','John.1.5\tGen.1.3\t8\n')
+            item=revision('openbible-cross-references',data);metadata=catalogue(**{'openbible-cross-references':item})
+            store=ReferenceData(root/'study');calls=[]
+            def receive(url,output,*args,**kwargs):
+                calls.append(url)
+                if url==PLACE_CATALOGUE_URL:raise OSError('Optional source is unavailable')
+                output.write(metadata if url==CATALOGUE_URL else data)
+            with patch('bible.library.download',side_effect=receive):store.install()
+            self.assertEqual(store.query(['John.1.5'])[0].start,'Gen.1.3')
+            self.assertNotIn(PLACE_CATALOGUE_URL,calls)
+            self.assertEqual(store.metadata()['archive_sha256'],item.sha256)
+
     def test_vocabulary_only_publication_retains_both_index_revisions(self):
         from tools.study_resource_updates import prepare
         with tempfile.TemporaryDirectory() as directory:

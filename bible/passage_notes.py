@@ -341,6 +341,7 @@ class PassageNotes(Gtk.Box):
         self.editor_panel.remove(editor.embedded_content);self.editor_panel.set_visible(False)
         self.editor_commands.remove(editor.actions_menu);editor.header.pack_start(editor.actions_menu)
         editor.embedded=False;editor.dialog_parent=editor
+        editor.set_default_size(700,min(680,max(480,self.owner.get_height()-96)))
         editor.header.set_visible(True);editor.use_window_layout();editor.present()
 
     def editor_closed(self,editor):

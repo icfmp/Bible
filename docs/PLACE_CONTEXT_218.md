@@ -1,64 +1,38 @@
-# Reviewed place context and optional photographs (#218)
+# Offline place context and optional photographs (#218, #238)
 
-The OpenBible index and its references are unchanged. Enrichments live separately
-in `bible/study_data/place_context.json`, keyed by the stable ancient-place ID and
-checked source name. The shared reader never matches an enrichment by translated
-name or assigns coordinates from Wikipedia or a photograph.
+The OpenBible index, its source IDs, coordinates and references are unchanged. A separately prepared resource supplies source-identified context. The renderer uses `bible/study_data/place_context_v2.json` as a small generated offline seed; its exact origin is in `place_context_v2.origin.json`. The obsolete schema-1 application-authored Jerusalem excerpt is no longer shipped. Existing downloaded indexes, photographs, notes and preferences are untouched.
 
-| Existing OpenBible field | Previous presentation | Current presentation |
-| --- | --- | --- |
-| Name, identification status | Name and conservative certainty | Preserved; repeated identical heading omitted |
-| Candidate names, coordinates, roles, modifiers | Map, candidate labels, approximation | Preserved, including rejected/uncertain alternatives |
-| Translation name counts / aliases | Stored, omitted from card | Compact expandable source-name line; no claim all names are strict synonyms |
-| Coordinate evidence links / Wikidata IDs | Stored, omitted | Accessible links under Sources and evidence |
-| Bibliographic source titles | Stored, omitted | Source titles under Sources and evidence; no copyrighted book contents imported |
-| Original evidence paths, source scores | Stored | Retained; no raw scores presented as archaeological probabilities |
-| Unknown resolutions | No fabricated pin | Preserved; Nod has no historical enrichment or photograph |
+Preparation and maintenance live in [Bible-Resources](https://github.com/icfmp/Bible-Resources/blob/main/docs/PLACE_CONTEXT.md). That process records explicit source identities, revisions, native languages, licenses, file credits, bounded image sizes and SHA-256. It acquires complete source-service introductory extracts without authoring summaries or translating them. French and English Wikipedia articles are checked independently against the supplied Wikidata ID. Missing or mismatched language coverage remains unavailable; the renderer labels the source language it actually displays.
 
-## Reviewed Jerusalem enrichment
+| OpenBible evidence | Presentation and preservation |
+| --- | --- |
+| Ancient ID, source name and uncertainty | Exact ID/name agreement; conservative identification label retained |
+| Proposed modern IDs, coordinates, roles and modifiers | Native map; all original proposals retained |
+| Multiple resolutions of one modern ID | One site heading, every distinct source proposal and its qualification still shown |
+| Translation names and aliases | Compact source-name disclosure; conventional UI labels do not rewrite source prose |
+| Coordinate provenance and bibliography | Accessible Sources and evidence disclosure; no book content imported |
+| Evidence paths and scores | Retained in the index; no numerical archaeological probability invented |
+| Unknown resolutions | No invented coordinate, photo or historical equivalence |
 
-OpenBible `a15257a` identifies Jerusalem; its candidate `m66c5b8` cites the Old
-City of Jerusalem article. Wikidata `Q1218` identifies the city and supplies the
-reviewed P18 photograph. The JSON records the fetched Wikidata revision.
+## Identity and actual sample
 
-The historical introduction quotes the first two sentences of Wikipedia's
-*History of Jerusalem*, revision `1382952817`. The French text is a translation
-of that excerpt. Both are attributed to Wikipedia contributors under CC BY-SA
-4.0, with permanent revision and history links. This is historical context,
-not Scripture or an invented explanation of a biblical passage.
+A Wikidata **coordinate source** establishes provenance for a coordinate; it does not establish the ancient place's identity. Related introductions and photographs are explicitly qualified by that scope. The source's proposed site name remains separate from the Wikidata label. Direct ancient-place context requires documented evidence in the resource project's identity registry.
 
-The Commons file *Dome of the Rock seen from the Mount of Olives (12395649153)
-(cropped).jpg*, page ID `154641343`, is by **askii**, dated 30 November 2013.
-File metadata was inspected directly: **CC BY-SA 2.0**, attribution required,
-no additional restrictions. The original image SHA-1 is
-`dcfad854858bd512e69c3c0c82da2aaf8f28b861`; the reviewed Commons upload timestamp
-is `2024-11-07T21:16:43Z`. Its 960 px Wikimedia derivative is 230,592 bytes,
-SHA-256 `4fcf697ce4d9605241f5412b6951823546f688b52ec890a5a7804e98092cb501`.
-The source page, author and license are accessible with the image. Captioning
-explicitly identifies a contemporary view (2013), not biblical-era scenery.
-The Commons crop and Wikimedia thumbnail are identified in the JSON. The file
-is displayed with its aspect ratio preserved; there is no image editing tool.
+The 8 November sample requests 12 ancient IDs: 10 have direct or explicitly qualified related context, involving 11 coordinate-source entities and 8 verified photographs. It is not universal coverage. Moreh 1 has three distinct proposals for modern ID m657590, Tell Balatah, using coordinate-source entity Q7951237 (Shechem). None is silently discarded or promoted to proof that Moreh equals Shechem. Moreh 2 (Judges 7:1) has a different modern ID and source entity. Emmaus keeps six disputed proposals and separate related entities. Nod and Bethlehem 2 have no vetted enrichment; Nod remains without a pin/photo/history.
 
-No picture is bundled. A clear download action requests only this pinned static
-file, with a 2 MiB bound and checksum verification. Cached images reopen without
-a network request. The dedicated image cache retains at most ten images (20 MiB
-maximum); partial downloads never replace a verified image. Missing network,
-failed verification or absent enrichment leaves the map and local references
-available. A stale/closed window cannot receive a completed photo update, and
-metadata workers do not keep application shutdown waiting for a remote socket.
-No live Wikipedia/Wikidata/Commons API call occurs when a place is opened.
+## Independent distribution and offline rendering
 
-Emmaus retains all source candidates and the disputed label. No single candidate
-gets promoted by a photograph. Nod remains unidentified, without a map pin,
-photo or invented historical summary. Other places use existing structured facts;
-adding a new reviewed enrichment is a data change, not a place-specific code path.
+The existing Library offers the optional **Place descriptions and photographs** resource. Its discovery manifest is published as reviewed Git data at `https://raw.githubusercontent.com/icfmp/Bible-Resources/main/datasets/place-context-catalogue.json`. Each payload URL pins a full immutable resource commit. GitHub Pages is not enabled for that repository; its failed Pages run is not claimed as a deployment. The committed Git distribution is independently available and tested.
 
-Native map architecture has since moved to libshumate (see its current module
-and packaging). The original #49 design document records the earlier reviewed
-coastline prototype; it is historical, not the current renderer specification.
+An explicit Library metadata refresh can discover a newer revision without an application update. Installation checks size, checksum, format, revision and source metadata before atomically replacing only `study-data/place-context.json`. Loading reuses validated JSON while its file signature remains unchanged, with the bundled seed as a fallback for unavailable/corrupt optional data. Ordinary cross-reference/topic installation remains independent of the optional context endpoint. Opening a place never queries Wikipedia, Wikidata or Commons.
 
-Developer GTK checks, actual packaged checks, screenshots and client acceptance
-must be reported separately. This document does not itself assert publication.
+Photographs are downloaded only through an explicit action, bounded to 2 MiB and checked against the prepared hash. The image-only cache retains at most ten files (20 MiB). Cached files reopen offline; missing network or failed verification leaves local information/map/references available. Generation checks prevent a closed or changed card from receiving stale photo completions. Native movement/tiles remain libshumate's responsibility; leaving the Map tab removes the native layer and its pending tile work.
+
+## Attribution and checks
+
+OpenBible data retains CC BY 4.0 and applicable OpenStreetMap-derived database terms (ODbL 1.0). Wikidata metadata is CC0 1.0. Wikipedia extracts retain CC BY-SA 4.0 and permanent source-revision links. Every Commons file carries its own author, source, revision, license and derivative notice; one photo's license is never assumed for another. No photographs are bundled. For example, Jerusalem's contemporary photo is by askii, Commons page 154641343, CC BY-SA 2.0; the verified 960px derivative SHA-256 is `4fcf697ce4d9605241f5412b6951823546f688b52ec890a5a7804e98092cb501`.
+
+The developer sample has passed actual download/hash/native-GTK decoding for all eight files, source-language/identity checks and multi-place native navigation. Publication evidence must separately identify the exact installed Flatpak, source, signing identity, release and retained-profile verification. These development checks are not client GNOME/Wayland/touch acceptance.
 
 ## Native first-frame loading follow-up
 

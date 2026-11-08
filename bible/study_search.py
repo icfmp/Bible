@@ -234,8 +234,7 @@ class StudySearch(Gtk.Box):
     def open_library(self,*_):
         from .study_resources import TOPIC_RESOURCE_ID
         self.navigation.popdown();library=self.owner.open_library('study')
-        index=next(i for i,r in enumerate(library.filtered_resources) if r.id==TOPIC_RESOURCE_ID)
-        library.open_details(None,index)
+        library.reveal_study_resource(TOPIC_RESOURCE_ID)
 
     def topic_setup(self,_,item):
         button=passage_card();button._reference_labels[1].set_visible(False)

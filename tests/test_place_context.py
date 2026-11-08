@@ -71,8 +71,10 @@ class IndependentContextTests(unittest.TestCase):
             with patch.object(StudyCatalogue,'load',return_value={'place-context':revision}),patch('bible.library.download',side_effect=lambda url,out,*args,**kw:out.write(b'TRUNCATED')):
                 with self.assertRaises(ValueError):store.install()
             self.assertEqual(store.path.read_bytes(),updated);self.assertEqual(index.read_bytes(),b'UNCHANGED PLACE INDEX')
-            store.path.write_bytes(b'INVALID LOCAL RESOURCE')
-            self.assertEqual(PlaceContexts(root).read()['revision'],json.loads(original)['revision'])
+            for invalid in (b'INVALID LOCAL RESOURCE',b'[]',b'{"schema":2,"places":[]}'):
+                store.path.write_bytes(invalid)
+                self.assertEqual(PlaceContexts(root).read()['revision'],json.loads(original)['revision'])
+                self.assertEqual(store.path.read_bytes(),invalid)
 
     def test_loading_context_reuses_the_validated_resource_until_the_file_changes(self):
         from bible.place_context import PlaceContexts,parse,BUNDLED

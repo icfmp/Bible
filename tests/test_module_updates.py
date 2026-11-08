@@ -35,6 +35,23 @@ class ModuleUpdateTests(unittest.TestCase):
             self.assertNotIn('secret',repr(own));self.assertEqual(before,{p:p.read_bytes() for p in before})
             self.assertEqual(public_source('name:secret@host'), '')
 
+    def test_existing_large_source_receipt_is_used_and_damage_does_not_hide_installed_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            library=Path(directory)/'translations';root=library/'youversion~YV1'
+            (root/'mods.d').mkdir(parents=True);(root/'.complete').touch()
+            (root/'mods.d/yv1.conf').write_text('[YV1]\nDescription=Source edition\nVersion=1.0\n')
+            receipt=root/'.source.json';receipt.write_text(json.dumps(dict(url='https://name:secret@www.bible.com/?token=secret',acquisition='x'*100000)))
+            before={p:p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            rows,errors=installed_modules(library)
+            own=next(row for row in rows if row.root==root)
+            self.assertEqual(own.source,'https://www.bible.com/');self.assertEqual(own.version,'1.0')
+            self.assertNotIn('secret',repr(own));self.assertEqual(before,{p:p.read_bytes() for p in before})
+            receipt.write_bytes(b'[]')
+            rows,errors=installed_modules(library)
+            own=next(row for row in rows if row.root==root)
+            self.assertEqual(own.version,'1.0');self.assertEqual(own.source,'')
+            self.assertTrue(any(path==str(root) for path,_ in errors));self.assertEqual(receipt.read_bytes(),b'[]')
+
     def test_etag_304_and_offline_cache_preserve_actual_catalogue(self):
         with tempfile.TemporaryDirectory() as directory:
             store=ModuleCatalogue(directory);requests=[]

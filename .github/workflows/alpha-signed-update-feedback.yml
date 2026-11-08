@@ -3,6 +3,11 @@ on:
   push:
     branches: [feat/client-feedback-reading, feat/26-youversion-language-catalogue]
   workflow_dispatch:
+    inputs:
+      before_source:
+        description: Exact source currently published before this batch is merged
+        required: true
+        default: '88b48787ae482a1489236574ad547021a87d85fa'
 permissions:
   contents: read
   actions: read
@@ -25,13 +30,16 @@ jobs:
           echo "FLATPAK_USER_DIR=$RUNNER_TEMP/performance-flatpak" >> "$GITHUB_ENV"
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
       - name: Install the still-published previous signed alpha
+        env:
+          EXPECTED_BEFORE_SOURCE: ${{ inputs.before_source || '88b48787ae482a1489236574ad547021a87d85fa' }}
         run: |
           mkdir reports
           python3 - <<'PY'
-          import json,urllib.request
+          import json,urllib.request,os,re
           from pathlib import Path
+          expected=os.environ['EXPECTED_BEFORE_SOURCE'];assert re.fullmatch('[0-9a-f]{40}',expected)
           x=json.load(urllib.request.urlopen('https://icfmp.github.io/Bible/alpha/provenance.json'))
-          assert x['source_commit']=='be7eeb8f0511fd2c6b5b77ef31554bd8de7d9289',x
+          assert x['source_commit']==expected,x
           assert x['signing_fingerprint']=='47A17230403EA4953745E6E020EB9FFCCECAFD8F'
           Path('reports/before-provenance.json').write_text(json.dumps(x,indent=2))
           PY
@@ -61,17 +69,19 @@ jobs:
           from pathlib import Path
           from dataclasses import asdict
           from bible.library import Library,catalogue
-          from bible.notes import NoteStore
+          from bible.notes import NoteStore,PassageLink
           from bible.preferences import Preferences
           root=Path(sys.argv[1]);library=Library(root/'translations');resources=catalogue()
           for name in ['FreSegond1910','FreBDM1707','KJV','Wesley']:
               if name not in library.installed():library.install(next(r for r in resources if r.name==name))
           from bible.youversion_install import acknowledgement,fetch_resource
-          for edition in (21,93):
+          for edition in (21,93,104):
               item=fetch_resource(edition)
               if item.id not in library.installed():library.install(item,permission=acknowledgement(item))
           notes=NoteStore(root/'notes.sqlite3')
-          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en')
+          if not notes.all():notes.save('Persistent performance-validation note',['preserve'],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='KJV',origin_language='en',links=[PassageLink('KJV','Mark.7.4','Mark.7.4')])
+          from bible.highlights import HighlightStore
+          highlights=HighlightStore(root/'highlights.json');highlights.set('KJV',['John.1.1'],'yellow','KJV')
           from bible.step_data import StepData
           from bible.place_data import PlaceData
           StepData(root/'study-data').install()
@@ -95,7 +105,7 @@ jobs:
           else:topics.path.write_bytes(topic_bytes)
           assert topics.metadata()['archive_sha256']=='47bc1cb1defe5b8f0f65ca9966cd99ff151b7f22cab18ef9c99eda6a244df7cc'
           preferences=Preferences(root/'reading-preferences.json');preferences.value.size=24;preferences.save()
-          receipt=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
+          receipt=dict(highlights_sha256=hashlib.sha256((root/'highlights.json').read_bytes()).hexdigest(),study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256(preferences.path.read_bytes()).hexdigest(),modules={str(p.relative_to(library.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in library.root.rglob('*') if p.is_file()})
           (root/'preservation-before.json').write_text(json.dumps(receipt,indent=2))
           PY
       - name: Measure the old signed alpha before upgrade
@@ -128,10 +138,15 @@ jobs:
                   url='https://icfmp.github.io/Bible/alpha/provenance.json?update-check='+str(time.time_ns())
                   x=json.load(urllib.request.urlopen(urllib.request.Request(url,headers={'Cache-Control':'no-cache'}),timeout=20))
                   revision=x.get('packaging_revision','')
-                  if x['source_commit']==expected and revision.endswith('-2'):
-                      publication=int(revision.rsplit('-',1)[0])
+                  import re
+                  match=re.fullmatch(r'([1-9][0-9]*)-([1-9][0-9]*)',revision)
+                  if x['source_commit']==expected and match:
+                      publication,publication_attempt=map(int,match.groups())
                       run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
-                      if run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success':
+                      if (run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success'
+                              and run['path']=='.github/workflows/alpha-channel.yml' and run['run_attempt']==publication_attempt):
+                          build=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(x['ci_run'])],text=True))
+                          assert build['head_sha']==expected and build['status']=='completed' and build['conclusion']=='success'
                           break
               except Exception as e:print(type(e).__name__,flush=True)
               time.sleep(15)
@@ -174,7 +189,7 @@ jobs:
           from dataclasses import asdict
           from bible.notes import NoteStore
           root=Path(sys.argv[1]);before=json.loads((root/'preservation-before.json').read_text());notes=NoteStore(root/'notes.sqlite3')
-          after=dict(study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
+          after=dict(highlights_sha256=hashlib.sha256((root/'highlights.json').read_bytes()).hexdigest(),study_data={str(p.relative_to(root/'study-data')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'study-data').rglob('*') if p.is_file()},notes=[asdict(n) for n in notes.all()],preferences_sha256=hashlib.sha256((root/'reading-preferences.json').read_bytes()).hexdigest(),modules={str(p.relative_to(root/'translations')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'translations').rglob('*') if p.is_file()})
           after=json.loads(json.dumps(after))
           differences=[key for key in before if before[key]!=after[key]]
           Path(sys.argv[2]).with_name('preservation-comparison.json').write_text(json.dumps(dict(before=before,after=after,differences=differences),indent=2))

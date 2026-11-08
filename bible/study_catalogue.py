@@ -86,12 +86,15 @@ class StudyCatalogue:
             return value
         except (OSError,ValueError,TypeError,KeyError):return bundled
 
-    def refresh(self):
+    def refresh(self,*,include_context=True):
         from .library import download
         output=io.BytesIO();download(CATALOGUE_URL,output,limit=MAX_CATALOGUE)
         data=output.getvalue();value=parse(data)
-        context=io.BytesIO();download(PLACE_CATALOGUE_URL,context,limit=MAX_CATALOGUE)
-        value.update(parse(context.getvalue(),required={'place-context'}))
+        if include_context:
+            context=io.BytesIO();download(PLACE_CATALOGUE_URL,context,limit=MAX_CATALOGUE)
+            value.update(parse(context.getvalue(),required={'place-context'}))
+        else:
+            value['place-context']=self.load()['place-context']
         from dataclasses import asdict
         data=json.dumps(dict(schema=1,resources={k:asdict(v) for k,v in value.items()})).encode()
         atomic_write(self.path,data)

@@ -972,8 +972,8 @@ class Window(Adw.ApplicationWindow):
     def resource_installed(self, name):
         if self.closed:
             return
-        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID
-        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID):
+        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID,PLACE_CONTEXT_RESOURCE_ID
+        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID,PLACE_CONTEXT_RESOURCE_ID):
             for window in self.get_application().get_windows():
                 if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
                     if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
@@ -983,6 +983,11 @@ class Window(Adw.ApplicationWindow):
                     elif name==PLACE_RESOURCE_ID:
                         for tab in window.tabs():tab.apply_appearance();tab.refresh_comparison()
                         if getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
+                    elif name==PLACE_CONTEXT_RESOURCE_ID:
+                        dialog=getattr(window,'place_dialog',None)
+                        if dialog and not dialog.closed:
+                            view=dialog.places
+                            if view.pages.get_visible_child_name()=='card':view.open_place(view.current_place)
             return
         # Preserve usable readers; the first readable install repairs an empty view.
         for window in self.get_application().get_windows():

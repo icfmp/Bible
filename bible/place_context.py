@@ -18,7 +18,10 @@ def parse(data):
     from urllib.parse import urlsplit
     if len(data)>MAX_DATA:raise ValueError('Place context is too large')
     value=json.loads(data)
-    if value.get('schema')!=2:raise ValueError('Unsupported place context schema')
+    if not isinstance(value,dict) or type(value.get('schema')) is not int or value.get('schema')!=2:
+        raise ValueError('Unsupported place context schema')
+    if any(not isinstance(value.get(key),dict) for key in ('places','sites','ancient_contexts','identity_registry','coverage')):
+        raise ValueError('Invalid place context records')
     from datetime import date
     date.fromisoformat(value['generation'])
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}',value['revision']):raise ValueError('Invalid place context revision')
@@ -27,6 +30,8 @@ def parse(data):
         if any(not re.fullmatch(r'm[0-9a-f]{6}',m) for m in place['modern_ids']):raise ValueError('Invalid modern identity')
     for scope,entries in (('ancient-place',value['ancient_contexts']),('coordinate-source-entity',value['sites'])):
         for identifier,entry in entries.items():
+            if not isinstance(entry,dict) or not isinstance(entry.get('labels'),dict) or not all(isinstance(text,str) for text in entry['labels'].values()):raise ValueError('Invalid source labels')
+            if not isinstance(entry.get('introductions'),dict) or not isinstance(entry.get('images'),list) or len(entry['images'])>3:raise ValueError('Invalid source context')
             if entry['scope']!=scope or not re.fullmatch(r'Q[1-9][0-9]*',entry['wikidata']):raise ValueError('Invalid context identity')
             if scope=='ancient-place' and identifier not in value['identity_registry']['ancient_places']:raise ValueError('Ancient identity has no evidence')
             for language,intro in entry['introductions'].items():
@@ -34,6 +39,10 @@ def parse(data):
                 if not re.fullmatch('https://'+language+r'\.wikipedia\.org/w/index\.php\?oldid=[0-9]+',intro['url']):raise ValueError('Invalid source revision')
                 if intro['license_url']!='https://creativecommons.org/licenses/by-sa/4.0/':raise ValueError('Unsupported introduction license')
             for image in entry['images']:
+                if (not isinstance(image,dict) or not isinstance(image.get('author'),str) or not image['author']
+                        or not isinstance(image.get('license'),str) or not isinstance(image.get('caption'),dict)
+                        or not all(isinstance(text,str) for text in image['caption'].values())):
+                    raise ValueError('Invalid photograph attribution')
                 if not re.fullmatch('[0-9a-f]{64}',image['sha256']) or type(image['bytes']) is not int or not 0<image['bytes']<=2*1024*1024:raise ValueError('Invalid photo digest/size')
                 url=urlsplit(image['url'])
                 if url.scheme!='https' or url.hostname not in ('upload.wikimedia.org','thumb.wikimedia.org'):raise ValueError('Unsupported image source')

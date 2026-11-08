@@ -3,6 +3,7 @@ from dataclasses import dataclass,replace
 from .i18n import tr
 from .reference_data import (ReferenceData,ReferenceDataError,SOURCE_URL,LICENSE_URL,
                              SOURCE_DATE,ARCHIVE_SHA256,NUMBERING,TRANSFORMATIONS)
+from .place_context import RESOURCE_ID as PLACE_CONTEXT_RESOURCE_ID
 
 REFERENCE_RESOURCE_ID='openbible-cross-references'
 PLACE_RESOURCE_ID='openbible-places'

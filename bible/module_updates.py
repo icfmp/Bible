@@ -54,9 +54,14 @@ def installed_modules(library_root,extra_roots=()):
                     section=parser[name]
                     source=section.get('InstallSource','')
                     if not source and (root/'.source.json').is_file():
-                        if (root/'.source.json').stat().st_size>65536:raise ValueError('Source metadata exceeds safe limits')
-                        metadata=json.loads((root/'.source.json').read_text())
-                        source=metadata.get('source_url','')
+                        try:
+                            if (root/'.source.json').stat().st_size>4*1024*1024:raise ValueError('Source metadata exceeds safe limits')
+                            metadata=json.loads((root/'.source.json').read_text())
+                            if not isinstance(metadata,dict):raise ValueError('Invalid source receipt')
+                            source=metadata.get('url',metadata.get('source_url',''))
+                            if not isinstance(source,str):raise ValueError('Invalid source origin')
+                        except (OSError,ValueError,TypeError) as error:
+                            errors.append((str(root),str(error)));source=''
                     result.append(InstalledModule(name,section.get('Version',''),public_source(source),
                         root,section.get('Versification','KJV'),section.get('Description',name)))
         except (OSError,ValueError,TypeError) as error:errors.append((str(root),str(error)))

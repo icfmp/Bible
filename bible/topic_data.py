@@ -85,7 +85,7 @@ class TopicData(ReferenceData):
         from .topic_vocabulary import parse as parse_vocabulary
         from .study_catalogue import atomic_write
         fresh=True
-        try:revisions=self.catalogue.refresh()
+        try:revisions=self.catalogue.refresh(include_context=False)
         except OSError:fresh=False;revisions=self.catalogue.load()
         except ValueError as error:raise ReferenceDataError(str(error)) from error
         index=revisions['openbible-topics'];words=revisions['topic-vocabulary']
