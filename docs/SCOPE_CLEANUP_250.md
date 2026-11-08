@@ -1,6 +1,6 @@
-# PR250 scope cleanup — pending client review
+# PR250 scope cleanup and authorized application-only resumption
 
-The client stopped feature development and publication on 8 November 2026. No merge or release of PR250 is authorized until the cleanup has been reviewed and approved. Related issues and technical dependencies do not authorize work in other repositories.
+The client stopped feature development and publication on 8 November 2026, then reviewed the cleanup report and authorized resuming work **only in Bible**. The application cleanup is retained. Related issues and technical dependencies do not authorize work in other repositories. The resumption does not authorize merging or changing the separate Bible-Resources cleanup PR. Application review, successful checks and verified publication remain required under AGENTS.md.
 
 ## Cause
 
@@ -34,4 +34,4 @@ Historical descriptions and photographs require an existing approved external re
 
 Work only on explicitly assigned issues within explicitly authorized repositories. Consume existing identifiable resources; do not create datasets, curated collections, resource-generation pipelines or distribution infrastructure. Propose additional data providers for approval before integrating them. Missing source data remains missing. This rule applies to all study resources, not only geography.
 
-Feature development, merging and publication remain stopped pending client review. Cleanup checks are not client acceptance or a delivered alpha.
+Application work resumes within the assigned issue scope and the existing-data boundary. Cleanup checks are not client acceptance or a delivered alpha. Missing historical/photo/dictionary/person data and an unavailable module catalogue must be reported as unavailable; no substitute dataset or distribution route is authorized.

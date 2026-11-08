@@ -207,7 +207,7 @@ class NoteEditor(Adw.Window):
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
         self.body.set_source(note.body if note else '')
-        scroll = Gtk.ScrolledWindow(vexpand=False,min_content_height=96 if compact else 160,
+        scroll = Gtk.ScrolledWindow(vexpand=False,min_content_height=96,
                                     max_content_height=240 if compact else 300,propagate_natural_height=True)
         self.body_scroll=scroll
         scroll.set_child(self.body)
