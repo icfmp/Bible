@@ -25,8 +25,6 @@ class PlaceView(Adw.Bin):
         self.add_css_class(owner.reading_style.scope+'-window')
         self.owner=owner;self.closed=False;self.generation=0;self.rows=[];self.pending=False
         self.data=PlaceData(owner.library.root.parent/'study-data')
-        from .place_context import PlaceContexts
-        self.contexts=PlaceContexts(self.data.root)
         self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-places')
         tab=owner.active_tab
         self.context=context or ((tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None)
@@ -166,17 +164,6 @@ class PlaceView(Adw.Bin):
         resource,reader,start,end=self.context
         self.passage_context.set_text(' · '.join(metadata+[tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification))]))
         card.append(self.passage_context)
-        enrichment,related=self.contexts.entries(place)
-        if enrichment:self.enrichment(card,enrichment)
-        for site in related:
-            content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-            from .place_context import localized
-            title=tr('Coordinate-source entity: {name}').format(name=localized(site['entry']['labels']))
-            expander=disclosure(expanded=len(related)==1)
-            label=Gtk.Label(label=title,xalign=0,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR)
-            label.add_css_class('caption');expander.set_label_widget(label)
-            content.append(self.label(tr('Related to the proposed site {name}; this does not establish its identity with the biblical place.').format(name=site['name']),caption=True))
-            self.enrichment(content,site['entry']);expander.set_child(content);card.append(expander)
         aliases=list(dict.fromkeys(place_name(alias) for alias in place.get('aliases',[]) if alias!=place['name']))
         if aliases:
             caption=tr('Names recorded by the source')+' · '+', '.join(aliases[:3])
@@ -247,16 +234,6 @@ class PlaceView(Adw.Bin):
         self.card_scroll.set_child(self.references)
         self.card_scroll.get_vadjustment().set_value(0)
 
-    def enrichment(self,card,entry):
-        from .place_context import introduction
-        intro=introduction(entry)
-        if intro:
-            label=self.label(intro['text']);label.set_lines(4);label.set_ellipsize(Pango.EllipsizeMode.END)
-            label.set_tooltip_text(intro['text']);card.append(label)
-            language={'en':tr('English'),'fr':tr('French')}.get(intro['language'],intro['language'])
-            card.append(self.link_label(intro['url'],'Wikipedia · '+language,intro['license_url'],intro['license']))
-        for image in entry.get('images',[])[:3]:self.photo(card,image)
-
     def link_label(self,url,title,license_url='',license_name=''):
         from urllib.parse import urlsplit
         label=self.label('',caption=True)
@@ -265,49 +242,6 @@ class PlaceView(Adw.Bin):
         if license_url and urlsplit(license_url).scheme in ('http','https'):
             value+=' · <a href="'+GLib.markup_escape_text(license_url)+'">'+GLib.markup_escape_text(license_name)+'</a>'
         label.set_markup(value);return label
-
-    def photo(self,card,image):
-        from .place_context import cached_image,localized
-        generation=self.generation;root=self.data.root
-        frame=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        card.append(frame)
-        # Virtualized rows allocate their minimum height. Give the native hero
-        # a bounded viewport; the full-size action retains the complete photo.
-        picture=Gtk.Picture(can_shrink=True,content_fit=Gtk.ContentFit.COVER,height_request=180)
-        enlarge=Gtk.Button(child=picture,visible=False);enlarge.add_css_class('flat')
-        caption=localized(image['caption'])
-        enlarge.update_property([Gtk.AccessibleProperty.LABEL],[caption+' · '+tr('Enlarge photo')])
-        def full(*_):
-            window=Adw.Window(transient_for=self.host,modal=True,destroy_with_parent=True,
-                title=caption,default_width=900,default_height=560)
-            layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);layout.append(Adw.HeaderBar())
-            photo=Gtk.Picture.new_for_filename(str(enlarge.photo_path));photo.set_can_shrink(True)
-            photo.set_vexpand(True);layout.append(photo)
-            layout.append(self.link_label(image['descriptionurl'],image['author'],image['license_url'],image['license']))
-            window.set_content(layout);window.present()
-        enlarge.connect('clicked',full);frame.append(enlarge)
-        download=Gtk.Button(label=tr('Download photograph ({size} kB)').format(size=round(image['bytes']/1000)),halign=Gtk.Align.START)
-        download.add_css_class('flat');frame.append(download)
-        credit=self.link_label(image['descriptionurl'],caption+' · '+image['author'],image['license_url'],image['license'])
-        credit.set_visible(False);frame.append(credit)
-        status=self.label('',caption=True);status.set_visible(False);frame.append(status)
-        def load(explicit=False):
-            if explicit:download.set_sensitive(False);status.set_text(tr('Downloading photograph…'));status.set_visible(True)
-            future=self.executor.submit(cached_image,root,image,explicit,
-                cancelled=lambda:self.closed or self.generation!=generation)
-            def complete():
-                if self.closed or self.generation!=generation:return False
-                download.set_sensitive(True);status.set_visible(False)
-                try:
-                    path=future.result()
-                    if path:
-                        picture.set_filename(str(path));enlarge.photo_path=path
-                        enlarge.set_visible(True);credit.set_visible(True);download.set_visible(False)
-                except Exception:
-                    status.set_text(tr('Photograph unavailable. Place information remains available.'));status.set_visible(True)
-                return False
-            future.add_done_callback(lambda _:GLib.idle_add(complete))
-        download.connect('clicked',lambda *_:load(True));load()
 
     def location_note(self,candidate):
         if candidate.get('role') in ('center','representative point') or candidate.get('radius_meters'):

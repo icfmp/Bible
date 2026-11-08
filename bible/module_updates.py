@@ -11,7 +11,7 @@ from urllib.parse import urlsplit,urlunsplit
 from .library import config
 from .study_catalogue import atomic_write
 
-CATALOGUE_URL='https://raw.githubusercontent.com/icfmp/Bible-Resources/main/catalog/v1/catalog.json'
+CATALOGUE_URL='https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json'
 MAX_CATALOGUE=2*1024*1024
 
 
@@ -96,7 +96,7 @@ class ModuleCatalogue:
     def saved(self):
         if self.path.is_symlink() or self.path.stat().st_size>MAX_CATALOGUE*2:raise ValueError('Invalid saved module catalogue')
         record=json.loads(self.path.read_text())
-        if not isinstance(record,dict) or not isinstance(record.get('body'),str):raise ValueError('Invalid saved module catalogue')
+        if not isinstance(record,dict) or record.get('source_url')!=CATALOGUE_URL or not isinstance(record.get('body'),str):raise ValueError('Invalid saved module catalogue')
         parse_catalogue(record['body'].encode())
         return record
 
@@ -113,7 +113,7 @@ class ModuleCatalogue:
             try:
                 with (opener or urllib.request.urlopen)(request,timeout=20) as response:
                     data=response.read(MAX_CATALOGUE+1);parse_catalogue(data)
-                    saved=dict(body=data.decode(),etag=response.headers.get('ETag',''),
+                    saved=dict(source_url=CATALOGUE_URL,body=data.decode(),etag=response.headers.get('ETag',''),
                         last_modified=response.headers.get('Last-Modified',''),checked=checked)
             except HTTPError as error:
                 if error.code!=304 or not saved:raise

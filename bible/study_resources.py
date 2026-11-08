@@ -3,7 +3,6 @@ from dataclasses import dataclass,replace
 from .i18n import tr
 from .reference_data import (ReferenceData,ReferenceDataError,SOURCE_URL,LICENSE_URL,
                              SOURCE_DATE,ARCHIVE_SHA256,NUMBERING,TRANSFORMATIONS)
-from .place_context import RESOURCE_ID as PLACE_CONTEXT_RESOURCE_ID
 
 REFERENCE_RESOURCE_ID='openbible-cross-references'
 PLACE_RESOURCE_ID='openbible-places'
@@ -39,22 +38,14 @@ class StudyResources:
         self.topics=TopicData(root)
         from .step_data import StepData
         self.step=StepData(root)
-        from .place_context import PlaceContexts,RESOURCE_ID
-        self.contexts=PlaceContexts(root)
-        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places,TOPIC_RESOURCE_ID:self.topics,STEP_RESOURCE_ID:self.step,RESOURCE_ID:self.contexts}
+        self.stores={REFERENCE_RESOURCE_ID:self.references,PLACE_RESOURCE_ID:self.places,TOPIC_RESOURCE_ID:self.topics,STEP_RESOURCE_ID:self.step}
 
     def available(self):
         from . import place_data as places
         from . import topic_data as topics
         from . import step_sources as step
         revisions=self.catalogue.load();reference=revisions[REFERENCE_RESOURCE_ID];topic=revisions[TOPIC_RESOURCE_ID];words=revisions['topic-vocabulary']
-        context=revisions['place-context']
         return [StudyResource(description=tr('Bible cross-references'),about=reference.generation+'\nSHA-256: '+reference.sha256+'\n'+TRANSFORMATIONS),
-                StudyResource(id='place-context',name=tr('Place descriptions and photographs'),description=tr('Source-backed context for recorded places'),
-                    source='Bible Resources',provider_id='bible-resources',source_url='https://github.com/icfmp/Bible-Resources',
-                    author='OpenBible.info; Wikimedia contributors',license='CC BY 4.0; ODbL 1.0; CC0 1.0; CC BY-SA 4.0; individual image licenses',
-                    conditions=tr('Source language, identity and revision retained. Photographs download only on request; file credits and licenses accompany each image.'),
-                    about=context.generation+'\nSHA-256: '+context.sha256,versification=''),
                 StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),
                     source_url=places.SOURCE_URL,license='CC BY 4.0; ODbL 1.0; public-domain coastlines',
                     author='OpenBible.info; OpenStreetMap contributors; Natural Earth contributors',
@@ -105,7 +96,6 @@ class StudyResources:
             if name==STEP_RESOURCE_ID:
                 from .step_sources import COMMIT
                 return metadata['commit']==COMMIT
-            if name=='place-context':return metadata['revision']==self.catalogue.load()[name].revision
             if name==REFERENCE_RESOURCE_ID:return metadata['archive_sha256']==self.catalogue.load()[name].sha256
             if name==TOPIC_RESOURCE_ID:
                 from .topic_vocabulary import TopicVocabulary

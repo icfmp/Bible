@@ -81,6 +81,19 @@ class ModuleUpdateTests(unittest.TestCase):
         self.assertEqual(assessment(installed,parse_catalogue(catalogue([item]))),'identity-unverified')
         self.assertEqual(assessment(installed,parse_catalogue(catalogue())),'no-curated-edition')
 
+    def test_removed_snapshot_cache_is_not_consumed_or_rewritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=ModuleCatalogue(directory)
+            store.path.write_text(json.dumps(dict(body=catalogue().decode(),etag='old',checked='old',
+                source_url='https://raw.githubusercontent.com/icfmp/Bible-Resources/main/catalog/v1/catalog.json')))
+            original=store.path.read_bytes()
+            def unavailable(request,timeout):
+                self.assertNotIn('If-none-match',dict(request.header_items()))
+                self.assertEqual(request.full_url,'https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json')
+                raise OSError('Existing catalogue endpoint unavailable')
+            with self.assertRaises(OSError):store.check(unavailable)
+            self.assertEqual(store.path.read_bytes(),original)
+
     def test_no_cache_network_failure_is_not_reported_as_current(self):
         with tempfile.TemporaryDirectory() as directory:
             def offline(*args,**kwargs):raise OSError('fixture offline')

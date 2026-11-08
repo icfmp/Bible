@@ -180,7 +180,7 @@ class ReferenceData:
 
     def install(self, progress=lambda done,total:None, installing=lambda:None):
         fresh=True
-        try:revisions=self.catalogue.refresh(include_context=False)
+        try:revisions=self.catalogue.refresh()
         except OSError:fresh=False;revisions=self.catalogue.load()
         except ValueError as error:raise ReferenceDataError(str(error)) from error
         revision=revisions['openbible-cross-references']

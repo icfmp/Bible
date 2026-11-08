@@ -82,6 +82,22 @@ class PlaceCardTests(unittest.TestCase):
         child=widget.get_first_child()
         while child:yield from self.walk(child);child=child.get_next_sibling()
 
+    def test_removed_enrichment_files_are_ignored_without_touching_profile_data(self):
+        self.install();root=self.root/'study-data';root.mkdir(exist_ok=True)
+        legacy=root/'place-context.json';legacy.write_bytes(b'LEGACY DATA MUST NOT BE READ OR REPLACED')
+        cache=root/'place-images';cache.mkdir();photo=cache/'existing.jpg';photo.write_bytes(b'PRESERVE EXISTING CACHE')
+        notes=self.window.notes_store.all()
+        with patch('bible.library.download',side_effect=AssertionError('Opening a place must not acquire enrichment')):
+            host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending)
+            dialog.open_place(dialog.rows[0]);spin()
+        self.assertFalse(hasattr(dialog,'contexts'))
+        self.assertFalse(any(hasattr(x,'photo_path') for x in self.walk(dialog)))
+        self.assertEqual(legacy.read_bytes(),b'LEGACY DATA MUST NOT BE READ OR REPLACED')
+        self.assertEqual(photo.read_bytes(),b'PRESERVE EXISTING CACHE')
+        self.assertEqual(self.window.notes_store.all(),notes)
+        self.assertTrue(dialog.current_place['candidates'])
+        self.assertEqual(dialog.reference_model.get_n_items(),1)
+
     def test_map_failure_keeps_place_metadata_and_related_references(self):
         self.install()
         host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending,duration=.2)

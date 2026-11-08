@@ -49,14 +49,6 @@ class LibraryStartupTests(unittest.TestCase):
     def tearDown(self):
         close_test_dialogs();self.window.close()
 
-    def test_optional_place_context_is_study_data_and_does_not_repair_an_empty_bible(self):
-        from bible.study_resources import PLACE_CONTEXT_RESOURCE_ID
-        self.assertIsNone(self.window.active_tab.reader)
-        with patch.object(self.window,'ensure_readable_tab',side_effect=AssertionError('Study data must not be treated as a Bible')):
-            self.window.resource_installed(PLACE_CONTEXT_RESOURCE_ID)
-        self.assertIsNone(self.window.active_tab.reader)
-        self.assertEqual(self.window.library.installed('bible'),[])
-
     def test_slow_cache_opens_shell_and_close_reopen_share_one_preparation(self):
         entered=threading.Event();release=threading.Event();calls=[];self.addCleanup(release.set)
         def read(_,provider):

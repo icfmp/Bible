@@ -4,7 +4,7 @@ from dataclasses import asdict
 from pathlib import Path
 import hashlib,json,tempfile,unittest,zipfile
 from unittest.mock import patch
-from bible.study_catalogue import BUNDLED,CATALOGUE_URL,PLACE_CATALOGUE_URL,FORMATS,ResourceRevision,StudyCatalogue,parse
+from bible.study_catalogue import BUNDLED,CATALOGUE_URL,FORMATS,ResourceRevision,StudyCatalogue,parse
 from bible.topic_vocabulary import BUNDLED as WORDS,TopicVocabulary,suggestions,title
 from bible.reference_data import ReferenceData,ReferenceDataError
 from bible.topic_data import TopicData
@@ -32,8 +32,7 @@ def archive(path,kind,generation,rows):
 class StudyCatalogueTests(unittest.TestCase):
     def transport(self,payloads,called):
         def receive(url,output,progress=lambda *_:None,limit=None,**_):
-            called.append(url)
-            data=(json.dumps(dict(schema=1,resources={'place-context':json.loads(BUNDLED.read_bytes())['resources']['place-context']})).encode() if url==PLACE_CATALOGUE_URL else payloads[url])
+            called.append(url);data=payloads[url]
             if isinstance(data,BaseException):raise data
             self.assertLessEqual(len(data),limit)
             output.write(data);progress(len(data),len(data))
@@ -95,20 +94,6 @@ class StudyCatalogueTests(unittest.TestCase):
             with self.transport({CATALOGUE_URL:metadata,invalid.url:malformed},[]),self.assertRaises(ReferenceDataError):store.install()
             self.assertEqual(installed.path.read_bytes(),saved);self.assertEqual(store.path.read_bytes(),original)
             self.assertEqual(TopicData(store.root).query('forgiveness')[0].start,'John.3.16')
-
-    def test_existing_reference_install_does_not_depend_on_optional_place_context_metadata(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);data=archive(root/'data.zip','references','2026-11-02','John.1.5\tGen.1.3\t8\n')
-            item=revision('openbible-cross-references',data);metadata=catalogue(**{'openbible-cross-references':item})
-            store=ReferenceData(root/'study');calls=[]
-            def receive(url,output,*args,**kwargs):
-                calls.append(url)
-                if url==PLACE_CATALOGUE_URL:raise OSError('Optional source is unavailable')
-                output.write(metadata if url==CATALOGUE_URL else data)
-            with patch('bible.library.download',side_effect=receive):store.install()
-            self.assertEqual(store.query(['John.1.5'])[0].start,'Gen.1.3')
-            self.assertNotIn(PLACE_CATALOGUE_URL,calls)
-            self.assertEqual(store.metadata()['archive_sha256'],item.sha256)
 
     def test_vocabulary_only_publication_retains_both_index_revisions(self):
         from tools.study_resource_updates import prepare

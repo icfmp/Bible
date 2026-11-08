@@ -219,13 +219,6 @@ Font files and licenses are hash-pinned in the existing reader-fonts module.
 Existing saved font choices are retained; Roboto Serif/Roboto are defaults for
 a new reading profile only.
 
-## Optional source-backed place context and photographs
-
-The generated offline seed `bible/study_data/place_context_v2.json` is prepared and maintained by [Bible Resources](https://github.com/icfmp/Bible-Resources/blob/main/docs/PLACE_CONTEXT.md). Its origin commit/checksum are recorded separately. OpenBible fields retain CC BY 4.0 and the source's applicable ODbL database terms. Wikidata metadata retains CC0 1.0. Unchanged English/French Wikipedia introductory extracts are attributed to Wikipedia contributors under CC BY-SA 4.0, with permanent article-revision links in each entry. These are separate source-language resources, not application-authored translations.
-
-No photograph is bundled. Each optional Wikimedia thumbnail records its file-specific author, Commons page/revision, license URL, dimensions, SHA-256 and derivative notice in the resource, with credits accessible from the viewer. Licenses vary by file; no blanket Commons license is assumed. Jerusalem's example is by **askii**, Commons page **154641343**, **CC BY-SA 2.0**. Source captions/file titles remain source data. Displayed photographs are contemporary views, not reconstructions of biblical scenes. Explicit downloads and the bounded offline cache preserve these records.
-
-
 ## GNOME Icon Development Kit symbolics
 
 The unmodified dictionary, notebook, filter and talking SVGs are by **Jakub

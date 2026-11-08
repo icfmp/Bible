@@ -7,7 +7,6 @@ from gi.repository import Gtk
 from bible.ui import Application,Window,Library
 from bible.i18n import tr
 from bible.reference_targets import local_excerpt
-from bible.place_context import introduction
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
@@ -97,25 +96,16 @@ def main():
             if a.narrow:host.set_default_size(360,620)
             spin(lambda:not places.pending,timeout=30)
             place=next(x for x in places.rows if x['id']==identity);places.open_place(place);spin();native.activate(host)
-            direct,related=places.contexts.entries(place)
-            if identity=='a38ad9f':
-                assert direct is None and len(related)==1 and len(related[0]['proposals'])==3
-                assert related[0]['entry']['scope']=='coordinate-source-entity'
-            if identity=='a1ad8e1':assert direct is None and not related and places.map_widget is None
-            for expander in [x for x in walk(places) if isinstance(x,Gtk.Expander) and x.get_label_widget() and any(isinstance(l,Gtk.Label) and (tr('Coordinate-source entity: {name}').split('{name}')[0] in l.get_text()) for l in walk(x.get_label_widget()))]:
-                if not expander.get_expanded():
-                    assert expander.grab_focus()
-                    native.key('space');spin();assert expander.get_expanded()
-            text=[x.get_text() for x in walk(places) if isinstance(x,Gtk.Label)]
-            for entry in ([direct] if direct else [])+[v['entry'] for v in related]:
-                intro=introduction(entry)
-                if intro:assert intro['text'] in text
+            assert not hasattr(places,'contexts')
+            assert not any(hasattr(x,'photo_path') for x in walk(places))
+            if identity=='a38ad9f':assert len(place['candidates'])==3
+            if identity=='a1ad8e1':assert places.map_widget is None
             shot(identity+'-place')
             if places.map_widget:
                 camera=places.map_widget
                 host.tabs.set_visible_child_name('people');spin();assert camera.canvas is None and camera.layer is None
                 host.tabs.set_visible_child_name('map');spin();assert camera.canvas is not None
-            report['place_cases'].append(dict(id=identity,status=place['status'],proposals=len(place['candidates']),direct_context=bool(direct),qualified_related_entities=len(related),hidden_map_stopped=True))
+            report['place_cases'].append(dict(id=identity,status=place['status'],proposals=len(place['candidates']),unavailable_enrichment=True,hidden_map_stopped=True))
             host.close();spin()
         assert w.notes_store.all()==notes
         report['complete']=True;report['notes_unchanged']=True

@@ -642,10 +642,5 @@ FR.update({'Update available':'Mise à jour disponible'})
 FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {revision}'})
 
 FR.update({
-    'Place descriptions and photographs':'Descriptions et photographies des lieux',
-    'Source-backed context for recorded places':'Contexte sourcé pour les lieux répertoriés',
-    'Source language, identity and revision retained. Photographs download only on request; file credits and licenses accompany each image.':'Langue, identité et révision des sources conservées. Les photographies sont téléchargées sur demande ; les crédits et licences accompagnent chaque image.',
-    'Coordinate-source entity: {name}':'Entité de la source des coordonnées : {name}',
-    'Related to the proposed site {name}; this does not establish its identity with the biblical place.':'Associée au site proposé {name} ; cela n’établit pas son identité avec le lieu biblique.',
     '{count} source proposals for this site':'{count} propositions de la source pour ce site',
 })
