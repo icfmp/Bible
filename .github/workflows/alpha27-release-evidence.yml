@@ -1,0 +1,57 @@
+name: Attach verified alpha27 delivery evidence
+
+on:
+  push:
+    branches: ['evidence/alpha27-delivery']
+    paths: ['.delivery/alpha27/**', '.github/workflows/alpha27-release-evidence.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify immutable application target and every supplied byte
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd .delivery/alpha27
+          sha256sum --check SHA256SUMS
+          python3 - <<'PY'
+          import json,subprocess,hashlib,zipfile
+          from pathlib import Path
+          p=json.loads(Path('delivery-provenance.json').read_text())
+          assert p['source_commit']=='b8142132c9655abeda03292c6382512c198a557c'
+          r=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/releases/438051325'],text=True))
+          assert r['tag_name']=='0.1.0-alpha.27' and r['draft'] and r['prerelease']
+          assert r['target_commitish']==p['source_commit']
+          for f in Path('.').glob('*.zip'):
+              with zipfile.ZipFile(f) as z:
+                  root=z.namelist()[0].split('/')[0]
+                  for line in z.read(root+'/SHA256SUMS').decode().splitlines():
+                      expected,name=line.split('  ',1)
+                      assert hashlib.sha256(z.read(root+'/'+name)).hexdigest()==expected
+          PY
+      - name: Attach existing verified evidence without rebuilding the application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload 0.1.0-alpha.27 .delivery/alpha27/* --repo icfmp/Bible
+      - name: Verify uploaded asset digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,subprocess
+          from pathlib import Path
+          r=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/releases/438051325'],text=True))
+          expected={f.name:f for f in Path('.delivery/alpha27').iterdir() if f.is_file()}
+          assert {a['name'] for a in r['assets']}==set(expected)
+          for a in r['assets']:
+              data=expected[a['name']].read_bytes()
+              assert a['size']==len(data)
+              assert a['digest']=='sha256:'+hashlib.sha256(data).hexdigest()
+          print('All12 supplied assets match; release remains draft for final public verification.')
+          PY
