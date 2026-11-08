@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 CATALOGUE_URL='https://raw.githubusercontent.com/icfmp/Bible/data/study-resources/catalogue.json'
 BUNDLED=Path(__file__).with_name('study_data')/'catalogue.json'
 MAX_CATALOGUE=65536
-PLACE_CATALOGUE_URL='https://icfmp.github.io/Bible-Resources/place-context/v1/catalog.json'
+PLACE_CATALOGUE_URL='https://raw.githubusercontent.com/icfmp/Bible-Resources/main/datasets/place-context-catalogue.json'
 FORMATS={'openbible-cross-references':('openbible-cross-references-v1',8*1024*1024),
          'openbible-topics':('openbible-topics-v1',4*1024*1024),
          'topic-vocabulary':('bible-topic-vocabulary-v1',1024*1024),
@@ -55,7 +55,7 @@ def parse(data,*,required=REQUIRED):
         if not re.fullmatch('[0-9a-f]{64}',item['sha256']) or type(item['size']) is not int or not 0<item['size']<=limit:
             raise ValueError('Invalid study resource digest/size')
         url=urlsplit(item['url'])
-        origin=(url.netloc=='icfmp.github.io' and re.fullmatch(r'/Bible-Resources/place-context/v1/place-context-'+item['sha256']+r'\.json',url.path)) if identifier=='place-context' else (
+        origin=(url.netloc=='raw.githubusercontent.com' and re.fullmatch(r'/icfmp/Bible-Resources/[0-9a-f]{40}/datasets/place-context-v2\.json',url.path)) if identifier=='place-context' else (
             url.netloc=='github.com' and re.fullmatch(r'/icfmp/Bible/releases/download/study-resource-archives/[A-Za-z0-9._-]+',url.path))
         if url.scheme!='https' or url.query or url.fragment or not origin:
             raise ValueError('Unsupported study resource origin')

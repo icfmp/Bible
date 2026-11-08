@@ -62,7 +62,7 @@ class IndependentContextTests(unittest.TestCase):
             value=json.loads(original);value['revision']='2026-11-08.test';value['coverage']['test_only']=True
             updated=json.dumps(value).encode();digest=hashlib.sha256(updated).hexdigest()
             revision=ResourceRevision(value['revision'],value['generation'],digest,len(updated),'bible-place-context-v2',
-                'https://icfmp.github.io/Bible-Resources/place-context/v1/place-context-'+digest+'.json')
+                'https://raw.githubusercontent.com/icfmp/Bible-Resources/'+'a'*40+'/datasets/place-context-v2.json')
             with patch.object(StudyCatalogue,'load',return_value={'place-context':revision}),patch('bible.library.download',side_effect=lambda url,out,*args,**kw:out.write(updated)):
                 store.install()
             self.assertEqual(store.read()['revision'],value['revision'])

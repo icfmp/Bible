@@ -77,6 +77,7 @@ class WordStudy(Gtk.Box):
 
     def clear(self):
         while child:=self.content.get_first_child():self.remove_content(child)
+        self.scroll.get_vadjustment().set_value(0)
 
     def button(self,label,callback,parent=None):
         button=Gtk.Button(child=Gtk.Label(label=label,wrap=True))
@@ -359,7 +360,8 @@ class WordStudy(Gtk.Box):
                 button.set_halign(Gtk.Align.START);button.add_css_class('flat')
         self.request(lambda:self.data.occurrences(corpus,entry['id'],limit=8),show_occurrences,
             lambda error:occurrences.append(self.label(tr('Occurrence data is unavailable.'))))
-        details=Gtk.Expander(label=tr('Linguistic details'))
+        from .disclosure import disclosure
+        details=disclosure(label=tr('Linguistic details'))
         text=tr('Dictionary headword')+': '+(entry['lemma'] or entry['id'])+'\n'+entry['id']
         if entry.get('transliteration'):text+='\n'+entry['transliteration']
         if category:text+='\n'+category

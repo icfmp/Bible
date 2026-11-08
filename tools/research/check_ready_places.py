@@ -34,11 +34,13 @@ try:
   native.click(button);spin(lambda:not button.get_visible(),timeout=35)
  hero=next(x for x in walk(dialog) if hasattr(x,'photo_path'))
  spin(lambda:hero.get_mapped() and hero.get_width()>100 and hero.get_child().get_width()>100 and hero.get_child().get_height()>=180,duration=.3)
- digest=hashlib.sha256(hero.photo_path.read_bytes()).hexdigest();assert digest=='4fcf697ce4d9605241f5412b6951823546f688b52ec890a5a7804e98092cb501'
- assert any('askii' in x.get_text() and '2.0' in x.get_text() for x in walk(dialog) if isinstance(x,Gtk.Label))
+ from bible.place_context import localized
+ expected=dialog.contexts.entries(place)[0]['images'][0]
+ digest=hashlib.sha256(hero.photo_path.read_bytes()).hexdigest();assert digest==expected['sha256']
+ assert any(expected['author'] in x.get_text() and expected['license'] in x.get_text() for x in walk(dialog) if isinstance(x,Gtk.Label))
  screen.grab(out/'jerusalem-photo.png');report['hero_size']=[hero.get_child().get_width(),hero.get_child().get_height()];native.click(hero);spin()
- photo=next(x for x in Gtk.Window.list_toplevels() if x is not dialog and x is not w and x.get_visible() and x.get_transient_for() is dialog.host)
- assert photo.get_title() and '2013' in photo.get_title();photo.close();spin();dialog.close();spin()
+ photo=next(x for x in Gtk.Window.list_toplevels() if x is not dialog.host and x is not w and x.get_visible() and x.get_transient_for() is dialog.host)
+ assert photo.get_title()==localized(expected['caption']);photo.close();spin();dialog.close();spin()
  with patch('urllib.request.urlopen',side_effect=AssertionError('Offline verification')):
   dialog,place=open_case('Mark.7.1','a15257a')
   spin(lambda:any(hasattr(x,'photo_path') for x in walk(dialog)),timeout=10)

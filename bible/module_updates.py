@@ -11,7 +11,7 @@ from urllib.parse import urlsplit,urlunsplit
 from .library import config
 from .study_catalogue import atomic_write
 
-CATALOGUE_URL='https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json'
+CATALOGUE_URL='https://raw.githubusercontent.com/icfmp/Bible-Resources/main/catalog/v1/catalog.json'
 MAX_CATALOGUE=2*1024*1024
 
 

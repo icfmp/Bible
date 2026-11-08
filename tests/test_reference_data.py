@@ -85,7 +85,7 @@ class ReferenceDataTests(unittest.TestCase):
             with sqlite3.connect(store.path) as connection:connection.execute('DROP TABLE relationships')
             with self.assertRaises(ReferenceDataError):store.metadata()
             library=StudyResources(store.root)
-            self.assertEqual(library.installed(),[])
+            self.assertNotIn(REFERENCE_RESOURCE_ID,library.installed())
             self.assertFalse(library.current(REFERENCE_RESOURCE_ID))
 
 

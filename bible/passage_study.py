@@ -9,7 +9,7 @@ class PassageStudy(Adw.Window):
     def __init__(self,owner,*,target=None,context=None,mode='original',place=None,metadata=None):
         super().__init__(title=tr('Study passage'),transient_for=owner,modal=True,destroy_with_parent=True,
                          default_width=min(700,max(320,owner.get_width()-48)),
-                         default_height=min(680,max(360,owner.get_height()-96)) if mode=='map' else -1)
+                         default_height=min(680,max(360,owner.get_height()-96)))
         self.owner=owner;self.closed=False;self.words=None
         self.add_css_class(owner.reading_style.scope+'-window')
         if target is None:target=self.context_target(context)

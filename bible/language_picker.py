@@ -17,6 +17,7 @@ class LanguagePicker(Gtk.MenuButton):
         self.search=Gtk.SearchEntry(placeholder_text=tr('Search languages'))
         self.search.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search languages')])
         self.search.connect('search-changed',self.filter)
+        self.search.connect('stop-search',lambda *_:self.popdown())
         box.append(self.search)
         self.strings=Gtk.StringList.new([])
         self.selection=Gtk.SingleSelection(model=self.strings,autoselect=False)

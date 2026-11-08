@@ -2,6 +2,7 @@
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr
+from .disclosure import disclosure
 from .place_data import PlaceData,SOURCE_URL,LICENSE_URL,ODBL_URL
 from .place_names import place_name
 from .resource_details import plain
@@ -171,14 +172,15 @@ class PlaceView(Adw.Bin):
             content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
             from .place_context import localized
             title=tr('Coordinate-source entity: {name}').format(name=localized(site['entry']['labels']))
-            expander=Gtk.Expander(expanded=len(related)==1)
-            expander.set_label_widget(self.label(title,caption=True))
+            expander=disclosure(expanded=len(related)==1)
+            label=Gtk.Label(label=title,xalign=0,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR)
+            label.add_css_class('caption');expander.set_label_widget(label)
             content.append(self.label(tr('Related to the proposed site {name}; this does not establish its identity with the biblical place.').format(name=site['name']),caption=True))
             self.enrichment(content,site['entry']);expander.set_child(content);card.append(expander)
         aliases=list(dict.fromkeys(place_name(alias) for alias in place.get('aliases',[]) if alias!=place['name']))
         if aliases:
             caption=tr('Names recorded by the source')+' · '+', '.join(aliases[:3])
-            names=Gtk.Expander()
+            names=disclosure()
             names.set_label_widget(Gtk.Label(label=caption,xalign=0,wrap=True,
                 width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
             names.update_property([Gtk.AccessibleProperty.LABEL],[caption])
@@ -218,7 +220,7 @@ class PlaceView(Adw.Bin):
         for source in place.get('sources',[]):
             evidence.append(self.label(source['name'],caption=True))
         evidence.append(self.link_label(place['source_url'],'OpenBible.info · CC BY 4.0'))
-        sources=Gtk.Expander(label=tr('Sources and evidence'));sources.set_child(evidence);card.append(sources)
+        sources=disclosure(label=tr('Sources and evidence'));sources.set_child(evidence);card.append(sources)
         self.reference_model=Gio.ListStore.new(PlaceItem)
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
@@ -231,6 +233,7 @@ class PlaceView(Adw.Bin):
         sections=Gio.ListStore.new(Gio.ListModel);sections.append(header_model);sections.append(self.reference_model)
         model=Gtk.FlattenListModel(model=sections)
         factory=Gtk.SignalListItemFactory()
+        factory.connect('setup',lambda _,item:(item.set_activatable(False),item.set_selectable(False)))
         header=Adw.Clamp(maximum_size=700,child=card)
         def bind(_,item):
             ref=item.get_item().payload
