@@ -78,6 +78,7 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertIs(w.get_focus(),v.leave_button)
 
     def test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides(self):
+        from gi.repository import Gtk
         t=self.w.active_tab;a=self.w.passage_actions;b=t.text.get_buffer();offset=t._marker_ends['Gen.1.1']+3
         factory=lambda:a.ordinary(t)
         a.capture(t.text,factory,offset);spin()
@@ -86,7 +87,9 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertTrue(a.bar.get_visible())
         self.assertIs(a.copy_button,a.copy_options)
         self.assertEqual(a.copy_button.get_child().get_icon_name(),'edit-copy-symbolic')
-        self.assertIs(a.actions.get_first_child(),a.copy_button)
+        first=a.actions.get_first_child()
+        if isinstance(first,Gtk.FlowBoxChild):first=first.get_child()
+        self.assertIs(first,a.copy_button)
         b.place_cursor(b.get_iter_at_offset(offset));spin()
         self.assertFalse(a.bar.get_visible());self.assertIsNone(a.target)
 

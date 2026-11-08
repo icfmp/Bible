@@ -31,20 +31,22 @@ class ReadingSettings:
         colors=Adw.PreferencesGroup(title=tr('Colors'));self.page.add(colors)
         self.mode=self.choice(colors,'Reading mode','mode',[('system','System'),('day','Light'),('night','Dark')])
         self.palettes={}
+        self.palette_grid=Gtk.Grid(column_homogeneous=True,column_spacing=8,row_spacing=8,margin_top=8)
+        colors.add(self.palette_grid)
         for key,title,values in [('day_palette','Day palettes',[('white','White'),('paper','Paper (sepia)')]),
                                   ('night_palette','Night palettes',[('dark','Dark grey'),('black','Black')])]:
-            row=Adw.ActionRow(title=tr(title));box=Gtk.Box(spacing=6,homogeneous=True)
+            row_index=0 if key=='day_palette' else 1
             group=None
-            for value,label in values:
+            for column,(value,label) in enumerate(values):
                 button=Gtk.ToggleButton(tooltip_text=tr(label));content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+                button.set_hexpand(True)
                 sample=Gtk.Label(label='Aa');sample.add_css_class('palette-preview-'+value)
                 content.append(sample);content.append(Gtk.Label(label=tr(label),wrap=True));button.set_child(content)
                 button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
                 if group:button.set_group(group)
                 else:group=button
                 button.connect('clicked',lambda _,k=key,v=value:self.update(k,v))
-                box.append(button);self.palettes[value]=button
-            row.add_suffix(box);colors.add(row)
+                self.palette_grid.attach(button,column,row_index,1,1);self.palettes[value]=button
         row=Adw.ActionRow(title=tr('Reset reading settings'),activatable=True)
         row.add_suffix(Gtk.Image(icon_name='edit-undo-symbolic'));row.connect('activated',lambda *_:owner.appearance.reset())
         reset=Adw.PreferencesGroup();reset.add(row);self.page.add(reset)

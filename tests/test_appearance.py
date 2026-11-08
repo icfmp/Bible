@@ -146,7 +146,7 @@ class AppearanceTests(unittest.TestCase):
                 self.assertEqual(w.preferences.value.day_palette,'paper')
                 from bible.ui import Gtk
                 theme=Gtk.IconTheme.get_for_display(w.get_display())
-                for icon_name in ['bible-library-symbolic','bible-notes-symbolic']:
+                for icon_name in ['dictionary-symbolic','notebook-symbolic','filter-symbolic','talking-symbolic']:
                     icon=theme.lookup_icon(icon_name,None,16,1,Gtk.TextDirection.LTR,Gtk.IconLookupFlags.FORCE_SYMBOLIC)
                     self.assertTrue(icon.is_symbolic(),icon_name)
             finally:w.close()
@@ -163,7 +163,7 @@ class AppearanceTests(unittest.TestCase):
                 buffer.select_range(buffer.get_iter_at_offset(start+3),buffer.get_iter_at_offset(start+19))
                 before=buffer.get_text(*buffer.get_selection_bounds(),False)
                 w.appearance.fonts['simple'].emit('clicked')
-                self.assertEqual(w.preferences.value.font,'DejaVu Sans')
+                self.assertEqual(w.preferences.value.font,'Roboto')
                 w.appearance.larger.emit('clicked');self.assertEqual(w.preferences.value.size,15)
                 w.appearance.smaller.emit('clicked');self.assertEqual(w.preferences.value.size,14)
                 w.appearance.update('line_spacing','airy');w.appearance.update('column_width','narrow')
@@ -181,7 +181,7 @@ class AppearanceTests(unittest.TestCase):
                 reference=tab.state.reference;w.close()
                 w=Window(self.app,library);w.present();spin()
                 self.assertEqual(w.preferences.value.size,64)
-                self.assertEqual(w.preferences.value.font,'DejaVu Sans')
+                self.assertEqual(w.preferences.value.font,'Roboto')
                 self.assertEqual(w.active_tab.state.reference,reference)
                 note=w.notes_store.save('Retained note',[],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Test',origin_language='en')
                 w.appearance.reset();self.assertEqual(w.preferences.value,ReadingPreferences())

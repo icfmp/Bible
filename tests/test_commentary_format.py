@@ -76,9 +76,9 @@ class CommentaryLayoutTests(unittest.TestCase):
                 panel.choices.set_selected(panel.names.index('Notes'));spin(lambda:not panel._positioning,duration=.4)
                 self.assertNotIn('Actual foreword.',panel.text.get_buffer().props.text)
                 self.assertIn('ACTUAL BODY.',panel.text.get_buffer().props.text)
-                self.assertTrue(panel.preface_button.get_visible())
+                self.assertTrue(panel.entry_actions['source-preface'].get_enabled())
                 reference=window.active_tab.state.reference;position=panel.anchor()
-                panel.preface_button.emit('clicked');spin()
+                panel.entry_actions['source-preface'].activate(None);spin()
                 preface=window.commentary_preface
                 self.assertEqual(preface.source_document.text.count('Actual foreword.'),500)
                 self.assertIn('SOURCE PREFACE',preface.text.get_buffer().props.text)

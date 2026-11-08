@@ -193,12 +193,16 @@ def main():
                 aa.smaller.grab_focus();inputs.key('space')
                 assert window.preferences.value.size == 14
                 aa.fonts['simple'].grab_focus();inputs.key('space')
-                assert window.preferences.value.font == 'DejaVu Sans'
+                assert window.preferences.value.font_style == 'simple'
+                assert window.preferences.value.font == window.preferences.value.sans_font
                 inputs.click(aa.palettes['paper'])
                 assert window.preferences.value.day_palette == 'paper'
                 assert window.preferences.value.mode == 'system'
                 inputs.click(aa.mode.buttons[2])
                 assert window.preferences.value.mode == 'night'
+                aa.visible_elements.grab_focus();inputs.key('Return')
+                assert aa.visible_elements.get_expanded()
+                spin(lambda:aa.verse_numbers.get_mapped())
                 aa.verse_numbers.grab_focus();inputs.key('Return')
                 assert not window.preferences.value.verse_numbers
                 inputs.key('Escape')

@@ -62,3 +62,35 @@ class PassageActionTests(unittest.TestCase):
                 tab.mark_commentary_range('Gen.1.1','Gen.1.2');spin()
                 self.assertFalse(window.passage_actions.bar.get_visible())
             finally:window.close()
+
+    def test_labelled_actions_fit_and_tab_in_order_with_native_wrap_and_older_gtk_fallback(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from gi.repository import Adw,Gtk
+        from bible.ui import Application,Window,Library
+        from tools.check_alpha_ui import X11Input
+        app=Application.get_default() or Application();app.register();native=X11Input()
+        try:
+            for fallback in (False,True):
+                with self.subTest(fallback=fallback),tempfile.TemporaryDirectory() as directory:
+                    installed_fixture(directory,long_text=True)
+                    backend=SimpleNamespace(Clamp=Adw.Clamp,LengthUnit=Adw.LengthUnit) if fallback else Adw
+                    with patch('bible.passage_actions.Adw',backend):w=Window(app,Library(Path(directory)/'translations'))
+                    w.set_default_size(360,700);w.present();spin(lambda:w.get_width()<=360 and not w.active_tab._restoring_scroll,duration=.3)
+                    try:
+                        w.study_button.set_active(False);tab=w.active_tab;buffer=tab.text.get_buffer()
+                        offset=tab._marker_ends['Gen.1.1']+3
+                        buffer.select_range(buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(offset+12))
+                        a=w.passage_actions;a.capture(tab.text,lambda:a.ordinary(tab),None);spin(duration=.4)
+                        buttons=[a.copy_button,*[v[0] for v in a.highlight_buttons.values()],a.note_button,a.word_button,a.close_button]
+                        for button in buttons:
+                            found,bounds=button.compute_bounds(w);self.assertTrue(found)
+                            self.assertGreaterEqual(bounds.get_x(),0);self.assertLessEqual(bounds.get_x()+bounds.get_width(),w.get_width())
+                            self.assertGreaterEqual(bounds.get_y(),0);self.assertLessEqual(bounds.get_y()+bounds.get_height(),w.get_height())
+                        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':
+                            native.activate(w);a.copy_button.grab_focus()
+                            for button in buttons[1:]:
+                                native.key('Tab');spin(duration=.05);focus=w.get_focus()
+                                self.assertTrue(focus is button or focus and focus.is_ancestor(button),(fallback,button,focus))
+                    finally:w.close()
+        finally:native.close()

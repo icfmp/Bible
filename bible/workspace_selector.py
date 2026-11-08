@@ -18,7 +18,7 @@ class WorkspaceSelector(SegmentedChoice):
     def set_compact(self,compact):
         if compact==self.compact:return
         self.compact=compact
-        for button,label,icon in zip(self.buttons,('Bible','Notes'),('accessories-dictionary-symbolic','bible-notes-symbolic')):
+        for button,label,icon in zip(self.buttons,('Bible','Notes'),('dictionary-symbolic','notebook-symbolic')):
             if compact:button.set_icon_name(icon)
             else:button.set_label(tr(label))
             button.set_tooltip_text(tr(label))
