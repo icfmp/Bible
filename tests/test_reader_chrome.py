@@ -16,6 +16,7 @@ class ReaderChromeTests(unittest.TestCase):
         app=Application.get_default() or Application();app.register()
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);installed_fixture(root,entries=[('John.3.16','Exact verse 16'),('John.3.17','Exact verse 17')])
+            installed_fixture(root,'Other',entries=[('John.3.16','Other verse 16'),('John.3.17','Other verse 17')])
             library=Library(root/'translations');original=library.resource
             title='The complete translation with additional source information'
             with patch.object(library,'resource',side_effect=lambda name:replace(original(name),description=title)):
@@ -23,10 +24,16 @@ class ReaderChromeTests(unittest.TestCase):
                 settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
                 try:
                     t=w.active_tab;t.navigate('Test','John.3.16');spin(lambda:not t._restoring_scroll)
-                    self.assertEqual(t.title(),chapter);self.assertEqual(w.heading.get_subtitle(),'')
+                    self.assertEqual(t.title(),chapter+' · Test');self.assertEqual(w.heading.get_subtitle(),'')
                     self.assertEqual(w.primary_version.caption.get_text(),title)
                     t.navigate('Test','John.3.17');spin(lambda:not t._restoring_scroll)
-                    self.assertEqual(t.title(),chapter);self.assertEqual(t.state.reference,'John.3.17')
+                    self.assertEqual(t.title(),chapter+' · Test');self.assertEqual(t.state.reference,'John.3.17')
+                    page=w.view.get_page(t)
+                    self.assertEqual(page.get_title(),t.title())
+                    w.comparison_choices.set_selected(w._comparison_names.index('Other'));spin()
+                    self.assertEqual(page.get_title(),chapter+' · Test | Other')
+                    w.end_comparison();spin()
+                    self.assertEqual(page.get_title(),chapter+' · Test')
                     for size in (font,'Sans 18'):
                         settings.props.gtk_font_name=size
                         for width in (1200,360):
