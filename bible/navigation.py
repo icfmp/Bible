@@ -2,7 +2,7 @@
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gdk, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from .book_names import display_name, normalized
 from .providers import module_name
@@ -59,8 +59,11 @@ class PassagePopover(Gtk.Popover):
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True)
         self.book_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=22,hexpand=True,width_chars=1)
         self.book_title.add_css_class('heading')
-        book_header=Gtk.Box(spacing=6);book_header.append(self.book_title);right.append(book_header)
-        self.introduction_button=Gtk.Button(icon_name='dialog-information-symbolic',tooltip_text=tr('Book introduction'),valign=Gtk.Align.CENTER)
+        right.append(self.book_title)
+        book_header=(Adw.WrapBox(child_spacing=6,line_spacing=4,natural_line_length=240)
+                     if hasattr(Adw,'WrapBox') else Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6))
+        right.remove(self.book_title);book_header.append(self.book_title);right.append(book_header)
+        self.introduction_button=Gtk.Button(label=tr('Introduction'),valign=Gtk.Align.CENTER)
         self.introduction_button.add_css_class('flat')
         self.introduction_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book introduction')])
         self.introduction_button.connect('clicked',self.open_introduction)

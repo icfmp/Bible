@@ -153,7 +153,11 @@
         "install -d /app/share/fonts/dejavu",
         "for font in DejaVuSerif.ttf DejaVuSerif-Bold.ttf DejaVuSerif-Italic.ttf DejaVuSerif-BoldItalic.ttf DejaVuSans.ttf DejaVuSans-Bold.ttf DejaVuSans-Oblique.ttf DejaVuSans-BoldOblique.ttf; do install -m644 usr/share/fonts/truetype/dejavu/$font /app/share/fonts/dejavu/; done",
         "install -Dm644 usr/share/doc/fonts-dejavu-core/copyright /app/share/licenses/dejavu/copyright",
-        "install -Dm644 usr/share/doc/fonts-dejavu-extra/copyright /app/share/licenses/dejavu/extra-copyright"
+        "install -Dm644 usr/share/doc/fonts-dejavu-extra/copyright /app/share/licenses/dejavu/extra-copyright",
+        "install -d /app/share/fonts/roboto",
+        "install -m644 Roboto.ttf Roboto-Italic.ttf RobotoSerif.ttf RobotoSerif-Italic.ttf /app/share/fonts/roboto/",
+        "install -Dm644 roboto-OFL.txt /app/share/licenses/roboto/OFL.txt",
+        "install -Dm644 robotoserif-OFL.txt /app/share/licenses/robotoserif/OFL.txt"
       ],
       "sources": [
         {
@@ -167,6 +171,42 @@
           "url": "https://deb.debian.org/debian/pool/main/f/fonts-dejavu/fonts-dejavu-extra_2.37-8_all.deb",
           "sha256": "83128d00e5d7db412fe5a7a4e2ee32aebbf8d9ed560ad611202fb43078f80323",
           "dest-filename": "fonts-dejavu-extra.deb"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/1c627bfa375fc51cf86fabeca4f6e08a95f0aa5c/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf",
+          "sha256": "d7598e12c5dbef095ff8272cfc55da0250bd07fbdecbac8a530b9b277872a134",
+          "dest-filename": "Roboto.ttf"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/1c627bfa375fc51cf86fabeca4f6e08a95f0aa5c/ofl/roboto/Roboto-Italic%5Bwdth%2Cwght%5D.ttf",
+          "sha256": "9725a847af6b460ffca162ae66d20dad48b01876137947180b42d7dcd7887182",
+          "dest-filename": "Roboto-Italic.ttf"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/1c627bfa375fc51cf86fabeca4f6e08a95f0aa5c/ofl/roboto/OFL.txt",
+          "sha256": "061402327a96aadb0bfb694a960ed289ecd38d383e396243831ab81feb109c41",
+          "dest-filename": "roboto-OFL.txt"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/00a31b16e05b53660766c34faef6c44082e11caa/ofl/robotoserif/RobotoSerif%5BGRAD%2Copsz%2Cwdth%2Cwght%5D.ttf",
+          "sha256": "351ced75f3851806aa6d846b669361521eb1925cfc530396df9c1a1b77061ddb",
+          "dest-filename": "RobotoSerif.ttf"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/00a31b16e05b53660766c34faef6c44082e11caa/ofl/robotoserif/RobotoSerif-Italic%5BGRAD%2Copsz%2Cwdth%2Cwght%5D.ttf",
+          "sha256": "695ffbe6bfd0893a8de90b1ea13632e7e838bc7427b818584e1daf82b36b99de",
+          "dest-filename": "RobotoSerif-Italic.ttf"
+        },
+        {
+          "type": "file",
+          "url": "https://raw.githubusercontent.com/google/fonts/00a31b16e05b53660766c34faef6c44082e11caa/ofl/robotoserif/OFL.txt",
+          "sha256": "34dbfbb43e0b4fdeef445d77b9ac0b988e5ad7a9bbf16808c97b66c66d51f553",
+          "dest-filename": "robotoserif-OFL.txt"
         }
       ]
     },
@@ -177,6 +217,7 @@
         "cp -r bible /app/lib/bible-python/",
         "install -Dm755 packaging/bible /app/bin/bible",
         "install -Dm644 packaging/io.github.icfmp.Bible.desktop /app/share/applications/io.github.icfmp.Bible.desktop",
+        "install -Dm644 packaging/io.github.icfmp.Bible.metainfo.xml /app/share/metainfo/io.github.icfmp.Bible.metainfo.xml",
         "for size in 32 48 64 128 256 512; do install -Dm644 packaging/icons/${size}x${size}/io.github.icfmp.Bible.png /app/share/icons/hicolor/${size}x${size}/apps/io.github.icfmp.Bible.png; done",
         "install -Dm644 LICENSE /app/share/licenses/bible/LICENSE",
         "install -Dm644 THIRD_PARTY_NOTICES.md /app/share/licenses/bible/THIRD_PARTY_NOTICES.md",
@@ -186,7 +227,9 @@
         "install -Dm644 third_party/libpalaso/provenance.json /app/share/licenses/libpalaso/provenance.json",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.svg",
         "install -Dm644 packaging/icons/scalable/apps/io.github.icfmp.Bible.Devel.svg /app/share/icons/hicolor/scalable/apps/io.github.icfmp.Bible.Devel.svg",
-        "install -Dm644 packaging/icons/symbolic/apps/io.github.icfmp.Bible-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.icfmp.Bible-symbolic.svg"
+        "install -Dm644 packaging/icons/symbolic/apps/io.github.icfmp.Bible-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.icfmp.Bible-symbolic.svg",
+        "install -Dm644 third_party/icon-development-kit/COPYING.md /app/share/licenses/icon-development-kit/COPYING.md",
+        "install -Dm644 third_party/icon-development-kit/provenance.json /app/share/licenses/icon-development-kit/provenance.json"
       ],
       "sources": [
         {

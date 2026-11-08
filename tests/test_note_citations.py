@@ -35,7 +35,11 @@ class NoteCitationTests(unittest.TestCase):
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(self):
         from bible.note_preview import NotePreview
         from bible.annotation_card import AnnotationPreview
-        w=self.window;w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh();spin()
+        w=self.window;w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh()
+        # Unlike a pointer activation, this direct callback can run during the
+        # drawer's first allocation/follow animation. Wait for its real anchor.
+        spin(lambda:w.study.notes.get_mapped() and not w.active_tab._restoring_scroll
+             and not w.study.notes._follow_idle,duration=.4)
         def walk(widget):
             if isinstance(widget,(NotePreview,AnnotationPreview)):yield widget
             child=widget.get_first_child()

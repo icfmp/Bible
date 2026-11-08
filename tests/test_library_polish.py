@@ -189,17 +189,17 @@ class LibraryPolishTests(unittest.TestCase):
         d.close();d=w.open_library();self.assertEqual(d.language_choice,'en')
         d.language.set_selected(0);self.assertEqual(w.application_settings.language,'')
 
-    def test_install_refresh_never_selects_resource_explicit_read_targets_intended_tab(self):
+    def test_first_install_opens_active_unusable_reader_explicit_read_still_targets_intended_tab(self):
         w=self.window;w.welcome_skip.emit('clicked');initial=w.active_tab
         from bible.session import TabState
         second=w.append_tab(TabState()).get_child()
         context=w.library_context(initial,'bible')
         installed_fixture(self.root,'Test')
         w.view.set_selected_page(w.view.get_page(second));w.resource_installed('Test')
-        self.assertIsNone(initial.state.resource);self.assertIsNone(second.state.resource)
+        self.assertIsNone(initial.state.resource);self.assertEqual(second.state.resource,'Test')
         self.assertTrue(w.open_installed_resource('Test',context))
         self.assertIs(w.active_tab,initial);self.assertEqual(initial.state.resource,'Test')
-        self.assertIsNone(second.state.resource)
+        self.assertEqual(second.state.resource,'Test')
         w.view.close_page(w.view.get_page(initial));spin()
         before=(w.active_tab.state.resource,w.active_tab.state.reference)
         self.assertFalse(w.open_installed_resource('Test',context));self.assertEqual(before,(w.active_tab.state.resource,w.active_tab.state.reference))

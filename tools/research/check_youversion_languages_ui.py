@@ -50,7 +50,8 @@ def main():
                             assert refs==[*range(1,7),21,22,*range(7,21)]
                             layout=tab.text.create_pango_layout(tab.text.get_buffer().props.text)
                             assert layout.get_unknown_glyphs_count()==0,'Missing CJK font on the validation host'
-                        window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes');spin()
+                        window.study_button.set_active(True);window.study.tools.set_visible_child_name('notes');spin()
+                        assert not hasattr(window.study,'translation_notes')
                         name=f'edition-{edition}-{palette}.png';native.move_at(window,2,2);screen.grab(args.output/name)
                         captures.append(dict(file=name,edition=edition,size=[window.get_width(),window.get_height()]))
                     window.set_default_size(360,600);spin(duration=.3)

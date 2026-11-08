@@ -22,6 +22,7 @@ class AppearancePopover(Gtk.Popover):
         self.width_clamp=Adw.Clamp(child=box,maximum_size=320,tightening_threshold=320,unit=Adw.LengthUnit.PX)
         scroll.set_child(self.width_clamp)
         title = Gtk.Label(label=tr('Reading appearance'),wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR);title.add_css_class('heading');box.append(title)
+        text_heading=Gtk.Label(label=tr('Text'),xalign=0);text_heading.add_css_class('heading');box.append(text_heading)
         self.fonts = {}
         fonts = Gtk.Box(spacing=6, homogeneous=True)
         for style, label in [('book', 'Book'), ('simple', 'Simple')]:
@@ -48,11 +49,13 @@ class AppearancePopover(Gtk.Popover):
         self.size.update_property([Gtk.AccessibleProperty.LABEL],[tr('Text size')])
         for widget in [self.smaller,self.size,self.larger]:size_row.append(widget)
         box.append(size_row)
+        box.append(Gtk.Separator(margin_top=4,margin_bottom=4))
+        appearance_heading=Gtk.Label(label=tr('Appearance'),xalign=0);appearance_heading.add_css_class('heading');box.append(appearance_heading)
         from .segmented_choice import SegmentedChoice
         self.mode=SegmentedChoice([tr(label) for label in ('System','Light','Dark')])
         self.mode.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading mode')])
         self.mode.connect('changed',lambda widget,*_:self.update('mode',('system','day','night')[widget.get_selected()]))
-        box.append(self.mode)
+        self.mode.set_hexpand(True);box.append(self.mode)
         self.palettes={};self.palette_rows={}
         for group,label,options in [('day_palette','Day palettes',[('white','White'),('paper','Paper (sepia)')]),
                                     ('night_palette','Night palettes',[('dark','Dark grey'),('black','Black')])]:
@@ -84,8 +87,12 @@ class AppearancePopover(Gtk.Popover):
             button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
             button.connect('notify::active',lambda widget,_,key=attr:self.update(key,widget.get_active()))
             row.append(button);setattr(self,attr,button);visible_box.append(row)
-        advanced=Gtk.Button(child=Gtk.Label(label=tr('More reading settings…'),wrap=True,
-            width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
+        advanced_content=Gtk.Box(spacing=8)
+        advanced_content.append(Gtk.Image(icon_name='preferences-system-symbolic'))
+        advanced_content.append(Gtk.Label(label=tr('More reading settings…'),wrap=True,
+            width_chars=1,hexpand=True,xalign=0,wrap_mode=Pango.WrapMode.WORD_CHAR))
+        advanced_content.append(Gtk.Image(icon_name='go-next-symbolic'))
+        advanced=Gtk.Button(child=advanced_content)
         def open_settings(*_):
             self.popdown()
             from .application_surfaces import show_preferences

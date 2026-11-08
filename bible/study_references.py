@@ -125,7 +125,10 @@ class StudyReferences(Gtk.Box):
         except ValueError as error:
             self.clear_rows()
             self.message(tr('No verified alignment for this passage.'));self.status.set_tooltip_text(str(error));return
-        self.pending=True;self.message(tr('Loading references…'))
+        # Keep the existing cards' viewport unchanged during a same-passage
+        # refresh. Adding a loading row above them moves the visible content
+        # and makes GTK re-estimate its virtualized scroll adjustment.
+        self.pending=True;self.message(tr('Loading references…') if self._new_passage else '')
         revision=self.data.revision
         future=self.executor.submit(self.data.query,origins)
         def complete():
@@ -169,8 +172,9 @@ class StudyReferences(Gtk.Box):
                         else tr('This passage is unavailable in the selected translation.'))
             self.row_cache[key]=result
         caption,body=self.row_cache[key];title.set_text(caption);text.set_text(body)
-        button.set_tooltip_text(tr('OpenBible target: {reference}').format(reference=passage_title(row.start,row.end))+'\n'+
-                               tr('Related to {count} selected verses.').format(count=row.source_count))
+        button.set_tooltip_text(None)
+        button.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
+            [caption,tr('Related to {count} selected verses.').format(count=row.source_count)])
 
     def preview(self,button):
         item=button._reference_item

@@ -1,0 +1,47 @@
+{
+  "project": "GNOME Icon Development Kit",
+  "repository": "https://gitlab.gnome.org/Teams/Design/icon-development-kit",
+  "commit": "cf705cdad8b594295cabe84cac3b6efe4c0f7972",
+  "archive_sha256": "656508024116942fb1acd5dc86357ca1bb5799d5877e939a9f14dd91ec0ec8fd",
+  "license": "CC0-1.0",
+  "license_path": "COPYING.md",
+  "license_sha256": "6cc655a5df52fefac69058311c090f4e70b7c37b8f6488f9498420a930b8275d",
+  "files": [
+    {
+      "source_path": "icons/dictionary.svg",
+      "installed_path": "bible/icons/hicolor/scalable/actions/dictionary-symbolic.svg",
+      "sha256": "1bc53ba35b452796e2f4b0e85679191d01bb6c9ea74a1bbd26de61a1f398aa1d",
+      "bytes": 1853,
+      "creator": "Jakub Steiner",
+      "license": "CC0-1.0",
+      "changes": "Unmodified SVG bytes; filename gains -symbolic for the legacy symbolic rendering path documented by upstream."
+    },
+    {
+      "source_path": "icons/notebook.svg",
+      "installed_path": "bible/icons/hicolor/scalable/actions/notebook-symbolic.svg",
+      "sha256": "82ac5d6926d626121731858571ead4f0a40ee62b7e291df0a38e83fa2d97475f",
+      "bytes": 1936,
+      "creator": "Jakub Steiner",
+      "license": "CC0-1.0",
+      "changes": "Unmodified SVG bytes; filename gains -symbolic for the legacy symbolic rendering path documented by upstream."
+    },
+    {
+      "source_path": "icons/filter.svg",
+      "installed_path": "bible/icons/hicolor/scalable/actions/filter-symbolic.svg",
+      "sha256": "2f70ace4c47cb9bc06cb88b97a7d56e7e7a7c9568e90814c0f549ecc362bac69",
+      "bytes": 1230,
+      "creator": "Jakub Steiner",
+      "license": "CC0-1.0",
+      "changes": "Unmodified SVG bytes; filename gains -symbolic for the legacy symbolic rendering path documented by upstream."
+    },
+    {
+      "source_path": "icons/talking.svg",
+      "installed_path": "bible/icons/hicolor/scalable/actions/talking-symbolic.svg",
+      "sha256": "e6edfae474371603843022b5ce7aa5d021f27b52b927669b3f419976c929d24a",
+      "bytes": 2054,
+      "creator": "Jakub Steiner",
+      "license": "CC0-1.0",
+      "changes": "Unmodified SVG bytes; filename gains -symbolic for the legacy symbolic rendering path documented by upstream."
+    }
+  ]
+}

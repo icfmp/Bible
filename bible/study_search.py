@@ -23,7 +23,7 @@ class StudySearch(Gtk.Box):
         self.vocabulary=TopicVocabulary(self.data.root);self._vocabulary_entries=()
         self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-search')
         self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
-        self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None
+        self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None;self.result_query=''
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
         # GtkSearchEntry's default delegated minimum can widen the horizontal
         # fallback on older libadwaita. Let the entry expand into the remaining
@@ -46,11 +46,16 @@ class StudySearch(Gtk.Box):
         self.scope.connect('notify::selected',lambda *_:self.changed())
         self.scope.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search scope')])
         self.scope.set_visible(mode=='text')
-        bounded_choices(self.scope);query.append(self.scope)
+        bounded_choices(self.scope);self.scope.add_css_class('flat');query.append(self.scope)
         self.submit=Gtk.Button(icon_name='system-search-symbolic',tooltip_text=tr('Search'))
         self.submit.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search')]);self.submit.connect('clicked',self.run_text)
         self.entry.connect('activate',self.run_text if mode=='text' else self.activate_first)
         self.submit.set_visible(mode=='text');query.append(self.submit)
+        self.spinner=Gtk.Spinner()
+        self.spinner.update_property([Gtk.AccessibleProperty.LABEL],[tr('Searching…')])
+        self.submit_display=Gtk.Stack()
+        self.submit_display.add_named(Gtk.Image(icon_name='system-search-symbolic'),'search')
+        self.submit_display.add_named(self.spinner,'busy');self.submit.set_child(self.submit_display)
         self.explanation=Gtk.Label(xalign=0,wrap=True,max_width_chars=55)
         self.explanation.add_css_class('caption')
         self.explanation.set_margin_start(12);self.explanation.set_margin_end(12);self.explanation.set_margin_top(12);self.explanation.set_margin_bottom(12)
@@ -58,7 +63,8 @@ class StudySearch(Gtk.Box):
         help_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Search syntax')])
         help_button.add_css_class('flat');help_button.set_visible(mode=='text')
         help_pop=Gtk.Popover();help_pop.set_child(self.explanation);help_button.set_popover(help_pop);query.append(help_button)
-        self.status=Gtk.Label(xalign=0,wrap=True,max_width_chars=55);self.append(self.status)
+        self.status=Gtk.Label(xalign=0,wrap=True,max_width_chars=55,visible=False);self.append(self.status)
+        self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
         self.download=Gtk.Button(label=tr('Download topic data'));self.download.connect('clicked',self.open_library);self.append(self.download)
         self.topic_model=Gio.ListStore.new(SearchItem)
         topic_factory=Gtk.SignalListItemFactory();topic_factory.connect('setup',self.topic_setup);topic_factory.connect('bind',self.topic_bind)
@@ -116,18 +122,23 @@ class StudySearch(Gtk.Box):
         self.epoch+=1
         if self.pending:
             self.invalidate()
-            self.status.set_text(tr('Choose a topic.') if self.mode=='topics' else tr('Enter a phrase and press Enter.'))
+            self.status.set_text('' if self.mode=='topics' else tr('Enter a phrase and press Enter.'))
             if self.mode=='topics':self.show_topics()
         elif self.future:self.future.cancel()
-        self.pending=False
+        self.pending=False;self.busy(False)
 
-    def invalidate(self):
+    def busy(self,value):
+        self.spinner.set_spinning(value);self.submit_display.set_visible_child_name('busy' if value else 'search')
+
+    def invalidate(self,keep_results=False):
         if hasattr(self,'more'):self.more.set_visible(False)
         if self.future:self.future.cancel();self.future=None
         self._submitted_query=None
-        self.generation+=1;self.pending=False;self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
+        self.generation+=1;self.pending=False;self.busy(False)
+        self.results.set_sensitive(False)
+        if not keep_results:self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
         if hasattr(self.owner,'reference_preview'):self.owner.reference_preview.dismiss()
-        self.heading.set_text('');self.status.set_tooltip_text(None);self.status.set_visible(True)
+        self.heading.set_text('');self.status.set_text('');self.status.set_tooltip_text(None)
 
     def refresh(self):
         names=self.owner.library.installed('bible')
@@ -196,13 +207,23 @@ class StudySearch(Gtk.Box):
         if self.mode=='text' and self.lemma_query and self.entry.get_text()==getattr(self,'_lemma_caption',None):return
         self.lemma_query=None
         if self.mode=='text':self.scope.set_visible(True)
-        self.invalidate()
-        if self.mode=='text':self.status.set_text('');self.status.set_visible(False);return
+        self.invalidate(keep_results=self.mode=='text' and bool(self.rows))
+        if self.mode=='text':
+            self.status.set_text('');self.status.set_visible(False)
+            # GtkEditable.set_text deletes then inserts; its intermediate empty
+            # notification must not clear the last completed result list.
+            generation=self.generation
+            if not self.entry.get_text().strip():
+                def clear_empty():
+                    if not self.owner.closed and generation==self.generation and not self.entry.get_text().strip():self.invalidate()
+                    return False
+                GLib.idle_add(clear_empty)
+            return
         if self.mode=='topics':self.show_topics()
         entries=suggestions(self.entry.get_text(),entries=self._vocabulary_entries)
         self.topic_model.splice(0,self.topic_model.get_n_items(),[SearchItem(e) for e in entries])
         self.status.set_text(tr('Download topic data once to explore it offline.') if self.data.revision is None else
-                             tr('Choose a topic.') if entries else tr('No topic in the supported vocabulary. Try a shorter word.'))
+                             '' if entries else tr('No topic in the supported vocabulary. Try a shorter word.'))
         self.download.set_visible(self.data.revision is None)
 
     def show_topics(self,*_):
@@ -217,13 +238,12 @@ class StudySearch(Gtk.Box):
         library.open_details(None,index)
 
     def topic_setup(self,_,item):
-        button=Gtk.Button();button.add_css_class('flat')
-        label=Gtk.Label(xalign=0,wrap=True,width_chars=1);button.set_child(label)
+        button=passage_card();button._reference_labels[1].set_visible(False)
         button.connect('clicked',lambda b:self.choose(b._topic));item.set_child(button)
 
     def topic_bind(self,_,item):
-        button=item.get_child();button._topic=item.get_item().value;button.get_child().set_text(title(button._topic))
-        button.set_tooltip_text('OpenBible.info · '+button._topic[0])
+        button=item.get_child();button._topic=item.get_item().value;button._reference_labels[0].set_text(title(button._topic))
+        button.update_property([Gtk.AccessibleProperty.LABEL],[title(button._topic)])
 
     def activate_first(self,*_):
         if self.topic_model.get_n_items():self.choose(self.topic_model.get_item(0).value)
@@ -240,15 +260,21 @@ class StudySearch(Gtk.Box):
         self.context=(resource,reader);return True
 
     def launch(self,operation,caption,source_system,append=False):
-        if not append:self.invalidate()
+        previous_context=self.context
+        if not append:self.invalidate(keep_results=self.mode=='text' and bool(self.rows))
         if not self.capture_context():return
-        self.source_system=source_system;self.pending=True;self.status.set_visible(True);self.status.set_text(tr('Searching…'));self.heading.set_text(caption if self.mode=='topics' else '')
+        if previous_context!=self.context:
+            self.model.remove_all();self.rows=[];self.row_cache={};self.chapter_cache={}
+        display_query=self.entry.get_text()
+        if self.mode=='text':self._submitted_query=display_query
+        self.source_system=source_system;self.pending=True;self.busy(True);self.status.set_text('');self.heading.set_text(caption if self.mode=='topics' else '')
         generation=self.generation;epoch=self.epoch;future=self.executor.submit(operation);self.future=future
         def complete():
             if self.owner.closed or generation!=self.generation or epoch!=self.epoch:return False
-            self.pending=False
+            self.pending=False;self.busy(False)
             try:
-                rows,total=future.result();self.total=total
+                rows,total=future.result();self.total=total;self.result_query=display_query
+                self.results.set_sensitive(True)
                 if append:
                     self.rows.extend(rows)
                     self.model.splice(self.model.get_n_items(),0,[SearchItem((row,generation)) for row in rows])
@@ -265,7 +291,7 @@ class StudySearch(Gtk.Box):
                 self.status.set_text(tr('No matching passages.') if not self.rows else '')
                 self.status.set_visible(not self.rows)
             except Exception as error:
-                self.status.set_text(tr('Search unavailable. Check the installed resource and try again.'));self.status.set_tooltip_text(str(error))
+                self.status.set_visible(True);self.status.set_text(tr('Search unavailable. Check the installed resource and try again.'));self.status.set_tooltip_text(str(error))
                 self.download.set_visible(self.mode=='topics')
             return False
         future.add_done_callback(lambda _:GLib.idle_add(complete))
@@ -299,7 +325,7 @@ class StudySearch(Gtk.Box):
             value=search(root,resource,query,scope,book,offset)
             return [TextMatch(item['reference'],item['reference'],item['kind']) for item in value['matches']],value['total']
         self.launch(operation,query,reader.versification,append=append)
-        self._submitted_query=query
+        self._submitted_query=self.entry.get_text()
 
     def show_lemma(self,corpus,identifier,caption,resource):
         if resource in self.search_names:self.source.set_selected(self.search_names.index(resource))
@@ -323,15 +349,9 @@ class StudySearch(Gtk.Box):
         self.launch(operation,self._lemma_caption,'NRSV',append=append)
 
     def result_setup(self,_,item):
-        if self.mode=='topics':
-            button=passage_card();content=button.get_child()
-        else:
-            button=Gtk.Button();button.add_css_class('flat')
-            content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-            for _ in range(2):content.append(Gtk.Label(xalign=0,wrap=True,width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
-            heading=content.get_first_child();heading.add_css_class('heading');heading.add_css_class('accent')
-            excerpt=heading.get_next_sibling();excerpt.set_lines(3);excerpt.set_ellipsize(Pango.EllipsizeMode.END)
+        button=passage_card();content=button.get_child()
         score=Gtk.Label(xalign=0,wrap=True);score.add_css_class('caption');content.append(score)
+        button._result_score=score
         button.set_child(content);button.connect('clicked',self.preview);item.set_child(button)
 
     def result_bind(self,_,item):
@@ -345,14 +365,14 @@ class StudySearch(Gtk.Box):
                 result=(passage_title(row.start,row.end),tr('No verified alignment for this passage.') if isinstance(error,VersificationMismatch) else
                         tr('This passage is unavailable in the selected translation.'))
             self.row_cache[key]=result
-        caption,text=self.row_cache[key];heading=button.get_child().get_first_child();heading.set_text(caption)
-        excerpt=heading.get_next_sibling();excerpt.set_text(text)
+        caption,text=self.row_cache[key];heading,excerpt=button._reference_labels;heading.set_text(caption)
+        excerpt.set_text(text)
         attributes=Pango.AttrList();attributes.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
         excerpt.set_attributes(attributes)
         if self.mode=='text' and not self.lemma_query:
             from .search_terms import match_ranges
             try:
-                query=self.entry.get_text()
+                query=self.result_query
                 if getattr(row,'kind','strict')=='close':
                     from .search_terms import normalized
                     query=' '.join(normalized(query,self.owner.library.resource(resource).language).split())
@@ -363,7 +383,7 @@ class StudySearch(Gtk.Box):
                 attribute.start_index=len(text[:start].encode());attribute.end_index=len(text[:end].encode());attributes.change(attribute)
             excerpt.set_attributes(attributes)
         excerpt.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR);excerpt.set_xalign(1 if reader.rtl else 0)
-        score=excerpt.get_next_sibling()
+        score=button._result_score
         close=self.mode=='text' and not self.lemma_query and getattr(row,'kind','strict')=='close'
         score.set_visible(close);score.set_text(tr('Close match') if close else '')
 

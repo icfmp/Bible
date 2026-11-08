@@ -145,12 +145,14 @@ def main():
                 assert comparison and comparison.startswith('Gen.11.')
                 tab.show('Sir.43.17');spin()
                 assert tab._comparison_reader and tab.comparison_visible_reference().startswith('Gen.11.')
-                window.study_button.set_active(True);window.study.tools.set_visible_child_name('translation-notes')
-                spin(lambda:window.study.translation_notes.text.get_buffer().get_char_count()>100,timeout=30)
+                window.study_button.set_active(True);window.study.tools.set_visible_child_name('notes')
+                spin()
+                assert tab.reader.editorial_notes('Sir.43.17')
+                assert not hasattr(window.study,'translation_notes')
                 shot('parallel-study'+('-dark' if dark else '-light'))
                 window.study_button.set_active(False)
                 with patch.object(tab.reader,'editorial_notes',side_effect=AssertionError('Hidden source-note work')):
-                    window.study.translation_notes.refresh(force=True)
+                    window.study.refresh(force=True)
         assert window.notes_store.all()==original_notes
         assert all(hashes().get(path)==value for path,value in preserved.items())
         report.update(completed=True,existing_modules_preserved=len(preserved),personal_notes_preserved=len(original_notes),provider_agreement_submitted=False)

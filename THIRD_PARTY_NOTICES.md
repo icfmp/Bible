@@ -198,3 +198,50 @@ is best effort under <https://operations.osmfoundation.org/policies/tiles/>.
 The stable identifying User-Agent is `Bible/0.1-alpha
 (+https://github.com/icfmp/Bible)`. The original outlined place icon is Bible
 project artwork under GPL-2.0-only.
+
+
+## Roboto and Roboto Serif (bundled reading fonts)
+
+The Flatpak includes unmodified variable upright and italic fonts, independently
+of host-installed fonts. Both families use the SIL Open Font License 1.1; they
+are not the application's UI font.
+
+- Roboto: Copyright 2011 The Roboto Project Authors.
+  Google Fonts revision `1c627bfa375fc51cf86fabeca4f6e08a95f0aa5c`,
+  <https://github.com/google/fonts/tree/1c627bfa375fc51cf86fabeca4f6e08a95f0aa5c/ofl/roboto>.
+- Roboto Serif: Copyright 2020 The Roboto Serif Project Authors.
+  Google Fonts revision `00a31b16e05b53660766c34faef6c44082e11caa`,
+  <https://github.com/google/fonts/tree/00a31b16e05b53660766c34faef6c44082e11caa/ofl/robotoserif>.
+
+The complete upstream copyright/license files are installed at
+`/app/share/licenses/roboto/OFL.txt` and `/app/share/licenses/robotoserif/OFL.txt`.
+Font files and licenses are hash-pinned in the existing reader-fonts module.
+Existing saved font choices are retained; Roboto Serif/Roboto are defaults for
+a new reading profile only.
+
+## Optional reviewed place context and photographs
+
+`bible/study_data/place_context.json` includes an excerpt and French translation
+from Wikipedia contributors, *History of Jerusalem*, revision 1382952817, under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Permanent source
+and revision-history URLs are retained in the data. These separately licensed
+texts are not Bible text and do not change the application's GPL-2.0-only license.
+
+The optional Jerusalem photograph is by **askii**, Commons file page 154641343,
+under [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). The Commons
+crop and Wikimedia-generated thumbnail remain separately licensed. No photograph
+is bundled; the exact source, author, license, transformation and checksum are
+recorded with the download. See `docs/PLACE_CONTEXT_218.md` for verification and
+offline/cache behavior.
+
+## GNOME Icon Development Kit symbolics
+
+The unmodified dictionary, notebook, filter and talking SVGs are by **Jakub
+Steiner**, from the official [GNOME Icon Development Kit](https://gitlab.gnome.org/Teams/Design/icon-development-kit),
+commit `cf705cdad8b594295cabe84cac3b6efe4c0f7972`, under **CC0 1.0 Universal**.
+Each SVG retains its creator/license metadata. The upstream license and exact
+file hashes/paths are included in `third_party/icon-development-kit/` and in the
+installed package's license directory. Filenames gain `-symbolic` to use GTK's
+legacy symbolic SVG rendering, as documented upstream. No SVG geometry or
+colors were edited. The filter asset is available for the requested vocabulary;
+#231 deliberately retains no redundant wide sidebar-toggle button.

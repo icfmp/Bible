@@ -45,10 +45,9 @@ def main():
             assert abs(typography.props.line_height-1.5)<.001
             native.click(window.appearance.smaller);native.click(window.appearance_button)
             assert not window.appearance.get_visible();assert study.entry_text==original
-            native.click(study.more);native.click(study.info)
-            assert study.metadata.get_text() and study.info.get_popover().get_visible()
+            assert not hasattr(study,'more') and not hasattr(study,'info')
+            assert study.text.get_extra_menu() is not None
             native.click_at(tab.text,tab.text.get_width()-8,300)
-            assert not study.more.get_popover().get_visible() and not study.info.get_popover().get_visible()
             history=len(tab.state.history)
             for view in [tab.text,study.text]:
                 native.wheel(view,3)

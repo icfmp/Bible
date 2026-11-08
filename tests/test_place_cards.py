@@ -2,10 +2,11 @@
 import json
 import os
 from pathlib import Path
-import sqlite3
 import tempfile
+import threading
 import unittest
 import uuid
+from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from unittest.mock import patch
 from tests.test_ui import installed_fixture,spin,close_test_dialogs
 from tests.test_place_data import inputs,pins
@@ -18,7 +19,21 @@ class PlaceCardTests(unittest.TestCase):
         from tests.test_place_map import require_native_map
         require_native_map()
         from bible.ui import Application,Window,Library
-        self.enterContext(patch('bible.place_map.TILE_URL','http://127.0.0.1:1/{z}/{x}/{y}.png'))
+        self.tile_requests=[]
+        requests=self.tile_requests
+        class UnavailableTiles(BaseHTTPRequestHandler):
+            def log_message(self,*_):pass
+            def do_GET(self):
+                requests.append(self.path)
+                self.send_response(404);self.send_header('Content-Length','0');self.end_headers()
+        server=ThreadingHTTPServer(('127.0.0.1',0),UnavailableTiles)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        def close_server():
+            server.shutdown();server.server_close();thread.join(timeout=2)
+        self.addCleanup(close_server)
+        # A real, controlled native HTTP failure, rather than timing an unknown
+        # connection-refusal/retry policy on a guessed unavailable port.
+        self.enterContext(patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png'))
         self.enterContext(patch('bible.place_map.TILE_SOURCE_ID','unavailable-'+uuid.uuid4().hex))
         self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
         installed_fixture(self.directory,'French',versification='Segond',entries=[('Ps.3.2','EXACT FRENCH PSALM TEST'),('John.1.5','SOURCE TEST')])
@@ -65,10 +80,10 @@ class PlaceCardTests(unittest.TestCase):
         while child:yield from self.walk(child);child=child.get_next_sibling()
 
     def test_map_failure_keeps_place_metadata_and_related_references(self):
-        store=self.install()
-        with sqlite3.connect(store.path) as connection:connection.execute('DROP TABLE coastlines')
+        self.install()
         dialog=self.window.open_places();spin(lambda:not dialog.pending,duration=.2)
         dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
+        self.assertTrue(self.tile_requests,'The actual native map must receive the controlled HTTP failure')
         self.assertFalse(dialog.map_widget.ready)
         self.assertTrue(dialog.map_widget.status.get_text())
         self.assertTrue(dialog.current_place['candidates']);self.assertEqual(dialog.reference_model.get_n_items(),1)

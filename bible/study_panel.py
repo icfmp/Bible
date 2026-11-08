@@ -3,11 +3,12 @@ import logging
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Adw, GLib, Gtk, Pango
+from gi.repository import Adw, Gio, GLib, Gtk, Pango
 
 from .i18n import tr
 from .reading_style import apply_direction
-from .resource_details import details, plain
+from .resource_details import plain
+from .catalogue_window import MetadataLabel
 from .sword_provider import CommentaryReader, VersificationMismatch
 from .reference_resolution import resolve,introduction_key
 from .scroll_motion import stop_native_scroll
@@ -28,8 +29,7 @@ class StudyPanel(Gtk.Box):
         self._loading=False;self._missing_near=0
         self._scroll_idle=0;self._load_idle=0;self._processing_scroll=False
         self.translate=tr
-        # OverlaySplitView owns the native sidebar boundary. Reusing its CSS
-        # classes here paints a second border inside the resize handle.
+        self.add_css_class('view')
         self.add_css_class('study-panel')
         self.add_css_class('study-drawer')
         self.header = Adw.HeaderBar(show_start_title_buttons=False, show_end_title_buttons=False)
@@ -51,36 +51,7 @@ class StudyPanel(Gtk.Box):
         self.choices.connect('notify::selected',self.selection_changed)
         self.immersive_button = Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Read in immersive mode'))
         self.immersive_button.connect('clicked',lambda *_:owner.enter_immersion('commentary'))
-        self.more = Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Commentary actions'))
-        self.more.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary actions')])
-        actions = Gtk.Popover()
-        action_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,
-                             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-        self.previous_entry = Gtk.Button(label=tr('Previous available entry'))
-        self.next_entry = Gtk.Button(label=tr('Next available entry'))
-        self.previous_entry.connect('clicked',lambda *_:self.step_entry(-1))
-        self.next_entry.connect('clicked',lambda *_:self.step_entry(1))
-        action_box.append(self.previous_entry);action_box.append(self.next_entry)
-        self.preface_button=Gtk.Button(label=tr('Read source preface'),visible=False)
-        self.preface_button.connect('clicked',lambda *_:self.show_preface())
-        action_box.append(self.preface_button)
-        self.info = Gtk.MenuButton(label=tr('Source and conditions'))
-        from .catalogue_window import MetadataLabel
-        self.metadata = MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-                                      selectable=True,max_width_chars=32,margin_start=12,margin_end=12,
-                                      margin_top=12,margin_bottom=12)
-        info_scroll = Gtk.ScrolledWindow(min_content_width=260,max_content_width=320,
-                                         propagate_natural_width=True,max_content_height=350,
-                                         propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        info_scroll.set_child(self.metadata)
-        info = Gtk.Popover();info.set_child(info_scroll);self.info.set_popover(info)
-        action_box.append(self.info)
-        library = Gtk.Button(label=tr('Download a commentary'))
-        library.connect('clicked',lambda *_:self.open_library())
-        action_box.append(library)
-        actions.set_child(action_box);self.more.set_popover(actions)
-        for widget in [self.more,self.immersive_button]:
-            widget.add_css_class('flat');self.header.pack_end(widget)
+        self.immersive_button.add_css_class('flat');self.header.pack_end(self.immersive_button)
         self.append(self.header)
         self.tools = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
         switcher = Gtk.StackSwitcher(stack=self.tools, halign=Gtk.Align.FILL)
@@ -99,42 +70,22 @@ class StudyPanel(Gtk.Box):
         notes_scroll = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
         notes_scroll.set_child(self.notes)
         self.notes.bind_scroll(notes_scroll)
-        notes_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.notes.resume.set_margin_start(12);self.notes.resume.set_margin_top(6)
-        notes_page.append(self.notes.resume);notes_page.append(notes_scroll)
-        self.tools.add_titled(notes_page, 'notes', tr('Notes'))
+        self.tools.add_titled(notes_scroll, 'notes', tr('Notes'))
         self.tools.add_titled(self.references,'references',tr('References'))
         self.commentaries = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.choices.set_margin_start(12); self.choices.set_margin_end(12)
         self.commentaries.append(self.choices)
         self.tools.add_titled(self.commentaries, 'commentaries', tr('Commentaries'))
-        from .editorial_view import TranslationNotes
-        self.translation_notes=TranslationNotes(owner)
         tool = owner.study_settings.tool
         self.tools.set_visible_child_name(tool if tool in ('notes','references','commentaries') else 'commentaries')
         def compact_labels(widget):
             if isinstance(widget,Gtk.Label):widget.set_ellipsize(Pango.EllipsizeMode.END);widget.set_width_chars(1)
-            if isinstance(widget,Gtk.ToggleButton) and isinstance(widget.get_child(),Gtk.Label):widget.set_tooltip_text(widget.get_child().get_text())
-            if isinstance(widget,Gtk.ToggleButton):
-                widget.connect('clicked',lambda button:self.content_pages.set_visible_child_name('tools') if button.get_active() else None)
+            if isinstance(widget,Gtk.ToggleButton):widget.set_tooltip_text(None)
             child=widget.get_first_child()
             while child:compact_labels(child);child=child.get_next_sibling()
         compact_labels(switcher)
-        self.content_pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        self.content_pages.add_named(self.tools,'tools')
-        self.content_pages.add_named(self.translation_notes,'translation-notes')
-        self.translation_notes_button=Gtk.ToggleButton(icon_name='dialog-information-symbolic',tooltip_text=tr('Translation notes'))
-        self.translation_notes_button.add_css_class('flat')
-        self.translation_notes_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Translation notes')])
-        self.translation_notes_button.connect('toggled',lambda button:self.content_pages.set_visible_child_name(
-            'translation-notes' if button.get_active() else 'tools'))
-        self.header.pack_end(self.translation_notes_button)
-        if tool=='translation-notes':self.translation_notes_button.set_active(True)
-        self.append(self.content_pages)
+        self.append(self.tools)
         self.tools.connect('notify::visible-child-name', self.tool_changed)
-        self.popovers = [actions,info]
-        for popover in self.popovers:
-            popover.set_autohide(False);owner._reading_popovers.append(popover)
         # Retain semantic source/reference fields for existing synchronization
         # and accessible tooltips, without duplicating long in-content banners.
         self.source = Gtk.Label()
@@ -150,6 +101,18 @@ class StudyPanel(Gtk.Box):
         self.commentaries.append(self.status)
         self.text = Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
                                  left_margin=24,right_margin=24,top_margin=20,bottom_margin=24)
+        # Native context menu retains sparse-entry navigation and source prefaces
+        # without an always-visible overflow control or duplicate Library details.
+        actions=Gio.SimpleActionGroup();self.entry_actions={}
+        menu=Gio.Menu()
+        for name,label,callback in (
+                ('previous-entry','Previous available entry',lambda *_:self.step_entry(-1)),
+                ('next-entry','Next available entry',lambda *_:self.step_entry(1)),
+                ('source-preface','Read source preface',lambda *_:self.show_preface())):
+            action=Gio.SimpleAction.new(name,None);action.connect('activate',callback)
+            action.set_enabled(False);actions.add_action(action);self.entry_actions[name]=action
+            menu.append(tr(label),'commentary.'+name)
+        self.text.insert_action_group('commentary',actions);self.text.set_extra_menu(menu)
         self.text.add_css_class('study-reader')
         self.text.update_property([Gtk.AccessibleProperty.LABEL],[tr('Commentary text')])
         self.scroll = Gtk.ScrolledWindow(vexpand=True,hexpand=True)
@@ -177,36 +140,25 @@ class StudyPanel(Gtk.Box):
         self.sidebar_preferences = None
         from .word_study import WordStudy
         self.words=WordStudy(owner)
-        self.content_pages.connect('notify::visible-child-name',self.tool_changed)
         self.tool_controls()
 
     @property
     def tool(self):
-        name=self.content_pages.get_visible_child_name() if hasattr(self,'content_pages') else 'tools'
-        return name if name in ('word','translation-notes') else self.tools.get_visible_child_name()
+        return self.tools.get_visible_child_name()
 
     def update_context_heading(self):
         if not hasattr(self,'context_heading') or not hasattr(self,'passage'):return
         tab=self.owner.active_tab
         label=(self.notes.heading.get_text() if self.tool=='notes' else self.references.heading.get_text()
                if self.tool=='references' else self.passage.get_text())
-        if self.tool=='translation-notes':label=tab.passage_title(chapter_only=True) if tab else ''
-        self.context_heading.set_text(label);self.context_heading.set_visible(bool(label) and self.tool!='word')
+        self.context_heading.set_text(label);self.context_heading.set_visible(bool(label))
 
     def tool_controls(self):
-        self.tools_switcher.set_visible(self.tool!='word')
-        for widget in (self.more,self.immersive_button):widget.set_visible(self.tool=='commentaries')
+        self.immersive_button.set_visible(self.tool=='commentaries')
         self.update_context_heading()
 
     def tool_changed(self, *_):
-        if _ and _[0] is self.tools and self.content_pages.get_visible_child_name()!='tools':
-            self.content_pages.set_visible_child_name('tools')
-        active=self.tool=='translation-notes'
-        if self.translation_notes_button.get_active()!=active:self.translation_notes_button.set_active(active)
         self.tool_controls()
-        if self.tool=='word':
-            self.cancel_reveal();self.notes.cancel_follow();self.update_indicator()
-            return
         self.owner.study_settings.tool = self.tool
         try:self.owner.study_settings.save()
         except (OSError,ValueError) as error:self.owner.report_session_error(tr('Unable to save study preferences.'),error)
@@ -254,7 +206,6 @@ class StudyPanel(Gtk.Box):
         return not self.owner.closed
 
     def open_library(self):
-        for popover in self.popovers:popover.popdown()
         self.owner.contextual_library('commentary','commentary')
 
     def refresh(self, force=False):
@@ -262,10 +213,6 @@ class StudyPanel(Gtk.Box):
         tab = self.owner.active_tab
         if tab is None:
             return
-        if self.tool=='word':
-            self.words.refresh();return
-        if self.tool=='translation-notes':
-            self.translation_notes.refresh(force=force);return
         if self.tool!='commentaries':
             if self.tool=='notes':self.notes.refresh(force=force)
             self.references.refresh(force=force)
@@ -317,7 +264,7 @@ class StudyPanel(Gtk.Box):
         name=tab.state.commentary
         if name is None or name not in installed:
             self.pages.set_visible_child_name('empty')
-            self.clear_content();self.reader=None;self.source.set_text('');self.metadata.set_text('');self.info.set_sensitive(False)
+            self.clear_content();self.reader=None;self.source.set_text('')
             self.status.set_text(tr('Choose or download a commentary.') if name is None else
                                 tr('This commentary is no longer installed. Choose another or download it again.'))
             self.entry_controls();return
@@ -325,7 +272,6 @@ class StudyPanel(Gtk.Box):
             self.pages.set_visible_child_name('reading')
             resource=self.owner.library.resource(name)
             self.source.set_text(f'{plain(resource.description)} — {resource.source}')
-            self.metadata.set_text(details(resource));self.info.set_sensitive(True)
             context=(id(tab),name)
             if context!=self._display_context:
                 self.clear_content();self._display_context=context
@@ -387,7 +333,12 @@ class StudyPanel(Gtk.Box):
     def ensure_chapter(self,reference,introduction=False):
         key=introduction_key(reference,self.reader) if introduction else self.reader.key(reference)
         context=(id(self.reader),key.getOSISBookName(),key.getChapter())
-        if context==getattr(self,'_chapter_context',None):return False
+        from bisect import bisect_right
+        position=bisect_right(self.reader.index.starts,key.getIndex())-1
+        covered=position>=0 and self.reader.index.sections[position].contains_index(key.getIndex())
+        if (covered and position in self.loaded or not covered and context==getattr(self,'_chapter_context',None)):
+            self._chapter_context=context
+            return False
         key.setVerse(1);first=key.getIndex();key.setVerse(key.getVerseMax());last=key.getIndex()
         key.setIntros(True);key.setVerse(0);intros={key.getIndex()}
         if key.getChapter()==1:
@@ -430,9 +381,10 @@ class StudyPanel(Gtk.Box):
             if rect.y<=top<rect.y+rect.height:return position
         return next(reversed(self.ranges))
 
-    def rebuild(self,anchor=None):
+    def rebuild(self,anchor=None,incremental=False):
         self.cancel_scroll()
         self.cancel_reveal();self._positioning=True
+        previous_ranges=self.ranges
         from .paged_sources import CommentaryPages
         from .pagination import Document,StyleSpan
         from .bible_render import bind_copy
@@ -449,7 +401,23 @@ class StudyPanel(Gtk.Box):
             self.ranges[position]=(offset,base+document.spans[0].body,base+len(document.text))
             offset=base+len(document.text)+2
         document=Document('study',''.join(pieces),(),tuple(styles))
-        buffer=self.text.get_buffer();buffer.set_text(document.text)
+        buffer=self.text.get_buffer()
+        common=[position for position in self.loaded if position in previous_ranges] if incremental else []
+        if common:
+            first,last=common[0],common[-1]
+            old_start,old_end=previous_ranges[first][0],previous_ranges[last][2]+2
+            new_start,new_end=self.ranges[first][0],self.ranges[last][2]+2
+            # Keep GTK's marks and visible paragraph in the unchanged portion.
+            # A complete set_text discards that anchor during a live gesture.
+            if old_start!=new_start:stop_native_scroll(self.scroll)
+            buffer.delete(buffer.get_iter_at_offset(old_end),buffer.get_end_iter())
+            buffer.delete(buffer.get_start_iter(),buffer.get_iter_at_offset(old_start))
+            buffer.insert(buffer.get_start_iter(),document.text[:new_start])
+            buffer.insert(buffer.get_end_iter(),document.text[new_end:])
+            # Insertions can inherit the adjacent entry's heading/emphasis.
+            # Reapply the document's verified tags, keeping text and GTK marks.
+            buffer.remove_all_tags(buffer.get_start_iter(),buffer.get_end_iter())
+        else:buffer.set_text(document.text)
         bind_copy(self.text,document)
         self.apply_typography()
         palette='contrast-night' if self.owner.reading_style.manager.get_dark() else 'contrast-day'
@@ -461,7 +429,9 @@ class StudyPanel(Gtk.Box):
         tag=buffer.get_tag_table().lookup('entry-heading')
         if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
         for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
-        if anchor:self.reveal(anchor[0],anchor[1],force=True)
+        if common:
+            self._positioning=False;self._layout_anchor=anchor
+        elif anchor:self.reveal(anchor[0],anchor[1],force=True)
         else:self.reveal(self.current_position,force=True)
 
     def cancel_reveal(self):
@@ -526,7 +496,7 @@ class StudyPanel(Gtk.Box):
         try:
             self.remember_position()
             adjustment=self.scroll.get_vadjustment()
-            if not self._loading and not getattr(self,'_chapter_context',None):
+            if not self._loading and self.owner.reading_sync.driver=='commentary':
                 before=adjustment.get_value()<100 and self.loaded[0]>0
                 after=adjustment.get_value()+adjustment.get_page_size()>adjustment.get_upper()-180 and self.loaded[-1]+1<len(self.reader.index.sections)
                 if before or after:
@@ -545,8 +515,9 @@ class StudyPanel(Gtk.Box):
         loaded=list(range(first,last))
         if len(loaded)>20:loaded=loaded[:20] if direction<0 else loaded[-20:]
         if loaded==self.loaded:return False
+        if anchor and anchor[0] not in loaded:anchor=(loaded[0 if direction>0 else -1],0)
         self.loaded=loaded
-        self.rebuild(anchor);return False
+        self.rebuild(anchor,incremental=True);return False
 
     def remember_position(self):
         if not hasattr(self.owner,'reading_sync') or self.owner.reading_sync.driver!='commentary':return
@@ -562,16 +533,14 @@ class StudyPanel(Gtk.Box):
             show_preface(self.owner,self.reader,self.owner.library.resource(self.reader.name),self.current_position)
 
     def entry_controls(self):
-        self.preface_button.set_visible(bool(self.reader and getattr(self,'_prefaces',{}).get(self.current_position)))
+        self.entry_actions['source-preface'].set_enabled(bool(self.reader and getattr(self,'_prefaces',{}).get(self.current_position)))
         self.immersive_button.set_sensitive(bool(self.reader and self.current_position is not None and self.entry_text.strip()))
         self.immersive_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Read in immersive mode')+': '+self.source.get_text()])
         count=len(self.reader.index.sections) if self.reader else 0
         previous=(self.current_position-1) if self.current_position is not None else self._missing_near-1
         following=(self.current_position+1) if self.current_position is not None else self._missing_near
-        self.previous_entry.set_sensitive(0<=previous<count);self.next_entry.set_sensitive(0<=following<count)
-        if self.reader:
-            if 0<=previous<count:self.previous_entry.set_tooltip_text(tr('Previous available entry')+': '+self.reader.index.label(previous))
-            if 0<=following<count:self.next_entry.set_tooltip_text(tr('Next available entry')+': '+self.reader.index.label(following))
+        self.entry_actions['previous-entry'].set_enabled(0<=previous<count)
+        self.entry_actions['next-entry'].set_enabled(0<=following<count)
 
     def step_entry(self,direction):
         if self.tool!='commentaries':self.tools.set_visible_child_name('commentaries')
