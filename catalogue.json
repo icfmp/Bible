@@ -2,12 +2,12 @@
   "schema": 1,
   "resources": {
     "openbible-cross-references": {
-      "revision": "2026-11-02",
-      "generation": "2026-11-02",
-      "sha256": "24f07bcd61280f9dc0c5a451151fc9c9d0d2e45fe0cf3c903b5db4ca6b878878",
-      "size": 1984180,
+      "revision": "2026-11-09",
+      "generation": "2026-11-09",
+      "sha256": "d31c71a7b124227769a0bc8a24f048f53b327294e47033e64b5d2ae4aaf12b87",
+      "size": 1984024,
       "format": "openbible-cross-references-v1",
-      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-02-24f07bcd6128.zip"
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-09-d31c71a7b124.zip"
     },
     "openbible-topics": {
       "revision": "2026-11-02",
