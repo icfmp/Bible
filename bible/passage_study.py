@@ -29,6 +29,7 @@ class PassageStudy(Adw.Window):
         self.passage.add_css_class('heading');root.append(self.passage)
         self.tabs=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
         switcher=Gtk.StackSwitcher(stack=self.tabs,halign=Gtk.Align.FILL,margin_start=12,margin_end=12,margin_bottom=8)
+        switcher.get_layout_manager().set_homogeneous(True)
         switcher.add_css_class('passage-study-tabs')
         self.switcher=switcher;root.append(switcher);root.append(self.tabs)
         if target:
@@ -50,6 +51,7 @@ class PassageStudy(Adw.Window):
         def wrap_labels(widget):
             if isinstance(widget,Gtk.Label):
                 widget.set_wrap(True);widget.set_wrap_mode(Pango.WrapMode.WORD_CHAR);widget.set_width_chars(1)
+                widget.set_halign(Gtk.Align.FILL)
             child=widget.get_first_child()
             while child:wrap_labels(child);child=child.get_next_sibling()
         wrap_labels(switcher)
