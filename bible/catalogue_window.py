@@ -42,7 +42,7 @@ class CatalogueWindow(Adw.Window):
         self.library, self.on_installed = library, on_installed
         self.owner = parent
         self.add_css_class(parent.reading_style.scope+'-window')
-        self._covered=frozenset();self._catalogue_errors={};self._loading_tick=0
+        self._covered=frozenset();self._removed_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
@@ -242,6 +242,7 @@ class CatalogueWindow(Adw.Window):
                  or self._language_records!=snapshot.languages)
         self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
+        self._removed_ids=snapshot.removed_resources
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
         self._study_current=snapshot.study_current;self._language_records=snapshot.languages
         self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
@@ -403,7 +404,8 @@ class CatalogueWindow(Adw.Window):
         if self.kind.get_selected()==2:
             # Installed native dictionaries/lexicons share lifecycle controls.
             # Discovering new dictionary catalogues remains the separate #236.
-            return (*self.study_resources.available(),*(r for r in self._installed_metadata.values()
+            native={r.id:r for r in self.resources if r.id in self._removed_ids};native.update(self._installed_metadata)
+            return (*self.study_resources.available(),*(r for r in native.values()
                        if r.kind not in ('bible','commentary')))
         resources={r.id:r for r in self.resources};resources.update(self._installed_metadata)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'

@@ -55,11 +55,13 @@ def details(resource):
     provenance=''
     if resource.provider_id=='bible-resources':
         from .curated_catalogue import package_record
-        entry=package_record(resource)
-        provenance=tr('Source edition')+': '+entry['canonical_edition_id']+' / '+entry['edition']
+        try:entry=package_record(resource)
+        except (ValueError,TypeError,KeyError):entry=None
+        provenance=(tr('Source edition')+': '+entry['canonical_edition_id']+' / '+entry['edition']
+                    if entry else tr('Source edition metadata could not be verified.'))
         # Report publisher-supplied approval metadata, never turn a draft's
         # prose into application-authored claims or silently translate it.
-        profiles=entry.get('profiles',{})
+        profiles=entry.get('profiles',{}) if entry else {}
         if isinstance(profiles,dict):
             for language,profile in profiles.items():
                 if not isinstance(profile,dict):continue

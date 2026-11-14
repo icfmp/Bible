@@ -19,7 +19,7 @@ def package(version,text,*,omit_second_chapter=False):
         module.setKey(Sword.VerseKey('Gen.1.1'));module.setEntry(text)
         if omit_second_chapter:module.setKey(Sword.VerseKey('Gen.2.1'));module.setEntry('')
         del module
-        conf=CONF+f'Version={version}\n'.encode();(root/'mods.d/test.conf').write_bytes(conf)
+        conf=CONF+f'Version={version}\nTextSource=Identified synthetic lifecycle edition\n'.encode();(root/'mods.d/test.conf').write_bytes(conf)
         payload=archive_bytes({str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()})
     entry=dict(record(payload),version=version)
     resource=replace(resource_from_section('Test',config(conf)['Test'],BIBLE_RESOURCES),
@@ -137,3 +137,34 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertEqual(applicable_update(self.old,replace(self.new,acquisition=json.dumps(record))),'edition-changed')
         changed=replace(self.new,version='1.0');record['entry']['canonical_edition_id']='identified-test-edition';record['entry']['version']='1.0'
         self.assertEqual(applicable_update(self.old,replace(changed,acquisition=json.dumps(record))),'same-version-content-changed')
+
+    def test_failed_removal_commit_restores_source_immediately_and_cleans_cancelled_intent(self):
+        before=tree_manifest(self.library.root/self.old.id);write=self.lifecycle.journal
+        def journal(folder,record):
+            if record['state']=='committed':raise OSError('Synthetic commit write failure')
+            write(folder,record)
+        with patch.object(self.lifecycle,'journal',side_effect=journal),self.assertRaises(OSError):
+            self.lifecycle.remove(self.old.id)
+        self.assertEqual(tree_manifest(self.library.root/self.old.id),before)
+        self.assertFalse(self.lifecycle.was_removed(self.old.id))
+        self.assertFalse(list(self.lifecycle.records() or ()))
+        def cancel(_):raise InterruptedError('Synthetic cancellation before switch')
+        with self.assertRaises(InterruptedError):self.lifecycle.remove(self.old.id,before_switch=cancel)
+        self.assertEqual(tree_manifest(self.library.root/self.old.id),before)
+        self.assertFalse(list(self.lifecycle.records() or ()))
+
+    def test_failed_and_interrupted_rollback_preserve_the_current_version_until_commit(self):
+        with self.download(self.new_zip):self.lifecycle.update(self.new)
+        current=tree_manifest(self.library.root/self.old.id)
+        def stop(_):raise InterruptedError('Synthetic rollback cancellation')
+        with self.assertRaises(InterruptedError):self.lifecycle.rollback(self.old.id,before_switch=stop)
+        self.assertEqual(tree_manifest(self.library.root/self.old.id),current)
+        for swapped in (False,True):
+            with self.subTest(swapped=swapped):
+                folder,record=self.lifecycle.rollback_candidate(self.old.id)
+                record['state']='rollback-prepared';self.lifecycle.journal(folder,record)
+                if swapped:exchange(self.library.root/self.old.id,folder/'backup')
+                reopened=Library(self.library.root)
+                self.assertFalse(reopened.recovery_errors)
+                self.assertEqual(tree_manifest(self.library.root/self.old.id),current)
+                self.assertIsNotNone(ModuleLifecycle(reopened).rollback_candidate(self.old.id))

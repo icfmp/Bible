@@ -40,6 +40,11 @@ class CommentaryIndex:
             key.increment()
             if key.popError() != '\x00':break
         self.starts = [s.index for s in self.sections]
+        # Cache lifetime follows this native reader. A decorator on the class
+        # method would keep old index/reader instances alive through its keys,
+        # preventing safe module removal after the GTK owners release them.
+        self.text=lru_cache(maxsize=20)(self.text)
+        self.raw=lru_cache(maxsize=20)(self.raw)
 
     def locate(self, reference):
         index = self.reader.key(reference).getIndex()
@@ -51,7 +56,6 @@ class CommentaryIndex:
     def near(self, reference):
         return bisect_left(self.starts,self.reader.key(reference).getIndex())
 
-    @lru_cache(maxsize=20)
     def text(self, position):
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
@@ -61,7 +65,6 @@ class CommentaryIndex:
         text = self.reader.module.stripText()
         return text if isinstance(text,str) else text.c_str()
 
-    @lru_cache(maxsize=20)
     def raw(self, position):
         section=self.sections[position]
         key=self.reader.sword.VerseKey()

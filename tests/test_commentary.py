@@ -22,6 +22,16 @@ def commentary_fixture(directory, name='Notes', versification='KJV', entries=Non
 
 
 class CommentaryTests(unittest.TestCase):
+    def test_cached_entry_text_does_not_keep_disposed_native_readers_alive(self):
+        import gc,weakref
+        with tempfile.TemporaryDirectory() as directory:
+            reader=CommentaryReader(commentary_fixture(directory),'Notes')
+            position=reader.index.locate('Gen.1.1')
+            self.assertIn('COMMENTARY TEST DATA',reader.index.text(position))
+            self.assertIn('COMMENTARY TEST DATA',reader.index.raw(position))
+            disposed=weakref.ref(reader);del reader;gc.collect()
+            self.assertIsNone(disposed())
+
     def test_exact_lookup_missing_blank_and_versification(self):
         with tempfile.TemporaryDirectory() as directory:
             root = commentary_fixture(directory, entries=[
@@ -66,7 +76,7 @@ class CommentaryTests(unittest.TestCase):
                 archive.addfile(entry, io.BytesIO(content))
         with patch('bible.library.download', side_effect=lambda url, out, **kw: out.write(data.getvalue())):
             resources = {r.name: r for r in catalogue()}
-        self.assertEqual(set(resources), {'Bible', 'Notes', 'LockedNotes', 'OtherNotes'})
+        self.assertEqual(set(resources), {'Bible', 'Dictionary', 'Notes', 'LockedNotes', 'OtherNotes'})
         self.assertEqual(resources['Notes'].kind, 'commentary')
         self.assertEqual(resources['Notes'].author, 'Fixture Author')
         self.assertTrue(resources['Notes'].installable)

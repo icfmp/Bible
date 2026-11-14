@@ -109,3 +109,24 @@ class ModuleUILifecycleTests(unittest.TestCase):
             self.assertEqual([asdict(n) for n in reopened.notes_store.all()],before)
             self.assertEqual(reopened.highlights.entries[('KJV','Gen.1.1')]['color'],'yellow')
         finally:reopened.close()
+
+    def test_update_all_runs_verified_resources_serially_and_stops_on_failure(self):
+        from bible.providers import CROSSWIRE
+        from gi.repository import Adw,Gtk
+        d=self.dialog
+        direct=replace(self.new,provider_id=CROSSWIRE.id,source=CROSSWIRE.name,source_url=CROSSWIRE.url,acquisition='')
+        for damaged in (True,False):
+            d.modules.reports={r.id:dict(state='available',available=r,error='') for r in (self.new,direct)}
+            with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(self.new_zip+(b'bad' if damaged else b''))) as fetch:
+                d.modules.update_all();spin()
+                prompt=next(w for w in Gtk.Window.get_toplevels() if isinstance(w,Adw.MessageDialog))
+                prompt.response('update');prompt.destroy()
+                spin(lambda:not d.busy and not d.modules.queue and not d.modules._next,timeout=20)
+            if damaged:
+                self.assertEqual(d._phase,'error');self.assertEqual(fetch.call_count,1)
+                self.assertEqual(self.library.resource(self.old.id).version,'1.0')
+                self.assertEqual(self.library.resource('Test').version,'1.0')
+            else:
+                self.assertEqual(d._phase,'complete',d.status.get_text());self.assertEqual(fetch.call_count,2)
+                self.assertEqual(self.library.resource(self.old.id).version,'1.1')
+                self.assertEqual(self.library.resource('Test').version,'1.1')

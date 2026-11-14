@@ -55,6 +55,8 @@ class ModuleManagement:
         self.remove_button.connect('clicked',lambda *_:self.confirm('remove'))
         for button in (self.update_button,self.rollback_button,self.remove_button):self.actions.append(button)
         detail.append(self.actions)
+        narrow=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
+        narrow.add_setter(self.actions,'orientation',Gtk.Orientation.VERTICAL);dialog.add_breakpoint(narrow)
 
     def available(self,identifier):return self.reports.get(identifier,{}).get('state')=='available'
 

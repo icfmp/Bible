@@ -71,3 +71,23 @@ Still required: full native GUI actions across real resources, batch/cancel/erro
 checks, final review/CI/Flatpak update verification and numbered alpha publication.
 Actual public catalogues do not currently prove a newer same-edition version for
 these test installs; synthetic1.0→1.1 proofs must not be presented as a live release.
+
+## Real UI and recovery follow-ups
+
+Actual native FR/EN Library walkthroughs now pass cancellation, confirmed removal
+and exact reinstall of the real public Segond0.1.0, MHCC0.1.0 and Easton2.0.1.
+The live catalogue reports those installed versions current; no live newer release
+is invented. All source file hashes match after reinstall; notes/highlights remain.
+The real MHCC check exposed class-level text/raw LRU caches retaining disposed
+readers. Their20-entry caches now follow each reader lifetime; GC regression and
+other commentary consumers are checked. An obsolete parallel-positioning callback
+is cancelled when detaching its source.
+
+Recovery separately tests update and rollback direction: an interrupted operation
+restores the version current before its uncommitted switch. A failed removal commit
+restores its source immediately, and cancellation leaves no false removal intent.
+Removal records keep source attribution for Download again/offline listing without
+adding general dictionary discovery. Narrow lifecycle actions stack vertically.
+
+These remain developer-runtime checks. PR266 is draft and unmerged; final packaged
+CI, actual signed update and numbered prerelease remain required.

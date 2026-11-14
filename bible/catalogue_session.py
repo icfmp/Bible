@@ -24,6 +24,7 @@ class CatalogueSnapshot:
     refreshing: bool
     generation: int
     covered_providers: frozenset = frozenset()
+    removed_resources: frozenset = frozenset()
 
 
 class CatalogueSession:
@@ -33,7 +34,7 @@ class CatalogueSession:
         self.prepare=MetadataExecutor(thread_name_prefix='bible-library-metadata')
         self.network=MetadataExecutor(thread_name_prefix='bible-library-refresh')
         self.lock=RLock();self.closed=False;self.listeners=[];self.snapshot=None
-        self.providers={};self.installed={};self.study_installed=frozenset();self.study_current=frozenset()
+        self.providers={};self.installed={};self.removed={};self.study_installed=frozenset();self.study_current=frozenset()
         self.language_records={};self.metrics={};self.errors={};self.refreshing=False
         self.language_inventory=frozenset()
         self.youversion_languages={};self.youversion_loaded={};self.youversion_future=None
@@ -72,10 +73,12 @@ class CatalogueSession:
             if self.closed:return
             try:installed[name]=self.library.resource(name)
             except Exception as error:errors[name]=str(error)
+        from .module_lifecycle import ModuleLifecycle
+        removed=ModuleLifecycle(self.library).removed_resources()
         study_installed=frozenset(self.study.installed())
         study_current=frozenset(name for name in study_installed if self.study.current(name))
         with self.lock:
-            self.installed=installed;self.study_installed=study_installed;self.study_current=study_current
+            self.installed=installed;self.removed=removed;self.study_installed=study_installed;self.study_current=study_current
             self.metrics['installed_scan_seconds']=time.monotonic()-start
             if errors:self.metrics['installed_metadata_errors']=errors
 
@@ -231,7 +234,9 @@ class CatalogueSession:
     def publish(self,revision=None):
         with self.lock:
             if self.closed or revision is not None and revision!=self.revision:return
-            resources=tuple(sorted((r for rows in self.providers.values() for r in rows),key=lambda r:(r.language,r.name,r.provider_id)))
+            known=dict(self.removed);known.update((r.id,r) for rows in self.providers.values() for r in rows)
+            resources=tuple(sorted(known.values(),key=lambda r:(r.language,r.name,r.provider_id)))
+            removed_resources=frozenset(self.removed)
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
             metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing or self.youversion_loading;generation=self.generation;covered=frozenset(self.providers)
             source_languages=set(self.youversion_languages)
@@ -246,7 +251,7 @@ class CatalogueSession:
         records={code:self.language_records[code] for code in languages}
         terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][2]))) for r in all_resources}
         metrics['language_and_search_seconds']=time.monotonic()-start
-        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered)
+        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered,removed_resources)
         with self.lock:
             if self.closed:return
             self.snapshot=snapshot;listeners=[ref() for ref in self.listeners if ref() is not None]

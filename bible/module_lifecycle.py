@@ -288,6 +288,23 @@ class ModuleLifecycle:
         return any(record['resource']==identifier and record['operation']=='remove' and record['state']=='committed'
                    for _,record in self.records() or ())
 
+    def removed_resources(self):
+        """Retain source attribution for an explicit offline Download again."""
+        from .library import Resource
+        from .providers import BY_ID
+        result={}
+        for _,record in sorted(self.records() or (),key=lambda item:item[1].get('created','')):
+            if record['operation']!='remove' or record['state']!='committed':continue
+            if (self.root/record['resource']/'.complete').exists():continue
+            metadata=record.get('resource_metadata')
+            if not isinstance(metadata,dict):continue
+            try:
+                resource=Resource(**metadata);provider=BY_ID[resource.provider_id]
+                if resource.id==record['resource'] and (resource.source,resource.source_url)==(provider.name,provider.url):
+                    result[resource.id]=resource
+            except (KeyError,TypeError,ValueError):continue
+        return result
+
     def rollback(self,identifier,*,before_switch=collect_readers):
         with operation_lock(self.root):
             self.owned(identifier)
@@ -297,8 +314,11 @@ class ModuleLifecycle:
             if tree_manifest(active)!=record['after'] or tree_manifest(backup)!=record['before']:
                 raise ValueError('Local changes prevent a safe rollback; files were preserved')
             record['state']='rollback-prepared';self.journal(folder,record)
-            before_switch(identifier)
-            self.switch(folder,record,active,backup,rollback=True)
+            try:
+                before_switch(identifier)
+                self.switch(folder,record,active,backup,rollback=True)
+            except BaseException:
+                self.recover_record(folder,record);raise
             return record
 
     def remove(self,identifier,*,before_switch=collect_readers):
@@ -307,6 +327,8 @@ class ModuleLifecycle:
             if resource.locked:
                 raise ValueError('Encrypted-module credentials cannot be removed safely by this version; the module was preserved')
             folder,record=self.begin(identifier,'remove',before)
+            from dataclasses import asdict
+            record['resource_metadata']=asdict(resource)
             active=self.root/identifier;backup=folder/'backup'
             record['state']='prepared';self.journal(folder,record)
             try:
@@ -316,6 +338,9 @@ class ModuleLifecycle:
                     os.rename(active,backup);sync_directory(self.root);sync_directory(folder)
                 record['state']='committed';self.journal(folder,record)
             except BaseException:
+                # A failed commit write/fsync must restore the still-owned
+                # source now, not leave it absent until application restart.
+                record['state']='prepared'
                 self.recover_record(folder,record)
                 if record['state']=='recovered' and folder.exists():shutil.rmtree(folder)
                 raise
@@ -344,11 +369,13 @@ class ModuleLifecycle:
         if state not in ('prepared','rollback-prepared'):return
         if not active.is_dir() or not backup.is_dir():raise ValueError('Module recovery requires both complete copies; files were preserved')
         actual=tree_manifest(active);saved=tree_manifest(backup)
-        if actual==record['after'] and saved==record['before']:
+        original=record['after'] if state=='rollback-prepared' else record['before']
+        target=record['before'] if state=='rollback-prepared' else record['after']
+        if actual==target and saved==original:
             with mutation_lease(active,timeout=0),mutation_lease(backup,timeout=0):exchange(active,backup)
-        elif not (actual==record['before'] and saved==record['after']):
+        elif not (actual==original and saved==target):
             raise ValueError('Module recovery found local changes; both copies were preserved')
-        record['state']='rolled-back' if state=='rollback-prepared' else 'recovered'
+        record['state']='committed' if state=='rollback-prepared' else 'recovered'
         self.journal(folder,record)
 
     def recover(self):
