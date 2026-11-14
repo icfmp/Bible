@@ -13,7 +13,7 @@ from gi.repository import Adw, GLib, Gtk, Pango, Gio, GObject
 
 from .i18n import tr
 from .library import catalogues as catalogue
-from .providers import PROVIDERS
+from .providers import PROVIDERS,DEFAULT_PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
@@ -67,6 +67,7 @@ class CatalogueWindow(Adw.Window):
         self.filtered_resources = []
         self.languages = []
         self.source_ids = [None] + [p.id for p in PROVIDERS]
+        self._optional_requested=False
         self._filtering = False
         self._transfer_busy = False
         self.refreshing = False
@@ -251,7 +252,7 @@ class CatalogueWindow(Adw.Window):
         rows=self.filtered_resources if rows is None else rows
         study=self.kind.get_selected()==2
         index=self.source_filter.get_selected()
-        providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
+        providers=self.selected_providers()
         complete=study or all(p.id in self._covered for p in providers)
         names={p.name for p in providers}
         all_names={p.name for p in PROVIDERS}
@@ -421,6 +422,14 @@ class CatalogueWindow(Adw.Window):
         self.request_youversion_language()
         if not self.busy and not self.resources and self.get_mapped():
             GLib.idle_add(self.auto_load)
+        # Choosing the optional source is an explicit catalogue request. The
+        # existing global network preference still wins; Refresh stays manual
+        # when automatic catalogue metadata refresh is disabled.
+        chosen=self.source_filter.get_selected()
+        if (self.get_mapped() and chosen<len(self.source_ids) and self.source_ids[chosen]=='bible-resources'
+                and 'bible-resources' not in self._covered and not self.refreshing and not self._optional_requested
+                and self.settings.value['automatic_catalogue_refresh']):
+            self._optional_requested=True;self.load_catalogue(force=False)
 
     def language_changed(self):
         if self._filtering:return
@@ -565,7 +574,7 @@ class CatalogueWindow(Adw.Window):
     def dismiss_success_toast(self):
         if self._success_toast:self._success_toast.dismiss();self._success_toast=None
 
-    def task(self, message, action, finished, success_text=None, resource=None,executor=None):
+    def task(self, message, action, finished, success_text=None, resource=None,executor=None,settled=None):
         if self._transfer_busy:
             return
         self.dismiss_success_toast()
@@ -590,11 +599,20 @@ class CatalogueWindow(Adw.Window):
 
         def complete():
             if self.closed or task_id!=self._task_id:
+                if settled:settled()
                 return False
             self._transfer_busy = False
             self.stop_animation()
             try:
-                value = future.result()
+                failure=None
+                try:value=future.result()
+                except Exception as error:failure=error
+                if settled:
+                    try:settled()
+                    except Exception as error:
+                        if failure:raise RuntimeError(str(failure)+'; '+str(error)) from failure
+                        raise
+                if failure:raise failure
                 finished(value)
                 # A completion callback may start the next captured job.
                 if task_id!=self._task_id:return False
@@ -638,6 +656,11 @@ class CatalogueWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
+    def selected_providers(self):
+        index=self.source_filter.get_selected()
+        if 0<index<=len(PROVIDERS):return (PROVIDERS[index-1],)
+        return tuple(p for p in PROVIDERS if p in DEFAULT_PROVIDERS or p.id in self._covered)
+
     def load_catalogue(self, *_, force=True):
         if self.closed or self.refreshing:return
         self._catalogue_requested=True
@@ -648,7 +671,7 @@ class CatalogueWindow(Adw.Window):
         if self.kind.get_selected()==2:
             self.session.refresh_study();self._refresh_generation=self.session.generation;return
         index=self.source_filter.get_selected()
-        providers=(PROVIDERS[index-1],) if 0<index<=len(PROVIDERS) else PROVIDERS
+        providers=self.selected_providers()
         self.session.refresh(catalogue,force,providers);self._refresh_generation=self.session.generation
         self.request_youversion_language(force)
 

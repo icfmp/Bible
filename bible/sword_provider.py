@@ -102,6 +102,8 @@ class Reader:
 
     def __init__(self, root: Path, name: str):
         self.root,self.name=Path(root),name
+        from .module_lifecycle import reader_lease
+        reader_lease(self,self.root)
         import Sword
         self.sword = Sword
         if name.startswith('youversion~') and (self.root/'.source-versification').exists():

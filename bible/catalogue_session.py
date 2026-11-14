@@ -5,7 +5,7 @@ import time
 from weakref import WeakMethod
 from .metadata_workers import MetadataExecutor
 from .catalogue_cache import CatalogueCache
-from .providers import PROVIDERS
+from .providers import PROVIDERS,DEFAULT_PROVIDERS
 from .languages import language_info,search_terms,available_languages
 from .book_names import normalized
 from .study_resources import StudyResources
@@ -177,7 +177,7 @@ class CatalogueSession:
             self.refresh_future=self.network.submit(work)
             return self.refresh_future
 
-    def refresh(self,fetch,force,providers=PROVIDERS):
+    def refresh(self,fetch,force,providers=DEFAULT_PROVIDERS):
         with self.lock:
             if self.closed:return None
             if self.refresh_future and not self.refresh_future.done():return self.refresh_future

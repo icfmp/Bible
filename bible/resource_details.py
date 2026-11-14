@@ -58,6 +58,7 @@ def details(resource):
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
+        f'{tr("Version")}: {resource.version}' if resource.version else '',
         f'{tr("License")}: {plain(resource.license)}',
         f'{tr("Verse numbering")}: {numbering}',
         availability,

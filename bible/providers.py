@@ -30,7 +30,13 @@ EBIBLE = Provider('ebible', 'eBible', 'https://ebible.org/sword/',
                   'https://ebible.org/sword/zip/')
 YOUVERSION = Provider('youversion', 'YouVersion / Bible.com', 'https://www.bible.com/',
                       'https://bible.youversionapi.com/3.1/configuration.json', '')
-PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, YOUVERSION)
+BIBLE_RESOURCES = Provider('bible-resources','Bible Resources','https://icfmp.github.io/Bible-Resources/',
+    'https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json',
+    'https://icfmp.github.io/Bible-Resources/sword/packages/')
+# The optional curated catalogue is contacted only after an explicit source
+# choice/check, not by adding a new network request to existing users' defaults.
+DEFAULT_PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, YOUVERSION)
+PROVIDERS = (*DEFAULT_PROVIDERS,BIBLE_RESOURCES)
 BY_ID = {p.id: p for p in PROVIDERS}
 MODULE_NAME = r'[A-Za-z0-9_-]+'
 RESOURCE_ID = rf'(?:[a-z0-9-]+~)?{MODULE_NAME}'

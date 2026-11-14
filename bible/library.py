@@ -1,5 +1,6 @@
 """Real CrossWire catalogue and bounded, atomic resource installation."""
 import configparser
+import hashlib
 import io
 import json
 import os
@@ -15,7 +16,7 @@ import zipfile
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from concurrent.futures import as_completed
-from .providers import CROSSWIRE, PROVIDERS, BY_ID, identity, module_name
+from .providers import CROSSWIRE, PROVIDERS, DEFAULT_PROVIDERS, BY_ID, identity, module_name
 
 BASE = 'https://www.crosswire.org/ftpmirror/pub/sword/'
 MAX_ARCHIVE = 64 * 1024 * 1024
@@ -43,6 +44,7 @@ class Resource:
     provider_id: str = 'crosswire'
     acquisition: str = ''
     abbreviation: str = ''
+    version: str = ''
 
     @property
     def public_code(self):
@@ -84,7 +86,7 @@ def resource_from_section(name, section, provider=CROSSWIRE):
                     category=section.get('Category') or 'Biblical Texts',
                     versification=section.get('Versification') or 'KJV',
                     provider_id=provider.id, source=provider.name, source_url=provider.url,
-                    abbreviation=section.get('Abbreviation') or '')
+                    abbreviation=section.get('Abbreviation') or '',version=section.get('Version') or '')
 
 
 def config(data):
@@ -127,6 +129,19 @@ def safe_path(name):
     if path.is_absolute() or '..' in path.parts or '\\' in name or '\x00' in name:
         raise ValueError('Unsafe archive path')
     return path
+
+
+def file_sha256(path):
+    with Path(path).open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
+
+
+def source_fingerprints(root):
+    root=Path(root);result={}
+    for path in root.rglob('*'):
+        if path.is_symlink():raise ValueError('Symbolic links cannot be managed as owned module files')
+        if path.is_file() and str(path.relative_to(root)) not in {'.source.json','.complete'}:
+            result[str(path.relative_to(root))]=file_sha256(path)
+    return result
 
 
 def compatible_notices(expected, actual, section):
@@ -194,6 +209,9 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     if provider.id=='youversion':
         from .youversion_install import catalogue as editions
         return editions(timings)
+    if provider.id=='bible-resources':
+        from .curated_catalogue import catalogue as curated
+        return curated(provider,timings,validators)
     response_headers={}
     headers={name:validators[key] for key,name in [('ETag','If-None-Match'),('Last-Modified','If-Modified-Since')]
              if validators and key in validators}
@@ -203,9 +221,16 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     finally:
         if timings is not None:timings.update(metadata_bytes=data.tell(),network_seconds=time.monotonic()-started)
     received=time.monotonic()
-    resources = []
+    resources = parse_sword_catalogue(data.getvalue(),provider)
+    if timings is not None:timings.update(network_seconds=received-started,parse_seconds=time.monotonic()-received,
+                                        metadata_bytes=len(data.getvalue()),http_status=200,validators=response_headers)
+    return resources
+
+
+def parse_sword_catalogue(data,provider=CROSSWIRE):
+    resources=[]
     expanded = 0
-    with tarfile.open(fileobj=io.BytesIO(data.getvalue()), mode='r:gz') as archive:
+    with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
         for member in archive:
             if not member.isfile() or not member.name.endswith('.conf'):
                 continue
@@ -221,8 +246,6 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
                         and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
                              or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
                     resources.append(resource_from_section(name, section, provider))
-    if timings is not None:timings.update(network_seconds=received-started,parse_seconds=time.monotonic()-received,
-                                        metadata_bytes=len(data.getvalue()),http_status=200,validators=response_headers)
     return sorted(resources, key=lambda r: (r.language, r.name))
 
 
@@ -232,7 +255,7 @@ class CatalogueResult:
     errors: dict
 
 
-def catalogues(providers=PROVIDERS, on_provider=None, cache=None, force=True):
+def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=True):
     """One unavailable provider must not discard successful catalogues."""
     def load(provider):
         started=time.monotonic()
@@ -277,6 +300,8 @@ class Library:
     def __init__(self, root):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
+        from .module_lifecycle import ModuleLifecycle
+        self.recovery_errors=ModuleLifecycle(self).recover()
 
     def installed(self, kind=None):
         names = sorted(p.name for p in self.root.iterdir()
@@ -337,6 +362,11 @@ class Library:
     def install(self, resource, progress=lambda done, total: None, installing=lambda: None,
                 *, cancelled=lambda: False, phase=lambda name,done,total: None,
                 permission=None):
+        from .module_lifecycle import operation_lock
+        with operation_lock(self.root):
+            return self._install(resource,progress,installing,cancelled=cancelled,phase=phase,permission=permission)
+
+    def _install(self, resource, progress, installing, *, cancelled,phase,permission):
         provider = BY_ID.get(resource.provider_id)
         if provider is None or resource.source_url != provider.url or resource.source != provider.name:
             raise ValueError('Unsupported resource source')
@@ -352,8 +382,20 @@ class Library:
         with tempfile.TemporaryDirectory(prefix='.install-', dir=self.root) as temporary:
             stage = Path(temporary)
             archive_path = stage / 'download.zip'
+            curated=None
+            if resource.provider_id=='bible-resources':
+                from .curated_catalogue import package_record
+                curated=package_record(resource)
+            if cancelled():raise InterruptedError('Download cancelled')
+            def transferred(done,total):
+                if cancelled():raise InterruptedError('Download cancelled')
+                progress(done,total)
             with archive_path.open('wb') as output:
-                download(provider.packages_url + f'{resource.name}.zip', output, progress)
+                download(curated['download']['url'] if curated else provider.packages_url + f'{resource.name}.zip', output, transferred)
+            if curated:
+                from .curated_catalogue import verify_package
+                verify_package(archive_path,curated)
+            if cancelled():raise InterruptedError('Download cancelled')
             installing()
             target = stage / 'content'
             target.mkdir()
@@ -363,6 +405,7 @@ class Library:
                 expanded = 0
                 seen = set()
                 for entry in archive.infolist():
+                    if cancelled():raise InterruptedError('Installation cancelled')
                     path = safe_path(entry.filename)
                     if not path.parts or path.parts[0] not in {'mods.d', 'modules'}:
                         raise ValueError('Unexpected archive layout')
@@ -389,6 +432,8 @@ class Library:
                 raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
             actual = resource_from_section(resource.name, section, provider)
+            if curated and actual.version!=curated['version']:
+                raise ValueError('Curated package version does not match its catalogue')
             if (actual.kind, actual.driver, actual.versification) != (
                     resource.kind, resource.driver, resource.versification):
                 raise ValueError('Resource type changed. Reload the catalogue before downloading.')
@@ -412,9 +457,14 @@ class Library:
             elif not any(text.strip() for _, text in reader.chapter(first).verses):
                 raise ValueError('No readable chapter in resource')
             del reader
+            if cancelled():raise InterruptedError('Installation cancelled')
+            files=source_fingerprints(target)
             (target / '.source.json').write_text(json.dumps({
                 'provider_id': provider.id, 'module_name': resource.name,
                 'source': resource.source, 'url': resource.source_url,
+                'acquisition':resource.acquisition,
+                'files_sha256':files,
+                'package_sha256':file_sha256(archive_path),
                 'catalogue_notices': {key:getattr(resource,key) for key in ('license','conditions','about','author')},
                 'updated_notice_fields': [key for key in ('license','conditions','about','author')
                                          if getattr(resource,key)!=getattr(actual,key)],
