@@ -19,19 +19,20 @@ class PassageStudy(Adw.Window):
         self.context=context
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_end_title_buttons=False)
-        header.set_title_widget(Gtk.Label(label=tr('Study passage')))
+        self.header=header
         self.close_button=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         self.close_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')])
         self.close_button.add_css_class('flat');self.close_button.connect('clicked',lambda *_:self.close())
         header.pack_end(self.close_button);root.append(header)
         caption=passage_title(context[2],context[3],context[1].versification) if context else tr('Choose a passage')
-        self.passage=Gtk.Label(label=caption,wrap=True,margin_start=16,margin_end=16,margin_bottom=8)
+        self.passage=Gtk.Label(label=caption,wrap=True,margin_start=16,margin_end=16,margin_top=8,margin_bottom=4)
         self.passage.add_css_class('heading');root.append(self.passage)
-        self.tabs=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        switcher=Gtk.StackSwitcher(stack=self.tabs,halign=Gtk.Align.FILL,margin_start=12,margin_end=12,margin_bottom=8)
-        switcher.get_layout_manager().set_homogeneous(True)
-        switcher.add_css_class('passage-study-tabs')
-        self.switcher=switcher;root.append(switcher);root.append(self.tabs)
+        modern=hasattr(Adw,'InlineViewSwitcher')
+        self.tabs=(Adw.ViewStack if modern else Gtk.Stack)(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+        switcher=(Adw.InlineViewSwitcher(stack=self.tabs,can_shrink=False,homogeneous=True,
+                      display_mode=Adw.InlineViewSwitcherDisplayMode.LABELS)
+                  if modern else Gtk.StackSwitcher(stack=self.tabs))
+        self.switcher=switcher;header.set_title_widget(switcher);root.append(self.tabs)
         if target:
             self.words=owner.study.words;self.words.attach(target,metadata,host=self,start=mode=='original')
             self.tabs.add_titled(self.words,'original',tr('Original text'))
@@ -42,19 +43,20 @@ class PassageStudy(Adw.Window):
         self.places=PlaceView(owner,context=context,host=self)
         self.tabs.add_titled(self.places,'map',tr('Map'))
         self.tabs.add_titled(self.empty(tr('No source-backed people data is available.')),'people',tr('People'))
+        compact=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 520sp'))
+        for name,icon in (('original','text-x-generic-symbolic'),('dictionary','dictionary-symbolic'),
+                          ('map','mark-location-symbolic'),('people','system-users-symbolic')):
+            page=self.tabs.get_page(self.tabs.get_child_by_name(name))
+            if modern:page.set_icon_name(icon)
+            else:compact.add_setter(page,'icon-name',icon)
+        if modern:compact.add_setter(switcher,'display-mode',Adw.InlineViewSwitcherDisplayMode.ICONS)
+        self.add_breakpoint(compact)
         self.tabs.set_visible_child_name(mode)
         self._words_started=mode=='original'
         def selected(*_):
             if self.words and self.tabs.get_visible_child_name()=='original' and not self._words_started:
                 self._words_started=True;self.words.begin()
         self.tabs.connect('notify::visible-child-name',selected)
-        def wrap_labels(widget):
-            if isinstance(widget,Gtk.Label):
-                widget.set_wrap(True);widget.set_wrap_mode(Pango.WrapMode.WORD_CHAR);widget.set_width_chars(1)
-                widget.set_halign(Gtk.Align.FILL)
-            child=widget.get_first_child()
-            while child:wrap_labels(child);child=child.get_next_sibling()
-        wrap_labels(switcher)
         self.set_content(root);self.set_size_request(320,320)
         self.connect('close-request',self.on_close)
         keys=Gtk.EventControllerKey()

@@ -11,7 +11,7 @@ from .annotation_card import AnnotationPreview
 class PassageNotes(Gtk.Box):
     def __init__(self, owner):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=10,
-                         margin_start=12,margin_end=12,margin_top=12,margin_bottom=16)
+                         margin_start=12,margin_end=12,margin_top=12,margin_bottom=16,vexpand=True)
         self.owner=owner;self.annotations=PassageAnnotations()
         self.context=None;self._stamp=None;self.rows=[];self.marks=[];self.cards=[];self.editor=None
         self.heading=Gtk.Label(xalign=0,wrap=True)
@@ -20,6 +20,9 @@ class PassageNotes(Gtk.Box):
         self.status.add_css_class('dim-label')
         self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
         self.append(self.status)
+        from .study_empty import empty_state
+        self.empty_page=empty_state('No annotations','No personal notes or highlights in this chapter.','notebook-symbolic')
+        self.empty_page.set_visible(False);self.append(self.empty_page)
         self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False)
         self.editor_panel.add_css_class('annotation-card');self.editor_panel.add_css_class('card')
         self.append(self.editor_panel)
@@ -147,7 +150,10 @@ class PassageNotes(Gtk.Box):
                 original_match(n.origin_translation,link.start,link.end) for link in n.passages)] if store and chapter else []
             self.marks=[m for m in self.owner.highlights.entries.values() if original_match(m['resource'],m['reference'],m['reference'])] if chapter else []
         self.status.set_text(tr('Notes unavailable. The original file has been preserved.') if not store else
-                             tr('No annotations in this chapter.') if not self.rows and not self.marks else '')
+                             tr('No annotations in this chapter.') if not self.rows and not self.marks and not self.editor else '')
+        empty=bool(store and reader and not self.rows and not self.marks and not self.editor)
+        self.empty_page.set_visible(empty)
+        if empty:self.status.set_visible(False)
         from .annotation_collection import records,bible_order
         entries=records(self.rows,self.marks)
         def targets(a):
@@ -309,6 +315,8 @@ class PassageNotes(Gtk.Box):
             existing.close();return existing
         editor=NoteEditor(self.owner,note=note,context=context,embedded=True,compact=True)
         editor.embedded_host=self;self.editor=editor;self.owner.note_editor=editor
+        self.empty_page.set_visible(False)
+        if self.owner.notes_store:self.status.set_text('')
         self.clear(self.editor_panel)
         self.editor_panel.set_visible(True);self.editor_panel.append(editor.embedded_content)
         commands=Gtk.Box(spacing=6)
@@ -342,7 +350,7 @@ class PassageNotes(Gtk.Box):
         self.editor_commands.remove(editor.actions_menu);editor.header.pack_start(editor.actions_menu)
         editor.embedded=False;editor.dialog_parent=editor
         editor.set_default_size(700,min(680,max(480,self.owner.get_height()-96)))
-        editor.header.set_visible(True);editor.use_window_layout();editor.present()
+        editor.header.set_visible(True);editor.use_window_layout(expanded=True);editor.present()
 
     def editor_closed(self,editor):
         if editor.embedded_content.get_parent() is self.editor_panel:self.editor_panel.remove(editor.embedded_content)

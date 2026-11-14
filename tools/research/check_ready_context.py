@@ -83,9 +83,13 @@ def main():
                 words.go_back.grab_focus();native.key('Return');spin(lambda:not words.pending)
                 assert words.stage=='passage'
                 for page in ('dictionary','map','people','original'):
-                    button=next(b for b in walk(host.switcher) if isinstance(b,Gtk.ToggleButton) and b.get_child() and any(isinstance(l,Gtk.Label) and l.get_text()==tr({'dictionary':'Dictionary','map':'Map','people':'People','original':'Original text'}[page]) for l in walk(b)))
+                    label=tr({'dictionary':'Dictionary','map':'Map','people':'People','original':'Original text'}[page])
+                    button=next(b for b in walk(host.switcher) if isinstance(b,Gtk.ToggleButton) and
+                        (b.get_tooltip_text()==label or any(isinstance(l,Gtk.Label) and l.get_text()==label for l in walk(b))))
                     button.grab_focus();native.key('Return');spin()
                     assert host.tabs.get_visible_child_name()==page
+                    assert host.switcher.is_ancestor(host.header)
+                    shot(resource+'-'+start+'-view-'+page)
                     if page!='map' and host.places.map_widget:assert host.places.map_widget.canvas is None
                 assert (tab.state.resource,tab.state.reference,tab.state.history)==before
                 report['word_cases'].append(dict(resource=resource,start=start,end=end,verses=len(excerpts),tokens=len(tokens),lexical_entry=words.entry['id'],real_occurrence_chips=len(chips),native_keyboard=True))

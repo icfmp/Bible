@@ -32,6 +32,22 @@ class CollectionTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires actual GTK')
 class AnnotationWorkspaceTests(unittest.TestCase):
+    def test_editor_fills_available_workspace_and_secondary_actions_remain_reachable(self):
+        from tests.test_ui import spin
+        from bible.ui import Gtk
+        w=self.window;s=self.space;w.set_default_size(1750,950);s.open_note(self.first);spin()
+        editor=s.editor
+        self.assertGreater(editor.body_scroll.get_height(),300)
+        self.assertGreaterEqual(editor.body_scroll.get_width(),s.detail_scroll.get_width()-40)
+        before=editor.body.get_buffer().props.text
+        w.set_default_size(560,480);spin()
+        scroll=s.detail_scroll;adjustment=scroll.get_vadjustment()
+        adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());spin()
+        bounds=editor.links.compute_bounds(scroll)[1]
+        self.assertLessEqual(bounds.get_y()+bounds.get_height(),scroll.get_height()+1)
+        self.assertGreater(bounds.get_y()+bounds.get_height(),0)
+        self.assertEqual(editor.body.get_buffer().props.text,before)
+
     def setUp(self):
         from bible.ui import Application,Window,Library
         from tests.test_ui import installed_fixture,spin

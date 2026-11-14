@@ -12,6 +12,20 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class StudyReferenceTests(unittest.TestCase):
+    def test_centered_empty_is_only_a_successful_zero_lookup_and_keeps_credit(self):
+        self.install();refs=self.show('John.3.16')
+        self.assertFalse(refs.rows)
+        self.assertEqual(refs.pages.get_visible_child_name(),'empty')
+        self.assertFalse(refs.status.get_visible())
+        credit=refs.empty_page.get_next_sibling()
+        self.assertIn(reference_data.LICENSE_URL,credit.get_label())
+        self.window.active_tab.navigate('Test','John.1.5');spin(lambda:not refs.pending)
+        self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertTrue(refs.rows)
+        with patch.object(refs.data,'query',side_effect=OSError('unreadable source')):
+            self.window.active_tab.select_verse('John.1.6');spin(lambda:not refs.pending)
+        self.assertEqual(refs.pages.get_visible_child_name(),'results')
+        self.assertTrue(refs.download.get_visible());self.assertTrue(refs.status.get_visible())
+
     def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self):
         from dataclasses import replace
         from bible.ui import Gtk

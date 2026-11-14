@@ -1,5 +1,6 @@
 """Real short/long result geometry, native Aa and preference-palette checks."""
-import argparse,json,inspect
+import argparse,json,inspect,threading
+from unittest.mock import patch
 from pathlib import Path
 from bible.ui import Application,Window,Library,Gtk
 from bible.topic_vocabulary import suggestions
@@ -7,7 +8,7 @@ from tests.test_ui import spin
 from tests.test_appearance import SystemStyleOverride
 from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
-p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--require-packaged',action='store_true');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('output',type=Path);p.add_argument('--require-packaged',action='store_true');p.add_argument('--pending',action='store_true',help='Hold real text searches behind a test-only gate to inspect placeholders');a=p.parse_args()
 if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
 assert (a.profile/'.ready-batch-test-profile').is_file();a.output.mkdir(parents=True,exist_ok=True)
 app=Application();app.register();w=Window(app,Library(a.profile/'translations'));w.present();n=X11Input();n.activate(w);screen=Screen(n)
@@ -33,7 +34,24 @@ try:
     prefix=mode+('-small-largefont' if small else '-wide')
     for label,query in [('zero','zzready13nomatchingpassage'),('two','je suis le chemin'),('many','Dieu')]:
      w.show_search('text');spin();panel=w.search_popover.text_search
-     panel.entry.set_text(query);panel.entry.grab_focus();n.key('Return');spin(lambda:not panel.pending and panel.result_query==query,timeout=100)
+     n.activate(w);panel.entry.set_text(query);panel.entry.grab_focus()
+     if a.pending:
+      from bible.text_search import search
+      release=threading.Event()
+      def held(*args,**kwargs):
+       assert release.wait(30),'Test-only pending search gate timed out'
+       return search(*args,**kwargs)
+      try:
+       with patch('bible.text_search.search',side_effect=held):
+        n.key('Return');spin(lambda:panel.loading_cards.get_mapped())
+        assert panel.pending and panel.entry.get_mapped() and panel.submit.get_sensitive()
+        shot(prefix+'-text-'+label+'-pending')
+      finally:release.set()
+     else:n.key('Return')
+     spin(lambda:not panel.pending and panel.result_query==query,timeout=100)
+     if a.pending:
+      assert not panel.loading_cards.get_visible()
+      assert not panel.loading_cards._tick and not panel._loading_delay
      result=geometry(panel,'text',query)
      if label=='two':
       assert result['total']==2,result
