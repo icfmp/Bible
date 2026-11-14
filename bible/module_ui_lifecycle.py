@@ -66,9 +66,13 @@ class ModuleViewChange:
                     rect=tab.text.get_visible_rect();_,iterator=tab.text.get_iter_at_location(rect.x,rect.y)
                     anchor=tab.position_anchor(iterator.get_offset())
                 self.tabs.append((window,tab,primary,comparison,anchor))
+                if getattr(tab,'_comparison_tick',0):
+                    tab.comparison_text.remove_tick_callback(tab._comparison_tick);tab._comparison_tick=0
+                tab._comparison_positioning=False
                 tab.scroll_motion.cancel();tab.cancel_adapt();tab.comparison_sync.driver=None;tab.comparison_rows.leave()
                 if primary:
                     if tab._tick_id:tab.remove_tick_callback(tab._tick_id);tab._tick_id=0
+                    tab._restoring_scroll=False;tab._appearance_anchor=None
                     tab.reader=None;tab.current=None;tab._document=None;tab._verse_offsets={};tab._verse_ranges={};tab._marker_ends={}
                     clear_view(tab.text);tab.status.set_text(tr('Updating resource…'));tab.status.set_visible(True)
                 if comparison:

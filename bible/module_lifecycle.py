@@ -141,8 +141,18 @@ class ModuleLifecycle:
         relative_conf=str(files[0].relative_to(root));prefix=str(data)
         directory=(root.joinpath(*data.parts)).is_dir()
         manifest=tree_manifest(root)
+        original=json.loads(receipt.read_text()).get('files_sha256',{}) if receipt.is_file() else {}
+        if not isinstance(original,dict):original={}
+        # Existing YouVersion installs carry application verification/reference
+        # sidecars. Their separate retained reference registry is never removed.
+        sidecars={'.source-index.json','.verified.json','.source-versification','.source-addresses.json'} if resource.provider_id=='youversion' else set()
         for relative in manifest:
             if relative in {'.complete','.source.json',relative_conf}:continue
+            if relative in sidecars:continue
+            # Some standard dictionary packages include companion files beside
+            # the indexed basename. Accept only files actually recorded by the
+            # original installer, with unchanged bytes; never a name exception.
+            if original.get(relative)==manifest[relative]:continue
             if directory and relative.startswith(prefix+'/'):continue
             path=Path(relative)
             if not directory and str(path.parent)==str(data.parent) and path.name.startswith(data.name+'.'):continue
@@ -251,6 +261,9 @@ class ModuleLifecycle:
 
     def verify_references(self,old,new,candidate):
         from .sword_provider import Reader,CommentaryReader
+        # The shared installer already validated the dictionary in a bounded
+        # native subprocess; it has no verse-address coverage to migrate.
+        if old.kind=='dictionary':return
         factory=CommentaryReader if old.kind=='commentary' else Reader
         previous=factory(self.root/old.id,old.name);next_reader=factory(candidate,new.name)
         # A resource update must not silently remove/renumber existing Bible
@@ -268,6 +281,12 @@ class ModuleLifecycle:
             if record['resource']==identifier and record['operation']=='update' and record['state']=='committed':
                 return folder,record
         return None
+
+    def was_removed(self,identifier):
+        """Explicit app removal must not trigger the legacy missing-file fallback."""
+        if not identifier or (self.root/identifier/'.complete').is_file():return False
+        return any(record['resource']==identifier and record['operation']=='remove' and record['state']=='committed'
+                   for _,record in self.records() or ())
 
     def rollback(self,identifier,*,before_switch=collect_readers):
         with operation_lock(self.root):
@@ -297,7 +316,9 @@ class ModuleLifecycle:
                     os.rename(active,backup);sync_directory(self.root);sync_directory(folder)
                 record['state']='committed';self.journal(folder,record)
             except BaseException:
-                self.recover_record(folder,record);raise
+                self.recover_record(folder,record)
+                if record['state']=='recovered' and folder.exists():shutil.rmtree(folder)
+                raise
             error=''
             try:shutil.rmtree(backup)
             except OSError as failure:error=str(failure)
@@ -311,10 +332,13 @@ class ModuleLifecycle:
             tree_manifest(folder)  # Reject links/special files before discarding private staging.
             shutil.rmtree(folder);return
         if record['operation']=='remove':
-            if state=='prepared' and backup.exists():
-                if active.exists():raise ValueError('A different module now occupies the removed path; recovery preserved both copies')
-                if tree_manifest(backup)!=record['before']:raise ValueError('Recovery copy changed; manual recovery is required')
-                os.rename(backup,active);sync_directory(self.root)
+            if state=='prepared':
+                if backup.exists():
+                    if active.exists():raise ValueError('A different module now occupies the removed path; recovery preserved both copies')
+                    if tree_manifest(backup)!=record['before']:raise ValueError('Recovery copy changed; manual recovery is required')
+                    os.rename(backup,active);sync_directory(self.root)
+                elif not active.exists() or tree_manifest(active)!=record['before']:
+                    raise ValueError('Removal recovery found changed or missing files; manual recovery is required')
                 record['state']='recovered';self.journal(folder,record)
             return
         if state not in ('prepared','rollback-prepared'):return

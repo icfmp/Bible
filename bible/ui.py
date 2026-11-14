@@ -669,6 +669,11 @@ class Window(Adw.ApplicationWindow):
         tab=self.active_tab
         if tab is None:return False
         if tab.reader and tab.current and any(text.strip() for _,text in tab.current.verses):return True
+        from .module_lifecycle import ModuleLifecycle
+        if preferred is None and ModuleLifecycle(self.library).was_removed(tab.state.resource):
+            # Preserve an explicit removal and the saved passage. A different
+            # translation is selected only through the user's existing chooser.
+            return False
         from .sword_provider import Reader
         names=self.library.installed('bible')
         if self.library.discovery_errors:

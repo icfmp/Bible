@@ -23,6 +23,7 @@ MAX_ARCHIVE = 64 * 1024 * 1024
 MAX_UNPACKED = 256 * 1024 * 1024
 BIBLE_DRIVERS = {'zText', 'RawText', 'RawText4', 'zText4'}
 COMMENTARY_DRIVERS = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
+DICTIONARY_DRIVERS = {'RawLD', 'RawLD4', 'zLD'}
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,8 @@ class Resource:
 
     @property
     def kind(self):
+        if self.driver in DICTIONARY_DRIVERS:return 'dictionary'
+        if self.driver=='RawGenBook':return 'encyclopedia'
         return 'commentary' if self.driver in COMMENTARY_DRIVERS or self.category == 'Commentaries' else 'bible'
 
     @property
@@ -69,7 +72,7 @@ class Resource:
             try:
                 if not (json.loads(self.acquisition).get('offline') or {}).get('url'):return False
             except (ValueError,TypeError,AttributeError):return False
-        return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS
+        return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS
                 and self.category not in {'Images', 'Maps'})
 
 
@@ -243,7 +246,7 @@ def parse_sword_catalogue(data,provider=CROSSWIRE):
             for name in parser.sections():
                 section = parser[name]
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
-                        and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS
+                        and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS
                              or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
                     resources.append(resource_from_section(name, section, provider))
     return sorted(resources, key=lambda r: (r.language, r.name))
@@ -432,6 +435,8 @@ class Library:
                 raise ValueError(f'Resource identity mismatch: expected {resource.name}, got {parser.sections()}')
             section = parser[resource.name]
             actual = resource_from_section(resource.name, section, provider)
+            if resource.version and actual.version!=resource.version:
+                raise ValueError('Package version does not match its source catalogue; reload before downloading')
             if curated and actual.version!=curated['version']:
                 raise ValueError('Curated package version does not match its catalogue')
             if (actual.kind, actual.driver, actual.versification) != (
@@ -448,15 +453,18 @@ class Library:
             for key in section:
                 if key.lower().endswith('path') and key.lower() != 'datapath':
                     raise ValueError('Unsupported resource path')
-            from .sword_provider import Reader, CommentaryReader
-            reader = (CommentaryReader if actual.kind == 'commentary' else Reader)(target, resource.name)
-            first = reader.first_reference()
-            if actual.kind == 'commentary':
-                if not reader.entry(first, reader.versification):
-                    raise ValueError('No readable commentary entry in resource')
-            elif not any(text.strip() for _, text in reader.chapter(first).verses):
-                raise ValueError('No readable chapter in resource')
-            del reader
+            if actual.kind=='dictionary':
+                from .native_dictionary import verify
+                verify(target,resource.name)
+            else:
+                from .sword_provider import Reader, CommentaryReader
+                reader = (CommentaryReader if actual.kind == 'commentary' else Reader)(target, resource.name)
+                first=reader.first_reference()
+                if actual.kind=='commentary':
+                    if not reader.entry(first,reader.versification):raise ValueError('No readable commentary entry in resource')
+                elif not any(text.strip() for _,text in reader.chapter(first).verses):
+                    raise ValueError('No readable chapter in resource')
+                del reader
             if cancelled():raise InterruptedError('Installation cancelled')
             files=source_fingerprints(target)
             (target / '.source.json').write_text(json.dumps({

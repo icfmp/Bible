@@ -437,10 +437,11 @@ class ReadingTab(Gtk.Box):
         offsets = getattr(self, '_comparison_offsets', {})
         if reference not in offsets:return
         if getattr(self, '_comparison_tick', 0):self.comparison_text.remove_tick_callback(self._comparison_tick)
+        document=self._comparison_document
         frames = [0]; self._comparison_positioning = True
         def reveal(*_):
             frames[0] += 1
-            if not self.get_mapped():
+            if not self.get_mapped() or self._comparison_document is not document:
                 self._comparison_tick = 0; self._comparison_positioning = False; return False
             if settle and frames[0] < 3:return True
             view = self.comparison_text; buffer = view.get_buffer()

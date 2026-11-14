@@ -91,10 +91,18 @@ class CatalogueWindow(Adw.Window):
         actions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Library actions')])
         menu=Gio.Menu();menu.append(tr('Check for module updates'),'catalogue.check-updates')
         group=Gio.SimpleActionGroup();check=Gio.SimpleAction.new('check-updates',None)
-        def updates(*_):
+        check.connect('activate',lambda *_:self.modules.check());group.add_action(check)
+        self._check_updates_action=check
+        menu.append(tr('Update all verified modules'),'catalogue.update-all')
+        update_all=Gio.SimpleAction.new('update-all',None)
+        update_all.connect('activate',lambda *_:self.modules.update_all());group.add_action(update_all)
+        self._update_all_action=update_all
+        menu.append(tr('Installed module information'),'catalogue.module-info')
+        information=Gio.SimpleAction.new('module-info',None)
+        def module_info(*_):
             from .module_updates_window import ModuleUpdatesWindow
             ModuleUpdatesWindow(self,self.library).present()
-        check.connect('activate',updates);group.add_action(check);self.insert_action_group('catalogue',group)
+        information.connect('activate',module_info);group.add_action(information);self.insert_action_group('catalogue',group)
         actions.set_menu_model(menu);header.pack_end(actions)
         layout.append(header)
         self.pages=Gtk.Stack(vexpand=True)
@@ -187,6 +195,8 @@ class CatalogueWindow(Adw.Window):
         self.read_button=Gtk.Button(label=tr('Read'),halign=Gtk.Align.CENTER,visible=False)
         self.read_button.connect('clicked',lambda *_:self.read_resource(self.selected_resource()))
         detail.append(self.read_button)
+        from .module_management import ModuleManagement
+        self.modules=ModuleManagement(self,detail)
         self.pages.add_named(detail,'detail');layout.append(self.pages)
         self.transfer_footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,visible=False)
         self.transfer_footer.append(Gtk.Separator())
@@ -239,6 +249,7 @@ class CatalogueWindow(Adw.Window):
         if changed:self.update_languages()
         self.update_result_state()
         self.refresh_controls()
+        self.modules.next_when_ready()
         if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
         return False
 
@@ -326,20 +337,20 @@ class CatalogueWindow(Adw.Window):
         installed=resource.id in getattr(self,'_installed_ids',set())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
         busy=self._transfer_busy and self._task_resource==resource.id
-        stamp=(resource,installed,current,self._transfer_busy,self._phase if busy else None,
+        stamp=(resource,installed,current,self.modules.revision,self._transfer_busy,self._phase if busy else None,
                self.progress.get_text() if busy else None,resource.id in self._task_errors)
         if getattr(item,'_render_stamp',None)==stamp:return
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
-        item.state.set_text(tr('Installed') if current else tr('Update available') if installed else '')
+        item.state.set_text(tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
         item.state.set_visible(installed and not busy)
         item.action.set_icon_name('media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
         label=tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
         item.action.set_sensitive(current or (resource.installable and not self._transfer_busy))
-        item.action.set_visible(not busy and not (current and resource.kind=='study'))
+        item.action.set_visible(not busy and not (current and resource.kind not in ('bible','commentary')))
         item.get_child().set_tooltip_text(resource.name+' · '+resource.language)
 
     def refresh_rows(self):
@@ -390,7 +401,10 @@ class CatalogueWindow(Adw.Window):
 
     def current_resources(self):
         if self.kind.get_selected()==2:
-            return self.study_resources.available()
+            # Installed native dictionaries/lexicons share lifecycle controls.
+            # Discovering new dictionary catalogues remains the separate #236.
+            return (*self.study_resources.available(),*(r for r in self._installed_metadata.values()
+                       if r.kind not in ('bible','commentary')))
         resources={r.id:r for r in self.resources};resources.update(self._installed_metadata)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
         index = self.source_filter.get_selected()
@@ -538,7 +552,7 @@ class CatalogueWindow(Adw.Window):
         installed=bool(resource and resource.id in self.installed_ids())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
         self.installed_state.set_visible(installed)
-        self.read_button.set_visible(current and resource.kind!='study')
+        self.read_button.set_visible(current and resource.kind in ('bible','commentary'))
         self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
         self.download_button.set_visible(not current)
         self.download_button.set_label(tr('Update') if installed and not current else
@@ -553,6 +567,9 @@ class CatalogueWindow(Adw.Window):
         self.progress.set_visible(self._transfer_busy)
         self.cancel_button.set_visible(self._transfer_busy)
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
+        self.modules.refresh(resource)
+        self._check_updates_action.set_enabled(not self.busy)
+        self._update_all_action.set_enabled(not self.busy and any(self.modules.available(i) for i in self._installed_metadata))
         self.refresh_rows()
 
 
@@ -573,7 +590,7 @@ class CatalogueWindow(Adw.Window):
     def dismiss_success_toast(self):
         if self._success_toast:self._success_toast.dismiss();self._success_toast=None
 
-    def task(self, message, action, finished, success_text=None, resource=None,executor=None,settled=None):
+    def task(self, message, action, finished, success_text=None, resource=None,executor=None,settled=None,failed=None):
         if self._transfer_busy:
             return
         self.dismiss_success_toast()
@@ -589,7 +606,7 @@ class CatalogueWindow(Adw.Window):
         self.progress.set_fraction(0)
         self.progress.set_show_text(False)
         self.transfer_name.set_text(self._task_caption)
-        self.transfer_phase.set_text(tr('Downloading'))
+        self.transfer_phase.set_text(tr(message) if not resource else tr('Downloading'))
         self.transfer_percent.set_text('');self.transfer_percent.set_visible(False)
         self.progress.set_text(tr(message))
         self._pulse_id = GLib.timeout_add(80, self.animate_progress)
@@ -632,6 +649,7 @@ class CatalogueWindow(Adw.Window):
                     toast=Adw.Toast.new(success_text);toast.set_timeout(4)
                     self._success_toast=toast;self.toast_overlay.add_toast(toast)
             except Exception as error:
+                if failed:failed()
                 self._phase = "error"
                 self.progress.set_fraction(0)
                 self.progress.set_text(tr("Failed"))
@@ -784,7 +802,7 @@ class CatalogueWindow(Adw.Window):
             self.selection_changed()
         installer=self.study_resources if resource.kind=='study' else self.library
         def perform():
-            options={'cancelled':self._cancel.is_set} if resource.kind=='study' else {}
+            options={'cancelled':self._cancel.is_set}
             if resource.provider_id=='youversion':
                 options.update(cancelled=self._cancel.is_set,phase=self.queue_progress,permission=permission)
             return installer.install(resource,self.report_progress,installing=self.begin_installation,**options)

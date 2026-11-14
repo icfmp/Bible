@@ -67,3 +67,45 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual(self.dialog._phase,'error');self.assertIs(tab.reader,old)
         self.assertIn('ORIGINAL MODULE WORDING',tab.text.get_buffer().props.text)
         self.assertEqual(self.library.resource(self.old.id).version,'1.0')
+
+    def test_library_controls_update_then_restore_the_previous_verified_package(self):
+        d=self.dialog;tab=self.w.active_tab
+        d.modules.reports[self.old.id]=dict(state='available',available=self.new,error='')
+        d.language_choice='';d.update_languages();spin(lambda:not d._building_rows)
+        index=next(i for i,r in enumerate(d.filtered_resources) if r.id==self.old.id)
+        d.open_details(None,index);spin();self.assertTrue(d.modules.update_button.get_visible())
+        with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(self.new_zip)):
+            d.modules.update_button.emit('clicked');spin(lambda:not d.busy,timeout=15)
+        self.assertEqual(d._phase,'complete',d.status.get_text())
+        self.assertEqual(self.library.resource(self.old.id).version,'1.1')
+        self.assertTrue(d.modules.rollback_button.get_visible())
+        d.modules.run('rollback');spin(lambda:not d.busy,timeout=15)
+        self.assertEqual(d._phase,'complete',d.status.get_text())
+        self.assertEqual(self.library.resource(self.old.id).version,'1.0')
+        self.assertIn('ORIGINAL MODULE WORDING',tab.text.get_buffer().props.text)
+
+    def test_active_removal_keeps_passage_and_annotations_and_does_not_replace_on_restart(self):
+        from bible.ui import Window
+        d=self.dialog;w=self.w;tab=w.active_tab
+        before=[asdict(n) for n in w.notes_store.all()];history=list(tab.state.history)
+        d.language_choice='';d.update_languages();spin(lambda:not d._building_rows)
+        index=next(i for i,r in enumerate(d.filtered_resources) if r.id==self.old.id)
+        d.open_details(None,index);spin()
+        d.modules.run('remove');spin(lambda:not d.busy,timeout=15)
+        self.assertEqual(d._phase,'complete',d.status.get_text())
+        self.assertEqual((tab.state.resource,tab.state.reference),(self.old.id,'Gen.1.1'))
+        self.assertIsNone(tab.reader);self.assertEqual(tab.text.get_buffer().get_char_count(),0)
+        # Without a primary source there is no safe cross-edition reference
+        # context. Preserve the chosen comparison identity, with no stale text.
+        self.assertEqual(tab.state.comparison,'Test')
+        self.assertEqual(tab.comparison_text.get_buffer().get_char_count(),0)
+        self.assertEqual(getattr(tab,'_comparison_tick',0),0)
+        self.assertEqual(tab.state.history,history);self.assertEqual([asdict(n) for n in w.notes_store.all()],before)
+        app=w.get_application();d.close();w.close();spin()
+        reopened=Window(app,self.library);reopened.present();spin()
+        try:
+            self.assertEqual((reopened.active_tab.state.resource,reopened.active_tab.state.reference),(self.old.id,'Gen.1.1'))
+            self.assertIsNone(reopened.active_tab.reader)
+            self.assertEqual([asdict(n) for n in reopened.notes_store.all()],before)
+            self.assertEqual(reopened.highlights.entries[('KJV','Gen.1.1')]['color'],'yellow')
+        finally:reopened.close()

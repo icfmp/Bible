@@ -52,13 +52,27 @@ def details(resource):
     if resource.provider_id=='youversion' and numbering.startswith('YouVersion'):
         numbering=tr('Numbering supplied by this edition')
         availability+='\n'+tr('Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.')
+    provenance=''
+    if resource.provider_id=='bible-resources':
+        from .curated_catalogue import package_record
+        entry=package_record(resource)
+        provenance=tr('Source edition')+': '+entry['canonical_edition_id']+' / '+entry['edition']
+        # Report publisher-supplied approval metadata, never turn a draft's
+        # prose into application-authored claims or silently translate it.
+        profiles=entry.get('profiles',{})
+        if isinstance(profiles,dict):
+            for language,profile in profiles.items():
+                if not isinstance(profile,dict):continue
+                if all(isinstance(profile.get(key),str) and profile[key] for key in ('approved_at','approved_by','approval_url')):
+                    provenance+='\n'+tr('Profile approval reported by the source')+' ('+str(language)+'): '+profile['approved_at']+'\n'+profile['approval_url']
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
-        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources'}.get(resource.kind,'Bibles')),
+        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources','dictionary':'Dictionary or lexicon','encyclopedia':'Encyclopedia'}.get(resource.kind,'Bibles')),
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
-        f'{tr("Version")}: {resource.version}' if resource.version else '',
+        f'{tr("Version")}: {resource.version}' if getattr(resource,'version','') else '',
+        provenance,
         f'{tr("License")}: {plain(resource.license)}',
         f'{tr("Verse numbering")}: {numbering}',
         availability,

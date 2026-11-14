@@ -111,9 +111,9 @@ class LibraryTests(unittest.TestCase):
                 archive.addfile(info, io.BytesIO(content))
         with patch('bible.library.download', side_effect=lambda url, out, **kw: out.write(data.getvalue())):
             resources = catalogue()
-            self.assertEqual([r.name for r in resources], ['GPLTest', 'Locked', 'Private', 'Test'])
-            self.assertFalse(resources[1].installable)
-            self.assertTrue(resources[2].installable)
+            self.assertEqual([r.name for r in resources], ['GPLTest', 'Helper', 'Locked', 'Private', 'Test'])
+            self.assertFalse(resources[2].installable)
+            self.assertTrue(resources[3].installable)
 
     def test_failed_download_leaves_no_installation(self):
         with tempfile.TemporaryDirectory() as d:
@@ -159,7 +159,7 @@ class LibraryTests(unittest.TestCase):
         from dataclasses import replace
         for resource in [replace(RESOURCE, locked=True),
                          replace(RESOURCE, source_url='https://untrusted.test/'),
-                         replace(RESOURCE, driver='RawLD')]:
+                         replace(RESOURCE, driver='RawGenBook')]:
             with self.subTest(resource=resource), tempfile.TemporaryDirectory() as directory:
                 with patch('bible.library.download', side_effect=AssertionError('Must not download')):
                     with self.assertRaises(ValueError):

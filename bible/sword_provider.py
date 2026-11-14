@@ -97,6 +97,31 @@ def passage_verses(reader,references,chapter_cache=None):
     return tuple(result)
 
 
+class DictionaryReader:
+    """Native installed-module verification, not an invented lexical dataset."""
+    def __init__(self,root,name):
+        import Sword
+        from .library import DICTIONARY_DRIVERS
+        from .module_lifecycle import reader_lease
+        from .providers import module_name
+        self.root=Path(root);reader_lease(self,self.root)
+        self.manager=Sword.SWMgr(str(root));self.module=self.manager.getModule(module_name(name));self.sword=Sword
+        if self.module is None or self.module.getConfigEntry('ModDrv') not in DICTIONARY_DRIVERS:
+            raise ValueError('Unsupported dictionary module')
+        self.dictionary=Sword.SWLD.castTo(self.module)
+        if self.dictionary is None:raise ValueError('Native dictionary access is unavailable')
+
+    def verify_readable(self):
+        # The packaged SWIG SW_POSITION wrapper is incompatible with the
+        # native ABI for SWLD. Use the actual dictionary index API instead.
+        for position in range(min(self.dictionary.getEntryCount(),32)):
+            text=self.dictionary.getKeyForEntry(position)
+            if not text:continue
+            self.key=self.sword.SWKey(text);self.module.setKey(self.key)
+            if text.strip() and self.module.stripText().strip():return
+        raise ValueError('No readable dictionary entry in resource')
+
+
 class Reader:
     drivers = {'zText', 'RawText', 'RawText4', 'zText4'}
 

@@ -35,3 +35,39 @@ The existing Xiphos-labelled source is AndBible Extra. Its mirror identity is no
 proof that a module installed from xiphos.org belongs to that source. No new
 provider is added without authorization. External/shared roots remain read-only.
 No issue is complete or published by this checkpoint.
+
+## Actionable controls checkpoint
+
+The existing Library now has manual same-source update checking and per-resource
+Update, Restore previous version and confirmed Remove actions. Verified update-all
+runs serially and stops on failure/cancellation. The old separate dialog is local
+module information only; copied/external roots stay read-only. No update polling
+or automatic content replacement is introduced. Unknown/legacy receipts cannot
+prove original files and never acquire fabricated baseline hashes.
+
+Installed RawLD/RawLD4/zLD dictionaries appear under Study tools for lifecycle
+actions only; this does not implement unassigned dictionary discovery #236.
+RawGenBook is classified separately and remains unavailable for installation or
+update pending verified native support. The native dictionary index API is proven
+with real bindings. The SWIG SW_POSITION wrapper stops native SWLD, so it is not
+used. Newly supported dictionary validation runs in a bounded subprocess: a bad
+native decoder must not close GTK. Synthetic zLD fixture compressor ownership was
+also corrected; fixtures are never application resource content.
+
+Explicit removal leaves a journal intent so the legacy missing-module startup
+fallback cannot silently select another Bible. Existing fallback for unrelated
+missing/unreadable legacy sessions remains tested. Original notes, highlights,
+history and chosen translation/reference survive removal and restart.
+
+Latest checks:55 integrated native/backend/provider tests,12 focused removal/
+comparison/lifecycle tests and5 update-offer/native-dictionary-safety tests passed
+(they overlap). No library feature is merged or published yet. Live public Segond,
+MHCC and CrossWire Easton were installed/read into a new disposable root. Easton's
+package has a companion file outside its indexed basename: ownership must come
+from the original installer file receipt and matching hash, not a per-edition
+filename exception. Original source files remain unchanged.
+
+Still required: full native GUI actions across real resources, batch/cancel/error
+checks, final review/CI/Flatpak update verification and numbered alpha publication.
+Actual public catalogues do not currently prove a newer same-edition version for
+these test installs; synthetic1.0→1.1 proofs must not be presented as a live release.
