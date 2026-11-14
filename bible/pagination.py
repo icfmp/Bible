@@ -173,7 +173,8 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
         elif span.kind=='paragraph-space':
             from .reading_metrics import paragraph_space_size
-            attrs=[Pango.attr_size_new(round(paragraph_space_size(preferences)*Pango.SCALE))]
+            attrs=([Pango.attr_size_new(round(paragraph_space_size(preferences)*Pango.SCALE))]
+                   if preferences else [Pango.attr_scale_new(.25)])
         elif span.kind=='number':
             from .verse_typography import NUMBER_SCALE, number_rise
             if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
