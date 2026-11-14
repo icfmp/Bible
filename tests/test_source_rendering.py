@@ -5,6 +5,40 @@ from bible.structured_text import extract
 
 
 class SourceRenderingTests(unittest.TestCase):
+    def test_note_milestones_cannot_add_a_body_paragraph_or_poetry_line(self):
+        raw='Before<note><l eID="note-line"/><lg eID="note-stanza"/>Note only.</note> after.'
+        self.assertEqual(''.join(s.text for s in extract(raw,'Before after.','OSIS')),'Before after.')
+
+    def test_verified_native_emphasis_does_not_hide_authored_asterisks_or_poetry(self):
+        raw='<hi type="small-caps">Exact source</hi> * literal.<lb/><lb/>Poetry.'
+        native='* Exact source * * literal. Poetry.'
+        parts=extract(raw,native,'OSIS')
+        self.assertEqual(''.join(s.text for s in parts if 'native-decoration' not in s.styles),
+                         'Exact source * literal.\n\nPoetry.')
+        self.assertEqual(''.join(s.text for s in parts if s.styles==('native-decoration',)),'**')
+        self.assertTrue(any(s.styles==('small-caps',) and s.text=='Exact source' for s in parts))
+        unknown=extract(raw,'* Different source * * literal. Poetry.','OSIS')
+        self.assertEqual(unknown[0].text,'* Different source * * literal. Poetry.')
+        self.assertEqual(len(unknown),1)
+
+    def test_explicit_repeated_line_breaks_are_not_paired_milestone_duplicates(self):
+        parts=extract('Prose.<lb/><lb/>First line.<lb/>Second line.',
+                      'Prose. First line. Second line.','OSIS')
+        self.assertEqual(''.join(s.text for s in parts),'Prose.\n\nFirst line.\nSecond line.')
+        blank=extract('Before.<milestone type="x-source-blank-line"/>After.',
+                      'Before. After.','OSIS')
+        self.assertEqual(''.join(s.text for s in blank),'Before.\n\nAfter.')
+
+    def test_separator_styles_preserve_exact_text_and_do_not_cover_content(self):
+        from bible.pagination import paragraph_spaces
+        text='Éditorial\n\nBody\nPoetry line\n\nNext paragraph.'
+        spaces=paragraph_spaces(text)
+        self.assertEqual(len(spaces),2)
+        for span in spaces:
+            self.assertEqual(text[span.start:span.end],'\n')
+            self.assertEqual(text[span.start-1],'\n')
+        self.assertEqual(text,'Éditorial\n\nBody\nPoetry line\n\nNext paragraph.')
+
     def test_paired_poetry_milestones_have_one_line_boundary(self):
         raw=(' <lg sID="stanza"/> <l level="1" sID="line1"/>First line.'
              '<l eID="line1"/> \n <l sID="line2" level="2"/>Second line.'

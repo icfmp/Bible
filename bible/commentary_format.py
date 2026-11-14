@@ -176,7 +176,7 @@ def apply(view,styles,preferences,palette):
         # can abort in pixel-to-iterator conversion with invisible inline tags.
         # Zero-scale source decorations have no ink/advance; Document.copy()
         # still omits precisely these verified generated markers.
-        if kind=='hidden':tag.props.scale=0
+        if kind in ('hidden','native-decoration'):tag.props.scale=0
         elif kind=='italic':tag.props.style=Pango.Style.ITALIC
         elif kind=='bold':tag.props.weight=700
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
@@ -184,6 +184,10 @@ def apply(view,styles,preferences,palette):
         elif kind=='superscript':configure(tag,view,preferences,palette)
         elif kind=='editorial':tag.props.scale=.9
         elif kind=='heading':tag.props.weight=700;tag.props.scale=1.12
+        elif kind=='paragraph-space':
+            from .reading_metrics import paragraph_space_size
+            tag.props.size_points=paragraph_space_size(preferences)
+            tag.props.pixels_above_lines=0;tag.props.pixels_below_lines=0;tag.props.pixels_inside_wrap=0
         buffer.apply_tag(tag,buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(last))
 
 

@@ -11,6 +11,7 @@ class ReadingSync:
     def __init__(self, owner):
         self.owner=owner;self.driver=None;self.pending=False;self.running=False
         self.armed_until=0;self.dragging=None;self.forced_position=None;self.needs_sync=False
+        self._after_selection=False
         self.bind(owner.study.scroll,owner.study.text,'commentary')
 
     def bind(self,scroll,view,side,tab=None):
@@ -51,6 +52,7 @@ class ReadingSync:
             target=self.owner.study.scroll if side=='bible' else self.owner.active_tab.scroll
             stop_native_scroll(target)
         self.driver=side;self.armed_until=time.monotonic()+.4;self.forced_position=None;self.needs_sync=True
+        self._after_selection=False
         if side=='bible' and tab:
             # Actual user input overrides an outstanding automatic restore.
             if tab._tick_id:tab.remove_tick_callback(tab._tick_id);tab._tick_id=0
@@ -70,6 +72,7 @@ class ReadingSync:
     def explicit_bible(self):
         if self.owner.study.tool=='notes':self.owner.study.notes.resume_following()
         self.driver='bible';self.armed_until=0;self.forced_position=None;self.needs_sync=False
+        self._after_selection=False
 
     def explicit_commentary(self,position):
         self.driver='commentary';self.forced_position=position;self.schedule()
@@ -107,11 +110,20 @@ class ReadingSync:
             # queues only one adaptation frame, so continuous following stays live.
             self.schedule();return False
         if self.forced_position is None and not self.needs_sync and self.dragging!=self.driver:return False
+        checking_layout=self._after_selection;self._after_selection=False
         self.needs_sync=False;self.running=True
         try:
             if self.driver=='bible' and not tab.text.get_buffer().get_has_selection():
                 reference=tab.visible_reference()
-                if reference and reference!=tab.state.reference:tab.select_verse(reference)
+                if reference and reference!=tab.state.reference:
+                    tab.select_verse(reference)
+                    # Styling the selected number invalidates GtkTextView's
+                    # lazy line layout. GTK 4.14 can settle on another visible
+                    # verse after that selection, with no further input event.
+                    # Recheck once through the existing bounded layout gate;
+                    # never add a permanent tick or restart native scrolling.
+                    if not checking_layout:
+                        self._after_selection=True;self.needs_sync=True;self.schedule()
                 elif reference:
                     if study.tool=='notes':study.notes.queue_follow(reference)
                     elif study.tool=='references':study.references.refresh()

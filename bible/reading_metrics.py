@@ -9,6 +9,11 @@ def line_spacing(preferences):
     return custom if custom is not None else SPACING[preferences.line_spacing]
 
 
+def paragraph_space_size(preferences):
+    # A paragraph boundary is spacing, not an additional full-sized text line.
+    return max(1,preferences.size*.25)
+
+
 def text_width(preferences):
     custom=getattr(preferences,'text_width_px',None)
     return custom if custom is not None else WIDTHS[preferences.column_width]

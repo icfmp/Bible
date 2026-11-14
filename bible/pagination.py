@@ -6,6 +6,7 @@ entire display document exactly, including paragraph separators and headings.
 """
 from dataclasses import dataclass
 from bisect import bisect_left, bisect_right
+import re
 import unicodedata
 import gi
 
@@ -50,6 +51,12 @@ class StyleSpan:
     end: int
 
 
+def paragraph_spaces(text):
+    """Style empty separator lines, without removing their source boundaries."""
+    return tuple(StyleSpan('paragraph-space',m.start(),m.end())
+                 for m in re.finditer(r'(?:^|(?<=\n))[^\S\n]*\n',text))
+
+
 @dataclass
 class Document:
     key: object
@@ -61,7 +68,7 @@ class Document:
     def copy(self, start, end):
         text=self.copy_text if self.copy_text is not None else self.text
         hidden=sorted((max(start,s.start),min(end,s.end)) for s in self.styles
-                      if s.kind=='hidden' and s.end>start and s.start<end)
+                      if s.kind in {'hidden','native-decoration'} and s.end>start and s.start<end)
         if not hidden:return text[start:end]
         pieces=[];position=start
         for first,last in hidden:
@@ -164,6 +171,10 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         if span.kind in ('heading','chapter'):
             attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12)]
         elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
+        elif span.kind=='paragraph-space':
+            from .reading_metrics import paragraph_space_size
+            attrs=([Pango.attr_size_new(round(paragraph_space_size(preferences)*Pango.SCALE))]
+                   if preferences else [Pango.attr_scale_new(.25)])
         elif span.kind=='number':
             from .verse_typography import NUMBER_SCALE, number_rise
             if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
@@ -176,7 +187,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
         elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
         elif span.kind=='superscript':attrs=[Pango.attr_rise_new(int((preferences.size if preferences else 16)*Pango.SCALE*.35)),Pango.attr_scale_new(.75)]
-        elif span.kind=='hidden':
+        elif span.kind in {'hidden','native-decoration'}:
             rectangle=Pango.Rectangle()
             attrs=[Pango.attr_shape_new(rectangle,rectangle)]
         else:continue

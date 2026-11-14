@@ -1,7 +1,7 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
-from .reading_metrics import line_spacing
+from .reading_metrics import line_spacing,paragraph_space_size
 from .verse_typography import configure
 from gi.repository import Gtk,Pango
 from gi.repository import GObject
@@ -50,7 +50,7 @@ def render(view, reader, chapter, preferences, document=None):
     view.set_pixels_below_lines(line_spacing(preferences)+4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','editorial','poetry','number','verse-start','hidden','italic','bold','small-caps','superscript']:
+    for kind in ['body','chapter','heading','editorial','poetry','number','verse-start','hidden','italic','bold','small-caps','superscript','paragraph-space','native-decoration']:
         name = 'verse-'+kind if kind != 'verse-start' else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
@@ -58,6 +58,7 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='number':configure(tag,view,preferences,getattr(view,'_reading_palette','white'))
         elif kind=='verse-start':tag.props.allow_breaks=False
         elif kind=='hidden':tag.props.style=2
+        elif kind=='native-decoration':tag.props.scale=0
         elif kind=='italic':tag.props.style=Pango.Style.ITALIC
         elif kind=='bold':tag.props.weight=Pango.Weight.BOLD
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
@@ -66,6 +67,9 @@ def render(view, reader, chapter, preferences, document=None):
             tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
             tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2
         elif kind=='poetry':tag.props.pixels_below_lines=line_spacing(preferences)
+        elif kind=='paragraph-space':
+            tag.props.size_points=paragraph_space_size(preferences)
+            tag.props.pixels_above_lines=0;tag.props.pixels_below_lines=0;tag.props.pixels_inside_wrap=0
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
             tag.props.pixels_above_lines=12 if kind=='chapter' else 6
