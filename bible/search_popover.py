@@ -97,6 +97,7 @@ class SearchPopover(Gtk.Popover):
         if not self.get_visible():return
         empty=self.modes.get_visible_child_name()=='text' and not self.text_search.model.get_n_items()
         size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name(),empty,
+              self.text_search.loading_cards.get_visible(),
               self.text_search.model.get_n_items(),self.topic_search.model.get_n_items(),
               self.topic_search.topic_model.get_n_items(),self.topic_search.topic_pages.get_visible_child_name(),
               self.owner.get_pango_context().get_serial())
@@ -105,7 +106,7 @@ class SearchPopover(Gtk.Popover):
         self.content.set_size_request(min(480,max(240,size[0]-64)),-1)
         available=min(540,max(160,size[1]-140))
         self.scroll.set_min_content_height(-1);self.scroll.set_max_content_height(available)
-        self.text_search.result_scroll.set_visible(not empty)
+        self.text_search.result_scroll.set_visible(not empty and not self.text_search.loading_cards.get_visible())
         topics=self.topic_search
         topics.topic_pages.set_visible(topics.topic_pages.get_visible_child_name()!='topics' or bool(topics.topic_model.get_n_items()))
         # Let GTK measure short result lists. Only the result region scrolls
@@ -116,7 +117,7 @@ class SearchPopover(Gtk.Popover):
         panel=self.active_panel()
         chrome=sum(child.measure(Gtk.Orientation.VERTICAL,width)[1]
                    for child in self._panel_children(panel)
-                   if child.get_visible() and child not in (panel.result_scroll,getattr(panel,'topic_pages',None)))
+                   if child.get_visible() and child not in (panel.result_scroll,getattr(panel,'topic_pages',None),getattr(panel,'loading_cards',None)))
         budget=max(60,available-tabs-chrome-48)
         for item in (self.text_search.result_scroll,self.topic_search.result_scroll,self.topic_search.topic_scroll):
             if item.get_max_content_height()!=budget:
@@ -140,10 +141,15 @@ class SearchPopover(Gtk.Popover):
         while child:
             if child.get_css_name()=='row':rows.append(child)
             child=child.get_next_sibling()
+        # The new results map before their first allocation. Use the already
+        # allocated popover width rather than measuring wrapped text at 1px,
+        # or leaving a virtual list with no initial height to allocate at all.
+        width=view.get_width() if view.get_width()>1 else self.content.get_width()
+        if width<=1:return
         count=model.get_n_items();limit=scroll.get_max_content_height()
         height=limit if count else 0
         if count and len(rows)==count:
-            height=min(limit,sum(row.measure(Gtk.Orientation.VERTICAL,max(1,view.get_width()))[1] for row in rows))
+            height=min(limit,sum(row.measure(Gtk.Orientation.VERTICAL,width)[1] for row in rows))
         if height>=0 and scroll.get_min_content_height()!=height:scroll.set_min_content_height(height)
 
     @staticmethod

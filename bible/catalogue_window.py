@@ -149,16 +149,15 @@ class CatalogueWindow(Adw.Window):
         self.skeleton=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14,margin_start=20,margin_end=20,margin_top=20)
         self.loading_phase=Gtk.Label(wrap=True,xalign=0,max_width_chars=40)
         self.skeleton.append(self.loading_phase)
+        from .loading_cards import placeholder
         for i in range(5):
             row=Gtk.Box(spacing=12)
             icon=Gtk.DrawingArea(width_request=34,height_request=38)
-            def draw(area,cr,w,h):
-                cr.set_source_rgba(.5,.5,.5,.25);cr.rectangle(0,0,w,h);cr.fill()
-            icon.set_draw_func(draw);row.append(icon)
+            icon.set_draw_func(placeholder);row.append(icon)
             lines=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,hexpand=True)
             for width in (150,220):
                 line=Gtk.DrawingArea(height_request=12,width_request=width,halign=Gtk.Align.START)
-                line.set_draw_func(draw);lines.append(line)
+                line.set_draw_func(placeholder);lines.append(line)
             row.append(lines);self.skeleton.append(row)
         self.skeleton.set_can_target(False)
         self.result_pages.add_named(self.skeleton,'loading')

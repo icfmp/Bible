@@ -4,6 +4,12 @@ import os
 
 FR = {
     'Updating resource…':'Mise à jour de la ressource…',
+    'No cross-references':'Aucune référence croisée',
+    'No biblical cross-references are available for this passage.':"Aucun renvoi biblique n'est disponible pour ce passage.",
+    'No annotations':'Aucune annotation',
+    'No personal notes or highlights in this chapter.':'Aucune note personnelle ni aucun surlignage dans ce chapitre.',
+    'No commentary available':'Aucun commentaire disponible',
+    'This resource has no commentary in this chapter.':"Cette ressource ne contient aucun commentaire dans ce chapitre.",
     'Other occurrences':'Autres occurrences',
     'No meaning supplied by the installed lexicon.':'Aucun sens fourni par le lexique installé.',
     'Dictionary headword':'Entrée du dictionnaire',
