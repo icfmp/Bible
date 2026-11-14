@@ -98,8 +98,13 @@ class ReadingSync:
                 or not tab.reader or not owner.split.get_show_sidebar()
                 or not tab.text.get_mapped()
                 or (study.tool=='commentaries' and (not study.reader or not study.text.get_mapped()))):return False
-        if (tab._restoring_scroll or (study.tool=='commentaries' and
+        if (tab._restoring_scroll or getattr(tab,'_adapt_frames',0)>1
+                or getattr(tab.text,'_reader_reflow_tick',0) or (study.tool=='commentaries' and
                 (study._positioning or getattr(study.text,'_reader_reflow_tick',0)))):
+            # Reopening/resizing the drawer changes wrapping before the reader's
+            # bounded layout frames restore its anchor. Do not consume the
+            # pending intent using that intermediate viewport. Ordinary input
+            # queues only one adaptation frame, so continuous following stays live.
             self.schedule();return False
         if self.forced_position is None and not self.needs_sync and self.dragging!=self.driver:return False
         self.needs_sync=False;self.running=True

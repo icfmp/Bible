@@ -234,8 +234,14 @@ jobs:
           from bible.library import Library
           from bible.youversion_install import fetch_resource,acknowledgement
           from bible.module_updates import ModuleCatalogue
+          from bible.place_data import PlaceData
+          from bible.reference_data import ReferenceData
+          from bible.topic_data import TopicData
           root=Path(sys.argv[1]);(root/'.ready-batch-test-profile').touch()
           library=Library(root/'translations')
+          for data in (PlaceData(root/'study-data'),ReferenceData(root/'study-data'),TopicData(root/'study-data')):
+              try:data.metadata()
+              except (OSError,ValueError):data.install()
           for identifier in (21,104):
               resource=fetch_resource(identifier)
               if resource.id not in library.installed():library.install(resource,permission=acknowledgement(resource))

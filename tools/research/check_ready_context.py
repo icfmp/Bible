@@ -95,7 +95,10 @@ def main():
             host=w.open_passage_study(context=(tab.state.resource,tab.reader,ref,ref),mode='map');places=host.places
             if a.narrow:host.set_default_size(360,620)
             spin(lambda:not places.pending,timeout=30)
-            place=next(x for x in places.rows if x['id']==identity);places.open_place(place);spin();native.activate(host)
+            assert places.data.revision is not None,'Existing OpenBible place index must be installed for this walkthrough'
+            place=next((x for x in places.rows if x['id']==identity),None)
+            assert place is not None,(ref,identity,places.status.get_text(),[(x['id'],x['name']) for x in places.rows])
+            places.open_place(place);spin();native.activate(host)
             assert not hasattr(places,'contexts')
             assert not any(hasattr(x,'photo_path') for x in walk(places))
             if identity=='a38ad9f':assert len(place['candidates'])==3

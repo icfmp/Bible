@@ -98,7 +98,10 @@ class ReadingSyncTests(unittest.TestCase):
             y=view.get_iter_location(iterator).y;rect=view.get_visible_rect();a=tab.scroll.get_vadjustment()
             a.set_value(a.get_value()+y-rect.y);spin(duration=.3)
             visible=tab.visible_reference()
-            w.study_button.set_active(True);spin(duration=.3)
+            w.study_button.set_active(True)
+            spin(lambda:not tab._restoring_scroll and not tab._adapt_id
+                 and not w.reading_sync.pending and not w.study.references.pending,duration=.3)
+            self.assertEqual(tab.visible_reference(),visible)
             self.assertEqual(w.study.references.context[2:],(visible,visible))
             self.assertEqual(tab.state.history,history)
 
