@@ -32,6 +32,7 @@ class SourceParser(HTMLParser):
         # HTMLParser normalizes attribute names, including OSIS sID/eID.
         # A closing milestone is a boundary, never a new enclosing block.
         if attrs.get('eid'):
+            if self.hidden:return
             if tag=='l':self.segments.append(Segment('\n','poetry',('poetry',)))
             elif tag=='lg' or tag=='div' and (attrs.get('type') in {'paragraph','x-p'} or attrs['eid'] in self.paragraph_ids):
                 self.segments.append(Segment('\n\n','break'))
@@ -55,9 +56,12 @@ class SourceParser(HTMLParser):
             if not attrs.get('sid'):self.divisions.append(paragraph)
         else:
             paragraph = tag in {'p', 'lg'}
-        if paragraph or (tag=='milestone' and attrs.get('type') in {'x-p','paragraph'}):
+        if tag=='milestone' and attrs.get('type')=='x-source-blank-line':
+            self.segments.append(Segment('\n\n','blank-line'))
+        elif paragraph or (tag=='milestone' and attrs.get('type') in {'x-p','paragraph'}):
             self.segments.append(Segment('\n\n','break'))
-        elif tag in {'l','lb','br'}:self.segments.append(Segment('\n','poetry',('poetry',)))
+        elif tag in {'lb','br'}:self.segments.append(Segment('\n','line-break',('poetry',)))
+        elif tag=='l':self.segments.append(Segment('\n','poetry',('poetry',)))
 
     def handle_endtag(self,tag):
         if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1);return
@@ -93,7 +97,40 @@ def extract(raw,plain,source_type):
     parser=SourceParser()
     try:parser.feed(raw);parser.close()
     except Exception:return (Segment(plain),)
-    return checked_segments(parser.segments,plain)
+    segments=parser.segments
+    if source_type=='OSIS':segments=native_emphasis(segments,raw,plain)
+    return checked_segments(segments,plain)
+
+
+def native_emphasis(segments,raw,plain):
+    """Reuse verified SWORD decoration detection; retain authored literal stars."""
+    normalize=lambda value:re.sub(r'\s+','',value)
+    source=''.join(s.text for s in segments if s.kind=='text')
+    if normalize(source)==normalize(plain):return segments
+    from .commentary_format import format_entry
+    _,styles,_=format_entry(raw,plain,'OSIS')
+    hidden={i for kind,first,last in styles if kind=='hidden' for i in range(first,last)}
+    if not hidden or normalize(source)!=normalize(''.join(c for i,c in enumerate(plain) if i not in hidden)):
+        return segments
+    boundaries={};position=0
+    for index,char in enumerate(plain):
+        if index in hidden:boundaries.setdefault(position,[]).append(char)
+        elif not char.isspace():position+=1
+    total=position;position=0;result=[]
+    for segment in segments:
+        if segment.kind!='text':result.append(segment);continue
+        run=[]
+        def decoration():
+            if run:result.append(Segment(''.join(run),'text',segment.styles));run.clear()
+            result.append(Segment(''.join(boundaries.pop(position)),'text',('native-decoration',)))
+        for char in segment.text:
+            if not char.isspace():
+                if position in boundaries:decoration()
+                position+=1
+            run.append(char)
+            if position==total and position in boundaries:decoration()
+        if run:result.append(Segment(''.join(run),'text',segment.styles))
+    return result if not boundaries else segments
 
 
 def checked_segments(segments,plain):
@@ -106,15 +143,18 @@ def checked_segments(segments,plain):
     result = [];pending=[]
     def flush(next_segment=None):
         if not pending:return next_segment
-        boundaries=[s for s in pending if s.kind in {'break','poetry'}]
+        boundaries=[s for s in pending if s.kind in {'break','poetry','line-break','blank-line'}]
         if boundaries:
             # Formatting whitespace between paired milestones is not an extra
             # paragraph. Retain the strongest authored boundary exactly once.
-            kind='break' if any(s.kind=='break' for s in boundaries) else 'poetry'
+            kind='break' if any(s.kind in {'break','blank-line'} for s in boundaries) else 'poetry'
+            count=max(2 if kind=='break' else 1,
+                      sum(s.kind=='line-break' for s in boundaries),
+                      1+sum(s.kind=='blank-line' for s in boundaries) if any(s.kind=='blank-line' for s in boundaries) else 0)
             if result:
                 previous=result[-1]
                 result[-1]=Segment(previous.text.rstrip(),previous.kind,previous.styles)
-            result.append(Segment('\n\n' if kind=='break' else '\n',kind,('poetry',) if kind=='poetry' else ()))
+            result.append(Segment('\n'*count,kind,('poetry',) if kind=='poetry' else ()))
             if next_segment is not None:next_segment=Segment(next_segment.text.lstrip(),next_segment.kind,next_segment.styles)
         else:
             for item in pending:
@@ -124,7 +164,7 @@ def checked_segments(segments,plain):
         pending.clear()
         return next_segment
     for segment in segments:
-        if segment.kind in {'break','poetry'} or segment.text.isspace():pending.append(segment);continue
+        if segment.kind in {'break','poetry','line-break','blank-line'} or segment.text.isspace():pending.append(segment);continue
         segment=flush(segment)
         if result and (result[-1].kind,result[-1].styles)==(segment.kind,segment.styles):
             previous=result.pop();segment=Segment(previous.text+segment.text,segment.kind,segment.styles)

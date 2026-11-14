@@ -26,6 +26,60 @@ class PaginationTests(unittest.TestCase):
         from bible.ui import Gtk
         Gtk.init();cls.widget=Gtk.TextView()
 
+    def test_source_title_fragments_stay_together_and_start_on_their_own_line(self):
+        from tests.test_ui import installed_fixture
+        from bible.sword_provider import Reader
+        from bible.structured_text import Segment
+        with tempfile.TemporaryDirectory() as directory:
+            root=installed_fixture(directory,entries=[('Gen.1.1','First body.'),('Gen.1.2','Second body.')])
+            reader=Reader(root,'Test')
+            reader.structured_chapter=lambda chapter,**_:{
+                'Gen.1.1':(Segment('First body.'),),
+                'Gen.1.2':(Segment('Éditorial ', 'heading'),Segment('italic','heading',('italic',)),
+                           Segment(' together','heading'),Segment('\n\n','break'),Segment('Second body.'))}
+            document=BiblePages(reader,None).document('Gen.1',ReadingPreferences())
+            title='Éditorial italic together'
+            position=document.text.index(title)
+            self.assertEqual(document.text[position-1],'\n')
+            self.assertEqual(document.text.count(title),1)
+            self.assertIn(title+'\n',document.copy(0,len(document.text)))
+            self.assertTrue(any(s.kind=='italic' and document.text[s.start:s.end]=='italic' for s in document.styles))
+            for span in document.spans:
+                self.assertEqual(document.locate(document.anchor(span.body)),span.body)
+
+    def test_empty_paragraph_spacing_reduces_only_blank_line_allocation(self):
+        from dataclasses import replace
+        from bible.ui import Gtk
+        from bible.bible_render import render
+        from bible.pagination import paragraph_spaces,shaped_lines
+        from tests.test_ui import spin
+        text='Exact prose.\n\nFirst poetic line.\nSecond poetic line.\n\nNext prose.'
+        doc=Document('fixture',text,(PassageSpan('Gen.1.1',0,0,len(text)),),paragraph_spaces(text))
+        old=replace(doc,styles=())
+        prefs=ReadingPreferences(size=28)
+        window=Gtk.Window();box=Gtk.Box();window.set_child(box)
+        views=[Gtk.TextView(),Gtk.TextView()]
+        from types import SimpleNamespace
+        reader=SimpleNamespace(rtl=False)
+        try:
+            for view,document in zip(views,(old,doc)):
+                box.append(view);render(view,reader,None,prefs,document)
+            window.present();spin()
+            blank=text.index('\n')+1;body=text.index('Next prose.')
+            before,after=[view.get_iter_location(view.get_buffer().get_iter_at_offset(blank)) for view in views]
+            self.assertLess(after.height,before.height)
+            self.assertLess(views[1].get_iter_location(views[1].get_buffer().get_iter_at_offset(body)).y,
+                            views[0].get_iter_location(views[0].get_buffer().get_iter_at_offset(body)).y)
+            self.assertEqual(doc.copy(0,len(text)),old.copy(0,len(text)))
+            self.assertEqual(doc.spans,old.spans)
+            for view in views:
+                self.assertEqual(view.get_buffer().get_char_count(),len(text))
+            old_lines=list(shaped_lines(views[0],old,prefs,500,0,len(text)))
+            new_lines=list(shaped_lines(views[1],doc,prefs,500,0,len(text)))
+            self.assertEqual([i[0] for i in new_lines],[i[0] for i in old_lines])
+            self.assertLess(new_lines[-1][1],old_lines[-1][1])
+        finally:window.destroy()
+
     def test_bounded_shaping_matches_one_native_layout_exactly(self):
         from bible.pagination import attributes,shaped_lines
         from bible.reading_metrics import line_spacing
