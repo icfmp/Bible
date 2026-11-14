@@ -31,7 +31,7 @@ class ReadingSettings:
         colors=Adw.PreferencesGroup(title=tr('Colors'));self.page.add(colors)
         self.mode=self.choice(colors,'Reading mode','mode',[('system','System'),('day','Light'),('night','Dark')])
         self.palettes={}
-        self.palette_grid=Gtk.Grid(column_homogeneous=True,column_spacing=8,row_spacing=8,margin_top=8)
+        self.palette_grid=Gtk.Grid(column_homogeneous=True,row_homogeneous=True,column_spacing=8,row_spacing=8,margin_top=8)
         colors.add(self.palette_grid)
         for key,title,values in [('day_palette','Day palettes',[('white','White'),('paper','Paper (sepia)')]),
                                   ('night_palette','Night palettes',[('dark','Dark grey'),('black','Black')])]:

@@ -86,6 +86,15 @@ class CatalogueWindow(Adw.Window):
         self.catalogue_button=Gtk.Button(icon_name='view-refresh-symbolic',tooltip_text=tr('Refresh catalogue'))
         self.catalogue_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Refresh catalogue')])
         self.catalogue_button.connect('clicked',self.load_catalogue);header.pack_end(self.catalogue_button)
+        actions=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Library actions'))
+        actions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Library actions')])
+        menu=Gio.Menu();menu.append(tr('Check for module updates'),'catalogue.check-updates')
+        group=Gio.SimpleActionGroup();check=Gio.SimpleAction.new('check-updates',None)
+        def updates(*_):
+            from .module_updates_window import ModuleUpdatesWindow
+            ModuleUpdatesWindow(self,self.library).present()
+        check.connect('activate',updates);group.add_action(check);self.insert_action_group('catalogue',group)
+        actions.set_menu_model(menu);header.pack_end(actions)
         layout.append(header)
         self.pages=Gtk.Stack(vexpand=True)
         explorer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_top=16)

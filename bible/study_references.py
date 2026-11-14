@@ -105,19 +105,32 @@ class StudyReferences(Gtk.Box):
             self.heading.set_text(tr('References'))
             self.message(tr('Open a Bible passage to see its references.'));return
         start,end=tab.selected_passage();reader=tab.reader
+        coordinator=getattr(self.owner,'reading_sync',None)
+        if (coordinator and coordinator.driver=='bible' and coordinator.armed_until>0 and not tab._restoring_scroll
+                and not tab.text.get_buffer().get_has_selection() and tab.text.get_mapped()):
+            # Scrolling while this tool/drawer was hidden intentionally did not
+            # run queries. Reopening must use that actual visible anchor, not
+            # the last explicit verse selection. Preserve explicit selections.
+            start=end=tab.visible_reference() or start
         stamp=(id(tab),id(reader),tab.state.resource,start,end,self.data.revision)
         # Tool activation forces the study coordinator to refresh. It does not
         # change this passage or dataset; rebuilding here loses manual scroll.
         if stamp==self.stamp:return
+        same_source=bool(self.stamp and self.stamp[:3]==stamp[:3] and self.stamp[-1]==stamp[-1])
         self.stamp=stamp;self.generation+=1;generation=self.generation
         self._new_passage=(self.context!=(tab.state.resource,reader,start,end)
                            or not self.model.get_n_items())
         self.context=(tab.state.resource,reader,start,end)
-        self.rows=[];self.chapter_cache={};self.row_cache={};self.all_results=False;self.pending=False
+        self.rows=[];self.all_results=False;self.pending=False
+        # Excerpts are immutable for this Reader/dataset revision. Keep the
+        # existing bounded chapter cache when only the followed verse changes.
+        if not same_source:self.chapter_cache={};self.row_cache={}
         # Keep the visible list while refreshing the same passage. Emptying it
         # first makes GTK anchor the footer and jump down when results arrive.
         if self._new_passage:self.clear_rows()
         self.heading.set_text(passage_title(start,end,reader.versification))
+        self.list.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cross-references')+': '+self.heading.get_text()])
+        self.owner.study.update_indicator()
         if self.data.revision is None:
             self.clear_rows()
             self.message(tr('Download OpenBible reference data once to use it offline.'),download=True);return
@@ -171,6 +184,7 @@ class StudyReferences(Gtk.Box):
                 result=(caption,tr('No verified alignment for this passage.') if isinstance(error,VersificationMismatch)
                         else tr('This passage is unavailable in the selected translation.'))
             self.row_cache[key]=result
+            if len(self.row_cache)>512:self.row_cache.pop(next(iter(self.row_cache)))
         caption,body=self.row_cache[key];title.set_text(caption);text.set_text(body)
         button.set_tooltip_text(None)
         button.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],

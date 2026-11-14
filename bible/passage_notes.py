@@ -81,6 +81,26 @@ class PassageNotes(Gtk.Box):
     def suspend_following(self):
         if hasattr(self,'motion'):self.motion.cancel()
         self.following=False;self.cancel_follow()
+        self.owner.study.update_indicator()
+
+    def indicated_passage(self):
+        """Only an actual note/link target, mapped by the shared resolver."""
+        tab=self.owner.active_tab;reader=tab.reader if tab else None
+        if not reader:return None
+        editor=self.editor if self.editor and not self.editor.closed else None
+        if not editor and not self.following:return None
+        notes=[editor.note] if editor and editor.note else self.rows if not editor else []
+        for note in notes:
+            for link in note.passages:
+                if not editor and not self.annotations.matches(reader,tab.state.reference,tab.state.reference,
+                        link.versification,link.start,link.end):continue
+                positions=self.annotations.positions(reader,link.versification,link.start,link.end)
+                if positions:return positions[0][2],positions[-1][3]
+        if editor and editor.context:
+            c=editor.context
+            positions=self.annotations.positions(reader,c['versification'],c['start'],c['end'])
+            if positions:return positions[0][2],positions[-1][3]
+        return None
 
     def resume_following(self):
         # Reading intent must never move an active draft out of view.
@@ -151,6 +171,7 @@ class PassageNotes(Gtk.Box):
 
     def queue_follow(self,reference):
         self.cancel_follow()
+        self.owner.study.update_indicator()
         if not self.following or self.editor or not hasattr(self,'scroll') or not self.owner.split.get_show_sidebar():return
         tab=self.owner.active_tab;reader=tab.reader if tab else None
         if not reader or not self._card_targets:return
@@ -294,12 +315,16 @@ class PassageNotes(Gtk.Box):
         save=Gtk.Button(label=tr('Save'));save.add_css_class('suggested-action');save.connect('clicked',lambda *_:editor.save());commands.append(save)
         cancel=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
         cancel.add_css_class('flat');cancel.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')])
-        cancel.connect('clicked',lambda *_:editor.close());commands.append(cancel)
+        cancel.connect('clicked',lambda *_:editor.close())
         expand_button=Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Expand note'))
         expand_button.add_css_class('flat');expand_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Expand note')])
-        expand_button.connect('clicked',lambda *_:self.expand_editor());commands.append(expand_button)
+        expand_button.connect('clicked',lambda *_:self.expand_editor())
+        commands.append(Gtk.Box(hexpand=True))
+        editor.header.remove(editor.actions_menu);commands.append(editor.actions_menu)
+        commands.append(expand_button);commands.append(cancel)
         self.editor_commands=commands;self.editor_panel.prepend(commands)
         editor.body.grab_focus()
+        self.owner.study.update_indicator()
         if expand:self.expand_editor()
         return editor
 
@@ -314,7 +339,9 @@ class PassageNotes(Gtk.Box):
     def _expand_editor(self,editor):
         if not editor or self.editor is not editor or editor.closed or not editor.embedded:return
         self.editor_panel.remove(editor.embedded_content);self.editor_panel.set_visible(False)
+        self.editor_commands.remove(editor.actions_menu);editor.header.pack_start(editor.actions_menu)
         editor.embedded=False;editor.dialog_parent=editor
+        editor.set_default_size(700,min(680,max(480,self.owner.get_height()-96)))
         editor.header.set_visible(True);editor.use_window_layout();editor.present()
 
     def editor_closed(self,editor):

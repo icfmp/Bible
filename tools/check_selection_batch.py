@@ -170,8 +170,7 @@ def main():
                     if not args.baseline:assert refs.model.get_n_items()==len(refs.rows) and not refs.view_all.get_visible()
                     report['cases'].append(dict(palette=name,width=w.get_width(),references=len(refs.rows),visible_references=refs.model.get_n_items()))
                     w.study_button.set_active(False)
-                    from bible.place_cards import PlaceCards
-                    assert t.navigate('youversion~YV21','Gen.11.2');settled();d=PlaceCards(w);d.set_default_size(min(width,640),700);d.present(w)
+                    assert t.navigate('youversion~YV21','Gen.11.2');settled();host=w.open_places();d=host.places;host.set_default_size(min(width,640),700)
                     spin(lambda:not d.pending,duration=.2,timeout=90)
                     if d.rows:
                         d.open_place(d.rows[0]);spin(duration=.4);shot(prefix+'-place')

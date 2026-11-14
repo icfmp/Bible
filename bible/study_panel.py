@@ -151,7 +151,17 @@ class StudyPanel(Gtk.Box):
         tab=self.owner.active_tab
         label=(self.notes.heading.get_text() if self.tool=='notes' else self.references.heading.get_text()
                if self.tool=='references' else self.passage.get_text())
-        self.context_heading.set_text(label);self.context_heading.set_visible(bool(label))
+        if self.tool=='notes':
+            target=self.notes.indicated_passage()
+            if target:
+                from .notes_window import passage_label
+                label=passage_label(*target,tab.reader.versification)
+        self.context_heading.set_text(label)
+        split=getattr(self.owner,'split',None)
+        reader_visible=bool(tab and tab.text.get_mapped() and split and not split.get_collapsed()
+                            and not getattr(self.owner,'immersion',None))
+        self.context_heading.set_visible(bool(label) and not reader_visible)
+        self.tools.update_property([Gtk.AccessibleProperty.DESCRIPTION],[label])
 
     def tool_controls(self):
         self.immersive_button.set_visible(self.tool=='commentaries')
@@ -353,6 +363,15 @@ class StudyPanel(Gtk.Box):
     def update_indicator(self):
         tab=self.owner.active_tab
         if not tab:return
+        if tab.reader and self.owner.split.get_show_sidebar():
+            if self.tool=='notes':
+                target=self.notes.indicated_passage()
+                tab.mark_commentary_range(*(target or (None,None)))
+                self.update_context_heading();return
+            if self.tool=='references':
+                context=self.references.context
+                target=context[2:] if context and context[:2]==(tab.state.resource,tab.reader) else (None,None)
+                tab.mark_commentary_range(*target);return
         if (self.tool!='commentaries' or not tab.reader or not self.reader or self.current_position is None
                 or not self.owner.split.get_show_sidebar()):
             tab.mark_commentary_range(None,None);return

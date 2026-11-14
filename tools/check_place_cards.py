@@ -49,7 +49,7 @@ def main():
     def settled():spin(lambda:not w.active_tab._restoring_scroll,duration=.3)
     def open_dialog(resource,reference):
         w.active_tab.navigate(resource,reference);w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');settled()
-        native.click(w.study.places_button);dialog=w.place_dialog
+        host=w.open_places();dialog=host.places
         wait(lambda:not dialog.pending,timeout=10);return dialog
     def place_button(dialog,name):
         return next(b for b in walk(dialog.list) if isinstance(b,Gtk.Button) and getattr(b,'_place',{}).get('name')==name and b.get_mapped())
@@ -73,7 +73,7 @@ def main():
     def reference_button(dialog,reference):
         return next(b for b in walk(dialog.references) if isinstance(b,Gtk.Button) and getattr(b,'_reference',None)==reference)
     def close(dialog):
-        button=next(b for b in walk(dialog) if isinstance(b,Gtk.Button) and b.get_tooltip_text()==tr('Close') and b.get_mapped())
+        button=next(b for b in walk(dialog.host) if isinstance(b,Gtk.Button) and b.get_tooltip_text()==tr('Close') and b.get_mapped())
         native.click(button);wait(lambda:dialog.closed,timeout=10)
     try:
         w.appearance.update('mode','day');dialog=open_dialog('KJV','Luke.24.13')
@@ -85,7 +85,7 @@ def main():
             start=time.monotonic();native.click(library.download_button);wait(lambda:not library.busy)
             assert library._phase!='error',library.status.get_text()
             report['native_library_download_seconds']=round(time.monotonic()-start,3)
-            library.close();native.activate(w);dialog.refresh();wait(lambda:not dialog.pending,timeout=10)
+            library.close();native.activate(w);dialog=open_dialog('KJV','Luke.24.13')
         metadata=dialog.data.metadata();assert metadata['source_commit']==SOURCE_COMMIT
         assert (metadata['places'],metadata['modern_locations'],metadata['bibliographic_sources'])==(1342,1596,442)
         report['dataset']=metadata;assert w.library.installed()==original_resources
@@ -138,7 +138,7 @@ def main():
         w.close();restored=Window(app,Library(args.profile/'translations'));restored.present()
         try:
             restored.active_tab.navigate('KJV','Luke.24.13');spin(lambda:not restored.active_tab._restoring_scroll,duration=.3)
-            reopened=restored.open_places();wait(lambda:not reopened.pending,timeout=10)
+            reopened=restored.open_places().places;wait(lambda:not reopened.pending,timeout=10)
             assert {p['name'] for p in reopened.rows}=={'Emmaus','Jerusalem'}
             assert reopened.data.has_map() and restored.notes_store.all()==original_notes
             reopened.close();spin()

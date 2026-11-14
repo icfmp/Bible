@@ -36,6 +36,11 @@ The user is the client. Communicate with the client in French. Keep implementati
 - Do not imply that owning a print/digital Bible grants every external download permission. Document provider access conditions and unknowns honestly.
 - Do not bypass authentication, DRM or other access controls.
 
+## Repository and resource boundary
+- Client instruction (8 November 2026): work only in `icfmp/Bible` and only on explicitly assigned issues. Related issues and technical dependencies do not authorize changes in other repositories, including Bible-Resources.
+- Consume existing, identifiable provider resources. Do not create datasets, curated collections, resource-generation pipelines or distribution infrastructure, and do not generate, reconstruct, summarize or silently translate missing source content.
+- If a requested feature cannot be implemented with the available data, report that limitation and leave it unavailable. Do not fill the gap with hardcoded samples or integrate another data provider on your own initiative. This applies to every study resource.
+
 ## UX and scope
 - Keep reading clean; study tools are optional and collapsible.
 - Prioritize useful defaults and plain-language controls, not technical setup screens.

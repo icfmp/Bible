@@ -4,12 +4,48 @@ import tempfile
 import unittest
 import zipfile
 from xml.etree import ElementTree as E
-from tools.research.test_yves_source import metadata,chapter,VERSION
-from bible.youversion_source import read_edition,to_osis,parse_chapter
+from tools.research.test_yves_source import metadata,chapter,encode,VERSION
+from bible.youversion_source import read_edition,to_osis,parse_chapter,decode_bytes
 from bible.youversion_worker import converted_chapters,NS
 
 
 class SectionTests(unittest.TestCase):
+    def test_explicit_reference_attribute_alias_preserves_target_and_rejects_conflicts(self):
+        ref='GEN.1';edition=read_edition(metadata([ref]),VERSION)
+        raw=decode_bytes(chapter(ref,'<div class="p"><span class="verse" data-usfm="GEN.1.1">Synthetic verse.<span class="note f"><span class="ft"><span class="ref" data-usfm="PRO.3.19">Literal source pointer</span></span></span></span></div>')).decode()
+        expected,_=to_osis(parse_chapter(encode(raw.encode()),ref,edition),edition)
+        alias=raw.replace('class="ref" data-usfm=','class="ref" usfm=')
+        parsed=parse_chapter(encode(alias.encode()),ref,edition)
+        self.assertEqual(parsed['source_html'],alias)
+        actual,_=to_osis(parsed,edition)
+        self.assertEqual(E.tostring(E.fromstring(actual)),E.tostring(E.fromstring(expected)))
+        invalid=alias.replace('usfm="PRO.3.19"','usfm="PRO.3.19" data-usfm="PRO.3.20"')
+        with self.assertRaisesRegex(ValueError,'Conflicting explicit source reference'):
+            to_osis(parse_chapter(encode(invalid.encode()),ref,edition),edition)
+
+    def test_declared_introduction_with_chapter_wrapper_keeps_raw_content_and_semantics(self):
+        ref='GEN.INTRO1';edition=read_edition(metadata([ref]),VERSION)
+        original=chapter(ref,'<div class="is">Synthetic heading</div><div class="ip">Unchanged test introduction.</div>')
+        raw=decode_bytes(original).decode().replace('intro intro1','chapter chINTRO1')
+        parsed=parse_chapter(encode(raw.encode()),ref,edition)
+        self.assertEqual(parsed['source_html'],raw)
+        self.assertEqual(parsed['reference'],ref)
+        self.assertEqual(parsed['verses'],[])
+        expected,_=to_osis(parse_chapter(original,ref,edition),edition)
+        actual,_=to_osis(parsed,edition)
+        self.assertEqual(E.tostring(E.fromstring(actual)),E.tostring(E.fromstring(expected)))
+
+    def test_introduction_wrapper_still_requires_exact_identity_and_one_container(self):
+        ref='GEN.INTRO1';edition=read_edition(metadata([ref]),VERSION)
+        raw=decode_bytes(chapter(ref,'<div class="ip">Synthetic introduction.</div>')).decode().replace('intro intro1','chapter chINTRO1')
+        for invalid in (raw.replace('data-usfm="GEN.INTRO1"','data-usfm="GEN.INTRO2"'),
+                        raw.replace('data-vid="'+str(VERSION)+'"','data-vid="999"'),
+                        raw.replace('<div class="ip">','<div class="intro" data-usfm="GEN.INTRO1"><div class="ip">').replace('</div></div></div>','</div></div></div></div>')):
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):parse_chapter(encode(invalid.encode()),ref,edition)
+        ref='GEN.1';edition=read_edition(metadata([ref]),VERSION)
+        invalid=decode_bytes(chapter(ref,'<div class="p"><span class="verse" data-usfm="GEN.1.1">Test verse.</span></div>')).decode().replace('chapter ch1','intro intro1')
+        with self.assertRaises(ValueError):parse_chapter(encode(invalid.encode()),ref,edition)
+
     def sections(self,root,refs,verses):
         edition=read_edition(metadata(refs),VERSION);archive=root/'fixture.zip'
         with zipfile.ZipFile(archive,'w') as z:

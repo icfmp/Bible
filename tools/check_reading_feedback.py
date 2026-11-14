@@ -81,13 +81,13 @@ def main():
                             if not dialog:
                                 pop=next(pop for pop in w._reading_popovers if pop.get_visible())
                                 n.click(next(b for b in walk(pop) if getattr(b,'_place_id',None)==place['id']));spin();dialog=w.place_dialog
-                            if hasattr(dialog.map_widget,'ready'):spin(lambda:dialog.map_widget.ready or dialog.map_widget.retry.get_visible(),timeout=45)
+                            if hasattr(dialog.places.map_widget,'ready'):spin(lambda:dialog.places.map_widget.ready or dialog.places.map_widget.retry.get_visible(),timeout=45)
                             else:spin(duration=.7)
                             if isinstance(dialog,Gtk.Window):
                                 n.x11.XMoveWindow.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.c_int,ctypes.c_int]
                                 n.x11.XMoveWindow(n.display,dialog.get_surface().get_xid(),340,40);n.x11.XFlush(n.display);n.activate(dialog)
                             spin(duration=.4);shot(title+'-'+name+'-map')
-                            row=dict(place=title,palette=name,reader_mapped=w.get_mapped(),transient=isinstance(dialog,Gtk.Window) and dialog.get_transient_for() is w,map_ready=getattr(dialog.map_widget,'ready',None))
+                            row=dict(place=title,palette=name,reader_mapped=w.get_mapped(),transient=isinstance(dialog,Gtk.Window) and dialog.get_transient_for() is w,map_ready=getattr(dialog.places.map_widget,'ready',None))
                             if not args.baseline:assert row['transient'] and row['map_ready'],row
                             cases.append(row);dialog.close();spin();n.activate(w)
                     report['sections']['markers']=cases

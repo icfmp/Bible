@@ -284,6 +284,7 @@ class Window(Adw.ApplicationWindow):
         self.split.set_sidebar(sidebar)
         self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
         self.split.connect('notify::show-sidebar', self.sidebar_changed)
+        self.split.connect('notify::collapsed',lambda *_:self.study.update_context_heading())
         self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
         self.main_pages.connect('notify::visible-child-name',self.workspace_changed)
         self.main_pages.add_named(self.split,'reading')
@@ -304,6 +305,7 @@ class Window(Adw.ApplicationWindow):
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
                            b'.study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } '
+                           b'.passage-study-tabs > button { min-width: 0; padding-left: 6px; padding-right: 6px; } '
                            b'.reference-excerpt { font-weight: normal; } '
                            b'.source-attribution { color: alpha(@window_fg_color, .72); } '
                            b'.source-attribution link { color: inherit; } '
@@ -641,7 +643,10 @@ class Window(Adw.ApplicationWindow):
         tab.download_bible.connect('clicked',lambda *_:self.open_library('bible',context=self.library_context(tab,'bible')))
         tab.insert_child_after(tab.download_bible,tab.status)
         page = self.view.append(tab)
-        def selection_changed(*_):
+        def selection_changed(buffer,location,mark):
+            # GTK also moves private viewport/paragraph marks while scrolling.
+            # Those are not user selections and must not bypass ReadingSync.
+            if mark not in (buffer.get_insert(),buffer.get_selection_bound()):return
             if self.active_tab is tab and self.study.tool in ('notes','references'):
                 if not getattr(self.study,'_notes_idle',0):
                     def refresh():
@@ -926,16 +931,25 @@ class Window(Adw.ApplicationWindow):
                 # after notification as well as on map, including a restored
                 # tool whose selection has not changed while hidden.
                 self.study.refresh();self.study.update_indicator()
+                if self.reading_sync.driver=='bible' and self.reading_sync.armed_until>0:
+                    # Hidden tools do no scroll work. Reconcile once after the
+                    # restored reader layout settles when the drawer reopens.
+                    self.reading_sync.needs_sync=True;self.reading_sync.schedule()
             else:self.active_tab.mark_commentary_range(None,None)
         self._syncing_study = False
         self.schedule_save()
 
     def open_places(self):
-        if getattr(self,'place_dialog',None) is None or self.place_dialog.closed:
-            from .place_cards import PlaceCards
-            self.place_dialog=PlaceCards(self)
-        self.place_dialog.present(self)
-        return self.place_dialog
+        return self.open_passage_study(mode='map')
+
+    def open_passage_study(self,*,target=None,context=None,mode='original',place=None,metadata=None):
+        previous=getattr(self,'passage_study_dialog',None)
+        if previous and not previous.closed:previous.close()
+        from .passage_study import PassageStudy
+        dialog=PassageStudy(self,target=target,context=context,mode=mode,place=place,metadata=metadata)
+        self.passage_study_dialog=dialog;self.place_dialog=dialog
+        dialog.present();dialog.close_button.grab_focus()
+        return dialog
 
     def library_context(self,tab,destination):
         import weakref

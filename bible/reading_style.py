@@ -188,7 +188,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 {window} .study-drawer headerbar, {window} .study-drawer headerbar .title,
 {window} .study-drawer headerbar .start, {window} .study-drawer headerbar .end {{ background-color: {sidebar}; color: {fg}; }}
 {window} popover {{ background: transparent; }}
-{window} popover arrow {{ background-color: {bg}; }}
+{window} popover > arrow {{ background-color: {bg}; }}
 {window} popover.source-note-popover contents, {window} popover.source-note-popover arrow {{ background-color: #101010; color: white; }}
 {window} .passage-actions {{ background-color: transparent; color: white; }}
 {window} .passage-actions popover contents, {window} .passage-actions popover arrow {{ background-color: #202020; color: white; }}

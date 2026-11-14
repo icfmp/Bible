@@ -27,7 +27,13 @@ class SearchPopover(Gtk.Popover):
         self.scroll.set_child(self.content);self.set_child(self.scroll)
         self.modes.connect('notify::visible-child-name',self.mode_changed)
         self.connect('notify::visible',self.visibility_changed)
-        self.text_search.model.connect('items-changed',lambda *_:self.adapt())
+        for scroll,model in ((self.text_search.result_scroll,self.text_search.model),
+                             (self.topic_search.result_scroll,self.topic_search.model),
+                             (self.topic_search.topic_scroll,self.topic_search.topic_model)):
+            model.connect('items-changed',lambda *_,s=scroll:self.results_changed(s))
+            scroll.get_vadjustment().connect('changed',lambda *_,s=scroll,m=model:self.fit_results(s,m))
+            scroll.connect('map',lambda *_,s=scroll,m=model:self.fit_results(s,m))
+        self.topic_search.topic_pages.connect('notify::visible-child-name',lambda *_:self.adapt())
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         keys.connect('key-pressed',self.preview_key_pressed);self.add_controller(keys)
 
@@ -90,23 +96,61 @@ class SearchPopover(Gtk.Popover):
     def adapt(self):
         if not self.get_visible():return
         empty=self.modes.get_visible_child_name()=='text' and not self.text_search.model.get_n_items()
-        size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name(),empty)
+        size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name(),empty,
+              self.text_search.model.get_n_items(),self.topic_search.model.get_n_items(),
+              self.topic_search.topic_model.get_n_items(),self.topic_search.topic_pages.get_visible_child_name(),
+              self.owner.get_pango_context().get_serial())
         if size==self._layout_stamp:return
         self._layout_stamp=size
         self.content.set_size_request(min(480,max(240,size[0]-64)),-1)
         available=min(540,max(160,size[1]-140))
         self.scroll.set_min_content_height(-1);self.scroll.set_max_content_height(available)
         self.text_search.result_scroll.set_visible(not empty)
-        if empty:
-            # Let GTK measure just the toolbar/status until results exist.
-            self.scroll.set_size_request(-1,-1)
-        else:
-            self.scroll.set_min_content_height(available)
-            self.scroll.set_size_request(-1,available)
-        self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
-        self.modes.set_vexpand(not empty)
+        topics=self.topic_search
+        topics.topic_pages.set_visible(topics.topic_pages.get_visible_child_name()!='topics' or bool(topics.topic_model.get_n_items()))
+        # Let GTK measure short result lists. Only the result region scrolls
+        # under ordinary geometry; never reserve a full-height empty body.
+        self.scroll.set_size_request(-1,-1);self.modes.set_vexpand(False)
+        width=self.content.get_width() or min(480,max(240,size[0]-64))
+        tabs=self.mode_switcher.measure(Gtk.Orientation.VERTICAL,width)[1]+self.content.get_spacing()
+        panel=self.active_panel()
+        chrome=sum(child.measure(Gtk.Orientation.VERTICAL,width)[1]
+                   for child in self._panel_children(panel)
+                   if child.get_visible() and child not in (panel.result_scroll,getattr(panel,'topic_pages',None)))
+        budget=max(60,available-tabs-chrome-48)
+        for item in (self.text_search.result_scroll,self.topic_search.result_scroll,self.topic_search.topic_scroll):
+            if item.get_max_content_height()!=budget:
+                item.set_min_content_height(0);item.set_max_content_height(budget)
+        self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
         from .popover_dismissal import fit_reader_popover
         fit_reader_popover(self,self.owner)
+
+    def results_changed(self,scroll):
+        # Discard the previous model's height before GTK lays out the new rows.
+        scroll.set_min_content_height(0);self.adapt()
+
+    def fit_results(self,scroll,model):
+        if self.owner.closed or not self.get_visible() or not scroll.get_mapped():return
+        self.adapt()
+        # Virtual lists estimate their natural height. Measure the native rows
+        # when the complete short list is realized; long lists keep the limit.
+        # Adjustment.upper includes the viewport, so it cannot shrink a former
+        # long list. Geometry notifications add no timer or value-change work.
+        rows=[];view=scroll.get_child();child=view.get_first_child()
+        while child:
+            if child.get_css_name()=='row':rows.append(child)
+            child=child.get_next_sibling()
+        count=model.get_n_items();limit=scroll.get_max_content_height()
+        height=limit if count else 0
+        if count and len(rows)==count:
+            height=min(limit,sum(row.measure(Gtk.Orientation.VERTICAL,max(1,view.get_width()))[1] for row in rows))
+        if height>=0 and scroll.get_min_content_height()!=height:scroll.set_min_content_height(height)
+
+    @staticmethod
+    def _panel_children(panel):
+        child=panel.get_first_child()
+        while child:
+            yield child;child=child.get_next_sibling()
 
     def preview_key_pressed(self,controller,key,code,state):
         if key!=Gdk.KEY_Escape:return False

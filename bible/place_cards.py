@@ -2,6 +2,7 @@
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw,Gtk,GLib,Gio,GObject,Pango
 from .i18n import tr
+from .disclosure import disclosure
 from .place_data import PlaceData,SOURCE_URL,LICENSE_URL,ODBL_URL
 from .place_names import place_name
 from .resource_details import plain
@@ -17,10 +18,10 @@ class PlaceItem(GObject.Object):
     def __init__(self,payload):super().__init__();self.payload=payload
 
 
-class PlaceCards(Adw.Window):
-    def __init__(self,owner,context=None):
-        super().__init__(title=tr('Places in this passage'),default_width=640,default_height=720,
-                         transient_for=owner,modal=True,destroy_with_parent=True)
+class PlaceView(Adw.Bin):
+    def __init__(self,owner,context=None,host=None):
+        super().__init__()
+        self.host=host
         self.add_css_class(owner.reading_style.scope+'-window')
         self.owner=owner;self.closed=False;self.generation=0;self.rows=[];self.pending=False
         self.data=PlaceData(owner.library.root.parent/'study-data')
@@ -28,15 +29,12 @@ class PlaceCards(Adw.Window):
         tab=owner.active_tab
         self.context=context or ((tab.state.resource,tab.reader,*tab.selected_passage()) if tab and tab.reader else None)
         self.map_widget=None
-        self.connect('close-request',self.on_closed)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.layout=box
         header=Adw.HeaderBar(show_end_title_buttons=False)
         self.title=Gtk.Label(label=tr('Places in this passage'),ellipsize=Pango.EllipsizeMode.END,width_chars=1)
         self.title.add_css_class('heading');header.set_title_widget(self.title)
         self.back=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back'),visible=False)
         self.back.connect('clicked',lambda *_:self.show_list());header.pack_start(self.back)
-        close=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
-        close.add_css_class('flat');close.connect('clicked',lambda *_:self.close());header.pack_end(close)
         box.append(header);self.header=header
         context=Gtk.Label(xalign=0,wrap=True,margin_start=16,margin_end=16,margin_bottom=8)
         if self.context:
@@ -45,6 +43,7 @@ class PlaceCards(Adw.Window):
         context.add_css_class('dim-label');self.passage_context=context
         box.append(context)
         self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False);box.append(self.pages)
+        self.pages.set_size_request(-1,min(360,max(120,owner.get_height()-300)))
         listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12)
         self.status=Gtk.Label(xalign=0,wrap=True);listing.append(self.status)
         self.download=Gtk.Button(label=tr('Download place data'));self.download.connect('clicked',self.open_library);listing.append(self.download)
@@ -61,11 +60,11 @@ class PlaceCards(Adw.Window):
                           f' · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>'
                           f' · <a href="{ODBL_URL}">ODbL</a>')
         credit.add_css_class('caption');credit.add_css_class('source-attribution');box.append(credit)
-        self.set_content(box);self.refresh()
+        self.set_child(box);self.refresh()
 
-    def present(self,parent=None):
-        if parent:self.set_transient_for(parent)
-        super().present()
+    def close(self):
+        if self.host:self.host.close()
+        else:self.on_closed()
 
     def stop_map(self):
         if self.map_widget:self.map_widget.stop();self.map_widget=None
@@ -74,13 +73,12 @@ class PlaceCards(Adw.Window):
         if self.closed:return False
         self.stop_map()
         self.closed=True;self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
-        if getattr(self.owner,'place_dialog',None) is self:self.owner.place_dialog=None
         return False
 
     def show_list(self):
         self.stop_map()
         self.generation+=1;self.pages.set_visible_child_name('list')
-        self.back.set_visible(False);self.title.set_text(tr('Places in this passage'));self.set_title(tr('Places in this passage'))
+        self.back.set_visible(False);self.title.set_text(tr('Places in this passage'))
         parent=self.passage_context.get_parent()
         if parent is not self.layout:
             if parent:parent.remove(self.passage_context)
@@ -131,9 +129,9 @@ class PlaceCards(Adw.Window):
 
     def open_library(self,*_):
         from .study_resources import PLACE_RESOURCE_ID
+        self.close()
         library=self.owner.open_library('study')
-        index=next(i for i,r in enumerate(library.filtered_resources) if r.id==PLACE_RESOURCE_ID)
-        library.open_details(None,index)
+        library.reveal_study_resource(PLACE_RESOURCE_ID)
 
     def label(self,text,*,caption=False):
         label=Gtk.Label(label=text,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,selectable=True)
@@ -144,12 +142,11 @@ class PlaceCards(Adw.Window):
         self.stop_map()
         self.generation+=1;self.current_place=place
         self.pages.set_visible_child_name('card');self.back.set_visible(True);self.title.set_text(place_name(place['name']))
-        self.set_title(place_name(place['name']))
         card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
         located=[c for c in place['candidates'] if c['longitude'] is not None]
         # The supplied description can name a region while its representative
         # coordinate belongs to a modern site. Do not equate those two entities.
-        descriptions=list(dict.fromkeys(place_name(plain(c.get('description') or c['name'])) for c in located))
+        descriptions=list(dict.fromkeys(plain(c.get('description') or c['name']) for c in located))
         self.location_description=self.label(descriptions[0] if len(located)==1 else
             tr('Several proposed locations') if len(located)>1 else tr('Unknown location'))
         self.location_description.add_css_class('heading')
@@ -167,17 +164,10 @@ class PlaceCards(Adw.Window):
         resource,reader,start,end=self.context
         self.passage_context.set_text(' · '.join(metadata+[tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification))]))
         card.append(self.passage_context)
-        from .place_context import context,localized
-        enrichment=context(place)
-        if enrichment:
-            for image in enrichment.get('images',[])[:3]:self.photo(card,image)
-            card.append(self.label(localized(enrichment['introduction'])))
-            source=enrichment['source']
-            card.append(self.link_label(source['url'],source['name'],source['license_url'],source['license']))
         aliases=list(dict.fromkeys(place_name(alias) for alias in place.get('aliases',[]) if alias!=place['name']))
         if aliases:
             caption=tr('Names recorded by the source')+' · '+', '.join(aliases[:3])
-            names=Gtk.Expander()
+            names=disclosure()
             names.set_label_widget(Gtk.Label(label=caption,xalign=0,wrap=True,
                 width_chars=1,wrap_mode=Pango.WrapMode.WORD_CHAR))
             names.update_property([Gtk.AccessibleProperty.LABEL],[caption])
@@ -192,10 +182,18 @@ class PlaceCards(Adw.Window):
         else:
             map_box.append(self.label(tr('No identified location; no map pin is shown.'),caption=True))
         if len(located)>1:
-            for index,candidate in enumerate(located):
-                card.append(self.label(str(index+1)+'. '+place_name(candidate['name']),caption=True))
-                note=self.location_note(candidate)
-                if note:card.append(self.label(note,caption=True))
+            # Group presentation by the supplied modern ID, never by name or
+            # nearby coordinates. Every proposal/path remains in the index/map.
+            groups={}
+            for candidate in located:groups.setdefault(candidate['modern_id'],[]).append(candidate)
+            for proposals in groups.values():
+                card.append(self.label(place_name(proposals[0]['name']),caption=True))
+                if len(proposals)>1:card.append(self.label(tr('{count} source proposals for this site').format(count=len(proposals)),caption=True))
+                for candidate in proposals:
+                    description=plain(candidate.get('description',''))
+                    if description:card.append(self.label(description,caption=True))
+                    note=self.location_note(candidate)
+                    if note:card.append(self.label(note,caption=True))
         if located and any(c['longitude'] is None for c in place['candidates']):
             card.append(self.label(tr('Other proposed locations have not been identified on the map.'),caption=True))
         evidence=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8)
@@ -209,7 +207,7 @@ class PlaceCards(Adw.Window):
         for source in place.get('sources',[]):
             evidence.append(self.label(source['name'],caption=True))
         evidence.append(self.link_label(place['source_url'],'OpenBible.info · CC BY 4.0'))
-        sources=Gtk.Expander(label=tr('Sources and evidence'));sources.set_child(evidence);card.append(sources)
+        sources=disclosure(label=tr('Sources and evidence'));sources.set_child(evidence);card.append(sources)
         self.reference_model=Gio.ListStore.new(PlaceItem)
         self.reference_cache={};self.chapter_cache={}
         reference_title=self.label(tr('Related Bible references'));reference_title.add_css_class('heading');card.append(reference_title)
@@ -222,6 +220,7 @@ class PlaceCards(Adw.Window):
         sections=Gio.ListStore.new(Gio.ListModel);sections.append(header_model);sections.append(self.reference_model)
         model=Gtk.FlattenListModel(model=sections)
         factory=Gtk.SignalListItemFactory()
+        factory.connect('setup',lambda _,item:(item.set_activatable(False),item.set_selectable(False)))
         header=Adw.Clamp(maximum_size=700,child=card)
         def bind(_,item):
             ref=item.get_item().payload
@@ -243,49 +242,6 @@ class PlaceCards(Adw.Window):
         if license_url and urlsplit(license_url).scheme in ('http','https'):
             value+=' · <a href="'+GLib.markup_escape_text(license_url)+'">'+GLib.markup_escape_text(license_name)+'</a>'
         label.set_markup(value);return label
-
-    def photo(self,card,image):
-        from .place_context import cached_image,localized
-        generation=self.generation;root=self.data.root
-        frame=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        card.append(frame)
-        # Virtualized rows allocate their minimum height. Give the native hero
-        # a bounded viewport; the full-size action retains the complete photo.
-        picture=Gtk.Picture(can_shrink=True,content_fit=Gtk.ContentFit.COVER,height_request=180)
-        enlarge=Gtk.Button(child=picture,visible=False);enlarge.add_css_class('flat')
-        caption=localized(image['caption'])
-        enlarge.update_property([Gtk.AccessibleProperty.LABEL],[caption+' · '+tr('Enlarge photo')])
-        def full(*_):
-            window=Adw.Window(transient_for=self,modal=True,destroy_with_parent=True,
-                title=caption,default_width=900,default_height=560)
-            layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);layout.append(Adw.HeaderBar())
-            photo=Gtk.Picture.new_for_filename(str(enlarge.photo_path));photo.set_can_shrink(True)
-            photo.set_vexpand(True);layout.append(photo)
-            layout.append(self.link_label(image['descriptionurl'],image['author'],image['license_url'],image['license']))
-            window.set_content(layout);window.present()
-        enlarge.connect('clicked',full);frame.append(enlarge)
-        download=Gtk.Button(label=tr('Download photograph ({size} kB)').format(size=round(image['bytes']/1000)),halign=Gtk.Align.START)
-        download.add_css_class('flat');frame.append(download)
-        credit=self.link_label(image['descriptionurl'],caption+' · '+image['author'],image['license_url'],image['license'])
-        credit.set_visible(False);frame.append(credit)
-        status=self.label('',caption=True);status.set_visible(False);frame.append(status)
-        def load(explicit=False):
-            if explicit:download.set_sensitive(False);status.set_text(tr('Downloading photograph…'));status.set_visible(True)
-            future=self.executor.submit(cached_image,root,image,explicit,
-                cancelled=lambda:self.closed or self.generation!=generation)
-            def complete():
-                if self.closed or self.generation!=generation:return False
-                download.set_sensitive(True);status.set_visible(False)
-                try:
-                    path=future.result()
-                    if path:
-                        picture.set_filename(str(path));enlarge.photo_path=path
-                        enlarge.set_visible(True);credit.set_visible(True);download.set_visible(False)
-                except Exception:
-                    status.set_text(tr('Photograph unavailable. Place information remains available.'));status.set_visible(True)
-                return False
-            future.add_done_callback(lambda _:GLib.idle_add(complete))
-        download.connect('clicked',lambda *_:load(True));load()
 
     def location_note(self,candidate):
         if candidate.get('role') in ('center','representative point') or candidate.get('radius_meters'):

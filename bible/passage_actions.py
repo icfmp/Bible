@@ -174,7 +174,6 @@ class PassageActions:
         word.append(Gtk.Label(label=tr('Original text')));self.word_button.set_child(word)
         self.word_button.set_tooltip_text(tr('Study original text'))
         self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
-        self.close_button=self.button('window-close-symbolic','Dismiss passage actions',lambda *_:self.dismiss())
         if isinstance(self.actions,Gtk.FlowBox):
             # Older Adwaita uses FlowBox wrappers; only the actual controls
             # belong in the toolbar's keyboard traversal order.
@@ -458,9 +457,18 @@ class PassageActions:
         if not value:return True
         parent=value.source.parent
         available=max(1,parent.get_width()-48)
-        if hasattr(self.actions,'set_natural_line_length'):
-            self.actions.set_natural_line_length(min(520,available))
-        self.actions_clamp.set_maximum_size(available);self.actions_clamp.set_tightening_threshold(available)
+        # Measure the controls, including native padding, instead of reserving
+        # a fixed desktop line. Adwaita1.7's unlimited (-1) line request can
+        # propagate INT_MAX through an overlay, so retain a finite native size.
+        widths=[];child=self.actions.get_first_child()
+        while child:
+            if child.get_visible():widths.append(child.measure(Gtk.Orientation.HORIZONTAL,-1)[1])
+            child=child.get_next_sibling()
+        padding=self.actions.get_style_context().get_padding()
+        natural=sum(widths)+4*max(0,len(widths)-1)+padding.left+padding.right
+        width=max(1,min(available,natural))
+        if hasattr(self.actions,'set_natural_line_length'):self.actions.set_natural_line_length(width)
+        self.actions_clamp.set_maximum_size(width);self.actions_clamp.set_tightening_threshold(width)
         # Pango wrapping gives the reference priority; secondary metadata ellipsizes.
         em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
         chars=max(8,min(38,available//em))

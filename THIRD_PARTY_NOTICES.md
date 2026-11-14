@@ -219,21 +219,6 @@ Font files and licenses are hash-pinned in the existing reader-fonts module.
 Existing saved font choices are retained; Roboto Serif/Roboto are defaults for
 a new reading profile only.
 
-## Optional reviewed place context and photographs
-
-`bible/study_data/place_context.json` includes an excerpt and French translation
-from Wikipedia contributors, *History of Jerusalem*, revision 1382952817, under
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Permanent source
-and revision-history URLs are retained in the data. These separately licensed
-texts are not Bible text and do not change the application's GPL-2.0-only license.
-
-The optional Jerusalem photograph is by **askii**, Commons file page 154641343,
-under [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). The Commons
-crop and Wikimedia-generated thumbnail remain separately licensed. No photograph
-is bundled; the exact source, author, license, transformation and checksum are
-recorded with the download. See `docs/PLACE_CONTEXT_218.md` for verification and
-offline/cache behavior.
-
 ## GNOME Icon Development Kit symbolics
 
 The unmodified dictionary, notebook, filter and talking SVGs are by **Jakub

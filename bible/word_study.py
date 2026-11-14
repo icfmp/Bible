@@ -21,6 +21,11 @@ class WordStudy(Gtk.Box):
         self.back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')]);self.back.connect('clicked',lambda *_:self.leave())
         row.pack_end(self.back);self.heading=Gtk.Label(label=tr("Explore the verse's words"),wrap=True)
         self.heading.add_css_class('heading');row.set_title_widget(self.heading)
+        self.help=Gtk.MenuButton(icon_name='help-about-symbolic',tooltip_text=tr('About original words'))
+        self.help.update_property([Gtk.AccessibleProperty.LABEL],[tr('About original words')])
+        help_popover=Gtk.Popover()
+        self.help_text=Gtk.Label(wrap=True,max_width_chars=40,margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
+        help_popover.set_child(self.help_text);self.help.set_popover(help_popover);row.pack_end(self.help)
         self.go_back=Gtk.Button(icon_name='go-previous-symbolic',tooltip_text=tr('Back'),visible=False)
         self.go_back.update_property([Gtk.AccessibleProperty.LABEL],[tr('Back')])
         self.go_back.connect('clicked',self.previous);row.pack_start(self.go_back)
@@ -28,12 +33,21 @@ class WordStudy(Gtk.Box):
         self.context_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             margin_start=16,margin_end=16,margin_top=8,margin_bottom=8)
         self.context_label.add_css_class('dim-label');self.append(self.context_label)
+        self.translations=[];self.verse_reader=None;self._translation_syncing=False
+        self.translation=Gtk.DropDown(margin_start=16,margin_end=16,margin_bottom=8)
+        from .version_chooser import bounded_choices
+        bounded_choices(self.translation)
+        self.translation.update_property([Gtk.AccessibleProperty.LABEL],[tr('Version')])
+        self.translation.connect('notify::selected',self.translation_changed);self.append(self.translation)
+        self.instruction=self.label(tr('Select a word to discover its meaning.'))
+        self.instruction.add_css_class('caption');self.instruction.set_margin_start(16);self.instruction.set_margin_end(16)
+        self.append(self.instruction)
         self.selection_label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             lines=2,ellipsize=Pango.EllipsizeMode.END,margin_start=16,margin_end=16,margin_bottom=8)
         self.append(self.selection_label)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10,margin_start=12,margin_end=12,margin_bottom=16)
         self.scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER,
-            propagate_natural_height=False,min_content_height=160,max_content_height=420)
+            propagate_natural_height=True,min_content_height=120,max_content_height=420)
         self.scroll.set_child(self.content);self.append(self.scroll)
         from .source_credit import source_credit
         from .step_sources import SOURCE_URL
@@ -57,11 +71,13 @@ class WordStudy(Gtk.Box):
         # root releases it; an already-unparented label can then be destroyed.
         root=self.get_root();focus=root.get_focus() if root else None
         if focus and (focus is child or focus.is_ancestor(child)):
-            self.back.grab_focus()
+            focus_target=getattr(self.dialog,'close_button',None) or self.back
+            focus_target.grab_focus()
         self.content.remove(child)
 
     def clear(self):
         while child:=self.content.get_first_child():self.remove_content(child)
+        self.scroll.get_vadjustment().set_value(0)
 
     def button(self,label,callback,parent=None):
         button=Gtk.Button(child=Gtk.Label(label=label,wrap=True))
@@ -93,6 +109,9 @@ class WordStudy(Gtk.Box):
         GLib.idle_add(present)
 
     def open(self,target,metadata=None):
+        return self.owner.open_passage_study(target=target,metadata=metadata)
+
+    def attach(self,target,metadata=None,host=None,start=True):
         if self.owner.closed or target.source.tab is not self.owner.active_tab:return
         previous=self.dialog;self.leave(restore_focus=False)
         if previous:previous.set_content(None)
@@ -101,29 +120,41 @@ class WordStudy(Gtk.Box):
         self.target=target;self.lexical_metadata=metadata
         self.context=(target,self.owner.active_tab,self.owner.active_tab.state.reference)
         resource=self.owner.library.resource(target.source.resource)
-        self.context_label.set_text(passage_title(target.references[0],target.references[-1],target.source.reader.versification)+' — '+resource.description)
+        self.context_label.set_text(passage_title(target.references[0],target.references[-1],target.source.reader.versification))
         # This is a compact context excerpt, not the original-word display.
         # Explicit translation line breaks otherwise each get their own line
         # limit and can consume the entire small dialog before any source word.
         self.selection_label.set_text(' '.join(target.text.split()))
-        self.selection_label.set_visible(bool(target.text))
+        self.selection_label.set_visible(False)
+        self._translation_syncing=True
+        self.translations=list(self.owner.library.installed('bible'))
+        self.translation.set_model(Gtk.StringList.new([self.owner.library.resource(name).description for name in self.translations]))
+        self.translation.set_selected(self.translations.index(target.source.resource))
+        self.verse_reader=target.source.reader;self._translation_syncing=False
         self.owner.passage_actions.dismiss()
-        self.dialog=Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
+        self.dialog=host or Adw.Window(title=tr('Original text'),transient_for=self.owner,modal=True,
             destroy_with_parent=True,default_width=min(640,max(320,self.owner.get_width()-48)),
-            default_height=min(600,max(360,self.owner.get_height()-96)))
-        self.scroll.set_max_content_height(max(160,min(420,self.owner.get_height()-250)))
+            default_height=-1)
+        self.scroll.set_max_content_height(max(120,min(420,self.owner.get_height()-(350 if host else 250))))
         self.dialog.add_css_class(self.owner.reading_style.scope+'-window')
-        self.dialog.set_content(self)
-        self.dialog.connect('close-request',self.dialog_closed)
+        if host:
+            self.context_label.set_visible(False)
+            self.back.set_visible(False)
+        else:
+            self.dialog.set_content(self)
+            self.dialog.connect('close-request',self.dialog_closed)
         keys=Gtk.EventControllerKey()
         keys.connect('key-pressed',lambda _,key,*args:(self.leave() or True) if key==Gdk.KEY_Escape else False)
-        self.dialog.add_controller(keys)
-        self.begin();self.dialog.present();self.back.grab_focus()
+        if not host:self.dialog.add_controller(keys)
+        if start:self.begin()
+        else:self.clear()
+        if not host:self.dialog.present();self.back.grab_focus()
 
     def dialog_closed(self,*_):
         dialog=self.dialog;self.dialog=None;self.generation+=1;self.pending=False;self.context=None
         for future in self.futures:future.cancel()
         self.futures.clear();self.owner.reference_preview.dismiss()
+        self.verse_reader=None
         focus=getattr(self,'previous_focus',None)
         restore=self.restore_focus
         def detached():
@@ -148,7 +179,7 @@ class WordStudy(Gtk.Box):
         window=self.owner.open_library('study')
         window.reveal_study_resource(STEP_RESOURCE_ID)
 
-    def request(self,operation,complete):
+    def request(self,operation,complete,on_error=None):
         self.generation+=1;generation=self.generation;self.pending=True
         status=self.label(tr('Loading study data…'));self.content.append(status)
         future=self.executor.submit(operation);self.futures.add(future)
@@ -159,6 +190,7 @@ class WordStudy(Gtk.Box):
             if status.get_parent() is self.content:self.remove_content(status)
             try:complete(future.result())
             except Exception as error:
+                if on_error:on_error(error);return False
                 label=self.label(tr('Original text unavailable. Ordinary reading is unchanged.'));label.set_tooltip_text(str(error));self.content.append(label)
                 self.button(tr('Download study data'),self.download)
             return False
@@ -176,11 +208,27 @@ class WordStudy(Gtk.Box):
         self.generation+=1;self.clear()
         self.stage='passage';self.go_back.set_visible(False)
         self.heading.set_text(tr("Explore the verse's words"))
-        if self.dialog:self.dialog.set_title(self.heading.get_text())
-        self.content.append(self.label(tr('Select a word to discover its meaning.')))
+        if self.dialog and self.dialog.get_content() is self:self.dialog.set_title(self.heading.get_text())
+        self.instruction.set_visible(True)
+        self.help_text.set_text(tr('Original words do not necessarily match translation words one for one.'))
         references=self.target.references
         self._verse_offset=0
         self.passage_words(references)
+
+    def translation_changed(self,*_):
+        if self._translation_syncing or not self.context:return
+        index=self.translation.get_selected()
+        if index>=len(self.translations):return
+        from .sword_provider import Reader
+        name=self.translations[index]
+        try:self.verse_reader=Reader(self.owner.library.root/name,name)
+        except (ValueError,OSError,RuntimeError):self.verse_reader=None
+        self.owner.reference_preview.dismiss();self.verse_choices()
+
+    def verse_excerpt(self,reference):
+        if self.verse_reader is None:raise ValueError('Selected translation unavailable')
+        excerpt=local_excerpt(self.verse_reader,reference,source_system=self.target.source.reader.versification,limit=40)
+        return passage_title(excerpt.start,excerpt.end,self.verse_reader.versification),excerpt.text+(' …' if excerpt.more else '')
 
     def explore(self,reference):
         self.generation+=1;self.clear();self.stage='passage';self.go_back.set_visible(False)
@@ -198,7 +246,12 @@ class WordStudy(Gtk.Box):
             return rows
         def show(rows):
             for reference,corpus,verses in rows:
-                self.content.append(self.label(passage_title(reference,system=source.reader.versification),True))
+                try:caption,excerpt=self.verse_excerpt(reference)
+                except (ValueError,OSError):
+                    caption=passage_title(reference,system=source.reader.versification)
+                    excerpt=tr('This passage is unavailable in the selected translation.')
+                self.content.append(self.label(caption,True))
+                translated=self.label(excerpt);translated._translated_reference=reference;self.content.append(translated)
                 if corpus is None:
                     self.content.append(self.label(tr('No verified alignment for this passage.')));continue
                 self.content.append(self.label(tr('Greek text' if corpus=='tagnt-na27' else 'Hebrew / Aramaic text'),True))
@@ -212,15 +265,20 @@ class WordStudy(Gtk.Box):
                     self.content.append(flow)
                     for token in tokens:
                         found=True
-                        button=Gtk.Button(child=Gtk.Label(label=token['form'],wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR))
+                        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+                        script=self.script_label(token['form'],token['language']);script.set_selectable(False);tile.append(script)
+                        if token.get('gloss'):
+                            gloss=self.label(token['gloss']);gloss.set_selectable(False);gloss.add_css_class('caption')
+                            gloss.set_max_width_chars(18);gloss.set_lines(2);gloss.set_ellipsize(Pango.EllipsizeMode.END)
+                            gloss.set_direction(Gtk.TextDirection.LTR);tile.append(gloss)
+                        button=Gtk.Button(child=tile)
+                        button.update_property([Gtk.AccessibleProperty.LABEL],[token['form']+(' — '+token['gloss'] if token.get('gloss') else '')])
                         button.set_cursor_from_name('pointer')
                         button._source_token=token;button._source_corpus=corpus
                         button.connect('clicked',lambda _,c=corpus,t=token:self.token_detail(c,t))
                         flow.append(button)
                         if token['source_key']==getattr(self,'passage_anchor',None):button.grab_focus()
                 if not found:self.content.append(self.label(tr('No words supplied for this mapped source verse.')))
-                note=self.label(tr('Original words do not necessarily match translation words one for one.'))
-                note.add_css_class('caption');note.add_css_class('dim-label');self.content.append(note)
             self._verse_offset+=len(batch)
             if self._verse_offset<len(references):
                 more=self.button(tr('More verses'),lambda:more_clicked())
@@ -258,18 +316,21 @@ class WordStudy(Gtk.Box):
 
     def detail(self,entry,corpus=None,token=None):
         self.clear();self.stage='word';self.go_back.set_visible(True);self.entry=entry;self.token=token
+        self.instruction.set_visible(False)
+        self.help_text.set_text(tr('Dictionary meanings describe possible senses, not all meanings intended in this passage.'))
         corpus=corpus or ('tagnt-na27' if entry['id'].startswith('G') else 'tahot-main')
         self.corpus=corpus
         language=token['language'] if token else entry['language']
         self.heading.set_text(tr('Understand a Greek word' if language=='grc' else 'Understand a Hebrew word' if language=='hbo' else 'Understand an Aramaic word'))
-        if self.dialog:self.dialog.set_title(self.heading.get_text())
+        if self.dialog and self.dialog.get_content() is self:self.dialog.set_title(self.heading.get_text())
         form=token['form'] if token else entry['lemma'] or entry['id']
         surface=self.script_label(form,language);surface.add_css_class('title-1');self.content.append(surface)
         transliteration=(token.get('transliteration') if token else '') or entry.get('transliteration')
         if transliteration:self.content.append(self.label(transliteration))
         self.content.append(self.label(tr('Common meanings'),True))
         self.content.append(self.label(entry['gloss'] or tr('No meaning supplied by the installed lexicon.')))
-        source=self.label(tr('The installed STEP lexicon provides English meanings.'))
+        from .languages import language_name
+        source=self.label(tr('Lexical content')+': '+language_name(entry.get('gloss_language','en')))
         source.add_css_class('caption');self.content.append(source)
         # Basic dictionary categories are defined by the TBESG file header.
         categories={'N':'Noun','V':'Verb','A':'Adjective','ADV':'Adverb','ART':'Article',
@@ -282,11 +343,25 @@ class WordStudy(Gtk.Box):
             functions=[part[:1] for part in token['morphology'][1:].split('/')]
             function=next((c for c in functions if c in ('N','V')),None)
             if function:category=tr(categories[function])
-        hint=self.label(tr('Dictionary meanings describe possible senses, not all meanings intended in this passage.'))
-        hint.add_css_class('caption');hint.add_css_class('dim-label');self.content.append(hint)
+        if category:self.content.append(self.label(category))
         from .resource_details import plain
-        self.button(tr('See other occurrences'),lambda:self.all_occurrences(corpus,entry))
-        details=Gtk.Expander(label=tr('Linguistic details'))
+        occurrences=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.content.append(occurrences)
+        def show_occurrences(result):
+            count=self.label(tr('{tokens} source tokens · {verses} distinct verses').format(**result));count.add_css_class('caption')
+            occurrences.append(count)
+            chips=Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,min_children_per_line=1,max_children_per_line=8,column_spacing=6,row_spacing=6)
+            occurrences.append(chips)
+            for reference in result['references']:
+                button=Gtk.Button(label=passage_title(reference,system='NRSV'))
+                button._word_reference=reference;button.connect('clicked',lambda _,r=reference:self.preview(r));chips.append(button)
+            if result['addresses']>len(result['references']):
+                button=self.button(tr('See other occurrences'),lambda:self.all_occurrences(corpus,entry),occurrences)
+                button.set_halign(Gtk.Align.START);button.add_css_class('flat')
+        self.request(lambda:self.data.occurrences(corpus,entry['id'],limit=8),show_occurrences,
+            lambda error:occurrences.append(self.label(tr('Occurrence data is unavailable.'))))
+        from .disclosure import disclosure
+        details=disclosure(label=tr('Linguistic details'))
         text=tr('Dictionary headword')+': '+(entry['lemma'] or entry['id'])+'\n'+entry['id']
         if entry.get('transliteration'):text+='\n'+entry['transliteration']
         if category:text+='\n'+category
@@ -299,7 +374,8 @@ class WordStudy(Gtk.Box):
         source=self.target.source
         button=next((c for c in self.children() if getattr(c,'_word_reference',None)==reference),None)
         from .step_sources import SOURCE_URL
-        if button:self.owner.reference_preview.show(button,source.resource,source.reader,reference,source_system='NRSV',
+        index=self.translation.get_selected()
+        if button and self.verse_reader and index<len(self.translations):self.owner.reference_preview.show(button,self.translations[index],self.verse_reader,reference,source_system='NRSV',
             provenance='STEPBible / Tyndale House · CC BY 4.0\n'+SOURCE_URL)
 
     def children(self):
@@ -314,7 +390,7 @@ class WordStudy(Gtk.Box):
     def all_occurrences(self,corpus,entry):
         self.clear();self.stage='occurrences';self.go_back.set_visible(True)
         self.heading.set_text(tr('Other occurrences'))
-        if self.dialog:self.dialog.set_title(self.heading.get_text())
+        if self.dialog and self.dialog.get_content() is self:self.dialog.set_title(self.heading.get_text())
         self.content.append(self.label((entry['lemma'] or entry['id'])+' — '+tr('Lemma occurrences'),True))
         self.content.append(self.label(tr('Counts refer to this source corpus; a word can have different meanings in context.')))
         self.occurrence_offset=0
@@ -328,8 +404,9 @@ class WordStudy(Gtk.Box):
             for ref in result['references']:
                 button=passage_card();heading,body=button._reference_labels
                 try:
-                    excerpt=local_excerpt(self.target.source.reader,ref,source_system='NRSV',limit=1)
-                    heading.set_text(passage_title(excerpt.start,excerpt.end,self.target.source.reader.versification));body.set_text(excerpt.text)
+                    if self.verse_reader is None:raise ValueError('Selected translation unavailable')
+                    excerpt=local_excerpt(self.verse_reader,ref,source_system='NRSV',limit=1)
+                    heading.set_text(passage_title(excerpt.start,excerpt.end,self.verse_reader.versification));body.set_text(excerpt.text)
                 except ValueError:
                     heading.set_text(passage_title(ref,system='NRSV'));body.set_text(tr('This passage is unavailable in the selected translation.'))
                 button._word_reference=ref;button.connect('clicked',lambda _,r=ref:self.preview(r));self.content.append(button)

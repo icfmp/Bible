@@ -154,11 +154,7 @@ class InlineMarkers:
         return button
 
     def place(self,reader,ref,place):
-        from .place_cards import PlaceCards
         owner=self.owner
         if not owner or owner.closed:return
-        dialog=PlaceCards(owner,context=(reader.name,reader,ref,ref))
-        from .reference_targets import source_references
-        dialog.origins=set(source_references(reader,ref,ref))
-        dialog.open_place(dict(place));dialog.back.set_visible(False)
-        owner.place_dialog=dialog;dialog.present(owner)
+        dialog=owner.open_passage_study(context=(reader.name,reader,ref,ref),mode='map',place=dict(place))
+        dialog.places.back.set_visible(False)
