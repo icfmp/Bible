@@ -1,7 +1,8 @@
 """Bounded, on-demand chapter/entry sources for the native paginated reader."""
 from collections import OrderedDict
 from dataclasses import dataclass, replace
-from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate
+from itertools import groupby
+from .pagination import Anchor,Document,PassageSpan,StyleSpan,paginate,paragraph_spaces
 from .book_names import display_name
 from .i18n import LANGUAGE
 from .verse_typography import first_word_length
@@ -31,14 +32,28 @@ class BiblePages:
             checkpoint(cancelled)
             start=offset if spans else 0
             segments=structured[unit.native_reference or reference]
-            for segment in segments:
-                if segment.kind in ('heading','editorial') and segment.text.strip():
-                    text=segment.text.strip()+'\n';pieces.append(text)
-                    styles.append(StyleSpan(segment.kind,offset,offset+len(text)));offset+=len(text)
-                elif segment.kind=='preface':
-                    pieces.append(segment.text)
-                    styles.extend(StyleSpan(kind,offset,offset+len(segment.text)) for kind in segment.styles)
-                    offset+=len(segment.text)
+            for kind,group in groupby(segments,key=lambda segment:segment.kind):
+                group=tuple(group)
+                if kind in ('heading','editorial'):
+                    # Inline emphasis/reference nodes do not create new titles.
+                    original_title=''.join(segment.text for segment in group)
+                    text=original_title.strip()
+                    if not text:continue
+                    if pieces and not pieces[-1].endswith('\n'):
+                        pieces.append('\n');offset+=1
+                    trimmed=len(original_title)-len(original_title.lstrip());position=0
+                    for segment in group:
+                        first=max(0,position-trimmed);last=min(len(text),position+len(segment.text)-trimmed)
+                        if last>first:
+                            styles.extend(StyleSpan(style,offset+first,offset+last) for style in segment.styles)
+                        position+=len(segment.text)
+                    text+='\n';pieces.append(text)
+                    styles.append(StyleSpan(kind,offset,offset+len(text)));offset+=len(text)
+                elif kind=='preface':
+                    for segment in group:
+                        pieces.append(segment.text)
+                        styles.extend(StyleSpan(style,offset,offset+len(segment.text)) for style in segment.styles)
+                        offset+=len(segment.text)
             body=''.join(s.text for s in segments if s.kind not in ('heading','editorial','preface'))
             source_leading=len(body)-len(body.lstrip())
             leading=body[:source_leading]
@@ -70,6 +85,7 @@ class BiblePages:
             for ref in members:bases[ref]=bases.get(ref,0)+count
             if not body.endswith('\n'):pieces.append(' ');offset+=1
         original=''.join(pieces)
+        styles.extend(paragraph_spaces(original))
         display=list(original)
         for style in styles:
             if style.kind=='verse-start':
@@ -114,7 +130,9 @@ class BibleBookPages(BiblePages):
                                      body=span.body+offset,end=span.end+offset))
             styles.extend(replace(style,start=style.start+offset,end=style.end+offset) for style in doc.styles)
             offset+=len(doc.text)
-        return Document(code,''.join(pieces),tuple(spans),tuple(styles),''.join(copies))
+        text=''.join(pieces)
+        styles=[s for s in styles if s.kind!='paragraph-space']+list(paragraph_spaces(text))
+        return Document(code,text,tuple(spans),tuple(styles),''.join(copies))
 
     def neighbour(self,key,direction):
         codes=[b.code for b in self.reader.books];position=codes.index(key)+direction
@@ -133,6 +151,7 @@ class CommentaryPages:
         text,inline,titles=format_entry(raw,text,source_type)
         prefix=''.join(title+'\n' for title in titles)
         styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
+        styles.extend(paragraph_spaces(prefix+text))
         styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
         document=Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
@@ -141,7 +160,7 @@ class CommentaryPages:
     def preface(self,key):
         from .commentary_format import preverse_layout
         text,styles,_=preverse_layout(self.reader.index.raw(key))
-        return Document(('preverse',key),text,(),tuple(StyleSpan(*s) for s in styles))
+        return Document(('preverse',key),text,(),tuple(StyleSpan(*s) for s in styles)+paragraph_spaces(text))
     def neighbour(self,key,direction):return self.entry_neighbour(key,direction)
     def entry_neighbour(self,key,direction):
         position=key+direction
