@@ -87,6 +87,7 @@ class PlaceView(Adw.Bin):
         if self.context:
             _,reader,start,end=self.context
             self.passage_context.set_text(tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification)))
+        self.passage_context.set_visible(self.host is None)
 
     def message(self,value,download=False):
         self.status.set_text(value);self.status.set_tooltip_text(None);self.download.set_visible(download)
@@ -162,7 +163,8 @@ class PlaceView(Adw.Bin):
         self.passage_context.set_margin_start(0);self.passage_context.set_margin_end(0)
         self.passage_context.add_css_class('caption')
         resource,reader,start,end=self.context
-        self.passage_context.set_text(' · '.join(metadata+[tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification))]))
+        if self.host is None:metadata.append(tr('Studied passage: {passage}').format(passage=passage_title(start,end,reader.versification)))
+        self.passage_context.set_text(' · '.join(metadata));self.passage_context.set_visible(bool(metadata))
         card.append(self.passage_context)
         aliases=list(dict.fromkeys(place_name(alias) for alias in place.get('aliases',[]) if alias!=place['name']))
         if aliases:

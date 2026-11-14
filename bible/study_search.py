@@ -24,6 +24,7 @@ class StudySearch(Gtk.Box):
         self.executor=MetadataExecutor(max_workers=1,thread_name_prefix='bible-search')
         self.epoch=0;self._refresh_stamp=None;self.search_names=[];self.search_reader=None;self.total=0;self.lemma_query=None
         self.generation=0;self.pending=False;self.context=None;self.topic=None;self.rows=[];self.future=None;self.result_query=''
+        self._loading_delay=0
         self.entry=Gtk.SearchEntry(placeholder_text=tr('Search for a theme…' if mode=='topics' else 'A word or phrase…'))
         # GtkSearchEntry's default delegated minimum can widen the horizontal
         # fallback on older libadwaita. Let the entry expand into the remaining
@@ -97,7 +98,11 @@ class StudySearch(Gtk.Box):
             self.topic_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
             self.topic_pages.add_named(self.topic_scroll,'topics');self.topic_pages.add_named(scroll,'results')
             self.append(self.topic_pages)
-        else:self.append(scroll)
+        else:
+            from .loading_cards import LoadingCards
+            self.loading_cards=LoadingCards(tr('Searching…'))
+            self.loading_cards.set_visible(False)
+            self.append(scroll);self.append(self.loading_cards)
         self.more=Gtk.Button(label=tr('More results'),visible=False)
         self.more.connect('clicked',lambda *_:self.run_lemma(append=True) if self.lemma_query else self.run_text(append=True));self.append(self.more)
         self.credit=Gtk.MenuButton(child=Gtk.Label(label='OpenBible.info',xalign=0),halign=Gtk.Align.START)
@@ -116,7 +121,8 @@ class StudySearch(Gtk.Box):
         self.credit.set_popover(information);self.append(self.credit)
         self.refresh()
 
-    def close(self):self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
+    def close(self):
+        self.generation+=1;self.busy(False);self.executor.shutdown(wait=False,cancel_futures=True)
 
     def pause(self):
         self.epoch+=1
@@ -128,7 +134,25 @@ class StudySearch(Gtk.Box):
         self.pending=False;self.busy(False)
 
     def busy(self,value):
-        self.spinner.set_spinning(value);self.submit_display.set_visible_child_name('busy' if value else 'search')
+        # A short one-shot delay avoids flashing placeholders for local hits.
+        # Cancellation/hiding removes it and the mapped-only animation entirely.
+        self.spinner.set_spinning(value and self.mode!='text')
+        self.submit_display.set_visible_child_name('busy' if value and self.mode!='text' else 'search')
+        if self.mode!='text':return
+        if self._loading_delay:GLib.source_remove(self._loading_delay);self._loading_delay=0
+        if not hasattr(self,'loading_cards'):return
+        self.results.update_state([Gtk.AccessibleState.BUSY],[value])
+        if not value:
+            self.loading_cards.stop();self.loading_cards.set_visible(False)
+        else:
+            def show():
+                self._loading_delay=0
+                if self.pending and not self.owner.closed and self.get_mapped():
+                    self.loading_cards.set_visible(True)
+                    self.navigation.adapt()
+                return False
+            self._loading_delay=GLib.timeout_add(120,show)
+        self.navigation.adapt()
 
     def invalidate(self,keep_results=False):
         if hasattr(self,'more'):self.more.set_visible(False)

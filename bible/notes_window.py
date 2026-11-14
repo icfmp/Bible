@@ -240,9 +240,11 @@ class NoteEditor(Adw.Window):
         if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
 
-    def use_window_layout(self):
+    def use_window_layout(self,*,expanded=False):
         """Keep native window actions visible while short windows scroll the editor."""
         layout=self.embedded_content
+        layout.set_margin_top(8 if expanded else 0)
+        layout.set_margin_bottom(12 if expanded else 0)
         if self.header.get_parent() is layout:layout.remove(self.header)
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);root.append(self.header)
         self.writing.set_vexpand(True);self.body_scroll.set_vexpand(True)
@@ -655,8 +657,8 @@ class NotesSpace(Gtk.Box):
         self.detail_back.connect('clicked',lambda *_:self.back_to_list());detail.append(self.detail_back)
         self.detail_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         self.detail_scroll.set_overflow(Gtk.Overflow.HIDDEN)
-        self.editor_clamp=Adw.Clamp(child=self.editor_panel,maximum_size=760,tightening_threshold=560,unit=Adw.LengthUnit.PX)
-        self.detail_scroll.set_child(self.editor_clamp)
+        self.editor_panel.set_vexpand(True)
+        self.detail_scroll.set_child(self.editor_panel)
         viewport=self.detail_scroll.get_child()
         if isinstance(viewport,Gtk.Viewport):viewport.set_scroll_to_focus(True)
         detail.append(self.detail_scroll)
@@ -895,6 +897,8 @@ class NotesSpace(Gtk.Box):
     def mount(self,note):
         if note is None:return
         editor=NoteEditor(self.owner,note=note,embedded=True);editor.embedded_host=self
+        editor.embedded_content.set_vexpand(True)
+        editor.writing.set_vexpand(True);editor.body_scroll.set_vexpand(True)
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
         self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
         from .annotation_collection import records

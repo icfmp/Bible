@@ -78,8 +78,11 @@ class AppearancePopover(Gtk.Popover):
         box.append(self.system_status)
         box.append(Gtk.Separator())
         self.visible_elements=Gtk.Expander(label=tr('Visible elements'),expanded=owner.preferences.value.visible_elements_expanded)
+        label=self.visible_elements.get_label_widget()
+        label.set_margin_top(4);label.set_margin_bottom(4)
         self.visible_elements.connect('notify::expanded',lambda widget,*_:self.update('visible_elements_expanded',widget.get_expanded()))
         visible_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        visible_box.set_margin_top(4);visible_box.append(Gtk.Separator())
         self.visible_elements.set_child(visible_box);box.append(self.visible_elements)
         for attr,label in [('chapter_numbers','Chapter headings'),('verse_numbers','Verse numbers'),('show_highlights','Show highlights'),
                            ('note_indicators','Show note indicators'),('place_markers','Show place markers')]:
