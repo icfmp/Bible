@@ -68,3 +68,19 @@ Genesis25 before/after captures use the actual installed alpha as baseline and
 the changed application source on the same GNOME49 runtime. The broader
 installed-runtime suite, final CI, packaged validation and signed publication
 are delivery gates; do not infer their completion from this document.
+
+### GTK4.14 passage-following regression found by CI
+
+The native chapter-notes wheel check failed deterministically in Ubuntu's
+GTK4.14.5/libadwaita1.5, while the same check passed on GTK4.18 and4.20. The exact
+older libraries and pinned reader fonts reproduced it locally: at scroll1127px,
+the stored passage stayed Acts1:4 while the settled viewport began at Acts1:3.
+Styling the selected verse number invalidated GtkTextView's lazy line layout
+after the coordinator had already consumed its scroll intent. No subsequent
+input meant no final synchronization request.
+
+Selection now requests one bounded recheck through the existing layout gate.
+It waits for the existing reflow frames, does not change native scroll physics,
+and creates no permanent polling/tick. The same older-GTK native wheel case now
+settles at Acts1:3 in both state and viewport; reverse wheel, draft ownership,
+stable note cards, focus and history also pass. Required CI still remains a gate.
