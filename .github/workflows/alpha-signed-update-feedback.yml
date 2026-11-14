@@ -141,10 +141,10 @@ jobs:
                   import re
                   match=re.fullmatch(r'([1-9][0-9]*)-([1-9][0-9]*)',revision)
                   if x['source_commit']==expected and match:
-                      publication,publication_attempt=map(int,match.groups())
+                      publication,_packaging_revision=map(int,match.groups())
                       run=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(publication)],text=True))
                       if (run['head_sha']==expected and run['status']=='completed' and run['conclusion']=='success'
-                              and run['path']=='.github/workflows/alpha-channel.yml' and run['run_attempt']==publication_attempt):
+                              and run['path']=='.github/workflows/alpha-channel.yml'):
                           build=json.loads(subprocess.check_output(['gh','api','repos/icfmp/Bible/actions/runs/'+str(x['ci_run'])],text=True))
                           assert build['head_sha']==expected and build['status']=='completed' and build['conclusion']=='success'
                           break
