@@ -259,6 +259,30 @@ jobs:
           dbus-run-session -- xvfb-run -a -s '-screen 0 2880x2200x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --unshare=network --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --env=GDK_SCALE=2 --command=python3 io.github.icfmp.Bible -m tools.research.check_selection_geometry "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback/ready-selection-scale2" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=en --command=python3 io.github.icfmp.Bible -m tools.research.check_first_run_selectors "$RUNNER_TEMP/ready-clean-first-run" "$RUNNER_TEMP/client-feedback/ready-first-run" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
           cp -r "$RUNNER_TEMP/client-feedback" .
+      - name: Verify real Library catalogue and module lifecycle controls
+        if: (success() || failure()) && steps.real_study.outcome == 'success'
+        run: |
+          set -o pipefail
+          flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible - "$RUNNER_TEMP/library-lifecycle-real" <<'PY'
+          import inspect,json,sys
+          from pathlib import Path
+          from bible.library import Library,catalogue
+          from bible.curated_catalogue import catalogue as curated
+          from bible.providers import CROSSWIRE
+          from bible.application_settings import ApplicationSettings
+          root=Path(sys.argv[1]);assert not root.exists(),'Use a fresh disposable CI profile'
+          root.mkdir();(root/'.ready-batch-test-profile').touch()
+          settings=ApplicationSettings(root/'application-preferences.json');settings.set('automatic_catalogue_refresh',False)
+          library=Library(root/'translations');assert inspect.getfile(Library).startswith('/app/')
+          resources=curated();resources=[next(r for r in resources if r.name==name) for name in ('BRLSG1910','BRMHCC')]
+          resources.append(next(r for r in catalogue(CROSSWIRE) if r.name=='Easton'))
+          for resource in resources:library.install(resource)
+          (root/'real-module-sources.json').write_text(json.dumps({r.id:dict(source=r.source,version=r.version,driver=r.driver) for r in resources},indent=2))
+          PY
+          for ui_language in fr en; do
+            dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE="$ui_language" --command=python3 io.github.icfmp.Bible -m tools.research.check_module_lifecycle_ui "$RUNNER_TEMP/library-lifecycle-real" "$RUNNER_TEMP/client-feedback/library-lifecycle-$ui_language" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
+          done
+          cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Retain installed visual diagnostics even if an assertion fails
         if: always()
         uses: actions/upload-artifact@v4

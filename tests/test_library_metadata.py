@@ -17,7 +17,7 @@ class LibraryMetadataTests(unittest.TestCase):
             self.assertEqual(resource.public_code,'ABC')
             self.assertEqual(replace(resource,abbreviation='').public_code,'')
             self.assertEqual(replace(resource,abbreviation=resource.id).public_code,'' if '~' in resource.id else 'Internal123')
-        resource=replace(resource,name='YV21',abbreviation='YV21')
+        resource=replace(resource,provider_id='youversion',name='YV21',abbreviation='YV21')
         self.assertEqual(resource.public_code,'')
         for invalid in ('a\nb','x'*41):self.assertEqual(replace(resource,abbreviation=invalid).public_code,'')
 

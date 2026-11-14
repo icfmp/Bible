@@ -91,3 +91,15 @@ adding general dictionary discovery. Narrow lifecycle actions stack vertically.
 
 These remain developer-runtime checks. PR266 is draft and unmerged; final packaged
 CI, actual signed update and numbered prerelease remain required.
+
+The first branch CI43653667245 failed on three test-integration assumptions:
+- the held-download test proxy did not forward the new cancellation keyword;
+- an old catalogue expectation excluded newly supported dictionaries;
+- the public-code test implicitly used the last provider as YouVersion, which
+  ceased being true after adding the optional source.
+The fixes retain the assertions and explicitly forward options/select identity.
+The separate nested immersion click test passed in a fresh composited session with
+BIBLE_TEST_ISOLATED_CLICK=1 (the packaged CI route); the earlier full local run
+could not spawn xvfb-run inside the application sandbox. These are not blanket
+waivers of final CI. Actual GTK Download again now passes in FR/EN after removal
+of all three real resources, with exact reinstalled source files and360px checks.

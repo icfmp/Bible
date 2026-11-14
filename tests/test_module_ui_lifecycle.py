@@ -106,6 +106,10 @@ class ModuleUILifecycleTests(unittest.TestCase):
         try:
             self.assertEqual((reopened.active_tab.state.resource,reopened.active_tab.state.reference),(self.old.id,'Gen.1.1'))
             self.assertIsNone(reopened.active_tab.reader)
+            reopened.application_settings.set('automatic_catalogue_refresh',False)
+            again=reopened.open_library();spin(lambda:not again.preparing)
+            self.assertIn(self.old.id,[r.id for r in again.resources])
+            self.assertIn(self.old.id,again._removed_ids);again.close()
             self.assertEqual([asdict(n) for n in reopened.notes_store.all()],before)
             self.assertEqual(reopened.highlights.entries[('KJV','Gen.1.1')]['color'],'yellow')
         finally:reopened.close()

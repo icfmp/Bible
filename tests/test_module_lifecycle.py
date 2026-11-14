@@ -125,6 +125,8 @@ class ModuleLifecycleTests(unittest.TestCase):
         # reliably afterwards; this headless caller follows that contract.
         del reader
         self.assertTrue(self.lifecycle.remove(self.old.id)['removed'])
+        self.assertEqual(self.lifecycle.removed_resources()[self.old.id],self.old)
+        self.assertEqual(ModuleLifecycle(Library(self.library.root)).removed_resources()[self.old.id],self.old)
         self.assertEqual(self.library.installed(),[other.id])
         self.assertEqual(tree_manifest(self.library.root/other.id),before)
         with self.assertRaises(ValueError):Reader(self.library.root/self.old.id,self.old.name)
