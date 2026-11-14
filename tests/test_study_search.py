@@ -44,13 +44,34 @@ class StudySearchTests(unittest.TestCase):
         width=panel.submit.get_width();started=threading.Event();release=threading.Event();self.addCleanup(release.set)
         def operation():started.set();release.wait(3);return [Relationship('John.3.16','John.3.16',0,1)],1
         panel.entry.set_text('updated query');panel.changed();panel.launch(operation,'updated query','KJV')
-        self.assertTrue(started.wait(2));spin(duration=.1)
+        self.assertTrue(started.wait(2));spin(duration=.2)
         self.assertEqual(panel.rows,previous);self.assertFalse(panel.results.get_sensitive())
-        self.assertFalse(panel.status.get_visible());self.assertTrue(panel.spinner.get_spinning())
-        self.assertEqual(panel.submit_display.get_visible_child_name(),'busy');self.assertEqual(panel.submit.get_width(),width)
+        self.assertFalse(panel.status.get_visible());self.assertFalse(panel.spinner.get_spinning())
+        self.assertTrue(panel.loading_cards.get_visible())
+        self.assertTrue(panel.loading_cards.get_mapped())
+        self.assertEqual(panel.submit_display.get_visible_child_name(),'search');self.assertEqual(panel.submit.get_width(),width)
         release.set();spin(lambda:not panel.pending)
         self.assertEqual([row.start for row in panel.rows],['John.3.16']);self.assertTrue(panel.results.get_sensitive())
         self.assertFalse(panel.spinner.get_spinning());self.assertEqual(panel.result_query,'updated query')
+        self.assertTrue(panel.result_scroll.get_mapped());self.assertFalse(panel.loading_cards.get_visible())
+        self.assertFalse(panel.loading_cards._tick);self.assertFalse(panel._loading_delay)
+
+    def test_pending_placeholders_stop_on_hide_and_honor_reduced_motion(self):
+        from bible.ui import Gtk
+        panel=self.navigation.text_search;self.window.show_search('text');spin()
+        release=threading.Event();self.addCleanup(release.set)
+        settings=Gtk.Settings.get_default();previous=settings.props.gtk_enable_animations
+        self.addCleanup(settings.set_property,'gtk-enable-animations',previous)
+        settings.props.gtk_enable_animations=False
+        panel.launch(lambda:(release.wait(3) and [] or [],0),'','KJV');spin(duration=.2)
+        self.assertTrue(panel.loading_cards.get_mapped());self.assertFalse(panel.loading_cards._tick)
+        settings.props.gtk_enable_animations=True;spin()
+        self.assertTrue(panel.loading_cards._tick)
+        self.navigation.popdown();spin()
+        self.assertFalse(panel.loading_cards._tick);self.assertFalse(panel._loading_delay)
+        self.assertFalse(panel.pending)
+        release.set();spin()
+        self.assertFalse(panel.model.get_n_items())
 
     def test_superseded_worker_cannot_replace_new_result_or_reopen_preview(self):
         panel=self.navigation.text_search;started=threading.Event();release=threading.Event()

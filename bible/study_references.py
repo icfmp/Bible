@@ -41,12 +41,24 @@ class StudyReferences(Gtk.Box):
         self.list.add_css_class('navigation-sidebar')
         self.list.connect('map',lambda *_:self.position_new_passage())
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        scroll.set_child(self.list);self.append(scroll);self.scroll=scroll
+        scroll.set_child(self.list);self.scroll=scroll
+        self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
+        self.pages.add_named(scroll,'results');self.append(self.pages)
         self.footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=12,margin_start=8,margin_end=8)
         self.view_all=Gtk.Button(label=tr('View all'),halign=Gtk.Align.START,visible=False);self.view_all.connect('clicked',self.show_all);self.footer.append(self.view_all)
         credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
         credit.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>')
         credit.add_css_class('caption');credit.add_css_class('source-attribution');credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.footer.append(credit)
+        from .study_empty import empty_state
+        self.empty_page=empty_state('No cross-references','No biblical cross-references are available for this passage.','view-list-symbolic')
+        empty=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True,spacing=8)
+        empty.append(self.empty_page)
+        empty_credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                               margin_start=8,margin_end=8,margin_bottom=12)
+        empty_credit.set_markup(credit.get_label())
+        empty_credit.add_css_class('caption');empty_credit.add_css_class('source-attribution')
+        empty_credit.set_tooltip_text(credit.get_tooltip_text());empty.append(empty_credit)
+        self.pages.add_named(empty,'empty')
         self.teaser=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         header=Gtk.Box(spacing=6)
         title=Gtk.Label(label=tr('Cross-references'),xalign=0,hexpand=True);title.add_css_class('heading');header.append(title)
@@ -82,9 +94,10 @@ class StudyReferences(Gtk.Box):
     def invalidate(self):
         self.stamp=None;self.refresh()
 
-    def message(self,text,download=False):
+    def message(self,text,download=False,*,empty=False):
         self.status.set_tooltip_text(None)
-        self.status.set_text(text);self.status.set_visible(bool(text))
+        self.status.set_text(text);self.status.set_visible(bool(text) and not empty)
+        self.pages.set_visible_child_name('empty' if empty else 'results')
         self.teaser_status.set_text(text);self.teaser_status.set_visible(bool(text))
         self.download.set_visible(download);self.teaser_download.set_visible(download)
 
@@ -153,7 +166,7 @@ class StudyReferences(Gtk.Box):
                 self.clear_rows()
                 self.message(tr('Reference data is unavailable. Download it again from Library.'),download=True)
                 self.status.set_tooltip_text(str(error));return False
-            self.message(tr('No cross-references for this passage.') if not self.rows else '')
+            self.message(tr('No cross-references for this passage.') if not self.rows else '',empty=not self.rows)
             self.populate();return False
         future.add_done_callback(lambda _:GLib.idle_add(complete))
 

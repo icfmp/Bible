@@ -10,6 +10,23 @@ from tests.test_step_data import fixtures
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ContextualStudyTests(unittest.TestCase):
+    def test_commentary_empty_chapter_is_distinct_from_mapping_failure(self):
+        from tests.test_commentary import commentary_fixture
+        from tests.test_ui import installed_fixture
+        from bible.i18n import tr
+        installed_fixture(self.root,'Chapters',entries=[('Gen.1.1','FIRST CHAPTER'),('Gen.2.1','SECOND CHAPTER')])
+        commentary_fixture(self.root,entries=[('Gen.1.1','SOURCE COMMENTARY')])
+        w=self.w;tab=w.active_tab;tab.navigate('Chapters','Gen.2.1')
+        w.study_button.set_active(True);s=w.study;s.tools.set_visible_child_name('commentaries');s.refresh(force=True)
+        s.choices.set_selected(s.names.index('Notes'));spin(lambda:not tab._restoring_scroll)
+        self.assertEqual(s.pages.get_visible_child_name(),'no-entry')
+        self.assertIn('Notes',s.source.get_text());self.assertIsNotNone(s.reader)
+        tab.navigate('Chapters','Gen.1.1');spin(lambda:not tab._restoring_scroll)
+        self.assertEqual(s.pages.get_visible_child_name(),'reading');self.assertIn('SOURCE COMMENTARY',s.text.get_buffer().props.text)
+        with patch('bible.study_panel.resolve',side_effect=ValueError('unverified mapping')):s.follow('Gen.1.1')
+        self.assertEqual(s.pages.get_visible_child_name(),'reading')
+        self.assertEqual(s.status.get_text(),tr('No verified alignment for this passage.'))
+
     def setUp(self):
         from bible.ui import Application,Window,Library
         from bible import step_data
@@ -60,6 +77,17 @@ class ContextualStudyTests(unittest.TestCase):
         before=(w.active_tab.state.resource,w.active_tab.state.reference,list(w.active_tab.state.history),w.notes_store.all())
         host=w.open_passage_study(target=self.target());spin(lambda:not w.study.words.pending)
         self.assertEqual(host.tabs.get_pages().get_n_items(),4)
+        self.assertTrue(host.switcher.is_ancestor(host.header))
+        self.assertFalse(host.places.passage_context.get_visible())
+        from bible.ui import Gtk
+        settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
+        try:
+            settings.props.gtk_font_name='Sans 18';host.set_default_size(360,620);spin()
+            self.assertLessEqual(host.get_width(),360)
+            bounds=host.close_button.compute_bounds(host)[1]
+            self.assertGreaterEqual(bounds.get_x(),0)
+            self.assertLessEqual(bounds.get_x()+bounds.get_width(),host.get_width())
+        finally:settings.props.gtk_font_name=font
         context=host.context;words=host.words
         for name in ('map','dictionary','people','original','map','original'):
             host.tabs.set_visible_child_name(name);spin()

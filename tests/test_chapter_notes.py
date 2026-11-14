@@ -10,6 +10,15 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK')
 class ChapterNotesTests(unittest.TestCase):
+    def test_empty_chapter_never_hides_a_draft_or_existing_annotations(self):
+        p=self.p;self.assertFalse(p.empty_page.get_visible())
+        self.w.active_tab.navigate('Test','Acts.2.1');spin(lambda:not self.w.active_tab._restoring_scroll)
+        p.refresh(force=True);self.assertTrue(p.empty_page.get_visible());self.assertFalse(p.status.get_visible())
+        editor=p.open_note(context=dict(p.context));editor.body.get_buffer().set_text('Retained unsaved writing')
+        p.refresh(force=True)
+        self.assertFalse(p.empty_page.get_visible());self.assertTrue(p.editor_panel.get_visible())
+        self.assertEqual(editor.body.get_buffer().props.text,'Retained unsaved writing')
+
     def setUp(self):
         from bible.ui import Application,Window,Library
         self.root=Path(self.enterContext(tempfile.TemporaryDirectory()))

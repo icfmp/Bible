@@ -120,13 +120,16 @@ class StudyPanel(Gtk.Box):
         self.scroll.set_child(self.text)
         from .scroll_motion import ScrollMotion
         self.motion=ScrollMotion(self.scroll)
-        self.pages = Gtk.Stack(vexpand=True)
+        self.pages = Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
         self.pages.add_named(self.scroll,'reading')
         self.empty = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
             margin_start=16,margin_end=16,margin_top=12,valign=Gtk.Align.START)
         self.download = Gtk.Button(child=Gtk.Label(label=tr('Download a commentary'),wrap=True),halign=Gtk.Align.CENTER)
         self.download.connect('clicked',lambda *_:self.open_library())
         self.empty.append(self.download);self.pages.add_named(self.empty,'empty')
+        from .study_empty import empty_state
+        self.empty_entry=empty_state('No commentary available','This resource has no commentary in this chapter.','text-x-generic-symbolic')
+        self.pages.add_named(self.empty_entry,'no-entry')
         self.pages.set_visible_child_name('empty');self.commentaries.append(self.pages)
         self.scroll.get_vadjustment().connect('value-changed',self.scrolled)
         self._layout_geometry = None;self._layout_anchor = None
@@ -257,6 +260,7 @@ class StudyPanel(Gtk.Box):
         self.render(tab, installed)
 
     def clear_content(self):
+        if self.pages.get_visible_child_name()=='no-entry':self.pages.set_visible_child_name('reading')
         self._chapter_context=None
         self.alignment_introductions=()
         self.cancel_scroll()
@@ -332,7 +336,14 @@ class StudyPanel(Gtk.Box):
             self.owner.active_tab.mark_commentary_range(None,None)
             self._missing_near=self.reader.index.near(resolved.start) if resolved.start else 0
             self.passage.set_text(self.owner.active_tab.passage_title())
-            self.status.set_text(tr('No commentary for this passage.'));self.entry_controls();return
+            self.status.set_text(tr('No commentary for this passage.'))
+            # An absent verse must not hide readable entries elsewhere in the
+            # loaded chapter. Only a truly empty chapter gets the centered view.
+            empty=not self.text.get_buffer().props.text.strip()
+            self.pages.set_visible_child_name('no-entry' if empty else 'reading')
+            if empty:self.status.set_text('')
+            self.entry_controls();return
+        self.pages.set_visible_child_name('reading')
         self.status.set_text(tr('This passage includes introductory text, shown with the commentary.') if contexts and available is not None else
                              tr('This passage includes introductory text without a separate commentary introduction. Showing the aligned verse.') if contexts else '')
         self.current_position=position
