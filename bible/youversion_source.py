@@ -231,8 +231,11 @@ def parse_chapter(encoded, reference, edition):
     tree = TreeParser().parse(source)
     nodes = list(walk(tree))
     versions = [(n, p) for n, p in nodes if 'version' in roles(n)]
-    container_role = 'intro' if '.INTRO' in reference else 'chapter'
-    chapters = [(n, p) for n, p in nodes if container_role in roles(n)]
+    # Some source archives use the chapter wrapper for an explicitly indexed
+    # INTRO record. Its exact data-usfm/version/language identity is checked
+    # below; the raw tree and content are retained without changing their roles.
+    container_roles = {'intro','chapter'} if '.INTRO' in reference else {'chapter'}
+    chapters = [(n, p) for n, p in nodes if container_roles & roles(n)]
     if len(versions) != 1 or len(chapters) != 1:
         raise Unsupported('Expected one version and chapter container')
     version, version_path = versions[0]
@@ -337,6 +340,10 @@ def _semantic(node):
     if (node['tag'] not in {'div', 'span', 'br'} and not (expected_table_tags and node['tag'] in expected_table_tags)
             or expected_table_tags and node['tag'] not in expected_table_tags or kind not in BLOCK | INLINE):
         raise Unsupported('Unreviewed source semantic structure')
+    if kind=='ref' and 'usfm' in attrs:
+        if 'data-usfm' in attrs and attrs['data-usfm']!=attrs['usfm']:
+            raise Unsupported('Conflicting explicit source reference attributes')
+        attrs['data-usfm']=attrs.pop('usfm')
     if set(attrs) - {'class', 'data-usfm', 'id', '_note_type'}:
         raise Unsupported('Unreviewed source attributes')
     if kind=='cell' and node['tag']=='th':attrs['_cell_header']='true'
