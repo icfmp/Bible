@@ -66,6 +66,43 @@ class StudyReferenceTests(unittest.TestCase):
         spin(lambda:not w.study.references.pending,duration=.2)
         return w.study.references
 
+    def test_internal_viewport_marks_do_not_refresh_study_but_real_selection_does(self):
+        self.install();refs=self.show();w=self.window;tab=w.active_tab
+        buffer=tab.text.get_buffer()
+        for tool in ('references','notes'):
+            w.study.tools.set_visible_child_name(tool)
+            buffer.place_cursor(buffer.get_start_iter())
+            spin(lambda:not refs.pending and not getattr(w.study,'_notes_idle',0))
+            with patch.object(refs,'refresh',wraps=refs.refresh) as refresh,patch.object(w.study.notes,'refresh',wraps=w.study.notes.refresh) as notes:
+                internal=buffer.create_mark(None,buffer.get_start_iter(),True)
+                for offset in range(1,min(30,buffer.get_char_count())):
+                    buffer.move_mark(internal,buffer.get_iter_at_offset(offset))
+                spin(duration=.15)
+                self.assertEqual(refresh.call_count,0,tool)
+                self.assertEqual(notes.call_count,0,tool)
+                buffer.delete_mark(internal)
+                buffer.select_range(buffer.get_iter_at_offset(tab._marker_ends['John.1.5']),
+                                    buffer.get_iter_at_offset(tab._verse_ranges['John.1.6'][1]))
+                spin(lambda:not refs.pending and not getattr(w.study,'_notes_idle',0))
+                self.assertGreater(refresh.call_count,0,tool)
+                self.assertEqual(refs.context[2:],('John.1.5','John.1.6'))
+                if tool=='notes':self.assertGreater(notes.call_count,0)
+
+    def test_followed_verses_reuse_excerpts_but_another_reader_cannot_reuse_their_text(self):
+        self.install();refs=self.show();w=self.window;reader=w.active_tab.reader
+        with patch.object(reader,'chapter',wraps=reader.chapter) as chapters:
+            w.active_tab.select_verse('John.1.6')
+            spin(lambda:not refs.pending)
+            self.assertEqual(chapters.call_count,0,'The same destination excerpt was already read')
+            refs.invalidate();spin(lambda:not refs.pending)
+            self.assertGreater(chapters.call_count,0,'Explicit invalidation must revalidate excerpts')
+        installed_fixture(self.directory,'Other',entries=[('John.1.6','OTHER SOURCE'),('John.3.16','OTHER DESTINATION WORDING')])
+        w.active_tab.navigate('Other','John.1.6')
+        spin(lambda:not w.active_tab._restoring_scroll and not refs.pending)
+        button=refs.button();refs.fill(button,refs.model.get_item(0))
+        self.assertEqual(button._reference_labels[1].get_text(),'OTHER DESTINATION WORDING')
+        self.assertEqual(refs.context[0],'Other')
+
     def test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs(self):
         self.install();refs=self.show();w=self.window;tab=w.active_tab
         self.assertEqual(len(refs.rows),2)

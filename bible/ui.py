@@ -643,7 +643,10 @@ class Window(Adw.ApplicationWindow):
         tab.download_bible.connect('clicked',lambda *_:self.open_library('bible',context=self.library_context(tab,'bible')))
         tab.insert_child_after(tab.download_bible,tab.status)
         page = self.view.append(tab)
-        def selection_changed(*_):
+        def selection_changed(buffer,location,mark):
+            # GTK also moves private viewport/paragraph marks while scrolling.
+            # Those are not user selections and must not bypass ReadingSync.
+            if mark not in (buffer.get_insert(),buffer.get_selection_bound()):return
             if self.active_tab is tab and self.study.tool in ('notes','references'):
                 if not getattr(self.study,'_notes_idle',0):
                     def refresh():

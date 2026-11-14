@@ -116,11 +116,15 @@ class StudyReferences(Gtk.Box):
         # Tool activation forces the study coordinator to refresh. It does not
         # change this passage or dataset; rebuilding here loses manual scroll.
         if stamp==self.stamp:return
+        same_source=bool(self.stamp and self.stamp[:3]==stamp[:3] and self.stamp[-1]==stamp[-1])
         self.stamp=stamp;self.generation+=1;generation=self.generation
         self._new_passage=(self.context!=(tab.state.resource,reader,start,end)
                            or not self.model.get_n_items())
         self.context=(tab.state.resource,reader,start,end)
-        self.rows=[];self.chapter_cache={};self.row_cache={};self.all_results=False;self.pending=False
+        self.rows=[];self.all_results=False;self.pending=False
+        # Excerpts are immutable for this Reader/dataset revision. Keep the
+        # existing bounded chapter cache when only the followed verse changes.
+        if not same_source:self.chapter_cache={};self.row_cache={}
         # Keep the visible list while refreshing the same passage. Emptying it
         # first makes GTK anchor the footer and jump down when results arrive.
         if self._new_passage:self.clear_rows()
@@ -180,6 +184,7 @@ class StudyReferences(Gtk.Box):
                 result=(caption,tr('No verified alignment for this passage.') if isinstance(error,VersificationMismatch)
                         else tr('This passage is unavailable in the selected translation.'))
             self.row_cache[key]=result
+            if len(self.row_cache)>512:self.row_cache.pop(next(iter(self.row_cache)))
         caption,body=self.row_cache[key];title.set_text(caption);text.set_text(body)
         button.set_tooltip_text(None)
         button.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
