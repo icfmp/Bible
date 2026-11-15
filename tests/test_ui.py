@@ -91,6 +91,7 @@ class WindowTests(unittest.TestCase):
 
     def test_client_detail_hierarchy_preserves_source_terms_and_actions(self):
         from bible.library import Resource
+        from bible.languages import language_name
         resource=Resource('TestModule','Verified sample edition','fr',
                           'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
                           conditions='Attribution and conditions remain visible.',
@@ -104,7 +105,7 @@ class WindowTests(unittest.TestCase):
             dialog.open_details(None,0);spin()
             self.assertEqual(dialog.detail_title.get_text(),resource.description)
             self.assertIn(resource.source,dialog.detail_subtitle.get_text())
-            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),resource.language and __import__('bible.languages',fromlist=['language_name']).language_name(resource.language))
+            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),language_name(resource.language))
             self.assertIn('Attribution and conditions',dialog.conditions_text.get_text())
             self.assertFalse(dialog.technical.get_expanded())
             self.assertIn(resource.name,dialog.metadata.get_text())
