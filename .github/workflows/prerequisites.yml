@@ -2,7 +2,7 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: [main, 'feat/**', 'fix/**']
     # Distribution-only maintenance reuses the already verified application.
     paths-ignore:
       - 'tools/alpha_storage.py'
