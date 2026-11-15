@@ -389,9 +389,12 @@ class StudyPanel(Gtk.Box):
         section=self.reader.index.sections[self.current_position]
         if section.introduction:tab.mark_commentary_range(None,None);return
         try:
-            first=resolve(section.start,self.reader.versification,tab.reader,require_entry=False).start
-            last=resolve(section.end,self.reader.versification,tab.reader,require_entry=False).end
-            tab.mark_commentary_range(first,last)
+            passages=[
+                (resolve(first,self.reader.versification,tab.reader,require_entry=False).start,
+                 resolve(last,self.reader.versification,tab.reader,require_entry=False).end)
+                for first,last in section.passages
+            ]
+            tab.mark_commentary_segments(passages)
         except ValueError:tab.mark_commentary_range(None,None)
 
     def anchor(self):
