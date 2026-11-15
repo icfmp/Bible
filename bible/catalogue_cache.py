@@ -27,6 +27,9 @@ class CatalogueCache:
                         or resource.source!=provider.name or type(resource.locked) is not bool
                         or any(not isinstance(v,str) for k,v in asdict(resource).items() if k!='locked')):return None
                 resource.id  # Validate the provider-specific identity.
+                if resource.provider_id=='bible-resources':
+                    from .curated_catalogue import package_record
+                    package_record(resource)
                 resources.append(resource)
             validators=value.get('validators',{})
             if not isinstance(validators,dict):return None

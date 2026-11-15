@@ -133,9 +133,10 @@ class Immersion(Gtk.Overlay):
             detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
             self.preface_action=Gtk.Button(label=tr('Read source preface'),visible=False)
             def open_preface(*_):
+                if self._closed:return
                 from .commentary_format import show_preface
                 key=self.stream.cursor.key if self.stream.cursor else self.initial_key
-                self.info.popdown();show_preface(owner,source.reader,source.resource,key)
+                self.info.popdown();show_preface(owner,self.source.reader,self.source.resource,key)
             self.preface_action.connect('clicked',open_preface);detail.append(self.preface_action);detail.append(scroll)
             pop.set_child(detail);self.info.set_popover(pop);header.pack_end(self.info)
         controls.append(header)
@@ -294,7 +295,7 @@ class Immersion(Gtk.Overlay):
                 return
 
     def selection_changed(self,view):
-        if self._updating or self._selection_restore_pending:return
+        if self._closed or self._updating or self._selection_restore_pending:return
         self._restored_selection=False
         if view.get_buffer().get_has_selection():self.capture_selection()
         elif not any(v.get_buffer().get_has_selection() for v in self.views):self.selection=None
@@ -452,7 +453,7 @@ class Immersion(Gtk.Overlay):
         self.selection=None;self.render();self.reveal_controls()
 
     def clicked(self,view,x,y):
-        if view.get_buffer().get_has_selection() or view not in self.views:return
+        if self._closed or view.get_buffer().get_has_selection() or view not in self.views:return
         index=self.views.index(view)
         if index>=len(self.addresses):return
         bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
@@ -555,6 +556,7 @@ class Immersion(Gtk.Overlay):
         self.schedule_hide()
 
     def schedule_hide(self):
+        if self._closed:return
         if self._hide_id:GLib.source_remove(self._hide_id)
         self._hide_id=GLib.timeout_add(1600,self.hide_controls)
 
@@ -578,6 +580,7 @@ class Immersion(Gtk.Overlay):
             self.owner.leave_immersion();self.owner.navigate_selection(self.owner.active_tab.state.resource,reference)
 
     def finish(self):
+        if self._closed:return self._finish_result
         self.cancel_slide()
         self._closed=True
         self.preparing.set_spinning(False);self.preparing.set_visible(False)
@@ -591,5 +594,16 @@ class Immersion(Gtk.Overlay):
             self.owner.position_primary_version(force=True)
             self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor
+        key=self.stream.cursor.key if self.stream.cursor else self.initial_key
+        self.finished_section=self.source.reader.index.sections[key] if self.kind=='commentary' else None
         if hasattr(self.stream,'close'):self.stream.close()
-        return anchor,self.stream.cursor.key if self.stream.cursor else self.initial_key
+        for view in self.views:
+            # Inline marker callbacks own native readers too. Detach children
+            # while their text anchors exist, then release the closed buffers.
+            for button in getattr(view,'_inline_buttons',()):view.remove(button)
+            view._inline_buttons=[];view.get_buffer().set_text('')
+        # GTK signal ownership can outlive the removed widget. Keep only the
+        # immutable exit location, never a closed page source/native reader.
+        self.stream.cache.clear();self.stream.source=None;self.source=None
+        self._finish_result=anchor,key
+        return self._finish_result

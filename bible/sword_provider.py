@@ -97,11 +97,59 @@ def passage_verses(reader,references,chapter_cache=None):
     return tuple(result)
 
 
+class NativeToolReader:
+    """Native handles for installed non-verse tools; no invented resource data."""
+    def __init__(self,root,name):
+        import Sword
+        from .module_lifecycle import reader_lease
+        from .providers import module_name
+        self.root=Path(root);reader_lease(self,self.root)
+        self.manager=Sword.SWMgr(str(root));self.module=self.manager.getModule(module_name(name));self.sword=Sword
+        if self.module is None or self.module.getConfigEntry('ModDrv') not in self.drivers:
+            raise ValueError('Unsupported native tool module')
+
+
+class DictionaryReader(NativeToolReader):
+    drivers={'RawLD','RawLD4','zLD'}
+
+    def __init__(self,root,name):
+        super().__init__(root,name)
+        self.dictionary=self.sword.SWLD.castTo(self.module)
+        if self.dictionary is None:raise ValueError('Native dictionary access is unavailable')
+
+    def verify_readable(self):
+        # The packaged SWIG setPosition(SW_POSITION(...)) call stopped native
+        # verification. Use the proven dictionary index API instead.
+        for position in range(min(self.dictionary.getEntryCount(),32)):
+            text=self.dictionary.getKeyForEntry(position)
+            if not text:continue
+            self.key=self.sword.SWKey(text);self.module.setKey(self.key)
+            if text.strip() and self.module.stripText().strip():return
+        raise ValueError('No readable dictionary entry in resource')
+
+
+class GeneralBookReader(NativeToolReader):
+    drivers={'RawGenBook'}
+
+    def verify_readable(self):
+        key=self.sword.TreeKey.castTo(self.module.getKey())
+        if key is None:raise ValueError('This general-book key format is unsupported')
+        key.root()
+        for _ in range(256):
+            if key.getText().strip() and self.module.stripText().strip():return
+            if key.firstChild():continue
+            while not key.nextSibling():
+                if not key.parent():raise ValueError('No readable general-book entry in resource')
+        raise ValueError('No readable general-book entry within the native verification limit')
+
+
 class Reader:
     drivers = {'zText', 'RawText', 'RawText4', 'zText4'}
 
     def __init__(self, root: Path, name: str):
         self.root,self.name=Path(root),name
+        from .module_lifecycle import reader_lease
+        reader_lease(self,self.root)
         import Sword
         self.sword = Sword
         if name.startswith('youversion~') and (self.root/'.source-versification').exists():

@@ -10,8 +10,9 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit,urlunsplit
 from .library import config
 from .study_catalogue import atomic_write
+from .providers import BIBLE_RESOURCES
 
-CATALOGUE_URL='https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json'
+CATALOGUE_URL=BIBLE_RESOURCES.catalogue_url
 MAX_CATALOGUE=2*1024*1024
 
 
@@ -82,7 +83,7 @@ def parse_catalogue(data):
             if not isinstance(entry.get(field),str) or not 0<len(entry[field])<=128:raise ValueError('Invalid curated module identity')
         if not re.fullmatch(r'[A-Za-z0-9_-]+',entry['sword_id']):raise ValueError('Invalid SWORD identifier')
         download=entry.get('download',{})
-        if (not isinstance(download.get('sha256'),str) or not re.fullmatch('[0-9a-f]{64}',download['sha256'])
+        if (not isinstance(download,dict) or not isinstance(download.get('sha256'),str) or not re.fullmatch('[0-9a-f]{64}',download['sha256'])
                 or type(download.get('size_bytes')) is not int or download['size_bytes']<=0):
             raise ValueError('Invalid curated module integrity metadata')
         if not download.get('url','').startswith('https://icfmp.github.io/Bible-Resources/sword/packages/'):
@@ -130,3 +131,40 @@ def assessment(installed,catalogue):
     """An ID/title/Version coincidence is never sufficient edition evidence."""
     candidates=[entry for entry in catalogue['modules'] if entry['sword_id']==installed.name]
     return 'identity-unverified' if candidates else 'no-curated-edition'
+
+
+def version_key(value):
+    if not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,8}(?:\.[0-9]{1,8}){0,7}',value):return None
+    parts=list(map(int,value.split('.')))
+    while len(parts)>1 and parts[-1]==0:parts.pop()
+    return tuple(parts)
+
+
+def applicable_update(installed,available):
+    """Same declared edition and receipt, never a coincidental SWORD ID/title."""
+    if (installed.id,installed.source_url,installed.source,installed.driver,installed.versification,
+            installed.language,installed.locked)!=(available.id,available.source_url,available.source,
+            available.driver,available.versification,available.language,available.locked):return 'identity-changed'
+    if installed.locked:return 'encrypted-unavailable'
+    if (installed.author,installed.license)!=(available.author,available.license):return 'edition-changed'
+    if installed.provider_id=='bible-resources':
+        from .curated_catalogue import package_record
+        try:old=package_record(installed);new=package_record(available)
+        except (ValueError,TypeError,KeyError):return 'identity-unverified'
+        if (old['id'],old['canonical_edition_id'],old['edition'])!=(new['id'],new['canonical_edition_id'],new['edition']):
+            return 'edition-changed'
+        if installed.text_source!=available.text_source:return 'edition-changed'
+        if installed.version==available.version and old['download']['sha256']!=new['download']['sha256']:
+            return 'same-version-content-changed'
+    else:
+        # This contract is extended only to the explicitly assigned providers.
+        # A missing original TextSource is uncertainty, not an update offer.
+        if installed.provider_id not in ('crosswire','ebible','andbible-extra'):return 'provider-unavailable'
+        if not installed.text_source or not available.text_source:return 'edition-unverified'
+        if installed.text_source!=available.text_source:return 'edition-changed'
+        if (installed.description,installed.author,installed.license)!=(available.description,available.author,available.license):
+            return 'edition-changed'
+    old_version=version_key(installed.version);new_version=version_key(available.version)
+    if old_version is None or new_version is None:return 'version-unavailable'
+    if new_version<old_version:return 'older-catalogue'
+    return 'available' if new_version>old_version else 'current'

@@ -9,6 +9,14 @@ from bible.library import Library,config,resource_from_section
 
 
 class LibraryMetadataTests(unittest.TestCase):
+    def test_only_history_for_the_exact_declared_version_is_presented_without_translation(self):
+        from bible.resource_details import details
+        value=resource_from_section('Test',{'Version':'2.1','History_2.0':'Different release',
+            'History_2.1':'(2026-01-02) Source-authored correction — texte original'})
+        self.assertEqual(value.release_notes,'(2026-01-02) Source-authored correction — texte original')
+        self.assertIn(value.release_notes,details(value));self.assertNotIn('Different release',details(value))
+        missing=resource_from_section('Test',{'Version':'2.2','History_2.1':'Previous release'})
+        self.assertEqual(missing.release_notes,'')
     def test_public_codes_come_from_provider_metadata_and_not_module_ids(self):
         from dataclasses import replace
         from bible.providers import PROVIDERS
@@ -17,7 +25,7 @@ class LibraryMetadataTests(unittest.TestCase):
             self.assertEqual(resource.public_code,'ABC')
             self.assertEqual(replace(resource,abbreviation='').public_code,'')
             self.assertEqual(replace(resource,abbreviation=resource.id).public_code,'' if '~' in resource.id else 'Internal123')
-        resource=replace(resource,name='YV21',abbreviation='YV21')
+        resource=replace(resource,provider_id='youversion',name='YV21',abbreviation='YV21')
         self.assertEqual(resource.public_code,'')
         for invalid in ('a\nb','x'*41):self.assertEqual(replace(resource,abbreviation=invalid).public_code,'')
 

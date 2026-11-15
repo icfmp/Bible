@@ -590,7 +590,7 @@ class Window(Adw.ApplicationWindow):
                     tab._appearance_anchor=(anchor.reference,offset) if anchor.at_body else None
                     tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
         elif immersion.kind=='commentary':
-            section=immersion.source.reader.index.sections[key]
+            section=immersion.finished_section
             tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor.offset,canonical=True,immersive=True)
             if tab is self.active_tab:self.study.resume(key,anchor)
         self.update_navigation() if immersion.kind=='bible' else None
@@ -669,8 +669,13 @@ class Window(Adw.ApplicationWindow):
         tab=self.active_tab
         if tab is None:return False
         if tab.reader and tab.current and any(text.strip() for _,text in tab.current.verses):return True
-        from .sword_provider import Reader
         names=self.library.installed('bible')
+        from .module_lifecycle import ModuleLifecycle
+        if preferred not in names and ModuleLifecycle(self.library).was_removed(tab.state.resource):
+            # Preserve an explicit removal and the saved passage. A different
+            # translation is selected only through the user's existing chooser.
+            return False
+        from .sword_provider import Reader
         if self.library.discovery_errors:
             self.startup_resource_error='; '.join(self.library.discovery_errors.values())
         for name in dict.fromkeys(([preferred] if preferred in names else [])+names):

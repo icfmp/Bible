@@ -128,12 +128,12 @@ class AlphaTests(unittest.TestCase):
             validation = threading.Event()
             self.addCleanup(validation.set)
             original_install = window.library.install
-            def hold_validation(resource, progress, installing):
+            def hold_validation(resource, progress, installing, **options):
                 def started():
                     installing()
                     if not validation.wait(8):
                         raise TimeoutError('Validation test was not released')
-                return original_install(resource, progress, installing=started)
+                return original_install(resource, progress, installing=started, **options)
             with self.local_https(transfer), patch.object(window.library, 'install', side_effect=hold_validation):
                 self.start_transfer(dialog, resource)
                 test_ui.spin(lambda: 0 < dialog.progress.get_fraction() < 0.4)

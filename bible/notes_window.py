@@ -163,15 +163,7 @@ class NoteEditor(Adw.Window):
         context_label.add_css_class('dim-label');context_label.set_tooltip_text(self.context['origin_translation']+' · '+self.context['versification'])
         context_label.add_css_class('caption')
         layout.append(context_label)
-        from .reference_targets import local_excerpt
-        try:
-            resource=self.context['origin_translation']
-            if resource not in owner.library.installed('bible'):raise ValueError('Missing original source')
-            from .sword_provider import Reader
-            tab=owner.active_tab
-            reader=tab.reader if tab and tab.state.resource==resource and tab.reader else Reader(owner.library.root/resource,resource)
-            excerpt_text=local_excerpt(reader,self.context['start'],self.context['end'],source_system=self.context['versification'],limit=1).text
-        except (ValueError,OSError,RuntimeError):excerpt_text=tr('Original translation unavailable. Your note is kept.')
+        excerpt_text=self.source_excerpt()
         self.excerpt=Gtk.Label(label=excerpt_text,xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
             width_chars=1,lines=2,ellipsize=Pango.EllipsizeMode.END,selectable=True,margin_start=16,margin_end=16)
         self.excerpt.add_css_class('study-content');layout.append(self.excerpt)
@@ -239,6 +231,17 @@ class NoteEditor(Adw.Window):
         self.embedded_content=layout
         if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
+
+    def source_excerpt(self):
+        from .reference_targets import local_excerpt
+        try:
+            resource=self.context['origin_translation'];owner=self.owner
+            if resource not in owner.library.installed('bible'):raise ValueError('Missing original source')
+            from .sword_provider import Reader
+            tab=owner.active_tab
+            reader=tab.reader if tab and tab.state.resource==resource and tab.reader else Reader(owner.library.root/resource,resource)
+            return local_excerpt(reader,self.context['start'],self.context['end'],source_system=self.context['versification'],limit=1).text
+        except (ValueError,OSError,RuntimeError):return tr('Original translation unavailable. Your note is kept.')
 
     def use_window_layout(self,*,expanded=False):
         """Keep native window actions visible while short windows scroll the editor."""

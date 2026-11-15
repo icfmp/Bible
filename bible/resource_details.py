@@ -52,14 +52,32 @@ def details(resource):
     if resource.provider_id=='youversion' and numbering.startswith('YouVersion'):
         numbering=tr('Numbering supplied by this edition')
         availability+='\n'+tr('Automatic verse alignment with other editions is unavailable. Independent parallel reading remains available.')
+    provenance=''
+    if resource.provider_id=='bible-resources':
+        from .curated_catalogue import package_record
+        try:entry=package_record(resource)
+        except (ValueError,TypeError,KeyError):entry=None
+        provenance=(tr('Source edition')+': '+entry['canonical_edition_id']+' / '+entry['edition']
+                    if entry else tr('Source edition metadata could not be verified.'))
+        # Report publisher-supplied approval metadata, never turn a draft's
+        # prose into application-authored claims or silently translate it.
+        profiles=entry.get('profiles',{}) if entry else {}
+        if isinstance(profiles,dict):
+            for language,profile in profiles.items():
+                if not isinstance(profile,dict):continue
+                if all(isinstance(profile.get(key),str) and profile[key] for key in ('approved_at','approved_by','approval_url')):
+                    provenance+='\n'+tr('Profile approval reported by the source')+' ('+str(language)+'): '+profile['approved_at']+'\n'+profile['approval_url']
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
-        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources'}.get(resource.kind,'Bibles')),
+        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources','dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bibles')),
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
+        f'{tr("Version")}: {resource.version}' if getattr(resource,'version','') else '',
+        tr('Version notes (source)')+':\n'+plain(resource.release_notes) if getattr(resource,'release_notes','') else '',
+        provenance,
         f'{tr("License")}: {plain(resource.license)}',
-        f'{tr("Verse numbering")}: {numbering}',
+        f'{tr("Verse numbering")}: {numbering}' if resource.kind in ('bible','commentary','study') else '',
         availability,
         f'{tr("Conditions and attribution")}:\n' + (
             tr('Loading edition details…') if pending else

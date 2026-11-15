@@ -30,10 +30,16 @@ class MetadataExecutor:
             item=self.queue.get()
             if item is None:return
             future,function,args,kwargs=item
-            if not future.set_running_or_notify_cancel():continue
-            try:result=function(*args,**kwargs)
-            except BaseException as error:future.set_exception(error)
-            else:future.set_result(result)
+            try:
+                if not future.set_running_or_notify_cancel():continue
+                try:result=function(*args,**kwargs)
+                except BaseException as error:future.set_exception(error)
+                else:future.set_result(result)
+            finally:
+                # queue.get() can wait indefinitely. Do not retain the last
+                # callable/arguments/result (including a closed study reader)
+                # on this idle thread's stack until another job arrives.
+                item=future=function=args=kwargs=result=None
 
     def shutdown(self,wait=True,cancel_futures=False):
         with self.lock:
