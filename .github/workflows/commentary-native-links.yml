@@ -1,0 +1,41 @@
+name: Verify native linked commentary navigation
+
+on:
+  pull_request:
+    paths:
+      - 'bible/commentary_index.py'
+      - 'bible/reading_sync.py'
+      - 'bible/reading_tab.py'
+      - 'bible/study_panel.py'
+      - 'tests/test_reading_sync.py'
+      - '.github/workflows/commentary-native-links.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linked-commentary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install the same packaged native Python, SWORD and GTK test prerequisites
+        run: |
+          set -euo pipefail
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
+          fi
+          timeout 90s sudo apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=12 update -qq
+          timeout 120s sudo apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=12 install -y             python3-sword python3-gi python3-cairo python3-gi-cairo             gir1.2-gtk-4.0 gir1.2-adw-1 python3-babel python3-lxml             fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11
+      - name: Validate real synthetic native commentary identities and disjoint index
+        run: |
+          set -euo pipefail
+          /usr/bin/python3 -m unittest             tests.test_reading_sync.CommentaryIndexTests -v
+      - name: Validate one actual GTK commentary chapter and disjoint Bible indicator
+        env:
+          GSK_RENDERER: cairo
+          LANGUAGE: en
+        run: |
+          set -euo pipefail
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x900x24'             /usr/bin/python3 -m unittest             tests.test_reading_sync.ReadingSyncTests.test_disjoint_section_renders_once_and_study_indicator_skips_middle -v
