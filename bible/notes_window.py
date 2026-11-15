@@ -140,7 +140,7 @@ class NoteEditor(Adw.Window):
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         header = Adw.HeaderBar();self.header=header
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        header.set_title_widget(Gtk.Label(label=tr('Edit note')))
+        header.set_title_widget(Gtk.Box())  # The native window title remains accessible; the passage identifies the content.
         self.save_button = Gtk.Button(label=tr('Save'))
         self.save_button.add_css_class('suggested-action')
         self.save_button.connect('clicked', lambda *_: self.save())
@@ -246,13 +246,17 @@ class NoteEditor(Adw.Window):
     def use_window_layout(self,*,expanded=False):
         """Keep native window actions visible while short windows scroll the editor."""
         layout=self.embedded_content
-        layout.set_margin_top(8 if expanded else 0)
-        layout.set_margin_bottom(12 if expanded else 0)
+        layout.set_margin_top(0)
+        layout.set_margin_bottom(0)
         if self.header.get_parent() is layout:layout.remove(self.header)
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);root.append(self.header)
         self.writing.set_vexpand(True);self.body_scroll.set_vexpand(True)
         layout.set_vexpand(True)
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+        # Place insets *outside* the scrollable layout. Child margins were
+        # consumed by the viewport and could disappear at both window edges.
+        scroll.set_margin_top(12 if expanded else 8)
+        scroll.set_margin_bottom(16 if expanded else 12)
         scroll.set_child(layout);root.append(scroll);self.set_content(root)
 
     def guard_navigation(self,action):
@@ -653,7 +657,8 @@ class NotesSpace(Gtk.Box):
             self.activate(self.list,index);return True
         keys.connect('key-pressed',activate_space);self.list.add_controller(keys)
         self.scroll=Gtk.ScrolledWindow(vexpand=True);self.scroll.set_child(self.list);self.side.append(self.scroll)
-        self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
+        self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True,
+                                   margin_top=12,margin_bottom=16)  # The complete pane, including expanded links, scrolls inside these insets.
         detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         detail.add_css_class('annotation-detail')
         self.detail_back=Gtk.Button(label=tr('Back to annotations'),visible=False,halign=Gtk.Align.START,margin_start=12,margin_top=8)
