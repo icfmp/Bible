@@ -118,13 +118,14 @@ def retain_repository(site, keep=KEEP_COMMITS):
     restore_repository_layout(repo)
     head = command('ostree', f'--repo={repo}', 'rev-parse', REF)
     before = sum(p.stat().st_size for p in repo.rglob('*') if p.is_file())
-    # Remove derived static deltas before pruning: obsolete deltas otherwise grow
-    # independently of commit retention. Flatpak can pull ordinary signed objects.
-    deltas = repo / 'deltas'
-    if deltas.exists():
-        import shutil
-        assert not deltas.is_symlink()
-        shutil.rmtree(deltas)
+    # Indexes advertise the derived delta parts. Retaining an index after its
+    # parts are removed sends clients to missing URLs instead of signed objects.
+    derived = [repo / name for name in ('deltas', 'delta-indexes')]
+    assert all(not path.is_symlink() for path in derived)
+    import shutil
+    for path in derived:
+        if path.exists():
+            shutil.rmtree(path)
     output = command('ostree', f'--repo={repo}', 'prune', '--refs-only', f'--depth={keep - 1}')
     command('ostree', f'--repo={repo}', 'fsck')
     assert command('ostree', f'--repo={repo}', 'rev-parse', REF) == head
