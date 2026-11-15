@@ -2,7 +2,7 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**']
+    branches: [main, 'feat/**']
     # Distribution-only maintenance reuses the already verified application.
     paths-ignore:
       - 'tools/alpha_storage.py'
@@ -19,6 +19,11 @@ on:
       - '.github/workflows/prerequisites.yml'
       - 'docs/CANAL_ALPHA_FLATPAK.md'
       - 'docs/ALPHA_SINGLE_DEPLOYMENT.md'
+  pull_request:
+    paths:
+      - 'bible/**'
+      - 'tests/**'
+      - '.github/workflows/prerequisites.yml'
   workflow_dispatch:
 
 concurrency:
