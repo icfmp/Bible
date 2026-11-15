@@ -26,6 +26,16 @@ class PaginationTests(unittest.TestCase):
         from bible.ui import Gtk
         Gtk.init();cls.widget=Gtk.TextView()
 
+    def test_source_parallel_titles_keep_a_distinct_editorial_role(self):
+        from bible.structured_text import SourceParser
+        parser=SourceParser()
+        parser.feed('<title type="parallel">Ps 14; 120. Ph 2:15.</title>'
+                    '<title>Psalm superscription</title><p>Scripture text.</p>')
+        kinds=[(segment.kind,segment.text) for segment in parser.segments if segment.text.strip()]
+        self.assertIn(('editorial','Ps 14; 120. Ph 2:15.'),kinds)
+        self.assertIn(('heading','Psalm superscription'),kinds)
+        self.assertIn(('text','Scripture text.'),kinds)
+
     def test_source_title_fragments_stay_together_and_start_on_their_own_line(self):
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
