@@ -1,7 +1,21 @@
-"""SWORD-native commentary sections: group only adjacent, linked index records."""
+"""Source-faithful SWORD commentary entries, including disjoint native links."""
+
 from bisect import bisect_left
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
+
+
+@dataclass(frozen=True)
+class Segment:
+    """One contiguous set of verse keys belonging to a native entry."""
+
+    index: int
+    last_index: int
+    start: str
+    end: str
+
+    def contains_index(self, index):
+        return self.index <= index <= self.last_index
 
 
 @dataclass(frozen=True)
@@ -11,70 +25,131 @@ class Section:
     start: str
     end: str
     introduction: bool = False
+    segments: tuple[Segment, ...] = ()
 
     def contains_index(self, index):
-        return self.index <= index <= self.last_index
+        return any(part.contains_index(index) for part in self.segments) if self.segments else (
+            self.index <= index <= self.last_index
+        )
+
+    @property
+    def passages(self):
+        """Separate ranges, never a single fictitious range over intervening notes."""
+        return tuple((part.start, part.end) for part in self.segments) if self.segments else (
+            (self.start, self.end),
+        )
 
 
 class CommentaryIndex:
     def __init__(self, reader):
         self.reader = reader
         self.sections = []
+        self._section_by_native_index = {}
         key = reader.sword.VerseKey()
         key.setVersificationSystem(reader.versification)
         key.setIntros(True)
         key.setIndex(0)
+
         previous = None
+        previous_position = None
+        previous_chapter = None
+        chapter = None
+        # Keep only this chapter's authored section anchors. Their native
+        # isLinked() identity, not the visible text, distinguishes sections.
+        chapter_origins = []
+
         while True:
             if reader.module.hasEntry(key):
                 index, reference = key.getIndex(), key.getOSISRef()
                 intro = key.getVerse() == 0
-                if (previous is not None and self.sections[-1].last_index + 1 == index
-                        and self.sections[-1].introduction == intro
+                current_chapter = (key.getOSISBookName(), key.getChapter())
+                if current_chapter != chapter:
+                    chapter = current_chapter
+                    chapter_origins = []
+                position = None
+                if (previous is not None and previous_chapter == current_chapter
+                        and previous_position is not None
+                        and self.sections[previous_position].introduction == intro
+                        and previous.getIndex() + 1 == index
                         and reader.module.isLinked(previous, key)):
-                    old = self.sections[-1]
-                    self.sections[-1] = Section(old.index,index,old.start,reference,intro)
+                    position = previous_position
+                elif not intro:
+                    # A native section may resume after an independently
+                    # authored passage (e.g. two disjoint Bible ranges).
+                    # Restrict comparison to this chapter; never group simply
+                    # because two different sections have identical words.
+                    position = next((
+                        existing for existing, anchor in chapter_origins
+                        if reader.module.isLinked(anchor, key)
+                    ), None)
+
+                part = Segment(index, index, reference, reference)
+                if position is None:
+                    position = len(self.sections)
+                    self.sections.append(
+                        Section(index, index, reference, reference, intro, (part,))
+                    )
+                    if not intro:
+                        chapter_origins.append((position, reader.sword.VerseKey(key)))
                 else:
-                    self.sections.append(Section(index,index,reference,reference,intro))
+                    old = self.sections[position]
+                    parts = old.segments
+                    if parts[-1].last_index + 1 == index:
+                        last = parts[-1]
+                        parts = (*parts[:-1], replace(last, last_index=index, end=reference))
+                    else:
+                        parts = (*parts, part)
+                    self.sections[position] = replace(
+                        old, last_index=max(old.last_index, index), end=reference,
+                        segments=parts
+                    )
+                self._section_by_native_index[index] = position
                 previous = reader.sword.VerseKey(key)
+                previous_position = position
+                previous_chapter = current_chapter
             key.increment()
-            if key.popError() != '\x00':break
-        self.starts = [s.index for s in self.sections]
+            if key.popError() != '\x00':
+                break
+        self.starts = [section.index for section in self.sections]
 
     def locate(self, reference):
+        # A binary search on first-section indices cannot find a later
+        # disjoint segment when an independent section occurs between them.
         index = self.reader.key(reference).getIndex()
-        pos = bisect_left(self.starts,index)
-        if pos < len(self.sections) and self.sections[pos].index == index:return pos
-        if pos and self.sections[pos-1].contains_index(index):return pos-1
-        return None
+        return self._section_by_native_index.get(index)
 
     def near(self, reference):
-        return bisect_left(self.starts,self.reader.key(reference).getIndex())
+        return bisect_left(self.starts, self.reader.key(reference).getIndex())
 
     @lru_cache(maxsize=20)
     def text(self, position):
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
         key.setVersificationSystem(self.reader.versification)
-        key.setIntros(True);key.setIndex(section.index)
+        key.setIntros(True)
+        key.setIndex(section.index)
         self.reader.module.setKey(key)
         text = self.reader.module.stripText()
-        return text if isinstance(text,str) else text.c_str()
+        return text if isinstance(text, str) else text.c_str()
 
     @lru_cache(maxsize=20)
     def raw(self, position):
-        section=self.sections[position]
-        key=self.reader.sword.VerseKey()
+        section = self.sections[position]
+        key = self.reader.sword.VerseKey()
         key.setVersificationSystem(self.reader.versification)
-        key.setIntros(True);key.setIndex(section.index)
+        key.setIntros(True)
+        key.setIndex(section.index)
         self.reader.module.setKey(key)
-        text=self.reader.module.getRawEntry()
-        return text if isinstance(text,str) else text.c_str()
+        text = self.reader.module.getRawEntry()
+        return text if isinstance(text, str) else text.c_str()
 
     def label(self, position):
         section = self.sections[position]
         if section.introduction:
             from .i18n import tr
-            return tr('Introduction') + (' — '+section.start if section.start else '')
+            return tr('Introduction') + (' — ' + section.start if section.start else '')
         from .notes_window import passage_label
-        return passage_label(section.start,section.end,self.reader.versification)
+        return '; '.join(
+            passage_label(first, last, self.reader.versification)
+            for first, last in section.passages
+        )
