@@ -139,6 +139,8 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertEqual(applicable_update(self.old,replace(self.new,acquisition=json.dumps(record))),'edition-changed')
         changed=replace(self.new,version='1.0');record['entry']['canonical_edition_id']='identified-test-edition';record['entry']['version']='1.0'
         self.assertEqual(applicable_update(self.old,replace(changed,acquisition=json.dumps(record))),'same-version-content-changed')
+        self.assertEqual(applicable_update(self.old,replace(self.new,license='Different source rights')),'edition-changed')
+        self.assertEqual(applicable_update(self.old,replace(self.new,text_source='Another original publisher')),'edition-changed')
 
     def test_failed_removal_commit_restores_source_immediately_and_cleans_cancelled_intent(self):
         before=tree_manifest(self.library.root/self.old.id);write=self.lifecycle.journal
@@ -178,6 +180,8 @@ class ModuleLifecycleTests(unittest.TestCase):
                 library=Library(Path(temporary)/'translations');lifecycle=ModuleLifecycle(library)
                 def sourced(resource):return replace(resource,provider_id=provider.id,source=provider.name,source_url=provider.url,acquisition='')
                 old=sourced(self.old);new=sourced(self.new)
+                self.assertEqual(applicable_update(replace(old,text_source='First source\nSecond source'),
+                    replace(new,text_source='First source\nDifferent source')),'edition-changed')
                 with self.download(self.old_zip):library.install(old)
                 before=tree_manifest(library.root/old.id)
                 with self.download(self.new_zip) as fetch:lifecycle.update(new)
@@ -185,3 +189,16 @@ class ModuleLifecycleTests(unittest.TestCase):
                 self.assertEqual(library.resource(old.id).source,provider.name)
                 self.assertEqual(library.resource(old.id).version,'1.1')
                 lifecycle.rollback(old.id);self.assertEqual(tree_manifest(library.root/old.id),before)
+
+    def test_missing_crash_journal_preserves_reading_and_blocks_mutation_without_guessing(self):
+        before=tree_manifest(self.library.root/self.old.id)
+        folder=self.library.root/'.transactions'/('a'*32);folder.mkdir(parents=True)
+        unknown=folder/'uncommitted-journal.tmp';unknown.write_bytes(b'INCOMPLETE PRIVATE OPERATION METADATA')
+        reopened=Library(self.library.root);self.assertTrue(reopened.recovery_errors)
+        lifecycle=ModuleLifecycle(reopened)
+        self.assertEqual(lifecycle.removed_resources(),{})
+        self.assertTrue(lifecycle.was_removed('SavedMissingResource'))
+        self.assertIn('OLD EXACT SOURCE',self.text())
+        with self.assertRaisesRegex(ValueError,'recovery metadata'):lifecycle.remove(self.old.id)
+        self.assertEqual(tree_manifest(self.library.root/self.old.id),before)
+        self.assertEqual(unknown.read_bytes(),b'INCOMPLETE PRIVATE OPERATION METADATA')

@@ -211,7 +211,7 @@ class ModuleLifecycle:
             path=folder/'journal.json'
             if path.is_symlink() or path.stat().st_size>4*1024*1024:raise ValueError('Invalid module journal')
             record=json.loads(path.read_text())
-            if not isinstance(record,dict) or record.get('format')!=1:raise ValueError('Invalid module journal')
+            if not isinstance(record,dict) or type(record.get('format')) is not int or record['format']!=1:raise ValueError('Invalid module journal')
             module_name(record['resource'])
             if record.get('operation') not in ('update','remove'):raise ValueError('Invalid module operation')
             yield folder,record
@@ -237,6 +237,7 @@ class ModuleLifecycle:
         from .library import Library
         from .module_updates import applicable_update
         with operation_lock(self.root):
+            self.ready()
             old,before=self.owned(resource.id,unchanged=True)
             state=applicable_update(old,resource)
             if state!='available':raise ValueError('No verified same-edition update: '+state)
@@ -282,18 +283,38 @@ class ModuleLifecycle:
                 return folder,record
         return None
 
+    def ready(self):
+        """An incomplete/unknown ledger cannot authorize another mutation."""
+        try:records=list(self.records() or ())
+        except (OSError,ValueError,TypeError,KeyError):
+            raise ValueError('Module recovery metadata is unavailable. Installed files were preserved.') from None
+        if any(record.get('state') not in ('staging','prepared','rollback-prepared','committed','rolled-back','recovered')
+               or not isinstance(record.get('before'),dict)
+               or record['operation']=='update' and record.get('state')!='staging' and not isinstance(record.get('after'),dict)
+               for _,record in records):
+            raise ValueError('Module recovery metadata is invalid. Installed files were preserved.')
+        if any(record.get('state') in ('staging','prepared','rollback-prepared') for _,record in records):
+            raise ValueError('An interrupted module operation requires recovery. Installed files were preserved.')
+
     def was_removed(self,identifier):
         """Explicit app removal must not trigger the legacy missing-file fallback."""
         if not identifier or (self.root/identifier/'.complete').is_file():return False
-        return any(record['resource']==identifier and record['operation']=='remove' and record['state']=='committed'
-                   for _,record in self.records() or ())
+        try:
+            return any(record['resource']==identifier and record['operation']=='remove' and record['state']=='committed'
+                       for _,record in self.records() or ())
+        except (OSError,ValueError,TypeError,KeyError):
+            # Do not guess another Bible when an interrupted operation's intent
+            # cannot be read. Keep the saved missing resource/reference.
+            return True
 
     def removed_resources(self):
         """Retain source attribution for an explicit offline Download again."""
         from .library import Resource
         from .providers import BY_ID
         result={}
-        for _,record in sorted(self.records() or (),key=lambda item:item[1].get('created','')):
+        try:records=sorted(self.records() or (),key=lambda item:item[1].get('created',''))
+        except (OSError,ValueError,TypeError,KeyError):return result
+        for _,record in records:
             if record['operation']!='remove' or record['state']!='committed':continue
             if (self.root/record['resource']/'.complete').exists():continue
             metadata=record.get('resource_metadata')
@@ -307,6 +328,7 @@ class ModuleLifecycle:
 
     def rollback(self,identifier,*,before_switch=collect_readers):
         with operation_lock(self.root):
+            self.ready()
             self.owned(identifier)
             value=self.rollback_candidate(identifier)
             if value is None:raise ValueError('No previous version is available')
@@ -323,6 +345,7 @@ class ModuleLifecycle:
 
     def remove(self,identifier,*,before_switch=collect_readers):
         with operation_lock(self.root):
+            self.ready()
             resource,before=self.owned(identifier)
             if resource.locked:
                 raise ValueError('Encrypted-module credentials cannot be removed safely by this version; the module was preserved')

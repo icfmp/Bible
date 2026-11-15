@@ -132,3 +132,11 @@ pushing lifecycle actions beyond a small window. A360×620 regression with long
 notes passes; current-version notes are not duplicated. Malformed saved curated
 package identities are rejected as offline catalogues without overwriting the
 file.27 affected native/cache/metadata/startup checks pass.
+
+Final identity/recovery review compares the complete structured TextSource field,
+including multiple lines, rather than parsing the first line of presentation
+text. Changed source authorship/rights also blocks replacement. An incomplete
+private crash journal leaves reading and unknown files intact, suppresses guessed
+missing-Bible fallback, and blocks another mutation until recovery metadata is
+verifiable.53 affected native identity/lifecycle/cache checks pass; the journal
+transition subset separately passes12 cases.

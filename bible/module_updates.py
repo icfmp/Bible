@@ -146,22 +146,22 @@ def applicable_update(installed,available):
             installed.language,installed.locked)!=(available.id,available.source_url,available.source,
             available.driver,available.versification,available.language,available.locked):return 'identity-changed'
     if installed.locked:return 'encrypted-unavailable'
+    if (installed.author,installed.license)!=(available.author,available.license):return 'edition-changed'
     if installed.provider_id=='bible-resources':
         from .curated_catalogue import package_record
         try:old=package_record(installed);new=package_record(available)
         except (ValueError,TypeError,KeyError):return 'identity-unverified'
         if (old['id'],old['canonical_edition_id'],old['edition'])!=(new['id'],new['canonical_edition_id'],new['edition']):
             return 'edition-changed'
+        if installed.text_source!=available.text_source:return 'edition-changed'
         if installed.version==available.version and old['download']['sha256']!=new['download']['sha256']:
             return 'same-version-content-changed'
     else:
         # This contract is extended only to the explicitly assigned providers.
         # A missing original TextSource is uncertainty, not an update offer.
         if installed.provider_id not in ('crosswire','ebible','andbible-extra'):return 'provider-unavailable'
-        def origin(resource):
-            return next((line.partition(':')[2].strip() for line in resource.conditions.splitlines()
-                         if line.lower().startswith('textsource:')),'')
-        if not origin(installed) or origin(installed)!=origin(available):return 'edition-unverified'
+        if not installed.text_source or not available.text_source:return 'edition-unverified'
+        if installed.text_source!=available.text_source:return 'edition-changed'
         if (installed.description,installed.author,installed.license)!=(available.description,available.author,available.license):
             return 'edition-changed'
     old_version=version_key(installed.version);new_version=version_key(available.version)
