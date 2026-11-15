@@ -649,18 +649,43 @@ class ReadingTab(Gtk.Box):
         self._study_coverage=(self.reader.versification,start,end) if start and end and self.reader else None
         self.refresh_study_indicator()
 
+    def mark_commentary_segments(self,segments):
+        """Highlight each genuine linked passage without crossing intervening notes."""
+        segments=tuple((start,end) for start,end in segments if start and end)
+        if len(segments)==1:
+            self.mark_commentary_range(*segments[0])
+        else:
+            self._study_coverage=(
+                (self.reader.versification,segments)
+                if segments and self.reader else None
+            )
+            self.refresh_study_indicator()
+
     def study_ranges(self,reader,ranges):
         if not self._study_coverage or not self.state.study_visible or not reader:return []
-        system,start,end=self._study_coverage
+        coverage=self._study_coverage
+        system=coverage[0]
+        segments=(coverage[1],) if len(coverage)==2 else coverage[1:3]
+        # New disjoint commentary coverage stores (system, ((a,b),(c,d))).
+        if len(coverage)==2:
+            passages=segments[0]
+        else:
+            passages=(segments,)
         from .reference_resolution import resolve
         try:
             if getattr(reader,'addresses',None) and system==reader.versification:
-                refs=set(reader.reference_range(start,end))
+                refs=set()
+                for first,last in passages:
+                    refs.update(reader.reference_range(first,last))
                 return [(begin,finish) for reference,begin,finish in ranges if reference in refs]
-            first=reader.key(resolve(start,system,reader,require_entry=False).start).getIndex()
-            last=reader.key(resolve(end,system,reader,require_entry=False).end).getIndex()
+            indices=[
+                (reader.key(resolve(first,system,reader,require_entry=False).start).getIndex(),
+                 reader.key(resolve(last,system,reader,require_entry=False).end).getIndex())
+                for first,last in passages
+            ]
             return [(begin,finish) for reference,begin,finish in ranges
-                    if first<=reader.key(reference).getIndex()<=last]
+                    if any(first<=reader.key(reference).getIndex()<=last
+                           for first,last in indices)]
         except ValueError:return []
 
     def refresh_study_indicator(self):
