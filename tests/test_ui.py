@@ -104,7 +104,7 @@ class WindowTests(unittest.TestCase):
             dialog.open_details(None,0);spin()
             self.assertEqual(dialog.detail_title.get_text(),resource.description)
             self.assertIn(resource.source,dialog.detail_subtitle.get_text())
-            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),'French')
+            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),resource.language and __import__('bible.languages',fromlist=['language_name']).language_name(resource.language))
             self.assertIn('Attribution and conditions',dialog.conditions_text.get_text())
             self.assertFalse(dialog.technical.get_expanded())
             self.assertIn(resource.name,dialog.metadata.get_text())
