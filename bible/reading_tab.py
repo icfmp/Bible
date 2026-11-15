@@ -665,12 +665,9 @@ class ReadingTab(Gtk.Box):
         if not self._study_coverage or not self.state.study_visible or not reader:return []
         coverage=self._study_coverage
         system=coverage[0]
-        segments=(coverage[1],) if len(coverage)==2 else coverage[1:3]
-        # New disjoint commentary coverage stores (system, ((a,b),(c,d))).
-        if len(coverage)==2:
-            passages=segments[0]
-        else:
-            passages=(segments,)
+        # Preserve the legacy single-range state used by notes/references.
+        # Disjoint commentary coverage stores (system, ((a,b),(c,d),...)).
+        passages=coverage[1] if len(coverage)==2 else (coverage[1:3],)
         from .reference_resolution import resolve
         try:
             if getattr(reader,'addresses',None) and system==reader.versification:
