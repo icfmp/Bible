@@ -48,4 +48,3 @@ class ModuleManagementTests(unittest.TestCase):
             report=checked_modules(library,[new,next_direct],{})
             self.assertEqual(report[old.id]['state'],'local-unverified')
             self.assertEqual(report[direct.id]['state'],'available')
-
