@@ -67,7 +67,8 @@ class CommentaryIndex:
                     chapter = current_chapter
                     chapter_origins = []
                 position = None
-                if (previous is not None and previous_chapter == current_chapter
+                if (previous is not None
+                        and (previous_chapter == current_chapter or intro)
                         and previous_position is not None
                         and self.sections[previous_position].introduction == intro
                         and previous.getIndex() + 1 == index
