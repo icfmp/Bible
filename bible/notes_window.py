@@ -245,6 +245,10 @@ class NoteEditor(Adw.Window):
 
     def use_window_layout(self,*,expanded=False):
         """Keep native window actions visible while short windows scroll the editor."""
+        # Inline hosts hide title buttons. Restore the platform's native
+        # controls when the same editor becomes a standalone window.
+        self.header.set_show_start_title_buttons(True)
+        self.header.set_show_end_title_buttons(True)
         layout=self.embedded_content
         layout.set_margin_top(0)
         layout.set_margin_bottom(0)

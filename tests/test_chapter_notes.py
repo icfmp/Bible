@@ -10,6 +10,23 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK')
 class ChapterNotesTests(unittest.TestCase):
+    def test_expansion_restores_native_close_controls_and_retains_unsaved_buffer(self):
+        editor=self.p.open_note(self.notes[0]);buffer=editor.body.get_buffer()
+        editor.body.set_source('An unsaved personal draft')
+        context=dict(editor.context);saved=self.w.notes_store.get(self.notes[0].id)
+        self.assertFalse(editor.header.get_show_end_title_buttons())
+        self.p.expand_editor();spin(lambda:not editor.embedded)
+        self.assertTrue(editor.header.get_show_start_title_buttons())
+        self.assertTrue(editor.header.get_show_end_title_buttons())
+        self.assertIs(editor.body.get_buffer(),buffer)
+        self.assertEqual(editor.context,context)
+        editor.close();spin()
+        self.assertFalse(editor.closed)
+        self.assertTrue(editor._confirmation.get_visible())
+        self.assertEqual(self.w.notes_store.get(saved.id),saved)
+        editor._confirmation.response('cancel');editor._confirmation.destroy();spin()
+        self.assertEqual(editor.body.source(),'An unsaved personal draft')
+
     def test_empty_chapter_never_hides_a_draft_or_existing_annotations(self):
         p=self.p;self.assertFalse(p.empty_page.get_visible())
         self.w.active_tab.navigate('Test','Acts.2.1');spin(lambda:not self.w.active_tab._restoring_scroll)
