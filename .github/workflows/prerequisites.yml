@@ -275,7 +275,8 @@ jobs:
           settings=ApplicationSettings(root);settings.set('automatic_catalogue_refresh',False)
           library=Library(root/'translations');assert inspect.getfile(Library).startswith('/app/')
           resources=curated();resources=[next(r for r in resources if r.name==name) for name in ('BRLSG1910','BRMHCC')]
-          resources.append(next(r for r in catalogue(CROSSWIRE) if r.name=='Easton'))
+          direct=catalogue(CROSSWIRE)
+          resources.extend(next(r for r in direct if r.name==name) for name in ('Easton','Didache'))
           for resource in resources:library.install(resource)
           (root/'real-module-sources.json').write_text(json.dumps({r.id:dict(source=r.source,version=r.version,driver=r.driver) for r in resources},indent=2))
           PY

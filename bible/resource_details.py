@@ -69,14 +69,14 @@ def details(resource):
                     provenance+='\n'+tr('Profile approval reported by the source')+' ('+str(language)+'): '+profile['approved_at']+'\n'+profile['approval_url']
     return '\n\n'.join([
         f'{plain(resource.description)} ({resource.name})',
-        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources','dictionary':'Dictionary or lexicon','encyclopedia':'Encyclopedia'}.get(resource.kind,'Bibles')),
+        f'{tr("Resource type")}: '+tr({'commentary':'Commentaries','study':'Study resources','dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bibles')),
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
         f'{tr("Version")}: {resource.version}' if getattr(resource,'version','') else '',
         provenance,
         f'{tr("License")}: {plain(resource.license)}',
-        f'{tr("Verse numbering")}: {numbering}',
+        f'{tr("Verse numbering")}: {numbering}' if resource.kind in ('bible','commentary','study') else '',
         availability,
         f'{tr("Conditions and attribution")}:\n' + (
             tr('Loading edition details…') if pending else

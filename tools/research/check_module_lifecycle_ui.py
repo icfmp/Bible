@@ -14,7 +14,7 @@ p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('
 assert (a.profile/'.ready-batch-test-profile').is_file()
 if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
 a.output.mkdir(parents=True,exist_ok=True);library=Library(a.profile/'translations')
-expected={'bible-resources~BRLSG1910','bible-resources~BRMHCC','Easton'}
+expected={'bible-resources~BRLSG1910','bible-resources~BRMHCC','Easton','Didache'}
 assert expected<=set(library.installed())
 before={identifier:source_fingerprints(library.root/identifier) for identifier in expected}
 app=Application();app.register();w=Window(app,library);w.set_default_size(1280,900);w.present();spin()
@@ -44,7 +44,7 @@ try:
   for identifier in sorted(expected):
    choose(dialog,identifier);shot(mode+'-details-'+identifier)
   dialog.set_default_size(360,620);spin();choose(dialog,'Easton');assert dialog.get_width()<=360,dialog.get_width();shot(mode+'-narrow-tool');dialog.set_default_size(560,640);spin()
- for identifier in ('Easton','bible-resources~BRMHCC','bible-resources~BRLSG1910'):
+ for identifier in ('Didache','Easton','bible-resources~BRMHCC','bible-resources~BRLSG1910'):
   item=library.resource(identifier);choose(dialog,identifier)
   native.activate(dialog);dialog.modules.remove_button.grab_focus();native.key('space');spin();prompt=confirmation();shot('confirm-'+identifier)
   prompt.response('cancel');prompt.destroy();spin();assert source_fingerprints(library.root/identifier)==before[identifier]

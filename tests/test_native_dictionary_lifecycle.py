@@ -7,14 +7,14 @@ from bible.library import Library,config,resource_from_section
 from bible.module_lifecycle import ModuleLifecycle
 from bible.module_updates import applicable_update
 from bible.providers import CROSSWIRE
-from bible.sword_provider import DictionaryReader
+from bible.sword_provider import DictionaryReader,GeneralBookReader
 from tests.test_library import archive_bytes
 
 
 def package(driver,version):
     import Sword
     with tempfile.TemporaryDirectory() as temporary:
-        root=Path(temporary);base=root/'modules/lexdict'/driver.lower()/'fixture';base.parent.mkdir(parents=True)
+        root=Path(temporary);folder='genbook' if driver=='RawGenBook' else 'lexdict';base=root/'modules'/folder/driver.lower()/'fixture';base.parent.mkdir(parents=True)
         factory=getattr(Sword,driver);factory.createModule(str(base))
         if driver=='zLD':
             compressor=Sword.ZipCompress();module=factory(str(base),'Test','Synthetic lifecycle fixture',200,compressor)
@@ -22,9 +22,12 @@ def package(driver,version):
             # when this local Python wrapper is collected after the writer.
             compressor.thisown=False
         else:module=factory(str(base),'Test','Synthetic lifecycle fixture')
-        module.setKey(Sword.SWKey('ENTRY'));module.setEntry('EXACT SYNTHETIC DICTIONARY FIXTURE '+version);del module
+        if driver=='RawGenBook':
+            key=Sword.TreeKey.castTo(module.getKey());key.assureKeyPath('/ENTRY');key.save()
+        else:module.setKey(Sword.SWKey('ENTRY'))
+        module.setEntry('EXACT SYNTHETIC TOOL FIXTURE '+version);key=None;del module
         conf=(f'[Test]\nDescription=Synthetic lifecycle fixture\nLang=en\nVersion={version}\n'
-              f'DataPath=./modules/lexdict/{driver.lower()}/fixture\nModDrv={driver}\n'
+              f'DataPath=./modules/{folder}/{driver.lower()}/fixture\nModDrv={driver}\n'
               'Category=Lexicons / Dictionaries\nSourceType=Plaintext\nCompressType=ZIP\nEncoding=UTF-8\nDistributionLicense=Public Domain\n'
               'TextSource=Identified synthetic test edition\n').encode()
         (root/'mods.d').mkdir();(root/'mods.d/test.conf').write_bytes(conf)
@@ -49,23 +52,24 @@ class NativeDictionaryLifecycleTests(unittest.TestCase):
             self.assertEqual(library.installed(),[]);self.assertEqual(personal.read_bytes(),b'KEEP PERSONAL NOTE')
 
     def test_native_dictionary_install_update_rollback_remove_and_classification(self):
-        for driver in ('RawLD','RawLD4','zLD'):
+        for driver in ('RawLD','RawLD4','zLD','RawGenBook'):
             with self.subTest(driver=driver),tempfile.TemporaryDirectory() as temporary:
                 print('Native dictionary format:',driver,flush=True)
                 old,before=package(driver,'1.0');new,after=package(driver,'1.1')
                 library=Library(Path(temporary)/'translations');lifecycle=ModuleLifecycle(library)
-                self.assertEqual(old.kind,'dictionary');self.assertTrue(old.installable)
+                self.assertEqual(old.kind,'general' if driver=='RawGenBook' else 'dictionary');self.assertTrue(old.installable)
                 self.assertEqual(applicable_update(old,new),'available')
                 with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(before)):library.install(old)
                 self.assertEqual(library.installed('bible'),[])
-                DictionaryReader(library.root/old.id,old.name).verify_readable()
+                (GeneralBookReader if driver=='RawGenBook' else DictionaryReader)(library.root/old.id,old.name).verify_readable()
                 with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(after)):lifecycle.update(new)
                 self.assertEqual(library.resource(old.id).version,'1.1');lifecycle.rollback(old.id)
                 self.assertEqual(library.resource(old.id).version,'1.0')
                 self.assertTrue(lifecycle.remove(old.id)['removed']);self.assertTrue(lifecycle.was_removed(old.id))
                 self.assertEqual(library.installed(),[])
 
-    def test_unknown_general_book_is_not_a_bible_or_silently_supported(self):
+    def test_general_book_and_unknown_formats_are_not_mislabelled_or_invented(self):
         from bible.library import Resource
         resource=Resource('General','Provider book','en','Unknown',driver='RawGenBook')
-        self.assertEqual(resource.kind,'encyclopedia');self.assertFalse(resource.installable)
+        self.assertEqual(resource.kind,'general');self.assertTrue(resource.installable)
+        self.assertFalse(replace(resource,driver='UnknownDriver').installable)

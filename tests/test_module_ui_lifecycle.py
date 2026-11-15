@@ -53,6 +53,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIn('ORIGINAL MODULE WORDING',tab.comparison_text.get_buffer().props.text)
         self.assertEqual(tab.state.history,history);self.assertEqual(tab.state.reference,'Gen.1.1')
         self.assertIs(w.study.notes.editor,editor);self.assertEqual(editor.body.get_buffer().props.text,'Unsaved personal draft')
+        self.assertIn('UPDATED MODULE WORDING',editor.excerpt.get_text())
         self.assertEqual([asdict(n) for n in w.notes_store.all()],before)
         self.assertEqual(w.highlights.entries[('KJV','Gen.1.1')]['color'],'yellow')
 
@@ -67,6 +68,24 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual(self.dialog._phase,'error');self.assertIs(tab.reader,old)
         self.assertIn('ORIGINAL MODULE WORDING',tab.text.get_buffer().props.text)
         self.assertEqual(self.library.resource(self.old.id).version,'1.0')
+
+    def test_workspace_note_keeps_unsaved_text_and_labels_while_its_source_excerpt_updates(self):
+        w=self.w;self.dialog.close();w.open_notes();spin()
+        space=w.notes_space;editor=space.open_note(self.note);spin()
+        buffer=editor.body.get_buffer();buffer.set_text('Workspace unsaved draft')
+        editor.labels.entry.set_text('pending label')
+        notes=[asdict(n) for n in w.notes_store.all()]
+        self.dialog=w.open_library();spin(lambda:not self.dialog.preparing)
+        self.dialog.modules.reports[self.old.id]=dict(state='available',available=self.new,error='')
+        self.dialog.language_choice='';self.dialog.update_languages();spin(lambda:not self.dialog._building_rows)
+        self.dialog.open_details(None,next(i for i,r in enumerate(self.dialog.filtered_resources) if r.id==self.old.id))
+        with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(self.new_zip)):
+            self.dialog.modules.run('update');spin(lambda:not self.dialog.busy,timeout=15)
+        self.assertEqual(self.dialog._phase,'complete',self.dialog.status.get_text())
+        self.assertIs(space.editor,editor);self.assertIs(editor.body.get_buffer(),buffer)
+        self.assertEqual(buffer.props.text,'Workspace unsaved draft');self.assertEqual(editor.labels.entry.get_text(),'pending label')
+        self.assertIn('UPDATED MODULE WORDING',editor.excerpt.get_text())
+        self.assertEqual([asdict(n) for n in w.notes_store.all()],notes)
 
     def test_library_controls_update_then_restore_the_previous_verified_package(self):
         d=self.dialog;tab=self.w.active_tab
@@ -101,6 +120,10 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual(tab.comparison_text.get_buffer().get_char_count(),0)
         self.assertEqual(getattr(tab,'_comparison_tick',0),0)
         self.assertEqual(tab.state.history,history);self.assertEqual([asdict(n) for n in w.notes_store.all()],before)
+        from tests.test_commentary import commentary_fixture
+        commentary_fixture(self.root,name='AddedCommentary')
+        w.resource_installed('AddedCommentary');spin()
+        self.assertIsNone(tab.reader);self.assertEqual(tab.state.resource,self.old.id)
         app=w.get_application();d.close();w.close();spin()
         reopened=Window(app,self.library);reopened.present();spin()
         try:

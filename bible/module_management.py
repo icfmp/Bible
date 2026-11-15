@@ -32,7 +32,10 @@ def checked_modules(library,resources,errors):
     available={r.id:r for r in resources};reports={}
     lifecycle=ModuleLifecycle(library)
     for identifier in library.installed():
-        old=library.resource(identifier);new=available.get(identifier);error=''
+        try:old=library.resource(identifier)
+        except (OSError,ValueError,TypeError,KeyError) as failure:
+            reports[identifier]=dict(state='local-unverified',available=None,error=str(failure));continue
+        new=available.get(identifier);error=''
         state=('provider-unavailable' if old.provider_id not in SUPPORTED else
                'offline' if old.source in errors or 'Library' in errors else
                'missing' if new is None else applicable_update(old,new))

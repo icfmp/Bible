@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'General book':'Ouvrage général',
     'Source edition metadata could not be verified.':'Les métadonnées de l’édition source n’ont pas pu être vérifiées.',
     'Source edition':'Édition identifiée par la source',
     'Profile approval reported by the source':'Approbation de la fiche indiquée par la source',

@@ -263,7 +263,7 @@ class ModuleLifecycle:
         from .sword_provider import Reader,CommentaryReader
         # The shared installer already validated the dictionary in a bounded
         # native subprocess; it has no verse-address coverage to migrate.
-        if old.kind=='dictionary':return
+        if old.kind in ('dictionary','general'):return
         factory=CommentaryReader if old.kind=='commentary' else Reader
         previous=factory(self.root/old.id,old.name);next_reader=factory(candidate,new.name)
         # A resource update must not silently remove/renumber existing Bible

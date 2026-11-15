@@ -35,3 +35,17 @@ class ModuleManagementTests(unittest.TestCase):
             with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(payload)):library.install(old)
             self.assertEqual(checked_modules(library,[other],{})[old.id]['state'],'missing')
 
+    def test_one_damaged_installation_receipt_does_not_block_other_verified_sources(self):
+        from bible.providers import CROSSWIRE
+        old,payload=package('1.0','ORIGINAL SOURCE FIXTURE');new,_=package('1.1','NEXT SOURCE FIXTURE')
+        direct=replace(old,provider_id=CROSSWIRE.id,source=CROSSWIRE.name,source_url=CROSSWIRE.url,acquisition='')
+        next_direct=replace(new,provider_id=CROSSWIRE.id,source=CROSSWIRE.name,source_url=CROSSWIRE.url,acquisition='')
+        with tempfile.TemporaryDirectory() as temporary:
+            library=Library(Path(temporary)/'translations')
+            with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(payload)):
+                library.install(old);library.install(direct)
+            (library.root/old.id/'.source.json').write_bytes(b'[')
+            report=checked_modules(library,[new,next_direct],{})
+            self.assertEqual(report[old.id]['state'],'local-unverified')
+            self.assertEqual(report[direct.id]['state'],'available')
+

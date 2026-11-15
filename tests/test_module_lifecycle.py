@@ -170,3 +170,18 @@ class ModuleLifecycleTests(unittest.TestCase):
                 self.assertFalse(reopened.recovery_errors)
                 self.assertEqual(tree_manifest(self.library.root/self.old.id),current)
                 self.assertIsNotNone(ModuleLifecycle(reopened).rollback_candidate(self.old.id))
+
+    def test_direct_provider_staging_uses_each_source_and_restores_exact_previous_files(self):
+        from bible.providers import CROSSWIRE,EBIBLE,EXTRA
+        for provider in (CROSSWIRE,EBIBLE,EXTRA):
+            with self.subTest(provider=provider.id),tempfile.TemporaryDirectory() as temporary:
+                library=Library(Path(temporary)/'translations');lifecycle=ModuleLifecycle(library)
+                def sourced(resource):return replace(resource,provider_id=provider.id,source=provider.name,source_url=provider.url,acquisition='')
+                old=sourced(self.old);new=sourced(self.new)
+                with self.download(self.old_zip):library.install(old)
+                before=tree_manifest(library.root/old.id)
+                with self.download(self.new_zip) as fetch:lifecycle.update(new)
+                self.assertEqual(fetch.call_args.args[0],provider.packages_url+'Test.zip')
+                self.assertEqual(library.resource(old.id).source,provider.name)
+                self.assertEqual(library.resource(old.id).version,'1.1')
+                lifecycle.rollback(old.id);self.assertEqual(tree_manifest(library.root/old.id),before)

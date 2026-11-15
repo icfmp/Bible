@@ -159,7 +159,7 @@ class LibraryTests(unittest.TestCase):
         from dataclasses import replace
         for resource in [replace(RESOURCE, locked=True),
                          replace(RESOURCE, source_url='https://untrusted.test/'),
-                         replace(RESOURCE, driver='RawGenBook')]:
+                         replace(RESOURCE, driver='UnknownDriver')]:
             with self.subTest(resource=resource), tempfile.TemporaryDirectory() as directory:
                 with patch('bible.library.download', side_effect=AssertionError('Must not download')):
                     with self.assertRaises(ValueError):

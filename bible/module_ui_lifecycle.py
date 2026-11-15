@@ -123,4 +123,11 @@ class ModuleViewChange:
             if window.notes_space:
                 window.notes_space.refresh()
                 if window.notes_space.selected_annotation:window.notes_space.update_context(window.notes_space.selected_annotation)
+            editors={window.note_editor,window.study.notes.editor,
+                     window.notes_space.editor if window.notes_space else None}
+            for editor in editors:
+                if editor and not editor.closed and editor.context['origin_translation']==self.identifier:
+                    # Refresh the read-only source excerpt, never remount the
+                    # editor or replace its live buffer/undo/autosave state.
+                    editor.excerpt.set_text(editor.source_excerpt())
         self.tabs=[];self.windows=[]

@@ -24,6 +24,7 @@ MAX_UNPACKED = 256 * 1024 * 1024
 BIBLE_DRIVERS = {'zText', 'RawText', 'RawText4', 'zText4'}
 COMMENTARY_DRIVERS = {'RawCom', 'RawCom4', 'zCom', 'zCom4'}
 DICTIONARY_DRIVERS = {'RawLD', 'RawLD4', 'zLD'}
+GENERAL_BOOK_DRIVERS={'RawGenBook'}
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ class Resource:
     @property
     def kind(self):
         if self.driver in DICTIONARY_DRIVERS:return 'dictionary'
-        if self.driver=='RawGenBook':return 'encyclopedia'
+        if self.driver in GENERAL_BOOK_DRIVERS:return 'general'
         return 'commentary' if self.driver in COMMENTARY_DRIVERS or self.category == 'Commentaries' else 'bible'
 
     @property
@@ -72,7 +73,7 @@ class Resource:
             try:
                 if not (json.loads(self.acquisition).get('offline') or {}).get('url'):return False
             except (ValueError,TypeError,AttributeError):return False
-        return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS
+        return (not self.locked and self.driver in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS | GENERAL_BOOK_DRIVERS
                 and self.category not in {'Images', 'Maps'})
 
 
@@ -246,7 +247,7 @@ def parse_sword_catalogue(data,provider=CROSSWIRE):
             for name in parser.sections():
                 section = parser[name]
                 if (re.fullmatch(r'[A-Za-z0-9_-]+', name)
-                        and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS
+                        and (section.get('ModDrv') in BIBLE_DRIVERS | COMMENTARY_DRIVERS | DICTIONARY_DRIVERS | GENERAL_BOOK_DRIVERS
                              or section.get('Category') in {'Biblical Texts', 'Commentaries'})):
                     resources.append(resource_from_section(name, section, provider))
     return sorted(resources, key=lambda r: (r.language, r.name))
@@ -453,8 +454,8 @@ class Library:
             for key in section:
                 if key.lower().endswith('path') and key.lower() != 'datapath':
                     raise ValueError('Unsupported resource path')
-            if actual.kind=='dictionary':
-                from .native_dictionary import verify
+            if actual.kind in ('dictionary','general'):
+                from .native_module_probe import verify
                 verify(target,resource.name)
             else:
                 from .sword_provider import Reader, CommentaryReader
