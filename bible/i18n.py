@@ -3,6 +3,12 @@ import locale
 import os
 
 FR = {
+    'Resource information':'Informations sur la ressource',
+    'Source and attribution':'Source et attribution',
+    'Technical details':'Détails techniques',
+    'Open source':'Consulter la source',
+    'License details':'Détails de la licence',
+    'Personal notes and highlights are retained when removing a resource.':'Les notes personnelles et les surlignages sont conservés lors de la suppression d’une ressource.',
     'Catalogue version notes':'Notes de la version du catalogue',
     'Version notes (source)':'Notes de version (source)',
     'No version notes supplied by the source.':'Aucune note de version fournie par la source.',

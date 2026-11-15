@@ -17,11 +17,15 @@ class LoadingCards(Gtk.Box):
             card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
                          accessible_role=Gtk.AccessibleRole.PRESENTATION)
             card.add_css_class('card')
-            for width in (150,220):
+            # Inset the *whole* skeleton content, like real passage cards.
+            # A single inner box keeps bars aligned without stacked margins.
+            content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
+                            margin_start=16,margin_end=16,margin_top=12,margin_bottom=12)
+            for width in (112,164):
                 line=Gtk.DrawingArea(height_request=12,width_request=width,halign=Gtk.Align.START,
-                                     margin_start=12,margin_end=12,margin_top=4,margin_bottom=4,
                                      accessible_role=Gtk.AccessibleRole.PRESENTATION)
-                line.set_draw_func(placeholder);card.append(line)
+                line.set_draw_func(placeholder);content.append(line)
+            card.append(content)
             self.append(card)
         self.connect('map',self.animate);self.connect('unmap',self.stop)
         self.connect('notify::root',self.root_changed)

@@ -89,6 +89,89 @@ class WindowTests(unittest.TestCase):
                     dialog.back_to_list()
                 dialog.close()
 
+    def test_client_detail_hierarchy_preserves_source_terms_and_actions(self):
+        from bible.library import Resource
+        from bible.languages import language_name
+        from bible.ui import Gtk
+        resource=Resource('TestModule','Verified sample edition','fr',
+                          'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
+                          conditions='Attribution and conditions remain visible.',
+                          about='Additional required source attribution.',
+                          source='CrossWire',source_url='https://crosswire.org/',
+                          author='Research & source author',version='1.0 <edition> & source')
+        with tempfile.TemporaryDirectory() as directory:
+            window=self.window(directory)
+            dialog=window.open_library()
+            with patch('bible.catalogue_window.catalogue',return_value=[resource]):
+                dialog.load_catalogue()
+                spin(lambda:not dialog.busy and not dialog._building_rows)
+            dialog.open_details(None,0);spin()
+            self.assertEqual(dialog.detail_title.get_text(),resource.description)
+            self.assertIn(resource.source,dialog.detail_subtitle.get_text())
+            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),language_name(resource.language))
+            for key,value in [('author',resource.author),('version',resource.version)]:
+                row=dialog.detail_rows[key]
+                self.assertFalse(row.get_use_markup())
+                self.assertEqual(row.get_subtitle(),value)
+                # Inspect the actual native label, not only its raw property.
+                def texts(widget):
+                    child=widget.get_first_child()
+                    while child:
+                        if isinstance(child,Gtk.Label):yield child.get_text()
+                        yield from texts(child);child=child.get_next_sibling()
+                self.assertIn(value,list(texts(row)))
+            self.assertIn('Attribution and conditions',dialog.conditions_text.get_text())
+            self.assertTrue(dialog.about_text.get_visible())
+            self.assertIn(resource.about,dialog.about_text.get_text())
+            self.assertFalse(dialog.technical.get_expanded())
+            self.assertIn(resource.name,dialog.metadata.get_text())
+            self.assertEqual(dialog._source_link.get_uri(),resource.source_url)
+            self.assertEqual(dialog._license_link.get_uri(),
+                             'https://creativecommons.org/licenses/by/4.0/')
+            self.assertTrue(dialog.download_button.get_visible())
+            self.assertFalse(dialog.read_button.get_visible())
+            self.assertFalse(dialog.modules.update_button.get_visible())
+            dialog.close();window.close()
+
+    def test_study_detail_without_a_module_version_keeps_accurate_controls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            window=self.window(directory);dialog=window.open_library()
+            dialog.kind.set_selected(2);spin(lambda:not dialog._building_rows)
+            resources=[(i,r) for i,r in enumerate(dialog.filtered_resources) if r.kind=='study']
+            self.assertGreaterEqual(len(resources),4)
+            for index,resource in resources:
+                dialog.open_details(None,index);spin()
+                self.assertEqual(dialog.detail_title.get_text(),resource.description)
+                self.assertFalse(dialog.detail_rows['version'].get_visible())
+                self.assertFalse(dialog.read_button.get_visible())
+                self.assertFalse(dialog.modules.update_button.get_visible())
+                self.assertTrue(dialog.download_button.get_visible())
+                dialog.back_to_list()
+            dialog.close();window.close()
+
+    def test_note_insets_and_search_placeholder_content_are_separate(self):
+        from bible.ui import Gtk
+        from bible.loading_cards import LoadingCards
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window=self.window(directory)
+            editor=window.new_note(force_new=True)
+            self.assertIsInstance(editor.header.get_title_widget(),Gtk.Box)
+            scroll=editor.get_content().get_last_child()
+            self.assertGreaterEqual(scroll.get_margin_top(),8)
+            self.assertGreaterEqual(scroll.get_margin_bottom(),12)
+            editor.close()
+            space=window.open_notes()
+            self.assertEqual(space.editor_panel.get_margin_top(),12)
+            self.assertEqual(space.editor_panel.get_margin_bottom(),16)
+            placeholders=LoadingCards('Searching…',count=1)
+            card=placeholders.get_first_child()
+            content=card.get_first_child()
+            self.assertEqual(content.get_margin_start(),16)
+            self.assertEqual(content.get_margin_bottom(),12)
+            self.assertEqual(content.get_first_child().get_margin_start(),0)
+            window.close()
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application, Gtk

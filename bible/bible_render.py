@@ -1,8 +1,8 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
-from .reading_metrics import line_spacing,paragraph_space_size
-from .verse_typography import configure
+from .reading_metrics import line_spacing,paragraph_space_size,EDITORIAL_GAP
+from .verse_typography import configure,NUMBER_COLORS
 from gi.repository import Gtk,Pango
 from gi.repository import GObject
 
@@ -64,8 +64,12 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
         elif kind=='editorial':
+            # Reuse the reader's contrast-checked secondary foreground. The
+            # existing ReadingStyle invalidation updates this tag on palette
+            # changes without rebuilding the text or moving the reading anchor.
+            tag.props.foreground=NUMBER_COLORS[getattr(view,'_reading_palette','white')]
             tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
-            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2
+            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2+EDITORIAL_GAP
         elif kind=='poetry':tag.props.pixels_below_lines=line_spacing(preferences)
         elif kind=='paragraph-space':
             tag.props.size_points=paragraph_space_size(preferences)

@@ -12,7 +12,7 @@ import gi
 
 gi.require_version('Pango','1.0')
 from gi.repository import Pango
-from .reading_metrics import SPACING, line_spacing
+from .reading_metrics import SPACING, line_spacing, EDITORIAL_GAP
 from .preparation import checkpoint
 
 
@@ -225,6 +225,11 @@ def shaped_lines(widget,document,preferences,width,first,last,*,cancelled=None):
     native layout disproportionately expensive; split only at real paragraph
     boundaries, never inside words, source spans or a shaped paragraph.
     """
+    # GTK's source-editorial paragraph tag adds a small bottom inset. Include
+    # it in the page plan too; do not risk an extra line below the viewport.
+    # Build this set once, rather than scanning every style for every line.
+    editorial_breaks={style.start+m.start() for style in document.styles if style.kind=='editorial'
+                      for m in re.finditer('\n',document.text[style.start:style.end])}
     position=first;y=0
     while position<last:
         checkpoint(cancelled)
@@ -253,6 +258,7 @@ def shaped_lines(widget,document,preferences,width,first,last,*,cancelled=None):
                 # paragraph. Use its native position without counting it twice.
                 y+=logical.y/Pango.SCALE;break
             yield position-first+offset,y+logical.y/Pango.SCALE,logical.height/Pango.SCALE
+            if position+offsets[line.start_index+line.length] in editorial_breaks:y+=EDITORIAL_GAP
             if not iterator.next_line():break
         position=end
 

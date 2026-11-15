@@ -79,6 +79,44 @@ class PaletteTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires real GTK under Xvfb')
 class AppearanceTests(unittest.TestCase):
+    def test_editorial_roles_follow_palette_without_replacing_the_buffer(self):
+        from bible.ui import Window,Library,Gtk
+        from gi.repository import Gdk
+        from bible.bible_render import render
+        from bible.commentary_format import apply
+        from bible.pagination import Document,StyleSpan
+        from bible.verse_typography import NUMBER_COLORS
+        from tests.test_ui import installed_fixture,spin
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            w=Window(self.app,Library(Path(directory)/'translations'));w.present();spin()
+            try:
+                view=w.active_tab.text
+                text='Editorial references\nScripture control'
+                document=Document('Gen.1',text,(),(StyleSpan('editorial',0,21),))
+                render(view,w.active_tab.reader,None,w.preferences.value,document)
+                paged=Gtk.TextView();paged.get_buffer().set_text(text)
+                w.reading_style.decorate(paged)
+                apply(paged,[('editorial',0,21)],w.preferences.value,w.reading_style.palette)
+                buffer=view.get_buffer()
+                buffer.select_range(buffer.get_iter_at_offset(2),buffer.get_iter_at_offset(8))
+                with SystemStyleOverride() as system:
+                    for mode,palette,high in [('day','white',False),('day','paper',False),
+                                              ('night','dark',False),('night','black',False),
+                                              ('day','contrast-day',True),('night','contrast-night',True)]:
+                        system.set(dark=mode=='night',high=high)
+                        if not high:w.appearance.update('day_palette' if mode=='day' else 'night_palette',palette)
+                        w.appearance.update('mode',mode);spin()
+                        expected=Gdk.RGBA();expected.parse(NUMBER_COLORS[palette])
+                        for target,name in [(view,'verse-editorial'),(paged,'source-editorial')]:
+                            tag=target.get_buffer().get_tag_table().lookup(name)
+                            self.assertEqual(tag.props.foreground_rgba.to_string(),expected.to_string())
+                        self.assertGreaterEqual(contrast(PALETTES[palette][0],NUMBER_COLORS[palette]),4.5)
+                        self.assertIs(view.get_buffer(),buffer)
+                        self.assertEqual(buffer.props.text,text)
+                        self.assertEqual(tuple(i.get_offset() for i in buffer.get_selection_bounds()),(2,8))
+            finally:w.close()
+
     def test_controls_stay_in_header_and_reference_field_is_visible(self):
         from bible.ui import Window,Library
         from tests.test_ui import installed_fixture,spin

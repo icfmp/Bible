@@ -1,5 +1,6 @@
 """Plain, noninteractive presentation of untrusted provider metadata."""
 from html.parser import HTMLParser
+from urllib.parse import urlsplit
 import re
 from .i18n import tr
 
@@ -34,6 +35,25 @@ def plain(value):
     # immediately following capital (e.g. \\par\\parSource:). Keep all words.
     value = re.sub(r'\\+par(?:d)?(?=$|[^a-z])\s*', '\n', value)
     return re.sub(r'\\+(?:qc|b0?|i0?)\b\s*', '', value).strip()
+
+
+def linkable_url(value):
+    """Expose only explicit, valid HTTP(S) provider URLs as clickable links."""
+    if not isinstance(value,str) or len(value)>2048:return ''
+    candidate=value.strip()
+    if not candidate or any(ord(ch)<33 or ord(ch)==127 for ch in candidate):return ''
+    try:parsed=urlsplit(candidate)
+    except ValueError:return ''
+    return candidate if parsed.scheme in ('http','https') and parsed.hostname and not parsed.username and not parsed.password else ''
+
+
+def first_link(value):
+    """Find an explicitly supplied license link; never synthesize one."""
+    if not isinstance(value,str):return ''
+    for match in re.finditer(r'https?://[^\s<>"]+',value):
+        result=linkable_url(match.group().rstrip(').,;'))
+        if result:return result
+    return ''
 
 
 from .languages import language_name

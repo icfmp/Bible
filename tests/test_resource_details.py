@@ -12,6 +12,16 @@ class MetadataTests(unittest.TestCase):
         self.assertIn(tr('Loading edition details…'),text)
         self.assertNotIn(tr('No additional conditions supplied by the source.'),text)
 
+    def test_only_explicit_http_links_are_displayed(self):
+        from bible.resource_details import linkable_url, first_link
+        self.assertEqual(linkable_url('https://crosswire.org/'), 'https://crosswire.org/')
+        self.assertEqual(linkable_url('javascript:alert(1)'), '')
+        self.assertEqual(linkable_url('https://evil.test@crosswire.org/'), '')
+        self.assertEqual(linkable_url('https://crosswire.org/\n'), 'https://crosswire.org/')
+        self.assertEqual(first_link('CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)'),
+                         'https://creativecommons.org/licenses/by/4.0/')
+        self.assertEqual(first_link('No link supplied'), '')
+
     def test_legacy_paragraphs_keep_attribution_words(self):
         value = r'First paragraph. \\par\\parSource: Richard Lemay. \\parPermission retained.'
         text = plain(value)

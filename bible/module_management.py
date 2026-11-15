@@ -47,7 +47,7 @@ def checked_modules(library,resources,errors):
 
 
 class ModuleManagement:
-    def __init__(self,dialog,detail):
+    def __init__(self,dialog,detail,primary=None):
         self.dialog=dialog;self.reports={};self.revision=0;self.queue=[];self._next=0
         self.notice=Gtk.Label(xalign=0,wrap=True,selectable=True,visible=False)
         detail.append(self.notice)
@@ -56,7 +56,9 @@ class ModuleManagement:
         self.rollback_button=Gtk.Button(label=tr('Restore previous version'));self.rollback_button.connect('clicked',lambda *_:self.confirm('rollback'))
         self.remove_button=Gtk.Button(label=tr('Remove'));self.remove_button.add_css_class('destructive-action')
         self.remove_button.connect('clicked',lambda *_:self.confirm('remove'))
-        for button in (self.update_button,self.rollback_button,self.remove_button):self.actions.append(button)
+        if primary is None:self.actions.append(self.update_button)
+        else:primary.append(self.update_button)
+        for button in (self.rollback_button,self.remove_button):self.actions.append(button)
         detail.append(self.actions)
         narrow=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
         narrow.add_setter(self.actions,'orientation',Gtk.Orientation.VERTICAL);dialog.add_breakpoint(narrow)
@@ -112,6 +114,8 @@ class ModuleManagement:
     def refresh(self,resource):
         d=self.dialog;installed=resource and resource.id in d._installed_metadata
         self.actions.set_visible(bool(installed));self.notice.set_visible(bool(installed))
+        self.update_button.set_visible(False)
+        self.remove_button.set_visible(False)
         if not installed:return
         old=d._installed_metadata[resource.id];report=self.reports.get(resource.id,dict(state='not-checked'))
         new=report.get('available');state=report['state']
@@ -128,8 +132,12 @@ class ModuleManagement:
         try:backup=ModuleLifecycle(d.library).rollback_candidate(resource.id)
         except (OSError,ValueError,KeyError,TypeError):backup=None
         self.rollback_button.set_visible(bool(backup));self.rollback_button.set_sensitive(not d.busy)
-        self.remove_button.set_sensitive(not d.busy and not old.locked)
-        self.remove_button.set_tooltip_text(tr('Encrypted modules cannot be removed safely by this version.') if old.locked else None)
+        # SUPPORTED gates verified update offers, not removal. The shared
+        # lifecycle independently checks private ownership before deleting.
+        removable=not old.locked
+        self.remove_button.set_visible(removable)
+        self.remove_button.set_sensitive(removable and not d.busy)
+        self.remove_button.set_tooltip_text(None)
 
     def check(self):
         d=self.dialog

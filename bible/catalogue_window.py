@@ -181,23 +181,72 @@ class CatalogueWindow(Adw.Window):
         # Retain the explanatory label as a queryable compatibility surface;
         # the centered native status page owns its visible presentation.
         self.pages.add_named(explorer,'list')
-        detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=20,margin_end=20,margin_top=12,margin_bottom=12)
-        self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,selectable=True,max_width_chars=55)
-        metadata_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        metadata_scroll.set_child(self.metadata);detail.append(metadata_scroll)
-        self.download_button=Gtk.Button(label=tr('Download'),sensitive=False,halign=Gtk.Align.CENTER)
-        self.download_button.add_css_class('suggested-action')
-        self.download_button.connect('clicked',self.install);detail.append(self.download_button)
-        self.installed_state=Gtk.Box(spacing=6,halign=Gtk.Align.CENTER,visible=False)
+        # One scrollable native detail hierarchy for every module kind.
+        detail_scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
+        detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14,
+                       margin_start=16,margin_end=16,margin_top=16,margin_bottom=18)
+        detail_scroll.set_child(detail)
+        identity=Gtk.Box(spacing=12)
+        identity.append(Gtk.Image(icon_name='text-x-generic-symbolic',pixel_size=32,
+                                  valign=Gtk.Align.START))
+        identity_text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,hexpand=True)
+        self.detail_title=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
+        self.detail_title.add_css_class('title-2');identity_text.append(self.detail_title)
+        self.detail_subtitle=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
+        self.detail_subtitle.add_css_class('dim-label');identity_text.append(self.detail_subtitle)
+        identity.append(identity_text);detail.append(identity)
+        self.installed_state=Gtk.Box(spacing=6,halign=Gtk.Align.START,visible=False)
         self.installed_state.append(Gtk.Image(icon_name='emblem-ok-symbolic'))
         self.installed_state.append(Gtk.Label(label=tr('Installed — available offline'),wrap=True))
         detail.append(self.installed_state)
-        self.read_button=Gtk.Button(label=tr('Read'),halign=Gtk.Align.CENTER,visible=False)
+        self.primary_actions=Gtk.Box(spacing=8,orientation=Gtk.Orientation.HORIZONTAL)
+        self.read_button=Gtk.Button(label=tr('Read'),visible=False)
+        self.read_button.add_css_class('suggested-action')
         self.read_button.connect('clicked',lambda *_:self.read_resource(self.selected_resource()))
-        detail.append(self.read_button)
+        self.primary_actions.append(self.read_button)
+        self.download_button=Gtk.Button(label=tr('Download'),sensitive=False)
+        self.download_button.add_css_class('suggested-action')
+        self.download_button.connect('clicked',self.install)
+        self.primary_actions.append(self.download_button);detail.append(self.primary_actions)
+
+        self.information=Adw.PreferencesGroup(title=tr('Resource information'))
+        self.detail_rows={}
+        for key,label in (('type','Resource type'),('language','Language'),
+                          ('author','Author'),('version','Version'),('license','License'),
+                          ('numbering','Verse numbering')):
+            row=Adw.ActionRow(title=tr(label),use_markup=False)
+            self.information.add(row);self.detail_rows[key]=row
+        detail.append(self.information)
+        self.source_group=Adw.PreferencesGroup(title=tr('Source and attribution'))
+        self.source_row=Adw.ActionRow(title=tr('Source'),use_markup=False)
+        self.source_group.add(self.source_row)
+        self._source_link=None;self._license_link=None
+        self.conditions_caption=Gtk.Label(label=tr('Conditions and attribution'),xalign=0)
+        self.conditions_caption.add_css_class('heading');self.source_group.add(self.conditions_caption)
+        self.conditions_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                       selectable=True,width_chars=1)
+        self.source_group.add(self.conditions_text)
+        # SWORD About may carry required notices as well as a description.
+        # Keep the source's wording readable outside technical provenance.
+        self.about_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                  selectable=True,width_chars=1,margin_top=8)
+        self.source_group.add(self.about_text);detail.append(self.source_group)
+        self.technical=Gtk.Expander(label=tr('Technical details'))
+        self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                    selectable=True,width_chars=1)
+        self.metadata.set_margin_top(8);self.metadata.set_margin_bottom(8)
+        self.technical.set_child(self.metadata);detail.append(self.technical)
+        self.module_actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         from .module_management import ModuleManagement
-        self.modules=ModuleManagement(self,detail)
-        self.pages.add_named(detail,'detail');layout.append(self.pages)
+        self.modules=ModuleManagement(self,self.module_actions,primary=self.primary_actions)
+        self.remove_hint=Gtk.Label(label=tr('Personal notes and highlights are retained when removing a resource.'),
+                                   xalign=0,wrap=True,visible=False)
+        self.remove_hint.add_css_class('caption');self.remove_hint.add_css_class('dim-label')
+        self.module_actions.append(self.remove_hint);detail.append(self.module_actions)
+        narrow_detail=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
+        narrow_detail.add_setter(self.primary_actions,'orientation',Gtk.Orientation.VERTICAL)
+        self.add_breakpoint(narrow_detail)
+        self.pages.add_named(detail_scroll,'detail');layout.append(self.pages)
         self.transfer_footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,visible=False)
         self.transfer_footer.append(Gtk.Separator())
         transfer=Gtk.Box(spacing=12,margin_start=16,margin_end=16,margin_top=12,margin_bottom=16)
@@ -549,7 +598,47 @@ class CatalogueWindow(Adw.Window):
         text=details(resource) if resource else tr('No matching resource.')
         notes=self.modules.version_notes(resource)
         self.metadata.set_text(text+('\n\n'+notes if notes else ''))
+        self.detail_title.set_text(plain(resource.description) if resource else tr('No matching resource.'))
+        self.detail_subtitle.set_text((resource.source+' · '+self.language_label(resource.language)) if resource else '')
+        values=({
+            'type':tr({'commentary':'Commentaries','study':'Study resources',
+                       'dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bibles')),
+            'language':language_name(resource.language),
+            'author':plain(resource.author),
+            'version':getattr(resource,'version',''),
+            'license':plain(resource.license),
+            'numbering':resource.versification if resource.kind in ('bible','commentary','study') else '',
+        } if resource else {})
+        for key,row in self.detail_rows.items():
+            value=values.get(key,'')
+            row.set_visible(bool(value));row.set_subtitle(value)
+        self.source_group.set_visible(bool(resource))
+        self.source_row.set_subtitle(resource.source if resource else '')
+        from .resource_details import linkable_url, first_link
+        self._detail_link(self.source_row,'_source_link',
+                          linkable_url(resource.source_url) if resource else '',tr('Open source'))
+        self._detail_link(self.detail_rows['license'],'_license_link',
+                          first_link(resource.license) if resource else '',tr('License details'))
+        # Do not present pending catalogue summaries as confirmed source terms.
+        pending=False
+        if resource and resource.provider_id=='youversion':
+            try:pending=bool(json.loads(resource.acquisition).get('_catalogue_summary'))
+            except (ValueError,TypeError,AttributeError):pass
+        conditions=(tr('Loading edition details…') if pending else
+                    plain(resource.conditions) or tr('No additional conditions supplied by the source.')) if resource else ''
+        self.conditions_caption.set_visible(bool(resource))
+        self.conditions_text.set_text(conditions)
+        about=plain(resource.about) if resource and resource.kind!='study' and not pending else ''
+        self.about_text.set_text(about);self.about_text.set_visible(bool(about))
         self.refresh_controls()
+
+    def _detail_link(self,row,attribute,url,label):
+        previous=getattr(self,attribute)
+        if previous:
+            row.remove(previous);setattr(self,attribute,None)
+        if url:
+            link=Gtk.LinkButton(uri=url,label=label)
+            row.add_suffix(link);setattr(self,attribute,link)
 
     def refresh_controls(self):
         resource = self.selected_resource()
@@ -572,6 +661,7 @@ class CatalogueWindow(Adw.Window):
         self.cancel_button.set_visible(self._transfer_busy)
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
         self.modules.refresh(resource)
+        self.remove_hint.set_visible(self.modules.remove_button.get_visible())
         self._check_updates_action.set_enabled(not self.busy)
         self._update_all_action.set_enabled(not self.busy and any(self.modules.available(i) for i in self._installed_metadata))
         self.refresh_rows()
