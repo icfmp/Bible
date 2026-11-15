@@ -42,37 +42,53 @@ class AlphaStorageTests(unittest.TestCase):
                             f'--gpg-sign={fingerprint}', f'--gpg-homedir={keyring}', repo)
             self.assertTrue(any((repo / 'delta-indexes').rglob('*.index')))
             protected = {name: (repo / name).read_bytes() for name in ('summary', 'summary.sig', 'summary.idx')}
-            self.assertEqual(storage.retain_repository(site)['flatpak_commit'], commit)
-            self.assertEqual({name: (repo / name).read_bytes() for name in protected}, protected)
-            public_key = root / 'public.gpg'
-            public_key.write_bytes(subprocess.check_output(['gpg', '--homedir', str(keyring), '--export', fingerprint]))
-            missing = []
-            class Handler(SimpleHTTPRequestHandler):
-                def log_message(self, *_): pass
-                def do_GET(self):
-                    if self.path.startswith('/deltas/') and not Path(self.translate_path(self.path)).is_file():
-                        missing.append(self.path); self.send_error(503, 'Unavailable removed delta'); return
-                    super().do_GET()
-            server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(repo)))
-            thread = Thread(target=server.serve_forever, daemon=True); thread.start()
-            env = dict(os.environ, FLATPAK_USER_DIR=str(root / 'client'), XDG_CACHE_HOME=str(root / 'cache'))
-            try:
-                subprocess.run(['flatpak', 'remote-add', '--user', '--gpg-import=' + str(public_key),
-                                'fixture', f'http://127.0.0.1:{server.server_port}'], env=env, check=True,
-                               capture_output=True, text=True)
-                config = configparser.ConfigParser(); config.read(root / 'client/repo/config')
-                self.assertTrue(config['remote "fixture"'].getboolean('gpg-verify'))
-                self.assertTrue(config['remote "fixture"'].getboolean('gpg-verify-summary'))
-                pulled = subprocess.run(['flatpak', 'install', '--user', '--no-deps', '--no-related', '--no-deploy',
-                                         '--noninteractive', 'fixture', APP_ID + '//alpha'], env=env,
-                                        capture_output=True, text=True, timeout=60)
-                self.assertEqual(pulled.returncode, 0, pulled.stdout + pulled.stderr)
-                self.assertEqual(missing, [])
-                self.assertEqual(storage.command('ostree', f'--repo={root / "client/repo"}', 'cat', commit,
-                                                 '/files/share/fixture'), 'Exact native distribution fixture')
-            finally:
-                server.shutdown(); server.server_close(); thread.join()
-                subprocess.run(['gpgconf', '--homedir', str(keyring), '--kill', 'all'], check=False)
+            prepared = repo
+            for operation in ('retention', 'recovery'):
+                site = root / operation; repo = site / 'alpha/repo'
+                shutil.copytree(prepared, repo)
+                if operation == 'retention':
+                    self.assertEqual(storage.retain_repository(site)['flatpak_commit'], commit)
+                else:
+                    (site / 'alpha/provenance.json').write_text(json.dumps(dict(
+                        ref=REF, flatpak_commit=commit, source_commit='a' * 40)))
+                    with self.assertRaisesRegex(AssertionError, 'Live delta parts'):
+                        storage.repair_indexes(site)
+                    self.assertTrue(any((repo / 'delta-indexes').rglob('*.index')))
+                    shutil.rmtree(repo / 'deltas')  # Reproduce the previously published state.
+                    repaired = storage.repair_indexes(site)
+                    self.assertEqual(repaired['flatpak_commit'], commit)
+                    self.assertTrue(repaired['every_other_public_file_unchanged'])
+                self.assertEqual({name: (repo / name).read_bytes() for name in protected}, protected)
+                public_key = root / 'public.gpg'
+                public_key.write_bytes(subprocess.check_output(['gpg', '--homedir', str(keyring), '--export', fingerprint]))
+                missing = []
+                class Handler(SimpleHTTPRequestHandler):
+                    def log_message(self, *_): pass
+                    def do_GET(self):
+                        if self.path.startswith('/deltas/') and not Path(self.translate_path(self.path)).is_file():
+                            missing.append(self.path); self.send_error(503, 'Unavailable removed delta'); return
+                        super().do_GET()
+                server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(repo)))
+                thread = Thread(target=server.serve_forever, daemon=True); thread.start()
+                client = root / (operation + '-client')
+                env = dict(os.environ, FLATPAK_USER_DIR=str(client), XDG_CACHE_HOME=str(root / (operation + '-cache')))
+                try:
+                    subprocess.run(['flatpak', 'remote-add', '--user', '--gpg-import=' + str(public_key),
+                                    'fixture', f'http://127.0.0.1:{server.server_port}'], env=env, check=True,
+                                   capture_output=True, text=True)
+                    config = configparser.ConfigParser(); config.read(client / 'repo/config')
+                    self.assertTrue(config['remote "fixture"'].getboolean('gpg-verify'))
+                    self.assertTrue(config['remote "fixture"'].getboolean('gpg-verify-summary'))
+                    pulled = subprocess.run(['flatpak', 'install', '--user', '--no-deps', '--no-related', '--no-deploy',
+                                             '--noninteractive', 'fixture', APP_ID + '//alpha'], env=env,
+                                            capture_output=True, text=True, timeout=60)
+                    self.assertEqual(pulled.returncode, 0, pulled.stdout + pulled.stderr)
+                    self.assertEqual(missing, [])
+                    self.assertEqual(storage.command('ostree', f'--repo={client / "repo"}', 'cat', commit,
+                                                     '/files/share/fixture'), 'Exact native distribution fixture')
+                finally:
+                    server.shutdown(); server.server_close(); thread.join()
+                    subprocess.run(['gpgconf', '--homedir', str(keyring), '--kill', 'all'], check=False)
 
     def asset(self, name, data):
         return dict(id=123, name=name, state='uploaded', size=len(data),

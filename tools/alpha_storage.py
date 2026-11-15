@@ -133,6 +133,37 @@ def retain_repository(site, keep=KEEP_COMMITS):
                 after_bytes=sum(p.stat().st_size for p in repo.rglob('*') if p.is_file()), prune=output)
 
 
+def repair_indexes(site):
+    """Recover the already-published index-only defect without changing a commit.
+
+    Refuse live delta parts or links; preserve every other public byte, including
+    all signatures, history, provenance, source archives and channel descriptors.
+    """
+    from tools.flatpak_channel import REF, restore_repository_layout
+    site = Path(site); repo = site / 'alpha/repo'
+    restore_repository_layout(repo)
+    assert not any(path.is_symlink() for path in site.rglob('*')), 'Unexpected public-site link'
+    provenance = json.loads((site / 'alpha/provenance.json').read_text())
+    head = command('ostree', f'--repo={repo}', 'rev-parse', REF)
+    assert provenance['ref'] == REF and provenance['flatpak_commit'] == head
+    assert re.fullmatch(r'[0-9a-f]{40}', provenance['source_commit'])
+    parts = repo / 'deltas'; indexes = repo / 'delta-indexes'
+    assert not parts.is_symlink() and not indexes.is_symlink()
+    assert not parts.exists() or not any(parts.rglob('*')), 'Live delta parts require normal retention, not index-only repair'
+    before = {str(path.relative_to(site)): sha256(path) for path in site.rglob('*') if path.is_file()}
+    removed = {name: digest for name, digest in before.items() if name.startswith('alpha/repo/delta-indexes/')}
+    if indexes.exists():
+        import shutil
+        shutil.rmtree(indexes)
+    command('ostree', f'--repo={repo}', 'fsck')
+    assert command('ostree', f'--repo={repo}', 'rev-parse', REF) == head
+    after = {str(path.relative_to(site)): sha256(path) for path in site.rglob('*') if path.is_file()}
+    assert after == {name: digest for name, digest in before.items() if name not in removed}
+    result = dict(flatpak_commit=head, source_commit=provenance['source_commit'],
+                  removed_indexes=removed, every_other_public_file_unchanged=True)
+    return result
+
+
 def migrate(site):
     from tools.flatpak_channel import MAX_SITE_BYTES
     from tools.site_render import render
@@ -216,7 +247,7 @@ def verify_clients(site, base_url):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['archive', 'retain', 'migrate', 'seed-client', 'verify-clients'])
+    parser.add_argument('action', choices=['archive', 'retain', 'migrate', 'repair-indexes', 'seed-client', 'verify-clients'])
     parser.add_argument('--site', default='public')
     parser.add_argument('--base-url')
     parser.add_argument('--old-commit')
@@ -226,7 +257,10 @@ def main():
     elif args.action == 'verify-clients':
         result = verify_clients(args.site, args.base_url)
     else:
-        result = {'archive': archive_sources, 'retain': retain_repository, 'migrate': migrate}[args.action](args.site)
+        result = {'archive': archive_sources, 'retain': retain_repository, 'migrate': migrate,
+                  'repair-indexes': repair_indexes}[args.action](args.site)
+    if args.action == 'repair-indexes':
+        Path('storage-index-repair.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
 
