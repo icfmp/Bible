@@ -133,6 +133,22 @@ class WindowTests(unittest.TestCase):
             self.assertFalse(dialog.modules.update_button.get_visible())
             dialog.close();window.close()
 
+    def test_study_detail_without_a_module_version_keeps_accurate_controls(self):
+        with tempfile.TemporaryDirectory() as directory:
+            window=self.window(directory);dialog=window.open_library()
+            dialog.kind.set_selected(2);spin(lambda:not dialog._building_rows)
+            resources=[(i,r) for i,r in enumerate(dialog.filtered_resources) if r.kind=='study']
+            self.assertGreaterEqual(len(resources),4)
+            for index,resource in resources:
+                dialog.open_details(None,index);spin()
+                self.assertEqual(dialog.detail_title.get_text(),resource.description)
+                self.assertFalse(dialog.detail_rows['version'].get_visible())
+                self.assertFalse(dialog.read_button.get_visible())
+                self.assertFalse(dialog.modules.update_button.get_visible())
+                self.assertTrue(dialog.download_button.get_visible())
+                dialog.back_to_list()
+            dialog.close();window.close()
+
     def test_note_insets_and_search_placeholder_content_are_separate(self):
         from bible.ui import Gtk
         from bible.loading_cards import LoadingCards

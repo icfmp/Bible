@@ -605,7 +605,7 @@ class CatalogueWindow(Adw.Window):
                        'dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bibles')),
             'language':language_name(resource.language),
             'author':plain(resource.author),
-            'version':resource.version,
+            'version':getattr(resource,'version',''),
             'license':plain(resource.license),
             'numbering':resource.versification if resource.kind in ('bible','commentary','study') else '',
         } if resource else {})
