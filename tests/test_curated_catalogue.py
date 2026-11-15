@@ -28,6 +28,14 @@ def sword_metadata(conf):
 
 
 class CuratedCatalogueTests(unittest.TestCase):
+    def test_malformed_saved_package_identity_is_not_treated_as_a_valid_offline_catalogue(self):
+        from dataclasses import replace
+        item=replace(resource_from_section('Test',config(CONF)['Test'],BIBLE_RESOURCES),acquisition='malformed')
+        with tempfile.TemporaryDirectory() as temporary:
+            cache=CatalogueCache(temporary);cache.write(BIBLE_RESOURCES,[item])
+            path=Path(temporary)/'bible-resources.json';before=path.read_bytes()
+            self.assertIsNone(cache.read(BIBLE_RESOURCES));self.assertEqual(path.read_bytes(),before)
+
     def test_optional_provider_is_not_added_to_existing_automatic_defaults(self):
         self.assertNotIn(BIBLE_RESOURCES,DEFAULT_PROVIDERS)
         with patch('bible.library.catalogue',return_value=[]) as fetch:

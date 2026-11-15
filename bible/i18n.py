@@ -3,6 +3,7 @@ import locale
 import os
 
 FR = {
+    'Catalogue version notes':'Notes de la version du catalogue',
     'Version notes (source)':'Notes de version (source)',
     'No version notes supplied by the source.':'Aucune note de version fournie par la source.',
     'General book':'Ouvrage général',

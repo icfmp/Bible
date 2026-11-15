@@ -546,7 +546,9 @@ class CatalogueWindow(Adw.Window):
         resource = self.selected_resource()
         if resource and resource.id in self.installed_ids():
             resource=self.installed_resource(resource.id)
-        self.metadata.set_text(details(resource) if resource else tr('No matching resource.'))
+        text=details(resource) if resource else tr('No matching resource.')
+        notes=self.modules.version_notes(resource)
+        self.metadata.set_text(text+('\n\n'+notes if notes else ''))
         self.refresh_controls()
 
     def refresh_controls(self):

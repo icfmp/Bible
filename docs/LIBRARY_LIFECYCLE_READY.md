@@ -126,3 +126,9 @@ label. The live source audit found such data in394 CrossWire,1530 eBible and26
 AndBible Extra records; dropping it would unnecessarily hide available source
 data. Missing notes and unknown direct-provider download sizes are stated as
 unavailable, never reconstructed or inferred from unpacked InstallSize.
+
+Long source version notes stay inside the existing metadata scroller rather than
+pushing lifecycle actions beyond a small window. A360×620 regression with long
+notes passes; current-version notes are not duplicated. Malformed saved curated
+package identities are rejected as offline catalogues without overwriting the
+file.27 affected native/cache/metadata/startup checks pass.

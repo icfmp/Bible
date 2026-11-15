@@ -98,6 +98,19 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIsNone(w.immersion);self.assertIsNone(closed.source);self.assertIsNone(closed.stream.source)
         self.assertIsNone(w.active_tab.reader);self.assertEqual(w.active_tab.state.resource,self.old.id)
 
+    def test_long_source_version_notes_stay_scrollable_with_actions_visible_in_small_window(self):
+        from gi.repository import Gtk
+        d=self.dialog;notes=('Exact source revision note.\n'*60).strip()
+        d.modules.reports[self.old.id]=dict(state='available',available=replace(self.new,release_notes=notes),error='')
+        d.language_choice='';d.update_languages();spin(lambda:not d._building_rows)
+        d.open_details(None,next(i for i,r in enumerate(d.filtered_resources) if r.id==self.old.id))
+        d.set_default_size(360,620);spin()
+        self.assertLessEqual(d.get_width(),360);self.assertLessEqual(d.get_height(),620)
+        self.assertIn(notes,d.metadata.get_text())
+        scroll=d.metadata.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
+        self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
+        self.assertTrue(d.modules.update_button.get_mapped());self.assertTrue(d.modules.remove_button.get_mapped())
+
     def test_library_controls_update_then_restore_the_previous_verified_package(self):
         d=self.dialog;tab=self.w.active_tab
         d.modules.reports[self.old.id]=dict(state='available',available=self.new,error='')

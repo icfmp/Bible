@@ -94,6 +94,21 @@ class ModuleManagement:
 
     def failed(self):self.queue=[]
 
+    def version_notes(self,resource):
+        """Keep potentially long source prose in the existing metadata scroller."""
+        if not resource:return ''
+        new=self.reports.get(resource.id,{}).get('available')
+        if not new:return ''
+        changes=getattr(new,'release_notes','')
+        if new.provider_id=='bible-resources':
+            from .curated_catalogue import package_record
+            entry=package_record(new)
+            if isinstance(entry.get('changelog'),str):changes=entry['changelog']
+        if not changes:return tr('No version notes supplied by the source.')
+        old=self.dialog._installed_metadata.get(resource.id)
+        if old and old.version==new.version and getattr(old,'release_notes','')==changes:return ''
+        return tr('Catalogue version notes')+' ('+new.version+'):\n'+plain(changes)
+
     def refresh(self,resource):
         d=self.dialog;installed=resource and resource.id in d._installed_metadata
         self.actions.set_visible(bool(installed));self.notice.set_visible(bool(installed))
@@ -103,14 +118,10 @@ class ModuleManagement:
         lines=[tr('Installed version')+': '+(old.version or tr('Unknown'))]
         if new:
             lines.append(tr('Source catalogue version')+': '+(new.version or tr('Unknown')))
-            changes=getattr(new,'release_notes','')
             if new.provider_id=='bible-resources':
                 from .curated_catalogue import package_record
                 entry=package_record(new);lines.append(tr('Download size')+': '+f"{entry['download']['size_bytes']/1024/1024:.1f} MiB")
-                # Display only the provider's actual changelog, when supplied.
-                if isinstance(entry.get('changelog'),str):changes=entry['changelog']
             else:lines.append(tr('Download size')+': '+tr('Size unknown'))
-            lines.append(tr('Version notes (source)')+':\n'+plain(changes) if changes else tr('No version notes supplied by the source.'))
         lines.append(tr(REASONS[state]));self.notice.set_text('\n'.join(lines))
         self.notice.set_tooltip_text(report.get('error') or None)
         self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not d.busy)
