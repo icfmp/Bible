@@ -66,7 +66,7 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='editorial':
             # A source <title type="parallel"> carries editorial references,
             # not Scripture or a normal heading. Inherit the active GTK palette.
-            color=view.get_style_context().get_color()
+            color=view.get_color() if hasattr(view,'get_color') else view.get_style_context().get_color()
             color.alpha*=.85 if Adw.StyleManager.get_default().get_high_contrast() else .72
             tag.props.foreground_rgba=color
             tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
