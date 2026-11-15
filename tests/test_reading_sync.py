@@ -65,9 +65,10 @@ class CommentaryIndexTests(unittest.TestCase):
                 for pos in range(len(index.sections))
             ),1)
             self.assertIn('LONG COMMENT TEST',index.text(primary))
-            self.assertEqual(index.near('Gen.1.6'),len(index.sections)-1
-                             if index.starts[-1]<=reader.key('Gen.1.6').getIndex()
-                             else index.near('Gen.1.6'))
+            self.assertEqual(sum(
+                section.contains_index(reader.key('Gen.1.6').getIndex())
+                for section in index.sections
+            ),1)
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
