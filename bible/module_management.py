@@ -132,7 +132,9 @@ class ModuleManagement:
         try:backup=ModuleLifecycle(d.library).rollback_candidate(resource.id)
         except (OSError,ValueError,KeyError,TypeError):backup=None
         self.rollback_button.set_visible(bool(backup));self.rollback_button.set_sensitive(not d.busy)
-        removable=not old.locked and old.provider_id in SUPPORTED
+        # SUPPORTED gates verified update offers, not removal. The shared
+        # lifecycle independently checks private ownership before deleting.
+        removable=not old.locked
         self.remove_button.set_visible(removable)
         self.remove_button.set_sensitive(removable and not d.busy)
         self.remove_button.set_tooltip_text(None)

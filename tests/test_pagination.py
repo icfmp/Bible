@@ -21,6 +21,31 @@ class AnchorTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native Pango/GTK')
 class PaginationTests(unittest.TestCase):
+    def test_wrapped_editorial_reference_inset_is_counted_once_per_paragraph(self):
+        from bible.pagination import attributes,shaped_lines
+        from bible.reading_metrics import line_spacing,EDITORIAL_GAP
+        from gi.repository import Pango
+        text='Editorial references: Écriture Ελληνικά\nScripture control text.\n'
+        end=text.index('\n')+1
+        doc=Document('fixture',text,(),(StyleSpan('editorial',0,end),))
+        prefs=ReadingPreferences(size=18)
+        layout=self.widget.create_pango_layout(text)
+        layout.set_font_description(Pango.FontDescription(f'{prefs.font} {prefs.size}'))
+        layout.set_width(120*Pango.SCALE);layout.set_wrap(Pango.WrapMode.WORD_CHAR)
+        layout.set_spacing(line_spacing(prefs)*Pango.SCALE)
+        layout.set_attributes(attributes(doc,context=self.widget.get_pango_context(),preferences=prefs))
+        offsets={0:0};byte=0
+        for i,char in enumerate(text):byte+=len(char.encode());offsets[byte]=i+1
+        expected=[];iterator=layout.get_iter()
+        while True:
+            line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
+            offset=offsets[line.start_index]
+            expected.append((offset,logical.y/Pango.SCALE+(EDITORIAL_GAP if offset>=end else 0),logical.height/Pango.SCALE))
+            if not iterator.next_line():break
+        self.assertGreater(len([r for r in expected if r[0]<end]),1)
+        self.assertEqual(list(shaped_lines(self.widget,doc,prefs,120,0,len(text))),expected)
+        self.assertEqual(doc.copy(0,len(text)),text)
+
     @classmethod
     def setUpClass(cls):
         from bible.ui import Gtk

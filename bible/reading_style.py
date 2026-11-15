@@ -71,7 +71,7 @@ class ReadingStyle:
         self.views.add(view)
         view._reading_palette = self.palette
         from .verse_typography import NUMBER_COLORS
-        for name in ['verse-number', 'page-number']:
+        for name in ['verse-number', 'page-number', 'verse-editorial', 'source-editorial']:
             tag = view.get_buffer().get_tag_table().lookup(name)
             if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
         view.add_css_class(self.scope)
@@ -205,7 +205,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
         from .verse_typography import NUMBER_COLORS
         for view in self.views:
             view._reading_palette = self.palette
-            for name in ['verse-number', 'page-number', 'source-number']:
+            for name in ['verse-number', 'page-number', 'source-number', 'verse-editorial', 'source-editorial']:
                 tag = view.get_buffer().get_tag_table().lookup(name)
                 if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
         appearance = getattr(self.owner, 'appearance', None)

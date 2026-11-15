@@ -92,10 +92,13 @@ class WindowTests(unittest.TestCase):
     def test_client_detail_hierarchy_preserves_source_terms_and_actions(self):
         from bible.library import Resource
         from bible.languages import language_name
+        from bible.ui import Gtk
         resource=Resource('TestModule','Verified sample edition','fr',
                           'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
                           conditions='Attribution and conditions remain visible.',
-                          source='CrossWire',source_url='https://crosswire.org/')
+                          about='Additional required source attribution.',
+                          source='CrossWire',source_url='https://crosswire.org/',
+                          author='Research & source author',version='1.0 <edition> & source')
         with tempfile.TemporaryDirectory() as directory:
             window=self.window(directory)
             dialog=window.open_library()
@@ -106,7 +109,20 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(dialog.detail_title.get_text(),resource.description)
             self.assertIn(resource.source,dialog.detail_subtitle.get_text())
             self.assertEqual(dialog.detail_rows['language'].get_subtitle(),language_name(resource.language))
+            for key,value in [('author',resource.author),('version',resource.version)]:
+                row=dialog.detail_rows[key]
+                self.assertFalse(row.get_use_markup())
+                self.assertEqual(row.get_subtitle(),value)
+                # Inspect the actual native label, not only its raw property.
+                def texts(widget):
+                    child=widget.get_first_child()
+                    while child:
+                        if isinstance(child,Gtk.Label):yield child.get_text()
+                        yield from texts(child);child=child.get_next_sibling()
+                self.assertIn(value,list(texts(row)))
             self.assertIn('Attribution and conditions',dialog.conditions_text.get_text())
+            self.assertTrue(dialog.about_text.get_visible())
+            self.assertIn(resource.about,dialog.about_text.get_text())
             self.assertFalse(dialog.technical.get_expanded())
             self.assertIn(resource.name,dialog.metadata.get_text())
             self.assertEqual(dialog._source_link.get_uri(),resource.source_url)

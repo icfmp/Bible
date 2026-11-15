@@ -182,7 +182,11 @@ def apply(view,styles,preferences,palette):
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='number':configure(tag,view,preferences,palette)
         elif kind=='superscript':configure(tag,view,preferences,palette)
-        elif kind=='editorial':tag.props.scale=.9
+        elif kind=='editorial':
+            from .verse_typography import NUMBER_COLORS
+            from .reading_metrics import line_spacing,EDITORIAL_GAP
+            tag.props.scale=.9;tag.props.foreground=NUMBER_COLORS[palette]
+            tag.props.pixels_below_lines=line_spacing(preferences)+EDITORIAL_GAP
         elif kind=='heading':tag.props.weight=700;tag.props.scale=1.12
         elif kind=='paragraph-space':
             from .reading_metrics import paragraph_space_size

@@ -214,18 +214,23 @@ class CatalogueWindow(Adw.Window):
         for key,label in (('type','Resource type'),('language','Language'),
                           ('author','Author'),('version','Version'),('license','License'),
                           ('numbering','Verse numbering')):
-            row=Adw.ActionRow(title=tr(label))
+            row=Adw.ActionRow(title=tr(label),use_markup=False)
             self.information.add(row);self.detail_rows[key]=row
         detail.append(self.information)
         self.source_group=Adw.PreferencesGroup(title=tr('Source and attribution'))
-        self.source_row=Adw.ActionRow(title=tr('Source'))
+        self.source_row=Adw.ActionRow(title=tr('Source'),use_markup=False)
         self.source_group.add(self.source_row)
         self._source_link=None;self._license_link=None
         self.conditions_caption=Gtk.Label(label=tr('Conditions and attribution'),xalign=0)
         self.conditions_caption.add_css_class('heading');self.source_group.add(self.conditions_caption)
         self.conditions_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                        selectable=True,width_chars=1)
-        self.source_group.add(self.conditions_text);detail.append(self.source_group)
+        self.source_group.add(self.conditions_text)
+        # SWORD About may carry required notices as well as a description.
+        # Keep the source's wording readable outside technical provenance.
+        self.about_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                  selectable=True,width_chars=1,margin_top=8)
+        self.source_group.add(self.about_text);detail.append(self.source_group)
         self.technical=Gtk.Expander(label=tr('Technical details'))
         self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                     selectable=True,width_chars=1)
@@ -623,6 +628,8 @@ class CatalogueWindow(Adw.Window):
                     plain(resource.conditions) or tr('No additional conditions supplied by the source.')) if resource else ''
         self.conditions_caption.set_visible(bool(resource))
         self.conditions_text.set_text(conditions)
+        about=plain(resource.about) if resource and resource.kind!='study' and not pending else ''
+        self.about_text.set_text(about);self.about_text.set_visible(bool(about))
         self.refresh_controls()
 
     def _detail_link(self,row,attribute,url,label):

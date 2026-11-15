@@ -107,9 +107,19 @@ class ModuleUILifecycleTests(unittest.TestCase):
         d.set_default_size(360,620);spin()
         self.assertLessEqual(d.get_width(),360);self.assertLessEqual(d.get_height(),620)
         self.assertIn(notes,d.metadata.get_text())
+        self.assertFalse(d.technical.get_expanded())
+        d.technical.set_expanded(True);spin()
         scroll=d.metadata.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
         self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
-        self.assertTrue(d.modules.update_button.get_mapped());self.assertTrue(d.modules.remove_button.get_mapped())
+        self.assertTrue(d.modules.update_button.get_mapped())
+        adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());spin()
+        self.assertTrue(d.modules.remove_button.get_mapped())
+        # The final action is reachable below long, verbatim source notes.
+        ok,bounds=d.modules.remove_button.compute_bounds(scroll)
+        self.assertTrue(ok);self.assertGreaterEqual(bounds.get_y(),0)
+        self.assertLessEqual(bounds.get_y()+bounds.get_height(),scroll.get_height())
+        d.technical.set_expanded(False);spin()
+        self.assertIsNone(d.metadata.get_ancestor(Gtk.ScrolledWindow))
 
     def test_library_controls_update_then_restore_the_previous_verified_package(self):
         d=self.dialog;tab=self.w.active_tab
@@ -126,6 +136,21 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual(d._phase,'complete',d.status.get_text())
         self.assertEqual(self.library.resource(self.old.id).version,'1.0')
         self.assertIn('ORIGINAL MODULE WORDING',tab.text.get_buffer().props.text)
+
+    def test_removal_is_independent_of_the_verified_update_provider_list(self):
+        d=self.dialog
+        for provider in ('youversion','step','andbible'):
+            with self.subTest(provider=provider):
+                resource=replace(self.old,provider_id=provider,acquisition='')
+                d._installed_metadata[resource.id]=resource
+                d.modules.reports[resource.id]=dict(state='provider-unavailable',available=None,error='')
+                d.modules.refresh(resource)
+                self.assertFalse(d.modules.update_button.get_visible())
+                self.assertTrue(d.modules.remove_button.get_visible())
+                self.assertTrue(d.modules.remove_button.get_sensitive())
+                d._installed_metadata[resource.id]=replace(resource,locked=True)
+                d.modules.refresh(resource)
+                self.assertFalse(d.modules.remove_button.get_visible())
 
     def test_active_removal_keeps_passage_and_annotations_and_does_not_replace_on_restart(self):
         from bible.ui import Window
