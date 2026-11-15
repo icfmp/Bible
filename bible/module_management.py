@@ -103,12 +103,14 @@ class ModuleManagement:
         lines=[tr('Installed version')+': '+(old.version or tr('Unknown'))]
         if new:
             lines.append(tr('Source catalogue version')+': '+(new.version or tr('Unknown')))
+            changes=getattr(new,'release_notes','')
             if new.provider_id=='bible-resources':
                 from .curated_catalogue import package_record
                 entry=package_record(new);lines.append(tr('Download size')+': '+f"{entry['download']['size_bytes']/1024/1024:.1f} MiB")
                 # Display only the provider's actual changelog, when supplied.
-                changes=entry.get('changelog')
-                if isinstance(changes,str):lines.append(plain(changes))
+                if isinstance(entry.get('changelog'),str):changes=entry['changelog']
+            else:lines.append(tr('Download size')+': '+tr('Size unknown'))
+            lines.append(tr('Version notes (source)')+':\n'+plain(changes) if changes else tr('No version notes supplied by the source.'))
         lines.append(tr(REASONS[state]));self.notice.set_text('\n'.join(lines))
         self.notice.set_tooltip_text(report.get('error') or None)
         self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not d.busy)

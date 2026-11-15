@@ -119,3 +119,10 @@ closed GTK widget now passes active removal; actual real-module immersion and
 STEP original-text dialogues close before switching, with exact reinstall and
 unchanged notes/STEP data.29 combined native immersion/lifecycle/startup checks
 pass, including the idle-reference regression and commentary exit restoration.
+
+Source version notes consume only History_<exact declared Version> metadata (or
+an explicitly supplied curated changelog), shown verbatim under an attributed
+label. The live source audit found such data in394 CrossWire,1530 eBible and26
+AndBible Extra records; dropping it would unnecessarily hide available source
+data. Missing notes and unknown direct-provider download sizes are stated as
+unavailable, never reconstructed or inferred from unpacked InstallSize.

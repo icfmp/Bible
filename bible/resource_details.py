@@ -74,6 +74,7 @@ def details(resource):
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
         f'{tr("Version")}: {resource.version}' if getattr(resource,'version','') else '',
+        tr('Version notes (source)')+':\n'+plain(resource.release_notes) if getattr(resource,'release_notes','') else '',
         provenance,
         f'{tr("License")}: {plain(resource.license)}',
         f'{tr("Verse numbering")}: {numbering}' if resource.kind in ('bible','commentary','study') else '',

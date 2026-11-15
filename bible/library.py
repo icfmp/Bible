@@ -47,6 +47,7 @@ class Resource:
     acquisition: str = ''
     abbreviation: str = ''
     version: str = ''
+    release_notes: str = ''
 
     @property
     def public_code(self):
@@ -90,7 +91,8 @@ def resource_from_section(name, section, provider=CROSSWIRE):
                     category=section.get('Category') or 'Biblical Texts',
                     versification=section.get('Versification') or 'KJV',
                     provider_id=provider.id, source=provider.name, source_url=provider.url,
-                    abbreviation=section.get('Abbreviation') or '',version=section.get('Version') or '')
+                    abbreviation=section.get('Abbreviation') or '',version=section.get('Version') or '',
+                    release_notes=section.get('History_'+(section.get('Version') or '')) or '')
 
 
 def config(data):

@@ -3,6 +3,8 @@ import locale
 import os
 
 FR = {
+    'Version notes (source)':'Notes de version (source)',
+    'No version notes supplied by the source.':'Aucune note de version fournie par la source.',
     'General book':'Ouvrage général',
     'Source edition metadata could not be verified.':'Les métadonnées de l’édition source n’ont pas pu être vérifiées.',
     'Source edition':'Édition identifiée par la source',

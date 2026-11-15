@@ -9,6 +9,14 @@ from bible.library import Library,config,resource_from_section
 
 
 class LibraryMetadataTests(unittest.TestCase):
+    def test_only_history_for_the_exact_declared_version_is_presented_without_translation(self):
+        from bible.resource_details import details
+        value=resource_from_section('Test',{'Version':'2.1','History_2.0':'Different release',
+            'History_2.1':'(2026-01-02) Source-authored correction — texte original'})
+        self.assertEqual(value.release_notes,'(2026-01-02) Source-authored correction — texte original')
+        self.assertIn(value.release_notes,details(value));self.assertNotIn('Different release',details(value))
+        missing=resource_from_section('Test',{'Version':'2.2','History_2.1':'Previous release'})
+        self.assertEqual(missing.release_notes,'')
     def test_public_codes_come_from_provider_metadata_and_not_module_ids(self):
         from dataclasses import replace
         from bible.providers import PROVIDERS
