@@ -3,7 +3,7 @@ from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
 from .reading_metrics import line_spacing,paragraph_space_size
 from .verse_typography import configure
-from gi.repository import Gtk,Pango
+from gi.repository import Gtk,Pango,Adw
 from gi.repository import GObject
 
 
@@ -64,8 +64,13 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
         elif kind=='editorial':
+            # A source <title type="parallel"> carries editorial references,
+            # not Scripture or a normal heading. Inherit the active GTK palette.
+            color=view.get_style_context().get_color()
+            color.alpha*=.85 if Adw.StyleManager.get_default().get_high_contrast() else .72
+            tag.props.foreground_rgba=color
             tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
-            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2
+            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=7
         elif kind=='poetry':tag.props.pixels_below_lines=line_spacing(preferences)
         elif kind=='paragraph-space':
             tag.props.size_points=paragraph_space_size(preferences)
