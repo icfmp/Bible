@@ -109,3 +109,13 @@ their HTTPS transport, exact source/configuration/version/legal metadata and
 native readability are verified and the received bytes are fingerprinted. A
 computed receipt is not represented as a publisher signature. Native tool probes
 are bounded to32 dictionary entries or256 tree nodes and20seconds.
+
+Final active-consumer checks found two more lifetime owners: closed immersion
+page sources and an idle metadata worker's last completed callable/result. Closed
+immersion now retains only immutable exit coordinates/section data; annotation
+follow callbacks are cancelled before native collection, and idle workers drop
+completed work references. No reader lease is weakened. A deliberately retained
+closed GTK widget now passes active removal; actual real-module immersion and
+STEP original-text dialogues close before switching, with exact reinstall and
+unchanged notes/STEP data.29 combined native immersion/lifecycle/startup checks
+pass, including the idle-reference regression and commentary exit restoration.

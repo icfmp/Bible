@@ -87,6 +87,17 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIn('UPDATED MODULE WORDING',editor.excerpt.get_text())
         self.assertEqual([asdict(n) for n in w.notes_store.all()],notes)
 
+    def test_closed_immersion_releases_its_sources_before_active_module_removal(self):
+        w=self.w;self.dialog.close();self.assertTrue(w.enter_immersion());spin(duration=.5)
+        closed=w.immersion
+        self.dialog=w.open_library();spin(lambda:not self.dialog.preparing)
+        self.dialog.language_choice='';self.dialog.update_languages();spin(lambda:not self.dialog._building_rows)
+        self.dialog.open_details(None,next(i for i,r in enumerate(self.dialog.filtered_resources) if r.id==self.old.id))
+        self.dialog.modules.run('remove');spin(lambda:not self.dialog.busy,timeout=15)
+        self.assertEqual(self.dialog._phase,'complete',self.dialog.status.get_text())
+        self.assertIsNone(w.immersion);self.assertIsNone(closed.source);self.assertIsNone(closed.stream.source)
+        self.assertIsNone(w.active_tab.reader);self.assertEqual(w.active_tab.state.resource,self.old.id)
+
     def test_library_controls_update_then_restore_the_previous_verified_package(self):
         d=self.dialog;tab=self.w.active_tab
         d.modules.reports[self.old.id]=dict(state='available',available=self.new,error='')

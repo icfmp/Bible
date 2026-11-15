@@ -17,6 +17,20 @@ from bible.providers import CROSSWIRE
 
 
 class MetadataExitTests(unittest.TestCase):
+    def test_idle_worker_does_not_retain_completed_arguments_and_result(self):
+        import gc,weakref
+        from bible.metadata_workers import MetadataExecutor
+        class Payload:pass
+        payload=Payload();released=weakref.ref(payload)
+        with MetadataExecutor() as worker:
+            future=worker.submit(lambda value:value,payload)
+            self.assertIs(future.result(timeout=2),payload)
+            del future,payload
+            deadline=time.monotonic()+1
+            while released() is not None and time.monotonic()<deadline:
+                gc.collect();time.sleep(.01)
+            self.assertIsNone(released())
+
     def test_process_exit_never_joins_blocked_catalogue_workers(self):
         code='''from bible.metadata_workers import MetadataExecutor
 from bible.library import catalogues

@@ -94,6 +94,10 @@ class ModuleViewChange:
             for name,reader in list(study._readers.items()):
                 if self.matches(reader):study._readers.pop(name)
             if self.matches(study.reader):study.clear_content();study.reader=None;study._display_context=None
+            # Leaving immersion/rendering may queue an annotation reveal with
+            # the old reader. Cancel it before collecting disposed consumers;
+            # resume refreshes normal following against the new source.
+            study.notes.cancel_follow()
             if window.notes_space:
                 space=window.notes_space
                 for name,reader in list(space._reader_cache.items()):
