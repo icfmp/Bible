@@ -356,7 +356,10 @@ class Immersion(Gtk.Overlay):
                     from .verse_typography import configure
                     configure(tag,view,p,self.owner.reading_style.palette)
                 elif kind=='verse-start':tag.props.allow_breaks=False
-                else:tag.props.weight=700;tag.props.scale=1.35 if kind=='chapter' else 1.12
+                else:
+                    from .reading_metrics import HEADING_LINE_HEIGHT
+                    tag.props.weight=700;tag.props.scale=1.35 if kind=='chapter' else 1.12
+                    tag.props.line_height=HEADING_LINE_HEIGHT
                 for style in plan.document.styles:
                     first,last=max(page.start,style.start),min(page.end,style.end)
                     if style.kind==kind and last>first:

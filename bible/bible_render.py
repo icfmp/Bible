@@ -1,7 +1,7 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
-from .reading_metrics import line_spacing,paragraph_space_size,EDITORIAL_GAP
+from .reading_metrics import line_spacing,paragraph_space_size,EDITORIAL_GAP,HEADING_LINE_HEIGHT
 from .verse_typography import configure,NUMBER_COLORS
 from gi.repository import Gtk,Pango
 from gi.repository import GObject
@@ -76,6 +76,7 @@ def render(view, reader, chapter, preferences, document=None):
             tag.props.pixels_above_lines=0;tag.props.pixels_below_lines=0;tag.props.pixels_inside_wrap=0
         else:
             tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
+            tag.props.line_height=HEADING_LINE_HEIGHT
             tag.props.pixels_above_lines=12 if kind=='chapter' else 6
             tag.props.pixels_below_lines=8 if kind=='chapter' else 4
             tag.props.justification=Gtk.Justification.CENTER if kind=='chapter' else Gtk.Justification.LEFT
