@@ -4,6 +4,7 @@ All work is staged. Persist/deploy is deliberately outside this module.
 The data branch's ordinary Git history remains the recovery copy.
 """
 import argparse
+import base64
 import hashlib
 import html
 import json
@@ -15,6 +16,28 @@ import urllib.request
 REPOSITORY = 'icfmp/Bible'
 SOURCE_TAG = 'alpha-source-archives'
 KEEP_COMMITS = 10
+# GLib.Variant('a{sv}', {'ostree.static-deltas': GLib.Variant('a{sv}', {})}).
+# Native index format: OSTree v2024.5, ostree-repo-static-delta-core.c:1345.
+# No delta parts are advertised; clients still verify signed loose objects.
+EMPTY_DELTA_INDEX = bytes.fromhex('6f73747265652e7374617469632d64656c7461730000000000617b73767d151f')
+
+
+def empty_delta_indexes(repo):
+    """Serve a real empty index rather than an optional 404 for retained commits.
+
+    Some static hosts return 503 for an absent percent-encoded '+' path. Older
+    OSTree clients abort there instead of falling back to signed loose objects.
+    """
+    repo = Path(repo); created = []
+    for commit in sorted((repo / 'objects').glob('[0-9a-f][0-9a-f]/*.commit')):
+        assert not commit.is_symlink()
+        checksum = commit.parent.name + commit.stem
+        assert re.fullmatch('[0-9a-f]{64}', checksum)
+        encoded = base64.b64encode(bytes.fromhex(checksum)).decode().rstrip('=').replace('/', '_')
+        index = repo / 'delta-indexes' / encoded[:2] / (encoded[2:] + '.index')
+        index.parent.mkdir(parents=True, exist_ok=True)
+        index.write_bytes(EMPTY_DELTA_INDEX); created.append(str(index.relative_to(repo)))
+    return created
 
 
 def command(*args):
@@ -128,9 +151,11 @@ def retain_repository(site, keep=KEEP_COMMITS):
             shutil.rmtree(path)
     output = command('ostree', f'--repo={repo}', 'prune', '--refs-only', f'--depth={keep - 1}')
     command('ostree', f'--repo={repo}', 'fsck')
+    indexes = empty_delta_indexes(repo)
     assert command('ostree', f'--repo={repo}', 'rev-parse', REF) == head
     return dict(keep_commits=keep, flatpak_commit=head, before_bytes=before,
-                after_bytes=sum(p.stat().st_size for p in repo.rglob('*') if p.is_file()), prune=output)
+                after_bytes=sum(p.stat().st_size for p in repo.rglob('*') if p.is_file()), prune=output,
+                empty_delta_indexes=indexes)
 
 
 def repair_indexes(site):
@@ -155,12 +180,14 @@ def repair_indexes(site):
     if indexes.exists():
         import shutil
         shutil.rmtree(indexes)
+    created = empty_delta_indexes(repo)
     command('ostree', f'--repo={repo}', 'fsck')
     assert command('ostree', f'--repo={repo}', 'rev-parse', REF) == head
     after = {str(path.relative_to(site)): sha256(path) for path in site.rglob('*') if path.is_file()}
-    assert after == {name: digest for name, digest in before.items() if name not in removed}
+    protected = {name: digest for name, digest in before.items() if name not in removed}
+    assert {name: digest for name, digest in after.items() if not name.startswith('alpha/repo/delta-indexes/')} == protected
     result = dict(flatpak_commit=head, source_commit=provenance['source_commit'],
-                  removed_indexes=removed, every_other_public_file_unchanged=True)
+                  removed_indexes=removed, empty_delta_indexes=created, every_other_public_file_unchanged=True)
     return result
 
 

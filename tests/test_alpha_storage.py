@@ -13,7 +13,7 @@ from tools import alpha_storage as storage
 class AlphaStorageTests(unittest.TestCase):
     @unittest.skipUnless(all(shutil.which(name) for name in ('ostree', 'flatpak', 'gpg')),
                          'Native signed Flatpak tools required')
-    def test_pruned_deltas_do_not_send_signed_clients_to_missing_parts(self):
+    def test_pruned_deltas_keep_signed_clients_off_missing_parts_and_indexes(self):
         import configparser
         import functools
         from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -65,7 +65,7 @@ class AlphaStorageTests(unittest.TestCase):
                 class Handler(SimpleHTTPRequestHandler):
                     def log_message(self, *_): pass
                     def do_GET(self):
-                        if self.path.startswith('/deltas/') and not Path(self.translate_path(self.path)).is_file():
+                        if self.path.startswith(('/deltas/', '/delta-indexes/')) and not Path(self.translate_path(self.path)).is_file():
                             missing.append(self.path); self.send_error(503, 'Unavailable removed delta'); return
                         super().do_GET()
                 server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Handler, directory=str(repo)))
