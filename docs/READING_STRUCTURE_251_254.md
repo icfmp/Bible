@@ -58,6 +58,39 @@ per-string offset or added clipping workaround is applied. Client font, text
 size and desktop scaling have been requested while other work continues.
 Wayland/hardware GPU/fractional desktop scaling remain separate validation.
 
+### Client refinement and cautious leading adjustment, 16 November
+
+The client subsequently provided Esdras1/Melchisédek screenshots (F10), then
+Genesis13 in BRLSG1910 at13/14/15pt: the defect is reported specifically at14pt.
+The client confirmed **Roboto Serif and GNOME100%** and explicitly requested
+checking/increasing the heading line height as a precaution. This supersedes
+the earlier unknown-font/size statement, but does not establish a root cause.
+
+Installed alpha.32 on GTK4.20.4 was compared at13/14/15pt using the existing
+BRLSG1910 resource, Genesis13, Ezra1 and Genesis14. Tests include changing size
+without navigation, actual Aa mouse clicks, parallel geometry with Study open,
+native Vulkan/OpenGL/Cairo rendering, and additional font-metric/hinting controls.
+No matching malformed glyph has yet been isolated in this X11/software-GPU
+environment. Normal Pango ink bounds fit inside the measured font boxes;
+these geometric observations alone cannot establish client pixel fidelity.
+
+The requested precaution adds **1.15 line height** to shared Bible chapter and
+section heading tags, and to immersive Bible/commentary headings. It changes
+internal leading, not font family, weight, size, source strings or per-title
+offsets. Existing paragraph gaps remain. The independent Pango page planner
+uses the same factor so wrapped headings cannot consume unbudgeted page space.
+Study-sidebar/source-preface headings already inherit1.5 line height; that
+larger allocation is preserved. There is no new timer, renderer or cache.
+
+Native regression coverage compares the old/new allocations at13/14/15/28pt
+in both reader fonts with tight/very-airy spacing. It verifies extra paragraph
+and wrapped-line room, identical glyph/body heights, unchanged source text and
+anchors, and matching extra space in Pango. Pagination, immersive page-end fit,
+comparison rows and commentary source fidelity remain separate native gates.
+This adjustment must not be described as a reproduced/proven #254 fix; client
+acceptance at14pt is still required. CI/publication evidence belongs to the
+actual delivery report, not an assumed outcome in this source document.
+
 ## Validation
 
 Focused tests exercise paired/explicit breaks, blank-line allocation in real

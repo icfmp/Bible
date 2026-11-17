@@ -12,7 +12,7 @@ import gi
 
 gi.require_version('Pango','1.0')
 from gi.repository import Pango
-from .reading_metrics import SPACING, line_spacing, EDITORIAL_GAP
+from .reading_metrics import SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
 from .preparation import checkpoint
 
 
@@ -169,7 +169,8 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         left,right=max(start,span.start),min(end,span.end)
         if right<=left:continue
         if span.kind in ('heading','chapter'):
-            attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12)]
+            attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12),
+                   Pango.attr_line_height_new(HEADING_LINE_HEIGHT)]
         elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
         elif span.kind=='paragraph-space':
             from .reading_metrics import paragraph_space_size

@@ -1,6 +1,10 @@
 """Reader geometry shared by GTK and the independent Pango worker."""
 
 EDITORIAL_GAP = 5  # Extra space after a source-typed editorial reference block.
+# Internal leading for Bible and immersive headings, including wrapped lines.
+# Keep this in the Pango page plan as well as GtkTextTag allocation. The study
+# sidebar/source preface already use a more generous 1.5 line height.
+HEADING_LINE_HEIGHT = 1.15
 WIDTHS = {'narrow': 580, 'normal': 760, 'wide': 960}
 SPACING = {'tight': 1, 'normal': 5, 'airy': 10, 'very-airy': 16}
 
