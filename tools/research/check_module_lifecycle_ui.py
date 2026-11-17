@@ -14,13 +14,19 @@ p=argparse.ArgumentParser();p.add_argument('profile',type=Path);p.add_argument('
 assert (a.profile/'.ready-batch-test-profile').is_file()
 if a.require_packaged:assert inspect.getfile(Window).startswith('/app/')
 a.output.mkdir(parents=True,exist_ok=True);library=Library(a.profile/'translations')
-expected={'bible-resources~BRLSG1910','bible-resources~BRMHCC','Easton','Didache'}
-assert expected<=set(library.installed())
+resources=[library.resource(identifier) for identifier in library.installed()]
+def installed_role(provider,kind):
+ matches=[r.id for r in resources if r.provider_id==provider and r.kind==kind]
+ assert len(matches)==1,(provider,kind,matches,'Expected one real installed resource for this lifecycle role')
+ return matches[0]
+bible_id=installed_role('bible-resources','bible');commentary_id=installed_role('bible-resources','commentary')
+dictionary_id=installed_role('crosswire','dictionary');book_id=installed_role('crosswire','general')
+expected={bible_id,commentary_id,dictionary_id,book_id}
 before={identifier:source_fingerprints(library.root/identifier) for identifier in expected}
 app=Application();app.register();w=Window(app,library);w.set_default_size(1280,900);w.present();spin()
 w.application_settings.set('automatic_catalogue_refresh',False)
 native=X11Input();native.activate(w);screen=Screen(native)
-report=dict(complete=False,app_import=inspect.getfile(Window),language=os.environ.get('LANGUAGE'),cases=[],captures=[])
+report=dict(complete=False,app_import=inspect.getfile(Window),language=os.environ.get('LANGUAGE'),resources={r.id:dict(kind=r.kind,version=r.version,provider_id=r.provider_id) for r in resources},cases=[],captures=[])
 def shot(name):
  native.move_at(w,2,2);spin(duration=.2);screen.grab(a.output/(name+'.png'));report['captures'].append(name+'.png')
 def choose(dialog,identifier):
@@ -31,8 +37,8 @@ def choose(dialog,identifier):
  dialog.open_details(None,index);spin();assert dialog.modules.actions.get_visible()==(identifier in library.installed())
 def confirmation():return next(x for x in Gtk.Window.get_toplevels() if isinstance(x,Adw.MessageDialog))
 try:
- tab=w.active_tab;tab.navigate('bible-resources~BRLSG1910','Gen.1.1');spin(lambda:not tab._restoring_scroll)
- w.study_button.set_active(True);w.study.tools.set_visible_child_name('commentaries');w.study.choices.set_selected(w.study.names.index('bible-resources~BRMHCC'));w.study.refresh(force=True);spin()
+ tab=w.active_tab;assert tab.navigate(bible_id,'Gen.1.1');spin(lambda:not tab._restoring_scroll)
+ w.study_button.set_active(True);w.study.tools.set_visible_child_name('commentaries');w.study.choices.set_selected(w.study.names.index(commentary_id));w.study.refresh(force=True);spin()
  note=w.notes_store.save('**Synthetic personal lifecycle note**',('Keep',),versification=tab.reader.versification,start='Gen.1.1',end='Gen.1.1',origin_translation=tab.state.resource,origin_language='fr')
  w.highlights.set(tab.reader.versification,['Gen.1.1'],'yellow',tab.state.resource)
  notes=[asdict(x) for x in w.notes_store.all()];highlights=dict(w.highlights.entries)
@@ -43,8 +49,8 @@ try:
   w.appearance.update('mode',mode)
   for identifier in sorted(expected):
    choose(dialog,identifier);shot(mode+'-details-'+identifier)
-  dialog.set_default_size(360,620);spin();choose(dialog,'Easton');assert dialog.get_width()<=360,dialog.get_width();shot(mode+'-narrow-tool');dialog.set_default_size(560,640);spin()
- for identifier in ('Didache','Easton','bible-resources~BRMHCC','bible-resources~BRLSG1910'):
+  dialog.set_default_size(360,620);spin();choose(dialog,dictionary_id);assert dialog.get_width()<=360,dialog.get_width();shot(mode+'-narrow-tool');dialog.set_default_size(560,640);spin()
+ for identifier in (book_id,dictionary_id,commentary_id,bible_id):
   item=library.resource(identifier);choose(dialog,identifier)
   native.activate(dialog);dialog.modules.remove_button.grab_focus();native.key('space');spin();prompt=confirmation();shot('confirm-'+identifier)
   prompt.response('cancel');prompt.destroy();spin();assert source_fingerprints(library.root/identifier)==before[identifier]
