@@ -9,6 +9,8 @@ import json
 import hashlib
 import shutil
 import os
+import re
+import time
 from pathlib import Path
 import subprocess
 import tempfile
@@ -19,6 +21,20 @@ from tools.flatpak_channel import APP_ID, REF, REMOTE, prepare, run
 
 SOURCE = 'c2792c14ec86b28767cd5bc9ec8509a576e9a52d'
 BUNDLE_SHA = 'b1d0db01e1b824d6b761f3af22849f7a05fb00601d74c31ee558737962754297'
+
+
+def acquire(*command):
+    """Retry transient HTTP gateway errors; keep all Flatpak verification enabled."""
+    for attempt in range(3):
+        result = subprocess.run(command, text=True, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        print(result.stdout, end='', flush=True)
+        if result.returncode == 0:
+            return
+        if attempt == 2 or not re.search(r'HTTP (?:502|503|504)\b', result.stdout):
+            raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout)
+        print(f'Transient HTTP failure; retrying signed acquisition ({attempt + 2}/3)', flush=True)
+        time.sleep(2 ** (attempt + 1))
 
 
 def data_snapshot():
@@ -74,7 +90,7 @@ def check(base_url, expected, report_path, *, test_revision=None):
     descriptor_path.write_bytes(descriptor)
     subprocess.run(['flatpak','remote-add','--user','--if-not-exists','flathub',
                     'https://dl.flathub.org/repo/flathub.flatpakrepo'], check=True)
-    subprocess.run(['flatpak','install','--user','--noninteractive', str(descriptor_path)], check=True)
+    acquire('flatpak','install','--user','--noninteractive',str(descriptor_path))
     installed = run('flatpak','info','--user','--show-commit', APP_ID + '//alpha')
     assert installed == expected['flatpak_commit']
     verify_client()
@@ -83,7 +99,7 @@ def check(base_url, expected, report_path, *, test_revision=None):
               'user_data_snapshot': data_snapshot()}
     if test_revision:
         updated = test_revision()
-        subprocess.run(['flatpak','update','--user','--noninteractive', APP_ID + '//alpha'], check=True)
+        acquire('flatpak','update','--user','--noninteractive', APP_ID + '//alpha')
         current = run('flatpak','info','--user','--show-commit',APP_ID + '//alpha')
         assert current == updated['flatpak_commit'] and current != installed
         verify_data(result['user_data_snapshot'])

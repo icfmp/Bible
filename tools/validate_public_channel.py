@@ -3,10 +3,9 @@ import argparse
 import json
 import os
 from pathlib import Path
-import subprocess
 import time
 import urllib.request
-from tools.check_flatpak_channel import check, verify_data, verify_client
+from tools.check_flatpak_channel import check, verify_data, verify_client, acquire
 from tools.flatpak_channel import APP_ID, run
 
 
@@ -39,7 +38,7 @@ def main():
     else:
         old = json.loads(Path('public-install-check.json').read_text())
         for attempt in range(30):
-            subprocess.run(['flatpak','update','--user','--noninteractive',APP_ID + '//alpha'],check=True)
+            acquire('flatpak','update','--user','--noninteractive',APP_ID + '//alpha')
             installed = run('flatpak','info','--user','--show-commit',APP_ID + '//alpha')
             if installed == expected['flatpak_commit']: break
             time.sleep(10)
