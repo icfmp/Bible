@@ -1,9 +1,10 @@
 """Retained-client verification must distinguish live metadata and preserved data."""
 from contextlib import redirect_stdout
-import hashlib,io,json,os,tempfile,unittest
+import hashlib,io,json,os,subprocess,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 from tools import validate_public_channel as channel
+from tools import check_flatpak_channel as client
 
 
 class PublicUpdateTests(unittest.TestCase):
@@ -33,14 +34,14 @@ class PublicUpdateTests(unittest.TestCase):
         def receive(request,**_):
             requests.append(request.full_url)
             return io.BytesIO(json.dumps(next(responses)).encode())
-        with patch.object(channel.urllib.request,'urlopen',side_effect=receive),patch.object(channel.time,'sleep'),patch.object(channel,'run',return_value='next'),patch.object(channel.subprocess,'run') as command,patch.object(channel,'verify_client') as verify,patch.dict(os.environ,{'GITHUB_STEP_SUMMARY':str(Path('summary').resolve())}),patch('sys.argv',['test','update','--base-url','https://example.invalid/Bible']),redirect_stdout(io.StringIO()):
+        with patch.object(channel.urllib.request,'urlopen',side_effect=receive),patch.object(channel.time,'sleep'),patch.object(channel,'run',return_value='next'),patch.object(channel,'acquire') as command,patch.object(channel,'verify_client') as verify,patch.dict(os.environ,{'GITHUB_STEP_SUMMARY':str(Path('summary').resolve())}),patch('sys.argv',['test','update','--base-url','https://example.invalid/Bible']),redirect_stdout(io.StringIO()):
             if damaged or unchanged:
                 with self.assertRaises(AssertionError):channel.main()
                 self.assertFalse(Path('public-update-check.json').exists())
                 verify.assert_not_called()
             else:
                 channel.main();verify.assert_called_once()
-                command.assert_called_once_with(['flatpak','update','--user','--noninteractive','io.github.icfmp.Bible//alpha'],check=True)
+                command.assert_called_once_with('flatpak','update','--user','--noninteractive','io.github.icfmp.Bible//alpha')
                 receipt=json.loads(Path('public-update-check.json').read_text())
                 self.assertTrue(receipt['public_update_success']);self.assertTrue(receipt['user_data_preserved'])
                 self.assertEqual(receipt['install_commit'],'previous');self.assertEqual(receipt['update_commit'],'next')
@@ -52,3 +53,34 @@ class PublicUpdateTests(unittest.TestCase):
     def test_changed_user_data_cannot_produce_a_success_receipt(self):self.update(damaged=True)
 
     def test_same_installed_commit_is_not_reported_as_an_update(self):self.update(unchanged=True)
+
+
+class SignedAcquisitionTests(unittest.TestCase):
+    def acquire(self, results):
+        command = ['flatpak', 'install', '--user', '--noninteractive', 'Bible.flatpakref']
+        with patch.object(client.subprocess, 'run', side_effect=[
+                subprocess.CompletedProcess(command, code, output) for code, output in results
+        ]) as run, patch.object(client.time, 'sleep') as sleep, redirect_stdout(io.StringIO()):
+            if results[-1][0]:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    client.acquire(*command)
+            else:
+                client.acquire(*command)
+        self.assertEqual(run.call_count, len(results))
+        for call in run.call_args_list:
+            self.assertEqual(call.args[0], tuple(command))
+        return sleep
+
+    def test_transient_gateway_errors_retry_then_require_success(self):
+        sleep = self.acquire([(1, 'Server returned HTTP 503'),
+                              (1, 'Server returned HTTP 502'), (0, 'Installed')])
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [2, 4])
+
+    def test_persistent_gateway_error_still_fails(self):
+        self.acquire([(1, 'Server returned HTTP 504')] * 3)
+
+    def test_signature_failure_is_not_retried(self):
+        self.acquire([(1, 'GPG verification failed')]).assert_not_called()
+
+    def test_other_http_errors_are_not_retried(self):
+        self.acquire([(1, 'Server returned HTTP 404')]).assert_not_called()
