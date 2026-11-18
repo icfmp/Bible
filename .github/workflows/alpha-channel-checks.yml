@@ -1,7 +1,5 @@
 name: Vérifier le canal alpha Flatpak (#17)
-on:
-  push:
-    branches: [feat/17-flatpak-alpha-channel]
+on: workflow_dispatch
 permissions:
   contents: write
   pages: read

@@ -43,6 +43,10 @@ broader coverage specifically requested by the client.
   application CI no longer rediscovers GNOME guidance, available SWORD packages
   or documentation endpoint availability. Actual resource integration checks
   remain in application CI.
+- Historical profiling, YouVersion fidelity and signed-feedback campaigns are
+  explicit manual workflows, not extra jobs on old feature/performance branches.
+  Enter the current verified run/previous source for a manual publication or
+  comparison; historical default identifiers are not reusable evidence.
 - Publication still accepts only a green main application build and matching
   artifact. Keep stable signing identity, exact source/tag and actual public
   installation/update checks. No change here relaxes publication verification.

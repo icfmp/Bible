@@ -108,6 +108,20 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn('LANGUAGE=fr', commands)
         self.assertIn('BIBLE_OFFLINE_PREFIX', str(steps))
 
+    def test_expensive_diagnostic_campaigns_require_explicit_dispatch(self):
+        for name in ('alpha-input-profile.yml', 'alpha-native-profile.yml',
+                     'alpha-candidate-profile.yml', 'alpha-channel-checks.yml',
+                     'alpha-performance.yml', 'yves-proof.yml',
+                     'alpha-signed-update-feedback.yml'):
+            with self.subTest(workflow=name):
+                doc = workflow(name)
+                self.assertTrue(triggered(doc, 'workflow_dispatch', []))
+                self.assertFalse(triggered(doc, 'push', ['bible/ui.py'], branch='feat/26-youversion-language-catalogue'))
+                self.assertNotIn('push', doc['on'] if isinstance(doc['on'], dict) else {})
+        inputs = workflow('alpha-channel.yml')['on']['workflow_dispatch']['inputs']
+        self.assertEqual(inputs['verified_run']['required'], 'true')
+        self.assertFalse(inputs['verified_run'].get('default'))
+
     def test_only_main_can_trigger_automatic_publication(self):
         doc = workflow('alpha-channel.yml')
         self.assertEqual(doc['on']['workflow_run']['branches'], ['main'])
