@@ -1,7 +1,5 @@
 name: Measure installed reading feedback
 on:
-  push:
-    branches: [perf/alpha-native-trace]
   workflow_dispatch:
 permissions:
   contents: read

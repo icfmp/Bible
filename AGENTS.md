@@ -2,9 +2,7 @@
 
 ## Product and sources of truth
 Build **Bible**, a free/open-source desktop Bible reading and study application.
-Read these before implementation:
-1. docs/CAHIER_DES_CHARGES.md — confirmed product requirements and open questions.
-2. docs/FEUILLE_DE_ROUTE.md — proposed sequencing, first task and acceptance checks.
+Use docs/CAHIER_DES_CHARGES.md for product requirements and docs/FEUILLE_DE_ROUTE.md for sequencing. Read the relevant sections when starting a new area; do not reread both documents for every small edit. Current client decisions and assigned issues/comments take precedence over historical bootstrap plans.
 
 The user is the client. Communicate with the client in French. Keep implementation identifiers clear and interface strings translatable. Do not assume access to the conversation that produced these documents.
 
@@ -18,7 +16,7 @@ The user is the client. Communicate with the client in French. Keep implementati
 ## Technical direction
 - Native GNOME first: Python + PyGObject + GTK 4 + libadwaita is the proposed baseline.
 - Use a real Header Bar and current stable GNOME patterns. Do not substitute a web mockup, Electron shell, or website.
-- Prove SWORD Python bindings and Flatpak packaging early. Do not invent binding methods or module capabilities.
+- Preserve the established SWORD bindings and Flatpak packaging. Recheck their capabilities when affected; do not repeat bootstrap research for unrelated changes or invent binding methods.
 - Separate domain/reference models, content providers, persistence, AI adapters, and UI.
 - Desktop targets are Linux, Windows and macOS; GNOME is the priority. Flag portability risks before expanding dependencies.
 - Verify current official documentation and pin compatible stable dependencies. Explain major stack changes before implementing them.
@@ -26,7 +24,7 @@ The user is the client. Communicate with the client in French. Keep implementati
 
 ## Content and data
 - Download resources on user request; ship no complete Bible translation.
-- CrossWire is the initial functional source. YouVersion/full offline Semeur availability remains to be validated.
+- Use the providers already implemented in the application. Check their current capabilities, source conditions and assigned issue rather than treating historical provider investigations as permanently unfinished.
 - Preserve text structure, canonical references, source attribution and versification. Account for different canons and missing verses.
 - Notes belong to passages across translations/languages, recording the original translation only as context.
 - Persist and migrate user data safely. Notes must survive resource uninstall/update.
@@ -51,7 +49,7 @@ The user is the client. Communicate with the client in French. Keep implementati
 - No mandatory AI for ordinary reading, exact search, navigation, copying or note-taking.
 
 ## Delivery discipline
-- Work in focused increments; first prove a real downloaded module and installable GTK application.
+- Work in focused, coherent batches. Group related routine changes before pushing to main so automatic packaging/publication happens once per completed batch, not once per tiny intermediate edit.
 - For routine, reversible changes, work on the current `main`, run relevant checks, commit and push the result directly when repository access permits. Refresh from the latest `main` before editing and do not force-push.
 - For changes that warrant review (data migrations, licensing or content-source policy, secrets, release/distribution, or major architecture), use a feature branch and a pull request. Explain the decision and next action in the appropriate language defined above.
 - If the environment cannot push or merge, report the exact permission/error and leave a reviewable commit or pull request; do not ask the client to perform routine Git operations without first diagnosing the access issue.
@@ -62,6 +60,16 @@ The user is the client. Communicate with the client in French. Keep implementati
 - Do not add fabricated progress, placeholder translations presented as real, or silent requirement reductions.
 - Do not publish releases, submit to Flathub, spend money or change repository administration without the corresponding task authorization.
 
+
+## Proportionate validation and bounded investigation
+- Before editing, state the affected behavior, risk and minimum useful validation in a short plan. Follow [docs/VALIDATION.md](docs/VALIDATION.md). These rules do not waive security, data fidelity, signing, provenance or client acceptance requirements.
+- For a small visual change, use focused tests and representative actual GTK checks/captures. Add languages, editions, sizes, modes and providers only when the shared mechanism or client reproduction requires them. Do not expand every dimension into a full matrix by default.
+- Reuse passing results for unchanged code, the same verified package and existing valid evidence. Repeat checks only after a relevant change, a failure or an unresolved concern; explain the reason. Let the normal CI run its regression suites once instead of reproducing them in full locally.
+- Read relevant files and bounded failure excerpts first. Fetch full logs only when the excerpt cannot answer a concrete question. Keep a compact durable record of source, checks, artifacts and next action across environment restarts; do not restart completed work.
+- After two identical failures without new evidence, stop blind retries. After 30 minutes of investigation outside the assigned fix (excluding passive CI wait), provide a concise blocker/status report and reassess scope. Continue independent authorized work; do not turn a small fix into an open-ended distribution or environment redesign. A necessary larger follow-up needs a concrete plan and client approval before expanding scope.
+- A transient network retry must be bounded. Authentication, authorization, signature, provenance and data failures are blockers to diagnose, never checks to suppress. Do not retry a forbidden project/status write until access changes; record the manual status once.
+- Compare persistent content/preferences semantically where appropriate. A normally rewritten session, viewport fraction or temporary cache need not remain byte-identical after app use. Preserve baseline receipts; never reset a profile, overwrite data or weaken a failure assertion just to obtain a green result. Document legitimate volatile changes and any remaining limitation.
+- Finish once the agreed change and relevant checks are complete. Report implemented/tested/published separately when delivery is blocked. Do not add extra features, speculative fixes, bespoke evidence infrastructure or repeated screenshot campaigns to compensate for an unreproduced client symptom.
 
 ## Numbered prereleases until the first stable release
 - Standing client authorization (23 October 2026): every completed application delivery batch published to the signed alpha channel must also receive a numbered GitHub prerelease, until the first official stable release. Do not require the client to request this again. This authorization does not cover a stable release, Flathub submission, spending or repository administration.
@@ -88,4 +96,4 @@ Standing client workflow decision (24 October 2026). Use the Bible project at ht
 - Project workflows that send merged PRs or closed items directly to Done are disabled. The Done -> close issue workflow remains enabled so the client's manual acceptance also closes the issue. Do not re-enable completion shortcuts. If project permissions prevent a status update, report the precise limitation; do not close an issue as a substitute.
 - Client-reported failed acceptance returns the affected issue to In progress when work resumes, retaining the report, drafts/data and release evidence. Do not reopen/rework unrelated accepted issues.
 - A milestone is accepted only when all in-scope issues are client-validated Done and actually closed; the client controls its final closure. A milestone may be delivered in several verified alpha batches; do not wait for client acceptance to publish the already-authorized next batch or count In validation as accepted completion.
-- Creating milestones or configuring this workflow does not start implementation. Preserve the current Ready tasks (#75 and #96 at setup) and current project item order/status unless explicitly instructed otherwise.
+- Creating milestones or configuring this workflow does not start implementation. Preserve the current assigned Ready queue and project item order/status unless explicitly instructed otherwise; obtain current issue numbers from the client or project, not historical examples.

@@ -1,13 +1,11 @@
 name: Verify signed alpha update with retained resources
 on:
-  push:
-    branches: [feat/client-feedback-reading, feat/26-youversion-language-catalogue]
   workflow_dispatch:
     inputs:
       before_source:
         description: Exact source currently published before this batch is merged
         required: true
-        default: '88b48787ae482a1489236574ad547021a87d85fa'
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -31,7 +29,7 @@ jobs:
           echo "PERF_PROFILE=$RUNNER_TEMP/performance-profile" >> "$GITHUB_ENV"
       - name: Install the still-published previous signed alpha
         env:
-          EXPECTED_BEFORE_SOURCE: ${{ inputs.before_source || '88b48787ae482a1489236574ad547021a87d85fa' }}
+          EXPECTED_BEFORE_SOURCE: ${{ inputs.before_source }}
         run: |
           mkdir reports
           python3 - <<'PY'

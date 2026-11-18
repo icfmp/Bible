@@ -9,7 +9,7 @@ on:
       verified_run:
         description: Exécution verte du socle GNOME sur main
         required: true
-        default: '39315036866'
+        default: ''
 permissions:
   contents: read
 concurrency:

@@ -1,7 +1,5 @@
 name: Profile native scrollbar input
 on:
-  push:
-    branches: [perf/alpha-input-profile]
   workflow_dispatch:
 permissions:
   contents: read

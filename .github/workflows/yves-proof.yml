@@ -1,7 +1,5 @@
 name: Verify ZIP YVES conversion inside the installed Flatpak
 on:
-  push:
-    branches: [feat/26-yves-fidelity, feat/26-youversion-language-catalogue]
   workflow_dispatch:
     inputs:
       runtime_probe:
