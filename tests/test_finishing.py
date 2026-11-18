@@ -52,7 +52,7 @@ class FinishingTests(unittest.TestCase):
         from bible.ui import Gtk
         w=self.window;w.enter_immersion('bible');v=w.immersion;spin(lambda:v.layout_ready,timeout=10)
         initial=v.stream.anchor();self.assertTrue(v.turn(1));spin(duration=.04)
-        self.assertNotEqual(initial,v.stream.anchor());self.assertEqual(v.page_stack.get_transition_duration(),200)
+        self.assertNotEqual(initial,v.stream.anchor())
         self.assertTrue(v.turn(-1));spin(duration=.3)
         self.assertEqual(v.page_stack.get_visible_child_name(),'live')
         w.set_default_size(800,650);spin(lambda:v.layout_ready);self.assertIsNone(v.previous_page.get_paintable())

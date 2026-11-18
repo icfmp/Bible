@@ -13,6 +13,11 @@ on:
       - 'tests/test_alpha_storage.py'
       - 'tests/test_site_render.py'
       - 'tests/test_validation_workflows.py'
+      - 'tests/test_ci_campaigns.py'
+      - 'tests/**'
+      - 'tools/check_*.py'
+      - 'tools/research/check_*.py'
+      - 'tools/ci_campaigns.py'
       - 'AGENTS.md'
       - 'README.md'
       - 'docs/**'
@@ -30,6 +35,8 @@ on:
       - 'tests/test_alpha_storage.py'
       - 'tests/test_site_render.py'
       - 'tests/test_validation_workflows.py'
+      - 'tests/test_ci_campaigns.py'
+      - 'tools/ci_campaigns.py'
       - 'AGENTS.md'
       - 'README.md'
       - 'docs/**'
@@ -47,19 +54,32 @@ permissions:
 
 jobs:
   prerequisites:
+    outputs:
+      visual: ${{ steps.campaigns.outputs.visual }}
+      words: ${{ steps.campaigns.outputs.words }}
+      contextual: ${{ steps.campaigns.outputs.contextual }}
+      library: ${{ steps.campaigns.outputs.library }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Select additional campaigns from changed files
+        id: campaigns
+        run: python3 tools/ci_campaigns.py >> "$GITHUB_OUTPUT"
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
-          # Match the established Flatpak/publication mirror configuration.
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
-          fi
-          sudo apt-get update
-          sudo apt-get install -y python3-yaml python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel appstream desktop-file-utils iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
+          # Hosted runners can use Azure or regional EC2 mirrors. Keep the existing
+          # official Ubuntu archive and package signatures; avoid slow HTTP mirrors.
+          for ci_apt_source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$ci_apt_source" ]; then
+              sudo sed -Ei 's|http://([a-zA-Z0-9-]+\.)*archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$ci_apt_source"
+            fi
+          done
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=1 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install --no-install-recommends -y adwaita-icon-theme librsvg2-common python3-yaml python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel appstream desktop-file-utils iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
       - name: Prepare the same pinned reader fonts for native host tests
         run: |
           python3 - <<'PY_FONTS'
@@ -98,12 +118,14 @@ jobs:
       - name: Tests locaux et fenêtre GTK sous Xvfb
         env:
           GSK_RENDERER: cairo
+          FRENCH_TESTS: ${{ steps.campaigns.outputs.french }}
         run: |
           set -o pipefail
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -v | tee test-results.log
           /usr/bin/python3 -m tools.versification.original --check
           /usr/bin/python3 -m tools.versification.youversion
-          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest tests.test_ui tests.test_alpha_ui tests.test_provider_ui tests.test_workspace_features tests.test_appearance tests.test_reading_preferences tests.test_immersion tests.test_reading_sync tests.test_pagination tests.test_reading_direction tests.test_library_polish tests.test_annotation_workspace tests.test_chapter_notes tests.test_finishing tests.test_personal_backup tests.test_personal_backup_ui tests.test_study_navigation tests.test_scroll_motion tests.test_comparison_rows tests.test_inline_markers tests.test_word_study tests.test_text_search tests.test_step_data tests.test_word_metadata tests.test_study_search tests.test_scroll_position tests.test_independent_opening tests.test_verse_typography tests.test_reader_chrome -v | tee ui-fr-results.log
+          read -r -a french_tests <<< "$FRENCH_TESTS"
+          LANGUAGE=fr /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest "${french_tests[@]}" -v | tee ui-fr-results.log
       - name: Interactions souris et clavier réelles sous Xvfb
         env:
           LANGUAGE: fr
@@ -119,7 +141,7 @@ jobs:
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 /usr/bin/python3 -m tools.check_annotation_workspace | tee native-annotation-workspace-results.log
           /usr/bin/python3 tools/ci_run.py dbus-run-session -- xvfb-run -a /usr/bin/python3 -m tools.composited_x11 /usr/bin/python3 -m tools.check_chapter_notes | tee native-chapter-notes-results.log
       - name: Téléchargement CrossWire, fidélité SWORD et réouverture hors connexion
-        if: success() || failure()
+        if: (success() || failure()) && github.event_name != 'pull_request'
         env:
           BIBLE_OFFLINE_PREFIX: sudo unshare --net --
         run: |
@@ -127,6 +149,7 @@ jobs:
           /usr/bin/python3 tools/ci_run.py /usr/bin/python3 -m tools.check_commentary
 
       - name: Commentaire affilié réel et suivi de verset hors connexion
+        if: github.event_name != 'pull_request'
         env:
           BIBLE_OFFLINE_PREFIX: sudo unshare --net --
           GSK_RENDERER: cairo
@@ -216,7 +239,7 @@ jobs:
           cp "$RUNNER_TEMP"/packaged-scroll-*.json .
           cp "$RUNNER_TEMP/packaged-study-online.json" "$RUNNER_TEMP/packaged-study-offline.json" .
       - name: Capture client feedback surfaces in the installed Flatpak with OpenGL
-        if: (success() || failure()) && steps.real_study.outcome == 'success'
+        if: (success() || failure()) && steps.real_study.outcome == 'success' && needs.prerequisites.outputs.visual == 'true'
         run: |
           set -o pipefail
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=fr --command=python3 io.github.icfmp.Bible -m tools.check_client_feedback "$RUNNER_TEMP/study-navigation-real" "$RUNNER_TEMP/client-feedback" --require-packaged 2>&1 | tee packaged-client-feedback.log
@@ -230,7 +253,7 @@ jobs:
           done
           cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Verify the beginner word flow and bundled fonts/icons in the installed Flatpak
-        if: (success() || failure()) && steps.real_study.outcome == 'success'
+        if: (success() || failure()) && steps.real_study.outcome == 'success' && needs.prerequisites.outputs.words == 'true'
         run: |
           set -o pipefail
           for ui_language in fr en; do
@@ -238,7 +261,7 @@ jobs:
           done
           cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Verify contextual follow-ups with real editions in the installed Flatpak
-        if: (success() || failure()) && steps.real_study.outcome == 'success'
+        if: (success() || failure()) && steps.real_study.outcome == 'success' && needs.prerequisites.outputs.contextual == 'true'
         run: |
           set -o pipefail
           flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible - "$RUNNER_TEMP/study-navigation-real" <<'PY'
@@ -273,7 +296,7 @@ jobs:
           dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1100x24' /usr/bin/python3 -m tools.composited_x11 flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --env=GSK_RENDERER=gl --env=LIBGL_ALWAYS_SOFTWARE=1 --env=GTK_A11Y=none --env=LANGUAGE=en --command=python3 io.github.icfmp.Bible -m tools.research.check_first_run_selectors "$RUNNER_TEMP/ready-clean-first-run" "$RUNNER_TEMP/client-feedback/ready-first-run" --require-packaged 2>&1 | tee -a packaged-client-feedback.log
           cp -r "$RUNNER_TEMP/client-feedback" .
       - name: Verify real Library catalogue and module lifecycle controls
-        if: (success() || failure()) && steps.real_study.outcome == 'success'
+        if: (success() || failure()) && steps.real_study.outcome == 'success' && needs.prerequisites.outputs.library == 'true'
         run: |
           set -o pipefail
           flatpak run --user --cwd=/tmp --filesystem="$PWD":ro --filesystem="$RUNNER_TEMP" --env=PYTHONPATH="/app/lib/bible-python:$PWD" --command=python3 io.github.icfmp.Bible - "$RUNNER_TEMP/library-lifecycle-real" <<'PY'

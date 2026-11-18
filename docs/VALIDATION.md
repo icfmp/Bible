@@ -27,8 +27,29 @@ broader coverage specifically requested by the client.
 
 - `prerequisites.yml`: application PRs run the host regression checks. Main runs
   the same checks and builds/tests the exact merged Flatpak once. Existing
-  French, native-input, real-resource/offline, scrolling and packaged regression
-  suites remain in place. A manual dispatch can still build a branch when needed.
+  native-input, real-resource/offline, scrolling and packaged regression suites
+  remain in place. Live host resource downloads run on main/manual dispatch,
+  avoiding the same network downloads on the PR and its merge. The French replay uses localized UI smoke tests normally;
+  localization changes, missing history and manual dispatch keep the full French
+  replay. Non-UI parsers/backups still run in the full functional suites. A manual dispatch can still build a branch when needed.
+- Test/diagnostic-only maintenance is reviewed through PR host checks and the
+  lightweight policy suite, without repackaging unchanged application code on
+  main. When needed, exercise a changed native test against the existing installed
+  build. Do not use a direct unverified main push to bypass PR test checks.
+- Extra visual/word/contextual/Library campaigns use `tools/ci_campaigns.py` and
+  the changed files. Shared components select related consumers. Unknown runtime
+  files, packaging changes or unavailable Git history keep all campaigns; manual
+  workflow dispatch also keeps full coverage. The core offline/scrolling and
+  packaged suites are never conditional on this selector. A failed selector
+  fails CI rather than silently omitting coverage. Explicit client requests for
+  broader validation still apply.
+- Numeric blur pixel-energy thresholds are diagnostic report values, not release
+  gates. Font checks require the expected bundled family, not a particular font
+  subdirectory; animation checks verify page changes, cancellation and reduced motion rather
+  than a duration property. Hidden-work and first-input performance guards remain.
+- Workflow policy tests validate declarative boundaries and driver commands, not
+  a homemade interpreter for GitHub expressions/globs. Confirm actual PR/main
+  job states in GitHub when changing those conditions.
 - Documentation, Wiki, agent instructions, workflow-only changes and
   distribution-only maintenance do not trigger an application build. Mixed
   changes containing application/build code still do. Wiki publication keeps
