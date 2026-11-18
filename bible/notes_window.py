@@ -52,6 +52,14 @@ def message(parent, heading, body, accepted, canceled=None):
     return dialog
 
 
+def metadata_row(title,icon):
+    row=Adw.ActionRow(title=tr(title),use_markup=False)
+    row.add_prefix(Gtk.Image(icon_name=icon))
+    box=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+    box.add_css_class('boxed-list');box.append(row)
+    return row,box
+
+
 class Labels(Gtk.Box):
     def __init__(self, existing, changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -59,10 +67,8 @@ class Labels(Gtk.Box):
         self.changed = changed
         self.flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, homogeneous=False,
                                  min_children_per_line=1, max_children_per_line=8)
-        chips=Gtk.Box(spacing=6)
-        caption=Gtk.Label(label=tr('Labels'),xalign=0,hexpand=True);self.caption=caption
-        caption.add_css_class('caption');chips.append(caption)
-        self.flow.set_hexpand(True);self.append(chips);self.append(self.flow)
+        self.row,header=metadata_row('Labels','view-list-symbolic')
+        self.flow.set_hexpand(True);self.append(header);self.append(self.flow)
         row = Gtk.Box(spacing=6)
         self.entry = Gtk.Entry(hexpand=True, placeholder_text=tr('Add a label'))
         self.entry.update_property([Gtk.AccessibleProperty.LABEL], [tr('Labels')])
@@ -71,10 +77,11 @@ class Labels(Gtk.Box):
         button = Gtk.Button(icon_name='list-add-symbolic', tooltip_text=tr('Add a label'))
         button.connect('clicked', lambda *_: self.add())
         row.append(button)
-        self.add_menu=Gtk.MenuButton(label=tr('Add'),tooltip_text=tr('Add a label'),valign=Gtk.Align.START)
+        self.add_menu=Gtk.MenuButton(label=tr('Add'),direction=Gtk.ArrowType.NONE,
+                                    tooltip_text=tr('Add a label'),valign=Gtk.Align.CENTER)
         self.add_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Add a label')])
         pop=Gtk.Popover();row.set_margin_top(8);row.set_margin_bottom(8);row.set_margin_start(8);row.set_margin_end(8)
-        pop.set_child(row);self.add_menu.set_popover(pop);chips.append(self.add_menu)
+        pop.set_child(row);self.add_menu.set_popover(pop);self.row.add_suffix(self.add_menu)
         self.error = Gtk.Label(xalign=0, wrap=True)
         self.error.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
         self.error.set_visible(False)
@@ -120,13 +127,13 @@ class Labels(Gtk.Box):
 
 class NoteEditor(Adw.Window):
     def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False):
-        super().__init__(transient_for=owner, modal=True, title=tr('Passage note'),
+        super().__init__(transient_for=owner, modal=True, title=tr('Edit note') if note else tr('New note'),
                          default_width=700, default_height=480)
         self.set_size_request(360, 360)
         self.owner, self.note = owner, note
         self.embedded=embedded;self.compact=compact;self.embedded_host=None
         self.dialog_parent=owner if embedded else self
-        self.context = context if context else {
+        self.context = dict(context) if context else {
             key: getattr(note, key) for key in ('versification', 'start', 'end', 'origin_translation', 'origin_language')}
         if hasattr(owner,'reading_style'):self.add_css_class(owner.reading_style.scope+'-window')
         self.closed = False
@@ -135,16 +142,17 @@ class NoteEditor(Adw.Window):
         self.after_close = None
         self.autosave = False
         self._autosave_id = 0
+        self._saved_status_id = 0
         self._saving = False
         self.connect('close-request', self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         header = Adw.HeaderBar();self.header=header
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        header.set_title_widget(Gtk.Box())  # The native window title remains accessible; the passage identifies the content.
-        self.save_button = Gtk.Button(label=tr('Save'))
+        header.set_title_widget(Adw.WindowTitle(title=self.get_title()) if not embedded else Gtk.Box())
+        self.save_button = Gtk.Button(label=tr('Save'),visible=embedded)
         self.save_button.add_css_class('suggested-action')
         self.save_button.connect('clicked', lambda *_: self.save())
-        header.pack_end(self.save_button)
+        if embedded:header.pack_end(self.save_button)
         if embedded:
             header.set_show_start_title_buttons(False);header.set_show_end_title_buttons(False)
             header.set_visible(False)
@@ -218,19 +226,29 @@ class NoteEditor(Adw.Window):
         self.links=PassageLinks(owner,self.context,note.links if note else (),lambda:self.queue_autosave() if self.autosave else None)
         self.links.set_margin_start(12);self.links.set_margin_end(12);layout.append(self.links)
         self.metadata_height=Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
-        for widget in (self.labels.caption,self.labels.add_menu,self.links.expander.get_label_widget(),self.links.add_button):
+        for widget in (self.labels.row,self.links.row):
             self.metadata_height.add_widget(widget)
-        self.actions_menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'),visible=bool(note))
-        self.actions_menu.add_css_class('flat')
-        self.actions_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Note actions')])
-        popover=Gtk.Popover()
-        self.delete_button=Gtk.Button(label=tr('Delete note…'))
+        self.actions_menu=None
+        self.delete_button=Gtk.Button(label=tr('Delete note…'),visible=bool(note))
         self.delete_button.add_css_class('flat');self.delete_button.add_css_class('destructive-action')
-        self.delete_button.connect('clicked',lambda *_:(self.actions_menu.popdown(),self.ask_delete()))
-        popover.set_child(self.delete_button);self.actions_menu.set_popover(popover);header.pack_start(self.actions_menu)
+        def delete(*_):
+            if self.actions_menu:self.actions_menu.popdown()
+            self.ask_delete()
+        self.delete_button.connect('clicked',delete)
+        if embedded:
+            self.actions_menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'),visible=bool(note))
+            self.actions_menu.add_css_class('flat')
+            self.actions_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Note actions')])
+            popover=Gtk.Popover();popover.set_child(self.delete_button)
+            self.actions_menu.set_popover(popover);header.pack_start(self.actions_menu)
+        else:
+            self.delete_button.set_halign(Gtk.Align.START);self.delete_button.set_margin_start(12)
+            self.delete_button.set_margin_top(8);layout.append(self.delete_button)
         self.embedded_content=layout
         if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
+        if not embedded:
+            self.enable_autosave();self.set_focus(self.body)
 
     def source_excerpt(self):
         from .reference_targets import local_excerpt
@@ -247,7 +265,8 @@ class NoteEditor(Adw.Window):
         """Keep native window actions visible while short windows scroll the editor."""
         # Inline hosts hide title buttons. Restore the platform's native
         # controls when the same editor becomes a standalone window.
-        self.header.set_show_start_title_buttons(True)
+        self.header.set_decoration_layout(':close')
+        self.header.set_show_start_title_buttons(False)
         self.header.set_show_end_title_buttons(True)
         layout=self.embedded_content
         layout.set_margin_top(0)
@@ -286,12 +305,16 @@ class NoteEditor(Adw.Window):
     def cancel_autosave(self):
         if self._autosave_id:
             GLib.source_remove(self._autosave_id);self._autosave_id=0
+        if self._saved_status_id:
+            GLib.source_remove(self._saved_status_id);self._saved_status_id=0
 
     def queue_autosave(self):
         if self.closed or self._discard or self._saving:return
         # A continuous typing burst must not postpone every write forever.
         # Keep one bounded write window; schedule again only after later edits.
         if self._autosave_id:return
+        if self._saved_status_id:
+            GLib.source_remove(self._saved_status_id);self._saved_status_id=0
         self.status.set_text(tr('Saving…'))
         self._autosave_id=GLib.timeout_add(600,self.autosave_pending)
 
@@ -326,12 +349,19 @@ class NoteEditor(Adw.Window):
                 raise ValueError(tr('Write some text before saving the note.'))
             self.note = self.owner.notes_store.save(buffer_text(self.body), self.labels.values,links=self.links.values,
                                                     existing=self.note, **self.context)
-            self.actions_menu.set_visible(True)
+            if self.actions_menu:self.actions_menu.set_visible(True)
+            self.delete_button.set_visible(True)
             self._initial = (self.note.body, tuple(self.labels.values),self.note.links)
             host=self.embedded_host
             if host and hasattr(host,'note_saved'):host.note_saved(self)
             self.owner.notes_changed()
             self.status.set_text(tr('Note saved.'))
+            if self.autosave:
+                def clear_saved():
+                    self._saved_status_id=0
+                    if not self.closed and self.status.get_text()==tr('Note saved.'):self.status.set_text('')
+                    return False
+                self._saved_status_id=GLib.timeout_add(2000,clear_saved)
             if close:
                 self.close()
             return True
@@ -374,7 +404,7 @@ class NoteEditor(Adw.Window):
                 dialog=Adw.MessageDialog.new(self.dialog_parent,tr('Unsaved changes'),tr('Save this note before leaving?'))
                 dialog.add_response('cancel',tr('Keep editing'))
                 dialog.add_response('discard',tr('Discard'))
-                dialog.add_response('save',tr('Save'))
+                dialog.add_response('save',tr('Retry') if self.autosave else tr('Save'))
                 dialog.set_response_appearance('discard',Adw.ResponseAppearance.DESTRUCTIVE)
                 dialog.set_response_appearance('save',Adw.ResponseAppearance.SUGGESTED)
                 dialog.set_default_response('save');dialog.set_close_response('cancel')

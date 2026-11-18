@@ -128,8 +128,11 @@ class ReadingStyle:
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         from .highlights import COLORS
         swatches=''.join('.passage-actions .highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
+        study_accents=''.join('.'+self.scope+'-window .study-action-card.annotation-card.highlight-'+color+
+                              ' { border-left: 3px solid '+rgb+'; }' for color,(rgb,_) in COLORS.items())
         self.css = f'''
 {swatches}
+{study_accents}
 /* Native edge glow can synchronously JIT-compile a radial-gradient program
    on software OpenGL during wheel reversal. Keep native scrolling without it. */
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
@@ -140,6 +143,18 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .{self.scope}-window .action-card:focus-visible, .{self.scope}-window .action-card:focus-within {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
 .{self.scope}-window listview > row:selected .action-card {{ background-color: mix({bg},@accent_color,.15); }}
 .{self.scope}-window .action-card .card-primary {{ padding: 0; min-height: 0; background: transparent; box-shadow: none; }}
+/* Study cards have one neutral surface; row wrappers and child buttons do
+   not paint another hover layer or consume an extra horizontal inset. */
+.study-card-list > row {{ padding: 0; margin: 0; background: none; box-shadow: none; }}
+.study-card-list > row:hover, .study-card-list > row:selected {{ background: none; }}
+.study-card-list > row:focus-visible {{ outline: none; }}
+.{self.scope}-window .study-action-card:hover {{ background-color: {bg}; background-image: none; border-color: alpha(currentColor,.32); }}
+.{self.scope}-window .study-action-card:focus-within,
+.study-card-list > row:focus-within > .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
+.{self.scope}-window button.study-action-card:active {{ background-color: {bg}; background-image: none; border-color: @accent_color; }}
+.{self.scope}-window .study-action-card .card-primary:hover,
+.{self.scope}-window .study-action-card .card-primary:active {{ background: transparent; box-shadow: none; }}
+.{self.scope}-window .study-action-card .card-primary:focus-visible {{ outline: none; }}
 .{self.scope}-window .note-scripture-context {{ background-color: mix({bg},{fg},.035); border-radius: 8px; padding: 8px; }}
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 textview.{self.scope} button.inline-marker {{ color: {marker_color}; min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}

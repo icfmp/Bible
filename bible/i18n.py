@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'Show linked passages':'Afficher les passages liés',
+    'New note':'Nouvelle note',
+    'Updating references. Previous results are temporarily unavailable.':'Mise à jour des renvois. Les résultats précédents sont temporairement indisponibles.',
+    'References for {passage}':'Renvois pour {passage}',
     'Common languages':'Langues courantes',
     'Other languages':'Autres langues',
     'Description':'Description',

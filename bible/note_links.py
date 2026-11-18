@@ -29,10 +29,17 @@ class PassageLinks(Gtk.Box):
         self.owner=owner;self.context=context;self.values=tuple(values);self.changed=changed
         self._suggestion_epoch=0;self._suggestion_future=None
         self.primary=PassageLink(context['versification'],context['start'],context['end'])
-        self.expander=Gtk.Expander(label=tr('Linked passages'))
-        self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);self.expander.set_child(self.rows)
-        row=Gtk.Box(spacing=6);self.expander.set_hexpand(True);row.append(self.expander)
-        self.add_button=Gtk.MenuButton(label=tr('Add'),tooltip_text=tr('Add a linked passage'),valign=Gtk.Align.START)
+        from .notes_window import metadata_row
+        self.row,header=metadata_row('Linked passages','insert-link-symbolic')
+        self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12)
+        self.revealer=Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.NONE)
+        self.revealer.set_child(self.rows)
+        self.disclosure=Gtk.ToggleButton(icon_name='pan-down-symbolic',tooltip_text=tr('Show linked passages'),valign=Gtk.Align.CENTER)
+        self.disclosure.add_css_class('flat')
+        self.disclosure.connect('toggled',lambda button:self.revealer.set_reveal_child(button.get_active()))
+        self.row.add_suffix(self.disclosure)
+        self.add_button=Gtk.MenuButton(label=tr('Add'),direction=Gtk.ArrowType.NONE,
+            tooltip_text=tr('Add a linked passage'),valign=Gtk.Align.CENTER)
         self.add_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Add a linked passage')])
         pop=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6,
             margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
@@ -51,7 +58,8 @@ class PassageLinks(Gtk.Box):
         self.error=Gtk.Label(wrap=True,max_width_chars=32,xalign=0);box.append(self.error)
         outer=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
             max_content_height=max(160,min(420,owner.get_height()-100)),propagate_natural_height=True)
-        outer.set_child(box);pop.set_child(outer);self.add_button.set_popover(pop);row.append(self.add_button);self.append(row)
+        outer.set_child(box);pop.set_child(outer);self.add_button.set_popover(pop)
+        self.row.add_suffix(self.add_button);self.append(header);self.append(self.revealer)
         def shown(*_):
             root=self.get_root() or owner
             outer.set_max_content_height(max(120,min(420,root.get_height()-100)))
@@ -123,8 +131,9 @@ class PassageLinks(Gtk.Box):
             remove=Gtk.Button(icon_name='list-remove-symbolic',tooltip_text=tr('Remove linked passage'))
             remove.add_css_class('flat');remove.update_property([Gtk.AccessibleProperty.LABEL],[tr('Remove linked passage')+': '+label.get_text()])
             remove.connect('clicked',lambda *_,value=link:self.remove(value));row.append(remove);self.rows.append(row)
-        self.expander.set_label(tr('Linked passages')+(f' ({len(self.values)})' if self.values else ''))
-        self.expander.set_sensitive(bool(self.values))
+        self.row.set_subtitle(str(len(self.values)))
+        self.disclosure.set_sensitive(bool(self.values))
+        if not self.values:self.disclosure.set_active(False)
 
     def add(self):
         try:
@@ -133,7 +142,7 @@ class PassageLinks(Gtk.Box):
                 self.error.set_text(tr('This passage is already linked.'));return False
             if len(self.values)>=200:raise ValueError(tr('Too many linked passages'))
             self.values=(*self.values,link);self.entry.set_text('');self.error.set_text('')
-            self.refresh();self.expander.set_expanded(True);self.add_button.popdown();self.changed();return True
+            self.refresh();self.disclosure.set_active(True);self.add_button.popdown();self.changed();return True
         except ValueError as error:self.error.set_text(tr(str(error)));return False
 
     def remove(self,link):

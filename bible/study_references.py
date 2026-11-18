@@ -22,6 +22,7 @@ class StudyReferences(Gtk.Box):
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-references')
         self.generation=0;self.stamp=None;self.context=None;self.rows=[];self.pending=False
         self.all_results=False;self.chapter_cache={};self.row_cache={};self._new_passage=False;self._position_idle=0
+        self._future=None
         self.heading=Gtk.Label(xalign=0,wrap=True)
         self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.append(self.status)
@@ -38,12 +39,20 @@ class StudyReferences(Gtk.Box):
         factory=Gtk.SignalListItemFactory();factory.connect('bind',self.bind)
         factory.connect('unbind',lambda _,item:item.set_child(None))
         self.list=Gtk.ListView(model=Gtk.NoSelection(model=combined),factory=factory,vexpand=True,show_separators=False)
-        self.list.add_css_class('navigation-sidebar')
+        self.list.add_css_class('study-card-list')
         self.list.connect('map',lambda *_:self.position_new_passage())
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.list);self.scroll=scroll
         self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        self.pages.add_named(scroll,'results');self.append(self.pages)
+        results=Gtk.Overlay();results.set_child(scroll)
+        self.pending_context=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,
+            halign=Gtk.Align.START,valign=Gtk.Align.START,margin_start=8,margin_end=8,margin_top=8,visible=False)
+        self.pending_context.add_css_class('osd');self.pending_context.add_css_class('caption')
+        self.pending_context.set_can_target(False);results.add_overlay(self.pending_context)
+        self.pages.add_named(results,'results');self.append(self.pages)
+        from .loading_cards import LoadingCards
+        self.loading=LoadingCards(tr('Loading references…'))
+        self.pages.add_named(self.loading,'loading')
         self.footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=12,margin_start=8,margin_end=8)
         self.view_all=Gtk.Button(label=tr('View all'),halign=Gtk.Align.START,visible=False);self.view_all.connect('clicked',self.show_all);self.footer.append(self.view_all)
         credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
@@ -76,6 +85,30 @@ class StudyReferences(Gtk.Box):
         if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
 
+    def display_context(self,context):
+        self.context=context
+        resource,reader,start,end=context
+        self.heading.set_text(passage_title(start,end,reader.versification))
+        self.list.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
+            [tr('Cross-references')+': '+self.heading.get_text(),''])
+        self.owner.study.update_indicator()
+
+    def pending_display(self,context):
+        self.status.set_visible(False);self.download.set_visible(False)
+        self.list.set_sensitive(False);self.list.set_opacity(.55)
+        self.owner.reference_preview.dismiss()
+        if self.model.get_n_items():
+            # The heading and each captured item still belong to the previous
+            # passage. Keep their geometry while making stale actions inert.
+            self.pages.set_visible_child_name('results')
+            self.pending_context.set_text(tr('References for {passage}').format(passage=self.heading.get_text()))
+            self.pending_context.set_visible(True)
+            self.list.update_property([Gtk.AccessibleProperty.DESCRIPTION],
+                [tr('Updating references. Previous results are temporarily unavailable.')])
+        else:
+            self.pending_context.set_visible(False)
+            self.display_context(context);self.pages.set_visible_child_name('loading')
+
     def position_new_passage(self):
         if not self._new_passage or self._position_idle or not self.model.get_n_items() or not self.list.get_mapped():return
         generation=self.generation
@@ -104,6 +137,7 @@ class StudyReferences(Gtk.Box):
     def clear_rows(self):
         if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.owner.reference_preview.dismiss()
+        self.pending_context.set_visible(False);self.list.set_sensitive(True);self.list.set_opacity(1)
         self.model.remove_all()
         while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
         self.view_all.set_visible(False)
@@ -131,38 +165,37 @@ class StudyReferences(Gtk.Box):
         if stamp==self.stamp:return
         same_source=bool(self.stamp and self.stamp[:3]==stamp[:3] and self.stamp[-1]==stamp[-1])
         self.stamp=stamp;self.generation+=1;generation=self.generation
-        self._new_passage=(self.context!=(tab.state.resource,reader,start,end)
+        if self._future:self._future.cancel();self._future=None
+        context=(tab.state.resource,reader,start,end)
+        self._new_passage=(self.context!=context
                            or not self.model.get_n_items())
-        self.context=(tab.state.resource,reader,start,end)
-        self.rows=[];self.all_results=False;self.pending=False
+        self.all_results=False;self.pending=False
         # Excerpts are immutable for this Reader/dataset revision. Keep the
         # existing bounded chapter cache when only the followed verse changes.
         if not same_source:self.chapter_cache={};self.row_cache={}
-        # Keep the visible list while refreshing the same passage. Emptying it
-        # first makes GTK anchor the footer and jump down when results arrive.
-        if self._new_passage:self.clear_rows()
-        self.heading.set_text(passage_title(start,end,reader.versification))
-        self.list.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cross-references')+': '+self.heading.get_text()])
-        self.owner.study.update_indicator()
         if self.data.revision is None:
+            self.rows=[];self.display_context(context)
             self.clear_rows()
             self.message(tr('Download OpenBible reference data once to use it offline.'),download=True);return
         try:origins=source_references(reader,start,end)
         except ValueError as error:
+            self.rows=[];self.display_context(context)
             self.clear_rows()
             self.message(tr('No verified alignment for this passage.'));self.status.set_tooltip_text(str(error));return
-        # Keep the existing cards' viewport unchanged during a same-passage
-        # refresh. Adding a loading row above them moves the visible content
-        # and makes GTK re-estimate its virtualized scroll adjustment.
-        self.pending=True;self.message(tr('Loading references…') if self._new_passage else '')
+        self.pending=True;self.pending_display(context)
+        self.owner.study.update_indicator()
         revision=self.data.revision
-        future=self.executor.submit(self.data.query,origins)
+        future=self.executor.submit(self.data.query,origins);self._future=future
         def complete():
             if self.owner.closed or generation!=self.generation:return False
-            self.pending=False
+            self.pending=False;self._future=None
             if revision!=self.data.revision:self.invalidate();return False
+            self.list.set_sensitive(True);self.list.set_opacity(1)
+            self.pending_context.set_visible(False)
+            self.display_context(context)
             try:self.rows=future.result()
             except Exception as error:
+                self.rows=[]
                 self.clear_rows()
                 self.message(tr('Reference data is unavailable. Download it again from Library.'),download=True)
                 self.status.set_tooltip_text(str(error));return False
@@ -177,6 +210,7 @@ class StudyReferences(Gtk.Box):
 
     def button(self):
         button=passage_card()
+        button.add_css_class('study-action-card')
         button.connect('clicked',self.preview)
         return button
 
@@ -205,7 +239,7 @@ class StudyReferences(Gtk.Box):
 
     def preview(self,button):
         item=button._reference_item
-        if item.generation!=self.generation:return
+        if self.pending or item.generation!=self.generation:return
         row=item.relationship;resource,reader,_,_=item.context
         self.owner.reference_preview.show(button,resource,reader,row.start,row.end,
             provenance='OpenBible.info · CC BY 4.0\n'+SOURCE_URL)

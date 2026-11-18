@@ -1,9 +1,9 @@
-"""Passage annotation cards and an inline host for the existing safe note editor."""
+"""Read-only passage annotation cards opening the shared note popup."""
 from gi.repository import Gtk, Pango, GLib, Gdk
 from .i18n import tr
 from .highlights import COLORS
 from .notes import parts
-from .notes_window import NoteEditor, passage_label, readable_date
+from .notes_window import passage_label, readable_date
 from .passage_annotations import PassageAnnotations
 from .annotation_card import AnnotationPreview
 
@@ -23,29 +23,10 @@ class PassageNotes(Gtk.Box):
         from .study_empty import empty_state
         self.empty_page=empty_state('No annotations','No personal notes or highlights in this chapter.','notebook-symbolic')
         self.empty_page.set_visible(False);self.append(self.empty_page)
-        self.editor_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False)
-        self.editor_panel.add_css_class('annotation-card');self.editor_panel.add_css_class('card')
-        self.append(self.editor_panel)
         self.list=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);self.append(self.list)
-        css=Gtk.CssProvider()
-        css.load_from_data(b'.annotation-card { padding: 12px; border: 1px solid alpha(currentColor,0.16); border-radius: 12px; } '
-                           b'.annotation-card.highlight-yellow { border-left: 3px solid #aa8000; background-color: alpha(#c9a900,0.07); } '
-                           b'.annotation-card.highlight-green { border-left: 3px solid #338044; background-color: alpha(#338044,0.07); } '
-                           b'.annotation-card.highlight-blue { border-left: 3px solid #427bb7; background-color: alpha(#427bb7,0.07); } '
-                           b'.annotation-contrast .annotation-card { background-color: @window_bg_color; border-color: currentColor; }')
-        self.css=css
-        Gtk.StyleContext.add_provider_for_display(owner.get_display(),css,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.contrast_handler=owner.reading_style.manager.connect('notify::high-contrast',lambda *_:self.style_changed())
-        self.style_changed()
-
-    def style_changed(self):
-        if self.owner.reading_style.manager.get_high_contrast():self.add_css_class('annotation-contrast')
-        else:self.remove_css_class('annotation-contrast')
 
     def close(self):
         self.cancel_follow()
-        self.owner.reading_style.manager.disconnect(self.contrast_handler)
-        Gtk.StyleContext.remove_provider_for_display(self.owner.get_display(),self.css)
 
     def open_collection(self):
         source_editor=self.editor
@@ -220,20 +201,35 @@ class PassageNotes(Gtk.Box):
             return False
         self._follow_idle=GLib.idle_add(reveal)
 
-    def card(self,system,start,end,kind):
-        card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-        card.add_css_class('card');card.add_css_class('annotation-card')
-        header=Gtk.Box(spacing=6)
-        reference=Gtk.Label(label=passage_label(start,end,system),xalign=0,hexpand=True,wrap=True,
-                            wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        reference.add_css_class('caption')
-        jump=Gtk.Button(child=reference,hexpand=True,tooltip_text=tr('Open in Bible'));jump.add_css_class('flat')
-        jump.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open in Bible')+': '+passage_label(start,end,system)])
-        jump.connect('clicked',lambda *_:self.navigate_annotation(system,start));header.append(jump)
-        menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr(kind))
-        menu.add_css_class('flat');menu.update_property([Gtk.AccessibleProperty.LABEL],[tr(kind)])
-        header.append(menu);card.append(header)
-        card.actions=menu;self.list.append(card);self.cards.append(card)
+    def card(self,system,start,end,*,activate,icon,kind,actions=False):
+        from .passage_card import passage_card
+        card=passage_card(compound=True);card.add_css_class('study-action-card')
+        title,excerpt=card._reference_labels;title.set_text(passage_label(start,end,system))
+        content=card._card_content;content.remove(excerpt)
+        header=content.get_first_child();content.remove(header)
+        indicator=Gtk.Image(icon_name=icon,pixel_size=16,tooltip_text=kind)
+        indicator.update_property([Gtk.AccessibleProperty.LABEL],[kind]);header.prepend(indicator)
+        card.type_icon=indicator
+        action=Gtk.Button(child=header,hexpand=True);action.add_css_class('flat');action.add_css_class('card-primary')
+        action.connect('clicked',lambda *_:activate());card.primary_action=action
+        action.update_property([Gtk.AccessibleProperty.LABEL],[kind+': '+title.get_text()])
+        row=Gtk.Box(spacing=6);row.append(action);content.prepend(row)
+        if actions:
+            menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Highlight actions'),valign=Gtk.Align.START)
+            menu.add_css_class('flat');menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight actions')])
+            row.append(menu);card.actions=menu
+        click=Gtk.GestureClick(button=1)
+        def clicked(_,count,x,y):
+            if count!=1:return
+            target=card.pick(x,y,Gtk.PickFlags.DEFAULT)
+            while target and target is not card:
+                # Child buttons and linked previews already own their action.
+                if isinstance(target,(Gtk.Button,Gtk.MenuButton,AnnotationPreview)):return
+                target=target.get_parent()
+            activate()
+        click.connect('released',clicked);card.add_controller(click)
+        card.update_property([Gtk.AccessibleProperty.LABEL],[kind+': '+title.get_text()])
+        self.list.append(card);self.cards.append(card)
         return card
 
     def navigate_annotation(self,system,start):
@@ -275,88 +271,69 @@ class PassageNotes(Gtk.Box):
             card.append(caption)
 
     def note_card(self,note,reader):
-        from .passage_card import passage_card
-        card=passage_card(compound=True);card.note_id=note.id
-        title,excerpt=card._reference_labels
-        title.set_text(passage_label(note.start,note.end,note.versification))
-        content=card._card_content;content.remove(excerpt)
+        card=self.card(note.versification,note.start,note.end,activate=lambda:self.open_note(note),
+                       icon='notebook-symbolic',kind=tr('Open note'));card.note_id=note.id
+        content=card._card_content
         preview=AnnotationPreview(self.owner,note,lambda:self.open_note(note))
         preview.set_tooltip_text(None);content.append(preview);card.preview=preview
-        header=content.get_first_child();content.remove(header)
-        action=Gtk.Button(child=header,hexpand=True);action.add_css_class('flat');action.add_css_class('card-primary')
-        action.connect('clicked',lambda *_:self.open_note(note));content.prepend(action);card.primary_action=action
-        action.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open note')+': '+title.get_text()])
-        click=Gtk.GestureClick(button=1)
-        click.connect('released',lambda _,count,*args:self.open_note(note) if count==1 else None);card.add_controller(click)
-        card.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open note')+': '+title.get_text()])
         date,_=readable_date(note.modified)
         linked=tr('+{count} passages').format(count=len(note.links)) if note.links else ''
         meta=Gtk.Label(label=' · '.join(value for value in (date,' · '.join(note.labels),linked) if value),xalign=0,wrap=True)
         meta.add_css_class('caption');meta.add_css_class('dim-label');content.append(meta)
-        self.list.append(card);self.cards.append(card)
 
     def highlight_card(self,mark,reader):
-        card=self.card(mark['system'],mark['reference'],mark['reference'],'Highlight actions')
+        kind=tr('Highlight')+' · '+tr(COLORS[mark['color']][1])
+        card=self.card(mark['system'],mark['reference'],mark['reference'],
+                       activate=lambda:self.navigate_annotation(mark['system'],mark['reference']),
+                       icon='edit-select-all-symbolic',kind=kind,actions=True)
         card.highlight_key=(mark['system'],mark['reference']);card.add_css_class('highlight-'+mark['color'])
-        kind=Gtk.Label(label=tr('Highlight')+' · '+tr(COLORS[mark['color']][1]),xalign=0,wrap=True)
-        kind.add_css_class('caption');card.append(kind)
-        self.excerpt(card,reader,mark['system'],mark['reference'],mark['reference'])
+        self.excerpt(card._card_content,reader,mark['system'],mark['reference'],mark['reference'])
         self.colors(card.actions,mark=dict(mark))
 
-    def open_note(self,note=None,context=None,expand=False):
+    def open_note(self,note=None,context=None):
         self.suspend_following()
         existing=self.owner.note_editor
         if existing and not existing.closed:
             if note and existing.note and existing.note.id==note.id:
-                if expand and existing is self.editor and existing.embedded:self.expand_editor()
-                else:existing.present();existing.body.grab_focus()
+                existing.present();existing.body.grab_focus()
                 return existing
-            existing.after_close=lambda:self.open_note(note,context,expand)
+            snapshot=dict(context) if context else None
+            existing.after_close=lambda:self.open_note(note,snapshot)
             existing.close();return existing
-        editor=NoteEditor(self.owner,note=note,context=context,embedded=True,compact=True)
-        editor.embedded_host=self;self.editor=editor;self.owner.note_editor=editor
-        self.empty_page.set_visible(False)
-        if self.owner.notes_store:self.status.set_text('')
-        self.clear(self.editor_panel)
-        self.editor_panel.set_visible(True);self.editor_panel.append(editor.embedded_content)
-        commands=Gtk.Box(spacing=6)
-        save=Gtk.Button(label=tr('Save'));save.add_css_class('suggested-action');save.connect('clicked',lambda *_:editor.save());commands.append(save)
-        cancel=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
-        cancel.add_css_class('flat');cancel.update_property([Gtk.AccessibleProperty.LABEL],[tr('Close')])
-        cancel.connect('clicked',lambda *_:editor.close())
-        expand_button=Gtk.Button(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Expand note'))
-        expand_button.add_css_class('flat');expand_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Expand note')])
-        expand_button.connect('clicked',lambda *_:self.expand_editor())
-        commands.append(Gtk.Box(hexpand=True))
-        editor.header.remove(editor.actions_menu);commands.append(editor.actions_menu)
-        commands.append(expand_button);commands.append(cancel)
-        self.editor_commands=commands;self.editor_panel.prepend(commands)
+        if note:
+            note=self.owner.notes_store.get(note.id)
+            if note is None:self.refresh(force=True);return None
+        position=self.scroll.get_vadjustment().get_value() if hasattr(self,'scroll') else None
+        editor=self.owner.edit_note(note=note,context=dict(context) if context else None)
+        if editor is None:return None
+        editor.embedded_host=self;self.editor=editor
+        editor._study_return=(self._stamp[:3] if self._stamp else None,position)
         editor.body.grab_focus()
         self.owner.study.update_indicator()
-        if expand:self.expand_editor()
         return editor
 
     def add_note(self,*_):
-        if self.context:return self.open_note(context=dict(self.context))
-
-    def expand_editor(self):
-        # Finish the activating key event before moving focus to a new window;
-        # otherwise Space can also be inserted into the editor's buffer.
-        GLib.idle_add(self._expand_editor,self.editor)
-
-    def _expand_editor(self,editor):
-        if not editor or self.editor is not editor or editor.closed or not editor.embedded:return
-        self.editor_panel.remove(editor.embedded_content);self.editor_panel.set_visible(False)
-        self.editor_commands.remove(editor.actions_menu);editor.header.pack_start(editor.actions_menu)
-        editor.embedded=False;editor.dialog_parent=editor
-        editor.set_default_size(700,min(680,max(480,self.owner.get_height()-96)))
-        editor.header.set_visible(True);editor.use_window_layout(expanded=True);editor.present()
+        tab=self.owner.active_tab
+        if not tab or not tab.reader:return
+        start,end=tab.selected_passage()
+        context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,
+                     origin_language=self.owner.library.resource(tab.state.resource).language)
+        return self.open_note(context=context)
 
     def editor_closed(self,editor):
-        if editor.embedded_content.get_parent() is self.editor_panel:self.editor_panel.remove(editor.embedded_content)
-        if self.editor is editor:
-            self.editor=None;self.clear(self.editor_panel);self.editor_panel.set_visible(False)
-        if not self.owner.closed:self.refresh(force=True)
+        if self.editor is editor:self.editor=None
+        if self.owner.closed:return
+        self.refresh(force=True)
+        def restore():
+            current=self.owner.note_editor
+            if self.owner.closed or current is not editor and current and not current.closed:return False
+            stamp,position=editor._study_return
+            if not self._stamp or self._stamp[:3]!=stamp or not self.get_mapped():return False
+            if position is not None:self.scroll.get_vadjustment().set_value(position)
+            card=next((card for card in self.cards if getattr(card,'note_id',None)==getattr(editor.note,'id',None)),None)
+            if card:card.primary_action.grab_focus()
+            return False
+        GLib.idle_add(restore)
 
     def delete_note(self,note,popover=None):
         if popover:popover.popdown()
