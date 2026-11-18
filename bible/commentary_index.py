@@ -62,7 +62,9 @@ class CommentaryIndex:
             if reader.module.hasEntry(key):
                 index, reference = key.getIndex(), key.getOSISRef()
                 intro = key.getVerse() == 0
-                current_chapter = (key.getOSISBookName(), key.getChapter())
+                # Module/testament introductions have book 0. Asking SWORD
+                # for that non-existent book's name can abort in native code.
+                current_chapter = (key.getTestament(), key.getBook(), key.getChapter())
                 if current_chapter != chapter:
                     chapter = current_chapter
                     chapter_origins = []

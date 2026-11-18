@@ -32,6 +32,21 @@ def disjoint_commentary(directory):
 
 
 class CommentaryIndexTests(unittest.TestCase):
+    def test_module_and_testament_introductions_do_not_look_up_a_nonexistent_book(self):
+        import Sword
+        with tempfile.TemporaryDirectory() as directory:
+            root=linked_commentary(directory)
+            module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
+            for index in (0,1):
+                key=Sword.VerseKey();key.setIntros(True);key.setIndex(index)
+                self.assertIn(key.getBook(),(0,'\x00'))
+                module.setKey(key);module.setEntry(f'GENERAL INTRODUCTION {index}')
+            del module
+            reader=CommentaryReader(root,'Notes');index=reader.index
+            self.assertTrue(all(index.sections[pos].introduction for pos in (0,1)))
+            self.assertEqual([index.text(pos) for pos in (0,1)],['GENERAL INTRODUCTION 0','GENERAL INTRODUCTION 1'])
+            self.assertIsNotNone(index.locate('Gen.1.2'))
+
     def test_native_links_introductions_and_distinct_identical_texts(self):
         with tempfile.TemporaryDirectory() as directory:
             root=linked_commentary(directory);reader=CommentaryReader(root,'Notes');index=reader.index
