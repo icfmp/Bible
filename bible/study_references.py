@@ -26,7 +26,7 @@ class StudyReferences(Gtk.Box):
         self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.append(self.status)
         self.download=Gtk.Button(label=tr('Download reference data'))
-        self.download.connect('clicked',lambda *_:owner.open_library('study'));self.append(self.download)
+        self.download.connect('clicked',self.open_library);self.append(self.download)
         self.model=Gio.ListStore.new(ReferenceItem)
         self.return_results=Gtk.Button(label=tr('Back to first references'),halign=Gtk.Align.START,visible=False)
         self.return_results.add_css_class('flat');self.return_results.connect('clicked',self.show_initial);self.append(self.return_results)
@@ -69,8 +69,14 @@ class StudyReferences(Gtk.Box):
         self.teaser_status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.teaser_status.add_css_class('dim-label');self.teaser.append(self.teaser_status)
         self.teaser_download=Gtk.Button(label=tr('Download reference data'))
-        self.teaser_download.connect('clicked',lambda *_:owner.open_library('study'));self.teaser.append(self.teaser_download)
+        self.teaser_download.connect('clicked',self.open_library);self.teaser.append(self.teaser_download)
         self.message(tr('Open a Bible passage to see its references.'))
+
+    def open_library(self,*_):
+        from .study_resources import REFERENCE_RESOURCE_ID
+        library=self.owner.open_library('study')
+        library.reveal_study_resource(REFERENCE_RESOURCE_ID)
+        return library
 
     def close(self):
         if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0

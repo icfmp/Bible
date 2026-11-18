@@ -81,7 +81,7 @@ class TopicData(ReferenceData):
             self._metadata_revision,self._metadata=revision,value;return dict(value)
         except (sqlite3.Error,TypeError,KeyError,ValueError) as error:raise ReferenceDataError(str(error)) from error
 
-    def install(self,progress=lambda done,total:None,installing=lambda:None):
+    def install(self,progress=lambda done,total:None,installing=lambda:None,*,expected_revision=''):
         from .topic_vocabulary import parse as parse_vocabulary
         from .study_catalogue import atomic_write
         fresh=True
@@ -89,6 +89,8 @@ class TopicData(ReferenceData):
         except OSError:fresh=False;revisions=self.catalogue.load()
         except ValueError as error:raise ReferenceDataError(str(error)) from error
         index=revisions['openbible-topics'];words=revisions['topic-vocabulary']
+        if expected_revision and expected_revision!=index.sha256+':'+words.sha256:
+            raise ReferenceDataError('The study resource changed. Review this download again.')
         vocabulary=TopicVocabulary(self.root)
         installed=None
         try:installed=self.metadata();current=installed['archive_sha256']==index.sha256

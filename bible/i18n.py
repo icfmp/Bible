@@ -3,6 +3,12 @@ import locale
 import os
 
 FR = {
+    'Common languages':'Langues courantes',
+    'Other languages':'Autres langues',
+    'Description':'Description',
+    'Description and notices supplied by the source.':'Description et mentions fournies par la source.',
+    'License and conditions of use':'Licence et conditions d’utilisation',
+    'Text source':'Source du texte',
     'Resource information':'Informations sur la ressource',
     'Source and attribution':'Source et attribution',
     'Technical details':'Détails techniques',
@@ -408,6 +414,26 @@ def _application_language(system):
     except (OSError,ValueError,TypeError,AttributeError):return system
 LANGUAGE = _application_language(LANGUAGE)
 
+# Set collation once, before application workers start. LANGUAGE (and the saved
+# UI choice) need not match the desktop's LC_COLLATE. Never switch process-wide
+# locale while sorting individual rows or running downloads.
+try:
+    locale.setlocale(locale.LC_COLLATE, 'fr_FR.UTF-8' if LANGUAGE.startswith('fr') else 'en_US.UTF-8')
+    _native_collation = True
+except locale.Error:
+    _native_collation = False
+
+
+def collation_key(text):
+    value = text.casefold()
+    if not _native_collation:
+        # Minimal hosts can lack locale data; keep accented titles alongside
+        # their letters rather than after Z. Source/display strings are intact.
+        import unicodedata
+        value = ''.join(c for c in unicodedata.normalize('NFD', value)
+                        if not unicodedata.combining(c))
+    return locale.strxfrm(value)
+
 
 def tr(message):
     return FR.get(message, message) if LANGUAGE.startswith('fr') else message
@@ -700,4 +726,32 @@ FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {re
 
 FR.update({
     '{count} source proposals for this site':'{count} propositions de la source pour ce site',
+})
+
+FR.update({
+    'Archived':'Archivée',
+    'Preparing the translation…':'Préparation de la traduction…',
+    'Converting to SWORD…':'Conversion en SWORD…',
+    'Queued':'En attente',
+    'Preparing':'Préparation',
+    'Converting':'Conversion',
+    'Checking':'Vérification',
+    'Installing':'Installation',
+    'Checking resource information…':'Vérification des informations de la ressource…',
+    'Dismiss failed download':'Retirer le téléchargement en échec',
+    'This queued resource is no longer available from its source.':'Cette ressource en attente n’est plus disponible auprès de sa source.',
+    'The queued operation could not start. Review this resource.':'L’opération en attente n’a pas pu démarrer. Vérifiez cette ressource.',
+    'Source conditions changed. Review this download again.':'Les conditions de la source ont changé. Vérifiez ce téléchargement à nouveau.',
+    'A different edition or operation for this resource is already queued.':'Une autre édition ou opération pour cette ressource est déjà en attente.',
+    'Paused':'En pause',
+    'Resume':'Reprendre',
+    'Resume queued downloads':'Reprendre les téléchargements en attente',
+    'Cancel queued download':'Annuler le téléchargement en attente',
+    '{count} queued':'{count} en attente',
+    '{count} paused':'{count} en pause',
+    'Downloads paused after restart':'Téléchargements en pause après le redémarrage',
+    'The download queue is unavailable. Existing resources were preserved.':'La file de téléchargement est indisponible. Les ressources existantes sont préservées.',
+    'A different version is already installed. Check for updates before retrying.':'Une autre version est déjà installée. Vérifiez les mises à jour avant de réessayer.',
+    'The study resource changed. Review this download again.':'La ressource d’étude a changé. Vérifiez ce téléchargement à nouveau.',
+    'Refresh this source to verify whether this removed version is still available.':'Actualisez cette source pour vérifier si cette version supprimée est encore disponible.',
 })

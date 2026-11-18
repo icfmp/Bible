@@ -30,6 +30,18 @@ def archive(path,kind,generation,rows):
 
 
 class StudyCatalogueTests(unittest.TestCase):
+    def test_queued_study_revision_change_is_rejected_before_resource_transfer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            old=archive(root/'old.zip','references','2026-10-19','John.1.5\tGen.1.3\t1\n')
+            new=archive(root/'new.zip','references','2026-11-02','John.1.5\tIsa.9.2\t18\n')
+            before=revision('openbible-cross-references',old,'2026-10-19');after=revision('openbible-cross-references',new)
+            store=ReferenceData(root/'study');store.install_archive(root/'old.zip',revision=before)
+            original=store.path.read_bytes();calls=[]
+            with self.transport({CATALOGUE_URL:catalogue(**{'openbible-cross-references':after})},calls):
+                with self.assertRaises(ReferenceDataError):store.install(expected_revision=before.sha256)
+            self.assertEqual(calls,[CATALOGUE_URL]);self.assertEqual(store.path.read_bytes(),original)
+
     def transport(self,payloads,called):
         def receive(url,output,progress=lambda *_:None,limit=None,**_):
             called.append(url);data=payloads[url]

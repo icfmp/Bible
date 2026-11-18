@@ -27,6 +27,7 @@ class StudyResource:
     kind: str='study'
     locked: bool=False
     installable: bool=True
+    revision: str=''
 
 
 class StudyResources:
@@ -45,8 +46,8 @@ class StudyResources:
         from . import topic_data as topics
         from . import step_sources as step
         revisions=self.catalogue.load();reference=revisions[REFERENCE_RESOURCE_ID];topic=revisions[TOPIC_RESOURCE_ID];words=revisions['topic-vocabulary']
-        return [StudyResource(description=tr('Bible cross-references'),about=reference.generation+'\nSHA-256: '+reference.sha256+'\n'+TRANSFORMATIONS),
-                StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),
+        return [StudyResource(description=tr('Bible cross-references'),revision=reference.sha256,about=reference.generation+'\nSHA-256: '+reference.sha256+'\n'+TRANSFORMATIONS),
+                StudyResource(id=PLACE_RESOURCE_ID,name='OpenBible places',description=tr('Biblical places and offline map'),revision=places.REVISION,
                     source_url=places.SOURCE_URL,license='CC BY 4.0; ODbL 1.0; public-domain coastlines',
                     author='OpenBible.info; OpenStreetMap contributors; Natural Earth contributors',
                     conditions='OpenBible.info — '+places.SOURCE_URL+'\nCC BY 4.0 — '+places.LICENSE_URL+
@@ -54,13 +55,13 @@ class StudyResources:
                         '\nPublic-domain basemap terms — https://www.naturalearthdata.com/about/terms-of-use/',
                     about='OpenBible source: '+places.SOURCE_COMMIT+'\nNatural Earth source: '+places.MAP_COMMIT+
                         '\n'+places.NOTICE+'\n'+str({k:v[1] for k,v in places.FILES.items()})),
-                StudyResource(id=TOPIC_RESOURCE_ID,name='OpenBible topics',description=tr('Curated French/English topics'),
+                StudyResource(id=TOPIC_RESOURCE_ID,name='OpenBible topics',description=tr('Curated French/English topics'),revision=topic.sha256+':'+words.sha256,
                     source_url=topics.SOURCE_URL,author='OpenBible.info community contributors; Bible project vocabulary contributors',
                     license='CC BY 4.0; GPL-2.0-only (project vocabulary)',
                     conditions='OpenBible.info — '+topics.SOURCE_URL+'\nCC BY 4.0 — '+topics.LICENSE_URL+
                         '\nBible project vocabulary — GPL-2.0-only — https://github.com/icfmp/Bible/blob/data/study-resources/LICENSE',
                     about=topic.generation+'\nSHA-256: '+topic.sha256+'\n'+tr('Reviewed topic names: {revision}').format(revision=words.revision)+'\n'+topics.TRANSFORMATIONS),
-                StudyResource(id=STEP_RESOURCE_ID,name='STEP word study',description=tr('Greek and Hebrew word study'),
+                StudyResource(id=STEP_RESOURCE_ID,name='STEP word study',description=tr('Greek and Hebrew word study'),revision=step.COMMIT,
                     source='STEPBible / Tyndale House',source_url=step.SOURCE_URL,author='STEPBible / Tyndale House, Cambridge',
                     language='mul',provider_id='stepbible',license='CC BY 4.0',
                     conditions=step.NOTICE+'\n'+step.LICENSE_URL,
@@ -72,14 +73,17 @@ class StudyResources:
 
     def installed_resource(self,name):
         resource=self.resource(name)
-        if name not in (REFERENCE_RESOURCE_ID,TOPIC_RESOURCE_ID):return resource
         metadata=self.stores[name].metadata()
+        if name not in (REFERENCE_RESOURCE_ID,TOPIC_RESOURCE_ID):
+            return replace(resource,revision=str(metadata['commit' if name==STEP_RESOURCE_ID else 'revision']))
+        revision=str(metadata.get('archive_sha256',''))
         about=str(metadata.get('source_date','—'))+'\nSHA-256: '+str(metadata.get('archive_sha256','—'))+'\n'+metadata.get('transformations','')
         if name==TOPIC_RESOURCE_ID:
             from .topic_vocabulary import TopicVocabulary
-            vocabulary=TopicVocabulary(self.topics.root).read()[0]
+            vocabulary,_,vocabulary_sha=TopicVocabulary(self.topics.root).read()
+            revision+=':'+vocabulary_sha
             about+='\n'+tr('Reviewed topic names: {revision}').format(revision=vocabulary['revision'])
-        return replace(resource,about=about)
+        return replace(resource,about=about,revision=revision)
 
     def unknown(self):raise ValueError('Unknown study resource')
 
@@ -108,4 +112,6 @@ class StudyResources:
     def install(self,resource,progress,installing,cancelled=None):
         if resource.id not in self.stores:raise ValueError('Unknown study resource')
         if resource.id==STEP_RESOURCE_ID:return self.step.install(progress,installing,cancelled)
+        if resource.id in (REFERENCE_RESOURCE_ID,TOPIC_RESOURCE_ID):
+            return self.stores[resource.id].install(progress,installing,expected_revision=resource.revision)
         return self.stores[resource.id].install(progress,installing)

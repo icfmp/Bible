@@ -969,12 +969,17 @@ class Window(Adw.ApplicationWindow):
 
     def open_library(self, kind=None, context=None):
         if self.catalogue_window is None or self.catalogue_window.closed:
-            self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
+            existing=next((w for w in Gtk.Window.list_toplevels() if isinstance(w,CatalogueWindow)
+                and not w.closed and w.owner.get_application() is self.get_application()
+                and w.library.root.resolve()==self.library.root.resolve()),None)
+            if existing:existing.adopt_owner(self)
+            else:self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
         if kind is not None:
             self.catalogue_window.kind.set_selected({'commentary':1,'study':2}.get(kind,0))
         elif self.catalogue_window.kind.get_selected()==2:self.catalogue_window.kind.set_selected(0)
         self.catalogue_window.open_context=context
         self.catalogue_window.present()
+        GLib.idle_add(self.catalogue_window.review_downloads)
         return self.catalogue_window
 
     def resource_installed(self, name):
@@ -1251,7 +1256,10 @@ class Window(Adw.ApplicationWindow):
         if self.notes_store:
             self.notes_store.close()
         if self.catalogue_window is not None and not self.catalogue_window.closed:
-            self.catalogue_window.close()
+            replacement=next((w for w in self.get_application().get_windows() if isinstance(w,Window)
+                and not w.closed and w.library.root.resolve()==self.library.root.resolve()),None)
+            if replacement:self.catalogue_window.adopt_owner(replacement)
+            else:self.catalogue_window.close()
         if getattr(self,'catalogue_session',None):self.catalogue_session.close()
         return False
 

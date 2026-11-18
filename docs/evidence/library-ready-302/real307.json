@@ -1,0 +1,9 @@
+{
+  "old": "bible-resources~BRMHCC",
+  "current": "bible-resources~MHCC",
+  "version": "0.1.1",
+  "package_http": 200,
+  "retired_not_resurrected": true,
+  "journals_unchanged": true,
+  "reopened": true
+}
