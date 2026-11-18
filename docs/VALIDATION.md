@@ -45,8 +45,8 @@ broader coverage specifically requested by the client.
   broader validation still apply.
 - Numeric blur pixel-energy thresholds are diagnostic report values, not release
   gates. Font checks require the expected bundled family, not a particular font
-  subdirectory; animation checks require respecting the user's animation setting,
-  not a fixed duration. Hidden-work and first-input performance guards remain.
+  subdirectory; animation checks verify page changes, cancellation and reduced motion rather
+  than a duration property. Hidden-work and first-input performance guards remain.
 - Workflow policy tests validate declarative boundaries and driver commands, not
   a homemade interpreter for GitHub expressions/globs. Confirm actual PR/main
   job states in GitHub when changing those conditions.
