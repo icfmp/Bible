@@ -21,6 +21,7 @@ class StudyPanel(Gtk.Box):
         self.names = []
         self._download_choice=object()
         self._syncing = False
+        self._choice_idle=0;self._choice_name=None
         self._stamp = None
         self._readers = {}
         self._labels = []
@@ -243,7 +244,9 @@ class StudyPanel(Gtk.Box):
         self._syncing = True
         self.names = [None] + installed
         if tab.state.commentary and tab.state.commentary not in installed:
-            self.names.append(tab.state.commentary)
+            from .module_lifecycle import ModuleLifecycle
+            if not ModuleLifecycle(self.owner.library).was_removed(tab.state.commentary):
+                self.names.append(tab.state.commentary)
         labels = [tr('Choose a commentary')]
         for name in self.names[1:]:
             if name in installed:
@@ -255,7 +258,7 @@ class StudyPanel(Gtk.Box):
         if labels != self._labels:
             self.choices.set_model(Gtk.StringList.new(labels))
             self._labels = labels
-        self.choices.set_selected(self.names.index(tab.state.commentary))
+        self.choices.set_selected(self.names.index(tab.state.commentary) if tab.state.commentary in self.names else 0)
         self._syncing = False
         self.render(tab, installed)
 
@@ -354,9 +357,8 @@ class StudyPanel(Gtk.Box):
     def ensure_chapter(self,reference,introduction=False):
         key=introduction_key(reference,self.reader) if introduction else self.reader.key(reference)
         context=(id(self.reader),key.getOSISBookName(),key.getChapter())
-        from bisect import bisect_right
-        position=bisect_right(self.reader.index.starts,key.getIndex())-1
-        covered=position>=0 and self.reader.index.sections[position].contains_index(key.getIndex())
+        position=self.reader.index._section_by_native_index.get(key.getIndex())
+        covered=position is not None
         if (covered and position in self.loaded or not covered and context==getattr(self,'_chapter_context',None)):
             self._chapter_context=context
             return False
@@ -389,9 +391,12 @@ class StudyPanel(Gtk.Box):
         section=self.reader.index.sections[self.current_position]
         if section.introduction:tab.mark_commentary_range(None,None);return
         try:
-            first=resolve(section.start,self.reader.versification,tab.reader,require_entry=False).start
-            last=resolve(section.end,self.reader.versification,tab.reader,require_entry=False).end
-            tab.mark_commentary_range(first,last)
+            passages=[
+                (resolve(first,self.reader.versification,tab.reader,require_entry=False).start,
+                 resolve(last,self.reader.versification,tab.reader,require_entry=False).end)
+                for first,last in section.passages
+            ]
+            tab.mark_commentary_segments(passages)
         except ValueError:tab.mark_commentary_range(None,None)
 
     def anchor(self):
@@ -422,8 +427,8 @@ class StudyPanel(Gtk.Box):
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
         pieces=[];styles=[];self.ranges={};self._prefaces={};offset=0
         for position in self.loaded:
-            heading=self.reader.index.label(position)+'\n'
             document=source.document(position,self.owner.preferences.value)
+            heading='' if document.has_coverage_title else self.reader.index.label(position)+'\n'
             self._prefaces[position]=document.has_preface
             base=offset+len(heading)
             pieces.extend([heading,document.text,'\n\n'])
@@ -487,9 +492,13 @@ class StudyPanel(Gtk.Box):
             if frames[0]<3:return True
             first,begin,last=self.ranges[position]
             iterator=buffer.get_iter_at_offset(min(last,begin+offset) if offset else first)
-            target=self.text.get_iter_location(iterator);rect=self.text.get_visible_rect()
+            # Source labels can start with a zero-scale native decoration.
+            # Its glyph box sits below the visible text's top; reveal the
+            # whole line rather than clipping the retained source heading.
+            target_y=self.text.get_iter_location(iterator).y if offset else self.text.get_line_yrange(iterator)[0]
+            rect=self.text.get_visible_rect()
             adjustment=self.scroll.get_vadjustment()
-            destination=adjustment.get_value()+target.y-rect.y
+            destination=adjustment.get_value()+target_y-rect.y
             if animate:
                 self._positioning=False;self._reveal_tick=0
                 context=self._display_context;chapter=self._chapter_context
@@ -607,27 +616,40 @@ class StudyPanel(Gtk.Box):
         self.entry_controls()
         self.update_indicator()
 
+    def cancel_choice(self, identifier=None):
+        if self._choice_idle and (identifier is None or self._choice_name==identifier):
+            GLib.source_remove(self._choice_idle)
+            self._choice_idle=0;self._choice_name=None
+
     def selection_changed(self, *_):
         if self._syncing or self.owner.active_tab is None:
             return
-        index = self.choices.get_selected()
-        if index < len(self.names):
-            if self.names[index] is self._download_choice:
-                self._stamp=None
-                tab=self.owner.active_tab
-                context=self.owner.library_context(tab,'commentary')
-                from gi.repository import GLib
-                def open_downloads():
-                    if not self.owner.closed and tab in self.owner.tabs():
-                        self.owner.dismiss_popovers();self.owner.open_library('commentary',context=context)
-                    return False
-                GLib.idle_add(open_downloads)
-                self.refresh(force=True)
-                return
-            self.owner.active_tab.state.commentary = self.names[index]
-            self.refresh()
-            self.remember_choice(self.names[index])
-            self.owner.schedule_save()
+        index=self.choices.get_selected()
+        if index>=len(self.names):return
+        tab=self.owner.active_tab;name=self.names[index]
+        self.cancel_choice();self._choice_name=name
+        # Gtk.DropDown is still emitting notify::selected. Replacing its model
+        # here can free the selected item before native notification unwinds.
+        if name is self._download_choice:
+            context=self.owner.library_context(tab,'commentary')
+            def open_downloads():
+                self._choice_idle=0;self._choice_name=None
+                if not self.owner.closed and self.owner.active_tab is tab and tab in self.owner.tabs():
+                    self._stamp=None;self.refresh(force=True)
+                    self.owner.dismiss_popovers();self.owner.open_library('commentary',context=context)
+                return False
+            self._choice_idle=GLib.idle_add(open_downloads)
+            return
+        tab.state.commentary=name
+        self.owner.schedule_save()
+        def apply_choice():
+            self._choice_idle=0;self._choice_name=None
+            if (not self.owner.closed and self.owner.active_tab is tab and tab in self.owner.tabs()
+                    and tab.state.commentary==name):
+                self.refresh()
+                self.remember_choice(name)
+            return False
+        self._choice_idle=GLib.idle_add(apply_choice)
 
     def remember_choice(self, name):
         # Only a deliberate, successfully opened source establishes a default.

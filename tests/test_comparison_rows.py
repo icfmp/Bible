@@ -7,6 +7,11 @@ import unittest
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Requires GTK')
 class ComparisonRowsTests(unittest.TestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        # These sentinel fixtures are authored in their declared convention.
+        self.enterContext(patch('bible.sword_provider.Reader.can_align_reference',return_value=True))
+
     def test_actual_verse_bodies_align_with_different_source_headings(self):
         from unittest.mock import patch
         from bible.ui import Application,Window,Library

@@ -89,6 +89,8 @@ class LinkedLayoutTests(unittest.TestCase):
             finally:window.close()
 
     def test_shared_comparison_aligns_a_linked_unit_with_both_other_verses(self):
+        from unittest.mock import patch
+        self.enterContext(patch('bible.sword_provider.Reader.can_align_reference',return_value=True))
         from bible.ui import Application,Window,Library
         from tests.test_ui import installed_fixture,spin
         with tempfile.TemporaryDirectory() as directory:

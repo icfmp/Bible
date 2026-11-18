@@ -5,6 +5,42 @@ import re
 from collections import defaultdict
 
 
+def title_covers_section(title, section, reader):
+    """Recognize exact source range labels; unrelated/ambiguous titles survive."""
+    if section.introduction or not isinstance(title,str) or len(title)>200:return False
+    title=re.sub('[\u2010-\u2015\u2212]','-',title.strip())
+    passages=section.passages
+    if len(passages)!=1:return False
+    first,last=passages[0]
+    a=first.split('.');b=last.split('.')
+    # Relative source labels are meaningful only in one native chapter.
+    relative=re.fullmatch(r'(?:verses?|versets?)\s+([1-9][0-9]*)(?:\s*-\s*([1-9][0-9]*))?',title,re.I)
+    if relative:
+        return (a[:2]==b[:2] and int(a[2])==int(relative[1])
+                and int(b[2])==int(relative[2] or relative[1]))
+    from .book_names import canonical_input,normalized,FRENCH
+    def qualified(value, context=None):
+        full=re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*)[:.]([1-9][0-9]*)',value.strip())
+        if full:
+            key=reader.key(canonical_input(value.strip()))
+            code=key.getOSISBookName()
+            names={normalized(code),normalized(key.getBookName()),normalized(FRENCH.get(code,code))}
+            if normalized(full[1]) not in names:raise ValueError('Ambiguous source book label')
+            return key.getOSISRef()
+        if context:
+            book,chapter,_=context.split('.')
+            short=re.fullmatch(r'([1-9][0-9]*)(?:[:.]([1-9][0-9]*))?',value.strip())
+            if short:
+                return reader.key(f'{book}.{short[1] if short[2] else chapter}.{short[2] or short[1]}').getOSISRef()
+        raise ValueError('Not an explicit source passage label')
+    try:
+        parts=title.split('-')
+        if len(parts)>2:return False
+        start=qualified(parts[0]);end=qualified(parts[1],start) if len(parts)==2 else start
+        return (start,end)==(first,last)
+    except (ValueError,TypeError):return False
+
+
 class PreverseParts(HTMLParser):
     """Keep SWORD's preverse region separate from its stripped verse body."""
     CDATA_CONTENT_ELEMENTS=('script','style')

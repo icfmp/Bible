@@ -4,7 +4,7 @@ from .comparison_layout import correspondences, row_document
 from .paged_sources import BiblePages
 from .bible_render import render
 from .i18n import tr
-from .reference_resolution import resolve,_span
+from .reference_resolution import resolve_readers as resolve,_span
 from .pagination import Document
 from dataclasses import replace
 
@@ -23,7 +23,7 @@ class ComparisonRows:
         chapters={chapter.reference}
         for span in primary.spans:
             for reference in span.members:
-                mapped=resolve(reference,left.versification,right,require_entry=False)
+                mapped=resolve(reference,left,right,require_entry=False)
                 chapters.update(ref.rsplit('.',1)[0] for ref in _span(mapped.start,mapped.end,right.versification,right))
         key=left.key(tab.current.reference+'.1')
         low=key.getIndex();key.setVerse(key.getVerseMax());high=key.getIndex()
@@ -31,7 +31,7 @@ class ComparisonRows:
         for name in sorted(chapters,key=lambda ref:right.key(ref+'.1').getIndex()):
             document=BiblePages(right,None).document(name,tab.preferences)
             for index,span in enumerate(document.spans):
-                mapped=[resolve(ref,right.versification,left,require_entry=False) for ref in span.members]
+                mapped=[resolve(ref,right,left,require_entry=False) for ref in span.members]
                 if not any(left.key(m.end).getIndex()>=low and left.key(m.start).getIndex()<=high for m in mapped):continue
                 end=document.spans[index+1].start if index+1<len(document.spans) else len(document.text)
                 pieces.append(document.text[span.start:end]);copies.append((document.copy_text or document.text)[span.start:end])

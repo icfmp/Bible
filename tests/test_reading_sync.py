@@ -20,7 +20,33 @@ def linked_commentary(directory):
     (root/'.complete').write_text('Notes');return root
 
 
+def disjoint_commentary(directory):
+    """Extend a real disposable native SWORD commentary with a disjoint link."""
+    import Sword
+    root=linked_commentary(directory)
+    module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
+    module.setKey(Sword.VerseKey('Gen.1.6'))
+    module.linkEntry(Sword.VerseKey('Gen.1.2'))
+    del module
+    return root
+
+
 class CommentaryIndexTests(unittest.TestCase):
+    def test_module_and_testament_introductions_do_not_look_up_a_nonexistent_book(self):
+        import Sword
+        with tempfile.TemporaryDirectory() as directory:
+            root=linked_commentary(directory)
+            module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
+            for index in (0,1):
+                key=Sword.VerseKey();key.setIntros(True);key.setIndex(index)
+                self.assertIn(key.getBook(),(0,'\x00'))
+                module.setKey(key);module.setEntry(f'GENERAL INTRODUCTION {index}')
+            del module
+            reader=CommentaryReader(root,'Notes');index=reader.index
+            self.assertTrue(all(index.sections[pos].introduction for pos in (0,1)))
+            self.assertEqual([index.text(pos) for pos in (0,1)],['GENERAL INTRODUCTION 0','GENERAL INTRODUCTION 1'])
+            self.assertIsNotNone(index.locate('Gen.1.2'))
+
     def test_native_links_introductions_and_distinct_identical_texts(self):
         with tempfile.TemporaryDirectory() as directory:
             root=linked_commentary(directory);reader=CommentaryReader(root,'Notes');index=reader.index
@@ -30,6 +56,34 @@ class CommentaryIndexTests(unittest.TestCase):
             self.assertTrue(index.sections[0].introduction)
             self.assertIn('INTRODUCTION',index.text(0))
             self.assertIsNone(index.locate('John.1.1'))
+
+    def test_native_disjoint_link_resumes_without_absorbing_middle_sections(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=disjoint_commentary(directory)
+            reader=CommentaryReader(root,'Notes')
+            index=reader.index
+            primary=index.locate('Gen.1.2')
+            self.assertEqual(index.locate('Gen.1.3'),primary)
+            self.assertEqual(index.locate('Gen.1.6'),primary)
+            self.assertNotEqual(index.locate('Gen.1.4'),primary)
+            self.assertNotEqual(index.locate('Gen.1.5'),primary)
+            self.assertNotEqual(index.locate('Gen.1.4'),index.locate('Gen.1.5'))
+            section=index.sections[primary]
+            self.assertEqual(section.passages,(
+                ('Gen.1.2','Gen.1.3'),
+                ('Gen.1.6','Gen.1.6')
+            ))
+            self.assertFalse(section.contains_index(reader.key('Gen.1.5').getIndex()))
+            self.assertTrue(section.contains_index(reader.key('Gen.1.6').getIndex()))
+            self.assertEqual(sum(
+                'LONG COMMENT TEST' in index.text(pos)
+                for pos in range(len(index.sections))
+            ),1)
+            self.assertIn('LONG COMMENT TEST',index.text(primary))
+            self.assertEqual(sum(
+                section.contains_index(reader.key('Gen.1.6').getIndex())
+                for section in index.sections
+            ),1)
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
@@ -65,10 +119,11 @@ class ReadingSyncTests(unittest.TestCase):
         cls.app=Application.get_default() or Application();cls.app.register()
         Gtk.Settings.get_default().set_property('gtk-enable-animations',False)
 
-    def setup_window(self,directory):
+    def setup_window(self,directory,disjoint=False):
         from bible.ui import Window,Library
         entries=[(f'Gen.1.{i}',(f'VERSE {i} TEST '*90)) for i in range(1,9)]+[('Gen.2.1','SECOND CHAPTER BIBLE TEST')]
-        installed_fixture(directory,entries=entries);linked_commentary(directory)
+        installed_fixture(directory,entries=entries)
+        (disjoint_commentary if disjoint else linked_commentary)(directory)
         window=Window(self.app,Library(Path(directory)/'translations'));window.present()
         window.active_tab.state.commentary='Notes';window.study_button.set_active(True);window.study.refresh()
         self.addCleanup(lambda:window.close() if not window.closed else None)
@@ -82,6 +137,35 @@ class ReadingSyncTests(unittest.TestCase):
         target=view.get_iter_location(iterator);rect=view.get_visible_rect()
         adjustment=tab.scroll.get_vadjustment();adjustment.set_value(adjustment.get_value()+target.y-rect.y)
         spin(lambda:tab.state.reference==reference and not w.study._positioning,duration=.25)
+
+    def test_disjoint_section_renders_once_and_study_indicator_skips_middle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            w=self.setup_window(directory,disjoint=True)
+            try:
+                study=w.study
+                tab=w.active_tab
+                group=study.reader.index.locate('Gen.1.6')
+                self.assertEqual(group,study.reader.index.locate('Gen.1.2'))
+                self.assertEqual(len(study.reader.index.sections[group].passages),2)
+                study.follow('Gen.1.6')
+                spin(lambda:not study._positioning,duration=.2)
+                self.assertEqual(study.current_position,group)
+                coverage=tab._study_coverage
+                self.assertEqual(len(coverage),2)
+                self.assertEqual(coverage[1],(
+                    ('Gen.1.2','Gen.1.3'),('Gen.1.6','Gen.1.6')
+                ))
+                text=study.text.get_buffer().props.text
+                self.assertEqual(text.count('LONG COMMENT TEST'),900)
+                intervals=[(ref,first,last)
+                           for ref,(first,last) in tab._verse_ranges.items()]
+                spans=tab.study_ranges(tab.reader,intervals)
+                expected=[(first,last) for ref,first,last in intervals
+                          if ref in ('Gen.1.2','Gen.1.3','Gen.1.6')]
+                self.assertEqual(spans,expected)
+            finally:
+                w.close()
+                spin()
 
     def test_references_follow_visible_anchor_and_reopen_without_history(self):
         with tempfile.TemporaryDirectory() as directory:

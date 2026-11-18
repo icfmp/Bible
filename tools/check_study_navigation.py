@@ -57,15 +57,15 @@ def main():
         notes_before=[asdict(n) for n in window.notes_store.all()]
         schema=window.notes_store.db.execute('PRAGMA user_version').fetchone()[0]
         tab.navigate('FreSegond1910','Ps.51.1');tab.state.comparison='KJV';window.sync_comparison();spin(duration=.8)
-        assert tab._shared_comparison,tab.comparison_status.get_text()
-        rows=tab.comparison_rows
-        assert rows.rows[0].primary==('Ps.51.1','Ps.51.2','Ps.51.3')
-        assert rows.rows[0].secondary==('Ps.51.1',)
-        starts=[[view.get_iter_location(view.get_buffer().get_iter_at_offset(a)).y for a in rows.bodies[side]]
-                for side,view in enumerate((tab.text,tab.comparison_text))]
-        maximum=max(abs(a-b) for a,b in zip(*starts));assert maximum<=1
-        assert tab.scroll.get_vadjustment() is tab.comparison_scroll.get_vadjustment()
-        report['real_psalm_comparison']=dict(rows=len(rows.rows),maximum_body_delta_pixels=maximum)
+        # These native packages have no edition-level numbering attestation.
+        # A registry transform is tested below, but must not become a claim
+        # about their contents or insert false absence rows into the reader.
+        assert not getattr(tab,'_shared_comparison',False) and not tab._comparison_aligned
+        assert tab.comparison_status.get_text()
+        assert tab.scroll.get_vadjustment() is not tab.comparison_scroll.get_vadjustment()
+        for reader,document in ((tab.reader,tab._document),(tab._comparison_reader,tab._comparison_document)):
+            assert {r for s in document.spans for r in s.members}==set(dict(reader.chapter('Ps.51.1').verses))
+        report['real_psalm_comparison']=dict(independent=True,source_numbering_unverified=True)
         from bible.word_metadata import source_verse_references
         for title in ('Ps.3.1','Ps.51.1','Ps.51.2'):
             try:source_verse_references(title,tab.reader)

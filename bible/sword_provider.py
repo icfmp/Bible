@@ -182,6 +182,33 @@ class Reader:
         value=self.module.getDirection()
         return value in (self.sword.DIRECTION_RTL,chr(self.sword.DIRECTION_RTL))
 
+    def can_align_reference(self, reference):
+        # Existing verified conversions retain source numbering evidence. An
+        # ordinary module's Versification entry describes storage, not proof
+        # that its contents follow that edition-level numbering convention.
+        if not self._source_osis:return False
+        from .source_versification import reference_mapping,SOURCE_CONVENTIONS
+        receipt=self._numbering_receipt
+        if (receipt.get('all_text_notes_headings_verified') is not True
+                or receipt.get('storage_numbering')!=self.versification):return False
+        if SOURCE_CONVENTIONS.get(receipt.get('source_numbering'))==self.versification:return True
+        from .versification_mapping import table,verified_identity
+        data=reference_mapping(self.versification) or table(self.versification)
+        if not data:return False
+        convention=data.get('declared_convention')
+        if convention:return reference.split('.')[0] in convention['books']
+        return verified_identity(reference,data)
+
+    @cached_property
+    def _numbering_receipt(self):
+        import json
+        path=self.root/'.verified.json'
+        try:
+            if path.is_symlink() or path.stat().st_size>16384:return {}
+            value=json.loads(path.read_text())
+            return value if isinstance(value,dict) else {}
+        except (OSError,ValueError):return {}
+
     def key(self, reference):
         if isinstance(reference, str):
             reference = canonical_input(reference)

@@ -590,6 +590,7 @@ class WindowTests(unittest.TestCase):
     def choose_commentary(self, window, name):
         window.study.refresh(force=True)
         window.study.choices.set_selected(window.study.names.index(name))
+        spin(lambda:not window.study._choice_idle)
 
     def test_commentary_follows_clicked_verse_and_keyboard_without_stale_text(self):
         from tests.test_commentary import commentary_fixture

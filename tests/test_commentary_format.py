@@ -51,6 +51,69 @@ class CommentaryFormatTests(unittest.TestCase):
 
 
 class CommentaryLayoutTests(unittest.TestCase):
+    def test_only_exact_source_coverage_labels_replace_generated_context(self):
+        from bible.commentary_format import title_covers_section
+        from bible.commentary_index import Section,Segment
+        from bible.reference_targets import Canon
+        reader=Canon('KJV')
+        def section(start,end=None,intro=False):return Section(1,2,start,end or start,intro)
+        cases=[
+            ('Verse 1',section('Gen.15.1'),True),
+            ('Verses 14–18',section('Gen.13.14','Gen.13.18'),True),
+            ('Versets 14—18',section('Gen.13.14','Gen.13.18'),True),
+            ('Genèse 13:14−18',section('Gen.13.14','Gen.13.18'),True),
+            ('Genesis 13:14-Gen.13.18',section('Gen.13.14','Gen.13.18'),True),
+            ('Genesis 13:18-14:2',section('Gen.13.18','Gen.14.2'),True),
+            ('Genesis 50:26-Exodus 1:2',section('Gen.50.26','Exod.1.2'),True),
+            ('Verse 1',section('Gen.15.1','Gen.15.2'),False),
+            ('Verses 14–18',section('Gen.13.14','Gen.14.18'),False),
+            ('Verses 14–19',section('Gen.13.14','Gen.13.18'),False),
+            ('Verse 1',section('Gen.15.1',intro=True),False),
+            ('God encourages Abram',section('Gen.15.1'),False),
+            ('Genesis 13:14-99',section('Gen.13.14','Gen.13.18'),False),
+            ('Unidentified 13:14-18',section('Gen.13.14','Gen.13.18'),False),
+            ('Verses 2–6',Section(1,6,'Gen.1.2','Gen.1.6',False,(
+                Segment(1,2,'Gen.1.2','Gen.1.3'),Segment(6,6,'Gen.1.6','Gen.1.6'))),False),
+        ]
+        for title,coverage,expected in cases:
+            with self.subTest(title=title,coverage=coverage):self.assertEqual(title_covers_section(title,coverage,reader),expected)
+
+    @unittest.skipUnless(__import__('os').environ.get('DISPLAY'),'Requires GTK')
+    def test_matching_source_title_survives_with_body_anchors_and_copy(self):
+        import tempfile
+        from pathlib import Path
+        from bible.ui import Application,Window,Library
+        from bible.paged_sources import CommentaryPages
+        from tests.test_ui import installed_fixture,spin
+        from tests.test_commentary import commentary_fixture
+        app=Application.get_default() or Application();app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            root=commentary_fixture(directory,entries=[('Gen.1.1','<title>Verse 1</title><p>UNCHANGED SOURCE BODY.</p>'),
+                ('Gen.1.2','<title>Verses 2–3</title><p>DIFFERENT SOURCE COVERAGE.</p>'),
+                ('Gen.1.3','<p><hi type="bold">Verse 3</hi> SOURCE BOLD LABEL.</p>')])
+            conf=root/'mods.d/test.conf';conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS')+'GlobalOptionFilter=OSISHeadings\n')
+            w=Window(app,Library(Path(directory)/'translations'));w.present()
+            try:
+                w.study_button.set_active(True);panel=w.study
+                panel.choices.set_selected(panel.names.index('Notes'));spin(lambda:not panel._positioning and not panel._choice_idle)
+                source=CommentaryPages(panel.reader,w.library.resource('Notes'))
+                text=panel.text.get_buffer().props.text
+                for ref,match,title in [('Gen.1.1',True,'Verse 1'),('Gen.1.2',False,'Verses 2–3'),('Gen.1.3',True,'Verse 3')]:
+                    pos=panel.reader.index.locate(ref);doc=source.document(pos,w.preferences.value)
+                    self.assertEqual(doc.has_coverage_title,match)
+                    self.assertIn(title,doc.copy(0,len(doc.text)))
+                    start,body,end=panel.ranges[pos]
+                    if match:self.assertNotIn(panel.reader.index.label(pos),text[start:body])
+                    else:self.assertTrue(text[start:end].startswith(panel.reader.index.label(pos)))
+                    self.assertEqual(text[body:end],doc.text[doc.spans[0].body:])
+                    if ref=='Gen.1.3':
+                        panel.current_position=pos;panel.reveal(pos,force=True);spin(lambda:not panel._positioning)
+                        ink=panel.text.get_iter_location(panel.text.get_buffer().get_iter_at_offset(body+2))
+                        self.assertGreaterEqual(ink.y,panel.text.get_visible_rect().y)
+                self.assertIn('UNCHANGED SOURCE BODY.',text)
+            finally:w.close()
+
     @unittest.skipUnless(__import__('os').environ.get('DISPLAY'),'Requires GTK')
     def test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules(self):
         import hashlib,tempfile

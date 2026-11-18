@@ -14,6 +14,8 @@ class VisualPolishTests(unittest.TestCase):
         cls.app=Application.get_default() or Application();cls.app.register()
 
     def test_pane_choosers_keep_tabs_data_and_verified_mapping(self):
+        from unittest.mock import patch
+        self.enterContext(patch('bible.sword_provider.Reader.can_align_reference',return_value=True))
         from bible.ui import Window,Library
         with tempfile.TemporaryDirectory() as directory:
             for name,system in [('Darby','Luther'),('KingJames','KJV'),('Segond','Segond')]:

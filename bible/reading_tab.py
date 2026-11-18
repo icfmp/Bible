@@ -341,10 +341,10 @@ class ReadingTab(Gtk.Box):
                 self._comparison_reader = Reader(self.library.root/name, name); self._comparison_name = name
             reader = self._comparison_reader
             if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
-            from .reference_resolution import resolve,available_chapter
+            from .reference_resolution import resolve_readers,available_chapter
             alignment_error = None
             try:
-                resolved = resolve(self.state.reference, self.reader.versification, reader,require_entry=False)
+                resolved = resolve_readers(self.state.reference, self.reader, reader,require_entry=False)
                 reference, end = resolved.start, resolved.end
             except ValueError as error:
                 # An explicit comparison opening may open an available printed
@@ -650,18 +650,40 @@ class ReadingTab(Gtk.Box):
         self._study_coverage=(self.reader.versification,start,end) if start and end and self.reader else None
         self.refresh_study_indicator()
 
+    def mark_commentary_segments(self,segments):
+        """Highlight each genuine linked passage without crossing intervening notes."""
+        segments=tuple((start,end) for start,end in segments if start and end)
+        if len(segments)==1:
+            self.mark_commentary_range(*segments[0])
+        else:
+            self._study_coverage=(
+                (self.reader.versification,segments)
+                if segments and self.reader else None
+            )
+            self.refresh_study_indicator()
+
     def study_ranges(self,reader,ranges):
         if not self._study_coverage or not self.state.study_visible or not reader:return []
-        system,start,end=self._study_coverage
+        coverage=self._study_coverage
+        system=coverage[0]
+        # Preserve the legacy single-range state used by notes/references.
+        # Disjoint commentary coverage stores (system, ((a,b),(c,d),...)).
+        passages=coverage[1] if len(coverage)==2 else (coverage[1:3],)
         from .reference_resolution import resolve
         try:
             if getattr(reader,'addresses',None) and system==reader.versification:
-                refs=set(reader.reference_range(start,end))
+                refs=set()
+                for first,last in passages:
+                    refs.update(reader.reference_range(first,last))
                 return [(begin,finish) for reference,begin,finish in ranges if reference in refs]
-            first=reader.key(resolve(start,system,reader,require_entry=False).start).getIndex()
-            last=reader.key(resolve(end,system,reader,require_entry=False).end).getIndex()
+            indices=[
+                (reader.key(resolve(first,system,reader,require_entry=False).start).getIndex(),
+                 reader.key(resolve(last,system,reader,require_entry=False).end).getIndex())
+                for first,last in passages
+            ]
             return [(begin,finish) for reference,begin,finish in ranges
-                    if first<=reader.key(reference).getIndex()<=last]
+                    if any(first<=reader.key(reference).getIndex()<=last
+                           for first,last in indices)]
         except ValueError:return []
 
     def refresh_study_indicator(self):
