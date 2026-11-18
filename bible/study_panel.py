@@ -427,8 +427,8 @@ class StudyPanel(Gtk.Box):
         source=CommentaryPages(self.reader,self.owner.library.resource(self.owner.active_tab.state.commentary))
         pieces=[];styles=[];self.ranges={};self._prefaces={};offset=0
         for position in self.loaded:
-            heading=self.reader.index.label(position)+'\n'
             document=source.document(position,self.owner.preferences.value)
+            heading='' if document.has_coverage_title else self.reader.index.label(position)+'\n'
             self._prefaces[position]=document.has_preface
             base=offset+len(heading)
             pieces.extend([heading,document.text,'\n\n'])
