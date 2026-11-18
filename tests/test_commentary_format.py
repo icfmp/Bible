@@ -107,6 +107,10 @@ class CommentaryLayoutTests(unittest.TestCase):
                     if match:self.assertNotIn(panel.reader.index.label(pos),text[start:body])
                     else:self.assertTrue(text[start:end].startswith(panel.reader.index.label(pos)))
                     self.assertEqual(text[body:end],doc.text[doc.spans[0].body:])
+                    if ref=='Gen.1.3':
+                        panel.current_position=pos;panel.reveal(pos,force=True);spin(lambda:not panel._positioning)
+                        ink=panel.text.get_iter_location(panel.text.get_buffer().get_iter_at_offset(body+2))
+                        self.assertGreaterEqual(ink.y,panel.text.get_visible_rect().y)
                 self.assertIn('UNCHANGED SOURCE BODY.',text)
             finally:w.close()
 

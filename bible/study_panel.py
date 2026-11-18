@@ -492,9 +492,13 @@ class StudyPanel(Gtk.Box):
             if frames[0]<3:return True
             first,begin,last=self.ranges[position]
             iterator=buffer.get_iter_at_offset(min(last,begin+offset) if offset else first)
-            target=self.text.get_iter_location(iterator);rect=self.text.get_visible_rect()
+            # Source labels can start with a zero-scale native decoration.
+            # Its glyph box sits below the visible text's top; reveal the
+            # whole line rather than clipping the retained source heading.
+            target_y=self.text.get_iter_location(iterator).y if offset else self.text.get_line_yrange(iterator)[0]
+            rect=self.text.get_visible_rect()
             adjustment=self.scroll.get_vadjustment()
-            destination=adjustment.get_value()+target.y-rect.y
+            destination=adjustment.get_value()+target_y-rect.y
             if animate:
                 self._positioning=False;self._reveal_tick=0
                 context=self._display_context;chapter=self._chapter_context
