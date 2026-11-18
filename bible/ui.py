@@ -292,8 +292,8 @@ class Window(Adw.ApplicationWindow):
         breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
         breakpoint.add_setter(self.split, 'collapsed', True)
         self.add_breakpoint(breakpoint)
-        icons = Gtk.IconTheme.get_for_display(self.get_display())
-        icons.add_search_path(str(Path(__file__).parent / 'icons'))
+        from .icons import configure_theme
+        configure_theme(Gtk.IconTheme.get_for_display(self.get_display()))
         css = Gtk.CssProvider()
         css.load_from_data(b'textview.reading { } '
                            b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '

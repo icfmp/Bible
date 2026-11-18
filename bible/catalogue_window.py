@@ -41,7 +41,8 @@ class CatalogueWindow(Adw.Window):
         self.set_size_request(320,320)
         self.library, self.on_installed = library, on_installed
         self.owner = parent
-        self.add_css_class(parent.reading_style.scope+'-window')
+        from .application_surfaces import secondary_dialog
+        secondary_dialog(self,parent)
         self._covered=frozenset();self._catalogued_ids=frozenset();self._removed_ids=frozenset();self._archived_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
@@ -202,7 +203,7 @@ class CatalogueWindow(Adw.Window):
         self.detail_subtitle.add_css_class('dim-label');identity_text.append(self.detail_subtitle)
         identity.append(identity_text);detail.append(identity)
         self.installed_state=Gtk.Box(spacing=6,halign=Gtk.Align.START,visible=False)
-        self.installed_state.append(Gtk.Image(icon_name='emblem-ok-symbolic'))
+        self.installed_state.append(Gtk.Image(icon_name='object-select-symbolic'))
         self.installed_state.append(Gtk.Label(label=tr('Installed — available offline'),wrap=True))
         detail.append(self.installed_state)
         self.primary_actions=Gtk.Box(spacing=8,orientation=Gtk.Orientation.HORIZONTAL)

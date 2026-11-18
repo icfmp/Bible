@@ -7,7 +7,7 @@ from .reading_metrics import SPACING,WIDTHS,line_spacing,text_width,side_margin
 class ReadingSettings:
     def __init__(self,owner,dialog):
         self.owner=owner;self.dialog=dialog;self.syncing=True
-        self.page=Adw.PreferencesPage(title=tr('Reading'),name='reading',icon_name='format-text-symbolic')
+        self.page=Adw.PreferencesPage(title=tr('Reading'),name='reading',icon_name='font-select-symbolic')
         self.families={family.get_name().casefold():family
                        for family in self.page.get_pango_context().get_font_map().list_families()}
         self.typography_heading=Adw.PreferencesGroup(title=tr('Typography'));self.page.add(self.typography_heading)

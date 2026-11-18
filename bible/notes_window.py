@@ -128,14 +128,16 @@ class Labels(Gtk.Box):
 class NoteEditor(Adw.Window):
     def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False):
         super().__init__(transient_for=owner, modal=True, title=tr('Edit note') if note else tr('New note'),
-                         default_width=700, default_height=480)
+                         default_width=700, default_height=600)
         self.set_size_request(360, 360)
         self.owner, self.note = owner, note
         self.embedded=embedded;self.compact=compact;self.embedded_host=None
         self.dialog_parent=owner if embedded else self
         self.context = dict(context) if context else {
             key: getattr(note, key) for key in ('versification', 'start', 'end', 'origin_translation', 'origin_language')}
-        if hasattr(owner,'reading_style'):self.add_css_class(owner.reading_style.scope+'-window')
+        if hasattr(owner,'reading_style'):
+            from .application_surfaces import secondary_dialog
+            secondary_dialog(self,owner)
         self.closed = False
         self._discard = False
         self._confirmation = None
@@ -219,7 +221,11 @@ class NoteEditor(Adw.Window):
         self.writing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12)
         for widget in (note_heading,commands,scroll):
             layout.remove(widget);widget.set_margin_start(0);widget.set_margin_end(0);widget.set_margin_top(0)
-            self.writing.append(widget)
+        self.writing.append(note_heading)
+        field=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
+        field.append(commands);field.append(scroll)
+        self.writing_frame=Gtk.Frame(child=field,vexpand=True)
+        self.writing.append(self.writing_frame)
         commands.add_css_class('toolbar');layout.append(self.writing)
         layout.append(self.labels)
         from .note_links import PassageLinks
@@ -650,7 +656,7 @@ class NotesSpace(Gtk.Box):
         self.space_selector=WorkspaceSelector(owner,notes=True);header.pack_start(self.space_selector)
         self.workspace_title=Gtk.Label(label=tr('Notes and highlights'),ellipsize=Pango.EllipsizeMode.END,width_chars=1,max_width_chars=24,visible=owner.get_width()>=760)
         self.workspace_title.add_css_class('heading');header.set_title_widget(self.workspace_title)
-        self.sidebar_button=Gtk.ToggleButton(icon_name='sidebar-show-left-symbolic',tooltip_text=tr('Show filters'),visible=False)
+        self.sidebar_button=Gtk.ToggleButton(icon_name='sidebar-show-symbolic',tooltip_text=tr('Show filters'),visible=False)
         self.sidebar_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Show filters')]);self.sidebar_button.add_css_class('flat');header.pack_start(self.sidebar_button)
         from .application_surfaces import application_menu
         self.main_menu=application_menu();header.pack_end(self.main_menu);self.append(header)

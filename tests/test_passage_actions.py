@@ -7,6 +7,22 @@ from tests.test_ui import installed_fixture,spin
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class PassageActionTests(unittest.TestCase):
+    def test_copy_formats_preserve_unicode_and_cross_chapter_selection_extent(self):
+        from types import SimpleNamespace
+        from bible.passage_actions import Source,Target,copy_text
+        # Explicit sentinel content exercises code points and line boundaries;
+        # no generated fixture is presented as a Bible resource.
+        source=Source(None,'sentinel',SimpleNamespace(versification='KJV'),None,0,None,'test')
+        for text in ('Écl', 'אֱלֹהִים', 'Éclair…\nאֱלֹהִים — fin.'):
+            value=Target(source,None,None,('Gen.1.31','Gen.2.1'),text,
+                         ('WHOLE FIRST VERSE','WHOLE SECOND VERSE'),True,0,edition='Sentinel edition')
+            self.assertEqual(copy_text(value),text)
+            citation=copy_text(value,'label')
+            self.assertIn('1:31–2:1',citation)
+            self.assertTrue(citation.endswith(' — Sentinel edition'))
+            self.assertEqual(copy_text(value,'reference'),citation+'\n'+text)
+            self.assertNotIn('WHOLE',copy_text(value,'reference'))
+
     def test_frozen_comparison_source_copy_note_and_stale_selection(self):
         from bible.ui import Application,Window,Library
         app=Application.get_default() or Application();app.register()
@@ -26,6 +42,33 @@ class PassageActionTests(unittest.TestCase):
                 self.assertEqual(actions.target.references,('Gen.1.2','Gen.1.3'))
                 self.assertEqual(actions.target.source.resource,'Other')
                 self.assertEqual(actions.target.source.reader.versification,'Segond')
+                # The chevron never copies; each format copies the same partial
+                # source selection, rather than expanding it to complete verses.
+                from bible.passage_actions import copy_text
+                frozen=actions.target
+                window.get_clipboard().set('UNCHANGED CLIPBOARD')
+                from tools.check_alpha_ui import X11Input
+                native=X11Input()
+                try:
+                    spin();native.click(actions.copy_options);spin()
+                    unchanged=[]
+                    window.get_clipboard().read_text_async(None,lambda clipboard,result:unchanged.append(clipboard.read_text_finish(result)))
+                    spin(lambda:bool(unchanged));self.assertEqual(unchanged,['UNCHANGED CLIPBOARD'])
+                    self.assertEqual(actions.target,frozen)
+                    for index,mode in enumerate(('selected','reference','label')):
+                        if index:actions.capture(view,factory,None);spin();native.click(actions.copy_options);spin()
+                        button=actions.copy_popover.get_child().get_first_child()
+                        for _ in range(index):button=button.get_next_sibling()
+                        native.click(button);spin();result=[]
+                        window.get_clipboard().read_text_async(None,lambda clipboard,value:result.append(clipboard.read_text_finish(value)))
+                        spin(lambda:bool(result));self.assertEqual(result,[copy_text(frozen,mode)])
+                        self.assertFalse(actions.bar.get_visible());self.assertFalse(actions.copy_popover.get_visible())
+                    self.assertEqual(copy_text(frozen),frozen.text)
+                    self.assertNotEqual(frozen.text,'\n'.join(frozen.verses))
+                    self.assertTrue(copy_text(frozen,'reference').endswith('\n'+frozen.text))
+                    self.assertIn('Other',copy_text(frozen,'label'))
+                    actions.capture(view,factory,None)
+                finally:native.close()
                 from bible.highlights import COLORS
                 self.assertEqual(set(actions.highlight_buttons),set(COLORS))
                 for color in ('yellow','green','green','blue'):
@@ -36,11 +79,14 @@ class PassageActionTests(unittest.TestCase):
                 window.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
                 spin(lambda:bool(copied));self.assertEqual(copied[0],expected)
                 self.assertEqual(tuple(i.get_offset() for i in buffer.get_selection_bounds()),(first,last))
+                self.assertFalse(actions.bar.get_visible())
+                actions.capture(view,factory,None)
                 actions.note();editor=window.note_editor
                 self.assertEqual(editor.context['origin_translation'],'Other')
                 self.assertEqual(editor.context['versification'],'Segond')
                 self.assertEqual((editor.context['start'],editor.context['end']),('Gen.1.2','Gen.1.3'))
                 editor.close();spin()
+                actions.capture(view,factory,None)
                 # A new selection must invalidate the old frozen action target.
                 changed=tab._comparison_markers['Gen.1.4']
                 buffer.select_range(buffer.get_iter_at_offset(changed),buffer.get_iter_at_offset(changed+5))
@@ -63,34 +109,30 @@ class PassageActionTests(unittest.TestCase):
                 self.assertFalse(window.passage_actions.bar.get_visible())
             finally:window.close()
 
-    def test_labelled_actions_fit_and_tab_in_order_with_native_wrap_and_older_gtk_fallback(self):
-        from types import SimpleNamespace
-        from unittest.mock import patch
-        from gi.repository import Adw,Gtk
+    def test_vertical_labelled_actions_fit_and_tab_in_order(self):
         from bible.ui import Application,Window,Library
         from tools.check_alpha_ui import X11Input
         app=Application.get_default() or Application();app.register();native=X11Input()
         try:
-            for fallback in (False,True):
-                with self.subTest(fallback=fallback),tempfile.TemporaryDirectory() as directory:
+            for width in (360,900):
+                with self.subTest(width=width),tempfile.TemporaryDirectory() as directory:
                     installed_fixture(directory,long_text=True)
-                    backend=SimpleNamespace(Clamp=Adw.Clamp,LengthUnit=Adw.LengthUnit) if fallback else Adw
-                    with patch('bible.passage_actions.Adw',backend):w=Window(app,Library(Path(directory)/'translations'))
-                    w.set_default_size(360,700);w.present();spin(lambda:w.get_width()<=360 and not w.active_tab._restoring_scroll,duration=.3)
+                    w=Window(app,Library(Path(directory)/'translations'))
+                    w.set_default_size(width,700);w.present();spin(lambda:w.get_width()==width and not w.active_tab._restoring_scroll,duration=.3)
                     try:
                         w.study_button.set_active(False);tab=w.active_tab;buffer=tab.text.get_buffer()
                         offset=tab._marker_ends['Gen.1.1']+3
                         buffer.select_range(buffer.get_iter_at_offset(offset),buffer.get_iter_at_offset(offset+12))
                         a=w.passage_actions;a.capture(tab.text,lambda:a.ordinary(tab),None);spin(duration=.4)
-                        buttons=[a.copy_button,*[v[0] for v in a.highlight_buttons.values()],a.note_button,a.word_button]
+                        buttons=[*[v[0] for v in a.highlight_buttons.values()],a.copy_button,a.copy_options,a.note_button,a.word_button]
                         for button in buttons:
                             found,bounds=button.compute_bounds(w);self.assertTrue(found)
                             self.assertGreaterEqual(bounds.get_x(),0);self.assertLessEqual(bounds.get_x()+bounds.get_width(),w.get_width())
                             self.assertGreaterEqual(bounds.get_y(),0);self.assertLessEqual(bounds.get_y()+bounds.get_height(),w.get_height())
                         if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':
-                            native.activate(w);a.copy_button.grab_focus()
+                            native.activate(w);buttons[0].grab_focus()
                             for button in buttons[1:]:
                                 native.key('Tab');spin(duration=.05);focus=w.get_focus()
-                                self.assertTrue(focus is button or focus and focus.is_ancestor(button),(fallback,button,focus))
+                                self.assertTrue(focus is button or focus and focus.is_ancestor(button),(width,button,focus))
                     finally:w.close()
         finally:native.close()

@@ -1,0 +1,22 @@
+{
+  "source": "/workspace/bible-notes-batch/bible/ui.py",
+  "renderer": "GLRenderer",
+  "captures": [
+    "main-menu",
+    "selection",
+    "copy-formats",
+    "dialog-note",
+    "dialog-library",
+    "dialog-preferences",
+    "dialog-shortcuts",
+    "dialog-study",
+    "dialog-study-map"
+  ],
+  "dialogs": [
+    "note",
+    "library",
+    "preferences",
+    "shortcuts",
+    "study"
+  ]
+}

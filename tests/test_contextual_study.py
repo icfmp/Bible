@@ -72,11 +72,13 @@ class ContextualStudyTests(unittest.TestCase):
         self.assertEqual(tokens[0]._source_token['form'],'λόγος')
         self.assertEqual(self.w.passage_study_dialog.get_title(),tr('Study passage'))
 
-    def test_four_tabs_preserve_context_and_one_word_component(self):
+    def test_two_v1_tabs_preserve_context_and_one_word_component_without_legacy_ghost_pages(self):
         w=self.w;w.study.tools.set_visible_child_name('notes');tool=w.study.tool
         before=(w.active_tab.state.resource,w.active_tab.state.reference,list(w.active_tab.state.history),w.notes_store.all())
         host=w.open_passage_study(target=self.target());spin(lambda:not w.study.words.pending)
-        self.assertEqual(host.tabs.get_pages().get_n_items(),4)
+        self.assertEqual(host.tabs.get_pages().get_n_items(),2)
+        self.assertIsNone(host.tabs.get_child_by_name('dictionary'))
+        self.assertIsNone(host.tabs.get_child_by_name('people'))
         self.assertTrue(host.switcher.is_ancestor(host.header))
         self.assertFalse(host.places.passage_context.get_visible())
         from bible.ui import Gtk
@@ -89,7 +91,7 @@ class ContextualStudyTests(unittest.TestCase):
             self.assertLessEqual(bounds.get_x()+bounds.get_width(),host.get_width())
         finally:settings.props.gtk_font_name=font
         context=host.context;words=host.words
-        for name in ('map','dictionary','people','original','map','original'):
+        for name in ('map','original','map','original'):
             host.tabs.set_visible_child_name(name);spin()
             self.assertEqual(host.context,context)
             self.assertIs(host.words,words)
@@ -98,6 +100,11 @@ class ContextualStudyTests(unittest.TestCase):
         host.close();spin()
         self.assertIsNone(w.passage_study_dialog);self.assertIsNone(words.dialog)
         self.assertIsNone(words.get_parent())
+        for removed in ('dictionary','people'):
+            legacy=w.open_passage_study(target=self.target(),mode=removed);spin(lambda:not w.study.words.pending)
+            self.assertEqual(legacy.tabs.get_visible_child_name(),'original')
+            self.assertEqual(legacy.tabs.get_pages().get_n_items(),2)
+            legacy.close();spin()
 
     def test_missing_and_supplied_glosses_remain_source_text(self):
         words=self.w.study.words;words.open(self.target());spin(lambda:not words.pending)

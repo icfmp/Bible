@@ -1,5 +1,5 @@
 """Intent-driven passage actions with frozen source/range/copy targets."""
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
@@ -30,6 +30,15 @@ class Target:
     native_selection: bool
     anchor: int
     selection: tuple | None = None
+    edition: str = ''
+
+
+def copy_text(value,mode='selected'):
+    """Use the frozen selection for every text format, including partial words."""
+    label=passage_label(value.references[0],value.references[-1],value.source.reader.versification)
+    label+=' — '+(value.edition or module_name(value.source.resource))
+    if mode=='label':return label
+    return (label+'\n' if mode=='reference' else '')+value.text
 
 
 def references(source,first,last):
@@ -143,22 +152,15 @@ class PassageActions:
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
         self.version_label.add_css_class('dim-label')
         identity.append(self.label);identity.append(self.version_label);content.append(identity)
-        self.actions=(Adw.WrapBox(child_spacing=4,line_spacing=4,natural_line_length=340)
-            if hasattr(Adw,'WrapBox') else Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,column_spacing=4,row_spacing=4,
-                min_children_per_line=1,max_children_per_line=20,halign=Gtk.Align.FILL))
-        self.actions.add_css_class('toolbar')
+        self.actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         self.actions_clamp=Adw.Clamp(child=self.actions,maximum_size=340,tightening_threshold=340,unit=Adw.LengthUnit.PX)
         content.append(self.actions_clamp)
-        self.copy_button=Gtk.MenuButton(icon_name='edit-copy-symbolic',tooltip_text=tr('Copy'))
-        self.copy_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy')])
-        self.actions.append(self.copy_button)
-        self.copy_options=self.copy_button  # One widget; retained internal compatibility name.
-        self.copy_popover=self.menu(self.copy_button,[(label,lambda *_,mode=mode:self.copy(mode))
-            for label,mode in [('Copy selected text','selected'),('Copy verses without numbers','verses'),
-                               ('Copy verses with reference','reference'),('Copy reference','label')]])
         self.highlight_button=None;self.highlight_buttons={}
         if hasattr(owner,'highlights'):
             from .highlights import COLORS
+            highlights=Gtk.Box(spacing=4)
+            highlights.append(Gtk.Label(label=tr('Highlight'),xalign=0,hexpand=True,wrap=True,
+                wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
             for color,(_,label) in COLORS.items():
                 button=Gtk.ToggleButton(tooltip_text=tr('Highlight')+': '+tr(label))
                 button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight')+': '+tr(label)])
@@ -166,22 +168,18 @@ class PassageActions:
                 circle.add_css_class('highlight-'+color)
                 check=Gtk.Image(icon_name='object-select-symbolic',pixel_size=14,opacity=0);circle.append(check)
                 button.set_child(circle);button.connect('clicked',lambda *_,c=color:self.highlight(c))
-                self.actions.append(button);self.highlight_buttons[color]=(button,check)
-        self.note_button=self.button('notebook-symbolic','Add a passage note',lambda *_:self.note())
-        self.word_button=self.button('accessories-dictionary-symbolic','Original text',lambda *_:self.study_word())
-        word=Gtk.Box(spacing=6)
-        word.append(Gtk.Image(icon_name='accessories-dictionary-symbolic',pixel_size=20))
-        word.append(Gtk.Label(label=tr('Original text')));self.word_button.set_child(word)
-        self.word_button.set_tooltip_text(tr('Study original text'))
-        self.word_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Study original text')])
-        if isinstance(self.actions,Gtk.FlowBox):
-            # Older Adwaita uses FlowBox wrappers; only the actual controls
-            # belong in the toolbar's keyboard traversal order.
-            child=self.actions.get_first_child()
-            while child:
-                child.set_focusable(False);child=child.get_next_sibling()
-        for button in (self.copy_options,self.highlight_button):
-            if button:button.set_child(Gtk.Image(icon_name=button.get_icon_name(),pixel_size=20))
+                highlights.append(button);self.highlight_buttons[color]=(button,check)
+            self.actions.append(highlights)
+        self.copy_button=self.button('edit-copy-symbolic','Copy',lambda *_:self.copy('reference'))
+        self.actions.remove(self.copy_button)
+        copy_row=Gtk.Box(spacing=4);self.copy_button.set_hexpand(True);copy_row.append(self.copy_button)
+        self.copy_options=Gtk.MenuButton(icon_name='pan-down-symbolic',tooltip_text=tr('Copy formats'))
+        self.copy_options.update_property([Gtk.AccessibleProperty.LABEL],[tr('Copy formats')])
+        copy_row.append(self.copy_options);self.actions.append(copy_row)
+        self.copy_popover=self.menu(self.copy_options,[(label,lambda *_,mode=mode:self.copy(mode))
+            for label,mode in [('Text only','selected'),('Text + reference','reference'),('Reference only','label')]])
+        self.note_button=self.button('notebook-symbolic','Add note',lambda *_:self.note())
+        self.word_button=self.button('accessories-dictionary-symbolic','Study passage',lambda *_:self.study_word())
         self.bar.connect('notify::visible',lambda *_:self.dismiss() if not self.bar.get_visible() and self.target else None)
         owner.view.connect('notify::selected-page',lambda *_:self.dismiss())
         gesture=Gtk.GestureClick(button=1);gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -266,7 +264,11 @@ class PassageActions:
     def button(self,icon,label,callback):
         button=Gtk.Button(icon_name=icon,tooltip_text=tr(label))
         button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
-        button.set_child(Gtk.Image(icon_name=icon,pixel_size=20))
+        row=Gtk.Box(spacing=8)
+        row.append(Gtk.Image(icon_name=icon,pixel_size=20))
+        row.append(Gtk.Label(label=tr(label),xalign=0,hexpand=True,wrap=True,
+                             wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
+        button.set_child(row)
         button.connect('clicked',callback);self.actions.append(button);return button
 
     def menu(self,button,choices):
@@ -290,7 +292,11 @@ class PassageActions:
                 bx,by=view.window_to_buffer_coords(Gtk.TextWindowType.WIDGET,int(x),int(y))
                 found,iterator=view.get_iter_at_location(bx,by)
                 offset=iterator.get_offset() if found else None
-            context[0]=target(view,source,factory,offset)
+            value=target(view,source,factory,offset)
+            if value:
+                try:value=replace(value,edition=self.owner.library.resource(source.resource).description)
+                except (OSError,ValueError):pass
+            context[0]=value
         pointer=Gtk.GestureClick(button=3);pointer.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         pointer.connect('pressed',lambda _,n,x,y:capture(x,y));view.add_controller(pointer)
         keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -313,11 +319,9 @@ class PassageActions:
                 self.owner.highlights.set(source.reader.versification,value.references,(None if command=='highlight:remove' else command.split(':')[1]),source.resource)
                 self.owner.refresh_highlights()
             else:
-                label=passage_label(value.references[0],value.references[-1],source.reader.versification)+' — '+module_name(source.resource)
-                text=label if command=='label' else (label+'\n' if command=='reference' else '')+'\n'.join(value.verses)
-                self.owner.get_clipboard().set(text)
-        choices=[('Add a passage note','note'),('Copy verses without numbers','verses'),
-                 ('Copy verses with reference','reference'),('Copy reference','label'),('Original text','word')]
+                self.owner.get_clipboard().set(copy_text(value,command))
+        choices=[('Add a passage note','note'),('Text only','selected'),
+                 ('Text + reference','reference'),('Reference only','label'),('Study passage','word')]
         choices += [(tr('Highlight')+': '+tr(label),'highlight:'+color) for color,label in [('yellow','Yellow'),('green','Green'),('blue','Blue')]]
         choices.append(('Remove highlight','highlight:remove'))
         for index,(label,command) in enumerate(choices):
@@ -421,13 +425,14 @@ class PassageActions:
         if not source:return False
         value=target(view,source,factory,clicked)
         if not value or not value.native_selection or not value.text.strip():self.dismiss();return False
+        resource=self.owner.library.resource(source.resource)
+        value=replace(value,edition=resource.description)
         self.target=value;self.bar.set_backdrop(view)
         parent=self.bar.get_parent()
         if parent is not source.parent:
             if parent:parent.remove_overlay(self.bar)
             source.parent.add_overlay(self.bar)
         label=passage_label(value.references[0],value.references[-1],source.reader.versification)
-        resource=self.owner.library.resource(source.resource)
         version=resource.description+' — '+resource.source
         self.label.set_text(label);self.label.set_tooltip_text(label)
         self.version_label.set_text(resource.public_code or resource.description);self.version_label.set_tooltip_text(version)
@@ -465,13 +470,13 @@ class PassageActions:
             if child.get_visible():widths.append(child.measure(Gtk.Orientation.HORIZONTAL,-1)[1])
             child=child.get_next_sibling()
         padding=self.actions.get_style_context().get_padding()
-        natural=sum(widths)+4*max(0,len(widths)-1)+padding.left+padding.right
+        natural=max(widths,default=1)+padding.left+padding.right
         width=max(1,min(available,natural))
         if hasattr(self.actions,'set_natural_line_length'):self.actions.set_natural_line_length(width)
         self.actions_clamp.set_maximum_size(width);self.actions_clamp.set_tightening_threshold(width)
         # Pango wrapping gives the reference priority; secondary metadata ellipsizes.
         em=max(1,self.version_label.create_pango_layout('M').get_pixel_size()[0])
-        chars=max(8,min(38,available//em))
+        chars=max(8,min(30,width//em))
         self.label.set_max_width_chars(chars);self.version_label.set_max_width_chars(chars)
         margin_bottom=12
         from gi.repository import Graphene
@@ -545,18 +550,14 @@ class PassageActions:
 
     def copy(self,mode='selected'):
         if not self.valid():self.dismiss();return
-        value=self.target
-        label=passage_label(value.references[0],value.references[-1],value.source.reader.versification)+' — '+module_name(value.source.resource)
-        text=value.text if mode=='selected' else '\n'.join(value.verses)
-        if mode=='reference':text=label+'\n'+text
-        if mode=='label':text=label
-        self.owner.get_clipboard().set(text)
+        self.owner.get_clipboard().set(copy_text(self.target,mode));self.dismiss()
 
     def note(self):
         if self.valid():
             value=self.target
-            self.owner.open_passage_notes((value.references[0],value.references[-1]),
-                resource=value.source.resource,reader=value.source.reader)
+            context=dict(versification=value.source.reader.versification,start=value.references[0],end=value.references[-1],
+                origin_translation=value.source.resource,origin_language=self.owner.library.resource(value.source.resource).language)
+            self.dismiss();self.owner.edit_note(context=context)
 
     def highlight(self,color):
         if not self.valid():self.dismiss();return

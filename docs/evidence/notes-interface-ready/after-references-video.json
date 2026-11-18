@@ -1,0 +1,95 @@
+{
+  "source": "/workspace/bible-notes-batch/bible/ui.py",
+  "scripted_verse_changes": true,
+  "controlled_query_delay_seconds": 0.18,
+  "records": [
+    {
+      "requested": "Gen.11.5",
+      "pending": true,
+      "cards": 14,
+      "heading": "Genèse 11:4",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.4",
+        "Gen.11.4"
+      ]
+    },
+    {
+      "requested": "Gen.11.6",
+      "pending": true,
+      "cards": 10,
+      "heading": "Genèse 11:5",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.5",
+        "Gen.11.5"
+      ]
+    },
+    {
+      "requested": "Gen.11.7",
+      "pending": true,
+      "cards": 11,
+      "heading": "Genèse 11:6",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.6",
+        "Gen.11.6"
+      ]
+    },
+    {
+      "requested": "Gen.11.4",
+      "pending": true,
+      "cards": 18,
+      "heading": "Genèse 11:7",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.7",
+        "Gen.11.7"
+      ]
+    },
+    {
+      "requested": "Gen.11.5",
+      "pending": true,
+      "cards": 14,
+      "heading": "Genèse 11:4",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.4",
+        "Gen.11.4"
+      ]
+    },
+    {
+      "requested": "Gen.11.6",
+      "pending": true,
+      "cards": 10,
+      "heading": "Genèse 11:5",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.5",
+        "Gen.11.5"
+      ]
+    },
+    {
+      "requested": "Gen.11.7",
+      "pending": true,
+      "cards": 11,
+      "heading": "Genèse 11:6",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.6",
+        "Gen.11.6"
+      ]
+    },
+    {
+      "requested": "Gen.11.4",
+      "pending": true,
+      "cards": 18,
+      "heading": "Genèse 11:7",
+      "loading_sentence": false,
+      "displayed_context": [
+        "Gen.11.7",
+        "Gen.11.7"
+      ]
+    }
+  ]
+}

@@ -40,10 +40,30 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertFalse(hasattr(card,'actions'))
         self.assertIn('21',card._reference_labels[0].get_text())
         self.assertIn('<b>Legacy note</b>',card.preview.get_label())
-        card.preview.activate(0);spin()
+        from tools.check_alpha_ui import X11Input
+        from bible.ui import Pango
+        native=X11Input();self.addCleanup(native.close);native.activate(self.w)
+        citation=card.preview.citations[0]
+        offset=len(card.preview.get_text()[:citation.begin].encode())
+        rectangle=card.preview.get_layout().index_to_pos(offset)
+        left,top=card.preview.get_layout_offsets()
+        with patch.object(panel,'open_note',wraps=panel.open_note) as opened:
+            native.click_at(card.preview,left+(rectangle.x+rectangle.width/2)/Pango.SCALE,
+                            top+(rectangle.y+rectangle.height/2)/Pango.SCALE)
+            self.assertEqual(opened.call_count,0)
         self.assertIsNone(panel.editor)
         self.assertEqual(self.w.reference_preview.target,('Test','John.3.16'))
-        self.w.reference_preview.dismiss();panel.refresh(force=True);spin()
+        self.w.reference_preview.dismiss();spin()
+        card.primary_action.grab_focus();native.key('Return');spin()
+        self.assertEqual(panel.editor.note.id,self.note.id)
+        self.assertEqual(panel.editor.body.source(),self.note.body)
+        self.assertFalse(panel.editor.embedded);panel.editor.close();spin()
+        mark=next(c for c in panel.cards if hasattr(c,'highlight_key'))
+        with patch.object(panel,'navigate_annotation',wraps=panel.navigate_annotation) as navigate:
+            native.click(mark.actions);self.assertTrue(mark.actions.get_popover().get_visible())
+            self.assertEqual(navigate.call_count,0)
+            mark.actions.popdown()
+        panel.refresh(force=True);spin()
         self.assertEqual(self.w.notes_store.all(),before);self.assertEqual(self.w.highlights.entries,marks)
 
     def test_shared_popup_keeps_document_context_and_failed_close_retains_the_draft(self):

@@ -11,7 +11,11 @@ class PassageStudy(Adw.Window):
                          default_width=min(700,max(320,owner.get_width()-48)),
                          default_height=min(680,max(360,owner.get_height()-96)))
         self.owner=owner;self.closed=False;self.words=None
-        self.add_css_class(owner.reading_style.scope+'-window')
+        from .application_surfaces import secondary_dialog
+        secondary_dialog(self,owner)
+        # v1 exposes only implemented contextual views. Legacy callers cannot
+        # send the dialog to an empty Dictionary/People placeholder page.
+        mode=mode if mode in ('original','map') else 'original'
         if target is None:target=self.context_target(context)
         self.target=target
         if context is None and target:
@@ -29,23 +33,23 @@ class PassageStudy(Adw.Window):
         self.passage.add_css_class('heading');root.append(self.passage)
         modern=hasattr(Adw,'InlineViewSwitcher')
         self.tabs=(Adw.ViewStack if modern else Gtk.Stack)(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        switcher=(Adw.InlineViewSwitcher(stack=self.tabs,can_shrink=False,homogeneous=True,
+        switcher=(Adw.InlineViewSwitcher(stack=self.tabs,can_shrink=False,homogeneous=False,
                       display_mode=Adw.InlineViewSwitcherDisplayMode.LABELS)
                   if modern else Gtk.StackSwitcher(stack=self.tabs))
         self.switcher=switcher;header.set_title_widget(switcher);root.append(self.tabs)
+        if not modern:
+            layout=switcher.get_layout_manager()
+            if isinstance(layout,Gtk.BoxLayout):layout.set_homogeneous(False)
         if target:
             self.words=owner.study.words;self.words.attach(target,metadata,host=self,start=mode=='original')
             self.tabs.add_titled(self.words,'original',tr('Original text'))
         else:
             self.tabs.add_titled(self.empty(tr('Choose a Bible passage to study.')),'original',tr('Original text'))
-        self.tabs.add_titled(self.empty(tr('No linked dictionary data is available.')),'dictionary',tr('Dictionary'))
         from .place_cards import PlaceView
         self.places=PlaceView(owner,context=context,host=self)
         self.tabs.add_titled(self.places,'map',tr('Map'))
-        self.tabs.add_titled(self.empty(tr('No source-backed people data is available.')),'people',tr('People'))
         compact=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 520sp'))
-        for name,icon in (('original','text-x-generic-symbolic'),('dictionary','dictionary-symbolic'),
-                          ('map','mark-location-symbolic'),('people','system-users-symbolic')):
+        for name,icon in (('original','text-x-generic-symbolic'),('map','mark-location-symbolic')):
             page=self.tabs.get_page(self.tabs.get_child_by_name(name))
             if modern:page.set_icon_name(icon)
             else:compact.add_setter(page,'icon-name',icon)

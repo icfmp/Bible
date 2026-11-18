@@ -230,3 +230,32 @@ installed package's license directory. Filenames gain `-symbolic` to use GTK's
 legacy symbolic SVG rendering, as documented upstream. No SVG geometry or
 colors were edited. The filter asset is available for the requested vocabulary;
 #231 deliberately retains no redundant wide sidebar-toggle button.
+
+
+## Portable GNOME symbolic icon fallback — #292
+
+The inventory in `bible/icons/manifest.json` records each production name,
+source path, immutable revision, license, asset SHA-256 and application users.
+The app retains the user's icon theme; missing symbolics resolve from bundled
+original SVGs or GTK's built-in resources. No artwork is downloaded at runtime.
+
+- **Adwaita 49.0**, GNOME Project, revision
+  `084370e79b7f02cec50ab70c82da49f64b45f120`:
+  <https://gitlab.gnome.org/GNOME/adwaita-icon-theme>.
+  Unmodified artwork, including directional variants, uses the upstream
+  **LGPL version 3** option. The original COPYING declaration and full LGPL/GPL
+  texts are included in `bible/icons/licenses/` and installed at
+  `/app/lib/bible-python/bible/icons/licenses/`.
+- **GNOME Web (Epiphany) 49.0**, GNOME Project, revision
+  `e269761e175ee753325454a1ae482c945003b661`:
+  <https://gitlab.gnome.org/GNOME/epiphany>.
+  Its unmodified `src/resources/ephy-library-symbolic.svg` is the books glyph
+  used by Web's bookmarks action. This separate artwork is **GPL-3.0-or-later**;
+  the full upstream COPYING is included and installed in the same directory.
+- **GTK built-in symbolics** are supplied by the separately installed GTK
+  runtime, **LGPL-2.1-or-later**. Their resource paths and minimum checked source
+  version are listed in the inventory; these files are not copied into Bible.
+
+The existing Icon Development Kit CC0 assets and attribution remain intact.
+Bible's own source license remains GPL-2.0-only; the separately licensed artwork
+retains its original terms and editable SVG sources in the installed package.

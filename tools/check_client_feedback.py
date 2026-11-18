@@ -105,7 +105,7 @@ def main():
                 menu(w.appearance_button,palette+'-appearance')
                 b=t.text.get_buffer();start=t._marker_ends['Ps.119.1']+2;b.select_range(b.get_iter_at_offset(start),b.get_iter_at_offset(start+16))
                 a=w.passage_actions;a.capture(t.text,lambda:a.ordinary(t),None);spin();shot(palette+'-selection')
-                menu(getattr(a,'copy_button',None) or a.copy_options,palette+'-copy-menu')
+                menu(a.copy_options,palette+'-copy-menu')
                 if a.highlight_button:menu(a.highlight_button,palette+'-annotation-menu')
                 a.dismiss();b.place_cursor(b.get_iter_at_offset(start));t.text.grab_focus();n.key('Menu');spin();shot(palette+'-context-menu');n.key('Escape');spin()
             style.set(dark=False,high=False);w.appearance.update('mode','day');w.appearance.update('day_palette','white');w.appearance.update('size',24)

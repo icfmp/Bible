@@ -211,6 +211,10 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
         # Override the owner-scoped reading background on the native tooltip
         # surface too, including its padding around the text.
         self.css+=f'''
+/* The reader keeps its distinct chrome. Secondary dialogs use one continuous
+   native surface; the old owner-wide chrome rule must not repaint a gray band. */
+{window}.bible-secondary-dialog headerbar,
+{window} .bible-secondary-dialog headerbar {{ background: transparent; color: inherit; border: none; box-shadow: none; }}
 .{self.scope}-window tooltip.background, .{self.scope}-window tooltip.background label {{ background-color: #101010; color: #ffffff; }}
 '''
         for name,(background,foreground,*_) in PALETTES.items():

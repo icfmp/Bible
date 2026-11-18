@@ -1,0 +1,860 @@
+{
+  "format": 1,
+  "icons": [
+    {
+      "name": "accessories-dictionary-symbolic",
+      "references": [
+        "bible/passage_actions.py:182"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/accessories-dictionary-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/legacy/accessories-dictionary-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "43c11fcd2ee07bf21c5aed703d2693701990237d551caedf069f8a66a05b2b39"
+    },
+    {
+      "name": "bible-parallel-off-symbolic",
+      "references": [
+        "bible/ui.py:834"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/bible-parallel-off-symbolic.svg",
+      "sha256": "addb5a7e0cc4420347dfdf0b3e4d16b62d736efbe0bf26a082629994e7660146",
+      "source": {
+        "repository": "https://github.com/icfmp/Bible",
+        "path": "bible/icons/hicolor/scalable/actions/bible-parallel-off-symbolic.svg",
+        "license": "GPL-2.0-only",
+        "license_path": "LICENSE"
+      }
+    },
+    {
+      "name": "computer-symbolic",
+      "references": [
+        "bible/appearance.py:120"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/computer-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/devices/computer-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "edbcdcbca98efa81f57cdfda0ce01a03c324e27e1d224f82a3b640a5443cbe68"
+    },
+    {
+      "name": "dialog-information-symbolic",
+      "references": [
+        "bible/immersion.py:128"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/dialog-information-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/status/dialog-information-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "56894455b54804e2635b18525b4be87073544dfa9832aceb1b8cb11edf0454ad"
+    },
+    {
+      "name": "dictionary-symbolic",
+      "references": [
+        "bible/workspace_selector.py:21"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/dictionary-symbolic.svg",
+      "sha256": "1bc53ba35b452796e2f4b0e85679191d01bb6c9ea74a1bbd26de61a1f398aa1d",
+      "source": {
+        "repository": "https://gitlab.gnome.org/Teams/Design/icon-development-kit",
+        "commit": "cf705cdad8b594295cabe84cac3b6efe4c0f7972",
+        "path": "icons/dictionary.svg",
+        "license": "CC0-1.0",
+        "license_path": "third_party/icon-development-kit/COPYING.md"
+      }
+    },
+    {
+      "name": "document-open-recent-symbolic",
+      "references": [
+        "bible/navigation.py:93"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/document-open-recent-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/document-open-recent-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "edit-clear-symbolic",
+      "references": [
+        "bible/reading_preferences.py:22"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-clear-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/edit-clear-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "edit-copy-symbolic",
+      "references": [
+        "bible/passage_actions.py:173"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-copy-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/edit-copy-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "edit-find-symbolic",
+      "references": [
+        "bible/catalogue_window.py:179"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-find-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/edit-find-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "edit-select-all-symbolic",
+      "references": [
+        "bible/passage_notes.py:288"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-select-all-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/edit-select-all-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "edit-undo-symbolic",
+      "references": [
+        "bible/reading_preferences.py:51"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/edit-undo-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/edit-undo-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "ef4a33b7da49d3b96439f157e050b4ea18728a4993701894262106fa232e7929"
+    },
+    {
+      "name": "edit-undo-symbolic-rtl",
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/edit-undo-symbolic-rtl.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/edit-undo-symbolic-rtl.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "direction": "rtl",
+      "sha256": "19bbabe848d5e20cff82c39d6622aa20cf0bb1183adb479442c8df204a0ae5c3",
+      "references": []
+    },
+    {
+      "name": "emblem-system-symbolic",
+      "references": [
+        "bible/application_surfaces.py:20"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/emblems/emblem-system-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/emblems/emblem-system-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "ephy-library-symbolic",
+      "references": [
+        "bible/application_surfaces.py:19"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/ephy-library-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/epiphany",
+        "commit": "e269761e175ee753325454a1ae482c945003b661",
+        "version": "49.0",
+        "path": "src/resources/ephy-library-symbolic.svg",
+        "license": "GPL-3.0-or-later",
+        "license_path": "bible/icons/licenses/epiphany-COPYING",
+        "usage_path": "src/resources/gtk/action-bar-end.blp"
+      },
+      "sha256": "401e00328e8fad4a7a54639d02d8d2493fc5ee6087685c30ff0b52f659783503"
+    },
+    {
+      "name": "folder-download-symbolic",
+      "references": [
+        "bible/catalogue_window.py:407",
+        "bible/catalogue_window.py:436",
+        "bible/version_chooser.py:61"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/places/folder-download-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/places/folder-download-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "font-select-symbolic",
+      "references": [
+        "bible/reading_preferences.py:10"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/font-select-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/font-select-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "26e8a5a573eb4348dd4745ddf0b6f48a29a0f25476dc5f5c22375c1ca1c74859"
+    },
+    {
+      "name": "go-jump-symbolic",
+      "references": [
+        "bible/reference_preview.py:116"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/go-jump-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/go-jump-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "3f3ba9b458b62b3be1ebe30b9d7b194ecb761b683865cca8a8f57f599afdc57f"
+    },
+    {
+      "name": "go-jump-symbolic-rtl",
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/go-jump-symbolic-rtl.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/go-jump-symbolic-rtl.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "direction": "rtl",
+      "sha256": "c5ea3c4196e037e8eeedf615eb7d953f7b8366638cf09f7e32302f7850b0e108",
+      "references": []
+    },
+    {
+      "name": "go-next-symbolic",
+      "references": [
+        "bible/appearance.py:99",
+        "bible/application_surfaces.py:80",
+        "bible/immersion.py:122",
+        "bible/immersion.py:166",
+        "bible/inline_markers.py:133",
+        "bible/notes_window.py:755",
+        "bible/passage_card.py:20",
+        "bible/reading_tab.py:77",
+        "bible/study_panel.py:41"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/go-next-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/go-next-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "go-previous-symbolic",
+      "references": [
+        "bible/catalogue_window.py:91",
+        "bible/immersion.py:121",
+        "bible/immersion.py:166",
+        "bible/notes_window.py:447",
+        "bible/place_cards.py:36",
+        "bible/reading_tab.py:75",
+        "bible/study_search.py:77",
+        "bible/word_study.py:29"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/go-previous-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/go-previous-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "help-about-symbolic",
+      "references": [
+        "bible/application_surfaces.py:22",
+        "bible/study_search.py:63",
+        "bible/word_study.py:24"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/help-about-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/help-about-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "a2dbb7239bb48df5ad70c41d4d46976d7e5c2b1df4f6025dd21f0ad26d7f152e"
+    },
+    {
+      "name": "insert-link-symbolic",
+      "references": [
+        "bible/note_links.py:33"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/insert-link-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/insert-link-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "783bf9f890e431c1e86ca9e1c56730aa4e0fc8d7d872ca05ce20836d82a957c3"
+    },
+    {
+      "name": "list-add-symbolic",
+      "references": [
+        "bible/notes_window.py:77"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/list-add-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/list-add-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "list-remove-symbolic",
+      "references": [
+        "bible/note_links.py:131"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/list-remove-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/list-remove-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "mark-location-symbolic",
+      "references": [
+        "bible/inline_markers.py:99",
+        "bible/passage_study.py:52",
+        "bible/place_map.py:71"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/mark-location-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/mark-location-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "7f1943ce1c28b0fa13c284acc8803612ebcb7b650a1e6fc03cdd9793b6d0d0e7"
+    },
+    {
+      "name": "media-playback-start-symbolic",
+      "references": [
+        "bible/catalogue_window.py:436"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/media-playback-start-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/media-playback-start-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "notebook-symbolic",
+      "references": [
+        "bible/inline_markers.py:99",
+        "bible/notes_window.py:723",
+        "bible/passage_actions.py:181",
+        "bible/passage_notes.py:24",
+        "bible/passage_notes.py:275",
+        "bible/workspace_selector.py:21"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/notebook-symbolic.svg",
+      "sha256": "82ac5d6926d626121731858571ead4f0a40ee62b7e291df0a38e83fa2d97475f",
+      "source": {
+        "repository": "https://gitlab.gnome.org/Teams/Design/icon-development-kit",
+        "commit": "cf705cdad8b594295cabe84cac3b6efe4c0f7972",
+        "path": "icons/notebook.svg",
+        "license": "CC0-1.0",
+        "license_path": "third_party/icon-development-kit/COPYING.md"
+      }
+    },
+    {
+      "name": "object-select-symbolic",
+      "references": [
+        "bible/catalogue_window.py:206",
+        "bible/passage_actions.py:169",
+        "bible/version_chooser.py:102"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/object-select-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/object-select-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "open-menu-symbolic",
+      "references": [
+        "bible/application_surfaces.py:13",
+        "bible/highlight_ui.py:57",
+        "bible/notes_window.py:450"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/open-menu-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/open-menu-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "pan-down-symbolic",
+      "references": [
+        "bible/note_links.py:37",
+        "bible/passage_actions.py:176",
+        "bible/ui.py:102",
+        "bible/version_chooser.py:122"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/pan-down-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/pan-down-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "preferences-desktop-keyboard-shortcuts-symbolic",
+      "references": [
+        "bible/application_surfaces.py:21"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/preferences-desktop-keyboard-shortcuts-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/legacy/preferences-desktop-keyboard-shortcuts-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "128db6b7912b404b539772ef4c44b9f4d05aa6fe717cde4d786de7c0be844ff6"
+    },
+    {
+      "name": "preferences-system-symbolic",
+      "references": [
+        "bible/appearance.py:96",
+        "bible/application_surfaces.py:47"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/preferences-system-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/categories/preferences-system-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "26b069ad21997d1210a5f8e6c34a71595a0c88184597fdf32ac182c39e5352a9"
+    },
+    {
+      "name": "process-stop-symbolic",
+      "references": [
+        "bible/catalogue_window.py:436"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/process-stop-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/process-stop-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "4746e75eeb13268759e4b4f3d5521baa81bd0bd74375a7326a01ad44fbbe8d0a"
+    },
+    {
+      "name": "sidebar-show-right-symbolic",
+      "references": [
+        "bible/ui.py:119"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/sidebar-show-right-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/sidebar-show-right-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "4c4e44e3f4ef60495b6b6911c2b470aabfb25c37e85a33d94e55bce955328ddc"
+    },
+    {
+      "name": "sidebar-show-right-symbolic-rtl",
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/sidebar-show-right-symbolic-rtl.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/sidebar-show-right-symbolic-rtl.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "direction": "rtl",
+      "sha256": "a9ad7dcff5908e7ff4a3d001e1fd58f010133f262aa6670843aead6668f85f17",
+      "references": []
+    },
+    {
+      "name": "sidebar-show-symbolic",
+      "references": [
+        "bible/notes_window.py:659"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/sidebar-show-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/sidebar-show-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "382570905672758fd61b0ec646d8660eecc44001c9a43e3b3de9abb0d45dfaba"
+    },
+    {
+      "name": "sidebar-show-symbolic-rtl",
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/sidebar-show-symbolic-rtl.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/sidebar-show-symbolic-rtl.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "direction": "rtl",
+      "sha256": "6900f21171731e746ef093c05807fe6913d496376880f1134726064f6f61d746",
+      "references": []
+    },
+    {
+      "name": "system-search-symbolic",
+      "references": [
+        "bible/study_search.py:51",
+        "bible/study_search.py:58",
+        "bible/ui.py:122"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/system-search-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/system-search-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "tab-new-symbolic",
+      "references": [
+        "bible/ui.py:112",
+        "bible/ui.py:263"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/tab-new-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/tab-new-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "9b7979f07ea495e72d4217c4de221519949aea4a7fac6c4abc3ffe9a10054678"
+    },
+    {
+      "name": "talking-symbolic",
+      "references": [
+        "bible/source_note_marker.py:10"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/talking-symbolic.svg",
+      "sha256": "e6edfae474371603843022b5ce7aa5d021f27b52b927669b3f419976c929d24a",
+      "source": {
+        "repository": "https://gitlab.gnome.org/Teams/Design/icon-development-kit",
+        "commit": "cf705cdad8b594295cabe84cac3b6efe4c0f7972",
+        "path": "icons/talking.svg",
+        "license": "CC0-1.0",
+        "license_path": "third_party/icon-development-kit/COPYING.md"
+      }
+    },
+    {
+      "name": "text-x-generic-symbolic",
+      "references": [
+        "bible/catalogue_window.py:197",
+        "bible/passage_study.py:52",
+        "bible/study_panel.py:132"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/text-x-generic-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/mimetypes/text-x-generic-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "459ca39a1cdf777e3d1d25f18c00855b835fb6e5ad79412e58d2f0ca1b697df0"
+    },
+    {
+      "name": "view-dual-symbolic",
+      "references": [
+        "bible/comparison_control.py:7",
+        "bible/ui.py:834"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/view-dual-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/view-dual-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "5b222237c5093ab4e487046677a3dfb828e3d419b00539a7a7fb8cb45536e559"
+    },
+    {
+      "name": "view-fullscreen-symbolic",
+      "references": [
+        "bible/study_panel.py:53",
+        "bible/ui.py:124"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/view-fullscreen-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/view-fullscreen-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "4c62bf4bea9990e5c67fca9513e619576d23e2aa6addf9e5d31c330a5195c103"
+    },
+    {
+      "name": "view-list-symbolic",
+      "references": [
+        "bible/notes_window.py:70",
+        "bible/notes_window.py:196",
+        "bible/study_references.py:62"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-list-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/view-list-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "view-more-symbolic",
+      "references": [
+        "bible/catalogue_window.py:97",
+        "bible/immersion.py:111",
+        "bible/notes_window.py:245",
+        "bible/passage_notes.py:218",
+        "bible/ui.py:176"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-more-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/view-more-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "view-refresh-symbolic",
+      "references": [
+        "bible/catalogue_window.py:94"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-refresh-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/view-refresh-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    },
+    {
+      "name": "view-restore-symbolic",
+      "references": [
+        "bible/immersion.py:88"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/view-restore-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/actions/view-restore-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "6b42ac1a8f64ee11e4dba7c2c621dd05cfd082313feeeb068cf0433c6ec58cea"
+    },
+    {
+      "name": "weather-clear-night-symbolic",
+      "references": [
+        "bible/appearance.py:120"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/weather-clear-night-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/status/weather-clear-night-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "2d99d24310ef681cf024738366fccbd9368bec78da30368bdf0e78210a2f8e08"
+    },
+    {
+      "name": "weather-clear-symbolic",
+      "references": [
+        "bible/appearance.py:120"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/actions/weather-clear-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/status/weather-clear-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "73f02a61ec53cca09fdfe8c966ac70877ad80cf858d0dd2c7e1d9e15ceefdf0f"
+    },
+    {
+      "name": "window-close-symbolic",
+      "references": [
+        "bible/passage_study.py:27",
+        "bible/reference_preview.py:90",
+        "bible/word_study.py:20"
+      ],
+      "kind": "gtk-resource",
+      "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/window-close-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/gtk",
+        "version": "4.14.5",
+        "path": "gtk/icons/scalable/actions/window-close-symbolic.svg",
+        "license": "LGPL-2.1-or-later",
+        "guarantee": "GTK dependency; explicitly resolved with no system icon themes"
+      }
+    }
+  ],
+  "retained_unused_assets": [
+    "bible/icons/hicolor/scalable/actions/filter-symbolic.svg",
+    "bible/icons/hicolor/scalable/actions/bible-word-study-symbolic.svg"
+  ]
+}

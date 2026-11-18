@@ -82,8 +82,8 @@ def main():
                 native.key('Escape');spin();assert w.reference_preview.popover is None and not host.closed
                 words.go_back.grab_focus();native.key('Return');spin(lambda:not words.pending)
                 assert words.stage=='passage'
-                for page in ('dictionary','map','people','original'):
-                    label=tr({'dictionary':'Dictionary','map':'Map','people':'People','original':'Original text'}[page])
+                for page in ('map','original'):
+                    label=tr({'map':'Map','original':'Original text'}[page])
                     button=next(b for b in walk(host.switcher) if isinstance(b,Gtk.ToggleButton) and
                         (b.get_tooltip_text()==label or any(isinstance(l,Gtk.Label) and l.get_text()==label for l in walk(b))))
                     button.grab_focus();native.key('Return');spin()
