@@ -86,6 +86,16 @@ class LibraryPositionTests(unittest.TestCase):
                     self.assertAlmostEqual(positions[anchor_id],anchor_y,delta=2)
                     changes.clear();d.filter_resources();spin()
                     self.assertEqual(changes,[])
+                    # Finishing another queued install while a detail page is
+                    # open must not restore an obsolete absolute list offset.
+                    d.open_details(None,next(i for i,r in enumerate(d.filtered_resources) if r.id==anchor_id))
+                    d._installed_metadata[d.resources[185].id]=d.resources[185]
+                    d.filter_resources();spin()
+                    d.back_to_list();spin(duration=.3)
+                    self.assertEqual(d.selected_resource().id,anchor_id)
+                    positions={identifier:y for y,identifier in visible()}
+                    self.assertIn(anchor_id,positions)
+                    self.assertAlmostEqual(positions[anchor_id],anchor_y,delta=2)
                     d.search.set_text('Resource 01');d.filter_resources();spin(lambda:not d._building_rows,duration=.3)
                     self.assertTrue(d.filtered_resources);self.assertLess(len(d.filtered_resources),200)
                 finally:

@@ -597,7 +597,8 @@ class CatalogueWindow(Adw.Window):
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
         self._filtering=True
         known={canonical_language(code) for code in self._available_languages}|{
-            canonical_language(r.language) for r in self.current_resources() if not self.queued_unavailable(r)}
+            canonical_language(r.language) for r in (*self.resources,*self._installed_metadata.values())
+            if not self.queued_unavailable(r)}
         codes={canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|known
         self.languages,priority=language_order(codes,known,self.language_label)
         self.language.set_codes(self.languages,self._language_records,priority=priority)

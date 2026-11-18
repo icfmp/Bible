@@ -113,10 +113,16 @@ class AlphaTests(unittest.TestCase):
         test_ui.spin(lambda:dialog.session.bootstrap_future.done() and not dialog.preparing)
         with dialog.session.lock:
             dialog.session.providers[resource.provider_id]=(resource,)
-        dialog.resources = [resource]
+        # Publish the supplied provider result through the normal snapshot;
+        # queued availability must see this edition as genuinely catalogued.
+        dialog.session.publish()
+        test_ui.spin(lambda:resource.id in dialog._catalogued_ids and not dialog._building_rows)
         dialog.kind.set_selected(1 if resource.kind == 'commentary' else 0)
         dialog.update_languages()
+        test_ui.spin(lambda:not dialog._building_rows)
+        dialog.choices.set_selected(next(i for i,r in enumerate(dialog.filtered_resources) if r.id==resource.id))
         dialog.install()
+        test_ui.spin(lambda:dialog._transfer_busy)
         self.assertTrue(dialog.busy)
         self.assertIn(resource.description, dialog.status.get_text())
 
@@ -190,7 +196,10 @@ class AlphaTests(unittest.TestCase):
             resource, broken = self.transfer('RetryBible', truncated=True)
             with self.local_https(broken):
                 self.start_transfer(dialog, resource)
-                self.assertEqual(dialog.progress.get_fraction(), 0)
+                # The queued start yields to GTK, so actual bytes may already
+                # be visible. Check this new transfer before releasing its
+                # deliberately truncated remainder, not a timing-dependent 0.
+                test_ui.spin(lambda:0<dialog.progress.get_fraction()<.4)
                 broken.release()
                 test_ui.spin(lambda: not dialog.busy)
             self.assertNotIn(resource.name, window.library.installed())
