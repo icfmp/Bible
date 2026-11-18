@@ -1,0 +1,16 @@
+{
+  "source_commit": "8beb2b0fc4fe5c1a58568baeb8d53e2310fe9811",
+  "flatpak_commit": "8a3e0b238ce5c48d8d624013d5f7b39d2f5d8b5d7ad45ad3a8e39f3dbbc763a0",
+  "publication_run": "44303259466",
+  "matching_python_files": 116,
+  "unchanged_profile_files": 159,
+  "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+  "remote": "bible-alpha",
+  "gpg_verify": true,
+  "gpg_verify_summary": true,
+  "trusted_primary_keys": [
+    "47A17230403EA4953745E6E020EB9FFCCECAFD8F"
+  ],
+  "installed_gtk_receipt": "installed316/installed-gtk.json",
+  "archive_cases": 12
+}

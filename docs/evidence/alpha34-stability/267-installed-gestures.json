@@ -1,0 +1,22 @@
+{
+  "source": "/app/lib/bible-python/bible/ui.py",
+  "forward": {
+    "primary": "Matt.13.38",
+    "section": 4019
+  },
+  "reverse": {
+    "primary": "Matt.13.24",
+    "section": 4019
+  },
+  "passages": [
+    [
+      "Matt.13.24",
+      "Matt.13.30"
+    ],
+    [
+      "Matt.13.36",
+      "Matt.13.43"
+    ]
+  ],
+  "rendered_once": true
+}
