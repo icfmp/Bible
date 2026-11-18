@@ -9,7 +9,7 @@ from tools.ci_campaigns import CAMPAIGNS, FRENCH_FULL, FRENCH_SMOKE, changed_pat
 
 class CampaignTests(unittest.TestCase):
     def test_unknown_and_packaging_changes_keep_full_coverage(self):
-        for paths in (None, ['bible/future_feature.py'], ['bible/ui.py'],
+        for paths in (None, ['bible/future_feature.py'], ['bible/new/notes.py'], ['bible/ui.py'],
                       ['packaging/io.github.icfmp.Bible.json'], ['bible/source_versification.py']):
             with self.subTest(paths=paths):
                 self.assertEqual(select(paths)[0], set(CAMPAIGNS))

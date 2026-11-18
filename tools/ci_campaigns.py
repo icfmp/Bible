@@ -55,7 +55,7 @@ def select(paths):
         if path.suffix in ('.po', '.pot', '.mo') or name == 'bible/i18n.py':
             localization = True
             selected.update(CAMPAIGNS)
-        elif name.startswith('bible/') and path.suffix == '.py':
+        elif path.parent == Path('bible') and path.suffix == '.py':
             found = {group for group, stems in GROUPS.items() if path.stem in stems}
             if not found and path.stem not in CORE_ONLY:
                 found = set(CAMPAIGNS)
