@@ -32,6 +32,34 @@ class Response(io.BytesIO):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_transfer_completion_is_reported_before_preparing_the_cached_package(self):
+        import hashlib
+        body=b'COMPLETE ARCHIVE TEST BYTES';events=[];original=hashlib.sha256
+        def digest(value=b'',*args,**kwargs):
+            if value==body:
+                self.assertIn('downloaded',events);events.append('verified-cache')
+            return original(value,*args,**kwargs)
+        with tempfile.TemporaryDirectory() as directory,patch('bible.youversion_install.hashlib.sha256',side_effect=digest):
+            path=cached_download('https://source.example/edition.zip',Path(directory),
+                lambda done,total:events.append('progress-complete') if done==total else None,
+                lambda:False,opener=lambda *a,**kw:Response(body,'https://source.example/edition.zip'),
+                downloaded=lambda:events.append('downloaded'))
+            self.assertEqual(path.read_bytes(),body)
+        self.assertLess(events.index('progress-complete'),events.index('downloaded'))
+        self.assertLess(events.index('downloaded'),events.index('verified-cache'))
+
+    def test_cancellation_after_transfer_does_not_claim_a_complete_package(self):
+        cancel=[False];events=[]
+        def downloaded():events.append('preparing');cancel[0]=True
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(OSError):
+                cached_download('https://source.example/edition.zip',Path(directory),lambda *a:None,
+                    lambda:cancel[0],opener=lambda *a,**kw:Response(b'BYTES','https://source.example/edition.zip'),
+                    downloaded=downloaded)
+            receipts=[json.loads(p.read_text()) for p in Path(directory).glob('*.json')]
+            self.assertEqual(events,['preparing']);self.assertTrue(receipts)
+            self.assertFalse(any(r.get('complete') for r in receipts))
+
     def test_public_code_uses_local_metadata_without_an_internal_fallback(self):
         data=edition_metadata();data.pop('abbreviation',None);data.pop('local_abbreviation',None)
         self.assertEqual(resource_from_metadata(data).public_code,'')

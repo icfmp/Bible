@@ -123,7 +123,7 @@ class SourceRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(request,fp,code,msg,headers,newurl)
 
 
-def cached_download(url, cache, progress, cancelled, *, opener=None):
+def cached_download(url, cache, progress, cancelled, *, opener=None, downloaded=lambda:None):
     """Resume only this exact returned URL, with a strong server validator.
 
     Incomplete bytes are never compiled. Completed packages are retained for
@@ -141,7 +141,7 @@ def cached_download(url, cache, progress, cancelled, *, opener=None):
     if not isinstance(state,dict):state={}
     if path.is_file() and state.get('complete') and state.get('url')==url:
         if path.stat().st_size<=MAX_ZIP and hashlib.sha256(path.read_bytes()).hexdigest()==state.get('sha256'):
-            progress(path.stat().st_size,path.stat().st_size);checkpoint(cancelled);return path
+            progress(path.stat().st_size,path.stat().st_size);downloaded();checkpoint(cancelled);return path
         # A damaged completed cache is not a valid resumable prefix. Restart
         # this derived package only, leaving installed resources untouched.
         state={}
@@ -181,8 +181,9 @@ def cached_download(url, cache, progress, cancelled, *, opener=None):
                 done+=len(chunk)
                 if done>MAX_ZIP or time.monotonic()>deadline:raise ValueError('Download limit exceeded')
                 output.write(chunk);progress(done,total)
+            if total and done!=total:raise ValueError('Incomplete download')
+            checkpoint(cancelled);downloaded()
             output.flush();os.fsync(output.fileno())
-        if total and done!=total:raise ValueError('Incomplete download')
         checkpoint(cancelled)
         state.update(complete=True,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                      acquired_at=datetime.now(timezone.utc).isoformat())
@@ -229,22 +230,40 @@ def run_conversion(archive,metadata,target,phase,cancelled,*,compiler='/app/bin/
 
 def install(library,resource,progress,installing,cancelled,phase,permission):
     from .library import download
+    import logging
+    logger=logging.getLogger(__name__)
+    previous=None;entered=time.monotonic()
+    def report(name,done=0,total=0):
+        nonlocal previous,entered
+        now=time.monotonic()
+        if name!=previous:
+            if previous:logger.info('resource=%s operation=install stage=%s event=exit monotonic=%.6f duration=%.6f',resource.id,previous,now,now-entered)
+            logger.info('resource=%s operation=install stage=%s event=enter monotonic=%.6f',resource.id,name,now)
+            previous=name;entered=now
+        phase(name,done,total)
     identifier=edition_id(resource.name)
     if permission!=acknowledgement(resource):
         raise ValueError(tr('Confirm the source conditions before downloading.'))
     checkpoint(cancelled)
+    report('preparing')
+    metadata_started=time.monotonic()
     current=io.BytesIO();download(METADATA_URL.format(edition=identifier),current,limit=2*1024*1024,same_origin=True)
     actual=resource_from_metadata(json.loads(current.getvalue()),identifier)
     if actual.acquisition!=resource.acquisition:
         raise ValueError(tr('Source conditions or edition changed. Refresh the catalogue and review them again.'))
     edition=read_edition(json.loads(actual.acquisition),identifier)
     if not edition.archive_url:raise ValueError('No offline package supplied by the source')
-    archive=cached_download(edition.archive_url,library.root.parent/'cache/youversion',progress,cancelled)
+    logger.info('resource=%s operation=install stage=metadata event=complete monotonic=%.6f duration=%.6f',resource.id,time.monotonic(),time.monotonic()-metadata_started)
+    report('downloading')
+    archive=cached_download(edition.archive_url,library.root.parent/'cache/youversion',progress,cancelled,
+                            downloaded=lambda:report('preparing'))
+    report('preparing')
     with tempfile.TemporaryDirectory(prefix='.install-',dir=library.root) as temporary:
         stage=Path(temporary);metadata=stage/'metadata.json';metadata.write_text(actual.acquisition)
         target=stage/'content'
-        run_conversion(archive,metadata,target,phase,cancelled,edition=identifier)
+        run_conversion(archive,metadata,target,report,cancelled,edition=identifier)
         checkpoint(cancelled)
+        report('installing')
         installing()  # Only the short atomic commit becomes non-cancellable.
         index=target/'.source-versification'
         if index.is_file():
@@ -285,3 +304,4 @@ def install(library,resource,progress,installing,cancelled,phase,permission):
         destination=library.root/resource.id
         if destination.exists():raise ValueError('Resource directory already exists')
         os.rename(target,destination)
+    logger.info('resource=%s operation=install stage=installing event=exit monotonic=%.6f duration=%.6f',resource.id,time.monotonic(),time.monotonic()-entered)

@@ -704,5 +704,7 @@ FR.update({
 
 FR.update({
     'Archived':'Archivée',
+    'Preparing the translation…':'Préparation de la traduction…',
+    'Converting to SWORD…':'Conversion en SWORD…',
     'Refresh this source to verify whether this removed version is still available.':'Actualisez cette source pour vérifier si cette version supprimée est encore disponible.',
 })

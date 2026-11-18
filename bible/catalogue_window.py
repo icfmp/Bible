@@ -814,9 +814,10 @@ class CatalogueWindow(Adw.Window):
             _, self._phase, done, total = pending
             self._indeterminate = self._phase in ('installing','preparing','compiling') or not total
             if self._phase == 'preparing':
-                self.transfer_phase.set_text(tr('Preparing study data…'));self.progress.set_text(tr('Preparing study data…'))
+                label=tr('Preparing the translation…') if self._task_resource and self._task_resource.startswith('youversion~') else tr('Preparing study data…')
+                self.transfer_phase.set_text(label);self.progress.set_text(label)
             elif self._phase in ('converting','compiling','verifying'):
-                label=tr({'converting':'Converting the translation…','compiling':'Preparing the offline translation…',
+                label=tr({'converting':'Converting the translation…','compiling':'Converting to SWORD…',
                           'verifying':'Checking all chapters, introductions and translation notes…'}[self._phase])
                 self.transfer_phase.set_text(label)
                 self.progress.set_fraction(min(done/total,1) if total else 0)

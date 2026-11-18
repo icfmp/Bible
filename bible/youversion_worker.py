@@ -68,6 +68,7 @@ def converted_chapters(archive,edition,addresses=None):
 
 
 def build(archive,metadata,target,compiler,identifier=21):
+    emit('preparing',0,0)
     name=module_id(identifier);system=storage_system(identifier)
     edition=read_edition(json.loads(metadata.read_text()),identifier)
     known=identifier in EDITIONS
@@ -164,6 +165,7 @@ def build(archive,metadata,target,compiler,identifier=21):
     if module is None:raise ValueError('Compiled resource missing')
     key=Sword.VerseKey();key.setVersificationSystem(system);key.setAutoNormalize(False);key.setIntros(True)
     if key.getVersificationSystem()!=system:raise ValueError('Packaged source numbering support is required')
+    emit('verifying',0,total)
     for done,check in enumerate(checks,1):
         if check['intro']:
             key.setText(check['ref']);module.setKey(key);raw=module.getRawEntry()
