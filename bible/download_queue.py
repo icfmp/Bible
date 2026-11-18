@@ -35,8 +35,9 @@ class DownloadQueue:
             if not self.path.exists():return
             if self.path.stat().st_size>32*1024*1024:raise ValueError('Queue file is too large')
             data=json.loads(self.path.read_text())
-            if data.get('format')!=1 or not isinstance(data.get('requests'),list):raise ValueError('Invalid queue format')
+            if not isinstance(data,dict) or data.get('format')!=1 or not isinstance(data.get('requests'),list):raise ValueError('Invalid queue format')
             for row in data['requests']:
+                if not isinstance(row,dict) or not isinstance(row.get('resource'),dict):raise ValueError('Invalid queued resource')
                 factory=StudyResource if row['kind']=='study' else Resource if row['kind']=='native' else None
                 if factory is None:raise ValueError('Invalid queued resource type')
                 if any(type(v) is not bool if k in ('locked','installable') else not isinstance(v,str)
@@ -52,7 +53,7 @@ class DownloadQueue:
                 if request.state!='failed':request.state='paused'
                 if self.find(request.resource.id):raise ValueError('Duplicate queue target')
                 self.requests.append(request)
-        except (OSError,ValueError,TypeError,KeyError) as error:
+        except (OSError,ValueError,TypeError,KeyError,RecursionError) as error:
             self.requests=[];self.error=str(error)
 
     def save(self):

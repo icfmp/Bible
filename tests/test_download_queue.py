@@ -63,7 +63,9 @@ class DownloadQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.requests,[request]);self.assertEqual(request.state,'queued')
 
     def test_invalid_journal_is_retained_and_blocks_mutations(self):
-        self.path.write_bytes(b'{invalid original');restored=DownloadQueue(self.path)
-        self.assertTrue(restored.error)
-        with self.assertRaises(ValueError):restored.enqueue(self.a)
-        self.assertEqual(self.path.read_bytes(),b'{invalid original')
+        for data in (b'{invalid original',b'[]',b'{"format":1,"requests":[{"resource":[]}]}',b'['*1200+b']'*1200):
+            with self.subTest(data=data[:40]):
+                self.path.write_bytes(data);restored=DownloadQueue(self.path)
+                self.assertTrue(restored.error)
+                with self.assertRaises(ValueError):restored.enqueue(self.a)
+                self.assertEqual(self.path.read_bytes(),data)

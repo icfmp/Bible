@@ -3,6 +3,12 @@ import locale
 import os
 
 FR = {
+    'Common languages':'Langues courantes',
+    'Other languages':'Autres langues',
+    'Description':'Description',
+    'Description and notices supplied by the source.':'Description et mentions fournies par la source.',
+    'License and conditions of use':'Licence et conditions d’utilisation',
+    'Text source':'Source du texte',
     'Resource information':'Informations sur la ressource',
     'Source and attribution':'Source et attribution',
     'Technical details':'Détails techniques',
@@ -407,6 +413,26 @@ def _application_language(system):
         return selected if selected in ('fr','en') else system
     except (OSError,ValueError,TypeError,AttributeError):return system
 LANGUAGE = _application_language(LANGUAGE)
+
+# Set collation once, before application workers start. LANGUAGE (and the saved
+# UI choice) need not match the desktop's LC_COLLATE. Never switch process-wide
+# locale while sorting individual rows or running downloads.
+try:
+    locale.setlocale(locale.LC_COLLATE, 'fr_FR.UTF-8' if LANGUAGE.startswith('fr') else 'en_US.UTF-8')
+    _native_collation = True
+except locale.Error:
+    _native_collation = False
+
+
+def collation_key(text):
+    value = text.casefold()
+    if not _native_collation:
+        # Minimal hosts can lack locale data; keep accented titles alongside
+        # their letters rather than after Z. Source/display strings are intact.
+        import unicodedata
+        value = ''.join(c for c in unicodedata.normalize('NFD', value)
+                        if not unicodedata.combining(c))
+    return locale.strxfrm(value)
 
 
 def tr(message):

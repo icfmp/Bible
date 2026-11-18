@@ -7,7 +7,18 @@ import re
 from babel import Locale, UnknownLocaleError
 from babel.core import get_global
 from babel.localedata import locale_identifiers
-from .i18n import LANGUAGE, tr
+from .i18n import LANGUAGE, tr, collation_key
+
+
+def language_order(codes, available, label=None):
+    """A small shortcut policy, never an inventory or source-code merger."""
+    names=label or language_name
+    codes=set(codes)-{''};available=set(available)&codes
+    interface='fr' if LANGUAGE.startswith('fr') else 'en'
+    priority=[code for code in dict.fromkeys((interface,'fr','en','es','pt','de','it'))
+              if code in available]
+    remainder=sorted(codes-set(priority),key=lambda code:(collation_key(names(code)),code))
+    return ['',*priority,*remainder],priority
 
 
 @lru_cache(maxsize=4096)

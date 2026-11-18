@@ -11,14 +11,14 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Adw, GLib, Gtk, Pango, Gio, GObject
 
-from .i18n import tr
+from .i18n import tr, collation_key
 from .library import catalogues as catalogue
 from .providers import PROVIDERS,DEFAULT_PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
 from .catalogue_session import CatalogueSession
-from .languages import canonical_language
+from .languages import canonical_language, language_order
 
 
 class ResourceItem(GObject.Object):
@@ -52,7 +52,7 @@ class CatalogueWindow(Adw.Window):
         self.resources=[];self.preparing=True
         self._category=0;self._category_queries={}
         self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
-        self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
+        self._language_records={};self._available_languages=frozenset();self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
         self._pending_resource=None
         self._edition_details={}
         self._edition_requests={};self._study_requests={};self._review_downloads={};self._permission_dialog=None
@@ -215,10 +215,15 @@ class CatalogueWindow(Adw.Window):
         self.download_button.connect('clicked',self.download_action)
         self.primary_actions.append(self.download_button);detail.append(self.primary_actions)
 
+        self.description_group=Adw.PreferencesGroup(title=tr('Description'),
+            description=tr('Description and notices supplied by the source.'))
+        self.about_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
+                                  selectable=True,width_chars=1)
+        self.description_group.add(self.about_text);detail.append(self.description_group)
         self.information=Adw.PreferencesGroup(title=tr('Resource information'))
         self.detail_rows={}
         for key,label in (('type','Resource type'),('language','Language'),
-                          ('author','Author'),('version','Version'),('license','License'),
+                          ('author','Author'),('version','Version'),
                           ('numbering','Verse numbering')):
             row=Adw.ActionRow(title=tr(label),use_markup=False)
             self.information.add(row);self.detail_rows[key]=row
@@ -226,17 +231,15 @@ class CatalogueWindow(Adw.Window):
         self.source_group=Adw.PreferencesGroup(title=tr('Source and attribution'))
         self.source_row=Adw.ActionRow(title=tr('Source'),use_markup=False)
         self.source_group.add(self.source_row)
-        self._source_link=None;self._license_link=None
-        self.conditions_caption=Gtk.Label(label=tr('Conditions and attribution'),xalign=0)
-        self.conditions_caption.add_css_class('heading');self.source_group.add(self.conditions_caption)
+        self.text_source_row=Adw.ActionRow(title=tr('Text source'),use_markup=False)
+        self.source_group.add(self.text_source_row);detail.append(self.source_group)
+        self._source_link=None;self._license_link=None;self._text_source_link=None
+        self.license_group=Adw.PreferencesGroup(title=tr('License and conditions of use'))
+        license_row=Adw.ActionRow(title=tr('License'),use_markup=False)
+        self.detail_rows['license']=license_row;self.license_group.add(license_row)
         self.conditions_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-                                       selectable=True,width_chars=1)
-        self.source_group.add(self.conditions_text)
-        # SWORD About may carry required notices as well as a description.
-        # Keep the source's wording readable outside technical provenance.
-        self.about_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-                                  selectable=True,width_chars=1,margin_top=8)
-        self.source_group.add(self.about_text);detail.append(self.source_group)
+                                       selectable=True,width_chars=1,margin_top=8)
+        self.license_group.add(self.conditions_text);detail.append(self.license_group)
         self.technical=Gtk.Expander(label=tr('Technical details'))
         self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                     selectable=True,width_chars=1)
@@ -312,7 +315,8 @@ class CatalogueWindow(Adw.Window):
         if self.closed or snapshot.generation<self._refresh_generation:return False
         changed=(self.resources!=list(snapshot.resources) or self._installed_metadata!=snapshot.installed
                  or self._study_installed!=snapshot.study_installed or self._study_current!=snapshot.study_current
-                 or self._language_records!=snapshot.languages or self._archived_ids!=snapshot.archived_resources)
+                 or self._language_records!=snapshot.languages or self._archived_ids!=snapshot.archived_resources
+                 or self._available_languages!=snapshot.available_languages)
         self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
         self._catalogued_ids=frozenset(r.id for r in snapshot.resources)
@@ -320,6 +324,7 @@ class CatalogueWindow(Adw.Window):
         self._archived_ids=snapshot.archived_resources
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
         self._study_current=snapshot.study_current;self._language_records=snapshot.languages
+        self._available_languages=snapshot.available_languages
         self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
         if snapshot.generation>=self._refresh_generation:self.refreshing=snapshot.refreshing
         if changed:self.update_languages()
@@ -591,8 +596,11 @@ class CatalogueWindow(Adw.Window):
         self.search.set_placeholder_text(wording);self.search.update_property([Gtk.AccessibleProperty.LABEL],[wording])
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
         self._filtering=True
-        self.languages=['']+sorted(({canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|{'en','fr'})-{''},key=lambda code:self.language_label(code).casefold())
-        self.language.set_codes(self.languages,self._language_records)
+        known={canonical_language(code) for code in self._available_languages}|{
+            canonical_language(r.language) for r in self.current_resources() if not self.queued_unavailable(r)}
+        codes={canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|known
+        self.languages,priority=language_order(codes,known,self.language_label)
+        self.language.set_codes(self.languages,self._language_records,priority=priority)
         self.language.set_selected(self.languages.index(canonical_language(self.language_choice)) if canonical_language(self.language_choice) in self.languages else 0)
         self._filtering=False
         self.filter_resources()
@@ -640,6 +648,8 @@ class CatalogueWindow(Adw.Window):
                                    if (study or not language or canonical_language(r.language) == selected_language)
                                    and (not query or query in (self._search_terms.get(r.id) or normalized(' '.join((r.name,r.description,r.language,self.language_label(r.language))))))]
         self._installed_ids=set(self.installed_ids())
+        rows.sort(key=lambda r:(r.id not in self._installed_ids,
+                               collation_key(plain(r.description)),r.provider_id,r.id))
         self.update_result_state(rows)
         # Installed attribution can replace catalogue summaries without changing
         # row identity/order. Keep GtkListView's native visible-item anchor and
@@ -648,6 +658,19 @@ class CatalogueWindow(Adw.Window):
             self.filtered_resources[:]=rows
             for index in range(self.choice_model.get_n_items()):
                 self.choice_model.get_item(index).resource=rows[index]
+            self.refresh_rows();self.selection_changed()
+            return
+        if (not self._building_rows and len(rows)==len(self.filtered_resources)
+                and {r.id for r in rows}=={r.id for r in self.filtered_resources}):
+            # Native sorting retains the existing GObjects and their list-row
+            # anchors. Installation changes the group, not resource identity.
+            order={resource.id:index for index,resource in enumerate(rows)}
+            resources={resource.id:resource for resource in rows}
+            self.filtered_resources=rows
+            for index in range(self.choice_model.get_n_items()):
+                item=self.choice_model.get_item(index);item.resource=resources[item.resource.id]
+            self.choice_model.sort(lambda a,b:order[a.resource.id]-order[b.resource.id])
+            if selected_id in order:self.choices.set_selected(order[selected_id])
             self.refresh_rows();self.selection_changed()
             return
         self.filtered_resources=rows
@@ -770,9 +793,12 @@ class CatalogueWindow(Adw.Window):
             row.set_visible(bool(value));row.set_subtitle(value)
         self.source_group.set_visible(bool(resource))
         self.source_row.set_subtitle(resource.source if resource else '')
-        from .resource_details import linkable_url, first_link
+        from .resource_details import linkable_url, first_link, visible_conditions
         self._detail_link(self.source_row,'_source_link',
                           linkable_url(resource.source_url) if resource else '',tr('Open source'))
+        text_source=linkable_url(getattr(resource,'text_source','')) if resource else ''
+        self.text_source_row.set_visible(bool(text_source))
+        self._detail_link(self.text_source_row,'_text_source_link',text_source,tr('Open source'))
         self._detail_link(self.detail_rows['license'],'_license_link',
                           first_link(resource.license) if resource else '',tr('License details'))
         # Do not present pending catalogue summaries as confirmed source terms.
@@ -780,12 +806,16 @@ class CatalogueWindow(Adw.Window):
         if resource and resource.provider_id=='youversion':
             try:pending=bool(json.loads(resource.acquisition).get('_catalogue_summary'))
             except (ValueError,TypeError,AttributeError):pass
-        conditions=(tr('Loading edition details…') if pending else
-                    plain(resource.conditions) or tr('No additional conditions supplied by the source.')) if resource else ''
-        self.conditions_caption.set_visible(bool(resource))
-        self.conditions_text.set_text(conditions)
+        conditions=(tr('Loading edition details…') if pending else visible_conditions(resource)) if resource else ''
+        self.conditions_text.set_text(conditions);self.conditions_text.set_visible(bool(conditions))
+        self.license_group.set_visible(bool(resource and (resource.license or conditions)))
+        # About is a source-owned mixed field, not reliably separable prose and
+        # legal metadata. Present every word, including editorial limitations,
+        # as first-class description/notices rather than guessing boundaries.
+        # Study About carries index/checksum metadata and stays in disclosure.
         about=plain(resource.about) if resource and resource.kind!='study' and not pending else ''
         self.about_text.set_text(about);self.about_text.set_visible(bool(about))
+        self.description_group.set_visible(bool(about))
         self.refresh_controls()
 
     def _detail_link(self,row,attribute,url,label):

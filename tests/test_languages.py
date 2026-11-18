@@ -2,10 +2,26 @@
 import unittest
 from unittest.mock import patch
 
-from bible.languages import language_info, search_terms
+from bible.languages import language_info, search_terms, language_order
 
 
 class LanguageTests(unittest.TestCase):
+    def test_shortcuts_require_known_catalogue_languages_and_preserve_variants(self):
+        codes={'','fr','en','es','pt','de','it','cop','sr-Latn','sr-Cyrl','pt-BR','zzz'}
+        for interface in ('fr','en'):
+            with self.subTest(interface=interface),patch('bible.languages.LANGUAGE',interface):
+                order,priority=language_order(codes,{'fr','en','pt','pt-BR','cop'})
+                self.assertEqual(order[0],'')
+                self.assertEqual(priority[0],interface)
+                self.assertEqual(set(priority),{'fr','en','pt'})
+                self.assertEqual(set(order),codes)
+                self.assertEqual(len(order),len(codes))
+                self.assertNotIn('es',priority)
+                self.assertIn('pt-BR',order)
+                self.assertIn('sr-Latn',order);self.assertIn('sr-Cyrl',order)
+        order,priority=language_order({'','fr','cop'},set())
+        self.assertEqual(priority,[]);self.assertEqual(set(order),{'','fr','cop'})
+
     def tearDown(self):
         language_info.cache_clear()
 

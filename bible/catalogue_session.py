@@ -26,6 +26,7 @@ class CatalogueSnapshot:
     covered_providers: frozenset = frozenset()
     removed_resources: frozenset = frozenset()
     archived_resources: frozenset = frozenset()
+    available_languages: frozenset = frozenset()
 
 
 class CatalogueSession:
@@ -269,6 +270,8 @@ class CatalogueSession:
         terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][2]))) for r in all_resources}
         metrics['language_and_search_seconds']=time.monotonic()-start
         snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered,removed_resources,frozenset(archived))
+        snapshot=replace(snapshot,available_languages=frozenset(
+            {r.language for r in all_resources if r.id not in archived or r.id in installed}|source_languages))
         with self.lock:
             if self.closed:return
             self.snapshot=snapshot;listeners=[ref() for ref in self.listeners if ref() is not None]

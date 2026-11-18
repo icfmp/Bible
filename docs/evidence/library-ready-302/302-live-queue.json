@@ -1,0 +1,43 @@
+{
+  "source": "/workspace/bible-library-batch/bible/ui.py",
+  "ordered_resources": [
+    "KJV",
+    "FreJND",
+    "openbible-cross-references"
+  ],
+  "requests": [
+    "https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/KJV.zip",
+    "https://raw.githubusercontent.com/icfmp/Bible/data/study-resources/catalogue.json",
+    "https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/FreJND.zip",
+    "https://raw.githubusercontent.com/icfmp/Bible/data/study-resources/catalogue.json",
+    "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-09-d31c71a7b124.zip"
+  ],
+  "first_transfer_delayed_until_requests_visible": true,
+  "heartbeat_max_seconds": 0.11809763200290035,
+  "existing_files_unchanged": 34,
+  "installed": [
+    {
+      "id": "KJV",
+      "version": "3.1"
+    },
+    {
+      "id": "FreJND",
+      "version": "3.3"
+    }
+  ],
+  "references_metadata": {
+    "schema": 1,
+    "source": "OpenBible.info",
+    "source_url": "https://www.openbible.info/labs/cross-references/",
+    "download_url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-09-d31c71a7b124.zip",
+    "source_date": "2026-11-09",
+    "archive_sha256": "d31c71a7b124227769a0bc8a24f048f53b327294e47033e64b5d2ae4aaf12b87",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "numbering": "OpenBible ESV-style (3 John has 15 verses)",
+    "transformations": "Reference relationships and community scores only; no Scripture quotations. Validated and indexed in SQLite; directed links retained. Range results deduplicate identical destination ranges, ranked by maximum community score, then canonical destination order. No reciprocal links added.",
+    "relationships": 344799,
+    "installed_at": "2026-11-18T16:18:51.517050+00:00",
+    "index_seconds": 3.225
+  }
+}

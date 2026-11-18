@@ -39,18 +39,21 @@ class ProviderUITests(unittest.TestCase):
             release=threading.Event()
             try:
                 dialog=self.open_library(window);dialog.resources=[RESOURCE,replace(RESOURCE,name='Other')]
-                dialog.update_languages();dialog.open_details(None,0)
+                dialog.update_languages();spin(lambda:not dialog._building_rows)
+                target=next(i for i,r in enumerate(dialog.filtered_resources) if r.id==RESOURCE.id)
+                other=next(i for i,r in enumerate(dialog.filtered_resources) if r.id!=RESOURCE.id)
+                dialog.open_details(None,target)
                 def failed(*args,**kwargs):
                     release.wait(3);raise ValueError('Conditions really changed')
                 with patch.object(window.library,'install',side_effect=failed):
-                    dialog.install();dialog.choices.set_selected(1);release.set()
+                    dialog.install();dialog.choices.set_selected(other);release.set()
                     spin(lambda:not dialog.busy)
                 self.assertEqual(dialog._phase,'error')
                 self.assertIn('Test: Conditions really changed',dialog.status.get_text())
                 self.assertTrue(dialog.status.get_visible());self.assertFalse(dialog.progress.get_visible())
                 self.assertFalse(dialog.transfer_footer.get_visible())
                 self.assertEqual(dialog.download_button.get_label(),tr('Download'))
-                dialog.choices.set_selected(0);self.assertEqual(dialog.download_button.get_label(),tr('Retry'))
+                dialog.choices.set_selected(target);self.assertEqual(dialog.download_button.get_label(),tr('Retry'))
                 with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult(tuple(dialog.resources),{})):
                     dialog.load_catalogue();spin(lambda:not dialog.refreshing)
                 self.assertTrue(dialog.status.get_visible())
@@ -148,7 +151,8 @@ class ProviderUITests(unittest.TestCase):
                 installed=window.library.resource('Test')
                 other=replace(installed,name='Another')
                 dialog.resources=[other,installed];dialog.update_languages()
-                dialog.open_details(None,1)
+                spin(lambda:not dialog._building_rows)
+                dialog.open_details(None,next(i for i,r in enumerate(dialog.filtered_resources) if r.id==installed.id))
                 self.assertTrue(dialog.installed_state.get_visible())
                 self.assertFalse(dialog.download_button.get_visible())
                 dialog.resources=[installed,other];dialog.filter_resources()

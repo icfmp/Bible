@@ -56,6 +56,19 @@ def first_link(value):
     return ''
 
 
+def visible_conditions(resource):
+    """Move only the parser's explicit TextSource line to its own link row.
+
+    Keep the complete original conditions in the model/technical disclosure.
+    No prose, copyright, restrictions or mixed About field is classified here.
+    """
+    text_source=getattr(resource,'text_source','')
+    if resource.provider_id!='youversion' and linkable_url(text_source):
+        return plain('\n'.join(line for line in resource.conditions.splitlines()
+                               if line != 'textsource: '+text_source))
+    return plain(resource.conditions)
+
+
 from .languages import language_name
 
 
@@ -93,6 +106,7 @@ def details(resource):
         f'{tr("Author")}: {plain(resource.author)}' if resource.author else '',
         f'{tr("Language")}: {language_name(resource.language)}',
         f'{tr("Source")}: {resource.source}\n{resource.source_url}',
+        f'{tr("Text source")}: {resource.text_source}' if getattr(resource,'text_source','') else '',
         f'{tr("Version")}: {resource.version}' if getattr(resource,'version','') else '',
         tr('Version notes (source)')+':\n'+plain(resource.release_notes) if getattr(resource,'release_notes','') else '',
         provenance,
