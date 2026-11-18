@@ -2,23 +2,40 @@ name: Vérifier le socle GNOME
 
 on:
   push:
-    branches: [main, 'feat/**']
-    # Distribution-only maintenance reuses the already verified application.
+    branches: [main]
+    # Documentation/configuration and distribution maintenance do not rebuild the app.
     paths-ignore:
+      - 'tools/*channel*.py'
       - 'tools/alpha_storage.py'
-      - 'tools/channel_ci.py'
-      - 'tests/test_channel_storage.py'
-      - 'tests/test_alpha_storage.py'
-      - 'tools/flatpak_channel.py'
-      - 'tools/check_flatpak_channel.py'
-      - 'tools/validate_public_channel.py'
-      - 'tests/test_channel_publication.py'
       - 'tools/site_render.py'
       - 'tools/site_assets/index.html'
-      - '.github/workflows/*channel*.yml'
-      - '.github/workflows/prerequisites.yml'
-      - 'docs/CANAL_ALPHA_FLATPAK.md'
-      - 'docs/ALPHA_SINGLE_DEPLOYMENT.md'
+      - 'tests/test_channel_*.py'
+      - 'tests/test_alpha_storage.py'
+      - 'tests/test_site_render.py'
+      - 'tests/test_validation_workflows.py'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'docs/**'
+      - 'wiki/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'tools/*channel*.py'
+      - 'tools/alpha_storage.py'
+      - 'tools/site_render.py'
+      - 'tools/site_assets/index.html'
+      - 'tests/test_channel_*.py'
+      - 'tests/test_alpha_storage.py'
+      - 'tests/test_site_render.py'
+      - 'tests/test_validation_workflows.py'
+      - 'AGENTS.md'
+      - 'README.md'
+      - 'docs/**'
+      - 'wiki/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 concurrency:
@@ -35,10 +52,6 @@ jobs:
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v6
-      - name: Consulter les recommandations GNOME actuelles
-        run: /usr/bin/python3 tools/inspect_gnome_hig.py
-      - name: Examiner les sources officielles CrossWire et YouVersion
-        run: /usr/bin/python3 -m tools.inspect_sources
       - name: Installer GTK 4, libadwaita et Flatpak
         run: |
           # Match the established Flatpak/publication mirror configuration.
@@ -46,7 +59,7 @@ jobs:
             sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           fi
           sudo apt-get update
-          sudo apt-get install -y python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel appstream desktop-file-utils iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
+          sudo apt-get install -y python3-yaml python3-gi python3-cairo python3-gi-cairo gir1.2-gtk-4.0 gir1.2-adw-1 flatpak flatpak-builder python3-sword python3-babel appstream desktop-file-utils iso-codes fonts-dejavu-core fonts-dejavu-extra xvfb xauth dbus-x11 libxtst6 xcompmgr
       - name: Prepare the same pinned reader fonts for native host tests
         run: |
           python3 - <<'PY_FONTS'
@@ -79,12 +92,9 @@ jobs:
         run: |
           appstreamcli validate --no-net --pedantic packaging/io.github.icfmp.Bible.metainfo.xml
           desktop-file-validate packaging/io.github.icfmp.Bible.desktop
-      - name: Examiner les paquets SWORD disponibles
+      - name: Vérifier les dépendances installées
         run: |
-          apt-cache search --names-only 'sword|libsword' | head -80
-      - name: Vérifier les dépendances et les accès réseau
-        run: |
-          /usr/bin/python3 tools/check_environment.py --network
+          /usr/bin/python3 tools/check_environment.py
       - name: Tests locaux et fenêtre GTK sous Xvfb
         env:
           GSK_RENDERER: cairo
@@ -145,6 +155,9 @@ jobs:
           if-no-files-found: warn
 
   flatpak:
+    # PRs get the host regression suite; build/package the exact merged source once.
+    # Explicit workflow_dispatch on a branch remains available for packaging-risk review.
+    if: github.event_name != 'pull_request'
     needs: prerequisites
     runs-on: ubuntu-24.04
     timeout-minutes: 35

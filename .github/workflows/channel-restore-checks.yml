@@ -3,14 +3,18 @@ on:
   pull_request:
     paths: ['tools/*channel*.py', 'tools/alpha_storage.py', 'tests/test_alpha_storage.py', 'tests/test_channel_*.py', 'tools/site_render.py', 'tools/site_assets/index.html', '.github/workflows/*channel*.yml']
   push:
-    branches: [main, fix/17-ostree-git-restore]
+    branches: [main]
     paths: ['tools/*channel*.py', 'tools/alpha_storage.py', 'tests/test_alpha_storage.py', 'tests/test_channel_*.py', 'tools/site_render.py', 'tools/site_assets/index.html', '.github/workflows/*channel*.yml']
   workflow_dispatch:
+concurrency:
+  group: channel-checks-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   restore:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -22,6 +26,9 @@ jobs:
       - name: Vérifier les gardes et deux publications OSTree via Git
         run: python3 -m unittest tests.test_channel_gates tests.test_channel_storage tests.test_alpha_storage tests.test_site_render tests.test_channel_publication -v
       - name: Installation signée et flatpak update après restauration Git
+        # Main must pass the real signed lifecycle before delivery. Avoid downloading
+        # the same complete runtime on both the PR and its merge for checker-only edits.
+        if: github.event_name != 'pull_request'
         run: python3 -m tools.check_flatpak_channel
       - uses: actions/upload-artifact@v4
         if: always()
