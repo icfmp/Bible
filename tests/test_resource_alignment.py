@@ -8,6 +8,20 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK/SWORD')
 class ResourceAlignmentTests(unittest.TestCase):
+    def test_existing_verified_native_conversion_convention_remains_usable(self):
+        import json
+        from bible.sword_provider import Reader
+        from tests.test_ui import installed_fixture
+        with tempfile.TemporaryDirectory() as directory:
+            root=installed_fixture(directory,'YV1')
+            conf=root/'mods.d/test.conf';conf.write_text(conf.read_text()+'BibleSource=YouVersion\n')
+            proof=dict(all_text_notes_headings_verified=True,source_numbering='eng',storage_numbering='KJV')
+            receipt=root/'.verified.json';receipt.write_text(json.dumps(proof))
+            self.assertTrue(Reader(root,'youversion~YV1').can_align_reference('Gen.1.1'))
+            for changed in ({'all_text_notes_headings_verified':False},{'source_numbering':'org'},{'storage_numbering':'NRSV'}):
+                receipt.write_text(json.dumps({**proof,**changed}))
+                self.assertFalse(Reader(root,'youversion~YV1').can_align_reference('Gen.1.1'))
+
     def test_same_registry_name_does_not_prove_edition_numbering(self):
         from bible.sword_provider import Reader
         from bible.reference_resolution import resolve_readers,VersificationMismatch
