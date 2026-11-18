@@ -114,3 +114,29 @@ class RetiredCatalogueTests(unittest.TestCase):
             self.assertEqual(self.journal.read_bytes(),self.before)
             d.close()
         finally:w.close();spin()
+
+    @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK')
+    def test_recovered_retired_request_fails_without_fetching_and_can_be_dismissed(self):
+        from bible.ui import Application,Window
+        from bible.application_settings import ApplicationSettings
+        from tests.test_ui import installed_fixture,spin
+        installed_fixture(self.root);settings=ApplicationSettings(self.root)
+        settings.set('automatic_catalogue_refresh',False);settings.set('library_language','en')
+        session=self.session();self.refresh(session,[self.current])
+        app=Application.get_default() or Application();app.register()
+        w=Window(app,self.library);w.catalogue_session=session;w.present()
+        try:
+            d=w.open_library('commentary');spin(lambda:not d.preparing and not d._building_rows)
+            with patch('bible.library.download',side_effect=AssertionError('Retired package fetched')):
+                request=d.downloads.enqueue(self.old);d.queue_changed()
+                spin(lambda:request.state=='failed' and not d._building_rows)
+            self.assertIn(self.old,d.filtered_resources)
+            self.assertNotIn(self.old.id,{r.id for r in d.resources})
+            d.open_details(None,d.filtered_resources.index(self.old));spin()
+            d.download_action();spin(lambda:not d._building_rows)
+            self.assertIsNone(d.downloads.find(self.old.id))
+            self.assertNotIn(self.old.id,d._task_errors)
+            self.assertNotIn(self.old,d.filtered_resources)
+            self.assertEqual(self.journal.read_bytes(),self.before)
+            d.close()
+        finally:w.close();spin()

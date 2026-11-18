@@ -1,5 +1,5 @@
 """Library actions over the shared provider, installer and module lifecycle."""
-from gi.repository import Adw,Gtk,GLib
+from gi.repository import Adw,Gtk
 from .i18n import tr
 from .providers import BY_ID
 from .resource_details import plain
@@ -48,7 +48,7 @@ def checked_modules(library,resources,errors):
 
 class ModuleManagement:
     def __init__(self,dialog,detail,primary=None):
-        self.dialog=dialog;self.reports={};self.revision=0;self.queue=[];self._next=0
+        self.dialog=dialog;self.reports={};self.revision=0
         self.notice=Gtk.Label(xalign=0,wrap=True,selectable=True,visible=False)
         detail.append(self.notice)
         self.actions=Gtk.Box(spacing=8,halign=Gtk.Align.CENTER,visible=False)
@@ -75,26 +75,8 @@ class ModuleManagement:
         prompt.set_default_response('cancel');prompt.set_close_response('cancel')
         def respond(_,response):
             if response=='update':
-                d._phase='idle';self.queue=[r.id for r in resources];self.next_when_ready()
+                for resource in resources:d.queue_request(resource,operation='update')
         prompt.connect('response',respond);prompt.present()
-
-    def next_when_ready(self):
-        d=self.dialog
-        if d.closed or d.owner.closed:self.queue=[];return
-        if not self.queue or d.busy or self._next:return
-        def next_one():
-            self._next=0
-            if d.closed or d.owner.closed:self.queue=[];return False
-            if d.busy:return False
-            if d._phase=='error':self.queue=[];return False
-            identifier=self.queue.pop(0)
-            resource=d._installed_metadata.get(identifier)
-            if resource and self.available(identifier):self.run('update',resource=resource)
-            else:self.queue=[]
-            return False
-        self._next=GLib.idle_add(next_one)
-
-    def failed(self):self.queue=[]
 
     def version_notes(self,resource):
         """Keep potentially long source prose in the existing metadata scroller."""
@@ -128,15 +110,17 @@ class ModuleManagement:
             else:lines.append(tr('Download size')+': '+tr('Size unknown'))
         lines.append(tr(REASONS[state]));self.notice.set_text('\n'.join(lines))
         self.notice.set_tooltip_text(report.get('error') or None)
-        self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not d.busy)
+        queued=d.downloads.find(resource.id)
+        self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not queued or queued.state=='failed')
         try:backup=ModuleLifecycle(d.library).rollback_candidate(resource.id)
         except (OSError,ValueError,KeyError,TypeError):backup=None
-        self.rollback_button.set_visible(bool(backup));self.rollback_button.set_sensitive(not d.busy)
+        pending=any(r.state in ('active','queued') for r in d.downloads.requests)
+        self.rollback_button.set_visible(bool(backup));self.rollback_button.set_sensitive(not d.busy and not pending)
         # SUPPORTED gates verified update offers, not removal. The shared
         # lifecycle independently checks private ownership before deleting.
         removable=not old.locked
         self.remove_button.set_visible(removable)
-        self.remove_button.set_sensitive(removable and not d.busy)
+        self.remove_button.set_sensitive(removable and not d.busy and not pending)
         self.remove_button.set_tooltip_text(None)
 
     def check(self):
@@ -175,12 +159,14 @@ class ModuleManagement:
         prompt.connect('response',lambda _,response:self.run(operation,resource=installed) if response=='confirm' else None)
         prompt.present()
 
-    def run(self,operation,*,resource=None):
+    def run(self,operation,*,resource=None,queued=False):
         d=self.dialog;resource=resource or d.selected_resource()
-        if not resource or d.busy or resource.id not in d._installed_metadata:return
-        if operation=='update':
+        if not resource or resource.id not in d._installed_metadata:return
+        if operation=='update' and not queued:
             if not self.available(resource.id):return
             resource=self.reports[resource.id]['available']
+            d.queue_request(resource,operation='update');return
+        if d._transfer_busy or operation!='update' and (d.busy or any(r.state in ('active','queued') for r in d.downloads.requests)):return
         lifecycle=ModuleLifecycle(d.library);bridge=ModuleViewChange(d,resource.id)
         def before(identifier):
             if d._cancel.is_set():raise InterruptedError(tr('Download cancelled.'))
@@ -198,4 +184,4 @@ class ModuleManagement:
             if cleanup:raise OSError(tr('The resource operation completed, but some stored files could not be cleaned up.')+' '+cleanup)
         caption=tr({'update':'Updating resource…','rollback':'Restoring resource…','remove':'Removing resource…'}[operation])
         success=tr({'update':'Resource updated.','rollback':'Previous version restored.','remove':'Resource removed. Personal annotations were retained.'}[operation])
-        d.task(caption,perform,ready,resource=resource,success_text=success,settled=bridge.resume,failed=self.failed)
+        d.task(caption,perform,ready,resource=resource,success_text=success,settled=bridge.resume)

@@ -178,12 +178,14 @@ class ReferenceData:
         except (sqlite3.Error, TypeError, KeyError, ValueError) as error:
             raise ReferenceDataError(str(error)) from error
 
-    def install(self, progress=lambda done,total:None, installing=lambda:None):
+    def install(self, progress=lambda done,total:None, installing=lambda:None, *, expected_revision=''):
         fresh=True
         try:revisions=self.catalogue.refresh()
         except OSError:fresh=False;revisions=self.catalogue.load()
         except ValueError as error:raise ReferenceDataError(str(error)) from error
         revision=revisions['openbible-cross-references']
+        if expected_revision and expected_revision!=revision.sha256:
+            raise ReferenceDataError('The study resource changed. Review this download again.')
         if not fresh:
             try:installed=self.metadata()
             except (OSError,ValueError):installed=None

@@ -42,7 +42,7 @@ class CatalogueWindow(Adw.Window):
         self.library, self.on_installed = library, on_installed
         self.owner = parent
         self.add_css_class(parent.reading_style.scope+'-window')
-        self._covered=frozenset();self._removed_ids=frozenset();self._archived_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
+        self._covered=frozenset();self._catalogued_ids=frozenset();self._removed_ids=frozenset();self._archived_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
@@ -55,6 +55,7 @@ class CatalogueWindow(Adw.Window):
         self._language_records={};self._search_terms={};self._rows_generation=0;self._building_rows=False;self._refresh_generation=0
         self._pending_resource=None
         self._edition_details={}
+        self._edition_requests={};self._study_requests={};self._review_downloads={};self._permission_dialog=None
         self._bound_rows={};self._task_resource=None;self._cancel=Event()
         self._install_started=False
         self.open_context=None
@@ -64,6 +65,11 @@ class CatalogueWindow(Adw.Window):
         self._completed_resource=None
         self._failed_resource=None
         self._task_errors={};self._success_toast=None
+        from .download_queue import DownloadQueue
+        self.downloads=DownloadQueue(library.root.parent/'download-queue.json')
+        self._queue_active=None;self._queue_tick=0;self._queue_revision=0;self._queue_problem=self.downloads.error
+        for request in self.downloads.requests:
+            if request.state=='failed':self._task_errors[request.resource.id]=(request.error,None)
         self.filtered_resources = []
         self.languages = []
         self.source_ids = [None] + [p.id for p in PROVIDERS]
@@ -206,7 +212,7 @@ class CatalogueWindow(Adw.Window):
         self.primary_actions.append(self.read_button)
         self.download_button=Gtk.Button(label=tr('Download'),sensitive=False)
         self.download_button.add_css_class('suggested-action')
-        self.download_button.connect('clicked',self.install)
+        self.download_button.connect('clicked',self.download_action)
         self.primary_actions.append(self.download_button);detail.append(self.primary_actions)
 
         self.information=Adw.PreferencesGroup(title=tr('Resource information'))
@@ -255,6 +261,7 @@ class CatalogueWindow(Adw.Window):
         self.transfer_phase.add_css_class('caption');information.append(self.transfer_phase)
         self.transfer_name=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
         self.transfer_name.add_css_class('heading');information.append(self.transfer_name)
+        self.queue_count=Gtk.Label(xalign=0,wrap=True,visible=False);self.queue_count.add_css_class('caption');information.append(self.queue_count)
         meter=Gtk.Box(spacing=8)
         self.progress=Gtk.ProgressBar(hexpand=True,valign=Gtk.Align.CENTER,visible=False)
         self.transfer_percent=Gtk.Label();self.transfer_percent.add_css_class('caption')
@@ -262,6 +269,9 @@ class CatalogueWindow(Adw.Window):
         self.cancel_button=Gtk.Button(child=Gtk.Label(label=tr('Cancel'),wrap=True),valign=Gtk.Align.CENTER,visible=False)
         self.cancel_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Cancel download')])
         self.cancel_button.connect('clicked',self.cancel_download);transfer.append(self.cancel_button)
+        self.resume_downloads=Gtk.Button(label=tr('Resume'),valign=Gtk.Align.CENTER,visible=False)
+        self.resume_downloads.set_tooltip_text(tr('Resume queued downloads'))
+        self.resume_downloads.connect('clicked',self.resume_queue);transfer.append(self.resume_downloads)
         self.transfer_footer.append(transfer);layout.append(self.transfer_footer)
         self.status=Gtk.Label(xalign=0,wrap=True,selectable=True,margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         layout.append(self.status)
@@ -276,9 +286,23 @@ class CatalogueWindow(Adw.Window):
         self.session.subscribe(self.snapshot_ready)
         if existing and self.session.bootstrap_future.done():self.session.reload_installed()
         self.connect('map',lambda *_:GLib.timeout_add(100,self.auto_load))
+        if self._queue_problem:self.queue_error(self._queue_problem)
 
     @property
     def busy(self):return self._transfer_busy or self.refreshing or self.preparing or self._building_rows
+
+    def adopt_owner(self,parent):
+        previous=self.owner
+        if previous is parent:return
+        if previous.catalogue_window is self:previous.catalogue_window=None
+        if getattr(previous,'catalogue_session',None) is self.session:previous.catalogue_session=None
+        other=getattr(parent,'catalogue_session',None)
+        if other and other is not self.session:other.close()
+        self.remove_css_class(previous.reading_style.scope+'-window')
+        self.add_css_class(parent.reading_style.scope+'-window')
+        self.owner=parent;self.on_installed=parent.resource_installed
+        parent.catalogue_window=self;parent.catalogue_session=self.session
+        self.set_transient_for(parent)
 
     def snapshot_ready(self,snapshot):
         # The service publishes plain immutable snapshots from metadata workers.
@@ -291,6 +315,7 @@ class CatalogueWindow(Adw.Window):
                  or self._language_records!=snapshot.languages or self._archived_ids!=snapshot.archived_resources)
         self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
+        self._catalogued_ids=frozenset(r.id for r in snapshot.resources)
         self._removed_ids=snapshot.removed_resources
         self._archived_ids=snapshot.archived_resources
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
@@ -300,7 +325,6 @@ class CatalogueWindow(Adw.Window):
         if changed:self.update_languages()
         self.update_result_state()
         self.refresh_controls()
-        self.modules.next_when_ready()
         if not self._catalogue_requested and self.get_mapped():GLib.idle_add(self.auto_load)
         return False
 
@@ -387,31 +411,117 @@ class CatalogueWindow(Adw.Window):
         self._bound_rows[item]=resource
         installed=resource.id in getattr(self,'_installed_ids',set())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
-        archived=resource.id in self._archived_ids and not installed
+        archived=self.queued_unavailable(resource) and not installed
         busy=self._transfer_busy and self._task_resource==resource.id
-        stamp=(resource,installed,current,archived,self.modules.revision,self._transfer_busy,self._phase if busy else None,
+        request=self.downloads.find(resource.id)
+        queued=request is not None and request.state in ('queued','paused')
+        checking=self.checking_download(resource.id)
+        stamp=(resource,installed,current,archived,checking,self._queue_revision,self.modules.revision,self._transfer_busy,self._phase if busy else None,
                self.progress.get_text() if busy else None,resource.id in self._task_errors)
         if getattr(item,'_render_stamp',None)==stamp:return
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
-        item.state.set_text(tr('Archived') if archived else tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
-        item.state.set_visible((installed or archived) and not busy)
-        item.action.set_icon_name('media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
-        label=tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
+        active_label=tr({'preparing':'Preparing','converting':'Converting','compiling':'Converting',
+                         'verifying':'Checking','installing':'Installing'}.get(self._phase,'Downloading'))
+        item.state.set_text(active_label if busy else tr('Checking resource information…') if checking else tr('Paused') if queued and request.state=='paused' else tr('Queued') if queued else tr('Failed') if resource.id in self._task_errors else tr('Archived') if archived else tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
+        item.state.set_visible(busy or installed or archived or queued or checking or resource.id in self._task_errors)
+        dismiss=bool(request and request.state=='failed' and archived)
+        item.action.set_icon_name('process-stop-symbolic' if queued or checking or dismiss else 'media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
+        label=tr('Dismiss failed download') if dismiss else tr('Cancel queued download') if queued or checking else tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
-        item.action.set_sensitive(current or (resource.installable and not archived and not self._transfer_busy))
-        item.action.set_visible(not busy and not (current and resource.kind not in ('bible','commentary')))
-        item.get_child().set_tooltip_text(resource.name+' · '+(resource.version or '—')+' · '+resource.language)
+        item.action.set_sensitive(current or queued or dismiss or (resource.installable and not archived))
+        item.action.set_visible(not busy and (queued or checking or not (current and resource.kind not in ('bible','commentary'))))
+        item.get_child().set_tooltip_text(resource.name+' · '+(getattr(resource,'version','') or '—')+' · '+resource.language)
 
     def refresh_rows(self):
         for item in list(self._bound_rows):
             if item.get_item():self.bind_resource_row(None,item)
 
     def row_action(self,resource):
+        if self.cancel_queued(resource.id):return
         if resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current):self.read_resource(resource)
         else:self.install(resource=resource)
+
+    def download_action(self,*_):
+        resource=self.selected_resource()
+        if resource and not self.cancel_queued(resource.id):self.install(resource=resource)
+
+    def cancel_queued(self,identifier):
+        if identifier in self._study_requests:
+            self._study_requests.pop(identifier).cancel();self.queue_changed();return True
+        metadata=self._edition_requests.get(identifier)
+        if metadata and metadata[1]:metadata[1]=None;self.queue_changed();return True
+        if identifier in self._review_downloads:
+            self._review_downloads.pop(identifier);self.queue_changed();return True
+        request=self.downloads.find(identifier)
+        if request is None or (request.state not in ('queued','paused') and not (request.state=='failed' and self.queued_unavailable(request.resource))):return False
+        dismissed=request.state=='failed'
+        try:self.downloads.cancel(identifier)
+        except (OSError,ValueError) as error:self.queue_error(error);return True
+        if dismissed:self._task_errors.pop(identifier,None)
+        self.queue_changed();return True
+
+    def checking_download(self,identifier):
+        metadata=self._edition_requests.get(identifier)
+        return identifier in self._study_requests or bool(metadata and metadata[1]) or identifier in self._review_downloads
+
+    def queued_unavailable(self,resource):
+        return resource.id in self._archived_ids or (resource.provider_id!='youversion' and resource.provider_id in self._covered
+            and resource.id not in self._catalogued_ids and resource.id not in self._installed_metadata)
+
+    def queue_error(self,error):
+        self._queue_problem=str(error)
+        self.status.set_text(tr('The download queue is unavailable. Existing resources were preserved.')+' '+str(error))
+        self.status.set_visible(True)
+
+    def queue_changed(self):
+        self._queue_revision+=1
+        self.filter_resources();self.refresh_controls()
+
+    def queue_request(self,resource,permission=None,operation='install'):
+        from .download_queue import QueueConflict
+        try:self.downloads.enqueue(resource,permission,operation)
+        except QueueConflict as error:
+            self.status.set_text(tr(str(error)));self.status.set_visible(True);return
+        except (OSError,ValueError) as error:self.queue_error(error);return
+        self._queue_problem=None;self.queue_changed()
+
+    def resume_queue(self,*_):
+        try:self.downloads.resume()
+        except (OSError,ValueError) as error:self.queue_error(error);return
+        self._queue_problem=None;self.queue_changed()
+
+    def start_queued(self):
+        self._queue_tick=0
+        if self.closed or self.owner.closed or self._transfer_busy or self._queue_active or self._queue_problem:return False
+        try:request=self.downloads.start()
+        except (OSError,ValueError) as error:self.queue_error(error);return False
+        if request is None:return False
+        self._queue_active=request
+        try:
+            if self.queued_unavailable(request.resource):raise ValueError(tr('This queued resource is no longer available from its source.'))
+            if request.operation=='update':
+                actual=self.library.resource(request.resource.id)
+                if actual.version!=request.resource.version or actual.acquisition!=request.resource.acquisition:
+                    self.modules.run('update',resource=request.resource,queued=True)
+            else:self.install(resource=request.resource,permission=request.permission,queued=True)
+            if not self._transfer_busy:
+                # A source already installed after an interrupted commit is
+                # discovered normally; never start a duplicate installation.
+                actual=self.installed_resource(request.resource.id)
+                expected=request.resource
+                matches=(actual.revision==expected.revision if expected.kind=='study'
+                         else actual.version==expected.version and actual.acquisition==expected.acquisition)
+                if not matches:raise ValueError(tr('The queued operation could not start. Review this resource.'))
+                self.downloads.finish(request);self._queue_active=None;self.queue_changed()
+        except Exception as error:
+            self._queue_active=None
+            try:self.downloads.fail(request,error)
+            except (OSError,ValueError) as failure:self.queue_error(failure)
+            self._task_errors[request.resource.id]=(str(error),None);self.queue_changed()
+        return False
 
     def read_resource(self,resource):
         if not resource or resource.id not in self.installed_ids():return
@@ -452,13 +562,14 @@ class CatalogueWindow(Adw.Window):
         self.list_scroll.get_vadjustment().set_value(getattr(self,'_list_position',0))
 
     def current_resources(self):
+        queued={r.resource.id:r.resource for r in self.downloads.requests if r.resource.kind!='study'}
         if self.kind.get_selected()==2:
             # Installed native dictionaries/lexicons share lifecycle controls.
             # Discovering new dictionary catalogues remains the separate #236.
-            native={r.id:r for r in self.resources if r.id in self._removed_ids};native.update(self._installed_metadata)
+            native={r.id:r for r in self.resources if r.id in self._removed_ids};native.update(queued);native.update(self._installed_metadata)
             return (*self.study_resources.available(),*(r for r in native.values()
                        if r.kind not in ('bible','commentary')))
-        resources={r.id:r for r in self.resources};resources.update(self._installed_metadata)
+        resources=dict(queued);resources.update((r.id,r) for r in self.resources);resources.update(self._installed_metadata)
         kind = 'commentary' if self.kind.get_selected() == 1 else 'bible'
         index = self.source_filter.get_selected()
         provider_id = self.source_ids[index] if index < len(self.source_ids) else None
@@ -576,15 +687,55 @@ class CatalogueWindow(Adw.Window):
     def load_edition_details(self,resource,finished=None):
         from .youversion_install import fetch_resource
         from .youversion_editions import edition_id
-        def ready(actual):
-            if self._cancel.is_set():raise OSError(tr('Download cancelled.'))
-            if actual.language!=resource.language:raise ValueError('Source edition language changed')
-            self._edition_details[resource.id]=(resource.acquisition,actual,time.monotonic())
-            self.status.set_visible(False)
-            self.selection_changed()
-            if finished:finished(actual)
-        self.task(tr('Loading edition details…'),lambda:fetch_resource(edition_id(resource.name)),ready,
-                  resource=resource,executor=self.session.network)
+        if resource.id in self._edition_requests:
+            if finished:self._edition_requests[resource.id][1]=finished;self.refresh_rows();self.refresh_controls()
+            return
+        future=self.session.network.submit(fetch_resource,edition_id(resource.name))
+        request=[future,finished];self._edition_requests[resource.id]=request
+        self.refresh_rows();self.refresh_controls()
+        def complete():
+            self._edition_requests.pop(resource.id,None)
+            if self.closed:return False
+            try:
+                actual=future.result()
+                if actual.language!=resource.language:raise ValueError('Source edition language changed')
+                self._edition_details[resource.id]=(resource.acquisition,actual,time.monotonic())
+                selected=self.selected_resource()
+                if selected and selected.id==resource.id:self.selection_changed()
+                if request[1]:
+                    self._review_downloads[resource.id]=(actual,request[1]);self.review_downloads()
+            except Exception as error:
+                self._failed_resource=resource.id
+                if not self._transfer_busy:self._phase='error'
+                self._task_errors[resource.id]=(str(error),None);self.status.set_text(plain(resource.description)+': '+str(error));self.status.set_visible(True)
+            self.refresh_rows();return False
+        future.add_done_callback(lambda _:GLib.idle_add(complete))
+
+    def review_downloads(self):
+        if self.closed or not self.get_visible() or self._permission_dialog or not self._review_downloads:return
+        identifier=next(iter(self._review_downloads));resource,callback=self._review_downloads.pop(identifier)
+        callback(resource)
+        return False
+
+    def prepare_study_download(self,resource):
+        # Pin the existing provider's current checked metadata before queuing.
+        # The installer checks that same revision again before fetching bytes.
+        if resource.id in self._study_requests:return
+        def check():
+            try:self.study_resources.catalogue.refresh()
+            except OSError:self.study_resources.catalogue.load()
+            return self.study_resources.resource(resource.id)
+        future=self.session.network.submit(check);self._study_requests[resource.id]=future
+        self.refresh_rows();self.refresh_controls()
+        def complete():
+            if self._study_requests.get(resource.id) is not future:return False
+            self._study_requests.pop(resource.id,None)
+            if self.closed:return False
+            try:self.queue_request(future.result())
+            except Exception as error:
+                self._task_errors[resource.id]=(str(error),None);self.status.set_text(str(error));self.status.set_visible(True)
+            self.refresh_rows();return False
+        future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def language_label(self,code):return self._language_records[code][0] if code in self._language_records else language_name(code)
 
@@ -600,6 +751,9 @@ class CatalogueWindow(Adw.Window):
         text=details(resource) if resource else tr('No matching resource.')
         notes=self.modules.version_notes(resource)
         self.metadata.set_text(text+('\n\n'+notes if notes else ''))
+        failure=self._task_errors.get(resource.id) if resource else None
+        if failure:self.status.set_text(failure[0]);self.status.set_tooltip_text(failure[1]);self.status.set_visible(True)
+        elif not self._transfer_busy and not self._queue_problem:self.status.set_visible(False)
         self.detail_title.set_text(plain(resource.description) if resource else tr('No matching resource.'))
         self.detail_subtitle.set_text((resource.source+' · '+self.language_label(resource.language)) if resource else '')
         values=({
@@ -644,29 +798,43 @@ class CatalogueWindow(Adw.Window):
 
     def refresh_controls(self):
         resource = self.selected_resource()
+        request=self.downloads.find(resource.id) if resource else None
+        queued=request is not None and request.state in ('queued','paused')
+        checking=bool(resource and self.checking_download(resource.id))
+        dismiss=bool(resource and request and request.state=='failed' and self.queued_unavailable(resource))
         installed=bool(resource and resource.id in self.installed_ids())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
         self.installed_state.set_visible(installed)
         self.read_button.set_visible(current and resource.kind in ('bible','commentary'))
         self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
-        self.download_button.set_visible(not current)
-        self.download_button.set_label(tr('Update') if installed and not current else
+        self.download_button.set_visible(not current or queued or checking)
+        self.download_button.set_label(tr('Dismiss failed download') if dismiss else tr('Cancel queued download') if queued or checking else tr('Update') if installed and not current else
                                        tr('Archived') if resource and resource.id in self._archived_ids else
                                        tr('Retry') if resource and resource.id in self._task_errors else tr('Download'))
         self.download_button.set_tooltip_text(tr('Refresh this source to verify whether this removed version is still available.')
                                              if resource and resource.id in self._archived_ids else None)
         self.catalogue_button.set_sensitive(not self.busy)
-        self.download_button.set_sensitive(bool(resource and resource.installable
-                                               and not current and resource.id not in self._archived_ids)
-                                           and not self._transfer_busy)
+        self.download_button.set_sensitive(queued or checking or dismiss or bool(resource and resource.installable
+                                               and not current and resource.id not in self._archived_ids
+                                               and not (request and request.state=='active')))
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
-        self.transfer_footer.set_visible(self._transfer_busy)
+        pending=sum(r.state in ('queued','paused') for r in self.downloads.requests)
+        paused=sum(r.state=='paused' for r in self.downloads.requests)
+        self.queue_count.set_text(tr('{count} paused').format(count=paused) if paused else tr('{count} queued').format(count=pending))
+        self.queue_count.set_visible(bool(pending))
+        self.resume_downloads.set_visible(bool(paused) and not self._transfer_busy)
+        if not self._transfer_busy and pending:
+            self.transfer_name.set_text('');self.transfer_phase.set_text(tr('Downloads paused after restart') if paused else tr('Queued'))
+        self.transfer_footer.set_visible(self._transfer_busy or bool(pending))
         self.progress.set_visible(self._transfer_busy)
         self.cancel_button.set_visible(self._transfer_busy)
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
         self.modules.refresh(resource)
         self.remove_hint.set_visible(self.modules.remove_button.get_visible())
+        if (not self.closed and not self.owner.closed and not self._transfer_busy and not self._queue_active
+                and not self._queue_tick and not self._queue_problem and any(r.state=='queued' for r in self.downloads.requests)):
+            self._queue_tick=GLib.idle_add(self.start_queued)
         self._check_updates_action.set_enabled(not self.busy)
         self._update_all_action.set_enabled(not self.busy and any(self.modules.available(i) for i in self._installed_metadata))
         self.refresh_rows()
@@ -674,10 +842,15 @@ class CatalogueWindow(Adw.Window):
 
     def on_close(self, *_):
         self.dismiss_success_toast()
-        if self._transfer_busy and not self.owner.closed:
+        if (self._transfer_busy or self._review_downloads or self._study_requests or any(r[1] for r in self._edition_requests.values())) and not self.owner.closed:
             self.set_visible(False)
             return True
         self.closed = True
+        if self._permission_dialog:self._permission_dialog.destroy();self._permission_dialog=None
+        if self._queue_tick:GLib.source_remove(self._queue_tick);self._queue_tick=0
+        try:self.downloads.pause()
+        except (OSError,ValueError) as error:logging.getLogger(__name__).warning('Could not persist download queue: %s',error)
+        self._cancel.set()
         from .study_resources import STEP_RESOURCE_ID
         if self._task_resource==STEP_RESOURCE_ID or str(self._task_resource).startswith('youversion~'):self._cancel.set()
         if self._loading_tick:self.catalogue_progress.remove_tick_callback(self._loading_tick);self._loading_tick=0
@@ -697,6 +870,7 @@ class CatalogueWindow(Adw.Window):
         self._cancel.clear();self._install_started=False;self._task_resource=resource.id if resource else None
         self._task_caption=plain(resource.description) if resource else ''
         self._task_id += 1;task_id=self._task_id
+        queued_request=self._queue_active if self._queue_active and resource and self._queue_active.resource.id==resource.id else None
         self._phase = "downloading"
         self._indeterminate = True
         self.status.set_visible(False)
@@ -767,6 +941,13 @@ class CatalogueWindow(Adw.Window):
                 self.status.set_visible(True)
                 self._task_errors[self._failed_resource]=(self.status.get_text(),self.status.get_tooltip_text())
             finally:
+                if queued_request:
+                    self._queue_active=None
+                    try:
+                        if resource.id in self._task_errors:self.downloads.fail(queued_request,self._task_errors[resource.id][0])
+                        else:self.downloads.finish(queued_request)
+                    except (OSError,ValueError) as error:self.queue_error(error)
+                    self._queue_revision+=1
                 self.refresh_controls()
             return False
 
@@ -856,9 +1037,22 @@ class CatalogueWindow(Adw.Window):
             self._install_started=True
             self._pending_progress=(self._task_id,'preparing' if self._task_resource==STEP_RESOURCE_ID else 'installing',0,0)
 
-    def install(self, *_, resource=None, permission=None):
+    def install(self, *_, resource=None, permission=None, queued=False):
         resource = self.known_edition_details(resource) if resource else self.selected_resource()
-        if not resource or not resource.installable or resource.id in self._archived_ids or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
+        if resource and resource.kind=='study' and not queued:resource=self.study_resources.resource(resource.id)
+        if not resource or not resource.installable or resource.id in self._archived_ids or (queued and self._transfer_busy):
+            return
+        existing=self.downloads.find(resource.id)
+        if not queued and existing and existing.state!='failed':return
+        if queued and resource.kind=='study':
+            if resource.id in self._study_installed and self.study_resources.installed_resource(resource.id).revision==resource.revision:return
+            if self.study_resources.resource(resource.id).revision!=resource.revision:
+                raise ValueError(tr('The study resource changed. Review this download again.'))
+        if resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current):
+            if queued and resource.kind!='study':
+                actual=self.installed_resource(resource.id)
+                if actual.version!=resource.version or actual.acquisition!=resource.acquisition:
+                    raise ValueError(tr('A different version is already installed. Check for updates before retrying.'))
             return
 
         if resource.provider_id=='youversion':
@@ -870,6 +1064,9 @@ class CatalogueWindow(Adw.Window):
                 return
             from .youversion_install import acknowledgement
             if permission!=acknowledgement(resource):
+                if queued:raise ValueError(tr('Source conditions changed. Review this download again.'))
+                if self._permission_dialog:
+                    self._review_downloads[resource.id]=(resource,lambda actual:self.install(resource=actual));return
                 policy=json.loads(resource.acquisition).get('offline') or {}
                 message=tr('You are responsible for checking that you have permission to download, convert and use this edition offline.')
                 if policy.get('require_email_agreement'):
@@ -890,8 +1087,18 @@ class CatalogueWindow(Adw.Window):
                     scroll.set_child(label);dialog.set_extra_child(scroll)
                 dialog.add_response('cancel',tr('Cancel'));dialog.add_response('download',tr('I have the required permission'))
                 dialog.set_close_response('cancel');dialog.set_default_response('cancel')
-                dialog.connect('response',lambda _,response:self.install(resource=resource,permission=acknowledgement(resource)) if response=='download' else None)
+                self._permission_dialog=dialog
+                def response(_,choice):
+                    self._permission_dialog=None
+                    if choice=='download' and not self.closed:self.install(resource=resource,permission=acknowledgement(resource))
+                    GLib.idle_add(self.review_downloads)
+                dialog.connect('response',response)
                 dialog.present();return
+        if not queued:
+            from .study_resources import REFERENCE_RESOURCE_ID,TOPIC_RESOURCE_ID
+            if resource.id in (REFERENCE_RESOURCE_ID,TOPIC_RESOURCE_ID):self.prepare_study_download(resource)
+            else:self.queue_request(resource,permission)
+            return
         caption=plain(resource.description)
 
         def installed(_):

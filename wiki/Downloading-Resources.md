@@ -2,7 +2,7 @@
 
 Bible lets you choose the Bible translations and study resources you want to use. **No Bible text or commentary is bundled with the application**: you download resources from the Library, then use them offline.
 
-> **Current catalogue:** Bible currently focuses on freely redistributable, open-source resources. Resources with more restrictive licenses may be supported in a future release. Each resource retains its own license and attribution.
+> Each provider resource retains its own conditions and attribution. Catalogue availability does not grant permission to download, convert or redistribute it. Review the source conditions before confirming a download.
 
 ## 1. Explore the Library
 
@@ -46,6 +46,30 @@ Each list entry shows a resource name and identifying information, including its
 *Check a resource's information before downloading it.*
 
 The exact detail and download controls may change while Bible is in alpha. Only download resources whose terms you accept.
+
+### Download several resources
+
+Request another resource while the current one is running. Bible uses one shared
+queue for Bibles, commentaries, study tools and supported module updates. Source
+metadata and any required permission confirmation are checked before a request
+enters the queue. Repeated requests for the same edition do not start another job.
+
+The active resource stays active through preparation, conversion, validation and
+installation. Download **100%** means only that its transfer has finished. Other
+rows show **Queued**, and their download action lets you cancel that pending
+request. The active resource uses the existing **Cancel** action at safe stages.
+An error leaves that resource available for an explicit retry and the next queued
+request continues.
+
+You may browse, close Library or return to reading while requests run. Reopening
+Library shows the same queue. Windows using the same library share its operation
+queue; a resource must not be installed by two windows at once.
+
+Closing the application pauses unfinished requests. On the next launch, choose
+**Resume** explicitly; no queued resource transfer starts automatically. A
+completed installation is discovered from its installed metadata instead of
+being downloaded again. A changed edition, source condition or checked study
+revision requires review rather than silently changing the queued request.
 
 To check what is available locally, switch to **Installed resources**.
 
