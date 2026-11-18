@@ -23,7 +23,8 @@ if a.require_packaged:
  report['fonts']={}
  for family in ('Roboto','Roboto Serif'):
   path=subprocess.check_output(['fc-match','-f','%{file}',family],text=True)
-  assert path.startswith('/app/share/fonts/roboto/'),(family,path)
+  resolved=subprocess.check_output(['fc-match','--format=%{family}',family],text=True).strip().split(',')
+  assert family in resolved and path.startswith('/app/'),(family,resolved,path)
   report['fonts'][family]=path
 def shot(name):n.move_at(w,2,2);spin(duration=.25);screen.grab(a.output/(name+'.png'))
 def walk(widget):
