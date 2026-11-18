@@ -357,9 +357,8 @@ class StudyPanel(Gtk.Box):
     def ensure_chapter(self,reference,introduction=False):
         key=introduction_key(reference,self.reader) if introduction else self.reader.key(reference)
         context=(id(self.reader),key.getOSISBookName(),key.getChapter())
-        from bisect import bisect_right
-        position=bisect_right(self.reader.index.starts,key.getIndex())-1
-        covered=position>=0 and self.reader.index.sections[position].contains_index(key.getIndex())
+        position=self.reader.index._section_by_native_index.get(key.getIndex())
+        covered=position is not None
         if (covered and position in self.loaded or not covered and context==getattr(self,'_chapter_context',None)):
             self._chapter_context=context
             return False
