@@ -23,7 +23,7 @@ are test annotations only. Original retained profiles are not reset or modified.
 JSON receipts identify imports, geometry and controlled query timing.
 
 Focused native checks cover autosave coalescing/immediate close/reopen, failed
-save keep/discard/retry, fixed source context across tabs/passage changes,
+save keep/discard, fixed source context across tabs/passage changes,
 pending-delete non-resurrection, actual citation/overflow/card mouse and keyboard
 activation, global Notes reuse and old backup/link restoration; reference
 out-of-order completion, stale/cancelled work and first-load/error/reduced-motion
