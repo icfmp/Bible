@@ -21,6 +21,7 @@ class StudyPanel(Gtk.Box):
         self.names = []
         self._download_choice=object()
         self._syncing = False
+        self._choice_idle=0;self._choice_name=None
         self._stamp = None
         self._readers = {}
         self._labels = []
@@ -243,7 +244,9 @@ class StudyPanel(Gtk.Box):
         self._syncing = True
         self.names = [None] + installed
         if tab.state.commentary and tab.state.commentary not in installed:
-            self.names.append(tab.state.commentary)
+            from .module_lifecycle import ModuleLifecycle
+            if not ModuleLifecycle(self.owner.library).was_removed(tab.state.commentary):
+                self.names.append(tab.state.commentary)
         labels = [tr('Choose a commentary')]
         for name in self.names[1:]:
             if name in installed:
@@ -255,7 +258,7 @@ class StudyPanel(Gtk.Box):
         if labels != self._labels:
             self.choices.set_model(Gtk.StringList.new(labels))
             self._labels = labels
-        self.choices.set_selected(self.names.index(tab.state.commentary))
+        self.choices.set_selected(self.names.index(tab.state.commentary) if tab.state.commentary in self.names else 0)
         self._syncing = False
         self.render(tab, installed)
 
@@ -607,27 +610,40 @@ class StudyPanel(Gtk.Box):
         self.entry_controls()
         self.update_indicator()
 
+    def cancel_choice(self, identifier=None):
+        if self._choice_idle and (identifier is None or self._choice_name==identifier):
+            GLib.source_remove(self._choice_idle)
+            self._choice_idle=0;self._choice_name=None
+
     def selection_changed(self, *_):
         if self._syncing or self.owner.active_tab is None:
             return
-        index = self.choices.get_selected()
-        if index < len(self.names):
-            if self.names[index] is self._download_choice:
-                self._stamp=None
-                tab=self.owner.active_tab
-                context=self.owner.library_context(tab,'commentary')
-                from gi.repository import GLib
-                def open_downloads():
-                    if not self.owner.closed and tab in self.owner.tabs():
-                        self.owner.dismiss_popovers();self.owner.open_library('commentary',context=context)
-                    return False
-                GLib.idle_add(open_downloads)
-                self.refresh(force=True)
-                return
-            self.owner.active_tab.state.commentary = self.names[index]
-            self.refresh()
-            self.remember_choice(self.names[index])
-            self.owner.schedule_save()
+        index=self.choices.get_selected()
+        if index>=len(self.names):return
+        tab=self.owner.active_tab;name=self.names[index]
+        self.cancel_choice();self._choice_name=name
+        # Gtk.DropDown is still emitting notify::selected. Replacing its model
+        # here can free the selected item before native notification unwinds.
+        if name is self._download_choice:
+            context=self.owner.library_context(tab,'commentary')
+            def open_downloads():
+                self._choice_idle=0;self._choice_name=None
+                if not self.owner.closed and self.owner.active_tab is tab and tab in self.owner.tabs():
+                    self._stamp=None;self.refresh(force=True)
+                    self.owner.dismiss_popovers();self.owner.open_library('commentary',context=context)
+                return False
+            self._choice_idle=GLib.idle_add(open_downloads)
+            return
+        tab.state.commentary=name
+        self.owner.schedule_save()
+        def apply_choice():
+            self._choice_idle=0;self._choice_name=None
+            if (not self.owner.closed and self.owner.active_tab is tab and tab in self.owner.tabs()
+                    and tab.state.commentary==name):
+                self.refresh()
+                self.remember_choice(name)
+            return False
+        self._choice_idle=GLib.idle_add(apply_choice)
 
     def remember_choice(self, name):
         # Only a deliberate, successfully opened source establishes a default.

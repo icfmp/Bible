@@ -1243,6 +1243,7 @@ class Window(Adw.ApplicationWindow):
         self.study.notes.close()
         self.study.words.close()
         self.search_popover.close()
+        self.study.cancel_choice()
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()

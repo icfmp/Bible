@@ -91,6 +91,7 @@ class ModuleViewChange:
                 refs.generation+=1;refs.context=None;refs.stamp=None;refs.pending=False
                 refs.clear_rows();refs.chapter_cache={};refs.row_cache={}
             study=window.study
+            study.cancel_choice(self.identifier)
             for name,reader in list(study._readers.items()):
                 if self.matches(reader):study._readers.pop(name)
             if self.matches(study.reader):study.clear_content();study.reader=None;study._display_context=None
@@ -121,7 +122,7 @@ class ModuleViewChange:
             tab.refresh_comparison();window.tab_changed(tab)
         for window in self.windows:
             if window.closed:continue
-            if window.catalogue_session:window.catalogue_session.reload_installed()
+            if getattr(window,'catalogue_session',None):window.catalogue_session.reload_installed()
             window.study.refresh(force=True);window.primary_version.sync();window.compared_version.sync();window.sync_comparison()
             window.search_popover._layout_stamp=None
             if window.notes_space:
