@@ -8,6 +8,11 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class ComparisonTests(unittest.TestCase):
+    def setUp(self):
+        from unittest.mock import patch
+        # Exercise follow/layout separately from resource evidence acquisition.
+        self.enterContext(patch('bible.sword_provider.Reader.can_align_reference',return_value=True))
+
     def test_a_local_row_mapping_gap_does_not_disable_valid_verse_following(self):
         from unittest.mock import patch
         from bible.ui import Application,Window,Library

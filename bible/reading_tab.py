@@ -341,10 +341,10 @@ class ReadingTab(Gtk.Box):
                 self._comparison_reader = Reader(self.library.root/name, name); self._comparison_name = name
             reader = self._comparison_reader
             if not self.reader:raise ValueError(tr('Open a Bible passage to read its commentary.'))
-            from .reference_resolution import resolve,available_chapter
+            from .reference_resolution import resolve_readers,available_chapter
             alignment_error = None
             try:
-                resolved = resolve(self.state.reference, self.reader.versification, reader,require_entry=False)
+                resolved = resolve_readers(self.state.reference, self.reader, reader,require_entry=False)
                 reference, end = resolved.start, resolved.end
             except ValueError as error:
                 # An explicit comparison opening may open an available printed

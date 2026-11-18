@@ -1,6 +1,6 @@
 """Verified correspondence groups; display padding never becomes Scripture."""
 from dataclasses import dataclass, replace
-from .reference_resolution import resolve, _span
+from .reference_resolution import resolve_readers as resolve, _span
 from .pagination import Document, StyleSpan
 
 
@@ -31,14 +31,14 @@ def correspondences(primary,secondary,left,right,linked=((),())):
             for reference in members[1:]:merge((side,members[0]),(side,reference))
     for side,reader,target,refs in ((0,primary,secondary,left),(1,secondary,primary,right)):
         for ref in refs:
-            mapped=resolve(ref,reader.versification,target,require_entry=False)
+            mapped=resolve(ref,reader,target,require_entry=False)
             connect(side,ref,_span(mapped.start,mapped.end,target.versification,target))
     unique={id(group):group for group in nodes.values()}
     def order(group):
         own=[primary.key(ref).getIndex() for side,ref in group if side==0]
         if own:return min(own)
         ref=next(ref for _,ref in group)
-        return primary.key(resolve(ref,secondary.versification,primary,require_entry=False).start).getIndex()
+        return primary.key(resolve(ref,secondary,primary,require_entry=False).start).getIndex()
     groups=sorted(unique.values(),key=order)
     result=[];last=(-1,-1)
     for group in groups:

@@ -17,6 +17,20 @@ class ResolvedPassage:
     introductions: tuple[str, ...] = ()
 
 
+def resolve_readers(reference, source_reader, target_reader, require_entry=True):
+    """A registry transform alone cannot attest an edition's source numbering."""
+    same=(source_reader.root==target_reader.root and source_reader.name==target_reader.name)
+    if not same and not source_reader.can_align_reference(reference):
+        raise VersificationMismatch('Source numbering is not verified: '+reference)
+    result=resolve(reference,source_reader.versification,target_reader,require_entry=False)
+    references=_span(result.start,result.end,target_reader.versification,target_reader)
+    if not same and not all(target_reader.can_align_reference(ref) for ref in references):
+        raise VersificationMismatch('Target numbering is not verified: '+reference)
+    if require_entry and any(not target_reader.has_reference(ref) for ref in references):
+        raise ValueError('Passage unavailable: '+result.start)
+    return result
+
+
 def resolve(reference, source_system, target_reader, require_entry=True, *, include_introductions=False):
     import re
     import Sword

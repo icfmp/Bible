@@ -1,7 +1,7 @@
 """Reference-driven Bible comparison, independent of the study coordinator."""
 import time
 from .reading_sync import ReadingSync
-from .reference_resolution import resolve
+from .reference_resolution import resolve_readers as resolve
 from .scroll_motion import stop_native_scroll
 
 
@@ -59,13 +59,13 @@ class ComparisonSync(ReadingSync):
                 if self.driver=='comparison':
                     reference=tab.comparison_visible_reference()
                     if reference:
-                        mapped=resolve(reference,tab._comparison_reader.versification,tab.reader)
+                        mapped=resolve(reference,tab._comparison_reader,tab.reader)
                         if mapped.start!=tab.state.reference:tab.select_verse(mapped.start)
                 return False
             if self.driver=='primary':
                 reference=tab.visible_reference()
                 if not reference:return False
-                resolved=resolve(reference,tab.reader.versification,tab._comparison_reader)
+                resolved=resolve(reference,tab.reader,tab._comparison_reader)
                 target=('comparison',resolved.start,id(tab._comparison_document))
                 if target!=self.last_target:
                     if reference!=tab.state.reference:tab.select_verse(reference)
@@ -79,7 +79,7 @@ class ComparisonSync(ReadingSync):
                 # Reuse the reference already sampled for this input frame;
                 # saving an independent pane must not add geometry polling.
                 if tab.remember_comparison(reference):self.owner.schedule_save()
-                resolved=resolve(reference,tab._comparison_reader.versification,tab.reader)
+                resolved=resolve(reference,tab._comparison_reader,tab.reader)
                 target=('primary',resolved.start,id(tab.current))
                 if target!=self.last_target:
                     if resolved.start!=tab.state.reference:tab.reveal_reference(resolved.start)
