@@ -42,7 +42,7 @@ class CatalogueWindow(Adw.Window):
         self.library, self.on_installed = library, on_installed
         self.owner = parent
         self.add_css_class(parent.reading_style.scope+'-window')
-        self._covered=frozenset();self._removed_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
+        self._covered=frozenset();self._removed_ids=frozenset();self._archived_ids=frozenset();self._catalogue_errors={};self._loading_tick=0
         from .study_resources import StudyResources
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
@@ -288,10 +288,11 @@ class CatalogueWindow(Adw.Window):
         if self.closed or snapshot.generation<self._refresh_generation:return False
         changed=(self.resources!=list(snapshot.resources) or self._installed_metadata!=snapshot.installed
                  or self._study_installed!=snapshot.study_installed or self._study_current!=snapshot.study_current
-                 or self._language_records!=snapshot.languages)
+                 or self._language_records!=snapshot.languages or self._archived_ids!=snapshot.archived_resources)
         self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
         self._removed_ids=snapshot.removed_resources
+        self._archived_ids=snapshot.archived_resources
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
         self._study_current=snapshot.study_current;self._language_records=snapshot.languages
         self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
@@ -386,22 +387,23 @@ class CatalogueWindow(Adw.Window):
         self._bound_rows[item]=resource
         installed=resource.id in getattr(self,'_installed_ids',set())
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
+        archived=resource.id in self._archived_ids and not installed
         busy=self._transfer_busy and self._task_resource==resource.id
-        stamp=(resource,installed,current,self.modules.revision,self._transfer_busy,self._phase if busy else None,
+        stamp=(resource,installed,current,archived,self.modules.revision,self._transfer_busy,self._phase if busy else None,
                self.progress.get_text() if busy else None,resource.id in self._task_errors)
         if getattr(item,'_render_stamp',None)==stamp:return
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
-        item.state.set_text(tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
-        item.state.set_visible(installed and not busy)
+        item.state.set_text(tr('Archived') if archived else tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
+        item.state.set_visible((installed or archived) and not busy)
         item.action.set_icon_name('media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
         label=tr('Read') if installed and resource.kind=='bible' else tr('Update') if installed and not current else tr('Open') if installed else tr('Retry') if resource.id in self._task_errors else tr('Download')
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
-        item.action.set_sensitive(current or (resource.installable and not self._transfer_busy))
+        item.action.set_sensitive(current or (resource.installable and not archived and not self._transfer_busy))
         item.action.set_visible(not busy and not (current and resource.kind not in ('bible','commentary')))
-        item.get_child().set_tooltip_text(resource.name+' · '+resource.language)
+        item.get_child().set_tooltip_text(resource.name+' · '+(resource.version or '—')+' · '+resource.language)
 
     def refresh_rows(self):
         for item in list(self._bound_rows):
@@ -649,10 +651,13 @@ class CatalogueWindow(Adw.Window):
         self.read_button.set_label(tr('Read') if resource and resource.kind=='bible' else tr('Open'))
         self.download_button.set_visible(not current)
         self.download_button.set_label(tr('Update') if installed and not current else
+                                       tr('Archived') if resource and resource.id in self._archived_ids else
                                        tr('Retry') if resource and resource.id in self._task_errors else tr('Download'))
+        self.download_button.set_tooltip_text(tr('Refresh this source to verify whether this removed version is still available.')
+                                             if resource and resource.id in self._archived_ids else None)
         self.catalogue_button.set_sensitive(not self.busy)
         self.download_button.set_sensitive(bool(resource and resource.installable
-                                               and not current)
+                                               and not current and resource.id not in self._archived_ids)
                                            and not self._transfer_busy)
         # Browsing/back navigation stays available during a transfer. The
         # captured resource, not the current selection, owns that task.
@@ -852,7 +857,7 @@ class CatalogueWindow(Adw.Window):
 
     def install(self, *_, resource=None, permission=None):
         resource = self.known_edition_details(resource) if resource else self.selected_resource()
-        if not resource or not resource.installable or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
+        if not resource or not resource.installable or resource.id in self._archived_ids or self._transfer_busy or (resource.id in self.installed_ids() and (resource.kind!='study' or resource.id in self._study_current)):
             return
 
         if resource.provider_id=='youversion':

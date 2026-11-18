@@ -25,6 +25,7 @@ class CatalogueSnapshot:
     generation: int
     covered_providers: frozenset = frozenset()
     removed_resources: frozenset = frozenset()
+    archived_resources: frozenset = frozenset()
 
 
 class CatalogueSession:
@@ -34,7 +35,7 @@ class CatalogueSession:
         self.prepare=MetadataExecutor(thread_name_prefix='bible-library-metadata')
         self.network=MetadataExecutor(thread_name_prefix='bible-library-refresh')
         self.lock=RLock();self.closed=False;self.listeners=[];self.snapshot=None
-        self.providers={};self.installed={};self.removed={};self.study_installed=frozenset();self.study_current=frozenset()
+        self.providers={};self.installed={};self.removed={};self.verified_providers=set();self.study_installed=frozenset();self.study_current=frozenset()
         self.language_records={};self.metrics={};self.errors={};self.refreshing=False
         self.language_inventory=frozenset()
         self.youversion_languages={};self.youversion_loaded={};self.youversion_future=None
@@ -187,6 +188,7 @@ class CatalogueSession:
             if self.bootstrap_future.done() and self.bootstrap_future.exception() is not None:
                 self.bootstrap_future=self.schedule(self.bootstrap)
             self.refreshing=True;self.errors={};self.generation+=1
+            self.verified_providers.difference_update(p.id for p in providers)
             self.refresh_future=self.network.submit(self.fetch,fetch,force,tuple(providers))
             return self.refresh_future
 
@@ -206,6 +208,7 @@ class CatalogueSession:
                     tags=set(timings.get('source_loaded_tags',()))
                     items=tuple({r.id:r for r in (*[r for r in self.providers.get(provider.id,()) if r.language not in tags],*items)}.values())
                 if not error or items:self.providers[provider.id]=tuple(items)
+                if not error and not timings.get('cached'):self.verified_providers.add(provider.id)
                 if error:self.errors[provider.name]=str(error)
                 self.metrics[provider.id]={k:v for k,v in timings.items() if k!='source_languages'}
                 self.revision+=1;revision=self.revision
@@ -219,6 +222,10 @@ class CatalogueSession:
                 if self.closed:return
                 self.errors=dict(getattr(result,'errors',{}))
                 self.providers.update({p.id:tuple(r for r in resources if r.provider_id==p.id) for p in providers if p.name not in self.errors and (p.id!='youversion' or p.id not in self.providers)})
+                # Custom refresh callers may return a complete result without
+                # incremental callbacks. Only an actual successful forced
+                # refresh verifies availability; bootstrap caches do not.
+                if force:self.verified_providers.update(p.id for p in providers if p.name not in self.errors)
                 saved=self.providers.get('youversion')
             if saved is not None:
                 from .providers import YOUVERSION
@@ -234,7 +241,17 @@ class CatalogueSession:
     def publish(self,revision=None):
         with self.lock:
             if self.closed or revision is not None and revision!=self.revision:return
-            known=dict(self.removed);known.update((r.id,r) for rows in self.providers.values() for r in rows)
+            known={r.id:r for rows in self.providers.values() for r in rows}
+            catalogued=set(known)
+            archived=set()
+            for identifier,resource in self.removed.items():
+                if resource.provider_id!='youversion' and resource.provider_id in self.providers and identifier not in known:
+                    # A complete provider catalogue supersedes historical
+                    # transaction metadata, including after an offline reopen.
+                    continue
+                known.setdefault(identifier,resource)
+                if (resource.provider_id not in self.verified_providers or identifier not in catalogued) and identifier not in self.installed:
+                    archived.add(identifier)
             resources=tuple(sorted(known.values(),key=lambda r:(r.language,r.name,r.provider_id)))
             removed_resources=frozenset(self.removed)
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
@@ -251,7 +268,7 @@ class CatalogueSession:
         records={code:self.language_records[code] for code in languages}
         terms={r.id:normalized(' '.join((r.name,r.description,r.language,records[r.language][2]))) for r in all_resources}
         metrics['language_and_search_seconds']=time.monotonic()-start
-        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered,removed_resources)
+        snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered,removed_resources,frozenset(archived))
         with self.lock:
             if self.closed:return
             self.snapshot=snapshot;listeners=[ref() for ref in self.listeners if ref() is not None]

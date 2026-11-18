@@ -701,3 +701,8 @@ FR.update({'Reviewed topic names: {revision}':'Noms des thèmes vérifiés : {re
 FR.update({
     '{count} source proposals for this site':'{count} propositions de la source pour ce site',
 })
+
+FR.update({
+    'Archived':'Archivée',
+    'Refresh this source to verify whether this removed version is still available.':'Actualisez cette source pour vérifier si cette version supprimée est encore disponible.',
+})
