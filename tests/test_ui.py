@@ -870,7 +870,7 @@ class WindowTests(unittest.TestCase):
                 self.assertIn('Gras', buffer_text(editor.body))
                 self.assertIn('<script>bad()</script>', buffer_text(editor.body))
                 self.assertIn('javascript:bad', buffer_text(editor.body))
-                self.assertIsNotNone(editor.labels.entry.get_completion())
+                self.assertIn('Local',editor.labels.suggestions)
                 editor.close()
                 central = window.open_notes()
                 backup = Path(directory) / 'backup.json'

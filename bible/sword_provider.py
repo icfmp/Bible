@@ -183,10 +183,8 @@ class Reader:
         return value in (self.sword.DIRECTION_RTL,chr(self.sword.DIRECTION_RTL))
 
     def can_align_reference(self, reference):
-        # Existing verified conversions retain source numbering evidence. An
-        # ordinary module's Versification entry describes storage, not proof
-        # that its contents follow that edition-level numbering convention.
-        if not self._source_osis:return False
+        if not self._source_osis:
+            return self.native_alignment_issue(reference) is None
         from .source_versification import reference_mapping,SOURCE_CONVENTIONS
         receipt=self._numbering_receipt
         if (receipt.get('all_text_notes_headings_verified') is not True
@@ -198,6 +196,77 @@ class Reader:
         convention=data.get('declared_convention')
         if convention:return reference.split('.')[0] in convention['books']
         return verified_identity(reference,data)
+
+    def native_alignment_issue(self,reference):
+        """Read-only, passage-scoped evidence from ordinary SWORD indexing.
+
+        Following requires an actual native entry and no contradictory source
+        identity. Explicit approximate numbering and a title in a body slot
+        limit local capabilities. Missing verses alone are not evidence that
+        neighbouring entries have been renumbered.
+        No language, provider or module ID is used as a numbering exception.
+        """
+        from collections import OrderedDict
+        cache=getattr(self,'_alignment_evidence',None)
+        if cache is None:self._alignment_evidence=cache=OrderedDict()
+        token=reference
+        if token in cache:return cache[token]
+        issue=None
+        try:
+            key=self.key(reference);public=key.getOSISRef()
+            if not self.module.hasEntry(key):raise ValueError('No indexed native entry: '+public)
+            if self._approximate_numbering:
+                # Some upstream configurations explicitly call this the
+                # "closest" standard system. Keep only registry-invariant
+                # positions; this is not an attested shifted source mapping.
+                from .reference_resolution import resolve,MAPPED_SYSTEMS
+                from .reference_targets import Canon
+                for system in MAPPED_SYSTEMS:
+                    mapped=resolve(public,self.versification,Canon(system),require_entry=False)
+                    if (mapped.start,mapped.end)!=(public,public):
+                        raise ValueError('Source declares approximate numbering; correspondence is not invariant here: '+public)
+            if (self.module.getConfigEntry('SourceType') or '')=='OSIS':
+                old=self.sword.VerseKey(self.module.getKey())
+                try:
+                    self.module.setKey(key);raw=str(self.module.getRawEntry())
+                    identifiers=re.findall(r'<verse\b[^>]*\b(?:osisID|sID)=[\"\x27]([^\"\x27]+)',raw,re.I)
+                    if identifiers and not any(public in value.split() for value in identifiers):
+                        raise ValueError('Source verse identity contradicts the native entry: '+public)
+                    # Heading-only first units are genuine in title-counting
+                    # canons, but cannot be treated as a numbered body verse.
+                    chapter_token=('chapter',key.getOSISBookName(),key.getChapter())
+                    if chapter_token not in cache:
+                        cache[chapter_token]=None
+                        first=self.key(f'{key.getOSISBookName()}.{key.getChapter()}.1')
+                        if self.module.hasEntry(first):
+                            self.module.setKey(first)
+                            from .structured_text import SourceParser
+                            parser=SourceParser();parser.feed(str(self.module.getRawEntry()));parser.close()
+                            title=any(s.kind=='heading' and s.text.strip() for s in parser.segments)
+                            body=any(s.kind=='text' and s.text.strip() for s in parser.segments)
+                            if title and not body:
+                                from .reference_resolution import resolve
+                                from .reference_targets import Canon
+                                try:
+                                    mapped=resolve(first.getOSISRef(),self.versification,Canon('KJV'),require_entry=False,include_introductions=True)
+                                    if not mapped.introductions:raise ValueError('A source heading occupies a declared body-verse slot: '+first.getOSISRef())
+                                except ValueError as error:cache[chapter_token]=str(error)
+                    if cache[chapter_token]:raise ValueError(cache[chapter_token])
+                finally:self.module.setKey(old)
+        except ValueError as error:issue=str(error)
+        cache[token]=issue
+        if len(cache)>2048:cache.popitem(last=False)
+        return issue
+
+    @cached_property
+    def _approximate_numbering(self):
+        from .providers import module_name
+        for path in (self.root/'mods.d').glob('*.conf'):
+            data=path.read_text(encoding='utf-8',errors='replace')
+            if not re.search(r'(?m)^\['+re.escape(module_name(self.name))+r'\]\s*$',data):continue
+            declaration=re.search(r'(?im)((?:[ \t]*#[^\n]*\n)+)[ \t]*Versification\s*=',data)
+            if declaration and re.search(r'\b(closest|approximate|approximative)\b',declaration[1],re.I):return True
+        return False
 
     @cached_property
     def _numbering_receipt(self):

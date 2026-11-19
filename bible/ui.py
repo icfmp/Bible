@@ -780,7 +780,7 @@ class Window(Adw.ApplicationWindow):
         for name in ['copy-passage','copy-with-reference','copy-reference']:
             self.lookup_action(name).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
         self.heading.set_title(tab.passage_title(chapter_only=True))
-        subtitle = tab.reader.short_name if tab.reader else module_name(tab.state.resource) if tab.state.resource else tr('Choose a translation')
+        subtitle = self.library.resource(tab.state.resource).short_label if tab.reader else tr('Choose a translation')
         if tab.state.resource and tab.state.resource not in self.library.installed():
             subtitle += f' ({tr("Missing translation")})'
         self.heading.set_subtitle('')
@@ -1233,6 +1233,7 @@ class Window(Adw.ApplicationWindow):
             self._save_id = 0
         self.save_session()
         self.closed = True
+        getattr(self.library,'_annotation_readers',{}).clear()
         self.appearance.cancel_pending()
         self.passage_actions.dismiss()
         if getattr(self,'place_dialog',None):self.place_dialog.close()
@@ -1267,6 +1268,16 @@ class Window(Adw.ApplicationWindow):
 class Application(Adw.Application):
     def __init__(self):
         super().__init__(application_id='io.github.icfmp.Bible')
+        action=Gio.SimpleAction.new('quit',None)
+        action.connect('activate',lambda *_:self.request_quit())
+        self.add_action(action);self.set_accels_for_action('app.quit',['<Control>q'])
+
+    def request_quit(self):
+        # Application.quit() bypasses close-request and pending note writes.
+        # The last safely closed application window ends the normal lifecycle;
+        # a failed save leaves its window/editor alive for the user's decision.
+        for window in list(self.get_windows()):
+            if isinstance(window,Window) and not window.closed:window.close()
 
     def do_activate(self):
         if not self.get_active_window():

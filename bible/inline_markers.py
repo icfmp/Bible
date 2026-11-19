@@ -19,22 +19,12 @@ class InlineMarkers:
         if tab.preferences.note_indicators and tab.notes_store:
             from .passage_annotations import PassageAnnotations
             annotations=getattr(self,'annotations',None)
-            if annotations is None:self.annotations=annotations=PassageAnnotations()
-            indices={ref:reader.key(ref).getIndex() for ref in primary}
-            for note in tab.notes_store.all():
-                if not note.body.strip():continue
-                for link in note.passages:
-                    if link.versification==reader.versification and getattr(reader,'addresses',None):
-                        try:covered=set(reader.reference_range(link.start,link.end))
-                        except ValueError:covered=set()
-                        reference=next((ref for ref in primary if ref in covered),None)
-                    else:
-                        positions=annotations.positions(reader,link.versification,link.start,link.end)
-                        reference=next((ref for ref,index in indices.items()
-                                        if any(left<=index<=right for left,right,_,_ in positions)),None)
-                    if reference:
-                        values=result.setdefault(primary[reference],{}).setdefault('note',[])
-                        if note.id not in values:values.append(note.id)
+            if annotations is None:self.annotations=annotations=PassageAnnotations(tab.library)
+            seen=set()
+            for reference,notes in annotations.note_map(reader,primary,tab.notes_store).items():
+                for note in notes:
+                    if not note.body.strip() or note.id in seen:continue
+                    result.setdefault(primary[reference],{}).setdefault('note',[]).append(note.id);seen.add(note.id)
         if tab.preferences.note_indicators and document.spans:
             key=(reader,document.key)
             if key not in self.editorial:

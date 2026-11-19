@@ -28,6 +28,7 @@ class PassageLinks(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         self.owner=owner;self.context=context;self.values=tuple(values);self.changed=changed
         self._suggestion_epoch=0;self._suggestion_future=None
+        self._excerpts={};self._chapter_cache={}
         self.primary=PassageLink(context['versification'],context['start'],context['end'])
         from .notes_window import metadata_row
         self.row,header=metadata_row('Linked passages','insert-link-symbolic')
@@ -81,11 +82,10 @@ class PassageLinks(Gtk.Box):
         self.suggestions.set_visible(False)
         while self.suggestion_rows.get_first_child():self.suggestion_rows.remove(self.suggestion_rows.get_first_child())
         panel=self.owner.study.references
-        if panel.data.revision is None or self.context['origin_translation'] not in self.owner.library.installed('bible'):return
+        if panel.data.revision is None:return
         try:
-            from .sword_provider import Reader
             from .reference_targets import source_references
-            reader=Reader(self.owner.library.root/self.context['origin_translation'],self.context['origin_translation'])
+            reader=self.suggestion_reader()
             if reader.versification!=self.context['versification']:return
             origins=source_references(reader,self.primary.start,self.primary.end)
         except (ValueError,OSError,RuntimeError):return
@@ -94,6 +94,9 @@ class PassageLinks(Gtk.Box):
             if self.owner.closed or epoch!=self._suggestion_epoch or not pop.get_visible():return False
             self._suggestion_future=None
             try:rows=future.result()
+            except (ValueError,OSError,RuntimeError):return False
+            try:
+                reader=self.suggestion_reader()
             except (ValueError,OSError,RuntimeError):return False
             from .reference_targets import local_target_ranges
             from .notes_window import passage_label
@@ -106,9 +109,7 @@ class PassageLinks(Gtk.Box):
                     if link!=self.primary and link not in self.values and link not in choices:choices.append(link)
                 if len(choices)>=8:break
             for link in choices[:8]:
-                button=Gtk.Button(child=Gtk.Label(label=passage_label(link.start,link.end,link.versification),
-                    xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
-                button.add_css_class('flat')
+                button=self.card(link,reader=reader if hasattr(reader,'root') else None)
                 def choose(*_,value=link):
                     self.entry.set_text(value.start+('–'+value.end if value.end!=value.start else ''));self.add()
                 button.connect('clicked',choose);button._linked_passage=link;self.suggestion_rows.append(button)
@@ -120,16 +121,67 @@ class PassageLinks(Gtk.Box):
             return False
         future.add_done_callback(lambda _:GLib.idle_add(complete))
 
+    def suggestion_reader(self):
+        origin=self.context['origin_translation']
+        if origin in self.owner.library.installed('bible'):
+            from .passage_annotations import PassageAnnotations
+            return PassageAnnotations(self.owner.library).source_reader(None,origin)
+        # Relationships may still be queried in a registered saved canonical
+        # numbering system. Canon supplies no Scripture and never a preview.
+        from .reference_targets import Canon
+        return Canon(self.context['versification'])
+
+    def card(self,link,reader=None):
+        """The saved origin is the only source of Scripture in this editor."""
+        from .passage_card import passage_card
+        from .notes_window import passage_label
+        card=passage_card();title,text=card._reference_labels
+        title.set_text(passage_label(link.start,link.end,link.versification))
+        origin=self.context['origin_translation'];root=self.owner.library.root/origin
+        try:
+            if reader is None:
+                from .passage_annotations import PassageAnnotations
+                reader=PassageAnnotations(self.owner.library).source_reader(None,origin)
+            revision=(root/'.complete').stat().st_mtime_ns
+            key=(origin,revision,link)
+            if key not in self._excerpts:
+                from .passage_annotations import PassageAnnotations
+                spans=PassageAnnotations(self.owner.library).positions(reader,link.versification,link.start,link.end,
+                    origin if link.versification==self.context['versification'] else None)
+                if not spans:raise ValueError('No verified passage correspondence')
+                from .reference_resolution import _span
+                from .sword_provider import passage_verses
+                # A card needs only a short excerpt, even for a book-long link.
+                first,last=spans[0][2:]
+                references=reader.reference_range(first,last) if reader.addresses else _span(first,last,reader.versification,reader)
+                verses=list(passage_verses(reader,references[:3],self._chapter_cache))
+                if not verses:raise ValueError('No source excerpt')
+                self._excerpts[key]=(' '.join(' '.join(value.split()) for _,value in verses),spans[0][2],reader.rtl)
+                if len(self._excerpts)>64:self._excerpts.pop(next(iter(self._excerpts)))
+                if len(self._chapter_cache)>8:self._chapter_cache.clear()
+            excerpt,target,rtl=self._excerpts[key]
+            text.set_text(excerpt);text.set_direction(Gtk.TextDirection.RTL if rtl else Gtk.TextDirection.LTR)
+            text.set_xalign(1 if rtl else 0);card._target=(origin,target)
+        except (ValueError,OSError,RuntimeError):
+            text.set_text(tr('Bible excerpt unavailable.'));card._target=None
+        card.update_property([Gtk.AccessibleProperty.LABEL],[title.get_text()])
+        return card
+
+    def invalidate_source(self):
+        self._suggestion_epoch+=1
+        if self._suggestion_future:self._suggestion_future.cancel();self._suggestion_future=None
+        self._excerpts.clear();self._chapter_cache.clear()
+
     def refresh(self):
         from .notes_window import passage_label
         while self.rows.get_first_child():self.rows.remove(self.rows.get_first_child())
         for link in self.values:
             row=Gtk.Box(spacing=6)
-            label=Gtk.Label(label=passage_label(link.start,link.end,link.versification),xalign=0,
-                wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,hexpand=True)
-            row.append(label)
+            card=self.card(link);card.set_hexpand(True)
+            card.connect('clicked',lambda button:self.owner.navigate_selection(*button._target) if button._target else None)
+            row.append(card)
             remove=Gtk.Button(icon_name='list-remove-symbolic',tooltip_text=tr('Remove linked passage'))
-            remove.add_css_class('flat');remove.update_property([Gtk.AccessibleProperty.LABEL],[tr('Remove linked passage')+': '+label.get_text()])
+            remove.add_css_class('flat');remove.update_property([Gtk.AccessibleProperty.LABEL],[tr('Remove linked passage')+': '+passage_label(link.start,link.end,link.versification)])
             remove.connect('clicked',lambda *_,value=link:self.remove(value));row.append(remove);self.rows.append(row)
         self.row.set_subtitle(str(len(self.values)))
         self.disclosure.set_sensitive(bool(self.values))

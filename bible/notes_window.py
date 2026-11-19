@@ -81,7 +81,13 @@ class Labels(Gtk.Box):
                                     tooltip_text=tr('Add a label'),valign=Gtk.Align.CENTER)
         self.add_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Add a label')])
         pop=Gtk.Popover();row.set_margin_top(8);row.set_margin_bottom(8);row.set_margin_start(8);row.set_margin_end(8)
-        pop.set_child(row);self.add_menu.set_popover(pop);self.row.add_suffix(self.add_menu)
+        choices=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        choices.append(row)
+        self.suggestion_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2,
+            margin_start=8,margin_end=8,margin_bottom=8)
+        choices.append(self.suggestion_rows)
+        pop.set_child(choices);self.add_menu.set_popover(pop);self.row.add_suffix(self.add_menu)
+        self.entry.connect('changed',lambda *_:self.refresh_suggestions())
         self.error = Gtk.Label(xalign=0, wrap=True)
         self.error.connect('notify::label',lambda label,*_:label.set_visible(bool(label.get_text())))
         self.error.set_visible(False)
@@ -89,11 +95,18 @@ class Labels(Gtk.Box):
         self.set_suggestions(existing)
 
     def set_suggestions(self, existing):
-        model = Gtk.ListStore(str)
-        for label in existing:
-            model.append([label])
-        completion = Gtk.EntryCompletion(model=model, text_column=0, inline_completion=True)
-        self.entry.set_completion(completion)
+        self.suggestions=tuple(dict.fromkeys(label for label in existing if label.strip()))
+        self.refresh_suggestions()
+
+    def refresh_suggestions(self):
+        from .book_names import normalized
+        while self.suggestion_rows.get_first_child():self.suggestion_rows.remove(self.suggestion_rows.get_first_child())
+        query=normalized(self.entry.get_text().strip())
+        selected={normalized(value) for value in self.values}
+        for label in [s for s in self.suggestions if normalized(s).startswith(query) and normalized(s) not in selected][:8]:
+            button=Gtk.Button(label=label,halign=Gtk.Align.FILL);button.add_css_class('flat')
+            button.connect('clicked',lambda _,value=label:(self.entry.set_text(value),self.add()))
+            self.suggestion_rows.append(button)
 
     def add(self):
         try:
@@ -107,6 +120,7 @@ class Labels(Gtk.Box):
 
     def set_values(self, values):
         self.values = list(values)
+        self.refresh_suggestions()
         self.flow.set_visible(bool(self.values))
         child = self.flow.get_first_child()
         while child:
@@ -221,7 +235,7 @@ class NoteEditor(Adw.Window):
         self.writing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12)
         for widget in (note_heading,commands,scroll):
             layout.remove(widget);widget.set_margin_start(0);widget.set_margin_end(0);widget.set_margin_top(0)
-        self.writing.append(note_heading)
+        if embedded:self.writing.append(note_heading)
         field=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
         field.append(commands);field.append(scroll)
         self.writing_frame=Gtk.Frame(child=field,vexpand=True)
@@ -235,8 +249,13 @@ class NoteEditor(Adw.Window):
         for widget in (self.labels.row,self.links.row):
             self.metadata_height.add_widget(widget)
         self.actions_menu=None
-        self.delete_button=Gtk.Button(label=tr('Delete note…'),visible=bool(note))
-        self.delete_button.add_css_class('flat');self.delete_button.add_css_class('destructive-action')
+        self.delete_button=Gtk.Button(visible=bool(note))
+        delete_content=Gtk.Box(spacing=8)
+        delete_content.append(Gtk.Image(icon_name='user-trash-symbolic'))
+        delete_content.append(Gtk.Label(label=tr('Delete note…')))
+        self.delete_button.set_child(delete_content)
+        self.delete_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Delete note…')])
+        self.delete_button.add_css_class('flat')
         def delete(*_):
             if self.actions_menu:self.actions_menu.popdown()
             self.ask_delete()

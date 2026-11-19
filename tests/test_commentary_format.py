@@ -49,34 +49,26 @@ class CommentaryFormatTests(unittest.TestCase):
         self.assertEqual(format_entry('<hi type="italic">Different</hi>','Original * unchanged','OSIS'),('Original * unchanged',(),()))
         self.assertEqual(format_entry('* actual plain *','* actual plain *','Plaintext'),('* actual plain *',(),()))
 
+    def test_thml_encodes_styles_without_guessing_structure_from_plain_prose(self):
+        raw='<h3>Source title</h3><p>Keep <b>bold</b>.</p><blockquote>Quoted.</blockquote><ul><li>First</li><li>Second</li></ul><p>Original.</p>'
+        plain='Source title  Keep bold.  Quoted.  First Second  Original.'
+        text,styles,titles=format_entry(raw,plain,'ThML')
+        self.assertEqual(''.join(text.split()),''.join(plain.split()))
+        self.assertEqual(titles,())
+        kinds={kind for kind,_,_ in styles}
+        self.assertTrue({'heading','bold','quotation','list-item'}<=kinds)
+        self.assertEqual(format_entry(raw,'Different native output','ThML'),('Different native output',(),()))
+
+    def test_osis_line_milestones_and_stanzas_preserve_authorial_words(self):
+        raw='<lg><l sID="line1"/>First line.<l eID="line1"/><l>Second line.</l></lg><p>Final prose.</p>'
+        plain='  First line. Second line.  Final prose.'
+        text,styles,_=format_entry(raw,plain,'OSIS')
+        self.assertEqual(''.join(text.split()),''.join(plain.split()))
+        self.assertEqual([text[a:b] for kind,a,b in styles if kind=='poetry'],['First line.','Second line.'])
+        self.assertNotIn('quotation',{kind for kind,_,_ in styles})
+
 
 class CommentaryLayoutTests(unittest.TestCase):
-    def test_only_exact_source_coverage_labels_replace_generated_context(self):
-        from bible.commentary_format import title_covers_section
-        from bible.commentary_index import Section,Segment
-        from bible.reference_targets import Canon
-        reader=Canon('KJV')
-        def section(start,end=None,intro=False):return Section(1,2,start,end or start,intro)
-        cases=[
-            ('Verse 1',section('Gen.15.1'),True),
-            ('Verses 14–18',section('Gen.13.14','Gen.13.18'),True),
-            ('Versets 14—18',section('Gen.13.14','Gen.13.18'),True),
-            ('Genèse 13:14−18',section('Gen.13.14','Gen.13.18'),True),
-            ('Genesis 13:14-Gen.13.18',section('Gen.13.14','Gen.13.18'),True),
-            ('Genesis 13:18-14:2',section('Gen.13.18','Gen.14.2'),True),
-            ('Genesis 50:26-Exodus 1:2',section('Gen.50.26','Exod.1.2'),True),
-            ('Verse 1',section('Gen.15.1','Gen.15.2'),False),
-            ('Verses 14–18',section('Gen.13.14','Gen.14.18'),False),
-            ('Verses 14–19',section('Gen.13.14','Gen.13.18'),False),
-            ('Verse 1',section('Gen.15.1',intro=True),False),
-            ('God encourages Abram',section('Gen.15.1'),False),
-            ('Genesis 13:14-99',section('Gen.13.14','Gen.13.18'),False),
-            ('Unidentified 13:14-18',section('Gen.13.14','Gen.13.18'),False),
-            ('Verses 2–6',Section(1,6,'Gen.1.2','Gen.1.6',False,(
-                Segment(1,2,'Gen.1.2','Gen.1.3'),Segment(6,6,'Gen.1.6','Gen.1.6'))),False),
-        ]
-        for title,coverage,expected in cases:
-            with self.subTest(title=title,coverage=coverage):self.assertEqual(title_covers_section(title,coverage,reader),expected)
 
     @unittest.skipUnless(__import__('os').environ.get('DISPLAY'),'Requires GTK')
     def test_matching_source_title_survives_with_body_anchors_and_copy(self):
@@ -101,11 +93,11 @@ class CommentaryLayoutTests(unittest.TestCase):
                 text=panel.text.get_buffer().props.text
                 for ref,match,title in [('Gen.1.1',True,'Verse 1'),('Gen.1.2',False,'Verses 2–3'),('Gen.1.3',True,'Verse 3')]:
                     pos=panel.reader.index.locate(ref);doc=source.document(pos,w.preferences.value)
-                    self.assertEqual(doc.has_coverage_title,match)
+                    self.assertEqual(doc.text[:doc.context_length],panel.reader.index.label(pos)+'\n')
                     self.assertIn(title,doc.copy(0,len(doc.text)))
                     start,body,end=panel.ranges[pos]
-                    if match:self.assertNotIn(panel.reader.index.label(pos),text[start:body])
-                    else:self.assertTrue(text[start:end].startswith(panel.reader.index.label(pos)))
+                    self.assertTrue(text[start:end].startswith(panel.reader.index.label(pos)))
+                    self.assertNotIn(panel.reader.index.label(pos),doc.copy(0,len(doc.text)))
                     self.assertEqual(text[body:end],doc.text[doc.spans[0].body:])
                     if ref=='Gen.1.3':
                         panel.current_position=pos;panel.reveal(pos,force=True);spin(lambda:not panel._positioning)

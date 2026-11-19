@@ -8,6 +8,22 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK/SWORD')
 class ResourceAlignmentTests(unittest.TestCase):
+    def test_native_identity_checks_do_not_scan_corpus_or_infer_shifts_from_omitted_verses(self):
+        from unittest.mock import PropertyMock
+        from tests.test_ui import installed_fixture
+        from bible.sword_provider import Reader
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory,entries=[('Gen.1.1','<verse osisID="Gen.1.1">SOURCE ONE</verse>'),
+                ('Gen.1.2','<verse osisID="Gen.1.3">CONTRADICTORY ID</verse>'),
+                ('Gen.2.1','<verse osisID="Gen.2.1">NEXT CHAPTER</verse>')])
+            root=Path(directory)/'translations/Test';conf=root/'mods.d/test.conf'
+            conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS'))
+            reader=Reader(root,'Test')
+            with patch.object(Reader,'books',new_callable=PropertyMock,side_effect=AssertionError('No corpus scan')):
+                self.assertTrue(reader.can_align_reference('Gen.1.1'))
+                self.assertFalse(reader.can_align_reference('Gen.1.2'))
+                self.assertTrue(reader.can_align_reference('Gen.2.1'))
+
     def test_existing_verified_native_conversion_convention_remains_usable(self):
         import json
         from bible.sword_provider import Reader
@@ -22,17 +38,20 @@ class ResourceAlignmentTests(unittest.TestCase):
                 receipt.write_text(json.dumps({**proof,**changed}))
                 self.assertFalse(Reader(root,'youversion~YV1').can_align_reference('Gen.1.1'))
 
-    def test_same_registry_name_does_not_prove_edition_numbering(self):
+    def test_approximate_declaration_limits_local_mapping_without_disabling_invariant_passages(self):
         from bible.sword_provider import Reader
         from bible.reference_resolution import resolve_readers,VersificationMismatch
         from tests.test_ui import installed_fixture
         with tempfile.TemporaryDirectory() as directory:
             for name in ('ActualSource','OtherSource'):
-                installed_fixture(directory,name,versification='NRSV')
+                path=installed_fixture(directory,name,versification='NRSV',entries=[('Gen.1.1','NATIVE BODY'),('Ps.12.3','SOURCE BODY')])
+                conf=Path(directory)/'translations'/name/'mods.d/test.conf'
+                conf.write_text(conf.read_text().replace('Versification=','# Closest standard versification to what is used in this work\nVersification='))
             root=Path(directory)/'translations'
             left=Reader(root/'ActualSource','ActualSource');right=Reader(root/'OtherSource','OtherSource')
             for source,target in ((left,right),(right,left)):
-                with self.assertRaises(VersificationMismatch):resolve_readers('Gen.1.1',source,target)
+                self.assertEqual(resolve_readers('Gen.1.1',source,target).start,'Gen.1.1')
+                with self.assertRaises(VersificationMismatch):resolve_readers('Ps.12.3',source,target)
             self.assertEqual(resolve_readers('Gen.1.1',left,left).start,'Gen.1.1')
 
     def test_capability_is_checked_on_both_sides_before_claiming_absence(self):
@@ -45,7 +64,8 @@ class ResourceAlignmentTests(unittest.TestCase):
             root=Path(directory)/'translations'
             a=Reader(root/'Source','Source');b=Reader(root/'Target','Target')
             with patch.object(a,'can_align_reference',return_value=True):
-                with self.assertRaises(VersificationMismatch):resolve_readers('Eccl.12.1',a,b)
+                with patch.object(b,'can_align_reference',return_value=False):
+                    with self.assertRaises(VersificationMismatch):resolve_readers('Eccl.12.1',a,b)
                 with patch.object(b,'can_align_reference',return_value=True):
                     self.assertEqual(resolve_readers('Eccl.12.1',a,b).start,'Eccl.12.3')
                     self.assertEqual(resolve_readers('Eccl.12.3',b,a).start,'Eccl.12.1')
@@ -57,6 +77,8 @@ class ResourceAlignmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             for name,system,count in (('Source','NRSV',14),('Target','Segond',16)):
                 installed_fixture(directory,name,versification=system,entries=[(f'Eccl.12.{n}',f'{name} SENTINEL{n} '*12) for n in range(1,count+1)])
+            conf=Path(directory)/'translations/Source/mods.d/test.conf'
+            conf.write_text(conf.read_text().replace('Versification=','# Closest standard versification to what is used in this work\nVersification='))
             w=Window(app,Library(Path(directory)/'translations'));w.present()
             try:
                 tab=w.active_tab

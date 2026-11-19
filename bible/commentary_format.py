@@ -5,40 +5,6 @@ import re
 from collections import defaultdict
 
 
-def title_covers_section(title, section, reader):
-    """Recognize exact source range labels; unrelated/ambiguous titles survive."""
-    if section.introduction or not isinstance(title,str) or len(title)>200:return False
-    title=re.sub('[\u2010-\u2015\u2212]','-',title.strip())
-    passages=section.passages
-    if len(passages)!=1:return False
-    first,last=passages[0]
-    a=first.split('.');b=last.split('.')
-    # Relative source labels are meaningful only in one native chapter.
-    relative=re.fullmatch(r'(?:verses?|versets?)\s+([1-9][0-9]*)(?:\s*-\s*([1-9][0-9]*))?',title,re.I)
-    if relative:
-        return (a[:2]==b[:2] and int(a[2])==int(relative[1])
-                and int(b[2])==int(relative[2] or relative[1]))
-    from .book_names import canonical_input,normalized,FRENCH
-    def qualified(value, context=None):
-        full=re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*)[:.]([1-9][0-9]*)',value.strip())
-        if full:
-            key=reader.key(canonical_input(value.strip()))
-            code=key.getOSISBookName()
-            names={normalized(code),normalized(key.getBookName()),normalized(FRENCH.get(code,code))}
-            if normalized(full[1]) not in names:raise ValueError('Ambiguous source book label')
-            return key.getOSISRef()
-        if context:
-            book,chapter,_=context.split('.')
-            short=re.fullmatch(r'([1-9][0-9]*)(?:[:.]([1-9][0-9]*))?',value.strip())
-            if short:
-                return reader.key(f'{book}.{short[1] if short[2] else chapter}.{short[2] or short[1]}').getOSISRef()
-        raise ValueError('Not an explicit source passage label')
-    try:
-        parts=title.split('-')
-        if len(parts)>2:return False
-        start=qualified(parts[0]);end=qualified(parts[1],start) if len(parts)==2 else start
-        return (start,end)==(first,last)
-    except (ValueError,TypeError):return False
 
 
 class PreverseParts(HTMLParser):
@@ -101,10 +67,12 @@ class InlineOSIS(HTMLParser):
     CDATA_CONTENT_ELEMENTS=('script','style')
     RCDATA_CONTENT_ELEMENTS=()
 
-    def __init__(self):
+    def __init__(self,source_type='OSIS'):
         super().__init__(convert_charrefs=True)
+        self.source_type=source_type
         self.parts=[];self.length=0;self.emphasis=[];self.stack=[];self.paragraphs=[]
         self.title=0;self.title_parts=[];self.titles=[];self.hidden=0
+        self.structural=[];self.structure_stack=[]
 
     def append(self,text):self.parts.append(text);self.length+=len(text)
 
@@ -112,18 +80,32 @@ class InlineOSIS(HTMLParser):
         values=dict(attrs)
         if tag in {'script','style','note'}:self.hidden+=1;return
         if self.hidden:return
-        if tag=='title':self.title+=1;return
+        if values.get('eid'):
+            self.handle_endtag(tag);return
+        if tag=='title' and self.source_type=='OSIS':self.title+=1;return
         if self.title:return
         if tag=='hi':
             start=self.length;self.append('* ')
             self.stack.append((values.get('type',''),start,self.length))
-        if tag in {'p','l','lb','br'} or (tag=='div' and values.get('type') in {'paragraph','x-p'}):
-            self.paragraphs.append(self.length);self.append('\n\n')
+        if tag in {'p','lg'} or (tag=='div' and values.get('type') in {'paragraph','x-p'}):
+            self.paragraphs.append((self.length,2));self.append('\n\n')
+        elif tag in {'l','lb','br','item','li'}:
+            self.paragraphs.append((self.length,1));self.append('\n')
+        kind=('poetry' if tag=='l' else 'quotation' if tag=='blockquote' or tag=='q' and values.get('type')=='block'
+              else 'list-item' if tag in {'item','li'} else
+              {'i':'italic','em':'italic','b':'bold','strong':'bold','sup':'superscript','sub':'subscript'}.get(tag))
+        if self.source_type=='ThML' and re.fullmatch('h[1-6]',tag):kind='heading'
+        if kind and not values.get('eid'):self.structure_stack.append((tag,kind,self.length))
+
+    def handle_startendtag(self,tag,attrs):
+        values=dict(attrs)
+        self.handle_starttag(tag,attrs)
+        if not values.get('sid') and not values.get('eid'):self.handle_endtag(tag)
 
     def handle_endtag(self,tag):
         if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1);return
         if self.hidden:return
-        if tag=='title':
+        if tag=='title' and self.source_type=='OSIS':
             self.title=max(0,self.title-1)
             if not self.title:
                 value=''.join(self.title_parts).strip();self.title_parts=[]
@@ -135,6 +117,10 @@ class InlineOSIS(HTMLParser):
                 if value:self.titles.append(value)
             return
         if self.title:return
+        for index in range(len(self.structure_stack)-1,-1,-1):
+            element,kind,start=self.structure_stack[index]
+            if element==tag:
+                self.structural.append((kind,start,self.length));self.structure_stack.pop(index);break
         if tag=='hi' and self.stack:
             kind,first,body=self.stack.pop();end=self.length;self.append(' *')
             self.emphasis.append((kind,first,body,end,self.length-1))
@@ -152,10 +138,10 @@ def format_entry(raw,plain,source_type):
     literal stars and bounded generated markers before hiding decorations.
     Unknown conversions fall back to native text.
     """
-    if source_type!='OSIS' or len(raw)>2*1024*1024:return plain,(),()
-    parser=InlineOSIS()
+    if source_type not in {'OSIS','ThML'} or len(raw)>2*1024*1024:return plain,(),()
+    parser=InlineOSIS(source_type)
     try:
-        raw,_=split_preverse(raw)
+        if source_type=='OSIS':raw,_=split_preverse(raw)
         parser.feed(raw);parser.close()
     except Exception:return plain,(),()
     expected=''.join(parser.parts)
@@ -192,12 +178,15 @@ def format_entry(raw,plain,source_type):
         content=right[bisect_left(left,body):bisect_left(left,end)]
         style={'italic':'italic','bold':'bold','super':'number','small-caps':'small-caps'}.get(kind)
         if content and style:styles.append((style,content[0],content[-1]+1))
-    for boundary in parser.paragraphs:
+    for kind,begin,end in parser.structural:
+        content=right[bisect_left(left,begin):bisect_left(left,end)]
+        if content:styles.append((kind,content[0],content[-1]+1))
+    for boundary,count in parser.paragraphs:
         position=bisect_left(left,boundary)
         if not 0<position<len(right):continue
         first=right[position-1]+1 if position else 0
         last=right[position] if position<len(right) else len(plain)
-        for index in range(first,min(last,first+2)):
+        for index in range(first,min(last,first+count)):
             if display[index].isspace():display[index]='\n'
     return ''.join(display),tuple(styles),tuple(parser.titles)
 
@@ -218,12 +207,18 @@ def apply(view,styles,preferences,palette):
         elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
         elif kind=='number':configure(tag,view,preferences,palette)
         elif kind=='superscript':configure(tag,view,preferences,palette)
+        elif kind=='subscript':tag.props.scale=.8;tag.props.rise=-3000
         elif kind=='editorial':
             from .verse_typography import NUMBER_COLORS
             from .reading_metrics import line_spacing,EDITORIAL_GAP
             tag.props.scale=.9;tag.props.foreground=NUMBER_COLORS[palette]
             tag.props.pixels_below_lines=line_spacing(preferences)+EDITORIAL_GAP
         elif kind=='heading':tag.props.weight=700;tag.props.scale=1.12
+        elif kind=='ui-context':
+            tag.props.weight=400;tag.props.scale=.85
+        elif kind in {'poetry','quotation','list-item'}:
+            tag.props.left_margin=16;tag.props.right_margin=8
+            tag.props.indent=-8 if kind=='list-item' else 0
         elif kind=='paragraph-space':
             from .reading_metrics import paragraph_space_size
             tag.props.size_points=paragraph_space_size(preferences)

@@ -369,9 +369,19 @@ class PassagePopover(Gtk.Popover):
         except (ValueError,IndexError) as error:self.message(str(error))
 
     def apply_reference(self, reference):
-        if not self.reader or not self.reader.has_reference(reference):
+        if not self.reader:
             raise ValueError(tr('This passage is not available in this translation.'))
-        reference = self.reader.key(reference).getOSISRef()
+        from .book_names import canonical_input,FRENCH
+        normalized_reference=canonical_input(reference)
+        book=normalized_reference.split('.')[0]
+        if book in FRENCH and book not in {b.code for b in self.reader.books}:
+            raise ValueError(tr('This passage is not available in this translation.'))
+        try:key=self.reader.key(reference)
+        except ValueError:
+            raise ValueError(tr('Unrecognized or out-of-range reference.')) from None
+        reference=key.getOSISRef()
+        if not self.reader.has_reference(reference):
+            raise ValueError(tr('This passage is not available in this translation.'))
         self._updating = True
         try:
             if not self.owner.navigate_selection(self.selected_resource(), reference):

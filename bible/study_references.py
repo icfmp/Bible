@@ -22,7 +22,8 @@ class StudyReferences(Gtk.Box):
         self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-references')
         self.generation=0;self.stamp=None;self.context=None;self.rows=[];self.pending=False
         self.all_results=False;self.chapter_cache={};self.row_cache={};self._new_passage=False;self._position_idle=0
-        self._future=None
+        self._future=None;self._follow_timeout=0;self._queued_stamp=None;self._pending_notice=0
+        self.metrics=dict(requests=0,commits=0,cancellations=0)
         self.heading=Gtk.Label(xalign=0,wrap=True)
         self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.append(self.status)
@@ -44,11 +45,11 @@ class StudyReferences(Gtk.Box):
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         scroll.set_child(self.list);self.scroll=scroll
         self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        results=Gtk.Overlay();results.set_child(scroll)
-        self.pending_context=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,
-            halign=Gtk.Align.START,valign=Gtk.Align.START,margin_start=8,margin_end=8,margin_top=8,visible=False)
-        self.pending_context.add_css_class('osd');self.pending_context.add_css_class('caption')
-        self.pending_context.set_can_target(False);results.add_overlay(self.pending_context)
+        results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        self.pending_context=Gtk.Label(xalign=0,ellipsize=Pango.EllipsizeMode.END,
+            height_request=18,margin_start=8,margin_end=8)
+        self.pending_context.add_css_class('caption');self.pending_context.add_css_class('dim-label')
+        self.pending_context.set_can_target(False);results.append(self.pending_context);results.append(scroll)
         self.pages.add_named(results,'results');self.append(self.pages)
         from .loading_cards import LoadingCards
         self.loading=LoadingCards(tr('Loading references…'))
@@ -88,6 +89,8 @@ class StudyReferences(Gtk.Box):
         return library
 
     def close(self):
+        self.clear_pending_notice()
+        if self._follow_timeout:GLib.source_remove(self._follow_timeout);self._follow_timeout=0
         if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
 
@@ -101,19 +104,27 @@ class StudyReferences(Gtk.Box):
 
     def pending_display(self,context):
         self.status.set_visible(False);self.download.set_visible(False)
-        self.list.set_sensitive(False);self.list.set_opacity(.55)
+        self.list.set_sensitive(False);self.list.add_css_class('references-pending')
         self.owner.reference_preview.dismiss()
         if self.model.get_n_items():
             # The heading and each captured item still belong to the previous
             # passage. Keep their geometry while making stale actions inert.
             self.pages.set_visible_child_name('results')
-            self.pending_context.set_text(tr('References for {passage}').format(passage=self.heading.get_text()))
-            self.pending_context.set_visible(True)
+            if not self._pending_notice and not self.pending_context.get_text():
+                def notice():
+                    self._pending_notice=0
+                    if self.pending and not self.owner.closed:self.pending_context.set_text(tr('Updating references…'))
+                    return False
+                self._pending_notice=GLib.timeout_add(150,notice)
             self.list.update_property([Gtk.AccessibleProperty.DESCRIPTION],
                 [tr('Updating references. Previous results are temporarily unavailable.')])
         else:
-            self.pending_context.set_visible(False)
+            self.clear_pending_notice()
             self.display_context(context);self.pages.set_visible_child_name('loading')
+
+    def clear_pending_notice(self):
+        if self._pending_notice:GLib.source_remove(self._pending_notice);self._pending_notice=0
+        self.pending_context.set_text('')
 
     def position_new_passage(self):
         if not self._new_passage or self._position_idle or not self.model.get_n_items() or not self.list.get_mapped():return
@@ -143,14 +154,18 @@ class StudyReferences(Gtk.Box):
     def clear_rows(self):
         if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
         self.owner.reference_preview.dismiss()
-        self.pending_context.set_visible(False);self.list.set_sensitive(True);self.list.set_opacity(1)
+        self.clear_pending_notice();self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
         self.model.remove_all()
         while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
         self.view_all.set_visible(False)
         self.return_results.set_visible(False)
 
-    def refresh(self,force=False):
-        if self.owner.closed or self.owner.study.tool not in ('notes','references'):return
+    def refresh(self,force=False,*,_settled=None):
+        if self.owner.closed or self.owner.study.tool not in ('notes','references'):
+            if _settled and not self.owner.closed:
+                self.pending=False;self.stamp=None;self.clear_pending_notice()
+                self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
+            return
         tab=self.owner.active_tab
         if not tab or not tab.reader:
             self.generation+=1;self.context=None;self.stamp=None;self.pending=False;self.clear_rows()
@@ -165,10 +180,28 @@ class StudyReferences(Gtk.Box):
             # run queries. Reopening must use that actual visible anchor, not
             # the last explicit verse selection. Preserve explicit selections.
             start=end=tab.visible_reference() or start
+        if _settled:
+            if _settled[:3]!=(id(tab),id(reader),tab.state.resource):
+                self.stamp=None;self.refresh();return
+            start,end=_settled[3:5]
         stamp=(id(tab),id(reader),tab.state.resource,start,end,self.data.revision)
+        if not _settled and coordinator and coordinator.driver=='bible' and coordinator.armed_until>0:
+            if stamp==self._queued_stamp or stamp==self.stamp and not self._follow_timeout:return
+            self._queued_stamp=stamp;self.generation+=1
+            if self._future:
+                self._future.cancel();self._future=None;self.metrics['cancellations']+=1
+            self.pending=True;self.pending_display((tab.state.resource,reader,start,end))
+            if not self._follow_timeout:
+                def follow():
+                    self._follow_timeout=0;queued=self._queued_stamp;self._queued_stamp=None
+                    self.refresh(_settled=queued);return False
+                self._follow_timeout=GLib.timeout_add(75,follow)
+            return
+        if self._follow_timeout:GLib.source_remove(self._follow_timeout);self._follow_timeout=0
+        self._queued_stamp=None
         # Tool activation forces the study coordinator to refresh. It does not
         # change this passage or dataset; rebuilding here loses manual scroll.
-        if stamp==self.stamp:return
+        if stamp==self.stamp and (not self.pending or self._future is not None):return
         same_source=bool(self.stamp and self.stamp[:3]==stamp[:3] and self.stamp[-1]==stamp[-1])
         self.stamp=stamp;self.generation+=1;generation=self.generation
         if self._future:self._future.cancel();self._future=None
@@ -191,13 +224,14 @@ class StudyReferences(Gtk.Box):
         self.pending=True;self.pending_display(context)
         self.owner.study.update_indicator()
         revision=self.data.revision
+        self.metrics['requests']+=1
         future=self.executor.submit(self.data.query,origins);self._future=future
         def complete():
             if self.owner.closed or generation!=self.generation:return False
             self.pending=False;self._future=None
             if revision!=self.data.revision:self.invalidate();return False
-            self.list.set_sensitive(True);self.list.set_opacity(1)
-            self.pending_context.set_visible(False)
+            self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
+            self.clear_pending_notice()
             self.display_context(context)
             try:self.rows=future.result()
             except Exception as error:
@@ -206,7 +240,7 @@ class StudyReferences(Gtk.Box):
                 self.message(tr('Reference data is unavailable. Download it again from Library.'),download=True)
                 self.status.set_tooltip_text(str(error));return False
             self.message(tr('No cross-references for this passage.') if not self.rows else '',empty=not self.rows)
-            self.populate();return False
+            self.populate();self.metrics['commits']+=1;return False
         future.add_done_callback(lambda _:GLib.idle_add(complete))
 
     def bind(self,_,item):

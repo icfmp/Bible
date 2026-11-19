@@ -50,15 +50,26 @@ class ModuleManagement:
     def __init__(self,dialog,detail,primary=None):
         self.dialog=dialog;self.reports={};self.revision=0
         self.notice=Gtk.Label(xalign=0,wrap=True,selectable=True,visible=False)
-        detail.append(self.notice)
-        self.actions=Gtk.Box(spacing=8,halign=Gtk.Align.CENTER,visible=False)
+        status_parent=dialog.installed_state.get_parent()
+        status_parent.insert_child_after(self.notice,dialog.installed_state)
+        self.check_button=Gtk.Button(label=tr('Check for module updates'),halign=Gtk.Align.START,visible=False)
+        self.check_button.add_css_class('flat');self.check_button.connect('clicked',lambda *_:self.check())
+        status_parent.insert_child_after(self.check_button,self.notice)
+        self.actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False)
         self.update_button=Gtk.Button(label=tr('Update'));self.update_button.connect('clicked',lambda *_:self.run('update'))
         self.rollback_button=Gtk.Button(label=tr('Restore previous version'));self.rollback_button.connect('clicked',lambda *_:self.confirm('rollback'))
-        self.remove_button=Gtk.Button(label=tr('Remove'));self.remove_button.add_css_class('destructive-action')
+        self.remove_button=Gtk.Button(icon_name='user-trash-symbolic',tooltip_text=tr('Remove'))
+        self.remove_button.add_css_class('flat')
+        self.remove_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Remove')])
         self.remove_button.connect('clicked',lambda *_:self.confirm('remove'))
         if primary is None:self.actions.append(self.update_button)
         else:primary.append(self.update_button)
-        for button in (self.rollback_button,self.remove_button):self.actions.append(button)
+        self.actions.append(self.rollback_button)
+        self.remove_row=Adw.ActionRow(title=tr('Remove'),subtitle=tr('Personal notes and highlights are retained when removing a resource.'),use_markup=False)
+        self.remove_row.set_subtitle_lines(0);self.remove_row.add_suffix(self.remove_button)
+        self.remove_row.set_activatable_widget(self.remove_button)
+        group=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE);group.add_css_class('boxed-list');group.append(self.remove_row)
+        self.actions.append(group)
         detail.append(self.actions)
         narrow=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
         narrow.add_setter(self.actions,'orientation',Gtk.Orientation.VERTICAL);dialog.add_breakpoint(narrow)
@@ -98,17 +109,21 @@ class ModuleManagement:
         self.actions.set_visible(bool(installed));self.notice.set_visible(bool(installed))
         self.update_button.set_visible(False)
         self.remove_button.set_visible(False)
+        self.check_button.set_visible(False)
         if not installed:return
         old=d._installed_metadata[resource.id];report=self.reports.get(resource.id,dict(state='not-checked'))
         new=report.get('available');state=report['state']
-        lines=[tr('Installed version')+': '+(old.version or tr('Unknown'))]
+        lines=[]
         if new:
-            lines.append(tr('Source catalogue version')+': '+(new.version or tr('Unknown')))
+            if new.version!=old.version:lines.append(tr('Source catalogue version')+': '+(new.version or tr('Unknown')))
             if new.provider_id=='bible-resources':
                 from .curated_catalogue import package_record
                 entry=package_record(new);lines.append(tr('Download size')+': '+f"{entry['download']['size_bytes']/1024/1024:.1f} MiB")
             else:lines.append(tr('Download size')+': '+tr('Size unknown'))
-        lines.append(tr(REASONS[state]));self.notice.set_text('\n'.join(lines))
+        if state!='not-checked':lines.append(tr(REASONS[state]))
+        self.notice.set_text('\n'.join(lines));self.notice.set_visible(bool(lines))
+        self.check_button.set_visible(old.provider_id in SUPPORTED)
+        self.check_button.set_sensitive(not d.busy)
         self.notice.set_tooltip_text(report.get('error') or None)
         queued=d.downloads.find(resource.id)
         self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not queued or queued.state=='failed')
@@ -120,6 +135,7 @@ class ModuleManagement:
         # lifecycle independently checks private ownership before deleting.
         removable=not old.locked
         self.remove_button.set_visible(removable)
+        self.remove_row.set_visible(removable)
         self.remove_button.set_sensitive(removable and not d.busy and not pending)
         self.remove_button.set_tooltip_text(None)
 

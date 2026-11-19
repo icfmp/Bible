@@ -12,7 +12,7 @@ class PassageNotes(Gtk.Box):
     def __init__(self, owner):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=10,
                          margin_start=12,margin_end=12,margin_top=12,margin_bottom=16,vexpand=True)
-        self.owner=owner;self.annotations=PassageAnnotations()
+        self.owner=owner;self.annotations=PassageAnnotations(owner.library)
         self.context=None;self._stamp=None;self.rows=[];self.marks=[];self.cards=[];self.editor=None
         self.heading=Gtk.Label(xalign=0,wrap=True)
         self.following=True;self._follow_idle=0;self._follow_serial=0;self._card_targets=[]
@@ -77,12 +77,12 @@ class PassageNotes(Gtk.Box):
         for note in notes:
             for link in note.passages:
                 if not editor and not self.annotations.matches(reader,tab.state.reference,tab.state.reference,
-                        link.versification,link.start,link.end):continue
-                positions=self.annotations.positions(reader,link.versification,link.start,link.end)
+                        link.versification,link.start,link.end,note.origin_translation if link.versification==note.versification else None):continue
+                positions=self.annotations.positions(reader,link.versification,link.start,link.end,note.origin_translation if link.versification==note.versification else None)
                 if positions:return positions[0][2],positions[-1][3]
         if editor and editor.context:
             c=editor.context
-            positions=self.annotations.positions(reader,c['versification'],c['start'],c['end'])
+            positions=self.annotations.positions(reader,c['versification'],c['start'],c['end'],c['origin_translation'])
             if positions:return positions[0][2],positions[-1][3]
         return None
 
@@ -140,8 +140,8 @@ class PassageNotes(Gtk.Box):
         def targets(a):
             if not reader:return ()
             if a.note:return tuple(position for link in a.note.passages for position in
-                self.annotations.positions(reader,link.versification,link.start,link.end))
-            return self.annotations.positions(reader,a.system,a.start,a.end)
+                self.annotations.positions(reader,link.versification,link.start,link.end,a.origin if link.versification==a.system else None))
+            return self.annotations.positions(reader,a.system,a.start,a.end,a.origin)
         mapped={a.key:targets(a) for a in entries}
         def order(a):
             spans=mapped[a.key]
@@ -215,9 +215,15 @@ class PassageNotes(Gtk.Box):
         action.update_property([Gtk.AccessibleProperty.LABEL],[kind+': '+title.get_text()])
         row=Gtk.Box(spacing=6);row.append(action);content.prepend(row)
         if actions:
-            menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Highlight actions'),valign=Gtk.Align.START)
+            # Independent sibling of the navigation button, before its chevron.
+            arrow=header.get_last_child();header.remove(arrow)
+            action.set_hexpand(False);title.set_hexpand(False)
+            title.set_width_chars(-1);title.set_max_width_chars(24)
+            title.set_wrap(False);title.set_ellipsize(Pango.EllipsizeMode.END)
+            menu=Gtk.MenuButton(tooltip_text=tr('Highlight actions'),valign=Gtk.Align.CENTER)
             menu.add_css_class('flat');menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight actions')])
-            row.append(menu);card.actions=menu
+            menu.add_css_class('highlight-color-action')
+            row.append(menu);row.append(Gtk.Box(hexpand=True));row.append(arrow);card.actions=menu
         click=Gtk.GestureClick(button=1)
         def clicked(_,count,x,y):
             if count!=1:return
@@ -287,6 +293,11 @@ class PassageNotes(Gtk.Box):
                        activate=lambda:self.navigate_annotation(mark['system'],mark['reference']),
                        icon='edit-select-all-symbolic',kind=kind,actions=True)
         card.highlight_key=(mark['system'],mark['reference']);card.add_css_class('highlight-'+mark['color'])
+        dot=Gtk.Box(width_request=16,height_request=16,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
+        dot.add_css_class('highlight-'+mark['color']);dot.add_css_class('highlight-swatch')
+        card.actions.set_child(dot)
+        card.actions.set_tooltip_text(kind+' — '+tr('Highlight actions'))
+        card.actions.update_property([Gtk.AccessibleProperty.LABEL],[kind+' — '+tr('Highlight actions')])
         self.excerpt(card._card_content,reader,mark['system'],mark['reference'],mark['reference'])
         self.colors(card.actions,mark=dict(mark))
 

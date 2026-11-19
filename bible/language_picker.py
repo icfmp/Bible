@@ -89,8 +89,8 @@ class LanguagePicker(Gtk.MenuButton):
         if query and self.prepare_languages:self.prepare_languages()
         self.visible_codes=[code for code in self.codes if not code or query in (
             self.prepared[code][2] if code in self.prepared else normalized(search_terms(code)))]
-        # Enriching the full ISO inventory must not build thousands of hidden
-        # GTK rows during Library's first paint. Open/search builds it lazily.
+        # Prepare source-backed choices without building hidden GTK rows during
+        # Library's first paint. Open/search binds the native model lazily.
         if not force and not query and not self.get_popover().get_visible():
             return
         labels=[self.prepared[code][1] if code in self.prepared else
@@ -118,11 +118,13 @@ class LanguagePicker(Gtk.MenuButton):
         if update():GLib.idle_add(update)
 
     def name(self,code):
-        return self.prepared[code][0] if code in self.prepared else language_name(code) if code else tr('All languages')
+        value=self.prepared[code][0] if code in self.prepared else language_name(code) if code else tr('All languages')
+        return value[:1].upper()+value[1:]
 
     @staticmethod
     def display_language(code):
         name,native=language_info(code)
+        name=name[:1].upper()+name[1:];native=native[:1].upper()+native[1:]
         return name+((' — '+native) if native and native.casefold()!=name.casefold() else '')+f' ({code})'
 
     def activate(self,_,index):

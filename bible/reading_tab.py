@@ -165,8 +165,11 @@ class ReadingTab(Gtk.Box):
         if not self.state.resource:
             return tr('New tab')
         passage = self.passage_title(chapter_only=True)
-        primary = module_name(self.state.resource)
-        secondary = module_name(self.state.comparison) if self.state.comparison else None
+        def label(identifier):
+            try:return self.library.resource(identifier).short_label
+            except (ValueError,OSError):return tr('Translation not installed')
+        primary = label(self.state.resource)
+        secondary = label(self.state.comparison) if self.state.comparison else None
         return f'{passage} · {primary} | {secondary}' if secondary else f'{passage} · {primary}'
 
     def navigate(self, resource, reference):
@@ -469,11 +472,14 @@ class ReadingTab(Gtk.Box):
         if high is not None:self._highlight_high=high
         if palette is not None:self._highlight_palette=palette
         from .highlight_ui import paint
+        from .passage_annotations import PassageAnnotations
+        annotations=getattr(self.inline_markers,'annotations',None)
+        if annotations is None:self.inline_markers.annotations=annotations=PassageAnnotations(self.library)
         options=(self.preferences.show_highlights,getattr(self,'_highlight_high',False),getattr(self,'_highlight_palette','white'))
-        paint(self.text,store,self.reader.versification,getattr(self.text,'_verse_fragments',[(ref,*bounds) for ref,bounds in self._verse_ranges.items()]),*options)
+        paint(self.text,store,self.reader.versification,getattr(self.text,'_verse_fragments',[(ref,*bounds) for ref,bounds in self._verse_ranges.items()]),*options,reader=self.reader,annotations=annotations)
         if self._comparison_reader and self.state.comparison:
             paint(self.comparison_text,store,self._comparison_reader.versification,
-                  getattr(self.comparison_text,'_verse_fragments',[(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()]),*options)
+                  getattr(self.comparison_text,'_verse_fragments',[(ref,*bounds) for ref,bounds in getattr(self,'_comparison_ranges',{}).items()]),*options,reader=self._comparison_reader,annotations=annotations)
         self.refresh_study_indicator()
 
     def position_anchor(self, offset):
@@ -599,12 +605,10 @@ class ReadingTab(Gtk.Box):
         buffer.remove_tag(self._annotated_tag, buffer.get_start_iter(), buffer.get_end_iter())
         self._note_refs = {}
         if self.reader and self._verse_offsets and self.notes_store:
-            references = list(self._verse_offsets)
-            notes = self.notes_store.passage(self.reader.versification, references[0], references[-1])
-            for reference, offset in self._verse_offsets.items():
-                matching = [note for note in notes if note.covers(reference)]
-                if matching:
-                    self._note_refs[reference] = matching
+            from .passage_annotations import PassageAnnotations
+            annotations=getattr(self.inline_markers,'annotations',None)
+            if annotations is None:self.inline_markers.annotations=annotations=PassageAnnotations(self.library)
+            self._note_refs=annotations.note_map(self.reader,self._verse_offsets,self.notes_store)
 
     def visible_reference(self):
         if not self._verse_offsets:return None

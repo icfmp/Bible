@@ -68,7 +68,7 @@ class Document:
     def copy(self, start, end):
         text=self.copy_text if self.copy_text is not None else self.text
         hidden=sorted((max(start,s.start),min(end,s.end)) for s in self.styles
-                      if s.kind in {'hidden','native-decoration'} and s.end>start and s.start<end)
+                      if s.kind in {'hidden','native-decoration','ui-context'} and s.end>start and s.start<end)
         if not hidden:return text[start:end]
         pieces=[];position=start
         for first,last in hidden:
@@ -172,6 +172,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
             attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12),
                    Pango.attr_line_height_new(HEADING_LINE_HEIGHT)]
         elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
+        elif span.kind=='ui-context':attrs=[Pango.attr_scale_new(.85)]
         elif span.kind=='paragraph-space':
             from .reading_metrics import paragraph_space_size
             attrs=([Pango.attr_size_new(round(paragraph_space_size(preferences)*Pango.SCALE))]
@@ -188,6 +189,7 @@ def attributes(document,start=0,end=None,*,context=None,preferences=None,cancell
         elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
         elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
         elif span.kind=='superscript':attrs=[Pango.attr_rise_new(int((preferences.size if preferences else 16)*Pango.SCALE*.35)),Pango.attr_scale_new(.75)]
+        elif span.kind=='subscript':attrs=[Pango.attr_rise_new(-3000),Pango.attr_scale_new(.8)]
         elif span.kind in {'hidden','native-decoration'}:
             rectangle=Pango.Rectangle()
             attrs=[Pango.attr_shape_new(rectangle,rectangle)]

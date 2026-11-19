@@ -3,6 +3,10 @@ import locale
 import os
 
 FR = {
+    'Quit':'Quitter',
+    'Application':'Application',
+    'Updating references…':'Mise à jour des renvois…',
+    'Unrecognized or out-of-range reference.':'Référence non reconnue ou hors limites.',
     'Copy formats':'Formats de copie',
     'Text only':'Texte seul',
     'Text + reference':'Texte et référence',

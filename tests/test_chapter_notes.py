@@ -88,8 +88,14 @@ class ChapterNotesTests(unittest.TestCase):
     def test_verified_cross_chapter_mapping_and_range_projection_once(self):
         from bible.sword_provider import Reader
         from bible.passage_annotations import PassageAnnotations
-        installed_fixture(self.root,'Luther',versification='Luther',entries=[('Gen.31.54','TARGET ONE'),('Gen.32.1','TARGET TWO')])
-        installed_fixture(self.root,'Base',entries=[('Gen.31.54','SOURCE ONE'),('Gen.31.55','SOURCE TWO'),('Gen.32.1','THIRD')])
+        from bible.reference_targets import Canon
+        def indexed(system,overrides):
+            reader=Canon(system)
+            return [(ref,overrides.get(ref,'NATIVE INDEX FIXTURE')) for chapter in (31,32)
+                    for verse in range(1,reader.key(f'Gen.{chapter}.1').getVerseMax()+1)
+                    for ref in [f'Gen.{chapter}.{verse}']]
+        installed_fixture(self.root,'Luther',versification='Luther',entries=indexed('Luther',{'Gen.31.54':'TARGET ONE','Gen.32.1':'TARGET TWO'}))
+        installed_fixture(self.root,'Base',entries=indexed('KJV',{'Gen.31.54':'SOURCE ONE','Gen.31.55':'SOURCE TWO','Gen.32.1':'THIRD'}))
         note=self.w.notes_store.save('Cross target chapter note',[],versification='KJV',start='Gen.31.54',end='Gen.31.55',origin_translation='Base',origin_language='de')
         self.w.active_tab.navigate('Luther','Gen.31.54');self.p.refresh(force=True);spin();self.assertEqual([n.id for n in self.p.rows],[note.id])
         self.w.active_tab.navigate('Luther','Gen.32.1');self.p.refresh();spin();self.assertEqual([n.id for n in self.p.rows],[note.id])

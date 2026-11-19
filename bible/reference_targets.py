@@ -25,6 +25,8 @@ def source_references(reader, start, end):
     while key.getIndex()<=last:
         reference=key.getOSISRef();count+=1
         if count>1000:raise ValueError('Select at most 1000 verses')
+        if hasattr(reader,'can_align_reference') and not reader.can_align_reference(reference):
+            raise VersificationMismatch('Source numbering is not verified: '+reference)
         if key.getOSISBookName()=='3John':
             from .versification_mapping import to_base,from_base
             qualified=to_base(reference,reader.versification)
@@ -54,7 +56,13 @@ def destination(reference, reader, *, require_entry=True):
         if table(reader.versification) is None:
             raise VersificationMismatch('No verified split-verse alignment for '+reader.versification)
         return resolve(reference,'NRSV',reader,require_entry=require_entry)
-    return resolve(reference,'KJV',reader,require_entry=require_entry)
+    mapped=resolve(reference,'KJV',reader,require_entry=require_entry)
+    if hasattr(reader,'can_align_reference'):
+        from .reference_resolution import _span
+        for target in _span(mapped.start,mapped.end,reader.versification,reader):
+            if reader.has_reference(target) and not reader.can_align_reference(target):
+                raise VersificationMismatch('Target numbering is not verified: '+target)
+    return mapped
 
 
 def local_target_ranges(reader,start,end):

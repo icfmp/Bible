@@ -60,6 +60,11 @@ class Resource:
         return value
 
     @property
+    def short_label(self):
+        """One public label for tabs and choosers; internal IDs stay internal."""
+        return self.public_code or self.description or self.source
+
+    @property
     def id(self):
         return identity(self.provider_id, self.name)
 

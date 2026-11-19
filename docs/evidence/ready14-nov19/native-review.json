@@ -1,0 +1,130 @@
+{
+  "before-fr": {
+    "source": "/app/lib/bible-python/bible/ui.py",
+    "captures": [
+      "selection-NBS-Heb9.png",
+      "study-annotations.png",
+      "note-linked-cards.png",
+      "note-labels.png",
+      "note-suggestions.png",
+      "immersion-controls.png",
+      "library-installed.png",
+      "library-footer.png",
+      "commentary-narrow-contrast.png"
+    ],
+    "cases": [
+      {
+        "width": 560,
+        "height": 760,
+        "study_width": 560,
+        "notes_unchanged": true
+      }
+    ],
+    "note_differences": {},
+    "resource_files_unchanged": true
+  },
+  "after-fr": {
+    "source": "/workspace/bible-notes-batch/bible/ui.py",
+    "captures": [
+      "selection-NBS-Heb9.png",
+      "study-annotations.png",
+      "note-linked-cards.png",
+      "note-labels.png",
+      "note-suggestions.png",
+      "immersion-controls.png",
+      "library-installed.png",
+      "library-footer.png",
+      "commentary-narrow-contrast.png"
+    ],
+    "cases": [
+      {
+        "width": 560,
+        "height": 760,
+        "study_width": 560,
+        "notes_unchanged": true
+      }
+    ],
+    "note_differences": {},
+    "resource_files_unchanged": true
+  },
+  "shared-before": {
+    "source": "/app/lib/bible-python/bible/ui.py",
+    "captures": [
+      "cross-translation-Ps12.png",
+      "reference-follow.png"
+    ],
+    "cases": [],
+    "cross_annotations": [
+      {
+        "resource": "bible-resources~BRLSG1910",
+        "mapped_note": null,
+        "painted": []
+      },
+      {
+        "resource": "KJV",
+        "mapped_note": null,
+        "painted": []
+      }
+    ],
+    "reference_follow": {
+      "seconds": 8.54718026000046,
+      "queries": 24,
+      "model_commits": 24,
+      "max_input_loop_gap": 0.38791524399857735,
+      "cpu_seconds": 2.62211,
+      "visible": "Ps.119.1",
+      "context": [
+        "Ps.119.1",
+        "Ps.119.1"
+      ],
+      "metrics": null,
+      "list_opacity": 1.0
+    },
+    "resource_files_unchanged": true
+  },
+  "shared-after": {
+    "source": "/workspace/bible-notes-batch/bible/ui.py",
+    "captures": [
+      "cross-translation-Ps12.png",
+      "reference-follow.png"
+    ],
+    "cases": [],
+    "cross_annotations": [
+      {
+        "resource": "bible-resources~BRLSG1910",
+        "mapped_note": "Ps.12.3",
+        "painted": [
+          "Ps.12.7",
+          "Ps.12.8"
+        ]
+      },
+      {
+        "resource": "KJV",
+        "mapped_note": "Ps.12.2",
+        "painted": [
+          "Ps.12.6",
+          "Ps.12.7"
+        ]
+      }
+    ],
+    "reference_follow": {
+      "seconds": 8.36732568199659,
+      "queries": 24,
+      "model_commits": 24,
+      "max_input_loop_gap": 0.3436309400058235,
+      "cpu_seconds": 2.904887,
+      "visible": "Ps.119.1",
+      "context": [
+        "Ps.119.1",
+        "Ps.119.1"
+      ],
+      "metrics": {
+        "requests": 26,
+        "commits": 26,
+        "cancellations": 0
+      },
+      "list_opacity": 1.0
+    },
+    "resource_files_unchanged": true
+  }
+}
