@@ -48,21 +48,19 @@ def main():
             assert w.reference_preview.target==('Test','John.3.16') and notes.editor is None
             native.key('Escape');spin()
             native.click_at(preview,preview.get_width()/2,preview.get_height()-3);spin()
-            assert notes.editor and notes.editor.note.id==note.id,'Preview click must open inline editor'
+            assert notes.editor and notes.editor.note.id==note.id,'Preview click must open the shared popup'
             editor=notes.editor;editor.body.get_buffer().set_text('Deliberate draft **kept**')
             w.active_tab.navigate('Test','Acts.1.23');w.study_button.set_active(False);spin()
             w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');spin()
             assert buffer_text(editor.body)=='Deliberate draft **kept**' and editor.context==context
-            # Actual keyboard activation of Expand keeps the exact buffer.
-            original=editor.body.get_buffer();expand=notes.editor_commands.get_first_child()
-            while expand and expand.get_tooltip_text()!=tr('Expand note'):expand=expand.get_next_sibling()
-            assert expand is not None,'The accessible Expand note action must remain available'
-            expand.grab_focus();native.key('space');spin()
+            original=editor.body.get_buffer()
+            assert not hasattr(notes,'editor_commands') and not hasattr(notes,'expand_editor')
             assert not editor.embedded and editor.body.get_buffer() is original
-            assert editor.save();assert w.notes_store.get(note.id).body=='Deliberate draft **kept**'
-            report['native_citation_preview_and_inline_click']=True
+            editor.close();spin();assert editor.closed
+            assert w.notes_store.get(note.id).body=='Deliberate draft **kept**'
+            report['native_citation_preview_and_popup_click']=True
             report['native_primary_return_space_and_citation_keyboard']=True
-            report['draft_context_buffer_and_expansion_preserved']=True
+            report['draft_context_buffer_and_close_flush_preserved']=True
             w.active_tab.navigate('Test','Acts.1.22');spin();native.activate(w)
             # Creation remains in the real contextual selection toolbar.
             assert not hasattr(notes,'add') and not hasattr(w.active_tab,'note_button')
@@ -94,17 +92,17 @@ def main():
             report['native_contextual_creation_cancel_note_remove_independence']=True
             w.set_default_size(360,700);spin(lambda:w.split.get_collapsed());spin()
             w.split.set_show_sidebar(True);spin()
-            editor=notes.open_note(w.notes_store.get(note.id));spin();assert editor.embedded and notes.editor_panel.get_mapped()
+            editor=notes.open_note(w.notes_store.get(note.id));editor.set_default_size(360,600)
+            spin();assert not editor.embedded and editor.get_mapped()
+            commands=editor.writing_frame.get_child().get_first_child()
             dpi=settings.get_property('gtk-xft-dpi')
             for enlarged in (False,True):
                 if enlarged:settings.set_property('gtk-xft-dpi',147456);spin()
                 assert w.get_width()<=360,w.get_width()
-                assert notes.editor_commands.get_mapped()
-                assert notes.editor_panel.get_width()<=w.study.get_width()-24,(notes.editor_panel.get_width(),w.study.get_width())
-                assert notes.editor_commands.get_width()<=notes.editor_panel.get_width()
-                for child in (notes.editor_commands.get_first_child(),notes.editor_commands.get_last_child()):
-                    found,bounds=child.compute_bounds(notes.editor_panel)
-                    assert found and bounds.origin.x>=0 and bounds.origin.x+bounds.size.width<=notes.editor_panel.get_width()+1
+                assert commands.get_mapped() and commands.get_width()<=editor.get_width()
+                for child in (commands.get_first_child(),commands.get_last_child()):
+                    found,bounds=child.compute_bounds(editor)
+                    assert found and bounds.origin.x>=0 and bounds.origin.x+bounds.size.width<=editor.get_width()+1
             settings.set_property('gtk-xft-dpi',dpi);editor._discard=True;editor.close()
             report['360px_window_and_150_percent_text_editor_commands']=True
             report.update(status='PASS',app_import=inspect.getfile(Window),manual_client_gnome_validation=False)

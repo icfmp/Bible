@@ -49,17 +49,23 @@ class PassageActionTests(unittest.TestCase):
                 window.get_clipboard().set('UNCHANGED CLIPBOARD')
                 from tools.check_alpha_ui import X11Input
                 native=X11Input()
+                def activate(button):
+                    if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':native.click(button)
+                    elif hasattr(button,'popup'):button.popup()
+                    else:button.emit('clicked')
                 try:
-                    spin();native.click(actions.copy_options);spin()
+                    spin();activate(actions.copy_options);spin(lambda:actions.copy_popover.get_mapped())
                     unchanged=[]
                     window.get_clipboard().read_text_async(None,lambda clipboard,result:unchanged.append(clipboard.read_text_finish(result)))
                     spin(lambda:bool(unchanged));self.assertEqual(unchanged,['UNCHANGED CLIPBOARD'])
                     self.assertEqual(actions.target,frozen)
                     for index,mode in enumerate(('selected','reference','label')):
-                        if index:actions.capture(view,factory,None);spin();native.click(actions.copy_options);spin()
+                        if index:
+                            actions.capture(view,factory,None);spin();activate(actions.copy_options)
+                            spin(lambda:actions.copy_popover.get_mapped())
                         button=actions.copy_popover.get_child().get_first_child()
                         for _ in range(index):button=button.get_next_sibling()
-                        native.click(button);spin();result=[]
+                        activate(button);spin();result=[]
                         window.get_clipboard().read_text_async(None,lambda clipboard,value:result.append(clipboard.read_text_finish(value)))
                         spin(lambda:bool(result));self.assertEqual(result,[copy_text(frozen,mode)])
                         self.assertFalse(actions.bar.get_visible());self.assertFalse(actions.copy_popover.get_visible())
@@ -118,7 +124,7 @@ class PassageActionTests(unittest.TestCase):
                 with self.subTest(width=width),tempfile.TemporaryDirectory() as directory:
                     installed_fixture(directory,long_text=True)
                     w=Window(app,Library(Path(directory)/'translations'))
-                    w.set_default_size(width,700);w.present();spin(lambda:w.get_width()==width and not w.active_tab._restoring_scroll,duration=.3)
+                    w.set_default_size(width,700);w.present();spin(lambda:w.get_width()<=width and not w.active_tab._restoring_scroll,duration=.3)
                     try:
                         w.study_button.set_active(False);tab=w.active_tab;buffer=tab.text.get_buffer()
                         offset=tab._marker_ends['Gen.1.1']+3

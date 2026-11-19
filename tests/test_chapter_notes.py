@@ -10,22 +10,20 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK')
 class ChapterNotesTests(unittest.TestCase):
-    def test_expansion_restores_native_close_controls_and_retains_unsaved_buffer(self):
+    def test_popup_has_native_close_controls_and_flushes_the_same_buffer(self):
         editor=self.p.open_note(self.notes[0]);buffer=editor.body.get_buffer()
         editor.body.set_source('An unsaved personal draft')
         context=dict(editor.context);saved=self.w.notes_store.get(self.notes[0].id)
-        self.assertFalse(editor.header.get_show_end_title_buttons())
-        self.p.expand_editor();spin(lambda:not editor.embedded)
-        self.assertTrue(editor.header.get_show_start_title_buttons())
+        self.assertFalse(editor.embedded)
+        self.assertFalse(hasattr(self.p,'expand_editor'))
         self.assertTrue(editor.header.get_show_end_title_buttons())
         self.assertIs(editor.body.get_buffer(),buffer)
         self.assertEqual(editor.context,context)
         editor.close();spin()
-        self.assertFalse(editor.closed)
-        self.assertTrue(editor._confirmation.get_visible())
-        self.assertEqual(self.w.notes_store.get(saved.id),saved)
-        editor._confirmation.response('cancel');editor._confirmation.destroy();spin()
-        self.assertEqual(editor.body.source(),'An unsaved personal draft')
+        self.assertTrue(editor.closed)
+        stored=self.w.notes_store.get(saved.id)
+        self.assertEqual(stored.body,'An unsaved personal draft')
+        self.assertEqual((stored.start,stored.end),(saved.start,saved.end))
 
     def test_empty_chapter_never_hides_a_draft_or_existing_annotations(self):
         p=self.p;self.assertFalse(p.empty_page.get_visible())
@@ -33,7 +31,8 @@ class ChapterNotesTests(unittest.TestCase):
         p.refresh(force=True);self.assertTrue(p.empty_page.get_visible());self.assertFalse(p.status.get_visible())
         editor=p.open_note(context=dict(p.context));editor.body.get_buffer().set_text('Retained unsaved writing')
         p.refresh(force=True)
-        self.assertFalse(p.empty_page.get_visible());self.assertTrue(p.editor_panel.get_visible())
+        self.assertFalse(p.empty_page.get_visible())
+        self.assertFalse(hasattr(p,'editor_panel'));self.assertTrue(editor.get_visible())
         self.assertEqual(editor.body.get_buffer().props.text,'Retained unsaved writing')
 
     def setUp(self):

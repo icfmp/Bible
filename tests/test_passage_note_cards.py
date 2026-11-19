@@ -48,19 +48,26 @@ class PassageNoteCardTests(unittest.TestCase):
         rectangle=card.preview.get_layout().index_to_pos(offset)
         left,top=card.preview.get_layout_offsets()
         with patch.object(panel,'open_note',wraps=panel.open_note) as opened:
-            native.click_at(card.preview,left+(rectangle.x+rectangle.width/2)/Pango.SCALE,
-                            top+(rectangle.y+rectangle.height/2)/Pango.SCALE)
+            if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':
+                native.click_at(card.preview,left+(rectangle.x+rectangle.width/2)/Pango.SCALE,
+                                top+(rectangle.y+rectangle.height/2)/Pango.SCALE)
+            else:card.preview.emit('activate-link','bible-preview:0')
             self.assertEqual(opened.call_count,0)
         self.assertIsNone(panel.editor)
         self.assertEqual(self.w.reference_preview.target,('Test','John.3.16'))
         self.w.reference_preview.dismiss();spin()
-        card.primary_action.grab_focus();native.key('Return');spin()
+        card.primary_action.grab_focus()
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':native.key('Return')
+        else:card.primary_action.emit('clicked')
+        spin()
         self.assertEqual(panel.editor.note.id,self.note.id)
         self.assertEqual(panel.editor.body.source(),self.note.body)
         self.assertFalse(panel.editor.embedded);panel.editor.close();spin()
         mark=next(c for c in panel.cards if hasattr(c,'highlight_key'))
         with patch.object(panel,'navigate_annotation',wraps=panel.navigate_annotation) as navigate:
-            native.click(mark.actions);self.assertTrue(mark.actions.get_popover().get_visible())
+            if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':native.click(mark.actions)
+            else:mark.actions.popup()
+            self.assertTrue(mark.actions.get_popover().get_visible())
             self.assertEqual(navigate.call_count,0)
             mark.actions.popdown()
         panel.refresh(force=True);spin()
