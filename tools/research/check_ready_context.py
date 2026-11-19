@@ -110,7 +110,7 @@ def main():
             shot(identity+'-place')
             if places.map_widget:
                 camera=places.map_widget
-                host.tabs.set_visible_child_name('people');spin();assert camera.canvas is None and camera.layer is None
+                host.tabs.set_visible_child_name('original');spin();assert camera.canvas is None and camera.layer is None
                 host.tabs.set_visible_child_name('map');spin();assert camera.canvas is not None
             report['place_cases'].append(dict(id=identity,status=place['status'],proposals=len(place['candidates']),unavailable_enrichment=True,hidden_map_stopped=True))
             host.close();spin()
