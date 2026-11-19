@@ -37,6 +37,11 @@ class ModuleUILifecycleTests(unittest.TestCase):
         from bible.module_ui_lifecycle import ModuleViewChange
         w=self.w;tab=w.active_tab
         editor=w.study.notes.open_note(self.note);editor.body.get_buffer().set_text('Unsaved personal draft')
+        # Hold this draft deliberately: an update slower than 600 ms may
+        # legitimately run normal autosave. Separate tests cover that path.
+        editor.cancel_autosave()
+        buffer=editor.body.get_buffer();context=dict(editor.context)
+        spin(duration=.7)
         before=[asdict(n) for n in w.notes_store.all()];history=list(tab.state.history)
         old_reader=weakref.ref(tab.reader)
         # Exercise the hidden native-owner caches as well as the visible pane.
@@ -53,6 +58,8 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIn('ORIGINAL MODULE WORDING',tab.comparison_text.get_buffer().props.text)
         self.assertEqual(tab.state.history,history);self.assertEqual(tab.state.reference,'Gen.1.1')
         self.assertIs(w.study.notes.editor,editor);self.assertEqual(editor.body.get_buffer().props.text,'Unsaved personal draft')
+        self.assertIs(editor.body.get_buffer(),buffer);self.assertEqual(editor.context,context)
+        self.assertTrue(editor.dirty)
         self.assertIn('UPDATED MODULE WORDING',editor.excerpt.get_text())
         self.assertEqual([asdict(n) for n in w.notes_store.all()],before)
         self.assertEqual(w.highlights.entries[('KJV','Gen.1.1')]['color'],'yellow')

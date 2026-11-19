@@ -66,6 +66,18 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(candidates(),['toto']);self.assertEqual(labels.values,['test'])
         labels.set_suggestions(['test','toto','Other']);self.assertEqual(candidates(),['toto'])
 
+    def test_annotation_range_keeps_verified_body_past_unmapped_numbered_titles(self):
+        from bible.passage_annotations import PassageAnnotations
+        from bible.sword_provider import Reader
+        installed_fixture(self.root,'French',versification='Segond',entries=[('Ps.51.1','NUMBERED TITLE'),('Ps.51.2','SECOND TITLE'),('Ps.51.3','SOURCE BODY')])
+        installed_fixture(self.root,'English',entries=[('Ps.51.1','TARGET BODY')])
+        note=self.w.notes_store.save('Whole source passage',[],versification='Segond',start='Ps.51.1',end='Ps.51.3',origin_translation='French',origin_language='fr')
+        reader=Reader(self.w.library.root/'English','English');projection=PassageAnnotations(self.w.library)
+        spans=projection.positions(reader,note.versification,note.start,note.end,note.origin_translation)
+        self.assertEqual([(first,last) for _,_,first,last in spans],[('Ps.51.1','Ps.51.1')])
+        self.assertEqual([value.id for value in projection.notes(reader,'Ps.51.1','Ps.51.1',self.w.notes_store)],[note.id])
+        self.assertEqual(self.w.notes_store.get(note.id),note)
+
     def test_link_cards_use_saved_origin_and_unlink_keeps_note_body(self):
         from bible.notes_window import NoteEditor
         from bible.notes import PassageLink
