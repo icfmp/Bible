@@ -247,9 +247,15 @@ class Reader:
                             if title and not body:
                                 from .reference_resolution import resolve
                                 from .reference_targets import Canon
+                                from .versification_mapping import table,to_base
+                                data=table(self.versification);ref=first.getOSISRef()
+                                parts=to_base(ref,self.versification)
+                                known_title=(data is not None and ref in data.get('forward',{}) and
+                                    (not parts or all('!pv' in part or part.endswith('.0') for part in parts)))
                                 try:
-                                    mapped=resolve(first.getOSISRef(),self.versification,Canon('KJV'),require_entry=False,include_introductions=True)
-                                    if not mapped.introductions:raise ValueError('A source heading occupies a declared body-verse slot: '+first.getOSISRef())
+                                    if not known_title:
+                                        mapped=resolve(ref,self.versification,Canon('KJV'),require_entry=False,include_introductions=True)
+                                        if not mapped.introductions:raise ValueError('A source heading occupies a declared body-verse slot: '+ref)
                                 except ValueError as error:cache[chapter_token]=str(error)
                     if cache[chapter_token]:raise ValueError(cache[chapter_token])
                 finally:self.module.setKey(old)

@@ -98,9 +98,17 @@ def from_base(qualified, system):
         refs=from_base(qualified,bridge['system'])
         return refs if refs and all(verified_identity(ref,data) for ref in refs) else []
     reverse = data.get('reverse', {})
+    # An ordinary numbered source verse denotes its body, not an aggregate
+    # that also contains separately numbered titles in the destination.
+    if '!' not in qualified and qualified+'!v' in reverse:
+        return reverse[qualified+'!v']
     if qualified in reverse:
         return reverse[qualified]
     whole = qualified.split('!', 1)[0]
+    # A Psalm title may only use an explicit title mapping, never a fallback
+    # onto the whole verse's body.
+    if '!pv' in qualified:
+        return []
     if whole in reverse:
         return reverse[whole]
     if qualified.startswith('?') or whole in data.get('absent', ()):

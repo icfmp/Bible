@@ -57,15 +57,21 @@ def main():
         notes_before=[asdict(n) for n in window.notes_store.all()]
         schema=window.notes_store.db.execute('PRAGMA user_version').fetchone()[0]
         tab.navigate('FreSegond1910','Ps.51.1');tab.state.comparison='KJV';window.sync_comparison();spin(duration=.8)
-        # These native packages have no edition-level numbering attestation.
-        # A registry transform is tested below, but must not become a claim
-        # about their contents or insert false absence rows into the reader.
-        assert not getattr(tab,'_shared_comparison',False) and not tab._comparison_aligned
+        # Numbered titles must not collapse onto a body verse. Ordinary native
+        # bodies remain eligible; the old all-non-YouVersion refusal is gone.
+        assert not tab._comparison_aligned
         assert tab.comparison_status.get_text()
         assert tab.scroll.get_vadjustment() is not tab.comparison_scroll.get_vadjustment()
-        for reader,document in ((tab.reader,tab._document),(tab._comparison_reader,tab._comparison_document)):
-            assert {r for s in document.spans for r in s.members}==set(dict(reader.chapter('Ps.51.1').verses))
-        report['real_psalm_comparison']=dict(independent=True,source_numbering_unverified=True)
+        for reader,document,reference in ((tab.reader,tab._document,tab.state.reference),
+                (tab._comparison_reader,tab._comparison_document,tab.comparison_reference)):
+            # An unmapped title may retain an independently saved chapter.
+            assert {r for s in document.spans for r in s.members}==set(dict(reader.chapter(reference).verses))
+        tab.select_verse('Ps.51.3');tab.refresh_comparison();spin(duration=.3)
+        assert tab._comparison_aligned and tab.comparison_reference=='Ps.51.1'
+        assert not tab.comparison_status.get_text()
+        from bible.reference_resolution import resolve_readers
+        assert resolve_readers('Ps.51.1',tab._comparison_reader,tab.reader).start=='Ps.51.3'
+        report['real_psalm_comparison']=dict(numbered_title_independent=True,verified_body_mapping='Segond Ps.51.3 -> KJV Ps.51.1')
         from bible.word_metadata import source_verse_references
         for title in ('Ps.3.1','Ps.51.1','Ps.51.2'):
             try:source_verse_references(title,tab.reader)

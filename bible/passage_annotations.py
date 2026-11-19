@@ -57,21 +57,27 @@ class PassageAnnotations:
         intervals = []
         try:
             from .reference_resolution import _span
-            resolve(start, system, reader, require_entry=False)
-            resolve(end, system, reader, require_entry=False)
+            from .reference_targets import Canon
+            context=source or (reader if system==reader.versification and getattr(reader,'addresses',None) else Canon(system))
+            if context.key(start).getIndex()>context.key(end).getIndex():raise ValueError('Reversed annotation range')
             references=((source or reader).reference_range(start,end) if system==(source or reader).versification and getattr(source or reader,'addresses',None)
                     else _span(start,end,system))
             for reference in dict.fromkeys(references):
                 # SWORD traversal includes native chapter introductions.
                 if reference.rsplit('.',1)[-1]=='0':continue
-                if source and source is not reader:
-                    from .reference_resolution import resolve_readers
-                    mapped=resolve_readers(reference,source,reader,require_entry=False)
-                else:
-                    mapped = resolve(reference, system, reader, require_entry=False)
-                    if not source and hasattr(reader,'can_align_reference'):
-                        if not all(reader.can_align_reference(ref) for ref in _span(mapped.start,mapped.end,reader.versification,reader)):
-                            raise ValueError('Annotation target correspondence is not verified')
+                try:
+                    if source and source is not reader:
+                        from .reference_resolution import resolve_readers
+                        mapped=resolve_readers(reference,source,reader,require_entry=False)
+                    else:
+                        mapped = resolve(reference, system, reader, require_entry=False)
+                        if not source and hasattr(reader,'can_align_reference'):
+                            if not all(reader.can_align_reference(ref) for ref in _span(mapped.start,mapped.end,reader.versification,reader)):
+                                raise ValueError('Annotation target correspondence is not verified')
+                except ValueError:
+                    # An unmapped title/gap must not erase the independently
+                    # verified bodies later in the same saved annotation.
+                    continue
                 intervals.append((reader.key(mapped.start).getIndex(), reader.key(mapped.end).getIndex(),
                                   mapped.start, mapped.end))
         except ValueError:

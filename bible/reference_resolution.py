@@ -54,13 +54,14 @@ def resolve(reference, source_system, target_reader, require_entry=True, *, incl
     if (source.popError() != '\x00' or not 1 <= source.getChapter() <= source.getChapterMax()
             or not 1 <= source.getVerse() <= source.getVerseMax()):
         raise ValueError(f'Invalid source reference: {reference}')
-    # Native SWORD loses the split final verse of 3 John in some registered
-    # systems. Use the already pinned verse-part tables where both canons match.
-    split_john = False
-    if source_system != target_system and source.getOSISBookName() == '3John':
+    # Native SWORD can collapse numbered Psalm titles onto verse one and lose
+    # split verse parts. Prefer the existing qualified tables when their
+    # complete canons match this runtime; retain native-only capabilities.
+    pinned = False
+    if source_system != target_system:
         from .versification_mapping import table
-        split_john = table(source_system) is not None and table(target_system) is not None
-    if source_system != target_system and (split_john or not {source_system, target_system} <= MAPPED_SYSTEMS):
+        pinned = table(source_system) is not None and table(target_system) is not None
+    if source_system != target_system and (pinned or not {source_system, target_system} <= MAPPED_SYSTEMS):
         from .versification_mapping import to_base, from_base
         reference = source.getOSISRef()
         intermediate = to_base(reference, source_system)
