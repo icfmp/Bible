@@ -428,7 +428,7 @@ class StudyPanel(Gtk.Box):
         pieces=[];styles=[];self.ranges={};self._prefaces={};offset=0
         for position in self.loaded:
             document=source.document(position,self.owner.preferences.value)
-            heading='' if document.has_coverage_title else self.reader.index.label(position)+'\n'
+            heading=''  # Shared source document owns the localized UI context.
             self._prefaces[position]=document.has_preface
             base=offset+len(heading)
             pieces.extend([heading,document.text,'\n\n'])
@@ -461,9 +461,6 @@ class StudyPanel(Gtk.Box):
         # The Bible's fixed palette colors must not override it here.
         number=buffer.get_tag_table().lookup('source-number')
         if number:number.props.foreground_set=False
-        tag=buffer.get_tag_table().lookup('entry-heading')
-        if tag is None:tag=buffer.create_tag('entry-heading',weight=700)
-        for start,body,end in self.ranges.values():buffer.apply_tag(tag,buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(body))
         if common:
             self._positioning=False;self._layout_anchor=anchor
         elif anchor:self.reveal(anchor[0],anchor[1],force=True)

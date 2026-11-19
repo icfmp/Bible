@@ -43,6 +43,15 @@ class ModuleViewChange:
         for window in self.dialog.owner.get_application().get_windows():
             if not isinstance(window,Window) or window.closed or window.library.root.resolve()!=self.dialog.library.root.resolve():continue
             self.windows.append(window)
+            pool=getattr(window.library,'_annotation_readers',{})
+            pool.pop(self.identifier,None)
+            for editor in (window.note_editor,window.study.notes.editor,window.notes_space.editor if window.notes_space else None):
+                if editor and not editor.closed:editor.links.invalidate_source()
+            window.study.notes.annotations.clear()
+            for tab in window.tabs():
+                annotations=getattr(tab.inline_markers,'annotations',None)
+                if annotations:annotations.clear()
+                tab.text._highlight_paint_state=None;tab.comparison_text._highlight_paint_state=None
             window.reading_sync.driver=None;window.reading_sync.needs_sync=False
             window.passage_actions.dismiss();window.reference_preview.dismiss();window.dismiss_popovers()
             if window.immersion and self.matches(window.immersion.source.reader):window.leave_immersion()
@@ -122,6 +131,7 @@ class ModuleViewChange:
             tab.refresh_comparison();window.tab_changed(tab)
         for window in self.windows:
             if window.closed:continue
+            for tab in window.tabs():tab.update_highlights();tab.update_notes(force=True)
             if getattr(window,'catalogue_session',None):window.catalogue_session.reload_installed()
             window.study.refresh(force=True);window.primary_version.sync();window.compared_version.sync();window.sync_comparison()
             window.search_popover._layout_stamp=None
@@ -135,4 +145,5 @@ class ModuleViewChange:
                     # Refresh the read-only source excerpt, never remount the
                     # editor or replace its live buffer/undo/autosave state.
                     editor.excerpt.set_text(editor.source_excerpt())
+                    editor.links.refresh()
         self.tabs=[];self.windows=[]

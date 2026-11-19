@@ -146,25 +146,19 @@ class CommentaryPages:
     def document(self,key,preferences):
         section=self.reader.index.sections[key]
         text=self.reader.index.text(key)
-        from .commentary_format import format_entry,preverse_layout,title_covers_section
+        from .commentary_format import format_entry,preverse_layout
         raw=self.reader.index.raw(key);source_type=str(self.reader.module.getConfigEntry('SourceType'))
         text,inline,titles=format_entry(raw,text,source_type)
-        prefix=''.join(title+'\n' for title in titles)
-        styles=([StyleSpan('heading',0,len(prefix))] if prefix else [])
+        context=self.reader.index.label(key)+'\n'
+        prefix=context+''.join(title+'\n' for title in titles)
+        styles=[StyleSpan('ui-context',0,len(context))]
+        if len(prefix)>len(context):styles.append(StyleSpan('heading',len(context),len(prefix)))
         styles.extend(paragraph_spaces(prefix+text))
         styles.extend(StyleSpan(kind,first+len(prefix),last+len(prefix)) for kind,first,last in inline)
         reference=section.start if not section.introduction else '@'+str(section.index)
         document=Document(key,prefix+text,(PassageSpan(reference,0,len(prefix),len(prefix)+len(text)),),tuple(styles))
         document.has_preface=source_type=='OSIS' and bool(preverse_layout(raw)[0].strip())
-        # Some sources encode their section label as leading bold prose rather
-        # than <title>. Only use ranges already verified against native text;
-        # formatting fallback/ordinary bold words are not heading evidence.
-        hidden={i for kind,first,last in inline if kind=='hidden' for i in range(first,last)}
-        first_ink=next((i for i,c in enumerate(text) if not c.isspace() and i not in hidden),len(text))
-        opening=[text[first:last] for kind,first,last in inline if kind=='bold'
-                 and first<=first_ink<last]
-        document.has_coverage_title=source_type=='OSIS' and any(
-            title_covers_section(title,section,self.reader) for title in (*titles,*opening))
+        document.context_length=len(context)
         return document
     def preface(self,key):
         from .commentary_format import preverse_layout

@@ -6,6 +6,10 @@ from .i18n import tr
 def secondary_dialog(dialog,owner):
     """Mark native secondary surfaces; keep their actual headers/actions."""
     dialog.add_css_class('bible-secondary-dialog')
+    shortcut=Gtk.ShortcutController(scope=Gtk.ShortcutScope.GLOBAL)
+    shortcut.add_shortcut(Gtk.Shortcut.new(Gtk.ShortcutTrigger.parse_string('<Control>q'),
+        Gtk.CallbackAction.new(lambda *_: (owner.get_application().activate_action('quit',None),True)[1])))
+    dialog.add_controller(shortcut)
     dialog.add_css_class(owner.reading_style.scope+'-window')
 
 
@@ -106,6 +110,9 @@ def show_shortcuts(owner):
         accelerators=owner.get_application().get_accels_for_action('win.'+action)
         if accelerators:group.add_shortcut(Gtk.ShortcutsShortcut(title=tr(label),accelerator=' '.join(accelerators)))
     section.add_group(group);window.add_section(section);window.present();owner.shortcuts_window=window
+    quit_group=Gtk.ShortcutsGroup(title=tr('Application'))
+    quit_group.add_shortcut(Gtk.ShortcutsShortcut(title=tr('Quit'),accelerator='<Control>q'))
+    section.add_group(quit_group)
     return window
 
 

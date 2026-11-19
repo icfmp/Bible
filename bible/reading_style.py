@@ -127,7 +127,7 @@ class ReadingStyle:
         study_size_css=f'font-size: {study_size}pt;' if study_size is not None else ''
         action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
         from .highlights import COLORS
-        swatches=''.join('.passage-actions .highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
+        swatches=''.join('.passage-actions .highlight-'+color+', .highlight-swatch.highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
         study_accents=''.join('.'+self.scope+'-window .study-action-card.annotation-card.highlight-'+color+
                               ' { border-left: 3px solid '+rgb+'; }' for color,(rgb,_) in COLORS.items())
         self.css = f'''
@@ -170,6 +170,10 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-width: 12px; min-height: 0; padding: 0; margin: 0; }}
 .passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}
 .passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
+.{self.scope}-window headerbar.immersive-header {{ background: transparent; color: {fg}; box-shadow: none; border: none; }}
+.{self.scope}-window .highlight-swatch {{ border-radius: 50%; border: 1px solid currentColor; }}
+.highlight-color-action > button {{ min-width: 32px; min-height: 32px; padding: 0; }}
+.references-pending:disabled, .references-pending button:disabled {{ opacity: 1; color: inherit; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
 .passage-actions flowboxchild {{ padding: 0; background: none; }}
 {selector}, {selector} text {{ background-color: {bg}; color: {fg}; }}

@@ -31,11 +31,17 @@ def normalized(value):
 
 # Input aliases are static metadata; do not normalize the entire table for each verse.
 _INPUT_ALIASES = {normalized(label): code for code, label in FRENCH.items()}
+_INPUT_ALIASES.update({normalized(label):code for label,code in (
+    ('Psaume','Ps'),('Psaumes','Ps'),('Ps','Ps'),('Psalm','Ps'),('Psalms','Ps'),
+    ('Esaïe','Isa'),('Isaïe','Isa'),('Cantique','Song'),('Cantiques','Song'))})
+_INPUT_ALIASES.update({normalized(code):code for code in FRENCH})
 
 
 def canonical_input(reference):
     """Resolve full French names; let SWORD resolve its own names and abbreviations."""
-    match = re.fullmatch(r'(.+?)[ .]+([1-9][0-9]*(?:_[1-9][0-9]*)?(?:[.:][1-9][0-9]*)?)', reference.strip())
+    book=_INPUT_ALIASES.get(normalized(reference)) if not any(c in reference for c in '.:') else None
+    if book:return book+'.1'
+    match = re.fullmatch(r'(.+?)[ .]*([1-9][0-9]*(?:_[1-9][0-9]*)?(?:[.:][1-9][0-9]*)?)', reference.strip())
     if match:
         name, numbers = match.groups()
         code = _INPUT_ALIASES.get(normalized(name))

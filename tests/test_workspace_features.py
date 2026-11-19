@@ -97,7 +97,12 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                 self.assertEqual(dialog.pages.get_visible_child_name(),'detail')
                 dialog.back_to_list();self.assertEqual(dialog.pages.get_visible_child_name(),'list')
                 self.assertEqual(dialog.choice_model.get_n_items(),1)
-                picker=dialog.language;picker.set_codes(['','az','azb','fr','sr-Latn'])
+                from dataclasses import replace
+                from bible.providers import CROSSWIRE
+                dialog.session.providers[CROSSWIRE.id]=tuple(replace(w.library.resource('Test'),name='Language'+str(i),language=code)
+                    for i,code in enumerate(('az','azb','fr','sr-Latn')))
+                dialog.session.publish();spin(lambda:'azb' in dialog.languages)
+                picker=dialog.language
                 picker.search.set_text('azb');picker.filter()
                 self.assertEqual(picker.visible_codes,['','azb'])
                 spin(lambda:picker.strings.get_n_items()==2 and 'azb' in picker.strings.get_string(1))

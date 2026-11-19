@@ -811,7 +811,9 @@ class WindowTests(unittest.TestCase):
         from bible.i18n import tr
         with tempfile.TemporaryDirectory() as directory:
             origin = installed_fixture(directory)
-            installed_fixture(directory, 'CatholicBible', versification='Catholic')
+            target=installed_fixture(directory, 'CatholicBible', versification='Catholic',
+                entries=[('Gen.1.1','<verse osisID="Gen.1.2">CONTRADICTORY NATIVE IDENTITY</verse>')])
+            conf=target/'mods.d/test.conf';conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS'))
             window = self.window(directory)
             window.navigate_selection('Test', 'Gen.1.1')
             note = self.write_note(window, 'Original KJV note', ['Keep'])
@@ -870,7 +872,7 @@ class WindowTests(unittest.TestCase):
                 self.assertIn('Gras', buffer_text(editor.body))
                 self.assertIn('<script>bad()</script>', buffer_text(editor.body))
                 self.assertIn('javascript:bad', buffer_text(editor.body))
-                self.assertIsNotNone(editor.labels.entry.get_completion())
+                self.assertIn('Local',editor.labels.suggestions)
                 editor.close()
                 central = window.open_notes()
                 backup = Path(directory) / 'backup.json'

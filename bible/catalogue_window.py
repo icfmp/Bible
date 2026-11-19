@@ -204,7 +204,8 @@ class CatalogueWindow(Adw.Window):
         identity.append(identity_text);detail.append(identity)
         self.installed_state=Gtk.Box(spacing=6,halign=Gtk.Align.START,visible=False)
         self.installed_state.append(Gtk.Image(icon_name='object-select-symbolic'))
-        self.installed_state.append(Gtk.Label(label=tr('Installed — available offline'),wrap=True))
+        self.installed_label=Gtk.Label(label=tr('Installed — available offline'),wrap=True)
+        self.installed_state.append(self.installed_label)
         detail.append(self.installed_state)
         self.primary_actions=Gtk.Box(spacing=8,orientation=Gtk.Orientation.HORIZONTAL)
         self.read_button=Gtk.Button(label=tr('Read'),visible=False)
@@ -241,11 +242,14 @@ class CatalogueWindow(Adw.Window):
         self.conditions_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                        selectable=True,width_chars=1,margin_top=8)
         self.license_group.add(self.conditions_text);detail.append(self.license_group)
-        self.technical=Gtk.Expander(label=tr('Technical details'))
+        self.technical=Adw.ExpanderRow(title=tr('Technical details'))
         self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                     selectable=True,width_chars=1)
         self.metadata.set_margin_top(8);self.metadata.set_margin_bottom(8)
-        self.technical.set_child(self.metadata);detail.append(self.technical)
+        self.metadata.set_margin_start(12);self.metadata.set_margin_end(12)
+        self.technical.add_row(self.metadata)
+        technical_group=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE);technical_group.add_css_class('boxed-list')
+        technical_group.append(self.technical);detail.append(technical_group)
         self.module_actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         from .module_management import ModuleManagement
         self.modules=ModuleManagement(self,self.module_actions,primary=self.primary_actions)
@@ -317,7 +321,8 @@ class CatalogueWindow(Adw.Window):
         changed=(self.resources!=list(snapshot.resources) or self._installed_metadata!=snapshot.installed
                  or self._study_installed!=snapshot.study_installed or self._study_current!=snapshot.study_current
                  or self._language_records!=snapshot.languages or self._archived_ids!=snapshot.archived_resources
-                 or self._available_languages!=snapshot.available_languages)
+                 or self._available_languages!=snapshot.available_languages
+                 or getattr(self,'_candidate_languages',())!=snapshot.candidate_languages)
         self._covered=snapshot.covered_providers;self._catalogue_errors=snapshot.errors
         self.preparing=False;self.resources=list(snapshot.resources)
         self._catalogued_ids=frozenset(r.id for r in snapshot.resources)
@@ -326,6 +331,7 @@ class CatalogueWindow(Adw.Window):
         self._installed_metadata=snapshot.installed;self._study_installed=snapshot.study_installed
         self._study_current=snapshot.study_current;self._language_records=snapshot.languages
         self._available_languages=snapshot.available_languages
+        self._candidate_languages=snapshot.candidate_languages
         self._search_terms=snapshot.search;self.timings.update(snapshot.timings)
         if snapshot.generation>=self._refresh_generation:self.refreshing=snapshot.refreshing
         if changed:self.update_languages()
@@ -345,6 +351,9 @@ class CatalogueWindow(Adw.Window):
         index=self.source_filter.get_selected()
         providers=self.selected_providers()
         complete=study or all(p.id in self._covered for p in providers)
+        selected_language=self.language.codes[self.language.get_selected()]
+        candidate=canonical_language(selected_language) in {canonical_language(code) for code in getattr(self,'_candidate_languages',())}
+        if candidate and not study:complete=False
         names={p.name for p in providers}
         all_names={p.name for p in PROVIDERS}
         errors=({name:error for name,error in self._catalogue_errors.items() if name=='Study tools'} if study else
@@ -597,10 +606,11 @@ class CatalogueWindow(Adw.Window):
         self.search.set_placeholder_text(wording);self.search.update_property([Gtk.AccessibleProperty.LABEL],[wording])
         self.language.set_visible(not study);self.source_filter.set_visible(not study)
         self._filtering=True
-        known={canonical_language(code) for code in self._available_languages}|{
-            canonical_language(r.language) for r in (*self.resources,*self._installed_metadata.values())
-            if not self.queued_unavailable(r)}
-        codes={canonical_language(code) for code in self._language_records}|{canonical_language(self.language_choice)}|known
+        known={canonical_language(r.language) for r in self.current_resources() if not self.queued_unavailable(r)}
+        source=self.source_filter.get_selected()
+        candidates=(getattr(self,'_candidate_languages',()) if not category and
+                    (not source or self.source_ids[source]=='youversion') else ())
+        codes=known|{canonical_language(code) for code in candidates}
         self.languages,priority=language_order(codes,known,self.language_label)
         self.language.set_codes(self.languages,self._language_records,priority=priority)
         self.language.set_selected(self.languages.index(canonical_language(self.language_choice)) if canonical_language(self.language_choice) in self.languages else 0)
@@ -632,7 +642,8 @@ class CatalogueWindow(Adw.Window):
         if not force and not self.settings.value['automatic_catalogue_refresh']:return
         index=self.source_filter.get_selected()
         if index and self.source_ids[index]!='youversion':return
-        self.session.load_youversion_language(self.language_choice,force)
+        choice=self.language.codes[self.language.get_selected()]
+        self.session.load_youversion_language(choice,force)
 
     def filter_resources(self, *_):
         if self.closed:return False
@@ -835,6 +846,9 @@ class CatalogueWindow(Adw.Window):
         checking=bool(resource and self.checking_download(resource.id))
         dismiss=bool(resource and request and request.state=='failed' and self.queued_unavailable(resource))
         installed=bool(resource and resource.id in self.installed_ids())
+        version=getattr(resource,'version','')
+        self.installed_label.set_text(tr('Installed — available offline')+(' · '+version if installed and version else ''))
+        if resource:self.detail_rows['version'].set_visible(bool(version) and not installed)
         current=installed and (resource.kind!='study' or resource.id in self._study_current)
         self.installed_state.set_visible(installed)
         self.read_button.set_visible(current and resource.kind in ('bible','commentary'))
@@ -863,7 +877,7 @@ class CatalogueWindow(Adw.Window):
         self.cancel_button.set_visible(self._transfer_busy)
         self.cancel_button.set_sensitive(self._phase in ('downloading','preparing','converting','compiling','verifying'))
         self.modules.refresh(resource)
-        self.remove_hint.set_visible(self.modules.remove_button.get_visible())
+        self.remove_hint.set_visible(False)
         if (not self.closed and not self.owner.closed and not self._transfer_busy and not self._queue_active
                 and not self._queue_tick and not self._queue_problem and any(r.state=='queued' for r in self.downloads.requests)):
             self._queue_tick=GLib.idle_add(self.start_queued)

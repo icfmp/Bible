@@ -6,7 +6,7 @@ from weakref import WeakMethod
 from .metadata_workers import MetadataExecutor
 from .catalogue_cache import CatalogueCache
 from .providers import PROVIDERS,DEFAULT_PROVIDERS
-from .languages import language_info,search_terms,available_languages
+from .languages import language_info,search_terms
 from .book_names import normalized
 from .study_resources import StudyResources
 
@@ -27,6 +27,7 @@ class CatalogueSnapshot:
     removed_resources: frozenset = frozenset()
     archived_resources: frozenset = frozenset()
     available_languages: frozenset = frozenset()
+    candidate_languages: frozenset = frozenset()
 
 
 class CatalogueSession:
@@ -38,7 +39,6 @@ class CatalogueSession:
         self.lock=RLock();self.closed=False;self.listeners=[];self.snapshot=None
         self.providers={};self.installed={};self.removed={};self.verified_providers=set();self.study_installed=frozenset();self.study_current=frozenset()
         self.language_records={};self.metrics={};self.errors={};self.refreshing=False
-        self.language_inventory=frozenset()
         self.youversion_languages={};self.youversion_loaded={};self.youversion_future=None
         self.youversion_loading=False;self.youversion_request=0
         self.language_future=None
@@ -143,11 +143,11 @@ class CatalogueSession:
         return self.youversion_future
 
     def load_languages(self):
-        """Complete offline ISO choices on demand, independently of catalogue IO."""
+        """Prepare only source-backed choices; selecting one loads its editions."""
         with self.lock:
             if self.closed or self.language_future:return self.language_future
             def prepare():
-                self.language_inventory=available_languages();self.publish()
+                self.publish()
             self.language_future=self.schedule(prepare)
             return self.language_future
 
@@ -257,13 +257,16 @@ class CatalogueSession:
             removed_resources=frozenset(self.removed)
             installed=dict(self.installed);study_installed=self.study_installed;study_current=self.study_current
             metrics=dict(self.metrics);errors=dict(self.errors);refreshing=self.refreshing or self.youversion_loading;generation=self.generation;covered=frozenset(self.providers)
-            source_languages=set(self.youversion_languages)
+            from .languages import canonical_language
+            source_languages={code for code in self.youversion_languages
+                              if canonical_language(code) not in self.youversion_loaded}
         start=time.monotonic();all_resources=(*resources,*installed.values(),*self.study.available())
-        languages={r.language for r in all_resources}|self.language_inventory|source_languages
+        languages={r.language for r in all_resources}|source_languages
         for code in languages:
             if self.closed:return
             if code not in self.language_records:
                 name,native=language_info(code)
+                name=name[:1].upper()+name[1:];native=native[:1].upper()+native[1:]
                 display=name+((' — '+native) if native and native.casefold()!=name.casefold() else '')+f' ({code})'
                 self.language_records[code]=(name,display,normalized(search_terms(code)))
         records={code:self.language_records[code] for code in languages}
@@ -271,7 +274,8 @@ class CatalogueSession:
         metrics['language_and_search_seconds']=time.monotonic()-start
         snapshot=CatalogueSnapshot(resources,installed,study_installed,study_current,records,terms,metrics,errors,refreshing,generation,covered,removed_resources,frozenset(archived))
         snapshot=replace(snapshot,available_languages=frozenset(
-            {r.language for r in all_resources if r.id not in archived or r.id in installed}|source_languages))
+            {r.language for r in all_resources if r.id not in archived or r.id in installed}),
+            candidate_languages=frozenset(source_languages))
         with self.lock:
             if self.closed:return
             self.snapshot=snapshot;listeners=[ref() for ref in self.listeners if ref() is not None]

@@ -142,23 +142,23 @@ class PassageActions:
                          margin_start=12,margin_end=12,margin_bottom=12,visible=False)
         self.bar.actions_owner=self
         self.bar.add_css_class('passage-actions')
-        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         content.add_css_class('passage-actions-content')
         self.bar.set_child(content)
         self.bar.update_property([Gtk.AccessibleProperty.LABEL],[tr('Passage actions')])
-        identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
+        identity=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         self.label=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0)
         self.label.add_css_class('heading')
         self.version_label=Gtk.Label(ellipsize=Pango.EllipsizeMode.END,xalign=0)
         self.version_label.add_css_class('dim-label')
         identity.append(self.label);identity.append(self.version_label);content.append(identity)
-        self.actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
+        self.actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         self.actions_clamp=Adw.Clamp(child=self.actions,maximum_size=340,tightening_threshold=340,unit=Adw.LengthUnit.PX)
         content.append(self.actions_clamp)
         self.highlight_button=None;self.highlight_buttons={}
         if hasattr(owner,'highlights'):
             from .highlights import COLORS
-            highlights=Gtk.Box(spacing=4)
+            highlights=Gtk.Box(spacing=6)
             highlights.append(Gtk.Label(label=tr('Highlight'),xalign=0,hexpand=True,wrap=True,
                 wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
             for color,(_,label) in COLORS.items():

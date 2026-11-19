@@ -84,12 +84,14 @@ class Immersion(Gtk.Overlay):
                               valign=Gtk.Align.START,halign=Gtk.Align.FILL)
         controls=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header=Adw.HeaderBar(show_start_title_buttons=False,show_end_title_buttons=False)
+        header.add_css_class('immersive-header')
+        header.add_css_class('flat')
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
         self.leave_button=Gtk.ToggleButton(icon_name='view-restore-symbolic',active=True,
                                            tooltip_text=tr('Leave immersive mode'))
         self.leave_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Leave immersive mode')])
         self.leave_button.connect('clicked',lambda *_:owner.leave_immersion())
-        self.caption=Gtk.Label(label=source.resource.name,ellipsize=Pango.EllipsizeMode.END,max_width_chars=18,width_chars=1)
+        self.caption=Gtk.Label(label=source.resource.short_label,ellipsize=Pango.EllipsizeMode.END,max_width_chars=18,width_chars=1)
         self.passage_button=(Gtk.MenuButton(child=self.caption) if self.kind=='bible' else Gtk.Button(child=self.caption))
         if self.kind=='commentary':self.passage_button.connect('clicked',lambda *_:self.info.popup())
         self.passage_button.set_tooltip_text(tr('Choose a passage') if self.kind=='bible' else source.resource.description)
@@ -110,11 +112,14 @@ class Immersion(Gtk.Overlay):
         if self.kind=='commentary':
             contextual=Gtk.MenuButton(icon_name='view-more-symbolic',menu_model=commands,tooltip_text=tr('Commentary actions'))
             header.pack_start(contextual)
-        header.pack_end(self.menu);header.pack_end(self.leave_button);header.pack_end(self.aa)
+        if self.kind=='commentary':header.pack_end(self.menu)
+        header.pack_end(self.leave_button);header.pack_end(self.aa)
         self.header=header
         if self.kind=='bible':
             owner.primary_version.get_parent().remove(owner.primary_version)
-            header.pack_end(owner.primary_version)
+            self.title_group=Gtk.Box(spacing=4)
+            header.set_title_widget(self.title_group)
+            self.title_group.append(self.passage_button);self.title_group.append(owner.primary_version)
         for button in (self.aa,self.leave_button):
             button.add_css_class('circular');button.add_css_class('reader-action')
         if self.kind=='commentary':
@@ -366,7 +371,7 @@ class Immersion(Gtk.Overlay):
                         buffer.apply_tag(tag,buffer.get_iter_at_offset(first-page.start),buffer.get_iter_at_offset(last-page.start))
             from .commentary_format import apply
             inline=[(s.kind,max(s.start,page.start)-page.start,min(s.end,page.end)-page.start)
-                    for s in plan.document.styles if s.kind in {'hidden','native-decoration','italic','bold','small-caps','superscript','editorial','paragraph-space'}
+                    for s in plan.document.styles if s.kind in {'hidden','native-decoration','italic','bold','small-caps','superscript','subscript','editorial','paragraph-space','ui-context','poetry','quotation','list-item'}
                     and s.end>page.start and s.start<page.end]
             apply(view,inline,p,self.owner.reading_style.palette)
         if self.kind=='bible' and hasattr(self.owner,'highlights'):
@@ -375,12 +380,14 @@ class Immersion(Gtk.Overlay):
                 plan=self.stream.plan(address.key);page=plan.pages[address.index]
                 ranges=[(span.reference,max(page.start,span.body)-page.start,min(page.end,span.end)-page.start)
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
+                # Preserve immersion's existing clean-reading policy without
+                # changing the saved highlight preference or mark identities.
                 paint(view,self.owner.highlights,self.source.reader.versification,ranges,False,
                       self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
         self.update_study_indicator()
         self.restore_selection()
         self._updating=False
-        anchor=self.stream.anchor();caption=self.source.resource.name
+        anchor=self.stream.anchor();caption=self.source.resource.short_label
         if self.kind=='bible':
             caption+=' — '+passage_label(anchor.reference,versification=self.source.reader.versification)
             self.owner.active_tab.state.reference=anchor.reference
@@ -465,7 +472,7 @@ class Immersion(Gtk.Overlay):
             address=self.addresses[index];plan=self.stream.plan(address.key);page=plan.pages[address.index]
             anchor=plan.document.anchor(page.start+iterator.get_offset())
             if self.kind=='bible':self.clicked_reference=anchor.reference
-            self.footer.set_text(self.source.resource.name+' — '+(passage_label(anchor.reference,versification=self.source.reader.versification) if self.kind=='bible' else self.source.reader.index.label(address.key)))
+            self.footer.set_text(self.source.resource.short_label+' — '+(passage_label(anchor.reference,versification=self.source.reader.versification) if self.kind=='bible' else self.source.reader.index.label(address.key)))
 
     def selected_passage(self):
         for view,address in zip(self.views,self.addresses):
@@ -593,7 +600,7 @@ class Immersion(Gtk.Overlay):
         self.owner.appearance.popdown();self.aa.set_popover(None);self.owner.appearance_button.set_popover(self.owner.appearance)
         if self.kind=='bible':
             self.owner.primary_version.popdown()
-            self.header.remove(self.owner.primary_version)
+            self.title_group.remove(self.owner.primary_version)
             self.owner.position_primary_version(force=True)
             self.owner.navigation.popdown();self.passage_button.set_popover(None);self.owner.passage_button.set_popover(self.owner.navigation)
         anchor=self.stream.anchor() if self.stream.cursor else self.initial_anchor

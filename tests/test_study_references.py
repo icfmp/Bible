@@ -12,6 +12,26 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class StudyReferenceTests(unittest.TestCase):
+    def test_rapid_follow_updates_coalesce_but_explicit_navigation_is_immediate(self):
+        import time
+        self.install();refs=self.show();tab=self.window.active_tab;coordinator=self.window.reading_sync
+        coordinator.driver='bible';coordinator.armed_until=time.monotonic()+5
+        reference=['John.1.6'];requests=refs.metrics['requests']
+        with patch.object(tab,'visible_reference',side_effect=lambda:reference[0]),patch.object(tab,'_restoring_scroll',False),patch.object(tab.text,'get_mapped',return_value=True):
+            refs.refresh();reference[0]='John.3.16';refs.refresh()
+            self.assertEqual(refs.metrics['requests'],requests)
+            spin(lambda:not refs.pending)
+            self.assertEqual(refs.metrics['requests'],requests+1)
+            self.assertEqual(refs.context[2:2+1],('John.3.16',))
+            reference[0]='John.1.6';refs.refresh();reference[0]='John.3.16';refs.refresh()
+            spin(lambda:not refs.pending)
+            self.assertTrue(refs.list.get_sensitive())
+            self.assertEqual(refs.metrics['requests'],requests+2)
+        coordinator.explicit_bible();tab.state.reference='John.1.6';refs.refresh()
+        self.assertEqual(refs._follow_timeout,0)
+        self.assertEqual(refs.metrics['requests'],requests+3)
+        spin(lambda:not refs.pending)
+
     def test_pending_passage_keeps_old_context_inert_and_only_latest_response_can_replace_it(self):
         from concurrent.futures import Future
         self.install();refs=self.show();tab=self.window.active_tab
@@ -24,8 +44,8 @@ class StudyReferenceTests(unittest.TestCase):
             requests[0][0].set_running_or_notify_cancel()
             self.assertTrue(refs.pending);self.assertIs(refs.model.get_item(0),old)
             self.assertEqual(refs.context,context);self.assertEqual(refs.heading.get_text(),heading)
-            self.assertTrue(refs.pending_context.get_visible());self.assertIn(heading,refs.pending_context.get_text())
-            self.assertFalse(refs.list.get_sensitive());self.assertLess(refs.list.get_opacity(),1)
+            self.assertTrue(refs.pending_context.get_visible())
+            self.assertFalse(refs.list.get_sensitive());self.assertEqual(refs.list.get_opacity(),1)
             self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertFalse(refs.status.get_visible())
             self.assertIs(self.window.get_focus(),tab.text)
             tab.navigate('Test','John.3.16');spin(lambda:len(requests)==2)

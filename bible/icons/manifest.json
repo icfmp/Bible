@@ -698,6 +698,24 @@
       "sha256": "459ca39a1cdf777e3d1d25f18c00855b835fb6e5ad79412e58d2f0ca1b697df0"
     },
     {
+      "name": "user-trash-symbolic",
+      "references": [
+        "bible/module_management.py:61",
+        "bible/notes_window.py:254"
+      ],
+      "kind": "bundled",
+      "path": "bible/icons/hicolor/scalable/places/user-trash-symbolic.svg",
+      "source": {
+        "repository": "https://github.com/GNOME/adwaita-icon-theme",
+        "commit": "084370e79b7f02cec50ab70c82da49f64b45f120",
+        "version": "49.0",
+        "path": "Adwaita/symbolic/places/user-trash-symbolic.svg",
+        "license": "LGPL-3.0-only",
+        "license_path": "bible/icons/licenses/adwaita-COPYING_LGPL"
+      },
+      "sha256": "515969c8bba92bc48cab84120e7df22320d648cc2619a7a765e3e9bb3e0c1c20"
+    },
+    {
       "name": "view-dual-symbolic",
       "references": [
         "bible/comparison_control.py:7",

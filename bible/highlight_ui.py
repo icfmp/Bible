@@ -12,14 +12,25 @@ def text_changed(buffer):
     buffer._highlight_revision+=1
 
 
-def paint(view,store,system,ranges,visible,high,palette):
+def paint(view,store,system,ranges,visible,high,palette,*,reader=None,annotations=None):
     buffer=view.get_buffer();table=buffer.get_tag_table()
     if not hasattr(buffer,'_highlight_revision'):
         buffer._highlight_revision=0
         buffer.connect('changed',text_changed)
     ranges=tuple(ranges)
+    if not visible:marks={}
+    elif reader and annotations:marks=annotations.colors(reader,(ref for ref,_,_ in ranges),store)
+    else:marks={ref:store.entries[(system,ref)] for ref,_,_ in ranges if (system,ref) in store.entries}
+    groups={}
+    for reference,start,end in ranges:
+        mark=marks.get(reference)
+        if not mark:continue
+        priority=(annotations.mark_priority(reader,mark) if reader and annotations else
+                  (mark['resource'],mark['system'],mark['reference'],mark['color']))
+        previous=groups.get((start,end))
+        if previous is None or priority<previous[0]:groups[(start,end)]=(priority,mark)
     state=(buffer,buffer._highlight_revision,system,ranges,visible,high,palette,
-           tuple((reference,store.entries.get((system,reference),{}).get('color'))
+           tuple((reference,marks.get(reference,{}).get('color'))
                  for reference,_,_ in ranges))
     # Comparison can rebuild from an adjustment notification during GTK layout.
     # Do not invalidate the unchanged primary view while GTK validates it.
@@ -35,9 +46,8 @@ def paint(view,store,system,ranges,visible,high,palette):
             tag._highlight_style=style
         buffer.remove_tag(tag,buffer.get_start_iter(),buffer.get_end_iter())
     if visible:
-        for reference,start,end in ranges:
-            mark=store.entries.get((system,reference))
-            if mark and end>start:
+        for (start,end),(_,mark) in groups.items():
+            if end>start:
                 buffer.apply_tag(table.lookup('highlight-'+mark['color']),buffer.get_iter_at_offset(start),buffer.get_iter_at_offset(end))
     view._highlight_paint_state=state
 

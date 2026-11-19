@@ -24,16 +24,16 @@ class ReaderChromeTests(unittest.TestCase):
                 settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
                 try:
                     t=w.active_tab;t.navigate('Test','John.3.16');spin(lambda:not t._restoring_scroll)
-                    self.assertEqual(t.title(),chapter+' · Test');self.assertEqual(w.heading.get_subtitle(),'')
+                    self.assertEqual(t.title(),chapter+' · '+title);self.assertEqual(w.heading.get_subtitle(),'')
                     self.assertEqual(w.primary_version.caption.get_text(),title)
                     t.navigate('Test','John.3.17');spin(lambda:not t._restoring_scroll)
-                    self.assertEqual(t.title(),chapter+' · Test');self.assertEqual(t.state.reference,'John.3.17')
+                    self.assertEqual(t.title(),chapter+' · '+title);self.assertEqual(t.state.reference,'John.3.17')
                     page=w.view.get_page(t)
                     self.assertEqual(page.get_title(),t.title())
                     w.comparison_choices.set_selected(w._comparison_names.index('Other'));spin()
-                    self.assertEqual(page.get_title(),chapter+' · Test | Other')
+                    self.assertEqual(page.get_title(),chapter+' · '+title+' | '+title)
                     w.end_comparison();spin()
-                    self.assertEqual(page.get_title(),chapter+' · Test')
+                    self.assertEqual(page.get_title(),chapter+' · '+title)
                     for size in (font,'Sans 18'):
                         settings.props.gtk_font_name=size
                         for width in (1200,360):

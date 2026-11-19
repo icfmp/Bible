@@ -108,7 +108,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertLessEqual(d.get_width(),360);self.assertLessEqual(d.get_height(),620)
         self.assertIn(notes,d.metadata.get_text())
         self.assertFalse(d.technical.get_expanded())
-        d.technical.set_expanded(True);spin()
+        d.technical.set_expanded(True);spin(duration=.4)
         scroll=d.metadata.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
         self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
         self.assertTrue(d.modules.update_button.get_mapped())
@@ -118,8 +118,8 @@ class ModuleUILifecycleTests(unittest.TestCase):
         ok,bounds=d.modules.remove_button.compute_bounds(scroll)
         self.assertTrue(ok);self.assertGreaterEqual(bounds.get_y(),0)
         self.assertLessEqual(bounds.get_y()+bounds.get_height(),scroll.get_height())
-        d.technical.set_expanded(False);spin()
-        self.assertIsNone(d.metadata.get_ancestor(Gtk.ScrolledWindow))
+        d.technical.set_expanded(False);spin(duration=.4)
+        self.assertFalse(d.metadata.get_mapped())
 
     def test_library_controls_update_then_restore_the_previous_verified_package(self):
         d=self.dialog;tab=self.w.active_tab

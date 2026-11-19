@@ -172,12 +172,7 @@ class VersionChooser(Gtk.MenuButton):
         reader=tab.reader
         in_header=not self.comparison and not tab.state.comparison
         if in_header and reader and current==tab.state.resource:
-            short=reader.module.getConfigEntry('Abbreviation')
-            # Older converted modules wrote their internal ID when the source
-            # supplied no abbreviation. That fallback is not a public code.
-            if current.startswith('youversion~') and short==module_name(current):short=None
-            if isinstance(short,str) and short.strip() and len(short)<=40 and not any(ord(c)<32 for c in short):
-                caption=short
+            caption=self.owner.library.resource(current).short_label
         self.set_hexpand(not in_header)
         self.caption.set_margin_start(0 if in_header else 16)
         self.caption.set_wrap(not in_header)

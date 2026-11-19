@@ -142,17 +142,16 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertEqual(w.view.get_n_pages(),1)
         w.preferences.value.mode='system';settings.set('interface_appearance','system');w.reading_style.apply_mode()
 
-    def test_cold_offline_language_inventory_remains_searchable_and_empty_is_truthful(self):
-        w=self.window;d=w.open_library();spin(lambda:not d.busy)
-        d.language.prepare_languages()
-        spin(lambda:'azb' in d.languages and len(d.languages)>1000,timeout=30)
-        self.assertIsNone(d.session.language_future.exception())
-        d.language.search.set_text('azb');d.language.filter()
-        spin(lambda:d.language.strings.get_n_items()==2)
-        d.language.activate(None,1)
-        self.assertEqual(d.language_choice,'azb');self.assertFalse(d.filtered_resources)
-        self.assertEqual(d.result_pages.get_visible_child_name(),'loading')
-        d.kind.set_selected(1);self.assertEqual(d.language_choice,'azb')
+    def test_source_backed_language_choices_are_category_scoped_without_overwriting_preference(self):
+        w=self.window;w.application_settings.set('library_language','azb')
+        d=w.open_library();spin(lambda:not d.busy)
+        french=replace(RESOURCE,name='FrenchNotes',language='fra',driver='RawCom',category='Commentaries')
+        d.session.providers[CROSSWIRE.id]=(RESOURCE,french);d.session.publish()
+        spin(lambda:len(d.resources)==2)
+        self.assertEqual(d.languages,['','en']);self.assertEqual(d.language.codes[d.language.get_selected()],'')
+        self.assertEqual(w.application_settings.language,'azb')
+        d.kind.set_selected(1);self.assertEqual(d.languages,['','fr'])
+        self.assertEqual(w.application_settings.language,'azb')
         d.close();d=w.open_library();self.assertEqual(d.language_choice,'azb')
 
     def test_filter_change_during_refresh_rejects_stale_type_and_language_rows(self):
@@ -183,9 +182,10 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertEqual([r.name for r in d.filtered_resources],['French'])
         d.kind.set_selected(1);spin(lambda:not d.busy)
         self.assertEqual([r.name for r in d.filtered_resources],['Study'])
+        self.assertNotIn('en',d.languages)
+        d.kind.set_selected(0);spin(lambda:not d.busy)
         d.language.set_selected(d.languages.index('en'));spin(lambda:not d.busy)
-        self.assertEqual(d.filtered_resources,[]);self.assertEqual(d.result_pages.get_visible_child_name(),'loading')
-        d.kind.set_selected(0);spin(lambda:not d.busy);self.assertEqual([r.name for r in d.filtered_resources],['English'])
+        self.assertEqual([r.name for r in d.filtered_resources],['English'])
         d.close();d=w.open_library();self.assertEqual(d.language_choice,'en')
         d.language.set_selected(0);self.assertEqual(w.application_settings.language,'')
 
