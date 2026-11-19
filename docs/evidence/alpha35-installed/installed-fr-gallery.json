@@ -1,0 +1,18 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "records": [
+    {
+      "id": "bible-resources~BRLSG1910",
+      "title": "Louis Segond 1910 - Bible Resources",
+      "about": "Louis Segond 1910 (eBible fraLSG, public domain). Edition initiale Bible Resources 0.1.0, reconstruite depuis les sources USFM/USFX originales eBible et vérifiée avec le moteur SWORD standard. Versification Segond. Limitation connue: Marc 10:52 regroupe le texte source des versets 52 et 53 (une seule entrée accessible). Job 34:37 n'existe pas dans la source eBible. Notes et references croisees: texte preserve, espaces parfois normalises; les renvois sans destination ont ete rendus non cliquables pour eviter de faux liens. Textes bibliques inchanges; signaler les anomalies de presentation au projet Bible Resources.",
+      "conditions": ""
+    }
+  ],
+  "resource_files_unchanged": 34,
+  "baseline": false
+}

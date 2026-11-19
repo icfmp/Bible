@@ -1,0 +1,16 @@
+{
+  "source_commit": "43a0a622095324b89c12ce7d8a17914bb5117c3e",
+  "ci_run": "44471909330",
+  "publication_run": "44476258836",
+  "flatpak_commit": "7f9d3bc6e41b3fc35b54d4492a55b933490be49bff759b5a2e7c8b14363cc71a",
+  "matching_python_files": 118,
+  "matching_icon_and_license_files": 37,
+  "unchanged_profile_files": 159,
+  "signing_fingerprint": "47A17230403EA4953745E6E020EB9FFCCECAFD8F",
+  "trusted_primary_keys": [
+    "47A17230403EA4953745E6E020EB9FFCCECAFD8F"
+  ],
+  "gpg_verify": true,
+  "gpg_verify_summary": true,
+  "remote": "https://icfmp.github.io/Bible/alpha/repo"
+}

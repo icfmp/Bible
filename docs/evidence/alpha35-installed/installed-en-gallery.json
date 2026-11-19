@@ -1,0 +1,24 @@
+{
+  "app_import": "/app/lib/bible-python/bible/ui.py",
+  "gtk": [
+    4,
+    20,
+    4
+  ],
+  "records": [
+    {
+      "id": "bible-resources~BRMHCC",
+      "title": "Matthew Henry's Concise Commentary on the Whole Bible",
+      "about": "Matthew Henry's Concise Commentary on the Whole Bible\nPublic Domain--Copy Freely.\nThis text matches the printed edition as published by Moody Press, 28th printing, no Copyright displayed. ISBN: 0-8024-5190-X. This text was created from an existing electronic copy, with roughly 1200 errors corrected. The current files can be found at:\n\nThe Bible Foundation,\nhttp://www.bf.org\n\nIf any errors are located, please notify me at the above BBS, or at:\n\nMark Fuller\n1129 E. Loyola Dr.\nTempe, Az. 85282\n(602) 829-8542",
+      "conditions": ""
+    },
+    {
+      "id": "Easton",
+      "title": "Easton's Bible Dictionary",
+      "about": "Easton's 1897 Bible Dictionary\n\nPublic Domain -- Copy Freely\n\nThese Dictionary topics are from M.G. Easton M.A., D.D., Illustrated Bible Dictionary, Third Edition, published by Thomas Nelson, 1897.  Due to the nature of etext, the illustrated portions of the Dictionary have not been included.",
+      "conditions": "textsource: CCEL"
+    }
+  ],
+  "resource_files_unchanged": 34,
+  "baseline": false
+}

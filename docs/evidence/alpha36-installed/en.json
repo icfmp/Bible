@@ -1,0 +1,19 @@
+{
+  "source": "/app/lib/bible-python/bible/ui.py",
+  "renderer": "GLRenderer",
+  "language": "en",
+  "captures": [
+    "en-note-popup.png",
+    "en-note-popup-bottom.png",
+    "en-references.png",
+    "en-selection.png",
+    "en-study.png",
+    "en-preferences.png",
+    "en-shortcuts.png",
+    "en-library.png"
+  ],
+  "selected_text_exact": true,
+  "note_reopened_with_labels_and_links": true,
+  "secondary_dialogs": 5,
+  "status": "PASS"
+}

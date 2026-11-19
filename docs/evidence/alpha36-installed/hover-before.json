@@ -1,0 +1,47 @@
+{
+  "source": "/app/lib/bible-python/bible/ui.py",
+  "records": [
+    {
+      "tool": "notes",
+      "pointer": "outside"
+    },
+    {
+      "tool": "notes",
+      "pointer": "left"
+    },
+    {
+      "tool": "notes",
+      "pointer": "center"
+    },
+    {
+      "tool": "notes",
+      "pointer": "chevron"
+    },
+    {
+      "tool": "notes",
+      "pointer": "outside"
+    },
+    {
+      "tool": "references",
+      "pointer": "outside"
+    },
+    {
+      "tool": "references",
+      "pointer": "left"
+    },
+    {
+      "tool": "references",
+      "pointer": "center"
+    },
+    {
+      "tool": "references",
+      "pointer": "chevron"
+    },
+    {
+      "tool": "references",
+      "pointer": "outside"
+    }
+  ],
+  "physical_pointer": true,
+  "annotations": "disposable test note/mark; existing Bible/reference sources unchanged"
+}
