@@ -1,0 +1,66 @@
+[
+  {
+    "module": "MHC",
+    "page": 0,
+    "bottom": 593,
+    "viewport": 644,
+    "fits": true,
+    "styles": [
+      "heading",
+      "hidden",
+      "italic",
+      "number",
+      "paragraph-space",
+      "small-caps",
+      "ui-context"
+    ]
+  },
+  {
+    "module": "MHC",
+    "page": 0,
+    "bottom": 519,
+    "viewport": 644,
+    "fits": true,
+    "styles": [
+      "heading",
+      "hidden",
+      "italic",
+      "number",
+      "paragraph-space",
+      "small-caps",
+      "ui-context"
+    ]
+  },
+  {
+    "module": "FreChry",
+    "page": 0,
+    "bottom": 529,
+    "viewport": 644,
+    "fits": true,
+    "styles": [
+      "bold",
+      "heading",
+      "hidden",
+      "italic",
+      "list-item",
+      "paragraph-space",
+      "ui-context"
+    ]
+  },
+  {
+    "module": "FreChry",
+    "page": 0,
+    "bottom": 553,
+    "viewport": 644,
+    "fits": true,
+    "styles": [
+      "bold",
+      "heading",
+      "hidden",
+      "italic",
+      "list-item",
+      "paragraph-space",
+      "ui-context"
+    ]
+  }
+]

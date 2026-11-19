@@ -380,12 +380,10 @@ class Immersion(Gtk.Overlay):
                 plan=self.stream.plan(address.key);page=plan.pages[address.index]
                 ranges=[(span.reference,max(page.start,span.body)-page.start,min(page.end,span.end)-page.start)
                         for span in plan.document.spans if span.end>page.start and span.body<page.end]
-                from .passage_annotations import PassageAnnotations
-                annotations=getattr(self,'_annotations',None)
-                if annotations is None:self._annotations=annotations=PassageAnnotations(self.owner.library)
-                paint(view,self.owner.highlights,self.source.reader.versification,ranges,p.show_highlights,
-                      self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette,
-                      reader=self.source.reader,annotations=annotations)
+                # Preserve immersion's existing clean-reading policy without
+                # changing the saved highlight preference or mark identities.
+                paint(view,self.owner.highlights,self.source.reader.versification,ranges,False,
+                      self.owner.reading_style.manager.get_high_contrast(),self.owner.reading_style.palette)
         self.update_study_indicator()
         self.restore_selection()
         self._updating=False

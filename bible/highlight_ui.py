@@ -18,8 +18,9 @@ def paint(view,store,system,ranges,visible,high,palette,*,reader=None,annotation
         buffer._highlight_revision=0
         buffer.connect('changed',text_changed)
     ranges=tuple(ranges)
-    marks=(annotations.colors(reader,(ref for ref,_,_ in ranges),store) if reader and annotations
-           else {ref:store.entries[(system,ref)] for ref,_,_ in ranges if (system,ref) in store.entries})
+    if not visible:marks={}
+    elif reader and annotations:marks=annotations.colors(reader,(ref for ref,_,_ in ranges),store)
+    else:marks={ref:store.entries[(system,ref)] for ref,_,_ in ranges if (system,ref) in store.entries}
     groups={}
     for reference,start,end in ranges:
         mark=marks.get(reference)
