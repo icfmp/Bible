@@ -3,7 +3,6 @@ import argparse,hashlib,inspect,json,os,tempfile
 from dataclasses import asdict
 from pathlib import Path
 from bible.ui import Application,Window,Library,Gtk
-from bible.i18n import tr
 from bible.notes import PassageLink
 from bible.notes_window import NoteEditor
 from tests.test_ui import spin
@@ -42,19 +41,16 @@ def main():
                                 w.set_default_size(560 if narrow else 1280,750 if narrow else 900);spin()
                                 prefix=mode+('-narrow' if narrow else '-wide')
                                 w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh(force=True);spin()
-                                shot(prefix+'-summary');editor=w.study.notes.open_note(note);spin();shot(prefix+'-inline')
-                                expand=w.study.notes.editor_commands.get_first_child()
-                                while expand and expand.get_tooltip_text()!=tr('Expand note'):expand=expand.get_next_sibling()
-                                assert expand is not None
-                                buffer=editor.body.get_buffer();expand.grab_focus();native.key('space');spin()
-                                assert not editor.embedded and editor.body.get_buffer() is buffer
-                                shot(prefix+'-expanded');editor.close();spin()
-                                editor=NoteEditor(w,note=note);w.note_editor=editor
+                                shot(prefix+'-summary');editor=w.study.notes.open_note(note)
                                 if narrow:editor.set_default_size(360,600)
-                                editor.present();spin();shot(prefix+'-quick');editor.close();spin()
+                                spin();buffer=editor.body.get_buffer()
+                                assert not editor.embedded and w.note_editor is editor
+                                assert editor.body.source()==note.body and editor.links.values==note.links
+                                shot(prefix+'-popup');editor.close();spin()
+                                assert editor.closed and editor.body.get_buffer() is buffer
                                 w.open_notes();spin();w.notes_space.open_note(note);spin();shot(prefix+'-workspace');w.notes_space.leave();spin()
                     assert [asdict(n) for n in w.notes_store.all()]==before
-                    report['cases'].append(dict(linked=linked,notes_unchanged=True,expanded_buffer_preserved=True))
+                    report['cases'].append(dict(linked=linked,notes_unchanged=True,popup_buffer_preserved=True))
                 finally:
                     if w.note_editor and not w.note_editor.closed:w.note_editor.close();spin()
                     w.close();spin()
