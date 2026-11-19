@@ -1,0 +1,28 @@
+{
+  "source": "/workspace/bible-notes-batch/bible/ui.py",
+  "renderer": "GLRenderer",
+  "captures": [
+    "main-menu",
+    "selection",
+    "copy-formats",
+    "selection-narrow-large-high-contrast",
+    "dialog-note",
+    "dialog-library",
+    "dialog-preferences",
+    "dialog-shortcuts",
+    "dialog-study",
+    "dialog-study-map"
+  ],
+  "dialogs": [
+    "note",
+    "library",
+    "preferences",
+    "shortcuts",
+    "study"
+  ],
+  "default_copy": {
+    "selection": "ey said, Go to, l",
+    "edition": "King James Version (1769) with Strongs Numbers and Morphology  and CatchWords",
+    "clipboard": "Genesis 11:4 \u2014 King James Version (1769) with Strongs Numbers and Morphology  and CatchWords\ney said, Go to, l"
+  }
+}

@@ -382,7 +382,7 @@ class StudyPanel(Gtk.Box):
                 tab.mark_commentary_range(*(target or (None,None)))
                 self.update_context_heading();return
             if self.tool=='references':
-                context=self.references.context
+                context=None if self.references.pending else self.references.context
                 target=context[2:] if context and context[:2]==(tab.state.resource,tab.reader) else (None,None)
                 tab.mark_commentary_range(*target);return
         if (self.tool!='commentaries' or not tab.reader or not self.reader or self.current_position is None

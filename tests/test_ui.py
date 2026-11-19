@@ -155,12 +155,13 @@ class WindowTests(unittest.TestCase):
 
     def test_note_insets_and_search_placeholder_content_are_separate(self):
         from bible.ui import Gtk
+        from bible.i18n import tr
         from bible.loading_cards import LoadingCards
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window=self.window(directory)
             editor=window.new_note(force_new=True)
-            self.assertIsInstance(editor.header.get_title_widget(),Gtk.Box)
+            self.assertEqual(editor.header.get_title_widget().get_title(),tr('New note'))
             scroll=editor.get_content().get_last_child()
             self.assertGreaterEqual(scroll.get_margin_top(),8)
             self.assertGreaterEqual(scroll.get_margin_bottom(),12)
@@ -844,11 +845,13 @@ class WindowTests(unittest.TestCase):
             self.assertFalse(hasattr(window.active_tab,'note_button'))
             draft = window.new_note(force_new=True)
             draft.body.get_buffer().set_text('Unsaved draft')
-            draft.close()
+            with patch.object(window.notes_store,'save',side_effect=OSError('TEST write failure')):
+                draft.close()
             self.assertFalse(draft.closed)
             draft._confirmation.response('cancel')
             self.assertFalse(draft.closed)
-            window.close()
+            with patch.object(window.notes_store,'save',side_effect=OSError('TEST write failure')):
+                window.close()
             self.assertFalse(window.closed)
             draft._confirmation.response('cancel')
             self.assertTrue(draft.save())

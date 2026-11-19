@@ -3,6 +3,12 @@ from gi.repository import Adw, Gtk, Pango
 from .i18n import tr
 
 
+def secondary_dialog(dialog,owner):
+    """Mark native secondary surfaces; keep their actual headers/actions."""
+    dialog.add_css_class('bible-secondary-dialog')
+    dialog.add_css_class(owner.reading_style.scope+'-window')
+
+
 def application_menu():
     menu=Gtk.MenuButton(icon_name='open-menu-symbolic',tooltip_text=tr('Main menu'))
     menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Main menu')])
@@ -10,7 +16,7 @@ def application_menu():
     box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2,margin_top=6,margin_bottom=6,margin_start=6,margin_end=6)
     menu.global_actions=[]
     for label,action,icon,shortcut in [
-        ('Library','translations','dictionary-symbolic','<Control>l'),
+        ('Library','translations','ephy-library-symbolic','<Control>l'),
         ('Preferences','preferences','emblem-system-symbolic','<Control>comma'),
         ('Keyboard Shortcuts','shortcuts','preferences-desktop-keyboard-shortcuts-symbolic','<Control>question'),
         ('About Bible','about','help-about-symbolic','')]:
@@ -37,6 +43,7 @@ def show_preferences(owner):
     if existing and existing.get_visible():
         existing.present(owner);return existing
     dialog=Adw.PreferencesDialog(title=tr('Preferences'),content_width=520,content_height=560,search_enabled=False)
+    secondary_dialog(dialog,owner)
     page=Adw.PreferencesPage(title=tr('General'),name='general',icon_name='preferences-system-symbolic')
     group=Adw.PreferencesGroup(title=tr('General'))
     status=Gtk.Label(wrap=True,xalign=0)
@@ -86,7 +93,7 @@ def show_preferences(owner):
 
 def show_shortcuts(owner):
     window=Gtk.ShortcutsWindow(transient_for=owner,modal=True,title=tr('Keyboard Shortcuts'))
-    window.add_css_class(owner.reading_style.scope+'-window')
+    secondary_dialog(window,owner)
     section=Gtk.ShortcutsSection(section_name='application',title=tr('Bible'))
     group=Gtk.ShortcutsGroup(title=tr('Reading and application'))
     for label,action in [

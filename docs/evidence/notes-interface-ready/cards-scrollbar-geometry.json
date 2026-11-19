@@ -1,0 +1,38 @@
+[
+  {
+    "case": "cards-native-scrollbar",
+    "tool": "notes",
+    "drawer": 412,
+    "x": 12.0,
+    "width": 364.0,
+    "overflow": true,
+    "overlay": false
+  },
+  {
+    "case": "cards-native-scrollbar",
+    "tool": "references",
+    "drawer": 412,
+    "x": 12.0,
+    "width": 364.0,
+    "overflow": true,
+    "overlay": false
+  },
+  {
+    "case": "cards-no-scrollbar",
+    "tool": "notes",
+    "drawer": 412,
+    "x": 12.0,
+    "width": 388.0,
+    "overflow": false,
+    "overlay": false
+  },
+  {
+    "case": "cards-no-scrollbar",
+    "tool": "references",
+    "drawer": 412,
+    "x": 12.0,
+    "width": 388.0,
+    "overflow": false,
+    "overlay": false
+  }
+]

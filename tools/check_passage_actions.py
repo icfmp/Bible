@@ -77,11 +77,12 @@ def main():
             spin(lambda:actions.target is not None)
             assert actions.target.native_selection
             bounds=tuple(i.get_offset() for i in buffer.get_selection_bounds());expected=actions.target.text
-            native.click(actions.copy_button);spin();assert actions.copy_popover.get_visible()
+            native.click(actions.copy_options);spin();assert actions.copy_popover.get_visible()
             native.click(actions.copy_popover.get_child().get_first_child());copied=[]
             window.get_clipboard().read_text_async(None,lambda clipboard,result:copied.append(clipboard.read_text_finish(result)))
             spin(lambda:bool(copied));assert copied[0]==expected
             assert tuple(i.get_offset() for i in buffer.get_selection_bounds())==bounds
+            actions.capture(view,lambda:actions.ordinary(tab),None);spin()
             capture(args.prefix+'-partial.png')
             native.click(actions.copy_options);native.key('Escape');assert actions.bar.get_visible()
             native.click(actions.copy_options);native.click_at(view,view.get_width()-8,100)

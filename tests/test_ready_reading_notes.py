@@ -133,9 +133,9 @@ class ReadyReadingNotesTests(unittest.TestCase):
         actions.capture(tab.text,lambda:actions.ordinary(tab,False),None);spin()
         self.assertIsInstance(actions.word_button.get_child(),Gtk.Box)
         self.assertEqual(actions.word_button.get_child().get_first_child().get_icon_name(),'accessories-dictionary-symbolic')
-        self.assertEqual(actions.word_button.get_child().get_last_child().get_text(),tr('Original text'))
+        self.assertEqual(actions.word_button.get_child().get_last_child().get_text(),tr('Study passage'))
         self.assertTrue(Gtk.IconTheme.get_for_display(w.get_display()).has_icon('accessories-dictionary-symbolic'))
-        self.assertEqual(actions.word_button.get_tooltip_text(),tr('Study original text'))
+        self.assertEqual(actions.word_button.get_tooltip_text(),tr('Study passage'))
         for color,(hexcolor,_) in COLORS.items():
             actions.highlight_buttons[color][0].emit('clicked');spin()
             self.assertEqual(w.highlights.entries[('KJV','Gen.1.1')]['color'],color)

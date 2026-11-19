@@ -3,6 +3,14 @@ import locale
 import os
 
 FR = {
+    'Copy formats':'Formats de copie',
+    'Text only':'Texte seul',
+    'Text + reference':'Texte et référence',
+    'Reference only':'Référence seule',
+    'Show linked passages':'Afficher les passages liés',
+    'New note':'Nouvelle note',
+    'Updating references. Previous results are temporarily unavailable.':'Mise à jour des renvois. Les résultats précédents sont temporairement indisponibles.',
+    'References for {passage}':'Renvois pour {passage}',
     'Common languages':'Langues courantes',
     'Other languages':'Autres langues',
     'Description':'Description',
@@ -340,7 +348,7 @@ FR = {
     'Community score: {score}':'Pertinence communautaire : {score}',
     'Related to {count} selected verses.':'Associé à {count} versets sélectionnés.',
     'OpenBible.info · CC BY 4.0. Community suggestions; explore the context.':'OpenBible.info · CC BY 4.0. Suggestions communautaires ; consultez le contexte.',
-    'Study passage': 'Étude du passage', 'Passage study':'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
+    'Study passage': 'Étudier le passage', 'Passage study':'Étude du passage', 'Notes': 'Notes', 'Commentaries': 'Commentaires',
     'Add note': 'Ajouter une note', 'Edit note': 'Modifier la note',
     'About original words':'À propos des mots originaux','Lexical content':'Contenu lexical',
     'Occurrence data is unavailable.':'Les données d’occurrences sont indisponibles.',

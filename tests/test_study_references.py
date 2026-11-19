@@ -12,6 +12,57 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
 class StudyReferenceTests(unittest.TestCase):
+    def test_pending_passage_keeps_old_context_inert_and_only_latest_response_can_replace_it(self):
+        from concurrent.futures import Future
+        self.install();refs=self.show();tab=self.window.active_tab
+        old=refs.model.get_item(0);context=refs.context;heading=refs.heading.get_text();requests=[]
+        def submit(function,*args):
+            future=Future();requests.append((future,function,args));return future
+        tab.text.grab_focus()
+        with patch.object(refs.executor,'submit',side_effect=submit):
+            tab.select_verse('John.1.6');spin(lambda:len(requests)==1)
+            requests[0][0].set_running_or_notify_cancel()
+            self.assertTrue(refs.pending);self.assertIs(refs.model.get_item(0),old)
+            self.assertEqual(refs.context,context);self.assertEqual(refs.heading.get_text(),heading)
+            self.assertTrue(refs.pending_context.get_visible());self.assertIn(heading,refs.pending_context.get_text())
+            self.assertFalse(refs.list.get_sensitive());self.assertLess(refs.list.get_opacity(),1)
+            self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertFalse(refs.status.get_visible())
+            self.assertIs(self.window.get_focus(),tab.text)
+            tab.navigate('Test','John.3.16');spin(lambda:len(requests)==2)
+            tab.navigate('Test','John.1.5');spin(lambda:len(requests)==3)
+            self.assertTrue(requests[1][0].cancelled())
+            future,query,args=requests[2];expected=query(*args);future.set_result(expected)
+            spin(lambda:not refs.pending)
+            self.assertEqual(refs.context[2:],('John.1.5','John.1.5'))
+            self.assertEqual(refs.rows,expected);self.assertTrue(refs.list.get_sensitive())
+            stale,query,args=requests[0];stale.set_result(query(*args));spin()
+            self.assertEqual(refs.rows,expected);self.assertEqual(refs.context[2:],('John.1.5','John.1.5'))
+
+    def test_first_load_skeleton_error_and_empty_states_are_truthful_with_reduced_motion(self):
+        from concurrent.futures import Future
+        from bible.ui import Gtk
+        self.install();refs=self.window.study.references;requests=[]
+        def submit(function,*args):
+            future=Future();requests.append((future,function,args));return future
+        settings=Gtk.Settings.get_default();animations=settings.props.gtk_enable_animations
+        settings.props.gtk_enable_animations=False
+        try:
+            with patch.object(refs.executor,'submit',side_effect=submit):
+                self.window.active_tab.navigate('Test','John.1.5');self.window.study_button.set_active(True)
+                self.window.study.tools.set_visible_child_name('references');refs.refresh()
+                spin(lambda:bool(requests) and refs.loading.get_mapped());self.assertTrue(refs.pending)
+                self.assertEqual(refs.pages.get_visible_child_name(),'loading')
+                self.assertEqual(refs.model.get_n_items(),0);self.assertFalse(refs.status.get_visible())
+                self.assertEqual(refs.loading._tick,0)
+                requests[-1][0].set_exception(OSError('Controlled unavailable source'));spin(lambda:not refs.pending)
+                self.assertTrue(refs.download.get_visible());self.assertNotEqual(refs.pages.get_visible_child_name(),'empty')
+                refs.invalidate();self.assertTrue(refs.pending);requests[-1][0].set_result([])
+                spin(lambda:not refs.pending);self.assertEqual(refs.pages.get_visible_child_name(),'empty')
+                refs.invalidate();future,query,args=requests[-1];future.set_result(query(*args))
+                spin(lambda:not refs.pending);self.assertTrue(refs.rows)
+                self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertEqual(refs.loading._tick,0)
+        finally:settings.props.gtk_enable_animations=animations
+
     def test_centered_empty_is_only_a_successful_zero_lookup_and_keeps_credit(self):
         self.install();refs=self.show('John.3.16')
         self.assertFalse(refs.rows)

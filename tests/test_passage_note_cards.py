@@ -40,16 +40,45 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertFalse(hasattr(card,'actions'))
         self.assertIn('21',card._reference_labels[0].get_text())
         self.assertIn('<b>Legacy note</b>',card.preview.get_label())
-        card.preview.activate(0);spin()
+        from tools.check_alpha_ui import X11Input
+        from bible.ui import Pango
+        native=X11Input();self.addCleanup(native.close);native.activate(self.w)
+        citation=card.preview.citations[0]
+        offset=len(card.preview.get_text()[:citation.begin].encode())
+        rectangle=card.preview.get_layout().index_to_pos(offset)
+        left,top=card.preview.get_layout_offsets()
+        with patch.object(panel,'open_note',wraps=panel.open_note) as opened:
+            if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':
+                native.click_at(card.preview,left+(rectangle.x+rectangle.width/2)/Pango.SCALE,
+                                top+(rectangle.y+rectangle.height/2)/Pango.SCALE)
+            else:card.preview.emit('activate-link','bible-preview:0')
+            self.assertEqual(opened.call_count,0)
         self.assertIsNone(panel.editor)
         self.assertEqual(self.w.reference_preview.target,('Test','John.3.16'))
-        self.w.reference_preview.dismiss();panel.refresh(force=True);spin()
+        self.w.reference_preview.dismiss();spin()
+        card.primary_action.grab_focus()
+        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':native.key('Return')
+        else:card.primary_action.emit('clicked')
+        spin()
+        self.assertEqual(panel.editor.note.id,self.note.id)
+        self.assertEqual(panel.editor.body.source(),self.note.body)
+        self.assertFalse(panel.editor.embedded);panel.editor.close();spin()
+        mark=next(c for c in panel.cards if hasattr(c,'highlight_key'))
+        with patch.object(panel,'navigate_annotation',wraps=panel.navigate_annotation) as navigate:
+            if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1':native.click(mark.actions)
+            else:mark.actions.popup()
+            self.assertTrue(mark.actions.get_popover().get_visible())
+            self.assertEqual(navigate.call_count,0)
+            mark.actions.popdown()
+        panel.refresh(force=True);spin()
         self.assertEqual(self.w.notes_store.all(),before);self.assertEqual(self.w.highlights.entries,marks)
 
-    def test_inline_expand_same_document_failure_cancel_save_and_context(self):
+    def test_shared_popup_keeps_document_context_and_failed_close_retains_the_draft(self):
         from bible.notes_window import buffer_text
         panel=self.w.study.notes;editor=panel.open_note(self.note);original_buffer=editor.body.get_buffer()
-        spin();self.assertTrue(editor.embedded);self.assertIs(editor.embedded_content.get_parent(),panel.editor_panel)
+        spin();self.assertFalse(editor.embedded);self.assertTrue(editor.autosave)
+        self.assertFalse(hasattr(panel,'editor_panel'));self.assertFalse(editor.save_button.get_visible())
+        self.assertIsNone(editor.actions_menu)
         editor.body.get_buffer().set_text('Unsaved **draft** John 3:16.')
         editor.labels.set_values(['Keep','Draft'])
         self.w.active_tab.navigate('Test','Acts.1.23');self.w.study.tools.set_visible_child_name('references')
@@ -57,14 +86,13 @@ class PassageNoteCardTests(unittest.TestCase):
         self.w.study_button.set_active(False);spin()
         self.assertEqual(editor.context['start'],'Acts.1.21');self.assertIn('Unsaved',buffer_text(editor.body))
         self.w.study_button.set_active(True);self.w.study.tools.set_visible_child_name('notes')
-        panel.expand_editor();spin(lambda:not editor.embedded)
         self.assertIs(editor.body.get_buffer(),original_buffer);self.assertFalse(editor.embedded)
         self.assertIs(editor.dialog_parent,editor)
         with patch.object(self.w.notes_store,'save',side_effect=OSError('Test write failure')):
             self.assertFalse(editor.save());self.assertIn('Unsaved',buffer_text(editor.body));self.assertFalse(editor.closed)
-        editor.close();spin();self.assertTrue(editor._confirmation.get_visible())
-        editor._confirmation.response('cancel');editor._confirmation.destroy();spin();self.assertFalse(editor.closed)
-        self.assertTrue(editor.save());spin()
+            editor.close();spin();self.assertTrue(editor._confirmation.get_visible())
+            editor._confirmation.response('cancel');editor._confirmation.destroy();spin();self.assertFalse(editor.closed)
+        editor.close();spin();self.assertTrue(editor.closed)
         saved=self.w.notes_store.get(self.note.id)
         self.assertEqual(saved.body,'Unsaved **draft** John 3:16.')
         self.assertEqual((saved.start,saved.end),('Acts.1.21','Acts.1.22'))
@@ -74,11 +102,12 @@ class PassageNoteCardTests(unittest.TestCase):
     def test_switch_note_prompt_cancel_and_discard_do_not_lose_current_draft(self):
         panel=self.w.study.notes;first=panel.open_note(self.note)
         first.body.get_buffer().set_text('Keep me until a deliberate decision')
-        panel.open_note(self.other);spin();dialog=first._confirmation
-        dialog.response('cancel');dialog.destroy();spin()
-        self.assertIs(panel.editor,first);self.assertFalse(first.closed)
-        panel.open_note(self.other);spin();dialog=first._confirmation
-        dialog.response('discard');dialog.destroy();spin()
+        with patch.object(self.w.notes_store,'save',side_effect=OSError('Test write failure')):
+            panel.open_note(self.other);spin();dialog=first._confirmation
+            dialog.response('cancel');dialog.destroy();spin()
+            self.assertIs(panel.editor,first);self.assertFalse(first.closed)
+            panel.open_note(self.other);spin();dialog=first._confirmation
+            dialog.response('discard');dialog.destroy();spin()
         self.assertTrue(first.closed);self.assertEqual(panel.editor.note.id,self.other.id)
         self.assertEqual(self.w.notes_store.get(self.note.id).body,self.note.body)
 
@@ -99,7 +128,44 @@ class PassageNoteCardTests(unittest.TestCase):
         panel=self.w.study.notes;before=self.w.notes_store.all()
         editor=panel.open_note(context=dict(self.context));spin()
         self.assertFalse(editor.save());self.assertFalse(editor.closed)
-        self.assertTrue(editor.embedded);self.assertTrue(editor.status.get_text())
+        self.assertFalse(editor.embedded);self.assertTrue(editor.status.get_text())
         preview=AnnotationPreview(self.w,replace(self.note,body=''),lambda:None)
         self.assertTrue(preview.get_text())
         self.assertEqual(self.w.notes_store.all(),before)
+
+    def test_popup_coalesces_text_labels_links_and_flushes_immediate_close(self):
+        from bible.notes import NoteStore
+        from bible.notes_window import buffer_text
+        from bible.ui import Gtk
+        panel=self.w.study.notes;editor=panel.open_note(self.note);spin()
+        self.assertEqual(editor.header.get_decoration_layout(),':close')
+        self.assertEqual(editor.labels.add_menu.get_direction(),Gtk.ArrowType.NONE)
+        self.assertEqual(editor.links.add_button.get_direction(),Gtk.ArrowType.NONE)
+        self.assertEqual(editor.labels.add_menu.get_width(),editor.links.add_button.get_width())
+        with patch.object(self.w.notes_store,'save',wraps=self.w.notes_store.save) as write:
+            for body in ('A','A newer draft','**Final** Unicode é'):editor.body.get_buffer().set_text(body)
+            editor.labels.entry.set_text('Added');editor.labels.add()
+            editor.links.entry.set_text('John 3:16');self.assertTrue(editor.links.add())
+            editor.close();spin()
+            self.assertEqual(write.call_count,1);self.assertTrue(editor.closed)
+        witness=NoteStore(self.root/'notes.sqlite3')
+        try:
+            saved=witness.get(self.note.id)
+            self.assertEqual(saved.body,'**Final** Unicode é')
+            self.assertIn('Added',saved.labels);self.assertEqual(saved.links[0].start,'John.3.16')
+            self.assertEqual(saved.start,self.note.start)
+        finally:witness.close()
+        reopened=panel.open_note(saved);spin()
+        self.assertEqual(buffer_text(reopened.body),saved.body)
+        self.assertEqual(reopened.note.id,self.note.id)
+
+    def test_confirmed_delete_cancels_pending_autosave_without_resurrection(self):
+        editor=self.w.study.notes.open_note(self.note);spin()
+        marks=dict(self.w.highlights.entries)
+        editor.body.get_buffer().set_text('Pending edit must not resurrect a deleted note')
+        editor.ask_delete();spin();editor._confirmation.response('confirm');spin()
+        self.assertTrue(editor.closed);self.assertEqual(editor._autosave_id,0)
+        editor.autosave_pending();spin(duration=.7)
+        self.assertIsNone(self.w.notes_store.get(self.note.id))
+        self.assertEqual(self.w.notes_store.get(self.other.id),self.other)
+        self.assertEqual(self.w.highlights.entries,marks)
