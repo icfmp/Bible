@@ -47,5 +47,22 @@ jobs:
           formatted,styles,titles=format_entry(raw,plain,'OSIS')
           print('formatting_fallback', formatted==plain and not styles and not titles)
           print('formatted_len',len(formatted),'newline_count',formatted.count('\\n'),'hidden',sum(x[2]-x[1] for x in styles if x[0]=='hidden'),'bold',sum(1 for x in styles if x[0]=='bold'))
-          print('raw_preview_structure',[(t.group(0)[:100]) for t in list(re.finditer(r'<(?:p|hi|title|div)\\b[^>]*>',raw,re.I))[:12]])
+          from html.parser import HTMLParser
+          class Probe(HTMLParser):
+              def __init__(self): super().__init__();self.tags=[] 
+              def handle_starttag(self,t,a): self.tags.append((t,dict(a)))
+              def handle_startendtag(self,t,a): self.tags.append((t,dict(a)))
+          hp=Probe();hp.feed(raw)
+          print('tags',len(hp.tags),'paragraph_tags',sum(t=='p' for t,a in hp.tags),'bold_hi',sum(t=='hi' and a.get('type')=='bold' for t,a in hp.tags))
+          print('first_tags',hp.tags[:12])
+          from bible.commentary_format import InlineOSIS,split_preverse
+          parser=InlineOSIS('OSIS');parser.feed(split_preverse(raw)[0]);parser.close()
+          expected=''.join(parser.parts)
+          key=lambda v: ''.join(c for c in v if not c.isspace() and c!='*')
+          a,b=key(expected),key(plain)
+          print('plain_core_len',len(b),'expected_core_len',len(a),'core_equal',a==b,'raw_emphases',len(parser.emphasis),'raw_boundaries',len(parser.paragraphs))
+          if a!=b:
+              first=next((i for i in range(min(len(a),len(b))) if a[i]!=b[i]),min(len(a),len(b)))
+              print('first_core_difference',first,'expected_context',repr(a[max(0,first-35):first+50]),'plain_context',repr(b[max(0,first-35):first+50]))
+          print('plain_stars',plain.count('*'),'expected_stars',expected.count('*'))
           PY
