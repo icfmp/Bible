@@ -1,0 +1,51 @@
+name: Verify published commentary OSIS formatting issue 329
+on:
+  push:
+    branches: [fix/commentary-osis-paragraphs-emphasis-329]
+    paths:
+      - '.github/workflows/probe-commentary-329.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install reader and verified published 0.1.0 package
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-sword diatheke
+          curl -fLSs --retry 3 -o /tmp/hmcc-0.1.0.zip 'https://github.com/icfmp/Bible-Resources/releases/download/hmcc-modern-0.1.0/HMCCModern-0.1.0.zip'
+          echo 'dd1940b3bf85cc09659b634dc74c9a9d8810816bc2f8316a8293f893c3eb94ee  /tmp/hmcc-0.1.0.zip' | sha256sum -c -
+          mkdir -p /tmp/sword-hmcc
+          unzip -q /tmp/hmcc-0.1.0.zip -d /tmp/sword-hmcc
+      - name: Read real native OSIS and filtered text without publishing content
+        env:
+          SWORD_PATH: /tmp/sword-hmcc
+        run: |
+          /usr/bin/python3 - <<'PY'
+          import Sword, os, re, sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path.cwd()))
+          from bible.commentary_format import format_entry
+          mgr=Sword.SWMgr(os.environ['SWORD_PATH'])
+          module=mgr.getModule('HMCCModern')
+          assert module, 'Published HMCCModern module missing'
+          print('SourceType',module.getConfigEntry('SourceType'))
+          key=Sword.VerseKey('Gen.10.8')
+          key.setVersificationSystem('KJV')
+          module.setKey(key)
+          raw=str(module.getRawEntry())
+          plain=str(module.stripText())
+          print('raw_len',len(raw),'plain_len',len(plain))
+          print('raw_p_tags',len(re.findall(r'<p\\b',raw)),'raw_bold_tags',len(re.findall(r'<hi\\b[^>]*\\btype=["\\\']bold',raw,re.I)))
+          print('raw_genesis6_anchor', 'Gen.6.4' in raw)
+          for word in ['day.Before','households.Nimrod','neighbors.The','him.Nimrod','hunter.Hunting','dangerous.It','leadership.It']:
+              print('join_'+word, word in plain)
+          formatted,styles,titles=format_entry(raw,plain,'OSIS')
+          print('formatting_fallback', formatted==plain and not styles and not titles)
+          print('formatted_len',len(formatted),'newline_count',formatted.count('\\n'),'hidden',sum(x[2]-x[1] for x in styles if x[0]=='hidden'),'bold',sum(1 for x in styles if x[0]=='bold'))
+          print('raw_preview_structure',[(t.group(0)[:100]) for t in list(re.finditer(r'<(?:p|hi|title|div)\\b[^>]*>',raw,re.I))[:12]])
+          PY
