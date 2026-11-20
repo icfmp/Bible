@@ -145,6 +145,17 @@ def format_entry(raw,plain,source_type):
         parser.feed(raw);parser.close()
     except Exception:return plain,(),()
     expected=''.join(parser.parts)
+    native_plain=plain
+    # OSISPlain sometimes retains the leading <title> in the plain body,
+    # although Bible presents that same source title as a distinct heading.
+    # Remove only an exact source-authenticated leading title. On any later
+    # alignment failure return the original native text, without data loss.
+    for title in parser.titles:
+        leading=len(plain)-len(plain.lstrip())
+        if plain[leading:].startswith(title):
+            plain=plain[leading+len(title):]
+        else:
+            break
     generated={marker for _,first,_,_,last in parser.emphasis for marker in (first,last)}
     # Native OSISPlain has one suspension buffer for nested hi elements, so
     # their generated stars can collect at a different emphasis boundary.
@@ -152,7 +163,7 @@ def format_entry(raw,plain,source_type):
     # number of generated decorations, at actual source emphasis boundaries.
     left=[i for i,c in enumerate(expected) if not c.isspace() and c!='*']
     right=[i for i,c in enumerate(plain) if not c.isspace() and c!='*']
-    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return plain,(),()
+    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return native_plain,(),()
     literals=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
     for index,char in enumerate(expected):
         if char.isspace():continue
@@ -165,11 +176,11 @@ def format_entry(raw,plain,source_type):
         if char.isspace():continue
         if char=='*':actual[position].append(index)
         else:position+=1
-    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return plain,(),()
+    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return native_plain,(),()
     mapping=dict(zip(left,right));hidden=[]
     for slot in actual.keys()|literals.keys():
         authored=literals[slot];native=actual[slot]
-        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return plain,(),()
+        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return native_plain,(),()
         mapping.update(zip(authored,native))
         hidden.extend(native[len(authored):])
     left=sorted(mapping);right=[mapping[i] for i in left]
@@ -181,13 +192,36 @@ def format_entry(raw,plain,source_type):
     for kind,begin,end in parser.structural:
         content=right[bisect_left(left,begin):bisect_left(left,end)]
         if content:styles.append((kind,content[0],content[-1]+1))
+    # Do not infer paragraph breaks from punctuation. An OSISPlain filter
+    # can join two real <p> elements as 'sentence.Next' with no whitespace.
+    # Insert separators only at verified raw-OSIS structural boundaries.
+    insertions=[]
+    seen=set()
     for boundary,count in parser.paragraphs:
         position=bisect_left(left,boundary)
         if not 0<position<len(right):continue
-        first=right[position-1]+1 if position else 0
-        last=right[position] if position<len(right) else len(plain)
-        for index in range(first,min(last,first+count)):
-            if display[index].isspace():display[index]='\n'
+        first=right[position-1]+1
+        last=right[position]
+        if any(display[index].isspace() for index in range(first,last)):
+            for index in range(first,min(last,first+count)):
+                if display[index].isspace():display[index]='\n'
+        elif count==2 and last not in seen:
+            seen.add(last)
+            insertions.append(last)
+    if insertions:
+        from bisect import bisect_right
+        insertions.sort()
+        original=''.join(display)
+        chunks=[];previous=0
+        for index in insertions:
+            chunks.extend((original[previous:index],'\n\n'))
+            previous=index
+        chunks.append(original[previous:])
+        display=''.join(chunks)
+        styles=[(kind,
+                 start+2*bisect_right(insertions,start),
+                 end+2*bisect_left(insertions,end))
+                for kind,start,end in styles]
     return ''.join(display),tuple(styles),tuple(parser.titles)
 
 
