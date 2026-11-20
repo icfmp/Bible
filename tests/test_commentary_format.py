@@ -36,7 +36,7 @@ class CommentaryFormatTests(unittest.TestCase):
         hidden={i for kind,start,end in styles if kind=='hidden'
                 for i in range(start,end)}
         visible=''.join(c for i,c in enumerate(text) if i not in hidden)
-        self.assertRegex(visible,r'\n\n\\s*Ambition has no limits\\.')
+        self.assertRegex(visible,r'\n\n\s*Ambition has no limits\.')
         self.assertNotIn('* Ambition',visible)
         bold=[text[a:b] for kind,a,b in styles if kind=='bold']
         self.assertEqual(bold,['Ambition has no limits.'])
