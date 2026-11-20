@@ -51,7 +51,7 @@ jobs:
               print('join_'+word, word in plain)
           formatted,styles,titles=format_entry(raw,plain,'OSIS')
           print('formatting_fallback', formatted==plain and not styles and not titles)
-          print('formatted_len',len(formatted),'newline_count',formatted.count('\\n'),'hidden',sum(x[2]-x[1] for x in styles if x[0]=='hidden'),'bold',sum(1 for x in styles if x[0]=='bold'))
+          print('formatted_len',len(formatted),'newline_count',formatted.count('\n'),'hidden',sum(x[2]-x[1] for x in styles if x[0]=='hidden'),'bold',sum(1 for x in styles if x[0]=='bold'))
           from html.parser import HTMLParser
           class Probe(HTMLParser):
               def __init__(self): super().__init__();self.tags=[] 
@@ -75,7 +75,7 @@ jobs:
           assert not (formatted==plain and not styles), 'Unexpected fallback to raw SWORD plain text'
           assert len(parser.emphasis)==4
           assert sum(kind=='bold' for kind,_,_ in styles)==4
-          assert formatted.count('\\n\\n')>=10
+          assert formatted.count('\n\n')>=10
           assert not any(word in formatted for word in ['day.Before','households.Nimrod','neighbors.The','him.Nimrod','hunter.Hunting','dangerous.It','leadership.It'])
           assert 'Nimrod, a mighty hunter' in titles[0]
           print('REAL_PUBLISHED_SWORD_LAYOUT_PASS')
