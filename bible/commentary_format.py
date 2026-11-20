@@ -192,35 +192,43 @@ def format_entry(raw,plain,source_type):
     for kind,begin,end in parser.structural:
         content=right[bisect_left(left,begin):bisect_left(left,end)]
         if content:styles.append((kind,content[0],content[-1]+1))
-    # Do not infer paragraph breaks from punctuation. An OSISPlain filter
-    # can join two real <p> elements as 'sentence.Next' with no whitespace.
-    # Insert separators only at verified raw-OSIS structural boundaries.
-    insertions=[]
-    seen=set()
+    # Translate genuine OSIS paragraph/line boundaries into display breaks.
+    # OSISPlain may collapse <div type="x-p"> into 'day.Before', or keep
+    # only generated emphasis stars between two authorial paragraphs.
+    # Native non-whitespace source characters remain in their exact order.
+    insertions={}
     for boundary,count in parser.paragraphs:
         position=bisect_left(left,boundary)
         if not 0<position<len(right):continue
         first=right[position-1]+1
         last=right[position]
-        if any(display[index].isspace() for index in range(first,last)):
-            for index in range(first,min(last,first+count)):
-                if display[index].isspace():display[index]='\n'
-        elif count==2 and last not in seen:
-            seen.add(last)
-            insertions.append(last)
+        gap=display[first:last]
+        whitespace=[i for i in range(first,last) if display[i].isspace()]
+        if gap and all(char.isspace() for char in gap):
+            # Keep source-provided whitespace offsets when sufficient, as
+            # relied on by legacy Pango selection and paragraph styling.
+            for index in whitespace[:count]:display[index]='\n'
+            if len(whitespace)<count:
+                insertions[last]=max(insertions.get(last,0),count-len(whitespace))
+        else:
+            # The gap either vanished altogether or contains generated
+            # SWORD '*' decorations. Break *before* the decorations, never
+            # between the marker and its source-emphasized content.
+            insertions[first]=max(insertions.get(first,0),count)
     if insertions:
         from bisect import bisect_right
-        insertions.sort()
         original=''.join(display)
+        positions=sorted(insertions)
         chunks=[];previous=0
-        for index in insertions:
-            chunks.extend((original[previous:index],'\n\n'))
+        for index in positions:
+            chunks.extend((original[previous:index],'\n'*insertions[index]))
             previous=index
         chunks.append(original[previous:])
         display=''.join(chunks)
-        styles=[(kind,
-                 start+2*bisect_right(insertions,start),
-                 end+2*bisect_left(insertions,end))
+        def shift(offset,include_at):
+            boundary=bisect_right(positions,offset) if include_at else bisect_left(positions,offset)
+            return sum(insertions[p] for p in positions[:boundary])
+        styles=[(kind,start+shift(start,True),end+shift(end,False))
                 for kind,start,end in styles]
     return ''.join(display),tuple(styles),tuple(parser.titles)
 
