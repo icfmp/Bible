@@ -204,7 +204,7 @@ def format_entry(raw,plain,source_type):
         last=right[position]
         gap=display[first:last]
         whitespace=[i for i in range(first,last) if display[i].isspace()]
-        if gap and all(char.isspace() for char in gap):
+        if len(whitespace)>=count or (gap and all(char.isspace() for char in gap)):
             # Keep source-provided whitespace offsets when sufficient, as
             # relied on by legacy Pango selection and paragraph styling.
             for index in whitespace[:count]:display[index]='\n'
