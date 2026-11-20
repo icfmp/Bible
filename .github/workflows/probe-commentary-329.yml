@@ -4,6 +4,8 @@ on:
     branches: [fix/commentary-osis-paragraphs-emphasis-329]
     paths:
       - '.github/workflows/probe-commentary-329.yml'
+      - 'bible/commentary_format.py'
+      - 'tests/test_commentary_format.py'
 permissions:
   contents: read
 jobs:
@@ -21,6 +23,9 @@ jobs:
           echo 'dd1940b3bf85cc09659b634dc74c9a9d8810816bc2f8316a8293f893c3eb94ee  /tmp/hmcc-0.1.0.zip' | sha256sum -c -
           mkdir -p /tmp/sword-hmcc
           unzip -q /tmp/hmcc-0.1.0.zip -d /tmp/sword-hmcc
+      - name: Run source-verified commentary formatting unit regressions
+        run: |
+          /usr/bin/python3 -m unittest tests.test_commentary_format.CommentaryFormatTests -v
       - name: Read real native OSIS and filtered text without publishing content
         env:
           SWORD_PATH: /tmp/sword-hmcc
@@ -65,4 +70,13 @@ jobs:
               first=next((i for i in range(min(len(a),len(b))) if a[i]!=b[i]),min(len(a),len(b)))
               print('first_core_difference',first,'expected_context',repr(a[max(0,first-35):first+50]),'plain_context',repr(b[max(0,first-35):first+50]))
           print('plain_stars',plain.count('*'),'expected_stars',expected.count('*'))
+          # This exact released module is the regression fixture, not a
+          # hand-made replacement for what SWORD really emits.
+          assert not (formatted==plain and not styles), 'Unexpected fallback to raw SWORD plain text'
+          assert len(parser.emphasis)==4
+          assert sum(kind=='bold' for kind,_,_ in styles)==4
+          assert formatted.count('\\n\\n')>=10
+          assert not any(word in formatted for word in ['day.Before','households.Nimrod','neighbors.The','him.Nimrod','hunter.Hunting','dangerous.It','leadership.It'])
+          assert 'Nimrod, a mighty hunter' in titles[0]
+          print('REAL_PUBLISHED_SWORD_LAYOUT_PASS')
           PY
