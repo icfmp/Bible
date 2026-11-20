@@ -1,4 +1,4 @@
-"""Verified OSIS styling without changing legacy plain-body character offsets."""
+"""Source-verified SWORD markup styling with exact display-offset remapping."""
 from bisect import bisect_left
 from html.parser import HTMLParser
 import re
@@ -132,11 +132,13 @@ class InlineOSIS(HTMLParser):
 
 
 def format_entry(raw,plain,source_type):
-    """Return same-length body, typed ranges and real source headings.
+    """Return a faithfully aligned display body, style spans and source headings.
 
-    SWORD OSISPlain inserts stars around hi elements. Validate source characters,
-    literal stars and bounded generated markers before hiding decorations.
-    Unknown conversions fall back to native text.
+    SWORD OSISPlain may prepend source titles, synthesize stars for <hi> tags,
+    and discard even the space between genuine OSIS paragraphs. Verify exact
+    non-whitespace source content before reconstructing any semantic boundary.
+    Inserted display separators remap source styling offsets; invalid markup
+    or unsupported conversions return the unchanged native SWORD text.
     """
     if source_type not in {'OSIS','ThML'} or len(raw)>2*1024*1024:return plain,(),()
     parser=InlineOSIS(source_type)
@@ -145,6 +147,17 @@ def format_entry(raw,plain,source_type):
         parser.feed(raw);parser.close()
     except Exception:return plain,(),()
     expected=''.join(parser.parts)
+    native_plain=plain
+    # OSISPlain sometimes retains the leading <title> in the plain body,
+    # although Bible presents that same source title as a distinct heading.
+    # Remove only an exact source-authenticated leading title. On any later
+    # alignment failure return the original native text, without data loss.
+    for title in parser.titles:
+        leading=len(plain)-len(plain.lstrip())
+        if plain[leading:].startswith(title):
+            plain=plain[leading+len(title):]
+        else:
+            break
     generated={marker for _,first,_,_,last in parser.emphasis for marker in (first,last)}
     # Native OSISPlain has one suspension buffer for nested hi elements, so
     # their generated stars can collect at a different emphasis boundary.
@@ -152,7 +165,7 @@ def format_entry(raw,plain,source_type):
     # number of generated decorations, at actual source emphasis boundaries.
     left=[i for i,c in enumerate(expected) if not c.isspace() and c!='*']
     right=[i for i,c in enumerate(plain) if not c.isspace() and c!='*']
-    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return plain,(),()
+    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return native_plain,(),()
     literals=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
     for index,char in enumerate(expected):
         if char.isspace():continue
@@ -165,11 +178,11 @@ def format_entry(raw,plain,source_type):
         if char.isspace():continue
         if char=='*':actual[position].append(index)
         else:position+=1
-    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return plain,(),()
+    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return native_plain,(),()
     mapping=dict(zip(left,right));hidden=[]
     for slot in actual.keys()|literals.keys():
         authored=literals[slot];native=actual[slot]
-        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return plain,(),()
+        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return native_plain,(),()
         mapping.update(zip(authored,native))
         hidden.extend(native[len(authored):])
     left=sorted(mapping);right=[mapping[i] for i in left]
@@ -181,13 +194,44 @@ def format_entry(raw,plain,source_type):
     for kind,begin,end in parser.structural:
         content=right[bisect_left(left,begin):bisect_left(left,end)]
         if content:styles.append((kind,content[0],content[-1]+1))
+    # Translate genuine OSIS paragraph/line boundaries into display breaks.
+    # OSISPlain may collapse <div type="x-p"> into 'day.Before', or keep
+    # only generated emphasis stars between two authorial paragraphs.
+    # Native non-whitespace source characters remain in their exact order.
+    insertions={}
     for boundary,count in parser.paragraphs:
         position=bisect_left(left,boundary)
         if not 0<position<len(right):continue
-        first=right[position-1]+1 if position else 0
-        last=right[position] if position<len(right) else len(plain)
-        for index in range(first,min(last,first+count)):
-            if display[index].isspace():display[index]='\n'
+        first=right[position-1]+1
+        last=right[position]
+        gap=display[first:last]
+        whitespace=[i for i in range(first,last) if display[i].isspace()]
+        if len(whitespace)>=count or (gap and all(char.isspace() for char in gap)):
+            # Keep source-provided whitespace offsets when sufficient, as
+            # relied on by legacy Pango selection and paragraph styling.
+            for index in whitespace[:count]:display[index]='\n'
+            if len(whitespace)<count:
+                insertions[last]=max(insertions.get(last,0),count-len(whitespace))
+        else:
+            # The gap either vanished altogether or contains generated
+            # SWORD '*' decorations. Break *before* the decorations, never
+            # between the marker and its source-emphasized content.
+            insertions[first]=max(insertions.get(first,0),count)
+    if insertions:
+        from bisect import bisect_right
+        original=''.join(display)
+        positions=sorted(insertions)
+        chunks=[];previous=0
+        for index in positions:
+            chunks.extend((original[previous:index],'\n'*insertions[index]))
+            previous=index
+        chunks.append(original[previous:])
+        display=''.join(chunks)
+        def shift(offset,include_at):
+            boundary=bisect_right(positions,offset) if include_at else bisect_left(positions,offset)
+            return sum(insertions[p] for p in positions[:boundary])
+        styles=[(kind,start+shift(start,True),end+shift(end,False))
+                for kind,start,end in styles]
     return ''.join(display),tuple(styles),tuple(parser.titles)
 
 
