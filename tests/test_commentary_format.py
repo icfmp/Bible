@@ -15,6 +15,47 @@ class CommentaryFormatTests(unittest.TestCase):
         for unsafe in [plain+'*',plain.replace('dusty,','different,'),plain.replace('choikos','choi*kos')]:
             self.assertEqual(format_entry(raw,unsafe,'OSIS'),(unsafe,(),()))
 
+    def test_realistic_osis_compacted_title_paragraphs_and_bold_markers(self):
+        # SWORD OSISPlain can prepend the source heading and concatenate
+        # adjacent paragraph text without even one separating space.
+        title='Nimrod, a mighty hunter (verses 8–14)'
+        raw=('<div type="section" annotateType="commentary" annotateRef="Gen.10.8-Gen.10.14">'
+             '<title>'+title+'</title>'
+             '<div type="x-p" sID="a"/>Nimrod became powerful.<div type="x-p" eID="a"/>'
+             '<div type="x-p" sID="b"/>Before him, things were different.<div type="x-p" eID="b"/>'
+             '<div type="x-p" sID="c"/>'
+             '<hi type="bold">Ambition has no limits.</hi> It grows.'
+             '<div type="x-p" eID="c"/></div>')
+        native=(title+'Nimrod became powerful.Before him, things were different.'
+                '* Ambition has no limits. * It grows.')
+        text,styles,titles=format_entry(raw,native,'OSIS')
+        self.assertEqual(titles,(title,))
+        self.assertNotIn(title,text)
+        self.assertIn('Nimrod became powerful.\\n\\nBefore him',text)
+        self.assertIn('different.\\n\\n* Ambition',text)
+        hidden={i for kind,start,end in styles if kind=='hidden'
+                for i in range(start,end)}
+        visible=''.join(c for i,c in enumerate(text) if i not in hidden)
+        self.assertIn('\\n\\nAmbition has no limits.',visible)
+        self.assertNotIn('* Ambition',visible)
+        bold=[text[a:b] for kind,a,b in styles if kind=='bold']
+        self.assertEqual(bold,['Ambition has no limits.'])
+        # Every authorial non-whitespace character survives in its exact order.
+        self.assertEqual(''.join(visible.split()),
+            ''.join(('Nimrod became powerful.Before him, things were different.'
+                     'Ambition has no limits. It grows.').split()))
+
+    def test_osis_title_alignment_failure_returns_original_native_body(self):
+        raw='<title>Source heading</title><p>Actual body.</p>'
+        native='Source headingDifferent filtered content * literal.'
+        self.assertEqual(format_entry(raw,native,'OSIS'),(native,(),()))
+
+    def test_no_invented_break_without_original_osis_paragraph_element(self):
+        raw='First sentence.Second sentence.'
+        plain='First sentence.Second sentence.'
+        text,styles,titles=format_entry(raw,plain,'OSIS')
+        self.assertEqual((text,styles,titles),(plain,(),()))
+
     def test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles(self):
         from bible.commentary_format import preverse_layout
         raw=('<div type="x-milestone" subType="x-preverse" sID="pv1"/>'
