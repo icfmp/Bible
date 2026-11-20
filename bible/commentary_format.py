@@ -1,4 +1,4 @@
-"""Verified OSIS styling without changing legacy plain-body character offsets."""
+"""Source-verified SWORD markup styling with exact display-offset remapping."""
 from bisect import bisect_left
 from html.parser import HTMLParser
 import re
@@ -132,11 +132,13 @@ class InlineOSIS(HTMLParser):
 
 
 def format_entry(raw,plain,source_type):
-    """Return same-length body, typed ranges and real source headings.
+    """Return a faithfully aligned display body, style spans and source headings.
 
-    SWORD OSISPlain inserts stars around hi elements. Validate source characters,
-    literal stars and bounded generated markers before hiding decorations.
-    Unknown conversions fall back to native text.
+    SWORD OSISPlain may prepend source titles, synthesize stars for <hi> tags,
+    and discard even the space between genuine OSIS paragraphs. Verify exact
+    non-whitespace source content before reconstructing any semantic boundary.
+    Inserted display separators remap source styling offsets; invalid markup
+    or unsupported conversions return the unchanged native SWORD text.
     """
     if source_type not in {'OSIS','ThML'} or len(raw)>2*1024*1024:return plain,(),()
     parser=InlineOSIS(source_type)
