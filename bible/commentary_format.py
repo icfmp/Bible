@@ -1,6 +1,7 @@
 """Verified OSIS styling without changing legacy plain-body character offsets."""
 from bisect import bisect_left
 from html.parser import HTMLParser
+from html import unescape
 import re
 from collections import defaultdict
 
@@ -67,9 +68,11 @@ class InlineOSIS(HTMLParser):
     CDATA_CONTENT_ELEMENTS=('script','style')
     RCDATA_CONTENT_ELEMENTS=()
 
-    def __init__(self,source_type='OSIS'):
-        super().__init__(convert_charrefs=True)
+    def __init__(self,source_type='OSIS',*,inline_titles=False,native_numeric_entities=False):
+        super().__init__(convert_charrefs=not native_numeric_entities)
         self.source_type=source_type
+        self.inline_titles=inline_titles
+        self.native_numeric_entities=native_numeric_entities
         self.parts=[];self.length=0;self.emphasis=[];self.stack=[];self.paragraphs=[]
         self.title=0;self.title_parts=[];self.titles=[];self.hidden=0
         self.structural=[];self.structure_stack=[]
@@ -82,7 +85,10 @@ class InlineOSIS(HTMLParser):
         if self.hidden:return
         if values.get('eid'):
             self.handle_endtag(tag);return
-        if tag=='title' and self.source_type=='OSIS':self.title+=1;return
+        if tag=='title' and self.source_type=='OSIS':
+            if self.inline_titles:self.structure_stack.append((tag,'heading',self.length))
+            else:self.title+=1
+            return
         if self.title:return
         if tag=='hi':
             start=self.length;self.append('* ')
@@ -105,7 +111,7 @@ class InlineOSIS(HTMLParser):
     def handle_endtag(self,tag):
         if tag in {'script','style','note'}:self.hidden=max(0,self.hidden-1);return
         if self.hidden:return
-        if tag=='title' and self.source_type=='OSIS':
+        if tag=='title' and self.source_type=='OSIS' and not self.inline_titles:
             self.title=max(0,self.title-1)
             if not self.title:
                 value=''.join(self.title_parts).strip();self.title_parts=[]
@@ -130,6 +136,13 @@ class InlineOSIS(HTMLParser):
         if self.title:self.title_parts.append(text)
         else:self.append(text)
 
+    def handle_entityref(self,name):self.handle_data(unescape('&'+name+';'))
+    def handle_charref(self,name):
+        # SWORD OSISPlain drops numeric entity tokens, unlike named XML
+        # entities. Verify this native form without repairing missing text or
+        # treating an authored literal "&amp;#...;" as a numeric token.
+        if not self.native_numeric_entities:self.handle_data(unescape('&#'+name+';'))
+
 
 def format_entry(raw,plain,source_type):
     """Return same-length body, typed ranges and real source headings.
@@ -139,11 +152,38 @@ def format_entry(raw,plain,source_type):
     Unknown conversions fall back to native text.
     """
     if source_type not in {'OSIS','ThML'} or len(raw)>2*1024*1024:return plain,(),()
-    parser=InlineOSIS(source_type)
-    try:
-        if source_type=='OSIS':raw,_=split_preverse(raw)
-        parser.feed(raw);parser.close()
+    try:body,_=split_preverse(raw) if source_type=='OSIS' else (raw,'')
     except Exception:return plain,(),()
+    variants=[(body,False)]
+    # OSISPlain may include or exclude titles according to the module's
+    # registered heading filters. Accept only a complete source/native match;
+    # an inline source title must not be mistaken for unknown body content.
+    if source_type=='OSIS':variants.append((body,True))
+    if source_type=='OSIS' and body!=raw:
+        # Other modules retain the complete source preface in native output.
+        # Style it only if every character/marker verifies against that output.
+        variants.append((raw,True))
+    modes=[(False,False)]
+    if source_type=='OSIS' and re.search(r'&#(?:[0-9]+|[xX][0-9a-fA-F]+);',raw):modes.append((True,False))
+    if source_type=='OSIS' and re.search(r'&amp;#(?:[0-9]+|[xX][0-9a-fA-F]+);',raw):modes.append((True,True))
+    for native_entities,nested_amp in modes:
+        for source,inline_titles in variants:
+            result=_verified_entry(source,plain,source_type,inline_titles=inline_titles,native_numeric_entities=native_entities,nested_amp=nested_amp)
+            if result is not None:return result
+    return plain,(),()
+
+
+def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_entities=False,nested_amp=False):
+    if nested_amp:
+        # Some native filter pipelines also process a nested numeric escape's
+        # ampersand. This is only a verification candidate: accept it solely
+        # when the complete unchanged native output matches. Never decode or
+        # reconstruct the absent accented character in displayed/copy text.
+        raw=re.sub(r'&amp;(?=\#(?:[0-9]+|[xX][0-9a-fA-F]+);)','&#38;',raw)
+    parser=InlineOSIS(source_type,inline_titles=inline_titles,native_numeric_entities=native_numeric_entities)
+    try:
+        parser.feed(raw);parser.close()
+    except Exception:return None
     expected=''.join(parser.parts)
     generated={marker for _,first,_,_,last in parser.emphasis for marker in (first,last)}
     # Native OSISPlain has one suspension buffer for nested hi elements, so
@@ -152,7 +192,7 @@ def format_entry(raw,plain,source_type):
     # number of generated decorations, at actual source emphasis boundaries.
     left=[i for i,c in enumerate(expected) if not c.isspace() and c!='*']
     right=[i for i,c in enumerate(plain) if not c.isspace() and c!='*']
-    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return plain,(),()
+    if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return None
     literals=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
     for index,char in enumerate(expected):
         if char.isspace():continue
@@ -165,11 +205,11 @@ def format_entry(raw,plain,source_type):
         if char.isspace():continue
         if char=='*':actual[position].append(index)
         else:position+=1
-    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return plain,(),()
+    if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return None
     mapping=dict(zip(left,right));hidden=[]
     for slot in actual.keys()|literals.keys():
         authored=literals[slot];native=actual[slot]
-        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return plain,(),()
+        if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return None
         mapping.update(zip(authored,native))
         hidden.extend(native[len(authored):])
     left=sorted(mapping);right=[mapping[i] for i in left]

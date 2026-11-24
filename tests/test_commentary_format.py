@@ -3,6 +3,47 @@ from bible.commentary_format import format_entry
 
 
 class CommentaryFormatTests(unittest.TestCase):
+    def test_native_numeric_entity_filter_keeps_provenance_and_literal_sequences(self):
+        raw='<title>Source title</title><hi type="italic">A&amp;B; named &amp;#224; numeric &#38;#224; proper &#224;.</hi>'
+        native='Source title * A&B; named &#224; numeric #224; proper . *'
+        text,styles,titles=format_entry(raw,native,'OSIS')
+        hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
+        self.assertEqual(''.join(c for i,c in enumerate(text) if i not in hidden),native.replace('*',''))
+        self.assertEqual(len(hidden),2);self.assertEqual(titles,())
+        self.assertIn('named &#224;',text);self.assertIn('numeric #224;',text)
+        nested='<hi type="italic">litera &amp;#224; qu&amp;#226; words</hi>'
+        native_nested='* litera #224; qu#226; words *'
+        value,ranges,_=format_entry(nested,native_nested,'OSIS')
+        self.assertEqual(value,native_nested)
+        self.assertEqual(sum(b-a for kind,a,b in ranges if kind=='hidden'),2)
+        # An authored sequence retained by a different filter remains exact.
+        retained='* litera &#224; qu&#226; words *'
+        self.assertEqual(format_entry(nested,retained,'OSIS')[0],retained)
+        changed=native.replace('Source title','Another title')
+        self.assertEqual(format_entry(raw,changed,'OSIS'),(changed,(),()))
+
+    def test_real_mhc_title_kept_by_native_filter_does_not_force_raw_stars_fallback(self):
+        # Bible Resources MHC 0.1.0, derived from public-domain CrossWire 2.2,
+        # Genesis 1:9–13: bounded literal source/native excerpt, not test prose
+        # inserted into a resource. Its heading filter retains the OSIS title.
+        raw=('<div eID="gen38" type="x-p"/> <title type="x-s3">The Creation. '
+             '(<hi type="small-caps">b. c.</hi> 4004.)</title> <div sID="gen39" type="x-p"/> '
+             '<hi type="super">9</hi> And God said, Let the waters under the heaven be gathered '
+             'together unto one place, and let the dry <hi type="italic">land</hi> appear: and it was so.')
+        native=(' The Creation. (* b. c. * 4004.)\n  * 9 * And God said, Let the waters under the heaven '
+                'be gathered together unto one place, and let the dry * land * appear: and it was so.')
+        text,styles,titles=format_entry(raw,native,'OSIS')
+        hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
+        visible=''.join(c for i,c in enumerate(text) if i not in hidden)
+        self.assertEqual(len(text),len(native));self.assertEqual(titles,())
+        self.assertEqual(len(hidden),6);self.assertNotIn('*',visible)
+        self.assertTrue(any(kind=='heading' and 'The Creation.' in text[a:b] for kind,a,b in styles))
+        self.assertTrue(any(kind=='italic' and text[a:b]=='land' for kind,a,b in styles))
+        self.assertTrue(any(kind=='small-caps' and text[a:b]=='b. c.' for kind,a,b in styles))
+        self.assertTrue(format_entry(raw+' *authored*',native+' *authored*','OSIS')[0].endswith('*authored*'))
+        changed=native.replace('waters','different words')
+        self.assertEqual(format_entry(raw,changed,'OSIS'),(changed,(),()))
+
     def test_nested_native_markers_keep_literal_stars_and_semantic_emphasis(self):
         raw='<hi type="italic"><hi type="small-caps">choikos</hi></hi>—<hi type="italic">dusty,</hi> *literal*'
         plain='* choikos * * *—* dusty, * *literal*'
@@ -14,6 +55,19 @@ class CommentaryFormatTests(unittest.TestCase):
         self.assertTrue(any(kind=='small-caps' for kind,_,_ in styles))
         for unsafe in [plain+'*',plain.replace('dusty,','different,'),plain.replace('choikos','choi*kos')]:
             self.assertEqual(format_entry(raw,unsafe,'OSIS'),(unsafe,(),()))
+
+    def test_native_filter_retaining_source_preface_keeps_literal_stars(self):
+        raw=('<div subType="x-preverse" sID="pv1"/><title>PREFACE</title>'
+             '<p>Source <hi type="italic">foreword</hi> with *literal*.</p>'
+             '<div subType="x-preverse" eID="pv1"/><title>Body title</title>'
+             '<hi type="super">1</hi> Body words.')
+        plain='PREFACE  Source * foreword * with *literal*. Body title * 1 * Body words.'
+        text,styles,titles=format_entry(raw,plain,'OSIS')
+        hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
+        visible=''.join(c for i,c in enumerate(text) if i not in hidden)
+        self.assertEqual(len(hidden),4);self.assertIn('*literal*',visible)
+        self.assertIn('foreword',visible);self.assertIn('Body title',visible)
+        self.assertEqual(titles,());self.assertEqual(len(text),len(plain))
 
     def test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles(self):
         from bible.commentary_format import preverse_layout

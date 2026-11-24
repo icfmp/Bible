@@ -140,7 +140,7 @@ class Labels(Gtk.Box):
 
 
 class NoteEditor(Adw.Window):
-    def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False):
+    def __init__(self, owner, note=None, context=None, explanation='', embedded=False, compact=False, open_passage=None):
         super().__init__(transient_for=owner, modal=True, title=tr('Edit note') if note else tr('New note'),
                          default_width=700, default_height=600)
         self.set_size_request(360, 360)
@@ -178,6 +178,13 @@ class NoteEditor(Adw.Window):
         reference.add_css_class('heading');reference.set_hexpand(True)
         self.reference_row=Gtk.Box(spacing=8,margin_start=4,margin_end=12)
         self.reference_row.append(reference);layout.append(self.reference_row)
+        self.open_button=None
+        if open_passage is not None:
+            self.open_button=Gtk.Button(icon_name='go-jump-symbolic',tooltip_text=tr('Open in Bible'),valign=Gtk.Align.CENTER)
+            self.open_button.add_css_class('flat')
+            self.open_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Open in Bible')])
+            self.open_button.connect('clicked',lambda *_:open_passage())
+            self.reference_row.append(self.open_button)
         origin=self.context['origin_translation']
         try:origin=owner.library.resource(origin).description
         except (ValueError,OSError):pass
@@ -196,6 +203,7 @@ class NoteEditor(Adw.Window):
         for widget in (self.reference_row,context_label,self.excerpt):
             layout.remove(widget);widget.set_margin_start(0);widget.set_margin_end(0);widget.set_margin_top(0)
             self.scripture_context.append(widget)
+        reference.set_margin_start(0);reference.set_margin_end(0);reference.set_margin_top(0)
         layout.insert_child_after(self.scripture_context,header)
         self.status = Gtk.Label(label=explanation, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True,
                                  xalign=0, margin_start=12, margin_end=12)
@@ -219,7 +227,8 @@ class NoteEditor(Adw.Window):
         layout.append(commands)
         from .note_editing import NoteTextView
         self.body = NoteTextView(owner,self.context['versification'],self.guard_navigation)
-        self.body.set_left_margin(6);self.body.set_right_margin(6)
+        self.body.set_left_margin(10);self.body.set_right_margin(10)
+        self.body.set_top_margin(14);self.body.set_bottom_margin(14)
         self.body.add_css_class('study-content')
         self.body.update_property([Gtk.AccessibleProperty.LABEL], [tr('Note text')])
         self.body.set_source(note.body if note else '')
@@ -260,15 +269,8 @@ class NoteEditor(Adw.Window):
             if self.actions_menu:self.actions_menu.popdown()
             self.ask_delete()
         self.delete_button.connect('clicked',delete)
-        if embedded:
-            self.actions_menu=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Note actions'),visible=bool(note))
-            self.actions_menu.add_css_class('flat')
-            self.actions_menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Note actions')])
-            popover=Gtk.Popover();popover.set_child(self.delete_button)
-            self.actions_menu.set_popover(popover);header.pack_start(self.actions_menu)
-        else:
-            self.delete_button.set_halign(Gtk.Align.START);self.delete_button.set_margin_start(12)
-            self.delete_button.set_margin_top(8);layout.append(self.delete_button)
+        self.delete_button.set_halign(Gtk.Align.START);self.delete_button.set_margin_start(12)
+        self.delete_button.set_margin_top(8);layout.append(self.delete_button)
         self.embedded_content=layout
         if not embedded:self.use_window_layout()
         self._initial = (buffer_text(self.body), tuple(self.labels.values),self.links.values)
@@ -298,14 +300,24 @@ class NoteEditor(Adw.Window):
         layout.set_margin_bottom(0)
         if self.header.get_parent() is layout:layout.remove(self.header)
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);root.append(self.header)
-        self.writing.set_vexpand(True);self.body_scroll.set_vexpand(True)
-        layout.set_vexpand(True)
+        # A standalone editor has one natural-height content scroller. Extra
+        # window height must not stretch a short draft and displace metadata.
+        for widget in (self.writing,self.writing_frame,self.writing_frame.get_child(),self.body_scroll,layout):
+            widget.set_vexpand(False)
+        layout.set_valign(Gtk.Align.START)
+        self.body_scroll.set_max_content_height(-1)
+        self.body_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
         scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
         # Place insets *outside* the scrollable layout. Child margins were
         # consumed by the viewport and could disappear at both window edges.
-        scroll.set_margin_top(12 if expanded else 8)
+        scroll.set_margin_top(4)
+        self.scripture_context.set_margin_top(0)
         scroll.set_margin_bottom(16 if expanded else 12)
-        scroll.set_child(layout);root.append(scroll);self.set_content(root)
+        scroll.set_child(layout)
+        # The viewport must allocate natural content height; using its minimum
+        # compresses the inner text view and creates a second competing scroll.
+        scroll.get_child().set_vscroll_policy(Gtk.ScrollablePolicy.NATURAL)
+        root.append(scroll);self.set_content(root)
 
     def guard_navigation(self,action):
         self.after_close=action;self.close()
@@ -900,6 +912,7 @@ class NotesSpace(Gtk.Box):
         self.selection.set_selected(selected)
         self._version=a.origin
         text,description,available=self.excerpt_for(a);self.excerpt.set_text(text);self.excerpt_caption.set_text(description);self.open_button.set_sensitive(available)
+        if self.editor and self.editor.open_button:self.editor.open_button.set_sensitive(available)
         self.excerpt.set_visible(not bool(a.note));self.excerpt_caption.set_visible(not bool(a.note))
         while self.related.get_first_child():self.related.remove(self.related.get_first_child())
         try:reader=self.reader()
@@ -963,31 +976,25 @@ class NotesSpace(Gtk.Box):
 
     def mount(self,note):
         if note is None:return
-        editor=NoteEditor(self.owner,note=note,embedded=True);editor.embedded_host=self
+        editor=NoteEditor(self.owner,note=note,embedded=True,open_passage=self.open_passage);editor.embedded_host=self
         editor.embedded_content.set_vexpand(True)
         editor.writing.set_vexpand(True);editor.body_scroll.set_vexpand(True)
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
         self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
         from .annotation_collection import records
         self.update_context(records([note],[])[0])
-        parent=self.open_button.get_parent()
-        if parent:parent.remove(self.open_button)
-        editor.reference_row.append(self.open_button)
-        editor.header.remove(editor.actions_menu);editor.reference_row.append(editor.actions_menu)
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
         def focus():
             if self.editor is editor and not editor.closed and editor.body.get_mapped():
                 # Start at the detail's context, keeping its first controls
                 # visible instead of scrolling a short window to the editor.
-                (self.detail_back if self.split.get_collapsed() else self.open_button).grab_focus()
+                (self.detail_back if self.split.get_collapsed() else editor.open_button).grab_focus()
                 self.detail_scroll.get_vadjustment().set_value(0)
             return False
         GLib.idle_add(focus);return editor
 
     def editor_closed(self,editor):
-        if self.open_button.get_parent() is editor.reference_row:
-            editor.reference_row.remove(self.open_button);self.context_panel.prepend(self.open_button)
         parent=editor.embedded_content.get_parent()
         if parent:parent.remove(editor.embedded_content)
         if self.editor is editor:

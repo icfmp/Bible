@@ -32,7 +32,7 @@ class PassageLinks(Gtk.Box):
         self.primary=PassageLink(context['versification'],context['start'],context['end'])
         from .notes_window import metadata_row
         self.row,header=metadata_row('Linked passages','insert-link-symbolic')
-        self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=12,margin_end=12)
+        self.rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         self.revealer=Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.NONE)
         self.revealer.set_child(self.rows)
         self.disclosure=Gtk.ToggleButton(icon_name='pan-down-symbolic',tooltip_text=tr('Show linked passages'),valign=Gtk.Align.CENTER)
@@ -131,11 +131,11 @@ class PassageLinks(Gtk.Box):
         from .reference_targets import Canon
         return Canon(self.context['versification'])
 
-    def card(self,link,reader=None):
+    def card(self,link,reader=None,*,compound=False):
         """The saved origin is the only source of Scripture in this editor."""
         from .passage_card import passage_card
         from .notes_window import passage_label
-        card=passage_card();title,text=card._reference_labels
+        card=passage_card(compound=compound);title,text=card._reference_labels
         title.set_text(passage_label(link.start,link.end,link.versification))
         origin=self.context['origin_translation'];root=self.owner.library.root/origin
         try:
@@ -176,13 +176,14 @@ class PassageLinks(Gtk.Box):
         from .notes_window import passage_label
         while self.rows.get_first_child():self.rows.remove(self.rows.get_first_child())
         for link in self.values:
-            row=Gtk.Box(spacing=6)
-            card=self.card(link);card.set_hexpand(True)
-            card.connect('clicked',lambda button:self.owner.navigate_selection(*button._target) if button._target else None)
-            row.append(card)
-            remove=Gtk.Button(icon_name='list-remove-symbolic',tooltip_text=tr('Remove linked passage'))
-            remove.add_css_class('flat');remove.update_property([Gtk.AccessibleProperty.LABEL],[tr('Remove linked passage')+': '+passage_label(link.start,link.end,link.versification)])
-            remove.connect('clicked',lambda *_,value=link:self.remove(value));row.append(remove);self.rows.append(row)
+            card=self.card(link,compound=True);card.set_hexpand(True);card.add_css_class('study-action-card')
+            label=tr('Unlink passage')+': '+passage_label(link.start,link.end,link.versification)
+            remove=Gtk.Button(icon_name='edit-clear-symbolic',tooltip_text=label,valign=Gtk.Align.CENTER)
+            remove.add_css_class('flat');remove.update_property([Gtk.AccessibleProperty.LABEL],[label])
+            remove.connect('clicked',lambda *_,value=link:self.remove(value));card.unlink_button=remove
+            from .passage_card import bind_card_actions
+            bind_card_actions(card,lambda value=card:self.owner.navigate_selection(*value._target) if value._target else None,secondary=remove)
+            self.rows.append(card)
         self.row.set_subtitle(str(len(self.values)))
         self.disclosure.set_sensitive(bool(self.values))
         if not self.values:self.disclosure.set_active(False)
