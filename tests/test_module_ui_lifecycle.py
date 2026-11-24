@@ -9,6 +9,18 @@ from tests.test_ui import spin,close_test_dialogs
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires actual GTK/SWORD')
 class ModuleUILifecycleTests(unittest.TestCase):
+    def test_source_links_deduplicate_only_identical_destinations(self):
+        from bible.i18n import tr
+        actual=self.library.resource(self.old.id);dialog=self.dialog
+        for text_url,same in [(actual.source_url,True),('https://example.org/original-text',False)]:
+            resource=replace(actual,text_source=text_url)
+            with patch.object(dialog,'selected_resource',return_value=resource),patch.object(dialog,'installed_resource',return_value=resource):dialog.selection_changed()
+            self.assertEqual(dialog._source_link.get_uri(),actual.source_url)
+            self.assertEqual(dialog.text_source_row.get_visible(),not same)
+            self.assertEqual(dialog.source_row.get_title(),tr('Source and text source') if same else tr('Source'))
+            if same:self.assertIsNone(dialog._text_source_link)
+            else:self.assertEqual(dialog._text_source_link.get_uri(),text_url)
+
     def setUp(self):
         from bible.ui import Application,Window,Library
         from bible.providers import CROSSWIRE

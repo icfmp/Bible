@@ -3,6 +3,23 @@ import locale
 import os
 
 FR = {
+    'Rights holder':'Titulaire des droits',
+    'Copyright':'Copyright',
+    'Conditions':'Conditions',
+    'Contact':'Contact',
+    'Contact name':'Nom du contact',
+    'Contact address':'Adresse du contact',
+    'Copyright date':'Date de copyright',
+    'Copyright notice':'Mention de copyright',
+    'Distribution conditions':'Conditions de distribution',
+    'Original source notice':'Mention originale de la source',
+    'Source and text source':'Source et source du texte',
+    'Open source catalogue':'Consulter le catalogue source',
+    'Open original text':'Consulter la source du texte',
+    'Commentary':'Commentaire',
+    'Study resource':'Ressource d’étude',
+    'Original translation unavailable.':'Traduction d’origine indisponible.',
+    'Unlink passage':'Dissocier ce passage',
     'Quit':'Quitter',
     'Application':'Application',
     'Updating references…':'Mise à jour des renvois…',

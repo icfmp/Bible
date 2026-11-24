@@ -1,0 +1,42 @@
+{
+  "source": "/workspace/bible-notes-batch/bible/ui.py",
+  "captures": [
+    "Gen-18-16.png",
+    "Ps-12-6.png",
+    "Gen-11-4.png"
+  ],
+  "cases": [
+    {
+      "start": "Gen.18.16",
+      "body_insets": [
+        10,
+        10,
+        14,
+        14
+      ],
+      "menu": false
+    },
+    {
+      "start": "Ps.12.6",
+      "body_insets": [
+        10,
+        10,
+        14,
+        14
+      ],
+      "menu": false
+    },
+    {
+      "start": "Gen.11.4",
+      "body_insets": [
+        10,
+        10,
+        14,
+        14
+      ],
+      "menu": false
+    }
+  ],
+  "modules_unchanged": true,
+  "notes_unchanged": true
+}

@@ -217,8 +217,7 @@ class CatalogueWindow(Adw.Window):
         self.download_button.connect('clicked',self.download_action)
         self.primary_actions.append(self.download_button);detail.append(self.primary_actions)
 
-        self.description_group=Adw.PreferencesGroup(title=tr('Description'),
-            description=tr('Description and notices supplied by the source.'))
+        self.description_group=Adw.PreferencesGroup(title=tr('Description'))
         self.about_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                   selectable=True,width_chars=1)
         self.description_group.add(self.about_text);detail.append(self.description_group)
@@ -242,6 +241,8 @@ class CatalogueWindow(Adw.Window):
         self.conditions_text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                        selectable=True,width_chars=1,margin_top=8)
         self.license_group.add(self.conditions_text);detail.append(self.license_group)
+        self.conditions_links=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        self.license_group.add(self.conditions_links)
         self.technical=Adw.ExpanderRow(title=tr('Technical details'))
         self.metadata=MetadataLabel(xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                                     selectable=True,width_chars=1)
@@ -793,9 +794,9 @@ class CatalogueWindow(Adw.Window):
         self.detail_title.set_text(plain(resource.description) if resource else tr('No matching resource.'))
         self.detail_subtitle.set_text((resource.source+' · '+self.language_label(resource.language)) if resource else '')
         values=({
-            'type':tr({'commentary':'Commentaries','study':'Study resources',
-                       'dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bibles')),
-            'language':language_name(resource.language),
+            'type':tr({'commentary':'Commentary','study':'Study resource',
+                       'dictionary':'Dictionary or lexicon','general':'General book'}.get(resource.kind,'Bible')),
+            'language':self.language_label(resource.language),
             'author':plain(resource.author),
             'version':getattr(resource,'version',''),
             'license':plain(resource.license),
@@ -806,12 +807,15 @@ class CatalogueWindow(Adw.Window):
             row.set_visible(bool(value));row.set_subtitle(value)
         self.source_group.set_visible(bool(resource))
         self.source_row.set_subtitle(resource.source if resource else '')
-        from .resource_details import linkable_url, first_link, visible_conditions
-        self._detail_link(self.source_row,'_source_link',
-                          linkable_url(resource.source_url) if resource else '',tr('Open source'))
+        from .resource_details import linkable_url, first_link, conditions_presentation
+        source_url=linkable_url(resource.source_url) if resource else ''
         text_source=linkable_url(getattr(resource,'text_source','')) if resource else ''
-        self.text_source_row.set_visible(bool(text_source))
-        self._detail_link(self.text_source_row,'_text_source_link',text_source,tr('Open source'))
+        same_source=bool(source_url and source_url==text_source)
+        self.source_row.set_title(tr('Source and text source') if same_source else tr('Source'))
+        self._detail_link(self.source_row,'_source_link',
+                          source_url,tr('Open source') if same_source else tr('Open source catalogue'))
+        self.text_source_row.set_visible(bool(text_source and not same_source))
+        self._detail_link(self.text_source_row,'_text_source_link',text_source if not same_source else '',tr('Open original text'))
         self._detail_link(self.detail_rows['license'],'_license_link',
                           first_link(resource.license) if resource else '',tr('License details'))
         # Do not present pending catalogue summaries as confirmed source terms.
@@ -819,8 +823,15 @@ class CatalogueWindow(Adw.Window):
         if resource and resource.provider_id=='youversion':
             try:pending=bool(json.loads(resource.acquisition).get('_catalogue_summary'))
             except (ValueError,TypeError,AttributeError):pass
-        conditions=(tr('Loading edition details…') if pending else visible_conditions(resource)) if resource else ''
+        conditions,links=conditions_presentation(resource,self.library.root) if resource and not pending else ('',())
+        if pending:conditions=tr('Loading edition details…')
         self.conditions_text.set_text(conditions);self.conditions_text.set_visible(bool(conditions))
+        while self.conditions_links.get_first_child():self.conditions_links.remove(self.conditions_links.get_first_child())
+        for label,url in links:
+            button=Gtk.LinkButton(uri=url,label=label,halign=Gtk.Align.START)
+            text=button.get_child();text.set_wrap(True);text.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            text.set_width_chars(1);text.set_max_width_chars(32);button.set_tooltip_text(url)
+            self.conditions_links.append(button)
         self.license_group.set_visible(bool(resource and (resource.license or conditions)))
         # About is a source-owned mixed field, not reliably separable prose and
         # legal metadata. Present every word, including editorial limitations,
@@ -837,6 +848,8 @@ class CatalogueWindow(Adw.Window):
             row.remove(previous);setattr(self,attribute,None)
         if url:
             link=Gtk.LinkButton(uri=url,label=label)
+            text=link.get_child();text.set_wrap(True);text.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            text.set_width_chars(1);text.set_max_width_chars(24);link.set_tooltip_text(url)
             row.add_suffix(link);setattr(self,attribute,link)
 
     def refresh_controls(self):

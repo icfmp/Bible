@@ -79,10 +79,11 @@ def passage_verses(reader,references,chapter_cache=None):
     seen=set();result=[];requested=set(references)
     for reference in references:
         name=reference.rsplit('.',1)[0]
-        if name not in chapters:
-            chapters[name]=reader.chapter(reference)
+        cache_key=(reader.name,name)
+        if cache_key not in chapters:
+            chapters[cache_key]=reader.chapter(reference)
             if len(chapters)>64:chapters.pop(next(iter(chapters)))
-        chapter=chapters[name];identity=chapter.primary(reference)
+        chapter=chapters[cache_key];identity=chapter.primary(reference)
         if chapter.units:
             if reference not in chapter.text_by_reference:raise ValueError('Passage unavailable: '+reference)
             if name in seen:continue

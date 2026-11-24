@@ -52,9 +52,8 @@ class ModuleManagement:
         self.notice=Gtk.Label(xalign=0,wrap=True,selectable=True,visible=False)
         status_parent=dialog.installed_state.get_parent()
         status_parent.insert_child_after(self.notice,dialog.installed_state)
-        self.check_button=Gtk.Button(label=tr('Check for module updates'),halign=Gtk.Align.START,visible=False)
-        self.check_button.add_css_class('flat');self.check_button.connect('clicked',lambda *_:self.check())
-        status_parent.insert_child_after(self.check_button,self.notice)
+        # Checking refreshes all installed providers. Keep its single global
+        # entry in Library actions, rather than an edition-looking text button.
         self.actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,visible=False)
         self.update_button=Gtk.Button(label=tr('Update'));self.update_button.connect('clicked',lambda *_:self.run('update'))
         self.rollback_button=Gtk.Button(label=tr('Restore previous version'));self.rollback_button.connect('clicked',lambda *_:self.confirm('rollback'))
@@ -109,7 +108,6 @@ class ModuleManagement:
         self.actions.set_visible(bool(installed));self.notice.set_visible(bool(installed))
         self.update_button.set_visible(False)
         self.remove_button.set_visible(False)
-        self.check_button.set_visible(False)
         if not installed:return
         old=d._installed_metadata[resource.id];report=self.reports.get(resource.id,dict(state='not-checked'))
         new=report.get('available');state=report['state']
@@ -122,8 +120,6 @@ class ModuleManagement:
             else:lines.append(tr('Download size')+': '+tr('Size unknown'))
         if state!='not-checked':lines.append(tr(REASONS[state]))
         self.notice.set_text('\n'.join(lines));self.notice.set_visible(bool(lines))
-        self.check_button.set_visible(old.provider_id in SUPPORTED)
-        self.check_button.set_sensitive(not d.busy)
         self.notice.set_tooltip_text(report.get('error') or None)
         queued=d.downloads.find(resource.id)
         self.update_button.set_visible(state=='available');self.update_button.set_sensitive(not queued or queued.state=='failed')

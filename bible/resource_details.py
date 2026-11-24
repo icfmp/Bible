@@ -69,6 +69,49 @@ def visible_conditions(resource):
     return plain(resource.conditions)
 
 
+def conditions_presentation(resource,root):
+    """Human labels only for fields verified against the actual SWORD conf.
+
+    Mixed, conflicting or unknown source notices remain literal text. Neither
+    source values nor the Resource model are rewritten for presentation.
+    """
+    from pathlib import Path
+    from .library import config,resource_from_section
+    labels={'copyright':'Copyright','copyrightholder':'Rights holder',
+            'copyrightnotes':'Conditions','copyrightcontactemail':'Contact',
+            'copyrightcontactname':'Contact name','copyrightcontactaddress':'Contact address',
+            'copyrightdate':'Copyright date','shortcopyright':'Copyright notice',
+            'distributionnotes':'Distribution conditions'}
+    text_source=getattr(resource,'text_source','')
+    original='\n'.join(line for line in resource.conditions.splitlines()
+        if not (linkable_url(text_source) and line=='textsource: '+text_source))
+    if not original:return '',()
+    try:
+        files=list((Path(root)/resource.id/'mods.d').glob('*.conf'))
+        if len(files)!=1 or files[0].stat().st_size>2*1024*1024:raise ValueError('Unverified source metadata')
+        parser=config(files[0].read_bytes())
+        if len(parser.sections())!=1:raise ValueError('Ambiguous source metadata')
+        section=parser[parser.sections()[0]]
+        if resource_from_section(resource.name,section).conditions!=resource.conditions:
+            raise ValueError('Mixed catalogue and source notice')
+    except (OSError,ValueError):return tr('Original source notice')+'\n'+original,()
+    blocks=[];unknown=[];links=[]
+    for key,value in section.items():
+        if not value:continue
+        if key in labels:
+            blocks.append(tr(labels[key])+'\n'+value)
+            for match in re.finditer(r'https?://[^\s<>"]+',value):
+                url=linkable_url(match.group().rstrip(').,;'))
+                if url and (url,url) not in links:links.append((url,url))
+            if key=='copyrightcontactemail' and re.fullmatch(r'[A-Za-z0-9.!#$%&\x27*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+',value):
+                from urllib.parse import quote
+                links.append((value,'mailto:'+quote(value,safe='@.+-_')))
+        elif key.startswith('copyright') or key=='textsource' and not (linkable_url(value) and value==text_source):
+            unknown.append(key+': '+value)
+    if unknown:blocks.append(tr('Original source notice')+'\n'+'\n'.join(unknown))
+    return '\n\n'.join(blocks),tuple(links)
+
+
 from .languages import language_name
 
 

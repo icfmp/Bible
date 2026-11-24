@@ -1,0 +1,60 @@
+{
+  "module": "bible-resources~MHC",
+  "version": "1.0.0",
+  "acquisition": "{\"catalogue_url\": \"https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json\", \"entry\": {\"canonical_edition_id\": \"matthew-henry-complete-crosswire-2.2\", \"category\": \"commentary\", \"download\": {\"sha256\": \"f501403e520b8e35b8fc14438950561ec2e7f266b165e4b151a0606cf38dda7e\", \"size_bytes\": 16409097, \"url\": \"https://icfmp.github.io/Bible-Resources/sword/packages/MHC.zip\"}, \"edition\": \"faithful\", \"id\": \"mhc-crosswire\", \"language\": \"en\", \"sword_id\": \"MHC\", \"title\": {\"en\": \"Matthew Henry's Complete Commentary\", \"fr\": \"Commentaire complet de Matthew Henry sur toute la Bible\"}, \"versification\": \"KJV\", \"version\": \"1.0.0\"}}",
+  "original_010_comparison": {
+    "raw_matches_19_november_010": true,
+    "native_matches_19_november_010": true
+  },
+  "entries": [
+    {
+      "reference": "Gen.1.1",
+      "native_stars": 292,
+      "hidden": 292,
+      "styles": 442,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "Gen.1.9",
+      "native_stars": 58,
+      "hidden": 58,
+      "styles": 88,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "Gen.1.20",
+      "native_stars": 22,
+      "hidden": 22,
+      "styles": 34,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "Ps.23.1",
+      "native_stars": 92,
+      "hidden": 92,
+      "styles": 139,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "Isa.53.1",
+      "native_stars": 68,
+      "hidden": 68,
+      "styles": 105,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "John.3.16",
+      "native_stars": 1220,
+      "hidden": 1220,
+      "styles": 1831,
+      "source_only_copy_verified": true
+    },
+    {
+      "reference": "Rom.8.1",
+      "native_stars": 110,
+      "hidden": 110,
+      "styles": 166,
+      "source_only_copy_verified": true
+    }
+  ]
+}

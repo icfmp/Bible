@@ -92,10 +92,13 @@ class LibraryStartupTests(unittest.TestCase):
         def fetch(**kwargs):
             calls.append(1);kwargs['on_provider'](CROSSWIRE,[RESOURCE],None,{})
             entered.set();release.wait(3);return CatalogueResult((RESOURCE,),{})
-        with patch('bible.catalogue_window.catalogue',side_effect=fetch):
-            first=self.window.open_library();first.load_catalogue()
+        first=self.window.open_library()
+        first.source_filter.set_selected(first.source_ids.index(CROSSWIRE.id))
+        with patch('bible.catalogue_window.catalogue',side_effect=fetch),patch.object(first.session,'load_youversion_language',side_effect=AssertionError('Unexpected external provider lookup')):
+            first.load_catalogue()
             spin(lambda:bool(first.resources));self.assertTrue(entered.is_set());self.assertTrue(first.refreshing)
-            first.close();second=self.window.open_library();second.load_catalogue()
+            first.close();second=self.window.open_library()
+            second.source_filter.set_selected(second.source_ids.index(CROSSWIRE.id));second.load_catalogue()
             spin(lambda:bool(second.resources));self.assertEqual(len(calls),1)
             self.assertTrue(second.download_button.get_sensitive())
             release.set();spin(lambda:not second.busy)
@@ -132,7 +135,8 @@ class LibraryStartupTests(unittest.TestCase):
         with patch.object(CatalogueCache,'read',side_effect=OSError('metadata failure fixture')):
             dialog=self.window.open_library();spin(lambda:not dialog.preparing)
             self.assertIn('metadata failure fixture',dialog.refresh_status.get_text())
-        with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult((RESOURCE,),{})):
+        dialog.source_filter.set_selected(dialog.source_ids.index(CROSSWIRE.id))
+        with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult((RESOURCE,),{})),patch.object(dialog.session,'load_youversion_language',side_effect=AssertionError('Unexpected external provider lookup')):
             dialog.load_catalogue();spin(lambda:not dialog.busy)
         self.assertEqual(dialog.selected_resource().id,RESOURCE.id)
 

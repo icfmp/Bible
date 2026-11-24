@@ -1,0 +1,352 @@
+[
+  {
+    "module": "bible-resources~MHC",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 292,
+        "source_stars": 0,
+        "hidden": 292,
+        "styles": 442
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 58,
+        "source_stars": 0,
+        "hidden": 58,
+        "styles": 88
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 22,
+        "source_stars": 0,
+        "hidden": 22,
+        "styles": 34
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 92,
+        "source_stars": 0,
+        "hidden": 92,
+        "styles": 139
+      },
+      {
+        "ref": "Isa.53.1",
+        "native_stars": 68,
+        "source_stars": 0,
+        "hidden": 68,
+        "styles": 105
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 1220,
+        "source_stars": 0,
+        "hidden": 1220,
+        "styles": 1831
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 110,
+        "source_stars": 0,
+        "hidden": 110,
+        "styles": 166
+      }
+    ]
+  },
+  {
+    "module": "MHC",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 54,
+        "source_stars": 0,
+        "hidden": 54,
+        "styles": 81
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 56,
+        "source_stars": 0,
+        "hidden": 56,
+        "styles": 84
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 20,
+        "source_stars": 0,
+        "hidden": 20,
+        "styles": 30
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 92,
+        "source_stars": 0,
+        "hidden": 92,
+        "styles": 138
+      },
+      {
+        "ref": "Isa.53.1",
+        "native_stars": 66,
+        "source_stars": 0,
+        "hidden": 66,
+        "styles": 101
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 1220,
+        "source_stars": 0,
+        "hidden": 1220,
+        "styles": 1830
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 108,
+        "source_stars": 0,
+        "hidden": 108,
+        "styles": 162
+      }
+    ]
+  },
+  {
+    "module": "FreAug",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 156,
+        "source_stars": 0,
+        "hidden": 156,
+        "styles": 234
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 156,
+        "source_stars": 0,
+        "hidden": 156,
+        "styles": 234
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 156,
+        "source_stars": 0,
+        "hidden": 156,
+        "styles": 234
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 12,
+        "source_stars": 0,
+        "hidden": 12,
+        "styles": 18
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 28,
+        "source_stars": 0,
+        "hidden": 28,
+        "styles": 42
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 64,
+        "source_stars": 0,
+        "hidden": 64,
+        "styles": 96
+      }
+    ]
+  },
+  {
+    "module": "FreChry",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 220,
+        "source_stars": 0,
+        "hidden": 220,
+        "styles": 333
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 220,
+        "source_stars": 0,
+        "hidden": 220,
+        "styles": 333
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 220,
+        "source_stars": 0,
+        "hidden": 220,
+        "styles": 333
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 12,
+        "source_stars": 0,
+        "hidden": 12,
+        "styles": 21
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 40,
+        "source_stars": 0,
+        "hidden": 40,
+        "styles": 68
+      }
+    ]
+  },
+  {
+    "module": "Wesley",
+    "format": "ThML",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Isa.53.1",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      }
+    ]
+  },
+  {
+    "module": "Clarke",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Isa.53.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "John.3.16",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      }
+    ]
+  },
+  {
+    "module": "bible-resources~MHCC",
+    "format": "OSIS",
+    "rows": [
+      {
+        "ref": "Gen.1.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Gen.1.9",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Gen.1.20",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Ps.23.1",
+        "native_stars": 0,
+        "source_stars": 0,
+        "hidden": 0,
+        "styles": 0
+      },
+      {
+        "ref": "Isa.53.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      },
+      {
+        "ref": "Rom.8.1",
+        "native_stars": 2,
+        "source_stars": 0,
+        "hidden": 2,
+        "styles": 3
+      }
+    ]
+  }
+]

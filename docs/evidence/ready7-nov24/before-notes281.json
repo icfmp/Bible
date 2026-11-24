@@ -1,0 +1,42 @@
+{
+  "source": "/app/lib/bible-python/bible/ui.py",
+  "captures": [
+    "Gen-18-16.png",
+    "Ps-12-6.png",
+    "Gen-11-4.png"
+  ],
+  "cases": [
+    {
+      "start": "Gen.18.16",
+      "body_insets": [
+        6,
+        6,
+        12,
+        12
+      ],
+      "menu": true
+    },
+    {
+      "start": "Ps.12.6",
+      "body_insets": [
+        6,
+        6,
+        12,
+        12
+      ],
+      "menu": true
+    },
+    {
+      "start": "Gen.11.4",
+      "body_insets": [
+        6,
+        6,
+        12,
+        12
+      ],
+      "menu": false
+    }
+  ],
+  "modules_unchanged": true,
+  "notes_unchanged": true
+}

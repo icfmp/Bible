@@ -155,7 +155,7 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .{self.scope}-window .study-action-card .card-primary:hover,
 .{self.scope}-window .study-action-card .card-primary:active {{ background: transparent; box-shadow: none; }}
 .{self.scope}-window .study-action-card .card-primary:focus-visible {{ outline: none; }}
-.{self.scope}-window .note-scripture-context {{ background-color: mix({bg},{fg},.035); border-radius: 8px; padding: 8px; }}
+.{self.scope}-window .note-scripture-context {{ background-color: mix({bg},{fg},.035); border-radius: 8px; padding: 12px; }}
 .{self.scope}-surface {{ background-color: {bg}; color: {fg}; }}
 textview.{self.scope} button.inline-marker {{ color: {marker_color}; min-width: 18px; min-height: 18px; padding: 0 1px; margin: 0 1px; border-radius: 4px; }}
 textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
@@ -169,9 +169,10 @@ textview.{self.scope} button.inline-marker image {{ -gtk-icon-size: 12px; }}
 .source-note-popover label {{ color: #ffffff; }}
 textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-width: 12px; min-height: 0; padding: 0; margin: 0; }}
 .passage-actions popover contents, .passage-actions popover arrow {{ background-color: #202020; color: #ffffff; }}
-.passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 12px; }}
+.passage-actions-content {{ background-color: {action_background}; color: white; border-radius: 16px; padding: 16px; }}
 .{self.scope}-window headerbar.immersive-header {{ background: transparent; color: {fg}; box-shadow: none; border: none; }}
 .{self.scope}-window .highlight-swatch {{ border-radius: 50%; border: 1px solid currentColor; }}
+.{self.scope}-window .highlight-color-action .highlight-swatch {{ border-color: transparent; }}
 .highlight-color-action > button {{ min-width: 32px; min-height: 32px; padding: 0; }}
 .references-pending:disabled, .references-pending button:disabled {{ opacity: 1; color: inherit; }}
 .passage-actions button {{ min-width: 36px; min-height: 36px; padding: 0; }}
