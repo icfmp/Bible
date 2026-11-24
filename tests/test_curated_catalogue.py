@@ -61,6 +61,39 @@ class CuratedCatalogueTests(unittest.TestCase):
                         [dict(record(),download=None)]):
             with self.subTest(records=records),self.assertRaises(ValueError):entries(body(records))
 
+    def test_dictionary_without_verse_system_does_not_block_supported_editions(self):
+        bible=record()
+        dictionary=dict(record(),id='dictionary',canonical_edition_id='dictionary',
+            sword_id='Dictionary',category='dictionary',versification=None,
+            download=dict(record()['download'],url=BIBLE_RESOURCES.packages_url+'Dictionary.zip'))
+        self.assertEqual(entries(body([dictionary,bible])),[bible])
+        calls=[]
+        def fetch(url,out,**kwargs):
+            calls.append(url)
+            out.write(body([dictionary,bible]) if url.endswith('.json') else sword_metadata(CONF+b'Version=1.0\n'))
+        with patch('bible.library.download',side_effect=fetch):resources=catalogue()
+        self.assertEqual([r.name for r in resources],['Test'])
+        self.assertEqual(package_record(resources[0]),bible)
+        self.assertEqual(len(calls),2)
+        with patch('bible.library.download',side_effect=lambda url,out,**kw:out.write(body([dictionary]))) as fetch:
+            self.assertEqual(catalogue(),[]);self.assertEqual(fetch.call_count,1)
+
+    def test_ignored_dictionary_still_requires_safe_identity_and_integrity(self):
+        dictionary=dict(record(),category='dictionary',versification=None)
+        for invalid in (
+                dict(dictionary,canonical_edition_id=''),
+                dict(dictionary,download=dict(dictionary['download'],sha256='invalid')),
+                dict(dictionary,download=dict(dictionary['download'],url=BIBLE_RESOURCES.packages_url+'../Test.zip')),
+                dict(dictionary,category='commentary'),
+                dict(dictionary,category='unknown')):
+            with self.subTest(record=invalid),self.assertRaises(ValueError):entries(body([invalid]))
+        with self.assertRaisesRegex(ValueError,'Duplicate'):
+            entries(body([dictionary,record()]))
+        from dataclasses import replace
+        resource=replace(resource_from_section('Test',config(CONF)['Test'],BIBLE_RESOURCES),
+            acquisition=json.dumps(dict(catalogue_url=BIBLE_RESOURCES.catalogue_url,entry=dictionary)))
+        with self.assertRaisesRegex(ValueError,'Unsupported curated resource type'):package_record(resource)
+
     def test_hashed_initial_install_reads_native_text_and_preserves_unrelated_files(self):
         from dataclasses import replace
         from bible.sword_provider import Reader
