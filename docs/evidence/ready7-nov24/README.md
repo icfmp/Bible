@@ -42,4 +42,6 @@ Cloud X11/software rendering, representative FR/EN/light/dark/high-contrast and 
 - Martin detail: [before](before/library-Martin1707-top.png) / [after](after/library-Martin1707-top.png); terms/footer: [before](before/library-Martin1707-terms.png) / [after](after/library-Martin1707-terms.png); [narrow/large/high contrast](library-Martin1707-narrow-terms.png).
 - Selection: [before](before/selection-BDS-Gen1-2-5.png) / [after](after/selection-BDS-Gen1-2-5.png).
 
+The first merged-source build passed the preceding installed-app checks but was blocked by a newly published Bible Resources dictionary (`BRISBE1915`, no verse system). Following the client's clarification, the curated adapter validates shared identity/integrity for dictionary records and filters them out until their separate integration is developed. Existing Bibles/commentaries retain all validation and remain available. Eight focused tests and a live read of the five supported catalogue entries passed; no dictionary was downloaded or integrated. No resource content or external repository changed.
+
 All seven issues remain open. Project 5 access is denied (`Resource not accessible by integration`); request manual **In validation** only after the signed update and matching numbered alpha are verified and published.

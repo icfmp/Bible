@@ -19,8 +19,9 @@ def entries(data):
         canonical=entry.get('canonical_edition_id')
         if (not isinstance(canonical,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,199}',canonical)
                 or not isinstance(entry.get('language'),str) or not entry['language']
-                or entry.get('category') not in ('bible','commentary')
-                or not isinstance(entry.get('versification'),str) or not entry['versification']
+                or entry.get('category') not in ('bible','commentary','dictionary')
+                or entry['category']!='dictionary' and (
+                    not isinstance(entry.get('versification'),str) or not entry['versification'])
                 or not isinstance(entry.get('title'),dict)
                 or not all(isinstance(k,str) and isinstance(v,str) and 0<len(v)<=500 for k,v in entry['title'].items())
                 or not entry['title']):raise ValueError('Incomplete curated edition metadata')
@@ -31,7 +32,11 @@ def entries(data):
         if entry['id'] in seen or edition in editions or entry['sword_id'] in modules:
             raise ValueError('Duplicate curated edition or SWORD identity')
         seen.add(entry['id']);editions.add(edition);modules.add(entry['sword_id'])
-    return value['modules']
+    # This adapter exposes verse-keyed resources only. Existing dictionary
+    # records must not block them, but remain unavailable until their separate
+    # integration is developed. Validate shared identity/integrity above even
+    # for ignored records; never invent a dictionary versification.
+    return [entry for entry in value['modules'] if entry['category']!='dictionary']
 
 
 def catalogue(provider=BIBLE_RESOURCES,timings=None,validators=None):
@@ -72,6 +77,7 @@ def package_record(resource):
     # Reuse the same metadata validation for downloaded receipts/cached entries.
     records=entries(json.dumps(dict(schema_version=1,repository='Bible Resources',
         repository_url=BIBLE_RESOURCES.url,modules=[entry])).encode())
+    if not records:raise ValueError('Unsupported curated resource type')
     entry=records[0]
     if (entry['sword_id'],entry['version'],entry['category'],entry['versification'])!=(
             resource.name,resource.version,resource.kind,resource.versification):
