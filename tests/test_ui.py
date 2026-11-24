@@ -93,6 +93,7 @@ class WindowTests(unittest.TestCase):
         from bible.library import Resource
         from bible.languages import language_name
         from bible.ui import Gtk
+        from bible.i18n import tr
         resource=Resource('TestModule','Verified sample edition','fr',
                           'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)',
                           conditions='Attribution and conditions remain visible.',
@@ -108,7 +109,8 @@ class WindowTests(unittest.TestCase):
             dialog.open_details(None,0);spin()
             self.assertEqual(dialog.detail_title.get_text(),resource.description)
             self.assertIn(resource.source,dialog.detail_subtitle.get_text())
-            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),language_name(resource.language))
+            language=language_name(resource.language)
+            self.assertEqual(dialog.detail_rows['language'].get_subtitle(),language[:1].upper()+language[1:])
             for key,value in [('author',resource.author),('version',resource.version)]:
                 row=dialog.detail_rows[key]
                 self.assertFalse(row.get_use_markup())
@@ -124,7 +126,7 @@ class WindowTests(unittest.TestCase):
             self.assertTrue(dialog.about_text.get_visible())
             self.assertIn(resource.about,dialog.about_text.get_text())
             self.assertTrue(dialog.description_group.get_visible())
-            self.assertEqual(dialog.conditions_text.get_text(),resource.conditions)
+            self.assertEqual(dialog.conditions_text.get_text(),tr('Original source notice')+'\n'+resource.conditions)
             self.assertEqual(dialog.about_text.get_text(),resource.about)
             self.assertFalse(dialog.technical.get_expanded())
             self.assertIn(resource.name,dialog.metadata.get_text())
@@ -163,7 +165,8 @@ class WindowTests(unittest.TestCase):
             editor=window.new_note(force_new=True)
             self.assertEqual(editor.header.get_title_widget().get_title(),tr('New note'))
             scroll=editor.get_content().get_last_child()
-            self.assertGreaterEqual(scroll.get_margin_top(),8)
+            self.assertGreater(scroll.get_margin_top(),0)
+            self.assertLess(scroll.get_margin_top(),8)  # Requested smaller header-to-card gap.
             self.assertGreaterEqual(scroll.get_margin_bottom(),12)
             editor.close()
             space=window.open_notes()

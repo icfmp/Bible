@@ -157,6 +157,9 @@ class LibraryPolishTests(unittest.TestCase):
     def test_filter_change_during_refresh_rejects_stale_type_and_language_rows(self):
         w=self.window;w.application_settings.set('library_language','en')
         d=w.open_library();spin(lambda:not d.busy)
+        # The fixture supplies CrossWire only. All-sources refresh can launch
+        # an unrelated live YouVersion lookup after the mocked rows arrive.
+        d.source_filter.set_selected(d.source_ids.index(CROSSWIRE.id))
         french=replace(RESOURCE,name='FrenchCommentary',language='fra',driver='RawCom',category='Commentaries')
         resources=(RESOURCE,french,replace(RESOURCE,name='OtherEnglish'))
         release=threading.Event();self.addCleanup(release.set)
@@ -164,7 +167,7 @@ class LibraryPolishTests(unittest.TestCase):
             kwargs['on_provider'](CROSSWIRE,resources,None,{})
             release.wait(3);return CatalogueResult(resources,{})
         before=(w.active_tab.state.resource,w.active_tab.state.reference,list(w.active_tab.state.history))
-        with patch('bible.catalogue_window.catalogue',side_effect=fetch):
+        with patch('bible.catalogue_window.catalogue',side_effect=fetch),patch.object(d.session,'load_youversion_language',side_effect=AssertionError('Unexpected external provider lookup')):
             d.load_catalogue();spin(lambda:bool(d.resources))
             d.kind.set_selected(1);d.language.set_selected(d.languages.index('fr'))
             d.source_filter.set_selected(d.source_ids.index(EXTRA.id));self.assertFalse(d.filtered_resources)

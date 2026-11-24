@@ -132,7 +132,8 @@ class LibraryStartupTests(unittest.TestCase):
         with patch.object(CatalogueCache,'read',side_effect=OSError('metadata failure fixture')):
             dialog=self.window.open_library();spin(lambda:not dialog.preparing)
             self.assertIn('metadata failure fixture',dialog.refresh_status.get_text())
-        with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult((RESOURCE,),{})):
+        dialog.source_filter.set_selected(dialog.source_ids.index(CROSSWIRE.id))
+        with patch('bible.catalogue_window.catalogue',return_value=CatalogueResult((RESOURCE,),{})),patch.object(dialog.session,'load_youversion_language',side_effect=AssertionError('Unexpected external provider lookup')):
             dialog.load_catalogue();spin(lambda:not dialog.busy)
         self.assertEqual(dialog.selected_resource().id,RESOURCE.id)
 
