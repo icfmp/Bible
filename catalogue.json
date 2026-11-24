@@ -2,20 +2,20 @@
   "schema": 1,
   "resources": {
     "openbible-cross-references": {
-      "revision": "2026-11-09",
-      "generation": "2026-11-09",
-      "sha256": "d31c71a7b124227769a0bc8a24f048f53b327294e47033e64b5d2ae4aaf12b87",
-      "size": 1984024,
+      "revision": "2026-11-23",
+      "generation": "2026-11-23",
+      "sha256": "650cafbdfe06458e78c67f33ce57cd11162de867f5842240846863e96bcd62f2",
+      "size": 1984079,
       "format": "openbible-cross-references-v1",
-      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-09-d31c71a7b124.zip"
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/cross-references-2026-11-23-650cafbdfe06.zip"
     },
     "openbible-topics": {
-      "revision": "2026-11-16",
-      "generation": "2026-11-16",
-      "sha256": "2da2d1672e283eb3387fdbf3200c8a1df9956e4c3adb30ee1d126b3ede81fb65",
-      "size": 418825,
+      "revision": "2026-11-23",
+      "generation": "2026-11-23",
+      "sha256": "a0eaef5aa4faae9dbbc794029ffdb4bcdb7d6c4ed5b0798063473dcd24c10a87",
+      "size": 418814,
       "format": "openbible-topics-v1",
-      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/topic-scores-2026-11-16-2da2d1672e28.zip"
+      "url": "https://github.com/icfmp/Bible/releases/download/study-resource-archives/topic-scores-2026-11-23-a0eaef5aa4fa.zip"
     },
     "topic-vocabulary": {
       "revision": "2026-11-04.1",
