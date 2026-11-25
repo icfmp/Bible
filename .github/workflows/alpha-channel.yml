@@ -88,6 +88,8 @@ jobs:
         with:
           name: github-pages-first-${{ github.run_attempt }}
           path: public
+      - name: Wait for stable Pages artifact visibility
+        run: python3 -m tools.channel_ci wait-pages-artifact
       - name: Publish the checked signed revision
         id: deployment
         uses: actions/deploy-pages@v4
