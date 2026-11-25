@@ -526,6 +526,7 @@ class NotesWindow(Adw.Window):
         try:
             notes = self.owner.notes_store.search(self.search.get_text(), self.labels.values,
                                                    ['recent', 'oldest', 'bible'][min(self.sort.get_selected(), 2)])
+            if self._related_filter_keys is not None:items=[a for a in items if a.key in self._related_filter_keys]
             if self.passage_filter:
                 allowed = {n.id for n in self.owner.notes_store.passage(*self.passage_filter)}
                 notes = [note for note in notes if note.id in allowed]
@@ -679,7 +680,7 @@ class NotesSpace(Gtk.Box):
     """Adaptive projection over the existing note database and highlight file."""
     def __init__(self,owner):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
-        self.owner=owner;self.closed=False;self.rows=[];self._choosers=[];self.passage_filter=None
+        self.owner=owner;self.closed=False;self.rows=[];self._choosers=[];self.passage_filter=None;self._related_filter_keys=None
         self.editor=None;self.selected_key=None;self.selected_annotation=None;self.category='all';self._detail_requested=False
         self._syncing=False;self._wide=None;self._reader_cache={};self._excerpt_cache={};self._version=None
         header=Adw.HeaderBar();header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
@@ -717,9 +718,9 @@ class NotesSpace(Gtk.Box):
         self.sort.set_tooltip_text(tr('Date sorting uses note modification dates. Highlights without dates follow in Bible order.'))
         self.status=Gtk.Label(xalign=0,wrap=True,margin_start=12,margin_end=12);self.side.append(self.status)
         self.model=Gio.ListStore.new(AnnotationItem);self.selection=Gtk.SingleSelection(model=self.model,autoselect=False)
-        factory=Gtk.SignalListItemFactory();factory.connect('setup',self.row_setup);factory.connect('bind',self.row_bind)
+        factory=Gtk.SignalListItemFactory();factory.connect('setup',self.row_setup);factory.connect('bind',self.row_bind);factory.connect('unbind',self.row_unbind)
         self.list=Gtk.ListView(model=self.selection,factory=factory,single_click_activate=True);self.list.connect('activate',self.activate)
-        self.list.add_css_class('annotation-list');self.side.add_css_class('annotation-sidebar')
+        self.list.add_css_class('annotation-list');self.list.add_css_class('study-card-list');self.side.add_css_class('annotation-sidebar')
         keys=Gtk.EventControllerKey()
         def activate_space(_,key,code,state):
             if key!=Gdk.KEY_space or state:return False
@@ -741,19 +742,31 @@ class NotesSpace(Gtk.Box):
         viewport=self.detail_scroll.get_child()
         if isinstance(viewport,Gtk.Viewport):viewport.set_scroll_to_focus(True)
         detail.append(self.detail_scroll)
-        self.context_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=20,margin_end=20,margin_top=12,visible=False)
-        self.open_button=Gtk.Button(label=tr('Open in Bible'),halign=Gtk.Align.START);self.open_button.connect('clicked',lambda *_:self.open_passage());self.context_panel.append(self.open_button)
-        self.excerpt=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,selectable=True,max_width_chars=1)
-        self.excerpt_caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,max_width_chars=1)
+        self.context_panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12,margin_start=20,margin_end=20,margin_top=12,visible=False)
+        self.highlight_heading=Gtk.Label(xalign=0,wrap=True,hexpand=True,width_chars=1);self.highlight_heading.add_css_class('title-2')
+        self.highlight_menu=Gtk.MenuButton(tooltip_text=tr('Highlight actions'));self.highlight_menu.add_css_class('flat')
+        self.open_button=Gtk.Button(label=tr('Open in Bible'),halign=Gtk.Align.START)
+        self.open_button.add_css_class('flat');self.open_button.connect('clicked',lambda *_:self.open_passage())
+        heading=Gtk.Box(spacing=8);heading.append(self.highlight_heading);heading.append(self.highlight_menu);heading.append(self.open_button)
+        self.context_panel.append(heading)
+        self.excerpt=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,selectable=True,width_chars=1)
+        self.excerpt.add_css_class('study-content')
+        self.excerpt_caption=Gtk.Label(wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,xalign=0,width_chars=1)
         self.excerpt_caption.add_css_class('caption');self.excerpt_caption.add_css_class('dim-label')
         self.context_panel.append(self.excerpt_caption);self.context_panel.append(self.excerpt)
-        self.context_panel.append(Gtk.Separator(margin_top=4,margin_bottom=4))
-        self.related=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        self.related_expander=Gtk.Expander(label=tr('Related annotations'),visible=False,margin_start=20,margin_end=20,margin_top=8,margin_bottom=12);self.related_expander.set_child(self.related)
-        self.editor_panel.append(self.context_panel)
+        self.highlight_detail=Adw.Clamp(child=self.context_panel,maximum_size=720,tightening_threshold=540,visible=False)
+        self.editor_panel.append(self.highlight_detail)
+        self.related=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8)
+        self.related_section=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,margin_start=12,margin_end=12,margin_top=8,margin_bottom=12,visible=False)
+        self.related_row,related_header=metadata_row('Other annotations on this passage','view-list-symbolic')
+        self.related_count=Gtk.Label();self.related_count.add_css_class('dim-label');self.related_row.add_suffix(self.related_count)
+        self.related_toggle=Gtk.ToggleButton(icon_name='pan-down-symbolic',valign=Gtk.Align.CENTER,tooltip_text=tr('Other annotations on this passage'))
+        self.related_toggle.add_css_class('flat');self.related_row.add_suffix(self.related_toggle);self.related_row.set_activatable_widget(self.related_toggle)
+        self.related_revealer=Gtk.Revealer(child=self.related,transition_type=Gtk.RevealerTransitionType.NONE)
+        self.related_toggle.connect('toggled',lambda button:(self.related_revealer.set_reveal_child(button.get_active()),button.set_icon_name('pan-up-symbolic' if button.get_active() else 'pan-down-symbolic')))
+        self.related_section.append(related_header);self.related_section.append(self.related_revealer)
+        self.editor_panel.append(self.related_section)
         self.placeholder=Adw.StatusPage(title=tr('Choose an annotation'),description=tr('Your annotations remain available offline.'),icon_name='notebook-symbolic');self.editor_panel.append(self.placeholder)
-        self.highlight_detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_start=12,margin_end=12,margin_top=12,visible=False);self.editor_panel.append(self.highlight_detail)
-        self.editor_panel.append(self.related_expander)
         list_pane=Gtk.Box();self.side.set_hexpand(True);list_pane.append(self.side)
         list_pane.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
         self.split=Adw.OverlaySplitView(sidebar=list_pane,content=detail,min_sidebar_width=280,max_sidebar_width=380,sidebar_width_unit=Adw.LengthUnit.PX,sidebar_position=Gtk.PackType.START,show_sidebar=True,collapsed=True)
@@ -776,41 +789,33 @@ class NotesSpace(Gtk.Box):
         return True
 
     def row_setup(self,_,item):
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_start=8,margin_end=8,margin_top=4,margin_bottom=4)
-        box.add_css_class('action-card');box.set_cursor_from_name('pointer')
-        header=Gtk.Box(spacing=8);box.append(header);labels=[]
-        for index in range(3):
-            label=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=36)
-            if index==0:
-                label.add_css_class('heading');label.set_hexpand(True);header.append(label)
-                arrow=Gtk.Image(icon_name='go-next-symbolic',pixel_size=12,valign=Gtk.Align.START)
-                arrow.add_css_class('dim-label');header.append(arrow)
-            else:box.append(label)
-            if index==1:label.set_lines(2);label.set_ellipsize(Pango.EllipsizeMode.END);label.add_css_class('study-content')
-            if index>=2:label.add_css_class('dim-label');label.add_css_class('caption')
-            labels.append(label)
-        box._summary_labels=labels;item.set_child(box)
+        item.set_child(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,margin_start=8,margin_end=8,margin_top=4,margin_bottom=4))
+
+    def card(self,a):
+        from .annotation_card import annotation_card,highlight_actions
+        return annotation_card(self.owner,a,lambda:self.open_annotation(a),
+            excerpt=self.excerpt_for(a,limit=1)[0] if a.mark else '',
+            colors=lambda menu,mark:highlight_actions(menu,self.owner,mark,
+                lambda _,color:self.change_highlight(a,color),self.status.set_text,confirm_remove=True))
 
     def row_bind(self,_,item):
-        from .highlights import COLORS
-        a=item.get_item().annotation
-        snippet=render(a.body)[0][:240].replace('\n',' ') if a.note else self.excerpt_for(a,limit=1)[0][:240]
-        kind=tr('Note') if a.note else tr('Highlight annotation')+' · '+tr(COLORS[a.color][1])
-        date,exact=readable_date(a.modified) if a.modified else ('','')
-        strings=[passage_label(a.start,a.end,a.system),snippet,
-                 ' · '.join(value for value in (kind,' · '.join(a.labels),date) if value)]
-        for label,value in zip(item.get_child()._summary_labels,strings):label.set_text(value)
-        item.get_child().update_property([Gtk.AccessibleProperty.LABEL],[strings[0]+' · '+snippet])
+        self.row_unbind(None,item)
+        item.get_child().append(self.card(item.get_item().annotation))
+
+    def row_unbind(self,_,item):
+        from .annotation_card import release_card
+        box=item.get_child();card=box.get_first_child()
+        if card:release_card(card);box.remove(card)
 
     def set_category(self,key):
         if self._syncing or key not in self.categories:return
         self.category=key;self._syncing=True;self.categories[key].set_active(True);self._syncing=False;self.refresh()
 
-    def show_all(self):self.passage_filter=None;self.set_category('all')
+    def show_all(self):self.passage_filter=None;self._related_filter_keys=None;self.set_category('all')
 
     def reveal(self,key):
         """An explicit passage-to-collection route reveals its actual record."""
-        self._syncing=True;self.passage_filter=None;self.category='all'
+        self._syncing=True;self.passage_filter=None;self._related_filter_keys=None;self.category='all'
         self.search.set_text('');self.labels.set_values([]);self.book.set_selected(0);self.color.set_selected(0)
         self.categories['all'].set_active(True);self._syncing=False;self.refresh()
         current=next((a for a in self.all_records if a.key==key),None)
@@ -841,6 +846,7 @@ class NotesSpace(Gtk.Box):
             for key,title,count in [('all','All',str(note_count)+' + ?' if self.owner.highlights.error else len(items)),('notes','Notes',note_count),('highlights','Highlights','?' if self.owner.highlights.error else sum(a.mark is not None for a in items))]:
                 self.categories[key].set_child(Gtk.Label(label=f'{tr(title)} ({count})',wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1))
             self._syncing=False
+            if self._related_filter_keys is not None:items=[a for a in items if a.key in self._related_filter_keys]
             if self.passage_filter:
                 system,first,last=self.passage_filter
                 items=[a for a in items if a.system==system and passage_order(a.start)<=passage_order(last) and passage_order(a.end)>=passage_order(first)]
@@ -870,6 +876,7 @@ class NotesSpace(Gtk.Box):
         if name not in self._reader_cache:
             from .sword_provider import Reader
             self._reader_cache[name]=Reader(self.owner.library.root/name,name)
+            if len(self._reader_cache)>4:self._reader_cache.pop(next(iter(self._reader_cache)))
         return self._reader_cache[name]
 
     def mapped_references(self,a,reader):
@@ -906,31 +913,47 @@ class NotesSpace(Gtk.Box):
         return result
 
     def update_context(self,a):
-        if self.selected_key!=a.key:self.related_expander.set_expanded(False)
+        from .annotation_card import original_caption,color_dot,highlight_actions,release_card
+        if self.selected_key!=a.key:self.related_toggle.set_active(False)
         self.selected_key=a.key;self.selected_annotation=a;self.context_panel.set_visible(not bool(a.note));self.placeholder.set_visible(False)
         selected=next((i for i,row in enumerate(self.rows) if row.key==a.key),Gtk.INVALID_LIST_POSITION)
-        self.selection.set_selected(selected)
-        self._version=a.origin
-        text,description,available=self.excerpt_for(a);self.excerpt.set_text(text);self.excerpt_caption.set_text(description);self.open_button.set_sensitive(available)
+        self.selection.set_selected(selected);self._version=a.origin
+        text,description,available=self.excerpt_for(a)
+        self.excerpt.set_text(text);self.excerpt_caption.set_text(original_caption(self.owner,a))
+        self.excerpt_caption.set_tooltip_text(description+' · '+a.origin+' · '+a.system)
+        self.open_button.set_sensitive(available)
         if self.editor and self.editor.open_button:self.editor.open_button.set_sensitive(available)
-        self.excerpt.set_visible(not bool(a.note));self.excerpt_caption.set_visible(not bool(a.note))
-        while self.related.get_first_child():self.related.remove(self.related.get_first_child())
+        if a.mark:
+            self.highlight_heading.set_text(passage_label(a.start,a.end,a.system));color_dot(self.highlight_menu,a.color)
+            highlight_actions(self.highlight_menu,self.owner,a.mark,lambda _,color:self.change_highlight(a,color),self.status.set_text,confirm_remove=True)
+        while self.related.get_first_child():
+            child=self.related.get_first_child();release_card(child);self.related.remove(child)
         try:reader=self.reader()
         except (ValueError,OSError):reader=None
-        self.related_expander.set_visible(False)
+        self.related_section.set_visible(False)
         if not reader:return
         from .passage_annotations import PassageAnnotations
-        matching=PassageAnnotations()
+        matching=PassageAnnotations(self.owner.library)
         try:
-            spans=matching.positions(reader,a.system,a.start,a.end)
-            related=[other for other in self.all_records if other.key!=a.key and any(matching.matches(reader,start,end,other.system,other.start,other.end) for _,_,start,end in spans)]
+            spans=matching.positions(reader,a.system,a.start,a.end,a.origin)
+            related=[]
+            for other in sorted(self.all_records,key=lambda item:item.origin):
+                if other.key==a.key:continue
+                links=other.note.passages if other.note else (other,)
+                if any(matching.matches(reader,start,end,link.versification if other.note else link.system,link.start,link.end,
+                        other.origin if not other.note or link.versification==other.system else None)
+                       for _,_,start,end in spans for link in links):related.append(other)
         except ValueError:related=[]
         if related:
-            self.related_expander.set_label(tr('Related annotations')+f' ({len(related)})');self.related_expander.set_visible(True)
-            for other in related[:20]:
-                button=Gtk.Button(child=Gtk.Label(label=passage_label(other.start,other.end,other.system)+' · '+(render(other.body)[0][:80] if other.note else tr('Highlight annotation')),wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0))
-                button.add_css_class('flat');button.connect('clicked',lambda _,value=other:self.open_annotation(value));self.related.append(button)
-            if len(related)>20:self.related.append(Gtk.Label(label=tr('More related records are available in the list.'),wrap=True))
+            self.related_count.set_text(str(len(related)));self.related_section.set_visible(True)
+            for other in related[:20]:self.related.append(self.card(other))
+            if len(related)>20:
+                button=Gtk.Button(label=tr('See all'));button.add_css_class('flat')
+                def see_all(*_):
+                    self._related_filter_keys={other.key for other in related};self.passage_filter=None
+                    self.search.set_text('');self.labels.set_values([]);self.book.set_selected(0);self.color.set_selected(0)
+                    self.set_category('all');self.split.set_show_sidebar(True)
+                button.connect('clicked',see_all);self.related.append(button)
 
     def guard(self,action):
         editor=self.owner.note_editor
@@ -944,17 +967,6 @@ class NotesSpace(Gtk.Box):
         if a.note:return self.open_note(a.note)
         def show():
             self._detail_requested=True;self.update_context(a);self.highlight_detail.set_visible(True)
-            while self.highlight_detail.get_first_child():self.highlight_detail.remove(self.highlight_detail.get_first_child())
-            from .highlights import COLORS
-            self.highlight_detail.append(Gtk.Label(label=tr('Original source')+': '+a.origin+' · '+a.system,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,xalign=0))
-            color_group=None
-            for color,(_,title) in COLORS.items():
-                button=Gtk.ToggleButton(label=tr(title))
-                if color_group:button.set_group(color_group)
-                else:color_group=button
-                button.set_active(a.color==color)
-                button.connect('clicked',lambda widget,value=color:self.change_highlight(a,value) if widget.get_active() and value!=a.color else None);self.highlight_detail.append(button)
-            delete=Gtk.Button(label=tr('Remove highlight'));delete.add_css_class('destructive-action');delete.connect('clicked',lambda *_:message(self.owner,'Remove this highlight?','The related notes are kept.',lambda:self.change_highlight(a,None)));self.highlight_detail.append(delete)
             if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.guard(show)
 
@@ -962,7 +974,9 @@ class NotesSpace(Gtk.Box):
         try:
             key=(a.system,a.start)
             if self.owner.highlights.entries.get(key)!=a.mark:raise ValueError(tr('This highlight changed elsewhere. Reopen it before editing.'))
-            self.owner.highlights.set(a.system,[a.start],color,a.origin);self.owner.refresh_highlights();self.refresh()
+            selected=self.selected_key==a.key
+            self.owner.highlights.set(a.system,[a.start],color,a.origin);self.owner.refresh_highlights()
+            if not selected:return
             if color:
                 current=next(item for item in self.all_records if item.key==a.key);self.open_annotation(current)
             else:
@@ -982,6 +996,8 @@ class NotesSpace(Gtk.Box):
         self.editor=editor;self.owner.note_editor=editor;self._detail_requested=True;editor.enable_autosave()
         self.highlight_detail.set_visible(False);self.placeholder.set_visible(False);self.editor_panel.insert_child_after(editor.embedded_content,self.highlight_detail)
         from .annotation_collection import records
+        self.related_section.get_parent().remove(self.related_section)
+        editor.embedded_content.insert_child_after(self.related_section,editor.links)
         self.update_context(records([note],[])[0])
         if self.split.get_collapsed():self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
@@ -995,6 +1011,7 @@ class NotesSpace(Gtk.Box):
         GLib.idle_add(focus);return editor
 
     def editor_closed(self,editor):
+        self.related_section.get_parent().remove(self.related_section);self.editor_panel.insert_child_after(self.related_section,self.highlight_detail)
         parent=editor.embedded_content.get_parent()
         if parent:parent.remove(editor.embedded_content)
         if self.editor is editor:

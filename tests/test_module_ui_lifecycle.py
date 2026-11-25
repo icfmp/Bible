@@ -30,6 +30,8 @@ class ModuleUILifecycleTests(unittest.TestCase):
         other=replace(self.old,provider_id=CROSSWIRE.id,source=CROSSWIRE.name,source_url=CROSSWIRE.url,acquisition='')
         with patch('bible.library.download',side_effect=lambda url,out,progress:out.write(self.old_zip)):
             self.library.install(self.old);self.library.install(other)
+        from bible.application_settings import ApplicationSettings
+        ApplicationSettings(self.root).set('automatic_catalogue_refresh',False)
         app=Application.get_default() or Application();app.register()
         self.w=Window(app,self.library);self.w.set_default_size(1280,900);self.w.present();spin()
         self.w.application_settings.set('automatic_catalogue_refresh',False)

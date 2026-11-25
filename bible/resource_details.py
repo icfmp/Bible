@@ -96,9 +96,16 @@ def conditions_presentation(resource,root):
             raise ValueError('Mixed catalogue and source notice')
     except (OSError,ValueError):return tr('Original source notice')+'\n'+original,()
     blocks=[];unknown=[];links=[]
+    # Deduplicate only exact, verified short public-domain declarations.
+    # Distinct authored conditions (including complete sentences) stay intact.
+    def public_domain(value):return bool(re.fullmatch(r'public[ _-]+domain',value.strip(),re.I))
+    public_domain_seen=public_domain(resource.license)
     for key,value in section.items():
         if not value:continue
         if key in labels:
+            if public_domain(value):
+                if public_domain_seen:continue
+                public_domain_seen=True
             blocks.append(tr(labels[key])+'\n'+value)
             for match in re.finditer(r'https?://[^\s<>"]+',value):
                 url=linkable_url(match.group().rstrip(').,;'))

@@ -178,6 +178,8 @@ class Window(Adw.ApplicationWindow):
         overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
         self._reading_popovers.extend((overflow,self.menu.get_popover()))
         self.reading_tools_menu=self.reader_overflow
+        from .update_discovery import UpdateButton
+        self.resource_updates_button=UpdateButton(self);header.pack_end(self.resource_updates_button)
         self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
         def move_tools(*_):
@@ -300,7 +302,7 @@ class Window(Adw.ApplicationWindow):
                            b'.compact-space button { padding-left: 2px; padding-right: 2px; } '
                            b'.annotation-navigation { background-color: @sidebar_bg_color; color: @view_fg_color; } '
                            b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
-                           b'.annotation-list > row { margin: 2px 8px; border-radius: 8px; border-bottom: 1px solid alpha(currentColor,.12); } '
+                           b'.annotation-list > row { padding: 0; margin: 0; border: none; background: none; box-shadow: none; } '
                            b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @view_fg_color; } '
                            b'.study-drawer listview { background-color: transparent; } '
                            b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
@@ -1261,7 +1263,10 @@ class Window(Adw.ApplicationWindow):
                 and not w.closed and w.library.root.resolve()==self.library.root.resolve()),None)
             if replacement:self.catalogue_window.adopt_owner(replacement)
             else:self.catalogue_window.close()
-        if getattr(self,'catalogue_session',None):self.catalogue_session.close()
+        if getattr(self,'catalogue_session',None):
+            other=next((w for w in self.get_application().get_windows() if isinstance(w,Window) and not w.closed
+                and w.library.root.resolve()==self.library.root.resolve()),None)
+            if not other:self.catalogue_session.close()
         return False
 
 

@@ -49,7 +49,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertIsInstance(editor.open_button,Gtk.Button)
         self.assertTrue(editor.open_button.has_css_class('flat'))
         self.assertTrue(editor.open_button.get_sensitive())
-        self.assertIs(space.open_button.get_parent(),space.context_panel)
+        self.assertTrue(space.open_button.is_ancestor(space.context_panel))
         editor.open_button.emit('clicked');spin()
         self.assertEqual(self.w.active_tab.state.resource,'Second')
         self.assertEqual(self.w.active_tab.state.reference,'Gen.1.1')
@@ -101,8 +101,40 @@ class ReaderContracts(unittest.TestCase):
         from bible.i18n import tr
         content=panel.cards[-1]._card_content
         self.assertEqual(content.excerpt.get_text(),tr('Original translation unavailable.'))
-        self.assertEqual(content.source_caption.get_text(),'Third')
+        self.assertEqual(content.source_caption.get_text(),tr('Original translation unavailable.'))
         self.assertEqual(w.highlights.entries,original)
+
+    def test_shared_cards_related_links_and_unselected_color_action_keep_editor(self):
+        from bible.annotation_collection import records
+        from bible.notes import PassageLink
+        from bible.ui import Gtk
+        w=self.w
+        note=w.notes_store.save('**Actual saved content** and John 3:16',['kept'],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Second',origin_language='en',links=[PassageLink('KJV','John.3.16','John.3.16')])
+        other=w.notes_store.save('Related on linked passage',[],versification='KJV',start='John.3.16',end='John.3.16',origin_translation='First',origin_language='en')
+        w.highlights.set('KJV',['Gen.1.1'],'green','Second')
+        space=w.open_notes();space.open_note(note);spin()
+        editor=space.editor
+        self.assertIs(space.related_section.get_parent(),editor.embedded_content)
+        self.assertIs(space.related_section.get_prev_sibling(),editor.links)
+        self.assertTrue(space.related_section.get_visible())
+        self.assertEqual(space.related_count.get_text(),'1')
+        card=space.related.get_first_child();self.assertTrue(card.has_css_class('study-action-card'))
+        self.assertTrue(hasattr(card,'actions'))
+        mark=next(a for a in space.all_records if a.mark)
+        space.change_highlight(mark,'blue');spin()
+        self.assertIs(space.editor,editor);self.assertEqual(space.selected_key,('note',note.id))
+        self.assertEqual(w.highlights.entries[('KJV','Gen.1.1')]['color'],'blue')
+        editor.close();spin();space.open_annotation(next(a for a in space.all_records if a.mark));spin()
+        self.assertTrue(space.highlight_menu.get_visible())
+        self.assertIsNotNone(space.highlight_menu.get_popover())
+        self.assertNotIn('Second',space.highlight_heading.get_text())
+        self.assertEqual(space.excerpt_caption.get_text(),w.library.resource('Second').description)
+        # A recycled list item drops the menu's old snapshot and callbacks.
+        item=Gtk.ListItem();space.row_setup(None,item)
+        item.get_child().append(space.card(mark));old=item.get_child().get_first_child()
+        space.row_unbind(None,item)
+        self.assertIsNone(old.actions.get_popover());self.assertIsNone(item.get_child().get_first_child())
+        self.assertEqual(w.notes_store.get(note.id),note);self.assertEqual(w.notes_store.get(other.id),other)
 
     def test_short_popup_stays_natural_across_reopens_and_unlink_is_full_width(self):
         from bible.notes import PassageLink

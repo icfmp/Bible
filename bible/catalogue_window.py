@@ -48,8 +48,9 @@ class CatalogueWindow(Adw.Window):
         self.study_resources=StudyResources(library.root.parent/'study-data')
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='bible-download')
         existing=getattr(parent,'catalogue_session',None)
-        if not existing:parent.catalogue_session=CatalogueSession(library)
-        self.session=parent.catalogue_session;self.cache=self.session.cache
+        from .update_discovery import discovery
+        self.updates=discovery(parent)
+        self.session=self.updates.session;self.cache=self.session.cache
         self.resources=[];self.preparing=True
         self._category=0;self._category_queries={}
         self._installed_metadata={};self._study_installed=frozenset();self._study_current=frozenset()
@@ -833,13 +834,22 @@ class CatalogueWindow(Adw.Window):
             text.set_width_chars(1);text.set_max_width_chars(32);button.set_tooltip_text(url)
             self.conditions_links.append(button)
         self.license_group.set_visible(bool(resource and (resource.license or conditions)))
-        # About is a source-owned mixed field, not reliably separable prose and
-        # legal metadata. Present every word, including editorial limitations,
-        # as first-class description/notices rather than guessing boundaries.
-        # Study About carries index/checksum metadata and stays in disclosure.
-        about=plain(resource.about) if resource and resource.kind!='study' and not pending else ''
-        self.about_text.set_text(about);self.about_text.set_visible(bool(about))
-        self.description_group.set_visible(bool(about))
+        # A profile is independently refreshed catalogue prose, not a new
+        # Scripture package. The installed About remains in technical details.
+        from .resource_profile import approved_profile,present_profile
+        from .i18n import LANGUAGE
+        profile=approved_profile(resource,self.resources,LANGUAGE) if resource and not pending else None
+        self.about_text.set_attributes(None)
+        if profile:
+            locale,about,approval=profile
+            present_profile(self.about_text,about)
+            fallback=locale!=LANGUAGE.split('_',1)[0].split('-',1)[0]
+            self.description_group.set_description(tr('Source description language')+': '+self.language_label(locale) if fallback else '')
+            self.about_text.set_tooltip_text(tr('Profile approval reported by the source')+': '+approval['approved_at']+' · '+approval['revision']+'\n'+approval['approval_url'])
+        else:
+            about=plain(resource.about) if resource and resource.kind!='study' and not pending else ''
+            self.about_text.set_text(about);self.about_text.set_tooltip_text(None);self.description_group.set_description('')
+        self.about_text.set_visible(bool(about));self.description_group.set_visible(bool(about))
         self.refresh_controls()
 
     def _detail_link(self,row,attribute,url,label):

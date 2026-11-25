@@ -150,6 +150,7 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .study-card-list > row {{ padding: 0; margin: 0; background: none; box-shadow: none; }}
 .study-card-list > row:hover, .study-card-list > row:selected {{ background: none; }}
 .study-card-list > row:focus-visible {{ outline: none; }}
+.annotation-list > row:focus-visible .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
 .{self.scope}-window .study-action-card:hover {{ background-color: {bg}; background-image: none; border-color: alpha(currentColor,.32); }}
 .{self.scope}-window .study-action-card:focus-within,
 .study-card-list > row:focus-within > .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}

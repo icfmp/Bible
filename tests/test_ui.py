@@ -44,6 +44,11 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
 
 def installed_fixture(directory, name='Test', long_text=False, entries=None, versification='KJV', nt_only=False):
     from tests.fixtures import module_fixture
+    # Ordinary GTK fixtures are offline. Startup network discovery is tested
+    # explicitly with staged catalogues, never by contacting public providers.
+    from bible.application_settings import ApplicationSettings
+    if not (Path(directory)/'application-preferences.json').exists():
+        ApplicationSettings(directory).set('automatic_catalogue_refresh',False)
     root = Path(directory) / 'translations' / name
     module_fixture(root, name, entries if entries is not None else [
         ('Gen.1.1', 'SENTINEL α <literal>'), ('Gen.1.2', 'SECOND SENTINEL'),
