@@ -39,6 +39,14 @@ class ReadingSettingsTests(unittest.TestCase):
                 full.size.set_value(23);spin(lambda:not w.appearance._apply_id,duration=.2)
                 p=w.preferences.value
                 self.assertEqual((p.size,p.line_spacing_px,p.text_width_px,p.side_margin_px),(23,12,713,82))
+                self.assertEqual((p.study_font,w.study.sidebar_preferences.font),('sans-serif','Roboto'))
+                tag=w.study.text.get_buffer().get_tag_table().lookup('reader-typography')
+                self.assertEqual(tag.props.family,'Roboto')
+                from gi.repository import Pango
+                for weight,style in [(Pango.Weight.NORMAL,Pango.Style.NORMAL),(Pango.Weight.BOLD,Pango.Style.NORMAL),(Pango.Weight.NORMAL,Pango.Style.ITALIC)]:
+                    description=Pango.FontDescription.from_string('Roboto 12');description.set_weight(weight);description.set_style(style)
+                    actual=w.study.text.get_pango_context().load_font(description).describe()
+                    self.assertEqual((actual.get_family(),actual.get_weight(),actual.get_style()),('Roboto',weight,style))
                 self.assertFalse(hasattr(w.appearance,'line_spacing'))
                 self.assertFalse(hasattr(w.appearance,'column_width'))
                 d.close();spin();d=show_preferences(w);full=d.reading_settings

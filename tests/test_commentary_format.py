@@ -3,6 +3,35 @@ from bible.commentary_format import format_entry
 
 
 class CommentaryFormatTests(unittest.TestCase):
+    def test_inline_padding_is_source_verified_without_normalizing_authored_spaces(self):
+        cases=[
+            ('Spirit <hi type="bold">while they are engaged in ordinary work</hi>.',
+             'Spirit * while they are engaged in ordinary work *.',
+             'Spirit while they are engaged in ordinary work.'),
+            ('inter<hi type="italic">nation</hi>al','inter* nation *al','international'),
+            ('a\u00a0<hi type="bold"> b\u202f</hi>!','a\u00a0*  b\u202f *!','a\u00a0 b\u202f!'),
+            ('a  <hi type="italic">b</hi>  .','a  * b *  .','a  b  .'),
+            ('<hi type="italic"><hi type="small-caps">choikos</hi></hi>—<hi type="italic">dusty,</hi> *literal*',
+             '* choikos * * *—* dusty, * *literal*','choikos—dusty, *literal*'),
+            ('<hi type="bold">A<hi type="italic">B</hi>C</hi>.<reference osisRef="Gen.1.1">Gen.1.1</reference>',
+             '* A* B *C *.Gen.1.1','ABC.Gen.1.1'),
+        ]
+        for raw,native,expected in cases:
+            for preserve in (False,True):
+                with self.subTest(raw=raw,preserve_offsets=preserve):
+                    text,styles,_=format_entry(raw,native,'OSIS',preserve_offsets=preserve)
+                    hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
+                    self.assertEqual(''.join(c for i,c in enumerate(text) if i not in hidden),expected)
+                    self.assertEqual(text,native) # No native offset/byte rewriting.
+                    self.assertTrue(all(0<=a<b<=len(text) for _,a,b in styles))
+                    if raw.startswith('Spirit'):
+                        self.assertEqual([text[a:b] for kind,a,b in styles if kind=='bold'],['while they are engaged in ordinary work'])
+        raw='a<b>b<i>c</i></b><sup>2</sup><sub>n</sub><a href="https://example.org">link</a>.'
+        text,styles,_=format_entry(raw,'abc2nlink.','ThML')
+        self.assertEqual(text,'abc2nlink.')
+        self.assertEqual([(kind,text[a:b]) for kind,a,b in styles],
+                         [('italic','c'),('bold','bc'),('superscript','2'),('subscript','n')])
+
     def test_realistic_osis_compacted_title_paragraphs_and_bold_markers(self):
         # SWORD OSISPlain can prepend the source heading and concatenate
         # adjacent paragraph text without even one separating space.
@@ -49,14 +78,14 @@ class CommentaryFormatTests(unittest.TestCase):
         native='Source title * A&B; named &#224; numeric #224; proper . *'
         text,styles,titles=format_entry(raw,native,'OSIS')
         hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
-        self.assertEqual(''.join(c for i,c in enumerate(text) if i not in hidden),native.replace('*',''))
-        self.assertEqual(len(hidden),2);self.assertEqual(titles,())
+        self.assertEqual(''.join(c for i,c in enumerate(text) if i not in hidden),'Source title  A&B; named &#224; numeric #224; proper .')
+        self.assertEqual(sum(text[i]=='*' for i in hidden),2);self.assertEqual(titles,())
         self.assertIn('named &#224;',text);self.assertIn('numeric #224;',text)
         nested='<hi type="italic">litera &amp;#224; qu&amp;#226; words</hi>'
         native_nested='* litera #224; qu#226; words *'
         value,ranges,_=format_entry(nested,native_nested,'OSIS')
         self.assertEqual(value,native_nested)
-        self.assertEqual(sum(b-a for kind,a,b in ranges if kind=='hidden'),2)
+        self.assertEqual(sum(value[i]=='*' for kind,a,b in ranges if kind=='hidden' for i in range(a,b)),2)
         # An authored sequence retained by a different filter remains exact.
         retained='* litera &#224; qu&#226; words *'
         self.assertEqual(format_entry(nested,retained,'OSIS')[0],retained)
@@ -77,7 +106,7 @@ class CommentaryFormatTests(unittest.TestCase):
         hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
         visible=''.join(c for i,c in enumerate(text) if i not in hidden)
         self.assertEqual(len(text),len(native));self.assertEqual(titles,())
-        self.assertEqual(len(hidden),6);self.assertNotIn('*',visible)
+        self.assertEqual(sum(text[i]=='*' for i in hidden),6);self.assertNotIn('*',visible)
         self.assertTrue(any(kind=='heading' and 'The Creation.' in text[a:b] for kind,a,b in styles))
         self.assertTrue(any(kind=='italic' and text[a:b]=='land' for kind,a,b in styles))
         self.assertTrue(any(kind=='small-caps' and text[a:b]=='b. c.' for kind,a,b in styles))
@@ -92,7 +121,7 @@ class CommentaryFormatTests(unittest.TestCase):
         hidden={i for kind,start,end in styles if kind=='hidden' for i in range(start,end)}
         visible=''.join(c for i,c in enumerate(text) if i not in hidden)
         self.assertEqual(''.join(visible.split()),'choikos—dusty,*literal*')
-        self.assertEqual(len(hidden),6)
+        self.assertEqual(sum(text[i]=='*' for i in hidden),6)
         self.assertTrue(any(kind=='small-caps' for kind,_,_ in styles))
         for unsafe in [plain+'*',plain.replace('dusty,','different,'),plain.replace('choikos','choi*kos')]:
             self.assertEqual(format_entry(raw,unsafe,'OSIS'),(unsafe,(),()))
@@ -106,7 +135,7 @@ class CommentaryFormatTests(unittest.TestCase):
         text,styles,titles=format_entry(raw,plain,'OSIS')
         hidden={i for kind,a,b in styles if kind=='hidden' for i in range(a,b)}
         visible=''.join(c for i,c in enumerate(text) if i not in hidden)
-        self.assertEqual(len(hidden),4);self.assertIn('*literal*',visible)
+        self.assertEqual(sum(text[i]=='*' for i in hidden),4);self.assertIn('*literal*',visible)
         self.assertIn('foreword',visible);self.assertIn('Body title',visible)
         self.assertEqual(titles,())
         self.assertEqual(''.join(text.split()),''.join(plain.split()))
@@ -266,8 +295,8 @@ class CommentaryLayoutTests(unittest.TestCase):
         from bible.pagination import Document,StyleSpan
         from tests.test_ui import spin
         app=Application.get_default() or Application();app.register()
-        raw='<hi type="italic">Élève — naïf Ω</hi> après. '
-        plain='* Élève — naïf Ω * après. '
+        raw='<hi type="italic">Élève — naïf Ω</hi> après. <hi type="super">A<hi type="bold">B</hi>C</hi> '
+        plain='* Élève — naïf Ω * après. * A* B *C * '
         text,styles,_=format_entry(raw*150,plain*150,'OSIS')
         view=Gtk.TextView(wrap_mode=Gtk.WrapMode.WORD_CHAR)
         window=Gtk.Window(default_width=340,default_height=320);window.set_child(view)
@@ -286,5 +315,5 @@ class CommentaryLayoutTests(unittest.TestCase):
                 _,iterator=view.get_iter_at_location(0,y)
                 self.assertLessEqual(iterator.get_offset(),len(text))
             document=Document('entry',text,(),tuple(StyleSpan(*s) for s in styles))
-            self.assertEqual(document.copy(0,len(text)),plain.replace('*','')*150)
+            self.assertEqual(document.copy(0,len(text)),'Élève — naïf Ω après. ABC '*150)
         finally:window.destroy()

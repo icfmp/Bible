@@ -39,6 +39,12 @@ Family-setting sites were audited across `reading_style`, `bible_render`,
 explicit families apply to reading content. No preference/schema/data migration
 is necessary, and saved font choices must not be reset.
 
+The separately assigned #343 changes the **docked commentary body's default**
+from the legacy generic `sans-serif` to the existing bundled Roboto. An explicit
+custom study family still wins, and its saved value is never rewritten. This
+content-only default does not change other study tabs, interface headings,
+source prefaces or the existing commentary immersion font.
+
 ## Flatpak
 
 The GNOME 49 manifest and launcher do not set `gtk-font-name`, install GTK

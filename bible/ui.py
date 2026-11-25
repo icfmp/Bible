@@ -807,7 +807,7 @@ class Window(Adw.ApplicationWindow):
     def apply_appearance(self,reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
-        if (self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.preferences.value.study_font
+        if (self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.study.commentary_font
                 or self.study.sidebar_preferences.size!=(self.preferences.value.study_size or 12)):
             self.study.apply_typography()
         if not reflow:return

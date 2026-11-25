@@ -183,14 +183,21 @@ class StudyPanel(Gtk.Box):
         else:self.refresh(force=True)
         self.update_indicator()
 
+    @property
+    def commentary_font(self):
+        # The legacy generic default is not a custom font choice. Change only
+        # docked commentary prose; never write back or affect immersion/UI.
+        font=self.owner.preferences.value.study_font
+        return 'Roboto' if font=='sans-serif' else font
+
     def apply_typography(self):
         from .preferences import ReadingPreferences
         size=self.owner.preferences.value.study_size or 12
-        self.sidebar_preferences = ReadingPreferences(font=self.owner.preferences.value.study_font, size=size, line_spacing='normal')
+        self.sidebar_preferences = ReadingPreferences(font=self.commentary_font, size=size, line_spacing='normal')
         self.text.set_pixels_inside_wrap(0); self.text.set_pixels_below_lines(0)
         buffer=self.text.get_buffer(); tag=buffer.get_tag_table().lookup('reader-typography')
         if tag is None:tag=buffer.create_tag('reader-typography')
-        tag.props.family=self.owner.preferences.value.study_font; tag.props.size_points=size; tag.props.line_height=1.5
+        tag.props.family=self.commentary_font; tag.props.size_points=size; tag.props.line_height=1.5
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
 
     def queue_adapt(self,*_,frames=8):
