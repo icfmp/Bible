@@ -229,6 +229,8 @@ class CommentaryLayoutTests(unittest.TestCase):
                 panel.choices.set_selected(panel.names.index('Notes'));spin(lambda:not panel._positioning and not panel._choice_idle)
                 source=CommentaryPages(panel.reader,w.library.resource('Notes'))
                 text=panel.text.get_buffer().props.text
+                typography=panel.text.get_buffer().get_tag_table().lookup('reader-typography')
+                self.assertNotIn(typography,panel.text.get_buffer().get_start_iter().get_tags())
                 for ref,match,title in [('Gen.1.1',True,'Verse 1'),('Gen.1.2',False,'Verses 2–3'),('Gen.1.3',True,'Verse 3')]:
                     pos=panel.reader.index.locate(ref);doc=source.document(pos,w.preferences.value)
                     self.assertEqual(doc.text[:doc.context_length],panel.reader.index.label(pos)+'\n')

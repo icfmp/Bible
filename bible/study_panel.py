@@ -199,6 +199,11 @@ class StudyPanel(Gtk.Box):
         if tag is None:tag=buffer.create_tag('reader-typography')
         tag.props.family=self.commentary_font; tag.props.size_points=size; tag.props.line_height=1.5
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
+        document,_=getattr(self.text,'_bible_copy_source',(None,0))
+        if document:
+            for span in document.styles:
+                if span.kind=='ui-context' and span.end<=buffer.get_char_count():
+                    buffer.remove_tag(tag,buffer.get_iter_at_offset(span.start),buffer.get_iter_at_offset(span.end))
 
     def queue_adapt(self,*_,frames=8):
         if self.owner.closed or not self.text.get_mapped() or not self.owner.split.get_show_sidebar():return
