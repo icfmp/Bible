@@ -9,6 +9,18 @@ from tests.test_ui import installed_fixture,spin,close_test_dialogs
 
 
 class ReferenceInputTests(unittest.TestCase):
+    def test_book_completion_is_localized_canon_bound_and_preserves_reference_suffix(self):
+        from types import SimpleNamespace
+        from bible.book_names import book_suggestions
+        books=[SimpleNamespace(code=c,name=n) for c,n in [('Gen','Genesis'),('John','John'),('1John','1 John'),('2Kgs','2 Kings'),('Ps','Psalms')]]
+        for prefix,expected in [('jea','Jean '),('GEN','Genèse '),('1 je','1 Jean '),('2 ro','2 Rois '),('Psaume','Psaumes '),('jea 3:16','Jean 3:16'),('jea3:16','Jean 3:16')]:
+            self.assertEqual(book_suggestions(prefix,books,'fr')[0][1],expected)
+        self.assertEqual(book_suggestions('Joh',books,'en')[0][1],'John ')
+        self.assertEqual(book_suggestions('Jn',books,'en',lambda _: 'John')[0][1],'John ')
+        self.assertEqual(book_suggestions('jea',books[:1],'fr'),())
+        for value in ('Jean 3:16','Jean ','123',':3','unknown','a'*257):
+            self.assertEqual(book_suggestions(value,books,'fr'),())
+
     def test_explicit_singular_plural_and_attached_chapter_preserve_distinct_books(self):
         for value in ('psaume100','Psaumes 100','PSALM 100','Ps100'):
             self.assertEqual(canonical_input(value),'Ps.100')
@@ -18,6 +30,15 @@ class ReferenceInputTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get('DISPLAY'),'Requires native GTK/SWORD')
 class ReaderContracts(unittest.TestCase):
+    def test_book_completion_keeps_the_caret_after_the_completed_book_without_navigating(self):
+        self.w.choose_passage();spin();nav=self.w.navigation
+        before=(self.w.active_tab.state.resource,self.w.active_tab.state.reference)
+        nav.direct.set_text('gen');spin();self.assertTrue(nav._book_choices)
+        self.assertTrue(nav.accept_book());self.assertTrue(nav.direct.get_text().endswith(' '))
+        self.assertEqual(nav.direct.get_position(),len(nav.direct.get_text()))
+        self.assertFalse(nav.direct.get_selection_bounds())
+        self.assertEqual((self.w.active_tab.state.resource,self.w.active_tab.state.reference),before)
+
     def test_embedded_editor_owns_quiet_open_and_confirmed_bottom_delete(self):
         from bible.ui import Gtk
         note=self.w.notes_store.save('Keep original note',[],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Second',origin_language='en')

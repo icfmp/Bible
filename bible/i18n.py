@@ -783,4 +783,6 @@ FR.update({
     'A different version is already installed. Check for updates before retrying.':'Une autre version est déjà installée. Vérifiez les mises à jour avant de réessayer.',
     'The study resource changed. Review this download again.':'La ressource d’étude a changé. Vérifiez ce téléchargement à nouveau.',
     'Refresh this source to verify whether this removed version is still available.':'Actualisez cette source pour vérifier si cette version supprimée est encore disponible.',
+    'Book suggestions':'Livres proposés',
+    'Tab completes the selected book. Enter opens the passage.':'Tab complète le livre sélectionné. Entrée ouvre le passage.',
 })
