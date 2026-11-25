@@ -10,6 +10,31 @@ from tools.flatpak_channel import prepare, digest
 
 
 class ChannelGateTests(unittest.TestCase):
+    def test_pages_artifact_waits_for_two_stable_observations(self):
+        asset=dict(id=321,name='github-pages-first-2',expired=False,size_in_bytes=100)
+        with patch.dict(os.environ,dict(GITHUB_RUN_ID='123',GITHUB_RUN_ATTEMPT='2')),patch.object(channel_ci,'api',side_effect=[{'artifacts':[]},{'artifacts':[asset]},{'artifacts':[asset]}]) as fetch,patch.object(channel_ci.time,'sleep') as sleep:
+            self.assertEqual(channel_ci.wait_pages_artifact(),asset)
+        self.assertEqual(fetch.call_count,3);self.assertEqual(sleep.call_args_list,[((5,),),((5,),)])
+
+    def test_pages_wait_is_bounded_and_never_retries_access_or_identity_failures(self):
+        from subprocess import CalledProcessError
+        asset=dict(id=321,name='github-pages-first-2',expired=False,size_in_bytes=100)
+        with patch.dict(os.environ,dict(GITHUB_RUN_ID='123',GITHUB_RUN_ATTEMPT='2')):
+            with patch.object(channel_ci,'api',return_value={'artifacts':[]}),patch.object(channel_ci.time,'sleep') as sleep:
+                with self.assertRaisesRegex(RuntimeError,'55 seconds'):channel_ci.wait_pages_artifact()
+                self.assertEqual(sleep.call_count,11)
+            with patch.object(channel_ci,'api',side_effect=CalledProcessError(1,['gh','api'])),patch.object(channel_ci.time,'sleep') as sleep:
+                with self.assertRaises(CalledProcessError):channel_ci.wait_pages_artifact()
+                sleep.assert_not_called()
+            for records in ([dict(asset,expired=True)],[asset,asset]):
+                with patch.object(channel_ci,'api',return_value={'artifacts':records}),patch.object(channel_ci.time,'sleep') as sleep:
+                    with self.assertRaises(AssertionError):channel_ci.wait_pages_artifact()
+                    sleep.assert_not_called()
+            for records in ([{'artifacts':[asset]},{'artifacts':[dict(asset,id=322)]}],
+                            [{'artifacts':[asset]},{'artifacts':[]},{'artifacts':[dict(asset,id=322)]}]):
+                with patch.object(channel_ci,'api',side_effect=records),patch.object(channel_ci.time,'sleep'):
+                    with self.assertRaisesRegex(AssertionError,'identity changed'):channel_ci.wait_pages_artifact()
+
     def verification(self, *, conclusion='success', repository='icfmp/Bible', corrupt=False):
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:

@@ -23,6 +23,26 @@ def api(endpoint):
     return json.loads(run('gh','api',endpoint))
 
 
+def wait_pages_artifact():
+    """Require stable artifact visibility before Pages' separate backend lookup."""
+    execution=os.environ['GITHUB_RUN_ID'];attempt=os.environ['GITHUB_RUN_ATTEMPT']
+    assert execution.isdigit() and attempt.isdigit()
+    name='github-pages-first-'+attempt;seen=None;visible=False
+    for observation in range(12):
+        assets=api(f'repos/{REPO}/actions/runs/{execution}/artifacts')['artifacts']
+        matches=[asset for asset in assets if asset['name']==name]
+        assert len(matches)<=1, 'Ambiguous Pages artifact'
+        if matches:
+            asset=matches[0]
+            assert not asset['expired'] and asset['size_in_bytes']>0, 'Unavailable Pages artifact'
+            assert seen is None or seen==asset['id'], 'Pages artifact identity changed'
+            if visible:return asset
+            seen=asset['id'];visible=True
+        else:visible=False
+        if observation<11:time.sleep(5)
+    raise RuntimeError('Pages artifact did not become stably visible within 55 seconds')
+
+
 def verify():
     event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
     run_id = str(event.get('workflow_run',{}).get('id') or os.environ['INPUT_VERIFIED_RUN'])
@@ -118,9 +138,10 @@ def import_signing_key():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action',choices=['verify','restore','persist','import-key'])
+    parser.add_argument('action',choices=['verify','restore','persist','import-key','wait-pages-artifact'])
     action = parser.parse_args().action
-    {'verify':verify,'restore':restore,'persist':persist,'import-key':import_signing_key}[action]()
+    {'verify':verify,'restore':restore,'persist':persist,'import-key':import_signing_key,
+     'wait-pages-artifact':wait_pages_artifact}[action]()
 
 
 if __name__ == '__main__': main()

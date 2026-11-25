@@ -119,6 +119,12 @@ duplicate paths and unsafe or excessive entries are rejected. The catalogue
 records the original asset ID, bytes and digest. Existing assets are never
 overwritten, and previously recorded archives retain strict byte verification.
 
+After uploading the Pages artifact, publication requires two stable metadata
+observations five seconds apart before requesting deployment. Visibility is
+bounded to 55 seconds; missing artifacts fail the run, while access errors,
+ambiguous identities and expired artifacts fail immediately. Pages still performs
+its own artifact lookup, and the signed public-update verification remains required.
+
 The [source catalogue](https://icfmp.github.io/Bible/alpha/sources.html) lists
 all archives and checksums; `alpha/sources.json` provides the same machine-readable
 mapping. Current provenance retains `source_archive` and `source_sha256`, adding
