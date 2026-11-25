@@ -84,10 +84,12 @@ class ModuleManagement:
         if hasattr(self,'actions') and not self.dialog.closed:
             self.dialog.selection_changed();self.dialog.refresh_rows()
             manager=self.dialog.updates
-            self.dialog.refresh_status.set_text(tr('Checking for module updates…') if manager.checking else
-                tr('The source check failed. Saved metadata is not proof that this module is up to date.') if manager.state in ('offline','failed') else
-                tr('Module check complete.') if manager.state=='checked' else '')
-            self.dialog.refresh_status.set_tooltip_text(manager.error or None)
+            if manager.state!='not-checked' and not self.dialog._catalogue_errors:
+                self.dialog.refresh_status.set_text(tr('Checking for module updates…') if manager.checking else
+                    tr('The source check failed. Saved metadata is not proof that this module is up to date.') if manager.state in ('offline','failed') else
+                    tr('Module check complete.') if manager.state=='checked' else '')
+                self.dialog.refresh_status.set_tooltip_text(manager.error or None)
+
 
     def available(self,identifier):return self.reports.get(identifier,{}).get('state')=='available'
 

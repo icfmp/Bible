@@ -136,3 +136,17 @@ class DiscoveryTests(unittest.TestCase):
         reports={};manager.add_study(reports,{'Study tools':'Offline test'})
         self.assertEqual(reports[REFERENCE_RESOURCE_ID]['state'],'offline')
         self.assertEqual(manager.session.study.references.metadata()['archive_sha256'],before.sha256)
+
+    def test_failed_metadata_bootstrap_is_reported_and_explicit_check_recovers(self):
+        from bible.update_discovery import ResourceUpdates
+        from bible.library import Library
+        from bible.catalogue_cache import CatalogueCache
+        root=Path(self.enterContext(tempfile.TemporaryDirectory()))
+        with patch.object(CatalogueCache,'read',side_effect=OSError('Actual startup metadata failure')):
+            manager=ResourceUpdates(Library(root/'translations'));self.addCleanup(manager.session.close)
+            spin(lambda:manager.session.snapshot is not None)
+            self.assertIn('Actual startup metadata failure',manager.session.snapshot.errors['Library'])
+        manager.check(force=True)
+        spin(lambda:not manager.checking)
+        self.assertEqual(manager.state,'checked');self.assertFalse(manager.session.snapshot.errors)
+        self.assertFalse(manager.eligible())

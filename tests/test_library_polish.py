@@ -180,8 +180,8 @@ class LibraryPolishTests(unittest.TestCase):
     def test_language_choice_empty_alias_and_type_persistence_without_fetch(self):
         w=self.window;w.application_settings.set('library_language','fr')
         d=w.open_library();spin(lambda:not d.busy)
-        d.resources=[replace(RESOURCE,name='French',language='fra'),replace(RESOURCE,name='English'),replace(RESOURCE,name='Study',driver='RawCom',category='Commentaries',language='fre')]
-        d.update_languages();spin(lambda:not d.busy)
+        d.session.providers[CROSSWIRE.id]=tuple([replace(RESOURCE,name='French',language='fra'),replace(RESOURCE,name='English'),replace(RESOURCE,name='Study',driver='RawCom',category='Commentaries',language='fre')])
+        d.session.publish();spin(lambda:not d.busy and len(d.resources)==3)
         self.assertEqual([r.name for r in d.filtered_resources],['French'])
         d.kind.set_selected(1);spin(lambda:not d.busy)
         self.assertEqual([r.name for r in d.filtered_resources],['Study'])

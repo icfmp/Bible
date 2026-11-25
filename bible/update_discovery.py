@@ -77,9 +77,14 @@ class ResourceUpdates:
 
     def check(self,force=False):
         if self.checking or self.session.closed:return
-        self.checking=True;self.state='checking';self.notify()
+        if self.session.bootstrap_future.done() and self.session.bootstrap_future.exception() is not None:
+            self.session.bootstrap_future=self.session.schedule(self.session.bootstrap)
+        self.checking=True;self.state='checking';self.error='';self.notify()
         def work():
             try:
+                self.session.bootstrap_future.result()
+                if not self.session.installed and not self.session.study_installed:
+                    self.state='checked';GLib.idle_add(self.accept,{});return
                 providers=tuple(BY_ID[k] for k in sorted({r.provider_id for r in self.session.installed.values()}&SUPPORTED))
                 # Only fresh, validated provider caches are eligible at startup.
                 fresh={p.id for p in providers if (record:=self.session.cache.read(p)) and time.time()-record[1]<15*60}
@@ -160,7 +165,7 @@ class ResourceUpdates:
 
 class UpdateButton(Gtk.Button):
     def __init__(self,owner):
-        super().__init__(icon_name='software-update-available-symbolic',visible=False)
+        super().__init__(icon_name='view-refresh-symbolic',visible=False)
         self.add_css_class('flat');self.owner=owner;self.manager=None;self._start_pending=False
         self.connect('clicked',lambda *_:self.manager.show(owner) if self.manager else None)
         owner.connect('map',self.mapped)
