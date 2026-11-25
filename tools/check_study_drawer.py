@@ -41,7 +41,7 @@ def main():
             native.click(window.appearance_button);native.click(window.appearance.larger)
             assert window.preferences.value.size==15
             typography=buffer.get_tag_table().lookup('reader-typography')
-            assert typography.props.family=='sans-serif' and typography.props.size_points==12
+            assert typography.props.family=='Roboto' and typography.props.size_points==12
             assert abs(typography.props.line_height-1.5)<.001
             native.click(window.appearance.smaller);native.click(window.appearance_button)
             assert not window.appearance.get_visible();assert study.entry_text==original

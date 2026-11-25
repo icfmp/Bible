@@ -15,7 +15,7 @@ class SourceRenderingTests(unittest.TestCase):
         parts=extract(raw,native,'OSIS')
         self.assertEqual(''.join(s.text for s in parts if 'native-decoration' not in s.styles),
                          'Exact source * literal.\n\nPoetry.')
-        self.assertEqual(''.join(s.text for s in parts if s.styles==('native-decoration',)),'**')
+        self.assertEqual(''.join(s.text for s in parts if s.styles==('native-decoration',)),'* * ')
         self.assertTrue(any(s.styles==('small-caps',) and s.text=='Exact source' for s in parts))
         unknown=extract(raw,'* Different source * * literal. Poetry.','OSIS')
         self.assertEqual(unknown[0].text,'* Different source * * literal. Poetry.')

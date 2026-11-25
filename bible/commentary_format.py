@@ -207,11 +207,11 @@ def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_e
     left=[i for i,c in enumerate(expected) if not c.isspace() and c!='*']
     right=[i for i,c in enumerate(plain) if not c.isspace() and c!='*']
     if ''.join(expected[i] for i in left)!=''.join(plain[i] for i in right):return None
-    literals=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
+    literals=defaultdict(list);decorations=defaultdict(list);actual=defaultdict(list);boundaries=set();position=0
     for index,char in enumerate(expected):
         if char.isspace():continue
         if char=='*':
-            if index in generated:boundaries.add(position)
+            if index in generated:boundaries.add(position);decorations[position].append(index)
             else:literals[position].append(index)
         else:position+=1
     position=0
@@ -220,14 +220,44 @@ def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_e
         if char=='*':actual[position].append(index)
         else:position+=1
     if sum(map(len,actual.values()))!=sum(map(len,literals.values()))+len(generated):return None
-    mapping=dict(zip(left,right));hidden=[]
+    mapping=dict(zip(left,right));hidden=set()
     for slot in actual.keys()|literals.keys():
         authored=literals[slot];native=actual[slot]
         if len(native)<len(authored) or len(native)>len(authored) and slot not in boundaries:return None
-        mapping.update(zip(authored,native))
-        hidden.extend(native[len(authored):])
+        # Literal stars keep their order relative to opening/closing hi
+        # decorations. Mapping every literal to the first native star can
+        # otherwise move its authored whitespace across an emphasis boundary.
+        selected=[native[i+min(len(native)-len(authored),bisect_left(decorations[slot],source))]
+                  for i,source in enumerate(authored)]
+        mapping.update(zip(authored,selected))
+        hidden.update(set(native)-set(selected))
     left=sorted(mapping);right=[mapping[i] for i in left]
-    styles=[('hidden',i,i+1) for i in hidden];display=list(plain)
+    # OSISPlain emits "* " and " *" around hi. Removing just the stars
+    # leaves double word gaps and a space before punctuation. At verified
+    # emphasis boundaries only, hide surplus ASCII padding that is absent
+    # from the source. Never collapse authored whitespace or rewrite text;
+    # native offsets (also used by Bible projections) remain unchanged.
+    padding={i for _,first,_,_,last in parser.emphasis for i in (first+1,last-1)}
+    gaps={bisect_left(left,i) for i in padding}
+    for gap in gaps:
+        first=left[gap-1]+1 if gap else 0;last=left[gap] if gap<len(left) else len(expected)
+        start=right[gap-1]+1 if gap else 0;end=right[gap] if gap<len(right) else len(plain)
+        authored=''.join(expected[i] for i in range(first,last) if expected[i].isspace() and i not in padding)
+        cursor=0;extra=[]
+        for i in range(start,end):
+            if i in hidden:continue
+            char=plain[i]
+            if cursor<len(authored) and char==authored[cursor]:cursor+=1
+            elif char==' ':extra.append(i)
+            else:break
+        else:
+            if cursor==len(authored) and len(extra)<=sum(i in hidden and plain[i]=='*' for i in range(start,end)):
+                hidden.update(extra)
+    styles=[]
+    for i in sorted(hidden):
+        if styles and styles[-1][2]==i:styles[-1]=('hidden',styles[-1][1],i+1)
+        else:styles.append(('hidden',i,i+1))
+    display=list(plain)
     for kind,first,body,end,last in parser.emphasis:
         content=right[bisect_left(left,body):bisect_left(left,end)]
         style={'italic':'italic','bold':'bold','super':'number','small-caps':'small-caps'}.get(kind)

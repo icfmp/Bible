@@ -135,6 +135,8 @@ class ReadingStyle:
 {study_accents}
 .workspace-selector > button {{ padding: 4px 14px; min-height: 28px; font-weight: 500; }}
 .workspace-selector.compact > button {{ padding-left: 8px; padding-right: 8px; min-width: 24px; }}
+.resource-updates {{ color: @warning_color; background-color: alpha(@warning_bg_color,.14); border: 1px solid alpha(@warning_color,.3); }}
+.resource-updates:hover {{ background-color: alpha(@warning_bg_color,.24); }}
 /* Native edge glow can synchronously JIT-compile a radial-gradient program
    on software OpenGL during wheel reversal. Keep native scrolling without it. */
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
@@ -143,7 +145,6 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .{self.scope}-window .action-card {{ background-color: {bg}; color: {fg}; border: 1px solid alpha(currentColor,.14); border-radius: 10px; box-shadow: none; padding: 12px; }}
 .{self.scope}-window .action-card:hover {{ background-color: mix({bg},{fg},.06); }}
 .{self.scope}-window .action-card:focus-visible, .{self.scope}-window .action-card:focus-within {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
-.{self.scope}-window listview > row:selected .action-card {{ background-color: mix({bg},@accent_color,.15); }}
 .{self.scope}-window .action-card .card-primary {{ padding: 0; min-height: 0; background: transparent; box-shadow: none; }}
 /* Study cards have one neutral surface; row wrappers and child buttons do
    not paint another hover layer or consume an extra horizontal inset. */
@@ -152,6 +153,7 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .study-card-list > row:focus-visible {{ outline: none; }}
 .annotation-list > row:focus-visible .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
 .{self.scope}-window .study-action-card:hover {{ background-color: {bg}; background-image: none; border-color: alpha(currentColor,.32); }}
+.{self.scope}-window .annotation-list > row:selected .study-action-card {{ background-color: {bg}; background-image: none; border-color: alpha(currentColor,.45); }}
 .{self.scope}-window .study-action-card:focus-within,
 .study-card-list > row:focus-within > .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
 .{self.scope}-window button.study-action-card:active {{ background-color: {bg}; background-image: none; border-color: @accent_color; }}
@@ -186,6 +188,9 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 {selector}.study-reader, {selector}.study-reader text {{ background-color: transparent; color: @view_fg_color; }}
 .{self.scope}-window .study-content,
 .{self.scope}-window .study-content text {{ font-family: {study_family}; {study_size_css} }}
+/* Reference headings are interface labels. Only their weight is explicit;
+   GTK/libadwaita owns their family and size, independently of study prose. */
+.{self.scope}-window .passage-card-title {{ font-weight: 500; }}
 /* GTK owns focus-visible/modality. Draw on the text CSS node so its opaque
    background cannot cover the focus mark. Inset shadows do not change layout. */
 {selector}:not(.immersive-page):focus-visible text {{ box-shadow: inset {focus_width}px 0 0 {link}; }}

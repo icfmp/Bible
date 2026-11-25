@@ -30,7 +30,6 @@ class AppearancePopover(Gtk.Popover):
             button = Gtk.ToggleButton(tooltip_text=tr('Reading font')+': '+family)
             if self.fonts:button.set_group(next(iter(self.fonts.values())))
             preview = Gtk.Label(label=tr(label))
-            attrs = Pango.AttrList();attrs.insert(Pango.attr_family_new(family));preview.set_attributes(attrs)
             button.set_child(preview)
             button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Reading font')+': '+tr(label)])
             button.connect('clicked',lambda _, name=style:self.update('font_style',name))
@@ -146,7 +145,6 @@ class AppearancePopover(Gtk.Popover):
         for style,button in self.fonts.items():
             family=p.serif_font if style=='book' else p.sans_font
             button.set_active(p.font_style==style);button.set_tooltip_text(tr('Reading font')+': '+family)
-            attrs=Pango.AttrList();attrs.insert(Pango.attr_family_new(family));button.get_child().set_attributes(attrs)
         self.font_name.set_visible(False)
         self.visible_elements.set_expanded(p.visible_elements_expanded)
         self.size.set_text(f'{p.size} pt')

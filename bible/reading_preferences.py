@@ -119,5 +119,4 @@ class ReadingSettings:
         control._family_row.set_subtitle('' if family else
             tr('Unavailable font: {family}. A fallback is used.').format(family=saved))
         control._family_preview.set_text(family.get_name() if family else saved)
-        attrs=Pango.AttrList();attrs.insert(Pango.attr_family_new(saved))
-        control._family_preview.set_attributes(attrs);control.set_tooltip_text(saved)
+        control.set_tooltip_text(saved)

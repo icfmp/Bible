@@ -131,9 +131,16 @@ class ResourceUpdates:
         if self.session.snapshot:dialog.apply_snapshot(self.session.snapshot)
         dialog.modules.reports.update({k:v for k,v in self.reports.items() if v.get('available') and v['available'].kind!='study'})
         for identifier,report in self.eligible():
-            resource=report['available']
-            dialog.queue_request(resource,operation='install' if resource.kind=='study' else 'update')
+            self.queue_one(dialog,identifier)
         return dialog
+
+    def queue_one(self,dialog,identifier):
+        # Recheck the current shared inventory at activation, not the recycled
+        # row's old catalogue record. Both entry points use the same queue.
+        report=dict(self.eligible()).get(identifier)
+        if report is None:return
+        resource=report['available']
+        dialog.queue_request(resource,operation='install' if resource.kind=='study' else 'update')
 
     def show(self,owner):
         window=Adw.Window(transient_for=owner,modal=True,title=tr('Resource updates'),default_width=480,default_height=min(560,170+90*len(self.eligible())))
@@ -166,7 +173,7 @@ class ResourceUpdates:
 class UpdateButton(Gtk.Button):
     def __init__(self,owner):
         super().__init__(icon_name='view-refresh-symbolic',visible=False)
-        self.add_css_class('flat');self.owner=owner;self.manager=None;self._start_pending=False
+        self.add_css_class('flat');self.add_css_class('resource-updates');self.owner=owner;self.manager=None;self._start_pending=False
         self.connect('clicked',lambda *_:self.manager.show(owner) if self.manager else None)
         owner.connect('map',self.mapped)
 
