@@ -100,8 +100,8 @@ subsequent public update with user-data sentinels.
 The public, **non-numbered technical prerelease**
 [alpha-source-archives](https://github.com/icfmp/Bible/releases/tag/alpha-source-archives)
 stores one `Bible-<full-source-commit>-sources.tar.gz` asset per distributed
-source commit. This is storage, not an application milestone; numbered release
-#87 remains paused. No numbered application tag is created or moved.
+source commit. This is technical storage; numbered application prereleases follow
+AGENTS.md. Storage maintenance does not create or move an application tag.
 
 Historical archives retain their exact bytes and SHA-256 digests. Every initial
 upload is downloaded again through its public HTTPS URL and verified byte for
@@ -109,6 +109,15 @@ byte before any staged Pages copy is removed. Uploads never overwrite assets.
 Later publications validate previously recorded asset IDs, sizes and digests,
 refusing replacement or corruption. A failed upload or verification leaves all
 local source archives intact and cannot persist/deploy the staged site.
+
+If upload succeeded but persisting its receipt failed, a retry may recreate
+different tar/gzip timestamps. An unrecorded existing asset can be reused only
+after downloading it, checking its exact public digest/size, and comparing every
+regular-file payload and permission with the independently generated archive.
+The project tar and pinned dependency archives must match byte for byte; links,
+duplicate paths and unsafe or excessive entries are rejected. The catalogue
+records the original asset ID, bytes and digest. Existing assets are never
+overwritten, and previously recorded archives retain strict byte verification.
 
 The [source catalogue](https://icfmp.github.io/Bible/alpha/sources.html) lists
 all archives and checksums; `alpha/sources.json` provides the same machine-readable

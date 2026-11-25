@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "source": "ebc244efb45ad4fe543a5ca79ede061bb4393563",
+  "original_asset_id": 789277282,
+  "original_sha256": "9770ec67453e3838f3f4ca328704b12c6e1f8a4d5266bcdde7f0cd890670cd8c",
+  "original_bytes": 23296537,
+  "regenerated_sha256": "6ea6f9d90d01b72a714ee01e44eb2d74e8e1f7c7378b54feac7ca8f79e018197",
+  "verified_wrapper_members": 9,
+  "all_payloads_and_permissions_equal": true,
+  "public_asset_modified": false,
+  "application_rebuilt": false
+}

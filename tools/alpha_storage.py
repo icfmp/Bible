@@ -8,9 +8,11 @@ import base64
 import hashlib
 import html
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
+import tarfile
+import tempfile
 import urllib.request
 
 REPOSITORY = 'icfmp/Bible'
@@ -78,6 +80,49 @@ def verify_asset(asset, name, expected_sha, expected_size, *, download=True):
     return url
 
 
+def source_contents(path):
+    """Compare wrapper payloads/permissions, never timestamp/owner metadata.
+
+    The project tar and pinned dependency archives are regular file payloads:
+    their bytes must match exactly, including their own internal metadata.
+    """
+    contents={};expanded=0
+    with tarfile.open(path,'r|gz') as archive:
+        for member in archive:
+            name=PurePosixPath(member.name)
+            assert not name.is_absolute() and '..' not in name.parts and name.parts, 'Unsafe source archive path'
+            assert str(name) not in contents and len(contents)<512, 'Duplicate or excessive source archive entries'
+            expanded+=member.size
+            assert 0<=member.size and expanded<=512*1024*1024, 'Source archive exceeds safe limits'
+            if member.isdir():
+                assert member.size==0
+                content=('directory',member.mode)
+            else:
+                assert member.isfile(), 'Source archive links/special files refused'
+                with archive.extractfile(member) as stream:
+                    content=('file',member.mode,hashlib.file_digest(stream,'sha256').hexdigest())
+            contents[str(name)]=content
+    return contents
+
+
+def reuse_source_upload(path,asset):
+    """Recover an unrecorded upload only after exact source-payload comparison."""
+    assert re.fullmatch(r'sha256:[0-9a-f]{64}',asset.get('digest','')), 'Missing source asset digest'
+    assert type(asset['size']) is int and 0<asset['size']<=512*1024*1024, 'Invalid source asset size'
+    url=verify_asset(asset,path.name,asset['digest'][7:],asset['size'],download=False)
+    with tempfile.TemporaryDirectory() as temporary:
+        original=Path(temporary)/'original.tar.gz';received=0
+        with urllib.request.urlopen(url,timeout=60) as response,original.open('xb') as output:
+            for block in iter(lambda:response.read(1024*1024),b''):
+                received+=len(block)
+                assert received<=asset['size'], 'Public source download exceeds declared size'
+                output.write(block)
+        digest=sha256(original)
+        verify_asset(asset,path.name,digest,received,download=False)
+        assert source_contents(path)==source_contents(original), 'Existing source archive payload differs'
+    return digest,received,url
+
+
 def archive_sources(site):
     """Upload and publicly verify every source BEFORE deleting any staged copy.
 
@@ -105,7 +150,13 @@ def archive_sources(site):
             subprocess.run(['gh', 'release', 'upload', SOURCE_TAG, str(path), '--repo', REPOSITORY], check=True)
             assets = {a['name']: a for a in release()['assets']}
             asset = assets[path.name]
-        url = verify_asset(asset, path.name, digest, size)
+        if path.name not in catalog['archives'] and asset.get('digest')!='sha256:'+digest:
+            # An upload may succeed before persisting its receipt fails. A new
+            # wrapper can differ only in tar/gzip metadata: reuse original bytes
+            # after independently verifying the download and every payload.
+            digest,size,url=reuse_source_upload(path,asset)
+        else:
+            url = verify_asset(asset, path.name, digest, size)
         catalog['archives'][path.name] = dict(source_commit=match[1], sha256=digest,
                                              bytes=size, asset_id=asset['id'], url=url)
     # Only after every public download passed may staging discard originals.
