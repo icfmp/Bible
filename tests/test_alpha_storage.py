@@ -136,6 +136,53 @@ class AlphaStorageTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'digest mismatch'):
             storage.verify_asset(asset, 'archive', '0' * 64, len(b'original'))
 
+    def test_unrecorded_upload_reuses_original_bytes_only_for_identical_payload(self):
+        import io,tarfile
+        def archive(payload,mtime,*,link=False,duplicate=False,mode=0o644,name='source/Bible-source.tar'):
+            output=io.BytesIO()
+            with tarfile.open(fileobj=output,mode='w:gz') as tar:
+                member=tarfile.TarInfo(name);member.mtime=mtime;member.uid=mtime;member.mode=mode
+                if link:member.type=tarfile.SYMTYPE;member.linkname='elsewhere'
+                else:member.size=len(payload)
+                tar.addfile(member,None if link else io.BytesIO(payload))
+                if duplicate:tar.addfile(member,io.BytesIO(payload))
+            return output.getvalue()
+        original=archive(b'exact project and dependency payload',1)
+        regenerated=archive(b'exact project and dependency payload',2)
+        self.assertNotEqual(original,regenerated)
+        name=f'Bible-{"a"*40}-sources.tar.gz';asset=self.asset(name,original)
+        for candidate,success in ((regenerated,True),(archive(b'changed project content',2),False),
+                                  (archive(b'',2,link=True),False),(archive(b'x',2,duplicate=True),False),
+                                  (archive(b'exact project and dependency payload',2,mode=0o755),False),
+                                  (archive(b'x',2,name='../unsafe'),False)):
+            with self.subTest(success=success),tempfile.TemporaryDirectory() as directory:
+                alpha=Path(directory)/'alpha';alpha.mkdir();path=alpha/name;path.write_bytes(candidate)
+                with patch.object(storage,'release',return_value=dict(draft=False,prerelease=True,assets=[asset])),patch.object(storage.urllib.request,'urlopen',return_value=io.BytesIO(original)),patch.object(storage.subprocess,'run',side_effect=AssertionError('No upload or replacement')):
+                    if success:
+                        result=storage.archive_sources(directory)
+                        self.assertEqual(result['archives'][name]['sha256'],asset['digest'][7:])
+                        self.assertEqual(result['archives'][name]['asset_id'],asset['id'])
+                        self.assertFalse(path.exists())
+                        # Once recorded, even wrapper-only differences retain
+                        # the historical byte-for-byte rejection rule.
+                        path.write_bytes(regenerated)
+                        with self.assertRaises(AssertionError):
+                            storage.archive_sources(directory)
+                    else:
+                        with self.assertRaises(AssertionError):storage.archive_sources(directory)
+                        self.assertEqual(path.read_bytes(),candidate)
+                        self.assertFalse((alpha/'sources.json').exists())
+
+    def test_unrecorded_upload_still_rejects_corrupt_public_bytes(self):
+        import io
+        with tempfile.TemporaryDirectory() as directory:
+            alpha=Path(directory)/'alpha';alpha.mkdir();name=f'Bible-{"a"*40}-sources.tar.gz'
+            path=alpha/name;path.write_bytes(b'new local archive')
+            asset=self.asset(name,b'original')
+            with patch.object(storage,'release',return_value=dict(draft=False,prerelease=True,assets=[asset])),patch.object(storage.urllib.request,'urlopen',return_value=io.BytesIO(b'tampered')):
+                with self.assertRaisesRegex(AssertionError,'digest mismatch'):storage.archive_sources(directory)
+            self.assertEqual(path.read_bytes(),b'new local archive')
+
     def test_public_bytes_are_checked_independently_of_asset_metadata(self):
         import io
         name = f'Bible-{"a" * 40}-sources.tar.gz'
