@@ -156,8 +156,9 @@ class ReaderContracts(unittest.TestCase):
             description=title.get_pango_context().get_font_description()
             self.assertEqual(description.get_family(),family)
             self.assertEqual(description.get_weight(),Pango.Weight.MEDIUM)
-            layout=title.get_layout();iterator=layout.get_iter()
-            resolved=iterator.get_run_readonly().item.analysis.font.describe()
+            # Load an owned font from the effective CSS context. Borrowed
+            # LayoutIter glyph-item analysis crashes older host GI bindings.
+            resolved=title.get_pango_context().load_font(description).describe()
             self.assertEqual(resolved.get_family(),family)
             if family=='Roboto':self.assertEqual(resolved.get_weight(),Pango.Weight.MEDIUM)
             body=excerpt.get_pango_context().get_font_description()
