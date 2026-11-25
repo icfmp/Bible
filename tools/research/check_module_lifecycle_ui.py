@@ -43,7 +43,10 @@ try:
  w.highlights.set(tab.reader.versification,['Gen.1.1'],'yellow',tab.state.resource)
  notes=[asdict(x) for x in w.notes_store.all()];highlights=dict(w.highlights.entries)
  dialog=w.open_library();spin(lambda:not dialog.preparing);native.activate(dialog)
- dialog.modules.check();spin(lambda:not dialog.busy,timeout=90);assert dialog._phase=='complete',dialog.status.get_text()
+ dialog.modules.check()
+ spin(lambda:not dialog.updates.checking and (dialog.updates.state!='checked' or expected<=dialog.modules.reports.keys()),timeout=90)
+ assert dialog.updates.state=='checked',(dialog.updates.state,dialog.updates.error)
+ assert expected<=dialog.modules.reports.keys(),dialog.modules.reports.keys()
  report['checks']={key:dict(state=value['state'],available_version=value['available'].version if value.get('available') else None) for key,value in dialog.modules.reports.items()}
  for mode in ('day','night'):
   w.appearance.update('mode',mode)
