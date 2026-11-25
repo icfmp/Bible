@@ -8,6 +8,8 @@ class WorkspaceSelector(SegmentedChoice):
     def __init__(self,owner,notes=False):
         super().__init__([tr('Bible'),tr('Notes')],1 if notes else 0)
         self.add_css_class('workspace-selector')
+        self.set_homogeneous(True)
+        self.set_margin_end(6)
         self.owner=owner;self.syncing=False
         self.compact=False
         self.set_selected(1 if notes else 0)
@@ -18,6 +20,7 @@ class WorkspaceSelector(SegmentedChoice):
     def set_compact(self,compact):
         if compact==self.compact:return
         self.compact=compact
+        (self.add_css_class if compact else self.remove_css_class)('compact')
         for button,label,icon in zip(self.buttons,('Bible','Notes'),('dictionary-symbolic','notebook-symbolic')):
             if compact:button.set_icon_name(icon)
             else:button.set_label(tr(label))

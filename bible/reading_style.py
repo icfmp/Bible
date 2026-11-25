@@ -133,6 +133,8 @@ class ReadingStyle:
         self.css = f'''
 {swatches}
 {study_accents}
+.workspace-selector > button {{ padding: 4px 14px; min-height: 28px; font-weight: 500; }}
+.workspace-selector.compact > button {{ padding-left: 8px; padding-right: 8px; min-width: 24px; }}
 /* Native edge glow can synchronously JIT-compile a radial-gradient program
    on software OpenGL during wheel reversal. Keep native scrolling without it. */
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
