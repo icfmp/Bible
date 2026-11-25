@@ -39,7 +39,7 @@ def main():
         document=study.text._bible_copy_source[0]
         source_hash=hashlib.sha256(document.copy(0,len(document.text)).encode()).hexdigest()
         typography=study.text.get_buffer().get_tag_table().lookup('reader-typography')
-        assert typography.props.family=='sans-serif' and typography.props.size_points==12
+        assert typography.props.family=='Roboto' and typography.props.size_points==12
         assert abs(typography.props.line_height-1.5)<.001
         window.appearance.update('size',24);window.appearance.update('font','DejaVu Serif')
         window.appearance.update('line_spacing','very-airy');window.appearance.update('column_width','wide');settled()
@@ -137,7 +137,7 @@ def main():
         assert abs(window.split.get_sidebar().get_width()-preferred)<=2
         window.appearance.update('mode','night');settled();capture('notes-dark')
         report['adaptive_comparison']=True
-        report['typography']=dict(family='sans-serif',points=12,line_height=1.5,independent_of_Aa=True,source_copy_sha256=source_hash)
+        report['typography']=dict(family=typography.props.family,points=12,line_height=1.5,independent_of_Aa=True,source_copy_sha256=source_hash)
         report['saved_width']=preferred;report['selected_tool']='notes'
         window.close()
         restored=Window(app,Library(args.profile/'translations'));restored.set_default_size(1440,950);restored.present()

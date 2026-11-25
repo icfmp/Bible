@@ -43,7 +43,7 @@ class PassageStudyTests(unittest.TestCase):
                 spin(lambda:not tab._restoring_scroll and not window.study._positioning)
                 buffer=window.study.text.get_buffer();text=buffer.props.text
                 typography=buffer.get_tag_table().lookup('reader-typography')
-                self.assertEqual(typography.props.family,'sans-serif')
+                self.assertEqual(typography.props.family,'Roboto')
                 self.assertEqual(typography.props.size_points,12)
                 self.assertAlmostEqual(typography.props.line_height,1.5)
                 window.appearance.update('size',30);window.appearance.update('line_spacing','very-airy')
