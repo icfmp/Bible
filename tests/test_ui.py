@@ -205,6 +205,8 @@ class WindowTests(unittest.TestCase):
         # HTTP/cache worker either. Its real lifecycle is covered separately in
         # test_youversion_ui and the installed language-catalogue proof.
         self.enterContext(patch('bible.catalogue_session.CatalogueSession.load_youversion_language',return_value=None))
+        from bible.application_settings import ApplicationSettings
+        ApplicationSettings(directory).set('automatic_catalogue_refresh',False)
         window = Window(self.app, Library(Path(directory) / 'translations'))
         # These regression fixtures cover multiple languages, independently of
         # the locale-default contract exercised by test_library_polish.
