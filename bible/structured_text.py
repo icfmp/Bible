@@ -108,7 +108,9 @@ def native_emphasis(segments,raw,plain):
     source=''.join(s.text for s in segments if s.kind=='text')
     if normalize(source)==normalize(plain):return segments
     from .commentary_format import format_entry
-    _,styles,_=format_entry(raw,plain,'OSIS')
+    # Only native marker indices are consumed here. SourceParser already owns
+    # the Bible's structural segments; display insertion must not shift these.
+    _,styles,_=format_entry(raw,plain,'OSIS',preserve_offsets=True)
     hidden={i for kind,first,last in styles if kind=='hidden' for i in range(first,last)}
     if not hidden or normalize(source)!=normalize(''.join(c for i,c in enumerate(plain) if i not in hidden)):
         return segments
