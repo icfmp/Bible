@@ -136,6 +136,39 @@ class ReaderContracts(unittest.TestCase):
         self.assertIsNone(old.actions.get_popover());self.assertIsNone(item.get_child().get_first_child())
         self.assertEqual(w.notes_store.get(note.id),note);self.assertEqual(w.notes_store.get(other.id),other)
 
+    def test_card_title_inherits_gtk_font_independently_of_study_content(self):
+        from bible.passage_card import passage_card
+        from gi.repository import Pango
+        card=passage_card();title,excerpt=card._reference_labels
+        title.set_text('Genesis 12:1–2');excerpt.set_text('Preserved note excerpt')
+        self.w.study_button.set_active(True);self.w.study.tools.set_visible_child_name('notes');spin()
+        self.w.study.notes.list.append(card)
+        from bible.ui import Gtk
+        settings=Gtk.Settings.get_default();original=settings.props.gtk_font_name
+        self.addCleanup(settings.set_property,'gtk-font-name',original)
+        self.w.preferences.value.study_font='Roboto Serif';self.w.preferences.value.study_size=19
+        self.w.reading_style.changed()
+        from bible.application_surfaces import show_preferences
+        dialog=show_preferences(self.w);controls=dialog.reading_settings
+        self.addCleanup(dialog.close)
+        for family,size in [('DejaVu Sans',11),('Roboto',15)]:
+            settings.props.gtk_font_name=f'{family} {size}';spin()
+            description=title.get_pango_context().get_font_description()
+            self.assertEqual(description.get_family(),family)
+            self.assertEqual(description.get_weight(),Pango.Weight.MEDIUM)
+            layout=title.get_layout();iterator=layout.get_iter()
+            resolved=iterator.get_run_readonly().item.analysis.font.describe()
+            self.assertEqual(resolved.get_family(),family)
+            if family=='Roboto':self.assertEqual(resolved.get_weight(),Pango.Weight.MEDIUM)
+            body=excerpt.get_pango_context().get_font_description()
+            self.assertEqual(body.get_family(),'Roboto Serif')
+            self.assertGreater(body.get_size(),description.get_size())
+            for control in [*self.w.appearance.fonts.values(),controls.serif_font,controls.sans_font,controls.study_font]:
+                label=control.get_child()
+                self.assertEqual(label.get_pango_context().get_font_description().get_family(),family)
+                self.assertIsNone(label.get_attributes())
+        self.assertEqual(self.w.preferences.value.study_size,19)
+
     def test_short_popup_stays_natural_across_reopens_and_unlink_is_full_width(self):
         from bible.notes import PassageLink
         note=self.w.notes_store.save('Short draft',[],versification='KJV',start='Gen.1.1',end='Gen.1.1',origin_translation='Second',origin_language='en',links=[PassageLink('KJV','John.3.16','John.3.17')])

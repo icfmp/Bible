@@ -71,6 +71,32 @@ class DiscoveryTests(unittest.TestCase):
             release.set();spin(lambda:not manager.checking and len(manager.eligible())==3)
         self.assertEqual(calls,[('bible-resources',)])
         self.assertTrue(w.resource_updates_button.get_visible());self.assertTrue(second.resource_updates_button.get_visible())
+        # Recycled Library rows expose separate Read and verified Update
+        # targets. A row action cannot turn an old same-ID offer into an update.
+        from bible.i18n import tr
+        with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
+            dialog=w.open_library();spin(lambda:not dialog.preparing and not dialog._building_rows)
+        row=next(item for item,r in dialog._bound_rows.items() if r.id==old.id)
+        self.assertTrue(row.update.get_visible());self.assertIs(row.update.get_next_sibling(),row.action)
+        self.assertEqual(row.state.get_text(),tr('Installed'))
+        with patch.object(dialog,'read_resource') as read:
+            row.action.emit('clicked');read.assert_called_once()
+        with patch.object(dialog,'read_resource') as read:
+            row.update.emit('clicked');manager.queue_one(dialog,old.id)
+            self.assertEqual(len(dialog.downloads.requests),1)
+            self.assertEqual(dialog.downloads.requests[0].resource,new)
+            self.assertEqual(dialog.downloads.requests[0].operation,'update')
+            read.assert_not_called()
+            dialog.refresh_rows()
+            self.assertFalse(row.update.get_visible())
+            self.assertTrue(dialog.cancel_queued(old.id))
+        spin()
+        self.assertFalse(dialog.downloads.requests)
+        # An inventory change invalidates a formerly eligible row immediately.
+        snapshot=manager.session.installed.pop(old.id)
+        with patch.object(dialog,'queue_request') as queued:
+            manager.queue_one(dialog,old.id);queued.assert_not_called()
+        manager.session.installed[old.id]=snapshot
         # One rejected update must not prevent the later commentary update.
         def download(url,out,progress=lambda *_:None,**kwargs):
             data=(study_metadata if url==CATALOGUE_URL else new_refs if url==new_revision.url else

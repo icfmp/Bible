@@ -415,6 +415,10 @@ class CatalogueWindow(Adw.Window):
         subtitle=Gtk.Label(xalign=0,wrap=True,max_width_chars=40)
         subtitle.add_css_class('dim-label');labels.append(subtitle);box.append(labels)
         item.title=title;item.subtitle=subtitle
+        item.update=Gtk.Button(icon_name='view-refresh-symbolic',valign=Gtk.Align.CENTER,visible=False)
+        item.update.add_css_class('flat');item.update.add_css_class('accent')
+        item.update.connect('clicked',lambda *_:self.updates.queue_one(self,item.get_item().resource.id) if item.get_item() else None)
+        box.append(item.update)
         item.action=Gtk.Button(icon_name='folder-download-symbolic',valign=Gtk.Align.CENTER)
         item.action.add_css_class('flat')
         item.action.connect('clicked',lambda *_:self.row_action(item.get_item().resource) if item.get_item() else None)
@@ -439,9 +443,14 @@ class CatalogueWindow(Adw.Window):
         item._render_stamp=stamp
         item.title.set_text(plain(resource.description))
         item.subtitle.set_text(self.language_label(resource.language)+' — '+resource.source)
+        update=installed and resource.id in dict(self.updates.eligible())
+        item.update.set_visible(update and not (busy or queued or checking))
+        label=tr('Update')+' — '+plain(resource.description)
+        item.update.set_tooltip_text(label)
+        item.update.update_property([Gtk.AccessibleProperty.LABEL],[label])
         active_label=tr({'preparing':'Preparing','converting':'Converting','compiling':'Converting',
                          'verifying':'Checking','installing':'Installing'}.get(self._phase,'Downloading'))
-        item.state.set_text(active_label if busy else tr('Checking resource information…') if checking else tr('Paused') if queued and request.state=='paused' else tr('Queued') if queued else tr('Failed') if resource.id in self._task_errors else tr('Archived') if archived else tr('Update available') if self.modules.available(resource.id) else tr('Installed') if current else tr('Update available') if installed else '')
+        item.state.set_text(active_label if busy else tr('Checking resource information…') if checking else tr('Paused') if queued and request.state=='paused' else tr('Queued') if queued else tr('Failed') if resource.id in self._task_errors else tr('Archived') if archived else tr('Installed') if installed else '')
         item.state.set_visible(busy or installed or archived or queued or checking or resource.id in self._task_errors)
         dismiss=bool(request and request.state=='failed' and archived)
         item.action.set_icon_name('process-stop-symbolic' if queued or checking or dismiss else 'media-playback-start-symbolic' if installed and resource.kind!='study' else 'folder-download-symbolic')
@@ -449,7 +458,7 @@ class CatalogueWindow(Adw.Window):
         item.action.set_tooltip_text(label+' — '+plain(resource.description))
         item.action.update_property([Gtk.AccessibleProperty.LABEL],[label+' — '+plain(resource.description)])
         item.action.set_sensitive(current or queued or dismiss or (resource.installable and not archived))
-        item.action.set_visible(not busy and (queued or checking or not (current and resource.kind not in ('bible','commentary'))))
+        item.action.set_visible(not busy and (queued or checking or not (installed and resource.kind not in ('bible','commentary'))))
         item.get_child().set_tooltip_text(resource.name+' · '+(getattr(resource,'version','') or '—')+' · '+resource.language)
 
     def refresh_rows(self):

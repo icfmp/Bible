@@ -106,6 +106,8 @@ class Window(Adw.ApplicationWindow):
         self.navigation = PassagePopover(self)
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
+        from .update_discovery import UpdateButton
+        self.resource_updates_button=UpdateButton(self);header.pack_start(self.resource_updates_button)
         from .workspace_selector import WorkspaceSelector
         self.space_selector=WorkspaceSelector(self);header.pack_start(self.space_selector)
         self.space_selector.set_valign(Gtk.Align.CENTER)
@@ -178,8 +180,6 @@ class Window(Adw.ApplicationWindow):
         overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
         self._reading_popovers.extend((overflow,self.menu.get_popover()))
         self.reading_tools_menu=self.reader_overflow
-        from .update_discovery import UpdateButton
-        self.resource_updates_button=UpdateButton(self);header.pack_end(self.resource_updates_button)
         self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
         def move_tools(*_):
