@@ -107,7 +107,7 @@ class Window(Adw.ApplicationWindow):
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
         from .update_discovery import UpdateButton
-        self.resource_updates_button=UpdateButton(self);header.pack_start(self.resource_updates_button)
+        self.resource_updates_button=UpdateButton(self)
         from .workspace_selector import WorkspaceSelector
         self.space_selector=WorkspaceSelector(self);header.pack_start(self.space_selector)
         self.space_selector.set_valign(Gtk.Align.CENTER)
@@ -182,6 +182,7 @@ class Window(Adw.ApplicationWindow):
         self.reading_tools_menu=self.reader_overflow
         self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
+        header.pack_end(self.resource_updates_button)
         def move_tools(*_):
             target=self.reader_overflow_box if self.reader_overflow.get_visible() else self.reader_controls
             for widget in (self.search_button,self.comparison_button,self.appearance_button,self.immersive_button):
@@ -202,7 +203,8 @@ class Window(Adw.ApplicationWindow):
             elif self.study_button.get_parent() is self.reader_overflow_box:
                 self.reader_overflow_box.remove(self.study_button)
                 header.remove(self.header_tools)
-                header.pack_end(self.study_button);header.pack_end(self.header_tools)
+                header.remove(self.resource_updates_button)
+                header.pack_end(self.study_button);header.pack_end(self.header_tools);header.pack_end(self.resource_updates_button)
             parent=self.new_tab_button.get_parent()
             if enabled and parent is not self.reader_overflow_box:
                 header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
