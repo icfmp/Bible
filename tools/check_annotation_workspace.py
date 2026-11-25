@@ -90,11 +90,16 @@ def main():
             from bible.notes_window import passage_label
             label=next(v for v in descendants(s.list) if isinstance(v,Gtk.Label) and v.get_text()==passage_label(start,versification=tab.reader.versification))
             native.click(label);spin(lambda:s.highlight_detail.get_visible())
-            delete=s.highlight_detail.get_last_child();native.click(delete)
+            def remove_highlight():
+                native.click(s.highlight_menu);spin(lambda:s.highlight_menu.get_popover().get_mapped())
+                delete=next(button for button in descendants(s.highlight_menu.get_popover())
+                    if isinstance(button,Gtk.Button) and button.get_label()==tr('Remove highlight'))
+                native.click(delete)
+            remove_highlight()
             def confirmation():return next((d for d in Gtk.Window.list_toplevels() if isinstance(d,Adw.MessageDialog) and d.get_mapped()),None)
             spin(lambda:confirmation() is not None);dialog=confirmation();native.activate(dialog);native.key('Escape');spin()
             key=(tab.reader.versification,start);assert key in w.highlights.entries
-            native.activate(w);native.click(delete);spin(lambda:confirmation() is not None);dialog=confirmation();native.activate(dialog)
+            native.activate(w);remove_highlight();spin(lambda:confirmation() is not None);dialog=confirmation();native.activate(dialog)
             confirm=next(b for b in descendants(dialog) if isinstance(b,Gtk.Button) and b.get_label()==tr('Confirm'))
             native.click(confirm);spin(lambda:key not in w.highlights.entries)
             assert w.notes_store.get(note.id) is not None
