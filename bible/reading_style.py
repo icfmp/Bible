@@ -133,6 +133,8 @@ class ReadingStyle:
         self.css = f'''
 {swatches}
 {study_accents}
+.workspace-selector > button {{ padding: 4px 14px; min-height: 28px; font-weight: 500; }}
+.workspace-selector.compact > button {{ padding-left: 8px; padding-right: 8px; min-width: 24px; }}
 /* Native edge glow can synchronously JIT-compile a radial-gradient program
    on software OpenGL during wheel reversal. Keep native scrolling without it. */
 scrolledwindow.reading-scroll > overshoot {{ background: none; box-shadow: none; }}
@@ -148,6 +150,7 @@ button.reference-card:hover {{ background-image: image(alpha(currentColor,.05));
 .study-card-list > row {{ padding: 0; margin: 0; background: none; box-shadow: none; }}
 .study-card-list > row:hover, .study-card-list > row:selected {{ background: none; }}
 .study-card-list > row:focus-visible {{ outline: none; }}
+.annotation-list > row:focus-visible .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}
 .{self.scope}-window .study-action-card:hover {{ background-color: {bg}; background-image: none; border-color: alpha(currentColor,.32); }}
 .{self.scope}-window .study-action-card:focus-within,
 .study-card-list > row:focus-within > .study-action-card {{ outline: 2px solid @accent_color; outline-offset: -2px; }}

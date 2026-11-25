@@ -79,3 +79,50 @@ class MetadataTests(unittest.TestCase):
             self.assertIn(attribution, text)
         self.assertIn('\n', text)
         self.assertEqual(plain(r'Keep \\parallel unknown text'), r'Keep \\parallel unknown text')
+
+    def test_repeated_verified_public_domain_claims_deduplicate_without_losing_authored_terms(self):
+        import tempfile
+        from pathlib import Path
+        from bible.library import config,resource_from_section
+        from bible.resource_details import conditions_presentation
+        data=(b'[Example]\nDescription=Source\nDistributionLicense=Public Domain\nCopyright=PUBLIC DOMAIN\n'
+              b'ShortCopyright=PUBLIC DOMAIN\nCopyrightNotes=This complete original English notice must remain.\nCopyrightHolder=Different substantive attribution\n')
+        resource=resource_from_section('Example',config(data)['Example'])
+        with tempfile.TemporaryDirectory() as directory:
+            conf=Path(directory)/resource.id/'mods.d/example.conf';conf.parent.mkdir(parents=True);conf.write_bytes(data)
+            text,_=conditions_presentation(resource,directory)
+            self.assertNotIn('PUBLIC DOMAIN',text)
+            self.assertIn('This complete original English notice must remain.',text)
+            self.assertIn('Different substantive attribution',text)
+            self.assertIn('PUBLIC DOMAIN',resource.conditions)
+
+    def test_approved_profile_uses_exact_cached_edition_independently_from_installed_version(self):
+        import json,tempfile
+        from dataclasses import replace
+        from bible.resource_profile import approved_profile,profile_text
+        from bible.curated_catalogue import catalogue
+        from bible.catalogue_cache import CatalogueCache
+        from bible.providers import BIBLE_RESOURCES,CROSSWIRE
+        from tests.test_curated_catalogue import record,body,sword_metadata,CONF
+        from unittest.mock import patch
+        entry=record();entry['profiles']={'fr':dict(format='markdown',revision='editorial-test-2',approved_at='2026-11-23',approved_by='Test publisher',approval_url='https://example.org/approval',long_markdown='### Heading\n\n**Source words**\n- Original caveat\n<script>inert</script>')}
+        def fetch(url,out,**kw):out.write(body([entry]) if url.endswith('.json') else sword_metadata(CONF+b'Version=1.0\n'))
+        with patch('bible.library.download',side_effect=fetch):current=catalogue()[0]
+        old_entry=dict(entry,version='0.9');old_entry.pop('profiles')
+        installed=replace(current,version='0.9',acquisition=json.dumps(dict(catalogue_url=BIBLE_RESOURCES.catalogue_url,entry=old_entry)))
+        before=installed
+        with tempfile.TemporaryDirectory() as directory:
+            cache=CatalogueCache(directory);cache.write(BIBLE_RESOURCES,[current]);saved=cache.read(BIBLE_RESOURCES)[0]
+            self.assertEqual(approved_profile(installed,saved,'fr')[0],'fr')
+            self.assertEqual(approved_profile(installed,saved,'en')[0],'fr') # honest source-language fallback
+            self.assertIsNone(approved_profile(installed,[replace(current,provider_id=CROSSWIRE.id,source=CROSSWIRE.name,source_url=CROSSWIRE.url)],'fr'))
+            changed=dict(entry,canonical_edition_id='another-edition')
+            other=replace(current,acquisition=json.dumps(dict(catalogue_url=BIBLE_RESOURCES.catalogue_url,entry=changed)))
+            self.assertIsNone(approved_profile(installed,[other],'fr'))
+            unapproved=dict(entry,profiles={'fr':dict(entry['profiles']['fr'],approved_by='')})
+            draft=replace(current,acquisition=json.dumps(dict(catalogue_url=BIBLE_RESOURCES.catalogue_url,entry=unapproved)))
+            self.assertIsNone(approved_profile(installed,[draft],'fr'))
+        text,spans=profile_text(entry['profiles']['fr']['long_markdown'])
+        self.assertIn('• Original caveat',text);self.assertNotIn('###',text)
+        self.assertIn('<script>inert</script>',text) # native text, never HTML execution
+        self.assertIn(('heading',0,7),spans);self.assertEqual(installed,before)

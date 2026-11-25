@@ -11,7 +11,7 @@ def passage_card(*,compound=False):
     content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
     title=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
     title.add_css_class('study-content')
-    weight=Pango.AttrList();weight.insert(Pango.attr_weight_new(Pango.Weight.SEMIBOLD));title.set_attributes(weight)
+    weight=Pango.AttrList();weight.insert(Pango.attr_weight_new(Pango.Weight.MEDIUM));title.set_attributes(weight)
     text=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
                    ellipsize=Pango.EllipsizeMode.END,lines=3,width_chars=1)
     text.add_css_class('reference-excerpt');text.add_css_class('study-content')

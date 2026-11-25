@@ -52,3 +52,31 @@ def canonical_input(reference):
 
 def display_name(code, fallback, language='en'):
     return FRENCH.get(code, fallback) if language.startswith('fr') else fallback
+
+
+def book_suggestions(text,books,language='en',native_alias=None):
+    """Optional book completion only; chapter/verse validation stays in Reader."""
+    if len(text)>256:return ()
+    names={book.code:display_name(book.code,book.name,language) for book in books}
+    whole=next((name for name in names.values() if normalized(text)==normalized(name)),None)
+    if whole:prefix,suffix=text.strip(),''
+    else:
+        match=re.fullmatch(r'\s*((?:[1-4]\s*)?[^\d:]+?)(\s*\.?\s*[1-9]\d*(?:\s*[.:]\s*[1-9]\d*)?(?:\s*[-–]\s*[1-9]\d*)?)?\s*',text)
+        if not match:return ()
+        prefix,suffix=match.group(1).strip(),match.group(2) or ''
+    if not any(c.isalpha() for c in prefix):return ()
+    query=normalized(prefix);native=None
+    if native_alias and len(query)>=2:
+        try:native=native_alias(prefix)
+        except (ValueError,RuntimeError):pass
+    choices=[]
+    for index,book in enumerate(books):
+        name=names[book.code]
+        if normalized(name)==query and (suffix or text.endswith(' ')):continue
+        aliases={normalized(name),normalized(book.name),normalized(book.code)}
+        aliases.update(alias for alias,code in _INPUT_ALIASES.items() if code==book.code)
+        exact=query in aliases or native==book.code
+        if exact or any(alias.startswith(query) for alias in aliases):
+            ending=suffix.strip().lstrip('.').lstrip()
+            choices.append(((not exact,not normalized(name).startswith(query),index),name,name+' '+ending))
+    return tuple((name,value) for _,name,value in sorted(choices)[:5])

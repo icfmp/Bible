@@ -31,6 +31,18 @@ class PassagePopover(Gtk.Popover):
                                 width_chars=12,max_width_chars=24,hexpand=True)
         self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
         self.direct.connect('activate',lambda *_:self.commit())
+        self._book_choices=();self._completion_preedit=False
+        self.completions=Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE,activate_on_single_click=True,visible=False)
+        self.completions.add_css_class('boxed-list')
+        self.completions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book suggestions')])
+        self.completions.connect('row-activated',lambda _,row:self.accept_book(row.get_index()))
+        self.direct.set_tooltip_text(tr('Tab completes the selected book. Enter opens the passage.'))
+        self.direct.connect('changed',self.complete_book)
+        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect('key-pressed',self.completion_key);self.direct.add_controller(keys)
+        from gi.repository import GObject
+        delegate=self.direct.get_delegate()
+        if GObject.signal_lookup('preedit-changed',delegate.__gtype__):delegate.connect('preedit-changed',self.completion_preedit)
         self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
         self.version = self.dropdown('Version', self.version_changed)
         # Kept as an internal source model for navigation/search, not a duplicate chooser.
@@ -94,7 +106,7 @@ class PassagePopover(Gtk.Popover):
         self.history_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('History')])
         self.history_button.connect('toggled',lambda b:self.pages.set_visible_child_name('history' if b.get_active() else 'books'))
         reference_row.append(self.history_button)
-        passage.append(reference_row);passage.append(self.status);passage.append(self.pages)
+        passage.append(reference_row);passage.append(self.completions);passage.append(self.status);passage.append(self.pages)
         self.content.append(passage)
         self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                          propagate_natural_width=False,
@@ -110,12 +122,53 @@ class PassagePopover(Gtk.Popover):
 
     def preview_key_pressed(self,controller,key,code,state):
         if key!=Gdk.KEY_Escape:return False
+        if self._completion_preedit:return False
         event=controller.get_current_event()
         # An inner native chooser owns its own Escape before the parent picker.
         if event and event.get_surface() not in (self.get_surface(),self.owner.get_surface()):return False
+        if self.completions.get_visible():self.hide_completions();return True
         if self.owner.reference_preview.popover:
             self.owner.reference_preview.dismiss();return True
         self.popdown();return True
+
+    def hide_completions(self):
+        self.completions.set_visible(False);self._book_choices=()
+
+    def completion_preedit(self,_,text):
+        self._completion_preedit=bool(text)
+        if text:self.hide_completions()
+        else:self.complete_book()
+
+    def complete_book(self,*_):
+        if self._updating or self._completion_preedit or not self.get_visible() or not self.reader:
+            self.hide_completions();return
+        from .book_names import book_suggestions
+        choices=book_suggestions(self.direct.get_text(),self.books,LANGUAGE,
+            lambda prefix:self.reader.key(prefix+' 1:1').getOSISBookName())
+        while self.completions.get_first_child():self.completions.remove(self.completions.get_first_child())
+        self._book_choices=choices
+        for name,_ in choices:
+            self.completions.append(Gtk.Label(label=name,xalign=0,margin_start=10,margin_end=10,margin_top=4,margin_bottom=4))
+        self.completions.set_visible(bool(choices))
+        if choices:self.completions.select_row(self.completions.get_row_at_index(0))
+
+    def accept_book(self,index=None):
+        if self._completion_preedit or not self._book_choices:return False
+        row=self.completions.get_selected_row()
+        index=index if index is not None else row.get_index() if row else 0
+        if not 0<=index<len(self._book_choices):return False
+        value=self._book_choices[index][1];self.direct.set_text(value);self.hide_completions()
+        self.direct.grab_focus();self.direct.set_position(-1);return True
+
+    def completion_key(self,_,key,code,state):
+        if self._completion_preedit or state&(Gdk.ModifierType.SHIFT_MASK|Gdk.ModifierType.CONTROL_MASK|Gdk.ModifierType.ALT_MASK):return False
+        if not self.completions.get_visible():return False
+        if key in (Gdk.KEY_Tab,Gdk.KEY_KP_Tab):return self.accept_book()
+        if key in (Gdk.KEY_Up,Gdk.KEY_Down):
+            row=self.completions.get_selected_row();index=row.get_index() if row else 0
+            index=(index+(1 if key==Gdk.KEY_Down else -1))%len(self._book_choices)
+            self.completions.select_row(self.completions.get_row_at_index(index));return True
+        return False
 
     def dropdown(self, label, callback):
         dropdown = Gtk.DropDown(enable_search=True, hexpand=True)

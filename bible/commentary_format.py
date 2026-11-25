@@ -1,5 +1,6 @@
-"""Verified OSIS styling without changing legacy plain-body character offsets."""
-from bisect import bisect_left
+"""Source-verified SWORD styling and structural display-offset remapping."""
+from bisect import bisect_left,bisect_right
+from itertools import accumulate
 from html.parser import HTMLParser
 from html import unescape
 import re
@@ -76,6 +77,7 @@ class InlineOSIS(HTMLParser):
         self.parts=[];self.length=0;self.emphasis=[];self.stack=[];self.paragraphs=[]
         self.title=0;self.title_parts=[];self.titles=[];self.hidden=0
         self.structural=[];self.structure_stack=[]
+        self.divisions=[];self.paragraph_ids=set()
 
     def append(self,text):self.parts.append(text);self.length+=len(text)
 
@@ -84,12 +86,21 @@ class InlineOSIS(HTMLParser):
         if tag in {'script','style','note'}:self.hidden+=1;return
         if self.hidden:return
         if values.get('eid'):
+            if tag=='div':
+                if values.get('type') in {'paragraph','x-p'} or values['eid'] in self.paragraph_ids:
+                    self.paragraphs.append((self.length,2));self.paragraph_ids.discard(values['eid'])
+                return
             self.handle_endtag(tag);return
         if tag=='title' and self.source_type=='OSIS':
             if self.inline_titles:self.structure_stack.append((tag,'heading',self.length))
             else:self.title+=1
             return
         if self.title:return
+        if tag=='div':
+            paragraph=values.get('type') in {'paragraph','x-p'}
+            if values.get('sid'):
+                if paragraph:self.paragraph_ids.add(values['sid'])
+            else:self.divisions.append(paragraph)
         if tag=='hi':
             start=self.length;self.append('* ')
             self.stack.append((values.get('type',''),start,self.length))
@@ -123,6 +134,9 @@ class InlineOSIS(HTMLParser):
                 if value:self.titles.append(value)
             return
         if self.title:return
+        paragraph=self.divisions.pop() if tag=='div' and self.divisions else tag in {'p','lg'}
+        if paragraph:self.paragraphs.append((self.length,2))
+        elif tag in {'l','item','li'}:self.paragraphs.append((self.length,1))
         for index in range(len(self.structure_stack)-1,-1,-1):
             element,kind,start=self.structure_stack[index]
             if element==tag:
@@ -144,8 +158,8 @@ class InlineOSIS(HTMLParser):
         if not self.native_numeric_entities:self.handle_data(unescape('&#'+name+';'))
 
 
-def format_entry(raw,plain,source_type):
-    """Return same-length body, typed ranges and real source headings.
+def format_entry(raw,plain,source_type,*,preserve_offsets=False):
+    """Return verified body, typed ranges and real source headings.
 
     SWORD OSISPlain inserts stars around hi elements. Validate source characters,
     literal stars and bounded generated markers before hiding decorations.
@@ -168,12 +182,12 @@ def format_entry(raw,plain,source_type):
     if source_type=='OSIS' and re.search(r'&amp;#(?:[0-9]+|[xX][0-9a-fA-F]+);',raw):modes.append((True,True))
     for native_entities,nested_amp in modes:
         for source,inline_titles in variants:
-            result=_verified_entry(source,plain,source_type,inline_titles=inline_titles,native_numeric_entities=native_entities,nested_amp=nested_amp)
+            result=_verified_entry(source,plain,source_type,inline_titles=inline_titles,native_numeric_entities=native_entities,nested_amp=nested_amp,preserve_offsets=preserve_offsets)
             if result is not None:return result
     return plain,(),()
 
 
-def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_entities=False,nested_amp=False):
+def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_entities=False,nested_amp=False,preserve_offsets=False):
     if nested_amp:
         # Some native filter pipelines also process a nested numeric escape's
         # ampersand. This is only a verification candidate: accept it solely
@@ -221,13 +235,29 @@ def _verified_entry(raw,plain,source_type,*,inline_titles=False,native_numeric_e
     for kind,begin,end in parser.structural:
         content=right[bisect_left(left,begin):bisect_left(left,end)]
         if content:styles.append((kind,content[0],content[-1]+1))
+    insertions={}
     for boundary,count in parser.paragraphs:
         position=bisect_left(left,boundary)
         if not 0<position<len(right):continue
-        first=right[position-1]+1 if position else 0
-        last=right[position] if position<len(right) else len(plain)
-        for index in range(first,min(last,first+count)):
-            if display[index].isspace():display[index]='\n'
+        first=right[position-1]+1;last=right[position]
+        whitespace=[i for i in range(first,last) if display[i].isspace()]
+        if len(whitespace)>=count or (last>first and all(c.isspace() for c in display[first:last])):
+            for index in whitespace[:count]:display[index]='\n'
+            if not preserve_offsets and len(whitespace)<count:
+                insertions[last]=max(insertions.get(last,0),count-len(whitespace))
+        elif not preserve_offsets:
+            # SWORD may omit every separator between source-authored blocks.
+            # Insert before decorations, keeping all native characters intact.
+            insertions[first]=max(insertions.get(first,0),count)
+    if insertions:
+        positions=sorted(insertions);totals=[0,*accumulate(insertions[p] for p in positions)]
+        original=''.join(display);pieces=[];previous=0
+        for position in positions:
+            pieces.extend((original[previous:position],'\n'*insertions[position]));previous=position
+        pieces.append(original[previous:]);display=''.join(pieces)
+        def shift(offset,include_at):
+            return totals[(bisect_right if include_at else bisect_left)(positions,offset)]
+        styles=[(kind,start+shift(start,True),end+shift(end,False)) for kind,start,end in styles]
     return ''.join(display),tuple(styles),tuple(parser.titles)
 
 

@@ -3,6 +3,47 @@ from bible.commentary_format import format_entry
 
 
 class CommentaryFormatTests(unittest.TestCase):
+    def test_realistic_osis_compacted_title_paragraphs_and_bold_markers(self):
+        # SWORD OSISPlain can prepend the source heading and concatenate
+        # adjacent paragraph text without even one separating space.
+        title='Nimrod, a mighty hunter (verses 8–14)'
+        raw=('<div type="section" annotateType="commentary" annotateRef="Gen.10.8-Gen.10.14">'
+             '<title>'+title+'</title>'
+             '<div type="x-p" sID="a"/>Nimrod became powerful.<div type="x-p" eID="a"/>'
+             '<div type="x-p" sID="b"/>Before him, things were different.<div type="x-p" eID="b"/>'
+             '<div type="x-p" sID="c"/>'
+             '<hi type="bold">Ambition has no limits.</hi> It grows.'
+             '<div type="x-p" eID="c"/></div>')
+        native=(title+'Nimrod became powerful.Before him, things were different.'
+                '* Ambition has no limits. * It grows.')
+        text,styles,titles=format_entry(raw,native,'OSIS')
+        self.assertEqual(titles,())
+        self.assertEqual(text.count(title),1)
+        self.assertIn('Nimrod became powerful.\n\nBefore him',text)
+        self.assertIn('different.\n\n* Ambition',text)
+        hidden={i for kind,start,end in styles if kind=='hidden'
+                for i in range(start,end)}
+        visible=''.join(c for i,c in enumerate(text) if i not in hidden)
+        self.assertRegex(visible,r'\n\n\s*Ambition has no limits\.')
+        self.assertNotIn('* Ambition',visible)
+        bold=[text[a:b] for kind,a,b in styles if kind=='bold']
+        self.assertEqual(bold,['Ambition has no limits.'])
+        # Every authorial non-whitespace character survives in its exact order.
+        self.assertEqual(''.join(visible.split()),
+            ''.join((title+'Nimrod became powerful.Before him, things were different.'
+                     'Ambition has no limits. It grows.').split()))
+
+    def test_osis_title_alignment_failure_returns_original_native_body(self):
+        raw='<title>Source heading</title><p>Actual body.</p>'
+        native='Source headingDifferent filtered content * literal.'
+        self.assertEqual(format_entry(raw,native,'OSIS'),(native,(),()))
+
+    def test_no_invented_break_without_original_osis_paragraph_element(self):
+        raw='First sentence.Second sentence.'
+        plain='First sentence.Second sentence.'
+        text,styles,titles=format_entry(raw,plain,'OSIS')
+        self.assertEqual((text,styles,titles),(plain,(),()))
+
     def test_native_numeric_entity_filter_keeps_provenance_and_literal_sequences(self):
         raw='<title>Source title</title><hi type="italic">A&amp;B; named &amp;#224; numeric &#38;#224; proper &#224;.</hi>'
         native='Source title * A&B; named &#224; numeric #224; proper . *'
@@ -67,7 +108,21 @@ class CommentaryFormatTests(unittest.TestCase):
         visible=''.join(c for i,c in enumerate(text) if i not in hidden)
         self.assertEqual(len(hidden),4);self.assertIn('*literal*',visible)
         self.assertIn('foreword',visible);self.assertIn('Body title',visible)
-        self.assertEqual(titles,());self.assertEqual(len(text),len(plain))
+        self.assertEqual(titles,())
+        self.assertEqual(''.join(text.split()),''.join(plain.split()))
+        legacy,_,_=format_entry(raw,plain,'OSIS',preserve_offsets=True)
+        self.assertEqual(len(legacy),len(plain))
+
+    def test_bible_marker_projection_keeps_native_offsets_before_structural_segments(self):
+        from bible.structured_text import extract
+        raw='<p>First.</p><p><hi type="bold">Second.</hi></p>'
+        native='First.* Second. *'
+        formatted,_,_=format_entry(raw,native,'OSIS')
+        self.assertIn('\n\n',formatted)
+        segments=extract(raw,native,'OSIS')
+        visible=''.join(s.text for s in segments if 'native-decoration' not in s.styles)
+        self.assertEqual(''.join(visible.split()),'First.Second.')
+        self.assertEqual(''.join(s.text for s in segments if 'bold' in s.styles and 'native-decoration' not in s.styles),'Second.')
 
     def test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles(self):
         from bible.commentary_format import preverse_layout

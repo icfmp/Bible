@@ -40,15 +40,20 @@ def checked_modules(library,resources,errors):
                'offline' if old.source in errors or 'Library' in errors else
                'missing' if new is None else applicable_update(old,new))
         if state=='available':
-            try:lifecycle.owned(identifier,unchanged=True)
+            try:
+                import os
+                if library.root.stat().st_uid!=os.getuid() or not os.access(library.root,os.W_OK):
+                    raise ValueError('This library is externally managed or read-only')
+                lifecycle.owned(identifier,unchanged=True)
             except (OSError,ValueError,TypeError) as failure:state='local-unverified';error=str(failure)
-        reports[identifier]=dict(state=state,available=new,error=error)
+        reports[identifier]=dict(state=state,available=new,installed=old,error=error)
     return reports
 
 
 class ModuleManagement:
     def __init__(self,dialog,detail,primary=None):
         self.dialog=dialog;self.reports={};self.revision=0
+        dialog.updates.subscribe(self.discovery_changed)
         self.notice=Gtk.Label(xalign=0,wrap=True,selectable=True,visible=False)
         status_parent=dialog.installed_state.get_parent()
         status_parent.insert_child_after(self.notice,dialog.installed_state)
@@ -73,6 +78,19 @@ class ModuleManagement:
         narrow=Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 440px'))
         narrow.add_setter(self.actions,'orientation',Gtk.Orientation.VERTICAL);dialog.add_breakpoint(narrow)
 
+    def discovery_changed(self):
+        self.reports=self.dialog.updates.reports
+        self.revision+=1
+        if hasattr(self,'actions') and not self.dialog.closed:
+            self.dialog.selection_changed();self.dialog.refresh_rows()
+            manager=self.dialog.updates
+            if manager.state!='not-checked' and not self.dialog._catalogue_errors:
+                self.dialog.refresh_status.set_text(tr('Checking for module updates…') if manager.checking else
+                    tr('The source check failed. Saved metadata is not proof that this module is up to date.') if manager.state in ('offline','failed') else
+                    tr('Module check complete.') if manager.state=='checked' else '')
+                self.dialog.refresh_status.set_tooltip_text(manager.error or None)
+
+
     def available(self,identifier):return self.reports.get(identifier,{}).get('state')=='available'
 
     def update_all(self):
@@ -80,12 +98,12 @@ class ModuleManagement:
         if d.busy:return
         resources=[report['available'] for report in self.reports.values() if report['state']=='available']
         if not resources:return
-        prompt=Adw.MessageDialog.new(d,tr('Update verified modules?'),'\n'.join(plain(r.description)+' — '+r.source+' · '+r.version for r in resources))
+        prompt=Adw.MessageDialog.new(d,tr('Update verified modules?'),'\n'.join(plain(r.description)+' — '+r.source+' · '+(r.revision if r.kind=='study' else r.version) for r in resources))
         prompt.add_response('cancel',tr('Cancel'));prompt.add_response('update',tr('Update all'))
         prompt.set_default_response('cancel');prompt.set_close_response('cancel')
         def respond(_,response):
             if response=='update':
-                for resource in resources:d.queue_request(resource,operation='update')
+                for resource in resources:d.queue_request(resource,operation='install' if resource.kind=='study' else 'update')
         prompt.connect('response',respond);prompt.present()
 
     def version_notes(self,resource):
@@ -136,23 +154,7 @@ class ModuleManagement:
         self.remove_button.set_tooltip_text(None)
 
     def check(self):
-        d=self.dialog
-        if d.busy:return
-        identifiers=tuple(d._installed_metadata)
-        providers=tuple(BY_ID[key] for key in sorted({d._installed_metadata[i].provider_id for i in identifiers}&SUPPORTED))
-        def perform():
-            from .library import catalogues
-            if providers:
-                future=d.session.refresh(catalogues,True,providers)
-                if future:future.result()
-            if d._cancel.is_set():raise InterruptedError(tr('Download cancelled.'))
-            with d.session.lock:
-                resources=tuple(r for rows in d.session.providers.values() for r in rows);errors=dict(d.session.errors)
-            return checked_modules(d.library,resources,errors)
-        def ready(reports):
-            self.reports=reports;self.revision+=1;d.selection_changed();d.refresh_rows()
-        d.task(tr('Checking for module updates…'),perform,ready,
-               success_text=tr('Module check complete.'))
+        if not self.dialog.busy:self.dialog.updates.check(force=True)
 
     def confirm(self,operation):
         d=self.dialog;resource=d.selected_resource()

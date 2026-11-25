@@ -89,6 +89,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
             w=Window(self.app,Library(Path(directory)/'translations'));w.present()
             try:
                 with patch('bible.catalogue_window.catalogue',return_value=[] ) as fetch:
+                    w.application_settings.set('automatic_catalogue_refresh',True)
                     w.application_settings.set('library_language','')
                     dialog=w.open_library();spin(lambda:dialog._catalogue_requested and not dialog.busy,duration=.3)
                     self.assertTrue(fetch.called)

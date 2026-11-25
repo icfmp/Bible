@@ -201,28 +201,6 @@ class PassageNotes(Gtk.Box):
             return False
         self._follow_idle=GLib.idle_add(reveal)
 
-    def card(self,system,start,end,*,activate,icon,kind,actions=False):
-        from .passage_card import passage_card
-        card=passage_card(compound=True);card.add_css_class('study-action-card')
-        title,excerpt=card._reference_labels;title.set_text(passage_label(start,end,system))
-        content=card._card_content;content.remove(excerpt)
-        header=content.get_first_child();content.remove(header)
-        indicator=Gtk.Image(icon_name=icon,pixel_size=16,tooltip_text=kind)
-        indicator.update_property([Gtk.AccessibleProperty.LABEL],[kind]);header.prepend(indicator)
-        card.type_icon=indicator
-        content.prepend(header)
-        menu=None
-        if actions:
-            menu=Gtk.MenuButton(tooltip_text=tr('Highlight actions'),valign=Gtk.Align.CENTER)
-            menu.add_css_class('flat');menu.update_property([Gtk.AccessibleProperty.LABEL],[tr('Highlight actions')])
-            menu.add_css_class('highlight-color-action')
-            card.actions=menu
-        from .passage_card import bind_card_actions
-        bind_card_actions(card,activate,secondary=menu,label=kind+': '+title.get_text(),ignore=(AnnotationPreview,))
-        card.update_property([Gtk.AccessibleProperty.LABEL],[kind+': '+title.get_text()])
-        self.list.append(card);self.cards.append(card)
-        return card
-
     def navigate_annotation(self,system,start,origin=None):
         tab=self.owner.active_tab;reader=tab.reader if tab else None
         if not reader:return
@@ -232,65 +210,34 @@ class PassageNotes(Gtk.Box):
             self.owner.navigate_selection(tab.state.resource,spans[0][2])
         except (OSError,ValueError) as error:self.status.set_text(str(error))
 
-    def excerpt(self,card,reader,system,start,end,origin):
-        texts=[];source=origin
-        unavailable=tr('Original translation unavailable.')
+    def excerpt_text(self,reader,mark):
+        system,start,origin=mark['system'],mark['reference'],mark['resource']
         try:
-            source=self.owner.library.resource(origin).description
-        except (OSError,ValueError):
-            session=getattr(self.owner,'catalogue_session',None)
-            snapshot=getattr(session,'snapshot',None)
-            known=next((r for r in snapshot.resources if r.id==origin),None) if snapshot else None
-            if known:source=known.description
-        try:
-            reader=self.annotations.source_reader(reader,origin)
-            if reader.versification!=system:raise ValueError('Saved source numbering differs')
-            unavailable=tr('Passage unavailable or no verified alignment.')
+            source=self.annotations.source_reader(reader,origin)
+            if source.versification!=system:raise ValueError('Saved source numbering differs')
             from .reference_resolution import _span
             refs=[]
-            for _,_,first,last in self.annotations.positions(reader,system,start,end,origin):
-                refs.extend(reader.reference_range(first,last) if getattr(reader,'addresses',None) else
-                            _span(first,last,system,reader))
+            for _,_,first,last in self.annotations.positions(source,system,start,start,origin):
+                refs.extend(source.reference_range(first,last) if getattr(source,'addresses',None) else _span(first,last,system,source))
             from .sword_provider import passage_verses
-            texts=list(passage_verses(reader,refs,self._chapter_texts))
+            texts=list(passage_verses(source,refs,self._chapter_texts))
             if len(self._chapter_texts)>64:self._chapter_texts.clear()
-        except (ValueError,OSError,RuntimeError):texts=[]
-        preview=Gtk.Label(label=' '.join(' '.join(text.split()) for _,text in texts) or unavailable,
-                          xalign=0,yalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,lines=2,
-                          ellipsize=Pango.EllipsizeMode.END,width_chars=1)
-        preview.add_css_class('study-content')
-        card.append(preview);card.excerpt=preview
-        if source:
-            caption=Gtk.Label(label=source,xalign=0,ellipsize=Pango.EllipsizeMode.END,width_chars=1)
-            caption.add_css_class('caption');caption.add_css_class('dim-label')
-            caption.set_tooltip_text(source+' · '+passage_label(start,end,system))
-            card.source_caption=caption
-            card.append(caption)
+            return ' '.join(text for _,text in texts) or tr('Passage unavailable or no verified alignment.')
+        except (ValueError,OSError,RuntimeError):return tr('Original translation unavailable.')
 
     def note_card(self,note,reader):
-        card=self.card(note.versification,note.start,note.end,activate=lambda:self.open_note(note),
-                       icon='notebook-symbolic',kind=tr('Open note'));card.note_id=note.id
-        content=card._card_content
-        preview=AnnotationPreview(self.owner,note,lambda:self.open_note(note))
-        preview.set_tooltip_text(None);content.append(preview);card.preview=preview
-        date,_=readable_date(note.modified)
-        linked=tr('+{count} passages').format(count=len(note.links)) if note.links else ''
-        meta=Gtk.Label(label=' · '.join(value for value in (date,' · '.join(note.labels),linked) if value),xalign=0,wrap=True)
-        meta.add_css_class('caption');meta.add_css_class('dim-label');content.append(meta)
+        from .annotation_card import annotation_card
+        from .annotation_collection import records
+        card=annotation_card(self.owner,records([note],[])[0],lambda:self.open_note(note))
+        self.list.append(card);self.cards.append(card)
 
     def highlight_card(self,mark,reader):
-        kind=tr('Highlight')+' · '+tr(COLORS[mark['color']][1])
-        card=self.card(mark['system'],mark['reference'],mark['reference'],
-                       activate=lambda:self.navigate_annotation(mark['system'],mark['reference'],mark['resource']),
-                       icon='edit-select-all-symbolic',kind=kind,actions=True)
-        card.highlight_key=(mark['system'],mark['reference']);card.add_css_class('highlight-'+mark['color'])
-        dot=Gtk.Box(width_request=16,height_request=16,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
-        dot.add_css_class('highlight-'+mark['color']);dot.add_css_class('highlight-swatch')
-        card.actions.set_child(dot)
-        card.actions.set_tooltip_text(kind+' — '+tr('Highlight actions'))
-        card.actions.update_property([Gtk.AccessibleProperty.LABEL],[kind+' — '+tr('Highlight actions')])
-        self.excerpt(card._card_content,reader,mark['system'],mark['reference'],mark['reference'],mark['resource'])
-        self.colors(card.actions,mark=dict(mark))
+        from .annotation_card import annotation_card
+        from .annotation_collection import records
+        card=annotation_card(self.owner,records([],[mark])[0],
+            lambda:self.navigate_annotation(mark['system'],mark['reference'],mark['resource']),
+            excerpt=self.excerpt_text(reader,mark),colors=lambda menu,value:self.colors(menu,mark=value))
+        self.list.append(card);self.cards.append(card)
 
     def open_note(self,note=None,context=None):
         self.suspend_following()
@@ -346,6 +293,13 @@ class PassageNotes(Gtk.Box):
         if editor.note and editor.note.id==note.id:editor.ask_delete()
 
     def colors(self,menu,*,mark=None,context=None,reader=None,annotate=False):
+        if mark:
+            from .annotation_card import highlight_actions
+            def changed(snapshot,color):
+                self.owner.highlights.set(snapshot['system'],[snapshot['reference']],color,snapshot['resource'])
+                self.owner.refresh_highlights()
+            highlight_actions(menu,self.owner,mark,changed,self.status.set_text)
+            return
         popover=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,
             margin_start=8,margin_end=8,margin_top=8,margin_bottom=8)
         if context:

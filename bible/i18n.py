@@ -426,6 +426,13 @@ FR = {
     'Reference (e.g. John 1:1)': 'Référence (par ex. John 1:1)',
     'Downloadable resources — source: CrossWire': 'Traductions téléchargeables — source : CrossWire',
     'No supported resource found.': 'Aucune ressource compatible trouvée.',
+    'Update all': 'Tout mettre à jour',
+    'See all': 'Tout voir',
+    'Resource updates': 'Mises à jour des ressources',
+    'Verified resource updates': 'Mises à jour de ressources vérifiées',
+    'Previously checked catalogue': 'Catalogue vérifié précédemment',
+    'Source description language': 'Langue de la description source',
+    'Other annotations on this passage': 'Autres annotations sur ce passage',
 }
 LANGUAGE = os.environ.get('LANGUAGE') or locale.getlocale()[0] or 'en'
 # Read only the real application's saved language before constructing any UI.
@@ -783,4 +790,6 @@ FR.update({
     'A different version is already installed. Check for updates before retrying.':'Une autre version est déjà installée. Vérifiez les mises à jour avant de réessayer.',
     'The study resource changed. Review this download again.':'La ressource d’étude a changé. Vérifiez ce téléchargement à nouveau.',
     'Refresh this source to verify whether this removed version is still available.':'Actualisez cette source pour vérifier si cette version supprimée est encore disponible.',
+    'Book suggestions':'Livres proposés',
+    'Tab completes the selected book. Enter opens the passage.':'Tab complète le livre sélectionné. Entrée ouvre le passage.',
 })
