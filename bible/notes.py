@@ -1,5 +1,9 @@
 """Local, versioned passage notes. No resource files, GTK, or network access."""
 
+from collections.abc import Iterable, Sequence
+from os import PathLike
+from typing import Any, cast
+
 from dataclasses import asdict, dataclass, replace
 from contextlib import closing
 from datetime import datetime, timezone
@@ -13,6 +17,8 @@ import unicodedata
 import uuid
 
 from .book_names import FRENCH, normalized
+
+type LabelValues = list[str] | tuple[str, ...]
 
 SCHEMA_VERSION = 2
 BACKUP_VERSION = 2
@@ -46,10 +52,10 @@ class NoteConflict(NotesError):
     pass
 
 
-def annotation_json(data):
+def annotation_json(data: str | bytes | bytearray) -> Any:
     """Decode annotation JSON, refusing ambiguous duplicate object fields."""
 
-    def unique_fields(pairs):
+    def unique_fields(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result = {}
         for key, value in pairs:
             if key in result:
@@ -60,7 +66,7 @@ def annotation_json(data):
     return json.loads(data, object_pairs_hook=unique_fields)
 
 
-def parts(reference):
+def parts(reference: str) -> tuple[str, int | str, int]:
     """Validate a canonical passage address without requiring an installed module.
 
     Returns:
@@ -80,14 +86,14 @@ def parts(reference):
     return book, chapter if "_" in chapter else int(chapter), int(verse)
 
 
-def passage_order(reference):
+def passage_order(reference: str) -> tuple[str, tuple[int, int], int]:
     """Return the book and numeric chapter/subchapter/verse tuple for local ordering."""
     book, chapter, verse = parts(reference)
     values = str(chapter).split("_")
     return book, (int(values[0]), int(values[1]) if len(values) > 1 else 0), verse
 
 
-def label_key(value):
+def label_key(value: str) -> str:
     """Normalize and validate a label before case-insensitive identity comparison."""
     if not isinstance(value, str):
         raise NotesError("Invalid label")
@@ -97,11 +103,11 @@ def label_key(value):
     return value.casefold()
 
 
-def clean_labels(values):
+def clean_labels(values: LabelValues) -> tuple[str, ...]:
     """Validate, normalize and deduplicate labels without changing note content."""
     if not isinstance(values, (list, tuple)) or len(values) > 32:
         raise NotesError("Invalid labels")
-    found = {}
+    found: dict[str, str] = {}
     for value in values:
         key = label_key(value)
         found.setdefault(key, unicodedata.normalize("NFC", value.strip()))
@@ -117,7 +123,7 @@ class PassageLink:
     end: str
 
 
-def validate_link(link):
+def validate_link(link: PassageLink | dict[str, Any]) -> PassageLink:
     """Validate an ordered single-book range without guessing a versification equivalence."""
     if isinstance(link, dict):
         link = PassageLink(**link)
@@ -151,11 +157,11 @@ class Note:
     links: tuple[PassageLink, ...] = ()
 
     @property
-    def passages(self):
+    def passages(self) -> tuple[PassageLink, ...]:
         """Return the primary passage followed by saved secondary links."""
         return (PassageLink(self.versification, self.start, self.end), *self.links)
 
-    def covers(self, reference):
+    def covers(self, reference: str) -> bool:
         """Check same-system overlap for a single canonical address without mapping systems."""
         book, chapter, verse = passage_order(reference)
         return any(
@@ -166,7 +172,7 @@ class Note:
         )
 
 
-def validate(note):
+def validate(note: Note) -> Note:
     """Validate and normalize a note while retaining its UUID, body and recorded dates.
 
     Raises:
@@ -211,7 +217,7 @@ def validate(note):
         raise NotesError(str(error)) from error
 
 
-def now():
+def now() -> str:
     """Return a timezone-aware UTC timestamp for an actual local edit."""
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
@@ -224,7 +230,7 @@ class NoteStore:
     unsupported databases are rejected rather than replaced.
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str | PathLike[str]) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         new = not self.path.exists()
@@ -294,20 +300,20 @@ class NoteStore:
             self.db.close()
             raise
 
-    def _create_passages(self):
+    def _create_passages(self) -> None:
         self.db.execute("""CREATE TABLE note_passages (
             note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
             ordinal INTEGER NOT NULL, versification TEXT NOT NULL,
             start TEXT NOT NULL, end TEXT NOT NULL, PRIMARY KEY(note_id,ordinal),
             UNIQUE(note_id,versification,start,end))""")
 
-    def _backup_before_migration(self):
+    def _backup_before_migration(self) -> None:
         """Durably snapshot schema1 under the caller's write lock, then verify logical contents."""
         directory = self.path.parent / "backups"
         directory.mkdir(parents=True, exist_ok=True)
-        descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=".notes-schema-")
+        descriptor, temporary_name = tempfile.mkstemp(dir=directory, prefix=".notes-schema-")
         os.close(descriptor)
-        temporary = Path(temporary)
+        temporary = Path(temporary_name)
         destination = directory / ("notes-before-schema-2-" + uuid.uuid4().hex + ".sqlite3")
         try:
             with (
@@ -334,7 +340,7 @@ class NoteStore:
         finally:
             temporary.unlink(missing_ok=True)
 
-    def all(self):
+    def all(self) -> list[Note]:
         """Read and validate all persisted notes, including labels and ordered linked passages."""
         result = []
         for row in self.db.execute("SELECT * FROM notes"):
@@ -361,15 +367,15 @@ class NoteStore:
             result.append(validate(Note(**dict(row), labels=labels, links=links)))
         return result
 
-    def get(self, identifier):
+    def get(self, identifier: str) -> Note | None:
         """Return the validated note with this UUID, or None if it no longer exists."""
         return next((note for note in self.all() if note.id == identifier), None)
 
-    def labels(self):
+    def labels(self) -> list[str]:
         """Return retained label display names ordered by normalized label identity."""
         return [r[0] for r in self.db.execute("SELECT name FROM labels ORDER BY key")]
 
-    def _write(self, note):
+    def _write(self, note: Note) -> None:
         """Insert a validated note and its associations inside the caller's transaction."""
         record = asdict(note)
         record.pop("labels")
@@ -389,7 +395,7 @@ class NoteStore:
                 (note.id, ordinal, link.versification, link.start, link.end),
             )
 
-    def ensure_recovered(self):
+    def ensure_recovered(self) -> None:
         """Refuse ordinary writes/exports while a combined restore requires recovery."""
         if (self.path.parent / "annotation-restore.pending.json").exists():
             raise NotesError(
@@ -398,17 +404,17 @@ class NoteStore:
 
     def save(
         self,
-        body,
-        labels,
+        body: str,
+        labels: LabelValues,
         *,
-        existing=None,
-        versification=None,
-        start=None,
-        end=None,
-        origin_translation=None,
-        origin_language=None,
-        links=None,
-    ):
+        existing: Note | None = None,
+        versification: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        origin_translation: str | None = None,
+        origin_language: str | None = None,
+        links: Sequence[PassageLink | dict[str, Any]] | None = None,
+    ) -> Note | None:
         """Create or replace a note atomically using optimistic revision detection.
 
         Existing UUID, primary passage, original context and creation date survive
@@ -427,6 +433,7 @@ class NoteStore:
         """
         self.ensure_recovered()
         stamp = now()
+        # New-note context is validated below; casts do not coerce missing/invalid values.
         note = (
             replace(
                 existing,
@@ -438,11 +445,11 @@ class NoteStore:
             if existing
             else Note(
                 str(uuid.uuid4()),
-                versification,
-                start,
-                end or start,
-                origin_translation,
-                origin_language,
+                cast(str, versification),
+                cast(str, start),
+                cast(str, end or start),
+                cast(str, origin_translation),
+                cast(str, origin_language),
                 body,
                 clean_labels(labels),
                 stamp,
@@ -450,7 +457,7 @@ class NoteStore:
             )
         )
         if links is not None:
-            note = replace(note, links=links)
+            note = replace(note, links=cast(tuple[PassageLink, ...], links))
         note = validate(note)
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
@@ -469,7 +476,7 @@ class NoteStore:
         self.generation += 1
         return written
 
-    def delete(self, note):
+    def delete(self, note: Note) -> None:
         """Delete only the matching note revision and its label/passage links.
 
         Highlights are independent and untouched. A stale revision raises
@@ -489,10 +496,10 @@ class NoteStore:
             self._prune_labels()
         self.generation += 1
 
-    def _prune_labels(self):
+    def _prune_labels(self) -> None:
         self.db.execute("DELETE FROM labels WHERE key NOT IN (SELECT label_key FROM note_labels)")
 
-    def passage(self, versification, start, end=None):
+    def passage(self, versification: str, start: str, end: str | None = None) -> list[Note]:
         """Return notes whose explicit same-system passages overlap the requested range."""
         first, last = passage_order(start), passage_order(end or start)
         return [
@@ -507,7 +514,9 @@ class NoteStore:
             )
         ]
 
-    def search(self, query="", labels=(), order="recent"):
+    def search(
+        self, query: str = "", labels: Iterable[str] = (), order: str = "recent"
+    ) -> list[Note]:
         """Filter normalized text/labels and sort by modification date or canonical order."""
         keys = {label_key(value) for value in labels}
         words = [normalized(word) for word in query.split() if normalized(word)]
@@ -554,7 +563,7 @@ class NoteStore:
             raise NotesError("Invalid notes sort order")
         return result
 
-    def export(self, destination):
+    def export(self, destination: str | PathLike[str]) -> None:
         """Atomically export notes-only backupv2, preserving links and excluding resources."""
         self.ensure_recovered()
         destination = Path(destination)
@@ -589,7 +598,7 @@ class NoteStore:
             if temporary:
                 temporary.unlink(missing_ok=True)
 
-    def restore(self, source):
+    def restore(self, source: str | PathLike[str]) -> tuple[int, int, int]:
         """Validate an entire notes-only backup and merge it in one SQLite transaction.
 
         Identical content is skipped. Divergent duplicate UUIDs become independent
@@ -623,7 +632,7 @@ class NoteStore:
         except (ValueError, TypeError, KeyError, RecursionError) as error:
             raise NotesError(f"Invalid notes backup: {error}") from error
 
-        def signature(note):
+        def signature(note: Note) -> tuple[tuple[str, str], ...]:
             return tuple(
                 (key, json.dumps(value, ensure_ascii=False, sort_keys=True))
                 for key, value in asdict(note).items()
@@ -652,6 +661,6 @@ class NoteStore:
         self.generation += 1
         return added, skipped, conflicts
 
-    def close(self):
+    def close(self) -> None:
         """Close the connection on its owning thread; no annotation data is removed."""
         self.db.close()

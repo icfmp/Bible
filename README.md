@@ -70,8 +70,9 @@ Use the system Python so that the distribution's GTK and SWORD bindings are avai
 ### Python consistency
 
 See [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) for the pinned Ruff formatter,
-lint commands, optional editor format-on-save and English Google-style documentation.
-Run `ruff format --check` and `ruff check` before submitting Python changes.
+lint commands, progressive static typing, optional editor format-on-save and English
+Google-style documentation.
+Run `ruff format --check`, `ruff check` and `mypy` before submitting Python changes.
 
 ### Run tests
 

@@ -1,2 +1,4 @@
 # Development-only tools; install in an isolated virtual environment.
 ruff==0.14.5
+
+mypy==2.4.1

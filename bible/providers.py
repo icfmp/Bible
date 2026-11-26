@@ -74,7 +74,7 @@ MODULE_NAME = r"[A-Za-z0-9_-]+"
 RESOURCE_ID = rf"(?:[a-z0-9-]+~)?{MODULE_NAME}"
 
 
-def identity(provider_id, module_name):
+def identity(provider_id: str, module_name: str) -> str:
     """Build a validated provider-qualified identity, preserving historical CrossWire IDs unchanged."""
     if provider_id not in BY_ID or not re.fullmatch(MODULE_NAME, module_name):
         raise ValueError("Invalid resource identity")
@@ -83,7 +83,7 @@ def identity(provider_id, module_name):
     return module_name if provider_id == "crosswire" else f"{provider_id}~{module_name}"
 
 
-def module_name(resource_id):
+def module_name(resource_id: str) -> str:
     """Validate a canonical resource identity and return its original provider module name."""
     parts = resource_id.split("~")
     provider_id, name = parts if len(parts) == 2 else ("crosswire", resource_id)

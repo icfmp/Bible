@@ -115,3 +115,9 @@ constraints. Add Args/Returns/Raises/Yields and useful type hints when they clar
 the contract, not as boilerplate for trivial helpers. Comments explain reasoning,
 compatibility and performance constraints rather than narrating code. Do not
 invent guarantees or document unrelated third-party/generated resource content.
+
+For Python changes, also run the pinned `mypy` check configured in `pyproject.toml`.
+Type public boundaries and ambiguous collections progressively; use inferred local
+types rather than declaring every obvious variable. Keep JSON/native input checks
+at runtime and do not add blanket ignores or broad `Any` to silence errors. Extend
+the checked module list only after reviewing and typing its real contracts.

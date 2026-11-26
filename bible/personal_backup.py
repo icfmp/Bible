@@ -3,6 +3,8 @@
 The recovery record is scoped to a deliberate restore, independently of storage versions.
 """
 
+from os import PathLike
+from typing import TypedDict
 from dataclasses import asdict, replace
 import hashlib
 import json
@@ -10,8 +12,10 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
-from .notes import Note, validate, BACKUP_VERSION, annotation_json
+from .notes import Note, NoteStore, validate, BACKUP_VERSION, annotation_json
 from .highlights import (
+    HighlightStore,
+    Highlights,
     decode as decode_marks,
     write as write_marks,
     merge as merge_marks,
@@ -19,12 +23,23 @@ from .highlights import (
     private_backup,
 )
 
+
+class RestoreResult(TypedDict):
+    """Merge counts and retained recovery paths; no imported content is hidden."""
+
+    added_notes: int
+    skipped_notes: int
+    conflicts: int
+    backup: str
+    highlight_conflicts_backup: str
+
+
 BACKUP_VERSION_COMBINED = 3
 # A complete32MiB notes store plus32MiB highlights and envelope must fit.
 LIMIT = 72 * 1024 * 1024
 
 
-def atomic(path, data):
+def atomic(path: str | PathLike[str], data: bytes) -> None:
     """Flush and replace backup bytes, then fsync the parent directory before reporting completion."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,7 +63,7 @@ def atomic(path, data):
             temporary.unlink(missing_ok=True)
 
 
-def retire(marker):
+def retire(marker: Path) -> None:
     # Persist the highlight rename before retiring the cross-store journal,
     # then persist its removal before allowing subsequent annotation edits.
     """Fsync the recovery directory before and after removing a completed restore marker."""
@@ -61,7 +76,7 @@ def retire(marker):
         os.close(descriptor)
 
 
-def decode(data):
+def decode(data: bytes) -> tuple[list[Note], Highlights]:
     """Validate supported note/highlight/combined backups without touching stores.
 
     Notes-only versions 1/2 retain their existing contract. Combined version 3
@@ -107,7 +122,7 @@ def decode(data):
     return notes, marks
 
 
-def _snapshot_locked(notes, highlights):
+def _snapshot_locked(notes: NoteStore, highlights: HighlightStore) -> bytes:
     """Serialize under the caller's SQLite write transaction and highlight lock."""
     notes.ensure_recovered()
     highlights.check_current()
@@ -122,7 +137,7 @@ def _snapshot_locked(notes, highlights):
     return data
 
 
-def snapshot(notes, highlights):
+def snapshot(notes: NoteStore, highlights: HighlightStore) -> bytes:
     """Take a consistent annotation-only snapshot, excluding resources/settings."""
     with notes.db:
         notes.db.execute("BEGIN IMMEDIATE")
@@ -130,7 +145,7 @@ def snapshot(notes, highlights):
             return _snapshot_locked(notes, highlights)
 
 
-def export(notes, highlights, destination):
+def export(notes: NoteStore, highlights: HighlightStore, destination: str | PathLike[str]) -> None:
     """Write and validate a private combined v3 backup to a separate file."""
     destination = Path(destination)
     if destination.resolve() in (notes.path.resolve(), highlights.path.resolve()):
@@ -139,7 +154,7 @@ def export(notes, highlights, destination):
     decode(destination.read_bytes())
 
 
-def recover(notes, highlights):
+def recover(notes: NoteStore, highlights: HighlightStore) -> bool:
     """Repeatably restore both original stores after an interrupted restore.
 
     The durable marker remains until both stores and its retirement are synced.
@@ -185,7 +200,9 @@ def recover(notes, highlights):
     return True
 
 
-def restore(notes, highlights, source):
+def restore(
+    notes: NoteStore, highlights: HighlightStore, source: str | PathLike[str]
+) -> RestoreResult:
     """Merge fully validated input, retaining all rejected highlight records.
 
     SQLite's write transaction excludes concurrent note autosave; the advisory
@@ -199,7 +216,7 @@ def restore(notes, highlights, source):
     added = skipped = conflicts = 0
     conflict_backup = ""
 
-    def signature(n):
+    def signature(n: Note) -> str:
         return json.dumps(
             {k: v for k, v in asdict(n).items() if k not in ("id", "revision")}, sort_keys=True
         )

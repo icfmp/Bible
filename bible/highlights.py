@@ -4,6 +4,10 @@ The passage index enforces one mark per numbering system/reference. UUIDs are
 independent of that index, colors and resource context; notes remain separate.
 """
 
+from collections.abc import Iterable, Iterator, Mapping
+from os import PathLike
+from typing import Any, TypedDict, cast
+
 from contextlib import contextmanager
 from datetime import datetime
 import hashlib
@@ -11,11 +15,38 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 import uuid
 
 from .notes import annotation_json, now, parts
 from .providers import RESOURCE_ID
+
+
+class Highlight(TypedDict):
+    """Validated persisted highlight; legacy dates explicitly remain unknown."""
+
+    id: str
+    system: str
+    reference: str
+    color: str
+    resource: str
+    origin_resource: str
+    created: str | None
+    modified: str | None
+    revision: int
+
+
+type HighlightKey = tuple[str, str]
+type Highlights = dict[HighlightKey, Highlight]
+
+
+class HighlightRestoreResult(TypedDict):
+    """Recoverable conflict count and private backup path returned by a merge."""
+
+    conflicts: int
+    backup: str
+
 
 COLORS = {
     "yellow": ("#f6cd45", "Yellow"),
@@ -32,7 +63,7 @@ LEGACY_FIELDS = {"system", "reference", "color", "resource"}
 FIELDS = LEGACY_FIELDS | {"id", "created", "modified", "revision", "origin_resource"}
 
 
-def decode(value):
+def decode(value: Any) -> Highlights:
     """Validate a complete standalone payload before normalizing legacy marks.
 
     Legacy IDs depend only on the numbering system and canonical reference.
@@ -49,8 +80,8 @@ def decode(value):
         raise ValueError("Unsupported highlights file")
     if len(value["marks"]) > 50000:
         raise ValueError("Too many highlights")
-    result = {}
-    ids = set()
+    result: Highlights = {}
+    ids: set[str] = set()
     for item in value["marks"]:
         expected = LEGACY_FIELDS if value["version"] == 1 else FIELDS
         if not isinstance(item, dict) or set(item) != expected:
@@ -97,12 +128,12 @@ def decode(value):
             raise ValueError("Invalid highlight metadata") from error
         if key in result or mark["id"] in ids:
             raise ValueError("Duplicate highlight passage or identifier")
-        result[key] = mark
+        result[key] = cast(Highlight, mark)
         ids.add(mark["id"])
     return result
 
 
-def read_bytes(path):
+def read_bytes(path: str | PathLike[str]) -> bytes:
     """Read a bounded payload; the original file is never repaired implicitly."""
     with Path(path).open("rb") as stream:
         data = stream.read(MAX_BYTES + 1)
@@ -111,12 +142,12 @@ def read_bytes(path):
     return data
 
 
-def payload(path):
+def payload(path: str | PathLike[str]) -> Highlights:
     """Return validated current records from a supported standalone format."""
     return decode(annotation_json(read_bytes(path)))
 
 
-def encoded(marks):
+def encoded(marks: Highlights) -> bytes:
     """Serialize and validate the current portable highlight format."""
     value = dict(version=BACKUP_VERSION, marks=list(marks.values()))
     validated = decode(value)
@@ -128,7 +159,7 @@ def encoded(marks):
     return data
 
 
-def sync_directory(path):
+def sync_directory(path: Path) -> None:
     """Persist a completed rename on POSIX; Windows has no directory fsync."""
     if os.name == "nt":
         return
@@ -139,7 +170,7 @@ def sync_directory(path):
         os.close(descriptor)
 
 
-def private_backup(path, data):
+def private_backup(path: Path, data: bytes) -> Path:
     """Persist an immutable private safety copy, verifying any existing copy."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -167,7 +198,7 @@ def private_backup(path, data):
     return path
 
 
-def write(path, marks):
+def write(path: str | PathLike[str], marks: Highlights) -> None:
     """Atomically write validated v2 records; callers serialize live edits."""
     data = encoded(marks)
     path = Path(path)
@@ -188,7 +219,7 @@ def write(path, marks):
             temporary.unlink(missing_ok=True)
 
 
-def merge(current, imported):
+def merge(current: Highlights, imported: Highlights) -> tuple[Highlights, Highlights]:
     """Keep local values on ID/passage collisions and return rejected records.
 
     Legacy imports identical to a current mark's original four fields are
@@ -198,18 +229,20 @@ def merge(current, imported):
     """
     merged = dict(current)
     ids = {m["id"]: m for m in current.values()}
-    conflicts = {}
+    conflicts: Highlights = {}
     for key, mark in imported.items():
         local = ids.get(mark["id"]) or merged.get(key)
         if local is not None:
             legacy_id = str(uuid.uuid5(LEGACY_NAMESPACE, json.dumps(key)))
+            mark_fields: Mapping[str, object] = mark
+            local_fields: Mapping[str, object] = local
             identical_legacy = (
                 mark["id"] == legacy_id
                 and mark["created"] is None
                 and mark["modified"] is None
                 and mark["revision"] == 1
                 and mark["origin_resource"] == mark["resource"]
-                and all(mark[k] == local[k] for k in LEGACY_FIELDS)
+                and all(mark_fields[k] == local_fields[k] for k in LEGACY_FIELDS)
             )
             if mark != local and not identical_legacy:
                 conflicts[key] = mark
@@ -228,11 +261,11 @@ class HighlightStore:
     edits/exports; startup recovery alone may replace that state.
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str | PathLike[str]) -> None:
         self.path = Path(path)
-        self.entries = {}
+        self.entries: Highlights = {}
         self.error = ""
-        self._disk = None
+        self._disk: bytes | None = None
         try:
             with self.locked():
                 self._disk = self.disk_bytes()
@@ -253,17 +286,17 @@ class HighlightStore:
             self.error = str(error)
 
     @property
-    def pending(self):
+    def pending(self) -> Path:
         """The existing two-store recovery marker, shared with notes."""
         return self.path.parent / "annotation-restore.pending.json"
 
     @contextmanager
-    def locked(self):
+    def locked(self) -> Iterator[None]:
         """Take a short nonblocking cross-process lock without a retry loop."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(str(self.path) + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
         try:
-            if os.name == "nt":
+            if sys.platform == "win32":
                 import msvcrt
 
                 if os.fstat(fd).st_size == 0:
@@ -278,18 +311,18 @@ class HighlightStore:
         finally:
             os.close(fd)
 
-    def disk_bytes(self):
+    def disk_bytes(self) -> bytes | None:
         """Return current bytes or None for a genuinely absent file."""
         try:
             return read_bytes(self.path)
         except FileNotFoundError:
             return None
 
-    def accept_disk(self):
+    def accept_disk(self) -> None:
         """Refresh the write token only after this instance's successful write."""
         self._disk = self.disk_bytes()
 
-    def check_current(self):
+    def check_current(self) -> None:
         """Reject stale or unreadable state instead of overwriting other edits."""
         self.ensure_recovered()
         if self.error:
@@ -300,14 +333,14 @@ class HighlightStore:
         ):
             raise ValueError("Highlights changed elsewhere. Reopen Bible before continuing.")
 
-    def ensure_recovered(self):
+    def ensure_recovered(self) -> None:
         """Block normal annotation writes while two-store recovery is pending."""
         if self.pending.exists():
             raise ValueError(
                 "Annotation restore recovery is pending. Reopen Bible before editing or exporting annotations."
             )
 
-    def commit(self, marks):
+    def commit(self, marks: Highlights) -> None:
         """Commit a complete validated state without losing a concurrent edit."""
         with self.locked():
             self.check_current()
@@ -315,7 +348,7 @@ class HighlightStore:
             self.entries = marks
             self.accept_disk()
 
-    def set(self, system, references, color, resource):
+    def set(self, system: str, references: Iterable[str], color: str | None, resource: str) -> None:
         """Recolor in place, create UUIDs for new marks, or remove whole verses.
 
         No-op edits retain revision/date. Recreating a deleted mark gets a new
@@ -342,12 +375,15 @@ class HighlightStore:
                 elif key in marks:
                     old = marks[key]
                     if old["color"] != color or old["resource"] != resource:
-                        marks[key] = dict(
-                            old,
-                            color=color,
-                            resource=resource,
-                            modified=now(),
-                            revision=old["revision"] + 1,
+                        marks[key] = cast(
+                            Highlight,
+                            dict(
+                                old,
+                                color=color,
+                                resource=resource,
+                                modified=now(),
+                                revision=old["revision"] + 1,
+                            ),
                         )
                 else:
                     stamp = now()
@@ -366,7 +402,7 @@ class HighlightStore:
             self.entries = marks
             self.accept_disk()
 
-    def backup(self, path):
+    def backup(self, path: str | PathLike[str]) -> None:
         """Export current highlights to a separate, private v2 backup."""
         path = Path(path)
         if path.resolve() == self.path.resolve():
@@ -375,7 +411,7 @@ class HighlightStore:
             self.check_current()
             write(path, self.entries)
 
-    def restore(self, path):
+    def restore(self, path: str | PathLike[str]) -> HighlightRestoreResult:
         """Merge an old/current backup; retain rejected values in a private file."""
         imported = payload(path)
         with self.locked():
