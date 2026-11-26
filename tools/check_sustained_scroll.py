@@ -116,7 +116,7 @@ def main() -> None:
     loop = GLib.MainLoop()
     inputfile = args.output.with_suffix(".input.json")
 
-    def beat():
+    def beat() -> bool:
         now = time.monotonic()
         beats.append(now - last[0])
         last[0] = now
@@ -127,7 +127,7 @@ def main() -> None:
             return False
         return True
 
-    def frame(widget: object, clock: object):
+    def frame(widget: object, clock: object) -> bool:
         frames.append(time.monotonic())
         return True
 

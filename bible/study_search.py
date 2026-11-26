@@ -287,7 +287,7 @@ class StudySearch(Gtk.Box):
             self.loading_cards.set_visible(False)
         else:
 
-            def show():
+            def show() -> bool:
                 self._loading_delay = 0
                 if self.pending and not self.owner.closed and self.get_mapped():
                     self.loading_cards.set_visible(True)
@@ -472,7 +472,7 @@ class StudySearch(Gtk.Box):
             generation = self.generation
             if not self.entry.get_text().strip():
 
-                def clear_empty():
+                def clear_empty() -> bool:
                     if (
                         not self.owner.closed
                         and generation == self.generation
@@ -531,7 +531,7 @@ class StudySearch(Gtk.Box):
         if self.topic_model.get_n_items():
             self.choose(self.topic_model.get_item(0).value)
 
-    def capture_context(self):
+    def capture_context(self) -> bool:
         """Capture a valid installed reader/source for a request, otherwise report a usable selection prompt."""
         if self.mode == "text":
             if not self.lemma_query:
@@ -577,7 +577,7 @@ class StudySearch(Gtk.Box):
         future = self.executor.submit(operation)
         self.future = future
 
-        def complete():
+        def complete() -> bool:
             if self.owner.closed or generation != self.generation or epoch != self.epoch:
                 return False
             self.pending = False

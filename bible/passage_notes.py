@@ -111,7 +111,7 @@ class PassageNotes(Gtk.Box):
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_: object, value, *args: object):
+        def key(_: object, value, *args: object) -> bool:
             if value in (
                 Gdk.KEY_Up,
                 Gdk.KEY_Down,
@@ -387,7 +387,7 @@ class PassageNotes(Gtk.Box):
         stamp = self._stamp
         attempts = 0
 
-        def reveal():
+        def reveal() -> bool:
             nonlocal attempts
             self._follow_idle = 0
             if (
@@ -599,7 +599,7 @@ class PassageNotes(Gtk.Box):
             return
         self.refresh(force=True)
 
-        def restore():
+        def restore() -> bool:
             current = self.owner.note_editor
             if self.owner.closed or current is not editor and current and not current.closed:
                 return False

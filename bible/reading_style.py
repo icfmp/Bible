@@ -115,7 +115,7 @@ class ReadingStyle:
             mark = view.get_buffer().create_mark(None, iterator, True)
             frames = [0]
 
-            def restore(widget, *_: object):
+            def restore(widget, *_: object) -> bool:
                 frames[0] += 1
                 if widget.get_mapped() and not self.owner.closed:
                     if frames[0] < 3:

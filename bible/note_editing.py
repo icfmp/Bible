@@ -33,7 +33,7 @@ class NoteTextView(NotePreview):
         buffer.connect("changed", self.decorate)
         keys = Gtk.EventControllerKey()
 
-        def shortcut(_: object, key, code: object, state):
+        def shortcut(_: object, key, code: object, state) -> bool:
             if state & Gdk.ModifierType.CONTROL_MASK and key in (
                 Gdk.KEY_b,
                 Gdk.KEY_B,
@@ -62,7 +62,7 @@ class NoteTextView(NotePreview):
             "pointer" if active and self.at_point(x, y) is not None else "text"
         )
 
-    def key_pressed(self, controller: object, key, code: object, state):
+    def key_pressed(self, controller: object, key, code: object, state) -> bool:
         """Preview an actual citation on Ctrl+Enter while preserving ordinary editing/Enter semantics."""
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and state & Gdk.ModifierType.CONTROL_MASK:
             index = self.at_offset(

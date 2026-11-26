@@ -111,7 +111,7 @@ def main() -> None:
                         intervals = []
                         previous = time.monotonic()
 
-                        def heartbeat():
+                        def heartbeat() -> bool:
                             nonlocal previous
                             now = time.monotonic()
                             intervals.append((now - previous) * 1000)

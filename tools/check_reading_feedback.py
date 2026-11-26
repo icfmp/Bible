@@ -80,7 +80,7 @@ def main() -> None:
                 w.appearance.update("day_palette" if mode == "day" else "night_palette", name)
             settled()
 
-        def chosen(section):
+        def chosen(section) -> bool:
             return args.section in (section, "all")
 
         try:

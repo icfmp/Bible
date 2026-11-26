@@ -681,7 +681,7 @@ class Window(Adw.ApplicationWindow):
         self._controls_tick = 0
         self._controls_frames = 0
 
-    def _settle_controls(self, *_: object):
+    def _settle_controls(self, *_: object) -> bool:
         self.fit_reader_controls()
         self._controls_frames -= 1
         if self._controls_frames > 0:
@@ -724,7 +724,7 @@ class Window(Adw.ApplicationWindow):
         if button.get_parent() is self.reader_overflow_box:
             self.reading_tools_menu.popup()
 
-            def show():
+            def show() -> bool:
                 if not self.closed and self.reader_overflow_box.get_mapped():
                     button.popup()
                 return False
@@ -791,7 +791,7 @@ class Window(Adw.ApplicationWindow):
         else:
             self.enter_immersion("bible")
 
-    def enter_immersion(self, kind="bible"):
+    def enter_immersion(self, kind="bible") -> bool:
         """Enter Bible/commentary immersion using a source-qualified canonical viewport anchor."""
         if hasattr(self, "passage_actions"):
             self.passage_actions.dismiss()
@@ -1007,7 +1007,7 @@ class Window(Adw.ApplicationWindow):
             if self.active_tab is tab and self.study.tool in ("notes", "references"):
                 if not getattr(self.study, "_notes_idle", 0):
 
-                    def refresh():
+                    def refresh() -> bool:
                         self.study._notes_idle = 0
                         if not self.closed:
                             if self.study.tool == "notes":
@@ -1025,7 +1025,7 @@ class Window(Adw.ApplicationWindow):
         readable = self.ensure_readable_tab()
         self.main_pages.set_visible_child_name("reading" if readable else "welcome")
 
-    def ensure_readable_tab(self, preferred=None):
+    def ensure_readable_tab(self, preferred=None) -> bool:
         """Repair only an unusable active reader, preserving valid sessions."""
         tab = self.active_tab
         if tab is None:
@@ -1133,7 +1133,7 @@ class Window(Adw.ApplicationWindow):
         self.search_popover.sync()
         self.search_popover.focus_query()
 
-    def switch_translation(self, name):
+    def switch_translation(self, name) -> bool:
         """A missing correspondence does not make the target unreadable."""
         from .sword_provider import Reader
         from .reference_resolution import resolve, available_chapter
@@ -1554,7 +1554,7 @@ class Window(Adw.ApplicationWindow):
                 if window.notes_space.selected_annotation:
                     window.notes_space.update_context(window.notes_space.selected_annotation)
 
-    def open_installed_resource(self, name, context=None):
+    def open_installed_resource(self, name, context=None) -> bool:
         """Open a resource in its captured tab/destination, guarding unsaved Notes navigation first."""
         tab = context[0]() if context else self.active_tab
         destination = context[1] if context else "bible"
@@ -1847,7 +1847,7 @@ class Window(Adw.ApplicationWindow):
             GLib.source_remove(self._save_id)
         self._save_id = GLib.timeout_add(300, self.save_session)
 
-    def save_session(self):
+    def save_session(self) -> bool:
         """Persist current tab/session state and report failures without resetting the profile."""
         self._save_id = 0
         if not self._session_writable:
@@ -1867,7 +1867,7 @@ class Window(Adw.ApplicationWindow):
         self.session_status.set_text(f"{message}\n{error}")
         self.session_status.set_visible(True)
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         """Honor unsaved-note guards, save the session and release native/background consumers.
 
         Returns:
@@ -1877,7 +1877,7 @@ class Window(Adw.ApplicationWindow):
             self.leave_immersion()
         if self.note_editor and not self.note_editor.closed:
 
-            def close_later():
+            def close_later() -> bool:
                 if not self.closed:
                     self.close()
                 return False

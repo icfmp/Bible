@@ -381,7 +381,7 @@ class ReadingTab(Gtk.Box):
         self._adapt_id = 0
         self._adapt_frames = 0
 
-    def _settle_layout(self, *_: object):
+    def _settle_layout(self, *_: object) -> bool:
         self._adapt_frames -= 1
         self.adapt_comparison()
         rows_pending = (
@@ -392,7 +392,7 @@ class ReadingTab(Gtk.Box):
         self._adapt_id = 0
         return False
 
-    def adapt_comparison(self, *_: object):
+    def adapt_comparison(self, *_: object) -> bool:
         """Adapt reader geometry and preserve canonical anchors through comparison reflow."""
         geometry = (
             self.scroll.get_width(),
@@ -630,7 +630,7 @@ class ReadingTab(Gtk.Box):
         )
         self.comparison_status.set_tooltip_text(str(error) if error is not None else None)
 
-    def remember_comparison(self, reference):
+    def remember_comparison(self, reference) -> bool:
         if not reference or not self.state.comparison:
             return False
         value = dict(resource=self.state.comparison, reference=reference)
@@ -673,7 +673,7 @@ class ReadingTab(Gtk.Box):
         frames = [0]
         self._comparison_positioning = True
 
-        def reveal(*_: object):
+        def reveal(*_: object) -> bool:
             frames[0] += 1
             if not self.get_mapped() or self._comparison_document is not document:
                 self._comparison_tick = 0
@@ -852,7 +852,7 @@ class ReadingTab(Gtk.Box):
             )
         self.text.update_property([Gtk.AccessibleProperty.LABEL], [self.passage_title()])
 
-    def select_verse(self, reference):
+    def select_verse(self, reference) -> bool:
         """Select an existing rendered address and notify dependants without rebuilding the chapter."""
         if hasattr(self, "sync_coordinator") and not self.sync_coordinator.running:
             self.sync_coordinator.explicit_bible()
@@ -1117,7 +1117,7 @@ class ReadingTab(Gtk.Box):
         if not self._tick_id:
             self._tick_id = self.add_tick_callback(self.restore_scroll)
 
-    def restore_scroll(self, *_: object):
+    def restore_scroll(self, *_: object) -> bool:
         """Restore canonical anchors/jumps or saved fractions after native text layout settles.
 
         The GTK callback relinquishes its restoration gate after successful

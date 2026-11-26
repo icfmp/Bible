@@ -182,10 +182,10 @@ class HeadlessPaginationTests(unittest.TestCase):
         stop = Event()
 
         class Key:
-            def getOSISBookName(self):
+            def getOSISBookName(self) -> str:
                 return "Mark"
 
-            def getBookName(self):
+            def getBookName(self) -> str:
                 return "Mark"
 
             def getChapter(self):

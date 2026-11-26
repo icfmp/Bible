@@ -529,7 +529,7 @@ class CatalogueWindow(Adw.Window):
         # The service publishes plain immutable snapshots from metadata workers.
         GLib.idle_add(self.apply_snapshot, snapshot)
 
-    def apply_snapshot(self, snapshot):
+    def apply_snapshot(self, snapshot) -> bool:
         """Apply only current shared metadata generations and refresh affected inventory/filter state."""
         if self.closed or snapshot.generation < self._refresh_generation:
             return False
@@ -685,7 +685,7 @@ class CatalogueWindow(Adw.Window):
             self.skeleton.set_opacity(1)
         if pending and not self._loading_tick:
 
-            def pulse(widget: object, clock):
+            def pulse(widget: object, clock) -> bool:
                 if self.closed or not self.catalogue_progress.get_visible():
                     self.skeleton.set_opacity(1)
                     self._loading_tick = 0
@@ -704,7 +704,7 @@ class CatalogueWindow(Adw.Window):
 
             self._loading_tick = self.catalogue_progress.add_tick_callback(pulse)
 
-    def auto_load(self, *_: object):
+    def auto_load(self, *_: object) -> bool:
         """Request initial metadata only when mapped, eligible and enabled by the saved refresh preference."""
         if self.kind.get_selected() == 2:
             return False
@@ -892,7 +892,7 @@ class CatalogueWindow(Adw.Window):
         if resource and not self.cancel_queued(resource.id):
             self.install(resource=resource)
 
-    def cancel_queued(self, identifier):
+    def cancel_queued(self, identifier) -> bool:
         """Cancel/dismiss the actual pending metadata, review or persistent queue request for one resource."""
         if identifier in self._study_requests:
             self._study_requests.pop(identifier).cancel()
@@ -979,7 +979,7 @@ class CatalogueWindow(Adw.Window):
         self._queue_problem = None
         self.queue_changed()
 
-    def start_queued(self):
+    def start_queued(self) -> bool:
         """Start one eligible queued operation and settle already-current or failed requests safely."""
         self._queue_tick = 0
         if (
@@ -1306,7 +1306,7 @@ class CatalogueWindow(Adw.Window):
         self.choice_model.remove_all()
         offset = 0
 
-        def append_rows():
+        def append_rows() -> bool:
             nonlocal offset
             if self.closed or generation != self._rows_generation:
                 return False
@@ -1370,7 +1370,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_rows()
         self.refresh_controls()
 
-        def complete():
+        def complete() -> bool:
             self._edition_requests.pop(resource.id, None)
             if self.closed:
                 return False
@@ -1401,7 +1401,7 @@ class CatalogueWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def review_downloads(self):
+    def review_downloads(self) -> bool | None:
         """Process one deferred download review only while the window can present its permission dialog."""
         if (
             self.closed
@@ -1434,7 +1434,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_rows()
         self.refresh_controls()
 
-        def complete():
+        def complete() -> bool:
             if self._study_requests.get(resource.id) is not future:
                 return False
             self._study_requests.pop(resource.id, None)
@@ -1721,7 +1721,7 @@ class CatalogueWindow(Adw.Window):
         )
         self.refresh_rows()
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         """Hide an active Library operation or fully cancel view-owned work and pause queued requests.
 
         The shared session outlives a closed view; it is unsubscribed here rather
@@ -1818,7 +1818,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_controls()
         future = (executor or self.executor).submit(action)
 
-        def complete():
+        def complete() -> bool:
             if self.closed or task_id != self._task_id:
                 if settled:
                     settled()
@@ -1960,7 +1960,7 @@ class CatalogueWindow(Adw.Window):
         with self._progress_lock:
             self._pending_progress = (self._task_id, phase, done, total)
 
-    def animate_progress(self):
+    def animate_progress(self) -> bool:
         """Consume the latest worker progress on GTK, showing only measured totals/phases while active."""
         if self.closed or not self._transfer_busy:
             self._pulse_id = 0

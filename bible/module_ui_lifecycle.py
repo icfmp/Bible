@@ -39,7 +39,7 @@ class ModuleViewChange:
         done = Event()
         errors = []
 
-        def prepare():
+        def prepare() -> bool:
             try:
                 if self.dialog.owner.closed:
                     raise InterruptedError("Module operation cancelled")

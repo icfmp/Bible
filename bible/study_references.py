@@ -218,7 +218,7 @@ class StudyReferences(Gtk.Box):
             self.pages.set_visible_child_name("results")
             if not self._pending_notice and not self.pending_context.get_text():
 
-                def notice():
+                def notice() -> bool:
                     self._pending_notice = 0
                     if self.pending and not self.owner.closed:
                         self.pending_context.set_text(tr("Updating references…"))
@@ -251,7 +251,7 @@ class StudyReferences(Gtk.Box):
             return
         generation = self.generation
 
-        def position():
+        def position() -> bool:
             self._position_idle = 0
             if (
                 self.owner.closed
@@ -369,7 +369,7 @@ class StudyReferences(Gtk.Box):
             self.pending_display((tab.state.resource, reader, start, end))
             if not self._follow_timeout:
 
-                def follow():
+                def follow() -> bool:
                     self._follow_timeout = 0
                     queued = self._queued_stamp
                     self._queued_stamp = None
@@ -429,7 +429,7 @@ class StudyReferences(Gtk.Box):
         future = self.executor.submit(self.data.query, origins)
         self._future = future
 
-        def complete():
+        def complete() -> bool:
             if self.owner.closed or generation != self.generation:
                 return False
             self.pending = False

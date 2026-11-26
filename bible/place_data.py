@@ -197,7 +197,7 @@ def candidates(place, modern):
     return result
 
 
-def status(values):
+def status(values) -> str:
     """Conservative labels from supplied evidence, never invented certainty."""
     located = [v for v in values if v["longitude"] is not None]
     if not located:

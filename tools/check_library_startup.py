@@ -41,7 +41,7 @@ def main() -> None:
     last = [time.monotonic()]
     dialog = [None]
 
-    def heartbeat():
+    def heartbeat() -> bool:
         now = time.monotonic()
         gaps.append(now - last[0])
         last[0] = now
@@ -90,7 +90,7 @@ def main() -> None:
 
     dialog[0].add_tick_callback(frame)
 
-    def finish():
+    def finish() -> bool:
         d = dialog[0]
         if time.monotonic() <= deadline:
             if "first_painted_frame_seconds" not in report:

@@ -296,7 +296,7 @@ class BookStream(PagedStream):
             result.append(after)
         return result
 
-    def turn(self, direction, count):
+    def turn(self, direction, count) -> bool:
         """Advance the prepared cursor by spread, preserving book boundaries and requesting neighbour prefetch."""
         if not self.cursor:
             return False

@@ -96,7 +96,7 @@ class InlineMarkers:
         self.pending.add(key)
         future = self.executor.submit(data.query, set().union(*origins.values()) if origins else ())
 
-        def complete():
+        def complete() -> bool:
             self.pending.discard(key)
             owner = self.owner
             tab = self.tab

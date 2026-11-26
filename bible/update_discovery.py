@@ -46,7 +46,7 @@ class ResourceUpdates:
         self.listeners.append(WeakMethod(callback))
         callback()
 
-    def notify(self):
+    def notify(self) -> bool:
         """Notify live listeners on the caller's thread unless the shared session is closed."""
         if self.session.closed:
             return False
@@ -107,7 +107,7 @@ class ResourceUpdates:
                     state="local-unverified", available=None, error=str(error)
                 )
 
-    def accept(self, reports, inventory=None):
+    def accept(self, reports, inventory=None) -> bool:
         """Accept worker reports on GTK's thread only for the matching current inventory."""
         if self.session.closed:
             return False
@@ -120,7 +120,7 @@ class ResourceUpdates:
         self.notify()
         return False
 
-    def start(self, automatic):
+    def start(self, automatic) -> bool:
         """Start the one-time automatic check only when the saved preference enables it."""
         if not automatic or self.started:
             return False
@@ -363,7 +363,7 @@ class UpdateButton(Gtk.Button):
             return
         self._start_pending = True
 
-        def start():
+        def start() -> bool:
             self._start_pending = False
             if self.owner.closed:
                 return False

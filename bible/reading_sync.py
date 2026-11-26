@@ -40,7 +40,7 @@ class ReadingSync:
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_: object, value, code: object, state):
+        def key(_: object, value, code: object, state) -> bool:
             if (
                 value
                 in (
@@ -84,7 +84,7 @@ class ReadingSync:
             "value-changed", lambda *_: self.moved(side, view, bar, tab)
         )
 
-    def intent(self, side, tab=None):
+    def intent(self, side, tab=None) -> bool:
         """Arm a user-selected driver and cancel obsolete automatic viewport restoration."""
         if tab is not None and tab is not self.owner.active_tab:
             return False
@@ -167,7 +167,7 @@ class ReadingSync:
             self.pending = True
             GLib.timeout_add(35, self.synchronize)
 
-    def synchronize(self):
+    def synchronize(self) -> bool:
         """Apply eligible user intent once, using verified passage correspondence.
 
         The callback exits for hidden/closed/immersive or unstable layouts. A

@@ -28,7 +28,7 @@ class ReaderLayoutIdleTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.window.close()
 
-    def settled(self):
+    def settled(self) -> bool:
         w = self.window
         t = self.tab
         return not (

@@ -271,7 +271,7 @@ class AnnotationPreview(Gtk.Label):
         self._link_activated = True
         return self.activate(index)
 
-    def activate(self, index):
+    def activate(self, index) -> bool:
         """Open a recognized citation through the shared source-aware preview without navigating immediately."""
         if not 0 <= index < len(self.citations):
             return True

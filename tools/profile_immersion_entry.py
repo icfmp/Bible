@@ -98,7 +98,7 @@ def main() -> None:
             cpu_start = cpu()
             rss_start = rss()
 
-            def heartbeat():
+            def heartbeat() -> bool:
                 now = time.monotonic()
                 gaps.append(now - last[0])
                 last[0] = now

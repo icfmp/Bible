@@ -365,7 +365,7 @@ class Immersion(Gtk.Overlay):
         self.add_overlay(reveal)
         return button
 
-    def adapt(self, *_: object):
+    def adapt(self, *_: object) -> bool:
         """Collect prepared pages and settle responsive geometry/selection on the GTK frame callback.
 
         Rapid geometry changes are coalesced before expensive preparation. A
@@ -795,7 +795,7 @@ class Immersion(Gtk.Overlay):
         self.page_stack.set_visible_child_name("live")
         self.previous_page.set_paintable(None)
 
-    def turn(self, direction):
+    def turn(self, direction) -> bool:
         """Turn an available spread and retain keyboard focus through cancellable optional native animation."""
         self._page_focus_pending = True
         reading_focus = self.owner.get_focus() in (*self.views, self)
@@ -820,7 +820,7 @@ class Immersion(Gtk.Overlay):
                 self.page_stack.set_visible_child_name("previous")
                 serial = self._slide_serial
 
-                def reveal():
+                def reveal() -> bool:
                     if self._closed or serial != self._slide_serial:
                         return False
                     forward = (direction > 0) != self.source.rtl
@@ -918,7 +918,7 @@ class Immersion(Gtk.Overlay):
     def any_selection(self):
         return any(view.get_buffer().get_has_selection() for view in self.views)
 
-    def key_pressed(self, controller: object, key, code: object, state):
+    def key_pressed(self, controller: object, key, code: object, state) -> bool:
         """Handle immersive navigation while leaving selection, control focus and open popovers to GTK."""
         control_focus = self.controls_focused()
         self.owner.set_focus_visible(True)
@@ -973,7 +973,7 @@ class Immersion(Gtk.Overlay):
         self._wheel = 0
         self._gesture_turned = False
 
-    def wheel_scroll(self, controller, dx, dy):
+    def wheel_scroll(self, controller, dx, dy) -> bool:
         """Coalesce smooth wheel gestures into bounded page turns, respecting active selection and controls."""
         if (
             self.controls_focused()
@@ -1063,7 +1063,7 @@ class Immersion(Gtk.Overlay):
             GLib.source_remove(self._hide_id)
         self._hide_id = GLib.timeout_add(1600, self.hide_controls)
 
-    def hide_controls(self):
+    def hide_controls(self) -> bool:
         """Hide inactive chrome while retaining keyboard, popover and selection usability."""
         self._hide_id = 0
         if self.controls_focused() or self.open_popovers() or self._pointer_top:

@@ -213,7 +213,7 @@ class DownloadQueue:
             self.requests.insert(position, request)
             raise
 
-    def cancel(self, identifier):
+    def cancel(self, identifier) -> bool:
         request = self.find(identifier)
         if request and request.state != "active":
             self.finish(request)

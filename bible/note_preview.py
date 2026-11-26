@@ -130,7 +130,7 @@ class NotePreview(Gtk.TextView):
             return False
         return Gtk.TextView.do_focus(self, direction)
 
-    def key_pressed(self, _: object, key, code: object, state):
+    def key_pressed(self, _: object, key, code: object, state) -> bool:
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space) and not state & (
             Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK
         ):

@@ -349,7 +349,7 @@ class PassageActions:
         release = Gtk.EventControllerLegacy()
         release.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def pointer_event(controller, _event: object):
+        def pointer_event(controller, _event: object) -> bool:
             if not self._pointer_release:
                 return False
             event = controller.get_current_event()
@@ -530,7 +530,7 @@ class PassageActions:
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_: object, value, code: object, state):
+        def key(_: object, value, code: object, state) -> bool:
             if (
                 value == Gdk.KEY_Menu
                 or value == Gdk.KEY_F10
@@ -704,7 +704,7 @@ class PassageActions:
             ):
                 self.schedule_capture(view, factory, offset, generation)
 
-        def pointer_event(controller, event):
+        def pointer_event(controller, event) -> bool:
             event = event or controller.get_current_event()
             if (
                 event
@@ -732,7 +732,7 @@ class PassageActions:
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def pressed(_: object, value, code: object, state):
+        def pressed(_: object, value, code: object, state) -> bool:
             selection_key = value in (
                 Gdk.KEY_Left,
                 Gdk.KEY_Right,
@@ -784,7 +784,7 @@ class PassageActions:
         self.capture_idle = 0
         return self.capture(view, factory, clicked, generation)
 
-    def capture(self, view, factory, clicked, generation=None):
+    def capture(self, view, factory, clicked, generation=None) -> bool:
         """Freeze only a current nonempty native selection and show actions for its actual source edition."""
         if generation is not None and generation != self.intent:
             return False
@@ -839,7 +839,7 @@ class PassageActions:
             self.adapt_tick = 0
         return pending
 
-    def adapt(self, *_: object):
+    def adapt(self, *_: object) -> bool:
         """Fit contextual actions to natural content/window width and keep them clear of selected lines."""
         value = self.target
         if not value:
@@ -897,7 +897,7 @@ class PassageActions:
             self.bar.background.queue_draw()
         return True
 
-    def valid(self):
+    def valid(self) -> bool:
         """Verify the frozen source/document/selection still matches before any contextual mutation."""
         value = self.target
         if not value or self.owner.closed or self.owner.active_tab is not value.source.tab:
@@ -928,7 +928,7 @@ class PassageActions:
                 return False
         return True
 
-    def key(self, controller: object, value, *_: object):
+    def key(self, controller: object, value, *_: object) -> bool:
         """Dismiss active selection controls on Escape while preserving native drag cancellation semantics."""
         if value == Gdk.KEY_Escape and (
             self.target or self.capture_idle or self.keyboard or self.dragging

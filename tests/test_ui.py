@@ -28,7 +28,7 @@ def spin(until=lambda: True, duration=0.1, timeout=4) -> None:
             loop.quit()
             return False
 
-    def check_condition():
+    def check_condition() -> bool:
         nonlocal settled
         now = time.monotonic()
         if now >= minimum and until():

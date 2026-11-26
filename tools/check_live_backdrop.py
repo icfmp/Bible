@@ -49,7 +49,7 @@ def measure_scroll(window):
         last = [began]
         prof = cProfile.Profile()
 
-        def move():
+        def move() -> bool:
             elapsed = time.monotonic() - began
             if elapsed >= 6:
                 return False
@@ -62,7 +62,7 @@ def measure_scroll(window):
             last[0] = now
             return now - began < 6
 
-        def frame(widget: object, clock: object):
+        def frame(widget: object, clock: object) -> bool:
             frames.append(time.monotonic())
             return True
 
@@ -186,7 +186,7 @@ def main() -> None:
             # Drive the same adjustment used by the scrollbar. Wheel intentionally
             # dismisses floating actions; this keeps a real selection visible to
             # expose live backdrop updates while the reader moves beneath it.
-            def move():
+            def move() -> bool:
                 elapsed = time.monotonic() - began
                 if elapsed >= 6:
                     return False

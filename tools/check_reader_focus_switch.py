@@ -28,7 +28,7 @@ def spin(until=lambda: True, duration=0.15) -> None:
     start = time.monotonic()
     failed = []
 
-    def poll():
+    def poll() -> bool:
         if time.monotonic() - start > 15:
             failed.append("timeout")
             loop.quit()

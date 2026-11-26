@@ -70,7 +70,7 @@ def check_resource(resource, nt_only: bool = False) -> None:
         )
 
 
-def main():
+def main() -> int:
     resources = catalogue()
     print(
         f"Catalogue: {len(resources)} Bible resources; "

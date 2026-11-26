@@ -201,7 +201,7 @@ def main() -> None:
     )
     paint = clock.connect("after-paint", lambda *_: paints.append(time.monotonic()))
 
-    def beat():
+    def beat() -> bool:
         now = time.monotonic()
         beats.append([now, now - last[0]])
         last[0] = now

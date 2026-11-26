@@ -195,7 +195,7 @@ class PassageStudy(Adw.Window):
         if not self.closed:
             self.places.refresh()
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         """Invalidate child views and remove owner references before native window disposal."""
         if self.closed:
             return False

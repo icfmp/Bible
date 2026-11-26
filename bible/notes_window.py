@@ -601,7 +601,7 @@ class NoteEditor(Adw.Window):
         self.status.set_text(tr("Saving…"))
         self._autosave_id = GLib.timeout_add(600, self.autosave_pending)
 
-    def autosave_pending(self):
+    def autosave_pending(self) -> bool:
         """Save a dirty draft unless an uncommitted label/passage still requires explicit Add."""
         self._autosave_id = 0
         if self.closed or self._discard:
@@ -662,7 +662,7 @@ class NoteEditor(Adw.Window):
             self.status.set_text(tr("Note saved."))
             if self.autosave:
 
-                def clear_saved():
+                def clear_saved() -> bool:
                     self._saved_status_id = 0
                     if not self.closed and self.status.get_text() == tr("Note saved."):
                         self.status.set_text("")
@@ -720,7 +720,7 @@ class NoteEditor(Adw.Window):
                 host.editor_closed(self)
             self.destroy()
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         """Flush autosave and keep the editor open if unsaved changes need an explicit decision."""
         if self.autosave and self.dirty and not self._discard:
             self.save(close=False)
@@ -955,7 +955,7 @@ class NotesWindow(Adw.Window):
             self.status.set_text(tr(str(error)))
             return False
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         self.closed = True
         for chooser in self._choosers[:]:
             chooser.destroy()
@@ -1222,7 +1222,7 @@ class NotesSpace(Gtk.Box):
         self.side.add_css_class("annotation-sidebar")
         keys = Gtk.EventControllerKey()
 
-        def activate_space(_: object, key, code: object, state):
+        def activate_space(_: object, key, code: object, state) -> bool:
             if key != Gdk.KEY_space or state:
                 return False
             index = self.selection.get_selected()
@@ -1373,7 +1373,7 @@ class NotesSpace(Gtk.Box):
         self.add_tick_callback(self.adapt)
         self.refresh()
 
-    def adapt(self, *_: object):
+    def adapt(self, *_: object) -> bool:
         """Switch collection/navigation/detail presentation at native width breakpoints without replacing the editor."""
         if self.closed:
             return False
@@ -1468,7 +1468,7 @@ class NotesSpace(Gtk.Box):
         if current:
             self.open_annotation(current)
 
-        def scroll():
+        def scroll() -> bool:
             if not self.closed and self.selected_key == key:
                 index = next((i for i, a in enumerate(self.rows) if a.key == key), None)
                 if index is not None:
@@ -1573,7 +1573,7 @@ class NotesSpace(Gtk.Box):
             )
             self.selection.set_selected(selected)
 
-            def restore():
+            def restore() -> bool:
                 if not self.closed:
                     self.scroll.get_vadjustment().set_value(position)
                 return False
@@ -1863,7 +1863,7 @@ class NotesSpace(Gtk.Box):
             self.split.set_show_sidebar(False)
         self.detail_back.set_visible(self.split.get_collapsed())
 
-        def focus():
+        def focus() -> bool:
             if self.editor is editor and not editor.closed and editor.body.get_mapped():
                 # Start at the detail's context, keeping its first controls
                 # visible instead of scrolling a short window to the editor.
@@ -1940,7 +1940,7 @@ class NotesSpace(Gtk.Box):
     def set_default_size(self, width, height) -> None:
         self.owner.set_default_size(width, height)
 
-    def flush_for_backup(self):
+    def flush_for_backup(self) -> bool:
         """Persist a pending editor draft before backup, returning False to block an unsafe export."""
         if (
             self.editor

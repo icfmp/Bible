@@ -178,7 +178,7 @@ class HighlightsWindow(Adw.Window):
         self.set_content(box)
         self.refresh()
 
-    def closed_request(self, *_: object):
+    def closed_request(self, *_: object) -> bool:
         self.closed = True
         return False
 

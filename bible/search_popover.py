@@ -119,7 +119,7 @@ class SearchPopover(Gtk.Popover):
         if self._focus_idle:
             GLib.source_remove(self._focus_idle)
 
-        def focus():
+        def focus() -> bool:
             self._focus_idle = 0
             if self.get_visible() and not self.owner.closed:
                 self.active_panel().entry.grab_focus()
@@ -266,7 +266,7 @@ class SearchPopover(Gtk.Popover):
             yield child
             child = child.get_next_sibling()
 
-    def preview_key_pressed(self, controller, key, code: object, state: object):
+    def preview_key_pressed(self, controller, key, code: object, state: object) -> bool:
         if key != Gdk.KEY_Escape:
             return False
         event = controller.get_current_event()

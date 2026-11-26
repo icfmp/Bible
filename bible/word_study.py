@@ -191,7 +191,7 @@ class WordStudy(Gtk.Box):
         generation = self.offer_generation
         metadata = selected_metadata(target)
 
-        def present():
+        def present() -> bool:
             if self.owner.closed or generation != self.offer_generation:
                 return False
             current = target.factory()
@@ -280,7 +280,7 @@ class WordStudy(Gtk.Box):
             self.dialog.present()
             self.back.grab_focus()
 
-    def dialog_closed(self, *_: object):
+    def dialog_closed(self, *_: object) -> bool:
         """Invalidate requests and release source/context before safely detaching/restoring GTK focus."""
         dialog = self.dialog
         self.dialog = None
@@ -295,7 +295,7 @@ class WordStudy(Gtk.Box):
         focus = getattr(self, "previous_focus", None)
         restore = self.restore_focus
 
-        def detached():
+        def detached() -> bool:
             if dialog and dialog.get_content() is self:
                 dialog.set_content(None)
             if (
@@ -351,7 +351,7 @@ class WordStudy(Gtk.Box):
         future = self.executor.submit(operation)
         self.futures.add(future)
 
-        def finished():
+        def finished() -> bool:
             self.futures.discard(future)
             if generation != self.generation or not self.valid():
                 return False

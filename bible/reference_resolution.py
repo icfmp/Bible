@@ -232,7 +232,7 @@ def _native_refs(source, system):
     return _span(start, end, system)
 
 
-def available_chapter(reference, reader):
+def available_chapter(reference, reader) -> str | None:
     """Explicit opening only: printed chapter availability is not verse alignment."""
     from .book_names import canonical_input
 

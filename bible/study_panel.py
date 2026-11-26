@@ -352,7 +352,7 @@ class StudyPanel(Gtk.Box):
         self._adapt_tick = 0
         self._adapt_frames = 0
 
-    def _settle_layout(self, *_: object):
+    def _settle_layout(self, *_: object) -> bool:
         self._adapt_frames -= 1
         self.adapt()
         if self._adapt_frames > 0:
@@ -360,7 +360,7 @@ class StudyPanel(Gtk.Box):
         self._adapt_tick = 0
         return False
 
-    def adapt(self, *_: object):
+    def adapt(self, *_: object) -> bool:
         """Recompute native margins after geometry changes and restore the previous commentary anchor."""
         geometry = (self.scroll.get_width(), self.scroll.get_height())
         if geometry != self._layout_geometry and geometry[0] > 0:
@@ -595,7 +595,7 @@ class StudyPanel(Gtk.Box):
         self.entry_controls()
         self.update_indicator()
 
-    def ensure_chapter(self, reference, introduction: bool = False):
+    def ensure_chapter(self, reference, introduction: bool = False) -> bool:
         """Load actual nonempty overlapping sections/intros, returning whether the view was rebuilt."""
         key = (
             introduction_key(reference, self.reader) if introduction else self.reader.key(reference)
@@ -812,7 +812,7 @@ class StudyPanel(Gtk.Box):
             stop_native_scroll(self.scroll)
         frames = [0]
 
-        def restore(*_: object):
+        def restore(*_: object) -> bool:
             if self.owner.closed or position not in self.ranges:
                 self._reveal_tick = 0
                 self._positioning = False
@@ -883,7 +883,7 @@ class StudyPanel(Gtk.Box):
                 setattr(self, name, 0)
         self._loading = False
 
-    def process_scroll(self):
+    def process_scroll(self) -> bool:
         """Remember user-led position and queue bounded neighbour loading near the visible window edges."""
         self._scroll_idle = 0
         if (
@@ -913,7 +913,7 @@ class StudyPanel(Gtk.Box):
             self._processing_scroll = False
         return False
 
-    def load_more(self, direction):
+    def load_more(self, direction) -> bool:
         """Expand toward neighbouring sections while retaining at most20 loaded entries and a viewport anchor."""
         self._load_idle = 0
         self._loading = False
@@ -1077,7 +1077,7 @@ class StudyPanel(Gtk.Box):
         if name is self._download_choice:
             context = self.owner.library_context(tab, "commentary")
 
-            def open_downloads():
+            def open_downloads() -> bool:
                 self._choice_idle = 0
                 self._choice_name = None
                 if (
@@ -1096,7 +1096,7 @@ class StudyPanel(Gtk.Box):
         tab.state.commentary = name
         self.owner.schedule_save()
 
-        def apply_choice():
+        def apply_choice() -> bool:
             self._choice_idle = 0
             self._choice_name = None
             if (

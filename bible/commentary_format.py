@@ -610,7 +610,7 @@ def show_preface(owner, reader, resource, position):
     window.source_document = document
     owner.commentary_preface = window
 
-    def closed(*_: object):
+    def closed(*_: object) -> bool:
         if getattr(owner, "commentary_preface", None) is window:
             owner.commentary_preface = None
         return False

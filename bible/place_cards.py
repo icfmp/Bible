@@ -126,7 +126,7 @@ class PlaceView(Adw.Bin):
             self.map_widget.stop()
             self.map_widget = None
 
-    def on_closed(self, *_: object):
+    def on_closed(self, *_: object) -> bool:
         if self.closed:
             return False
         self.stop_map()
@@ -188,7 +188,7 @@ class PlaceView(Adw.Bin):
         generation = self.generation
         future = self.executor.submit(self.data.query, origins)
 
-        def complete():
+        def complete() -> bool:
             if self.closed or self.owner.closed or generation != self.generation:
                 return False
             self.pending = False

@@ -185,7 +185,7 @@ class LibraryStartupTests(unittest.TestCase):
                 loop = GLib.MainLoop()
                 deadline = time.monotonic() + 8
 
-                def settled():
+                def settled() -> bool:
                     if dialog.busy and time.monotonic() < deadline:
                         return True
                     loop.quit()

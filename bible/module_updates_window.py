@@ -68,7 +68,7 @@ class ModuleUpdatesWindow(Adw.Window):
 
         future = self.worker.submit(check)
 
-        def complete():
+        def complete() -> bool:
             if self.closed:
                 return False
             self.spinner.set_spinning(False)
@@ -115,7 +115,7 @@ class ModuleUpdatesWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def on_close(self, *_: object):
+    def on_close(self, *_: object) -> bool:
         self.closed = True
         self.worker.shutdown(wait=False, cancel_futures=True)
         return False

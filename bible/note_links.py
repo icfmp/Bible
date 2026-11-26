@@ -171,7 +171,7 @@ class PassageLinks(Gtk.Box):
         future = panel.executor.submit(panel.data.query, origins)
         self._suggestion_future = future
 
-        def complete():
+        def complete() -> bool:
             if self.owner.closed or epoch != self._suggestion_epoch or not pop.get_visible():
                 return False
             self._suggestion_future = None

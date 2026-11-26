@@ -510,7 +510,7 @@ class ImmersionTests(unittest.TestCase):
             expected = buffer.get_text(*buffer.get_selection_bounds(), False)
             cleared = []
 
-            def deferred_clear(*_: object):
+            def deferred_clear(*_: object) -> bool:
                 if r.stream.cursor is None:
                     return True
                 # Simulate GTK moving the native marks during font allocation,

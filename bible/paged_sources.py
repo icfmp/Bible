@@ -374,7 +374,7 @@ class PagedStream:
             addresses.append(after)
         return addresses
 
-    def turn(self, direction, count):
+    def turn(self, direction, count) -> bool:
         """Move the cursor by the requested spread, returning whether another spread is available."""
         if direction < 0:
             address = self.cursor

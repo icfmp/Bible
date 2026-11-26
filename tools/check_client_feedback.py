@@ -418,7 +418,7 @@ def main() -> None:
             geometry = v._geometry
             start_time = time.monotonic()
 
-            def sample(widget: object, clock: object):
+            def sample(widget: object, clock: object) -> bool:
                 report["geometry"].append(
                     [
                         round(time.monotonic() - start_time, 3),

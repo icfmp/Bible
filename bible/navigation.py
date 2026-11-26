@@ -170,7 +170,7 @@ class PassagePopover(Gtk.Popover):
         preview_keys.connect("key-pressed", self.preview_key_pressed)
         self.add_controller(preview_keys)
 
-    def preview_key_pressed(self, controller, key, code: object, state: object):
+    def preview_key_pressed(self, controller, key, code: object, state: object) -> bool:
         """Handle Escape for current native popups without interrupting IME preedit or foreign surfaces."""
         if key != Gdk.KEY_Escape:
             return False
@@ -231,7 +231,7 @@ class PassagePopover(Gtk.Popover):
         if choices:
             self.completions.select_row(self.completions.get_row_at_index(0))
 
-    def accept_book(self, index=None):
+    def accept_book(self, index=None) -> bool:
         """Commit an explicit completion into direct input without navigating an invented chapter."""
         if self._completion_preedit or not self._book_choices:
             return False
@@ -334,7 +334,7 @@ class PassagePopover(Gtk.Popover):
             if anchor and anchor.get_mapped():
                 anchor.grab_focus()
 
-    def adapt(self):
+    def adapt(self) -> bool:
         """Adapt the visible book/chapter layout to the current window without a hidden polling loop."""
         if not self.get_visible():
             self._resize_id = 0
@@ -484,7 +484,7 @@ class PassagePopover(Gtk.Popover):
             return
         frames = 0
 
-        def reveal(*_: object):
+        def reveal(*_: object) -> bool:
             nonlocal frames
             frames += 1
             if frames < 3:
@@ -571,7 +571,7 @@ class PassagePopover(Gtk.Popover):
             preferred if preferred in self.verses else (self.verses[0] if self.verses else None)
         )
 
-    def selected_reference(self):
+    def selected_reference(self) -> str:
         if (
             self.book_index < len(self.books)
             and self.chapter_number

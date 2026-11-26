@@ -25,7 +25,7 @@ class ComparisonSync(ReadingSync):
         self.bind(tab.scroll, tab.text, "primary")
         self.bind(tab.comparison_scroll, tab.comparison_text, "comparison")
 
-    def intent(self, side, tab: object = None):
+    def intent(self, side, tab: object = None) -> bool:
         """Arm the explicitly used pane, cancelling obsolete motion and secondary restore work."""
         if self.tab is not self.owner.active_tab or self.running:
             return False
@@ -64,7 +64,7 @@ class ComparisonSync(ReadingSync):
         if self.driver == side and (self.dragging == side or time.monotonic() < self.armed_until):
             self.schedule()
 
-    def synchronize(self):
+    def synchronize(self) -> bool:
         """Apply one live user intent through verified reader-to-reader correspondence.
 
         Hidden/inactive/expired gestures do not lead. Shared adjustments already

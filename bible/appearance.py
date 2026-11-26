@@ -368,7 +368,7 @@ class AppearancePopover(Gtk.Popover):
         self._pending_reflow = False
         return reflow
 
-    def apply_pending(self):
+    def apply_pending(self) -> bool:
         reflow = self._pending_reflow
         self._apply_id = 0
         self._pending_reflow = False

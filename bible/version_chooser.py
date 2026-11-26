@@ -350,7 +350,7 @@ class VersionChooser(Gtk.MenuButton):
 
             GLib.idle_add(self.sync)
 
-    def finish(self):
+    def finish(self) -> bool:
         if self.owner.closed:
             return False
         self.sync()

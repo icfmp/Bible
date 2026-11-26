@@ -264,7 +264,7 @@ class Reader:
             raise ValueError(f"Unsupported versification: {self.versification}")
 
     @property
-    def rtl(self):
+    def rtl(self) -> bool:
         # SWIG exposes SWORD's char direction as a one-character Python str.
         value = self.module.getDirection()
         return value in (self.sword.DIRECTION_RTL, chr(self.sword.DIRECTION_RTL))
@@ -405,7 +405,7 @@ class Reader:
         return issue
 
     @cached_property
-    def _approximate_numbering(self):
+    def _approximate_numbering(self) -> bool:
         from .providers import module_name
 
         for path in (self.root / "mods.d").glob("*.conf"):
@@ -531,7 +531,7 @@ class Reader:
         except ValueError:
             return False
 
-    def first_reference(self):
+    def first_reference(self) -> str:
         if not self.books:
             raise ValueError("No readable indexed passage in resource")
         book = self.books[0]

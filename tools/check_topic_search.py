@@ -220,7 +220,7 @@ def main() -> None:
         last = [time.monotonic()]
         gaps = []
 
-        def heartbeat():
+        def heartbeat() -> bool:
             now = time.monotonic()
             gaps.append(now - last[0])
             last[0] = now

@@ -52,7 +52,7 @@ class StudyDivider(Gtk.Box):
         self._adapt_id = 0
         self._adapt_frames = 0
 
-    def _settle_layout(self, *_: object):
+    def _settle_layout(self, *_: object) -> bool:
         self.adapt()
         self._adapt_frames -= 1
         if self._adapt_frames > 0:
@@ -60,7 +60,7 @@ class StudyDivider(Gtk.Box):
         self._adapt_id = 0
         return False
 
-    def adapt(self, *_: object):
+    def adapt(self, *_: object) -> bool:
         geometry = (self.owner.get_width(), self.owner.split.get_collapsed())
         if geometry != self.geometry:
             self.geometry = geometry
@@ -147,7 +147,7 @@ class StudyDivider(Gtk.Box):
         if not self.owner.split.get_show_sidebar():
             self.end()
 
-    def key(self, _: object, key, code: object, state: object):
+    def key(self, _: object, key, code: object, state: object) -> bool:
         if key not in (Gdk.KEY_Left, Gdk.KEY_Right, Gdk.KEY_Home):
             return False
         self.begin()
