@@ -112,9 +112,16 @@ class RawText(SWModule):
 
 class RawCom(SWModule):
     def __init__(
-        self, path: str, name: str | None = ..., description: str | None = ...,
-        display: SWDisplay | None = ..., encoding: int = ..., direction: int = ...,
-        markup: int = ..., language: str | None = ..., versification: str = ...,
+        self,
+        path: str,
+        name: str | None = ...,
+        description: str | None = ...,
+        display: SWDisplay | None = ...,
+        encoding: int = ...,
+        direction: int = ...,
+        markup: int = ...,
+        language: str | None = ...,
+        versification: str = ...,
     ) -> None: ...
     @staticmethod
     def createModule(path: str, versification: str = ...) -> str: ...
