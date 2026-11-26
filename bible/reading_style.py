@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+from weakref import WeakSet
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .reading_tab import ReadingTab
+    from .sword_provider import Reader
+    from .preferences import ReadingPreferences
+
 import gi
 
 gi.require_version("Adw", "1")
@@ -19,7 +28,9 @@ PALETTES = {
 }
 
 
-def apply_direction(view, reader, preferences=None) -> None:
+def apply_direction(
+    view: Gtk.TextView, reader: Reader, preferences: ReadingPreferences | None = None
+) -> None:
     """Resource direction affects the content, not the application's controls."""
     view.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
     view.set_justification(
@@ -31,7 +42,8 @@ def apply_direction(view, reader, preferences=None) -> None:
     )
 
 
-def effective_palette(preferences, dark, high_contrast):
+def effective_palette(preferences: ReadingPreferences, dark: bool, high_contrast: bool) -> str:
+    """Resolve content colors without changing the system interface appearance."""
     if high_contrast:
         return "contrast-night" if dark else "contrast-day"
     return preferences.night_palette if dark else preferences.day_palette
@@ -40,12 +52,10 @@ def effective_palette(preferences, dark, high_contrast):
 class ReadingStyle:
     """Apply owner-scoped reading palettes/content typography while GTK owns interface font inheritance."""
 
-    def __init__(self, owner) -> None:
+    def __init__(self, owner: Window) -> None:
         self.owner = owner
         self.initial_palette = self.palette_settings()
-        from weakref import WeakSet
-
-        self.views = WeakSet()
+        self.views: WeakSet[Gtk.TextView] = WeakSet()
         self.manager = Adw.StyleManager.get_default()
         self.scope = "bible-content-" + str(id(owner))
         owner.add_css_class(self.scope + "-window")
@@ -59,18 +69,21 @@ class ReadingStyle:
         ]
         self.apply_mode()
 
-    def palette_settings(self):
+    def palette_settings(self) -> dict[str, str]:
+        """Snapshot only the per-tab palette keys, leaving typography shared."""
         return {
             k: getattr(self.owner.preferences.value, k)
             for k in ("mode", "day_palette", "night_palette")
         }
 
     def remember_tab_palettes(self) -> None:
+        """Initialize missing tab palettes without overwriting saved choices."""
         for tab in self.owner.tabs():
             if not tab.state.reading_palette:
                 tab.state.reading_palette = self.palette_settings()
 
-    def activate_tab(self, tab) -> None:
+    def activate_tab(self, tab: ReadingTab) -> None:
+        """Restore a tab palette and synchronize appearance controls on GTK."""
         for key, value in tab.state.reading_palette.items():
             setattr(self.owner.preferences.value, key, value)
         self.apply_mode()
@@ -93,10 +106,10 @@ class ReadingStyle:
         )
         self.changed()
 
-    def decorate(self, view) -> None:
+    def decorate(self, view: Gtk.TextView) -> None:
         """Register a reading view and apply content typography/number colors within its owner scope."""
         self.views.add(view)
-        view._reading_palette = self.palette
+        setattr(view, "_reading_palette", self.palette)
         from .verse_typography import NUMBER_COLORS
 
         for name in ["verse-number", "page-number", "verse-editorial", "source-editorial"]:
@@ -106,7 +119,7 @@ class ReadingStyle:
         view.add_css_class(self.scope)
         self.apply_text(view)
 
-    def apply_text(self, view, preserve: bool = True) -> None:
+    def apply_text(self, view: Gtk.TextView, preserve: bool = True) -> None:
         # GtkTextMarks retain selection/body positions across tag-only reflow.
         """Apply reading text tags while retaining a native viewport mark through bounded reflow frames."""
         if preserve and view.get_mapped() and not getattr(view, "_reader_reflow_tick", 0):
@@ -115,22 +128,24 @@ class ReadingStyle:
             mark = view.get_buffer().create_mark(None, iterator, True)
             frames = [0]
 
-            def restore(widget, *_: object) -> bool:
+            def restore(native_widget: Gtk.Widget, *_: object) -> bool:
+                # GTK returns the same TextView registered below.
+                widget = cast(Gtk.TextView, native_widget)
                 frames[0] += 1
                 if widget.get_mapped() and not self.owner.closed:
                     if frames[0] < 3:
                         return True
                     target = widget.get_iter_location(widget.get_buffer().get_iter_at_mark(mark))
                     visible = widget.get_visible_rect()
-                    adjustment = widget.get_parent().get_vadjustment()
+                    adjustment = cast(Gtk.ScrolledWindow, widget.get_parent()).get_vadjustment()
                     adjustment.set_value(adjustment.get_value() + target.y - visible.y)
                     if frames[0] < 5:
                         return True
                 widget.get_buffer().delete_mark(mark)
-                widget._reader_reflow_tick = 0
+                setattr(widget, "_reader_reflow_tick", 0)
                 return False
 
-            view._reader_reflow_tick = view.add_tick_callback(restore)
+            setattr(view, "_reader_reflow_tick", view.add_tick_callback(restore))
         preferences = self.owner.preferences.value
         view.set_pixels_inside_wrap(line_spacing(preferences))
         view.set_pixels_below_lines(line_spacing(preferences) + 4)
@@ -311,7 +326,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 {window} .bible-secondary-dialog headerbar {{ background: transparent; color: inherit; border: none; box-shadow: none; }}
 .{self.scope}-window tooltip.background, .{self.scope}-window tooltip.background label {{ background-color: #101010; color: #ffffff; }}
 """
-        for name, (background, foreground, *_) in PALETTES.items():
+        for name, (background, foreground, *_remaining_colors) in PALETTES.items():
             if name.startswith("contrast"):
                 continue
             self.css += f".{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n"
@@ -319,7 +334,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
         from .verse_typography import NUMBER_COLORS
 
         for view in self.views:
-            view._reading_palette = self.palette
+            setattr(view, "_reading_palette", self.palette)
             for name in [
                 "verse-number",
                 "page-number",
@@ -337,6 +352,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
             self.owner.refresh_highlights()
 
     def close(self) -> None:
+        """Disconnect native theme notifications and remove this window’s CSS."""
         for handler in self.handlers:
             self.manager.disconnect(handler)
         Gtk.StyleContext.remove_provider_for_display(self.owner.get_display(), self.provider)

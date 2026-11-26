@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import cast
+
 import argparse
 import importlib
 import shutil
@@ -11,7 +14,8 @@ import urllib.error
 import urllib.request
 
 
-def main():
+def main() -> int:
+    """Report prerequisite failures; perform network probes only when requested."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--network",
@@ -19,9 +23,9 @@ def main():
         help="Check official HTTPS endpoints (no Bible downloaded).",
     )
     args = parser.parse_args()
-    failures = []
+    failures: list[str] = []
 
-    def check(label, action, required: bool = True) -> None:
+    def check(label: str, action: Callable[[], object], required: bool = True) -> None:
         try:
             print(f"OK {label}: {action()}")
         except Exception as error:
@@ -33,7 +37,7 @@ def main():
     check("PyGObject", lambda: importlib.import_module("gi").__version__)
     for name, version in [("Gtk", "4.0"), ("Adw", "1")]:
 
-        def namespace(name=name, version=version):
+        def namespace(name: str = name, version: str = version) -> str:
             gi = importlib.import_module("gi")
             gi.require_version(name, version)
             return importlib.import_module(f"gi.repository.{name}").__name__
@@ -42,7 +46,7 @@ def main():
     check("SWORD Python", lambda: importlib.import_module("Sword").__file__)
     for command in ["flatpak", "flatpak-builder"]:
 
-        def executable(command=command):
+        def executable(command: str = command) -> str:
             path = shutil.which(command)
             if path is None:
                 raise FileNotFoundError(command)
@@ -58,10 +62,11 @@ def main():
             "https://docs.flatpak.org/en/latest/first-build.html",
         ]:
 
-            def endpoint(url=url):
+            def endpoint(url: str = url) -> int:
                 request = urllib.request.Request(url, method="HEAD")
                 with urllib.request.urlopen(request, timeout=15) as response:
-                    return response.status
+                    # All configured endpoints are HTTPS HTTP responses.
+                    return cast(int, response.status)
 
             check(url, endpoint, required="crosswire.org" in url)
     print(f"{len(failures)} prerequisite(s) failed.")

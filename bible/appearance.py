@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -13,7 +19,13 @@ from .preferences import ReadingPreferences
 class AppearancePopover(Gtk.Popover):
     """Edit saved reading appearance through shared preferences without forcing interface font families."""
 
-    def __init__(self, owner) -> None:
+    chapter_numbers: Gtk.Switch
+    verse_numbers: Gtk.Switch
+    show_highlights: Gtk.Switch
+    note_indicators: Gtk.Switch
+    place_markers: Gtk.Switch
+
+    def __init__(self, owner: Window) -> None:
         super().__init__()
         self.owner = owner
         self._syncing = False
@@ -38,18 +50,18 @@ class AppearancePopover(Gtk.Popover):
             child=box, maximum_size=320, tightening_threshold=320, unit=Adw.LengthUnit.PX
         )
         scroll.set_child(self.width_clamp)
-        title = Gtk.Label(
+        heading = Gtk.Label(
             label=tr("Reading appearance"),
             wrap=True,
             width_chars=1,
             wrap_mode=Pango.WrapMode.WORD_CHAR,
         )
-        title.add_css_class("heading")
-        box.append(title)
+        heading.add_css_class("heading")
+        box.append(heading)
         text_heading = Gtk.Label(label=tr("Text"), xalign=0)
         text_heading.add_css_class("heading")
         box.append(text_heading)
-        self.fonts = {}
+        self.fonts: dict[str, Gtk.ToggleButton] = {}
         fonts = Gtk.Box(spacing=6, homogeneous=True)
         for style, label in [("book", "Book"), ("simple", "Simple")]:
             family = getattr(
@@ -100,8 +112,8 @@ class AppearancePopover(Gtk.Popover):
         self.mode.set_homogeneous(True)
         for button in self.mode.buttons:
             button.set_hexpand(True)
-        self.palettes = {}
-        self.palette_rows = {}
+        self.palettes: dict[str, Gtk.ToggleButton] = {}
+        self.palette_rows: dict[str, Gtk.Box] = {}
         for group, label, options in [
             ("day_palette", "Day palettes", [("white", "White"), ("paper", "Paper (sepia)")]),
             ("night_palette", "Night palettes", [("dark", "Dark grey"), ("black", "Black")]),
@@ -138,9 +150,9 @@ class AppearancePopover(Gtk.Popover):
         self.visible_elements = Gtk.Expander(
             label=tr("Visible elements"), expanded=owner.preferences.value.visible_elements_expanded
         )
-        label = self.visible_elements.get_label_widget()
-        label.set_margin_top(4)
-        label.set_margin_bottom(4)
+        expander_label = cast(Gtk.Widget, self.visible_elements.get_label_widget())
+        expander_label.set_margin_top(4)
+        expander_label.set_margin_bottom(4)
         self.visible_elements.connect(
             "notify::expanded",
             lambda widget, *_: self.update("visible_elements_expanded", widget.get_expanded()),
@@ -168,13 +180,13 @@ class AppearancePopover(Gtk.Popover):
                     wrap_mode=Pango.WrapMode.WORD_CHAR,
                 )
             )
-            button = Gtk.Switch(valign=Gtk.Align.CENTER)
-            button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
-            button.connect(
+            switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+            switch.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
+            switch.connect(
                 "notify::active", lambda widget, _, key=attr: self.update(key, widget.get_active())
             )
-            row.append(button)
-            setattr(self, attr, button)
+            row.append(switch)
+            setattr(self, attr, switch)
             visible_box.append(row)
         advanced_content = Gtk.Box(spacing=8)
         advanced_content.append(Gtk.Image(icon_name="preferences-system-symbolic"))
@@ -210,7 +222,7 @@ class AppearancePopover(Gtk.Popover):
         self.set_child(scroll)
 
         def shown(*_: object) -> None:
-            anchor = self.get_parent()
+            anchor = cast(Gtk.Widget, self.get_parent())
             found, bounds = anchor.compute_bounds(owner)
             below = (
                 owner.get_height() - (bounds.origin.y + bounds.size.height) - 44
@@ -231,7 +243,7 @@ class AppearancePopover(Gtk.Popover):
                 ("Light", "weather-clear-symbolic"),
                 ("Dark", "weather-clear-night-symbolic"),
             ]
-            for button, (label, _) in zip(self.mode.buttons, modes):
+            for button, (label, _icon_name) in zip(self.mode.buttons, modes):
                 button.set_label(tr(label))
             if self.mode.measure(Gtk.Orientation.HORIZONTAL, -1)[0] > width - 24:
                 for button, (label, icon) in zip(self.mode.buttons, modes):
@@ -245,12 +257,18 @@ class AppearancePopover(Gtk.Popover):
         self.connect("show", shown)
         self.sync()
 
-    def choice(self, parent, label, attribute, values):
+    def choice(
+        self,
+        parent: Gtk.Box,
+        label: str,
+        attribute: str,
+        values: Sequence[tuple[str, str]],
+    ) -> Gtk.DropDown:
         """Bind an accessible preset choice to one saved reading preference."""
         row = Gtk.Box(spacing=8)
         row.append(Gtk.Label(label=tr(label), xalign=0, hexpand=True, wrap=True))
         button = Gtk.DropDown(model=Gtk.StringList.new([tr(title) for _, title in values]))
-        button._preset_titles = [tr(title) for _, title in values]
+        setattr(button, "_preset_titles", [tr(title) for _, title in values])
         button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
         button.connect(
             "notify::selected",
@@ -262,7 +280,7 @@ class AppearancePopover(Gtk.Popover):
         parent.append(row)
         return button
 
-    def step_size(self, delta) -> None:
+    def step_size(self, delta: int) -> None:
         self.update("size", max(12, min(64, self.owner.preferences.value.size + delta)))
 
     def sync(self) -> None:
@@ -322,7 +340,7 @@ class AppearancePopover(Gtk.Popover):
             )
         self.persist()
 
-    def update(self, key, value, *, defer: bool = False) -> None:
+    def update(self, key: str, value: str | int | bool | None, *, defer: bool = False) -> None:
         """Update the requested reading field and its active family/palette dependencies before persistence."""
         if self._syncing:
             return
@@ -334,7 +352,8 @@ class AppearancePopover(Gtk.Popover):
             p.font = p.serif_font if value == "book" else p.sans_font
         elif key in ("serif_font", "sans_font"):
             if (key == "serif_font") == (p.font_style == "book"):
-                p.font = value
+                # Font controls supply family strings; other controls use scalars.
+                p.font = cast(str, value)
         elif key == "font":
             # Preserve callers of the original reading-font preference.
             setattr(p, "serif_font" if p.font_style == "book" else "sans_font", value)
@@ -360,7 +379,8 @@ class AppearancePopover(Gtk.Popover):
             defer=defer,
         )
 
-    def cancel_pending(self):
+    def cancel_pending(self) -> bool:
+        """Cancel queued reflow and return whether it still needs to be applied."""
         if self._apply_id:
             GLib.source_remove(self._apply_id)
         reflow = self._pending_reflow

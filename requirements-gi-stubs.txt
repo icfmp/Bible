@@ -1,0 +1,2 @@
+# Static declarations only; install with --no-deps (GTK runs in the native runtime).
+PyGObject-stubs==2.20.0 --config-settings=config=Gtk4,Gdk4,Soup3

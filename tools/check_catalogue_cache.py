@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
+from bible.providers import Provider
+from bible.library import Resource
+
 import argparse
 import json
 from pathlib import Path
@@ -17,9 +22,14 @@ def main() -> None:
     cache = CatalogueCache(Path(args.profile) / "catalogue-cache")
     for name, force in [("cold", True), ("warm", False)]:
         start = time.monotonic()
-        events = []
+        events: list[dict[str, object]] = []
 
-        def delivered(provider, items, error, timings) -> None:
+        def delivered(
+            provider: Provider,
+            items: Sequence[Resource],
+            error: str | None,
+            timings: dict[str, float | int | str],
+        ) -> None:
             events.append(
                 dict(
                     provider=provider.id,

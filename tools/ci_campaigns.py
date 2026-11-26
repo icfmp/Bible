@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import TypedDict
+
 import json
 import os
 from pathlib import Path
@@ -97,11 +100,30 @@ FRENCH_SMOKE = [
 ]
 
 
-def select(paths):
+class _BaseCommit(TypedDict, total=False):
+    """Subset of the GitHub base commit used to choose a safe diff."""
+
+    sha: str
+
+
+class _PullRequest(TypedDict, total=False):
+    """Pull-request event fields consumed by the campaign selector."""
+
+    base: _BaseCommit
+
+
+class ChangeEvent(TypedDict, total=False):
+    """Optional GitHub event fields; missing identities force full coverage."""
+
+    pull_request: _PullRequest
+    before: str
+
+
+def select(paths: Iterable[str] | None) -> tuple[set[str], bool]:
     """Select additional regression campaigns from changed paths, falling back to full coverage for unknown inputs."""
     if paths is None:
         return set(CAMPAIGNS), True
-    selected = set()
+    selected: set[str] = set()
     localization = False
     for name in paths:
         path = Path(name)
@@ -131,7 +153,7 @@ def select(paths):
     return selected, localization
 
 
-def changed_paths(event, payload, head):
+def changed_paths(event: str, payload: ChangeEvent, head: str) -> list[str] | None:
     """Return the checked Git comparison paths, or None when the event/base cannot be trusted."""
     if event == "workflow_dispatch":
         return None

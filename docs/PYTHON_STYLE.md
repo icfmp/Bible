@@ -8,6 +8,7 @@ Install tooling in an isolated environment, then run from the repository root:
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pip install --no-deps -r requirements-gi-stubs.txt
 .venv/bin/ruff format
 .venv/bin/ruff check
 .venv/bin/mypy
@@ -78,11 +79,15 @@ editing their files; do not overwrite concurrent work.
 ## Progressive static typing
 
 Run `.venv/bin/mypy` with the same pinned development dependency as CI. The
-initial checked boundary is `providers`, `source_sections`, `notes`, `highlights`
-and `personal_backup`; imported modules are read silently, not presented as
-fully checked. Every function in this boundary needs parameter/return annotations.
+checked boundary is the explicit module list in `pyproject.toml`, including
+provider/reference models, annotations, persistence and several GTK helpers.
+Selected test and diagnostic modules are checked alongside the application code.
+Imported modules are read silently, not presented as fully checked. Every function
+in this boundary needs parameter/return annotations.
 Expand this explicit list when an additional component has actually been typed.
-No application dependency or native GTK/SWORD stub package is required.
+Static GTK 4/GDK 4/Soup 3 declarations are pinned separately and installed with
+`--no-deps`: the checker needs no native GTK runtime. SWORD declarations live in
+`typings/Sword.pyi`. These are development inputs, never application dependencies.
 
 Annotate public contracts, optional results and ambiguous/empty collections.
 Prefer inferred local types when assignments are clear; Python needs no separate
