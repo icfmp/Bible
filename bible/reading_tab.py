@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .reading_sync import ReadingSync
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -21,6 +26,10 @@ from .context_indicator import ContextTextView
 
 class ReadingTab(Gtk.Box):
     """Own one tab's source handles, canonical session position and native reading/comparison views."""
+
+    # Assigned by binding/reveal; annotations preserve the existing hasattr guards.
+    sync_coordinator: ReadingSync
+    _comparison_tick: int
 
     def __init__(
         self,

@@ -31,8 +31,8 @@ class StudyPanel(Gtk.Box):
         self._stamp = None
         self._readers = {}
         self._labels = []
-        self.reader = None
-        self.current_position = None
+        self.reader: CommentaryReader | None = None
+        self.current_position: int | None = None
         self.loaded = []
         self.ranges = {}
         self._display_context = None

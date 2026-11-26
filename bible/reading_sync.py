@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .reading_tab import ReadingTab
+    from .sword_provider import CommentaryReader
+
 import time
 import gi
 
@@ -17,19 +24,25 @@ class ReadingSync:
     become drivers, and hidden study content does not trigger synchronization.
     """
 
-    def __init__(self, owner) -> None:
+    def __init__(self, owner: Window) -> None:
         self.owner = owner
-        self.driver = None
+        self.driver: str | None = None
         self.pending = False
         self.running = False
-        self.armed_until = 0
-        self.dragging = None
-        self.forced_position = None
+        self.armed_until: float = 0
+        self.dragging: str | None = None
+        self.forced_position: int | None = None
         self.needs_sync = False
         self._after_selection = False
         self.bind(owner.study.scroll, owner.study.text, "commentary")
 
-    def bind(self, scroll, view, side, tab=None) -> None:
+    def bind(
+        self,
+        scroll: Gtk.ScrolledWindow,
+        view: Gtk.TextView,
+        side: str,
+        tab: ReadingTab | None = None,
+    ) -> None:
         """Observe native wheel/key/scrollbar intent without consuming the default scrolling gesture."""
         if tab:
             tab.sync_coordinator = self
@@ -40,7 +53,7 @@ class ReadingSync:
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_: object, value, code: object, state) -> bool:
+        def key(_: object, value: int, code: object, state: Gdk.ModifierType) -> bool:
             if (
                 value
                 in (
@@ -72,7 +85,7 @@ class ReadingSync:
         motion = Gtk.EventControllerMotion()
         motion.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def dragged(controller, *_: object) -> None:
+        def dragged(controller: Gtk.EventControllerMotion, *_: object) -> None:
             if controller.get_current_event_state() & Gdk.ModifierType.BUTTON1_MASK:
                 self.intent(side, tab)
 
@@ -84,7 +97,7 @@ class ReadingSync:
             "value-changed", lambda *_: self.moved(side, view, bar, tab)
         )
 
-    def intent(self, side, tab=None) -> bool:
+    def intent(self, side: str, tab: ReadingTab | None = None) -> bool:
         """Arm a user-selected driver and cancel obsolete automatic viewport restoration."""
         if tab is not None and tab is not self.owner.active_tab:
             return False
@@ -112,7 +125,7 @@ class ReadingSync:
         self.schedule()
         return False
 
-    def begin_drag(self, side, tab) -> None:
+    def begin_drag(self, side: str, tab: ReadingTab | None) -> None:
         self.intent(side, tab)
         self.dragging = side
 
@@ -129,12 +142,12 @@ class ReadingSync:
         self.needs_sync = False
         self._after_selection = False
 
-    def explicit_commentary(self, position) -> None:
+    def explicit_commentary(self, position: int) -> None:
         self.driver = "commentary"
         self.forced_position = position
         self.schedule()
 
-    def moved(self, side, view, bar, tab) -> None:
+    def moved(self, side: str, view: Gtk.TextView, bar: Gtk.Widget, tab: ReadingTab | None) -> None:
         """Schedule following only for armed user motion, ignoring reflow, restoration and programmatic scrolling."""
         if self.running or (tab is not None and tab is not self.owner.active_tab):
             return
@@ -150,7 +163,7 @@ class ReadingSync:
             return
         geometry = (view.get_width(), view.get_height())
         previous = getattr(view, "_sync_geometry", geometry)
-        view._sync_geometry = geometry
+        setattr(view, "_sync_geometry", geometry)
         if previous != geometry:
             return
         if bar.has_focus() and not self.owner.study._positioning:
@@ -246,10 +259,12 @@ class ReadingSync:
                 self.forced_position = None
                 if position is None:
                     return False
-                section = study.reader.index.sections[position]
+                # The commentaries branch passed the visible-reader guard above.
+                reader = cast("CommentaryReader", study.reader)
+                section = reader.index.sections[position]
                 if section.introduction:
                     study.current_position = position
-                    study.passage.set_text(study.reader.index.label(position))
+                    study.passage.set_text(reader.index.label(position))
                     study.entry_controls()
                     tab.mark_commentary_range(None, None)
                     study.status.set_text(
@@ -261,8 +276,8 @@ class ReadingSync:
                 try:
                     passages = [
                         (
-                            resolve(first, study.reader.versification, tab.reader).start,
-                            resolve(last, study.reader.versification, tab.reader).end,
+                            resolve(first, reader.versification, tab.reader).start,
+                            resolve(last, reader.versification, tab.reader).end,
                         )
                         for first, last in section.passages
                     ]
@@ -281,7 +296,7 @@ class ReadingSync:
                 tab.mark_commentary_segments(passages)
                 study.current_position = position
                 study.remember_position()
-                study.passage.set_text(study.reader.index.label(position))
+                study.passage.set_text(reader.index.label(position))
                 study.entry_controls()
         finally:
             self.running = False
