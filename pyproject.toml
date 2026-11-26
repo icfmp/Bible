@@ -1,0 +1,40 @@
+[tool.ruff]
+required-version = "==0.14.5"
+target-version = "py312"
+line-length = 100
+include = ["bible/**/*.py", "tools/**/*.py", "tests/**/*.py"]
+force-exclude = true
+extend-exclude = ["third_party", "build", "dist", ".flatpak-builder", ".venv", "**/__pycache__"]
+
+[tool.ruff.lint]
+select = ["E4", "E9", "F", "D100", "D104", "D205", "D209", "D300"]
+# Preserve GI version selection and renderer setup before importing GTK consumers.
+# The exception is file-scoped; import sorting is deliberately not enabled.
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"bible/appearance.py" = ["E402"]
+"bible/book_stream.py" = ["E402"]
+"bible/catalogue_window.py" = ["E402"]
+"bible/context_indicator.py" = ["E402"]
+"bible/editorial_view.py" = ["E402"]
+"bible/immersion.py" = ["E402"]
+"bible/navigation.py" = ["E402"]
+"bible/notes_window.py" = ["E402"]
+"bible/pagination.py" = ["E402"]
+"bible/place_map.py" = ["E402"]
+"bible/reading_style.py" = ["E402"]
+"bible/reading_sync.py" = ["E402"]
+"bible/reading_tab.py" = ["E402"]
+"bible/reference_data.py" = ["E402"]
+"bible/resource_details.py" = ["E402"]
+"bible/study_panel.py" = ["E402"]
+"bible/topic_data.py" = ["E402"]
+"bible/ui.py" = ["E402"]
+"tools/check_alpha_ui.py" = ["E402"]
+"tools/check_reader_focus_switch.py" = ["E402"]
+"tools/research/check_ready_context.py" = ["E402"]
+"tools/research/check_ready_words.py" = ["E402"]
+"tools/research/check_selection_geometry.py" = ["E402"]

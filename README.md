@@ -67,6 +67,12 @@ cd Bible
 
 Use the system Python so that the distribution's GTK and SWORD bindings are available. The interface follows the system language; use `LANGUAGE=fr /usr/bin/python3 -m bible` to select French.
 
+### Python consistency
+
+See [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) for the pinned Ruff formatter,
+lint commands, optional editor format-on-save and English Google-style documentation.
+Run `ruff format --check` and `ruff check` before submitting Python changes.
+
 ### Run tests
 
 ```sh

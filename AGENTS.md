@@ -97,3 +97,21 @@ Standing client workflow decision (24 October 2026). Use the Bible project at ht
 - Client-reported failed acceptance returns the affected issue to In progress when work resumes, retaining the report, drafts/data and release evidence. Do not reopen/rework unrelated accepted issues.
 - A milestone is accepted only when all in-scope issues are client-validated Done and actually closed; the client controls its final closure. A milestone may be delivered in several verified alpha batches; do not wait for client acceptance to publish the already-authorized next batch or count In validation as accepted completion.
 - Creating milestones or configuring this workflow does not start implementation. Preserve the current assigned Ready queue and project item order/status unless explicitly instructed otherwise; obtain current issue numbers from the client or project, not historical examples.
+
+## Python consistency
+
+Follow [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md). Use the development-only Ruff
+version pinned in `requirements-dev.txt`; run `ruff format --check` and
+`ruff check` before submitting Python changes. Formatter-only changes stay in
+an isolated commit, separate from documentation and meaningful lint corrections.
+Keep GI version selection and renderer setup before GTK imports; do not reorder
+initialization merely to satisfy a style rule. Review unused imports for public
+reexports/native availability probes before deleting them.
+
+Write English purpose docstrings for modules and concise Google-style docstrings
+for public APIs and complex internal behavior. Read implementations/callers/tests
+first; explain actual invariants, persistence, edge cases and main-loop/thread
+constraints. Add Args/Returns/Raises/Yields and useful type hints when they clarify
+the contract, not as boilerplate for trivial helpers. Comments explain reasoning,
+compatibility and performance constraints rather than narrating code. Do not
+invent guarantees or document unrelated third-party/generated resource content.
