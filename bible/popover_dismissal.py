@@ -6,10 +6,16 @@ parent-surface dismissal, so selecting a nested item cannot strand its grab.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .ui import Window
+
 from gi.repository import Gdk, Gtk
 
 
-def install(owner, popovers):
+def install(owner: Window, popovers: Sequence[Gtk.Popover]) -> Gtk.GestureClick:
     """Install parent-surface dismissal without leaving a parent modal grab across nested native choices.
 
     Outside clicks close visible reading popups and claim that sequence;
@@ -19,7 +25,7 @@ def install(owner, popovers):
     for popover in popovers:
         popover.set_autohide(False)
 
-    def close():
+    def close() -> bool:
         opened = [p for p in popovers if p.get_visible()]
         for popover in opened:
             popover.popdown()
@@ -28,7 +34,7 @@ def install(owner, popovers):
     gesture = Gtk.GestureClick(button=1)
     gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-    def pressed(controller, count: object, x, y) -> None:
+    def pressed(controller: Gtk.GestureClick, count: object, x: float, y: float) -> None:
         event = controller.get_current_event()
         # Coordinates on a nested native popup are not window coordinates.
         if not event or event.get_surface() != owner.get_surface():
@@ -53,7 +59,7 @@ def install(owner, popovers):
     keys = Gtk.EventControllerKey()
     keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-    def key(controller, value, *_: object):
+    def key(controller: Gtk.EventControllerKey, value: int, *_: object) -> bool:
         if value != Gdk.KEY_Escape:
             return False
         event = controller.get_current_event()
@@ -66,7 +72,7 @@ def install(owner, popovers):
     return gesture
 
 
-def fit_reader_popover(popover, owner) -> None:
+def fit_reader_popover(popover: Gtk.Popover, owner: Gtk.Widget) -> None:
     """Keep a reader-anchored popup inside a constrained application window."""
     anchor = popover.get_parent()
     if not anchor:
@@ -76,6 +82,8 @@ def fit_reader_popover(popover, owner) -> None:
         return
     # Native popup allocation includes shadows outside its visible contents.
     child = popover.get_child()
+    if child is None:
+        return
     width = child.measure(Gtk.Orientation.HORIZONTAL, -1)[1] + 16
     half = width / 2
     pointed, rect = popover.get_pointing_to()

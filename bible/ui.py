@@ -45,6 +45,9 @@ class Window(Adw.ApplicationWindow):
     preserved and reported. Shared highlight state is scoped to application/profile.
     """
 
+    # Written by the popup controller; callers use a default before the first dismissal.
+    _popup_dismissed_event_time: int
+
     def __init__(self, app, library, session_path=None) -> None:
         super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
@@ -89,7 +92,7 @@ class Window(Adw.ApplicationWindow):
         self._session_writable = True
         self.catalogue_window = None
         self.notes_window = None
-        self.notes_space = None
+        self.notes_space: NotesSpace | None = None
         self.note_editor = None
         self.notes_error = ""
         try:

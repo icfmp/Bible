@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import replace
-from .pagination import StyleSpan
+from .pagination import Document, InlineMarker, StyleSpan
 
 
-def decorate(document, markers):
+def decorate(document: Document, markers: Mapping[str, Iterable[tuple[str, object]]]) -> Document:
     # Keep trailing paragraph separators after the compact metadata group.
     """Insert native marker slots and consistently shift spans, styles and source-offset mapping.
 
@@ -24,14 +25,14 @@ def decorate(document, markers):
     if not slots:
         return document
 
-    def shifted(offset, after: bool = False):
+    def shifted(offset: int, after: bool = False) -> int:
         return offset + sum(
             position < offset or (after and position == offset) for position, *_ in slots
         )
 
     pieces = []
     copies = []
-    inline = {}
+    inline: dict[int, InlineMarker] = {}
     previous = 0
     offset = 0
     hidden = []

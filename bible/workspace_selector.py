@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .ui import Window
+
 from gi.repository import Gtk
 from .i18n import tr
 from .segmented_choice import SegmentedChoice
@@ -10,7 +15,7 @@ from .segmented_choice import SegmentedChoice
 class WorkspaceSelector(SegmentedChoice):
     """Share the real Bible/Notes workspace switch between native application headers."""
 
-    def __init__(self, owner, notes: bool = False) -> None:
+    def __init__(self, owner: Window, notes: bool = False) -> None:
         super().__init__([tr("Bible"), tr("Notes")], 1 if notes else 0)
         self.add_css_class("workspace-selector")
         self.set_homogeneous(True)
@@ -24,7 +29,7 @@ class WorkspaceSelector(SegmentedChoice):
         if hasattr(owner, "main_pages"):
             owner.main_pages.connect("notify::visible-child-name", lambda *_: self.sync())
 
-    def set_compact(self, compact) -> None:
+    def set_compact(self, compact: bool) -> None:
         """Replace captions with accessible icons while preserving selection and workspace actions."""
         if compact == self.compact:
             return
