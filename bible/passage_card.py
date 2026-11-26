@@ -6,6 +6,7 @@ from gi.repository import Gtk, Pango
 def passage_card(*, compound=False):
     # Cards with embedded links need a native composite instead of nesting
     # competing interactive descendants inside a GtkButton.
+    """Build the shared native reference/excerpt card, optionally leaving actions to a compound container."""
     button = Gtk.Box(orientation=Gtk.Orientation.VERTICAL) if compound else Gtk.Button()
     for name in ("card", "annotation-card", "reference-card", "action-card"):
         button.add_css_class(name)

@@ -7,6 +7,8 @@ from .i18n import tr
 
 
 class LanguagePicker(Gtk.MenuButton):
+    """Present exact provider language codes with searchable localized/native labels."""
+
     def __init__(self, changed):
         super().__init__(label=tr("All languages"))
         self.changed = changed
@@ -89,6 +91,7 @@ class LanguagePicker(Gtk.MenuButton):
         item.label.update_property([Gtk.AccessibleProperty.DESCRIPTION], [group])
 
     def set_codes(self, codes, prepared=None, *, priority=()):
+        """Replace available codes/prepared labels while retaining the selected code when possible."""
         if (
             codes == self.codes
             and (prepared or {}) == self.prepared
@@ -110,6 +113,7 @@ class LanguagePicker(Gtk.MenuButton):
         self._model_generation += 1
 
     def set_label(self, value):
+        """Update the visible/accessibility caption while constraining nested native labels."""
         Gtk.MenuButton.set_label(self, value)
         self.set_tooltip_text(value)
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr("Language") + ": " + value])
@@ -138,6 +142,11 @@ class LanguagePicker(Gtk.MenuButton):
         self.changed()
 
     def filter(self, *_, force=False):
+        """Patch the filtered model in bounded GTK idle batches, invalidating superseded updates.
+
+        Delay unqueried hidden-list population; preserve exact source codes even
+        when displayed language names coincide.
+        """
         query = normalized(self.search.get_text())
         if query and self.prepare_languages:
             self.prepare_languages()
@@ -213,6 +222,7 @@ class LanguagePicker(Gtk.MenuButton):
 
     @staticmethod
     def display_language(code):
+        """Combine localized/native names and the exact source code for an explicit language choice."""
         name, native = language_info(code)
         name = name[:1].upper() + name[1:]
         native = native[:1].upper() + native[1:]

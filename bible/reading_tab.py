@@ -18,6 +18,8 @@ from .context_indicator import ContextTextView
 
 
 class ReadingTab(Gtk.Box):
+    """Own one tab's source handles, canonical session position and native reading/comparison views."""
+
     def __init__(
         self,
         library,
@@ -195,6 +197,7 @@ class ReadingTab(Gtk.Box):
         history.seed(self.state)
 
     def chapter_button(self, icon, label, action, align):
+        """Create an accessible native chapter action overlay without changing passage content."""
         button = Gtk.Button(
             icon_name=icon,
             tooltip_text=tr(label),
@@ -212,6 +215,7 @@ class ReadingTab(Gtk.Box):
         return button
 
     def passage_title(self, chapter_only=False):
+        """Build a localized passage label, retaining a safe unavailable-resource fallback."""
         if self.reader:
             try:
                 key = self.reader.key(self.state.reference)
@@ -231,6 +235,7 @@ class ReadingTab(Gtk.Box):
         return self.state.reference if self.state.resource else tr("Choose a passage")
 
     def title(self):
+        """Label the tab from its current passage and installed source abbreviations."""
         if not self.state.resource:
             return tr("New tab")
         passage = self.passage_title(chapter_only=True)
@@ -246,6 +251,7 @@ class ReadingTab(Gtk.Box):
         return f"{passage} · {primary} | {secondary}" if secondary else f"{passage} · {primary}"
 
     def navigate(self, resource, reference):
+        """Open an available target and roll back the selected reader/resource if rendering fails."""
         try:
             reader = (
                 self.reader
@@ -268,6 +274,7 @@ class ReadingTab(Gtk.Box):
             return False
 
     def load_resource(self, jump_to_reference=False):
+        """Reopen a saved source, reporting a missing source or an explicit first-passage fallback."""
         self._verse_offsets = {}
         self._jump_reference = None
         self.reader = None
@@ -305,6 +312,11 @@ class ReadingTab(Gtk.Box):
             self.status.set_visible(True)
 
     def show(self, reference, restore=False):
+        """Render a verified available chapter and update history/canonical session position.
+
+        Restore mode retains saved scroll state; explicit navigation arms the
+        Bible driver. Failures are reported in the tab and return False.
+        """
         self.scroll_motion.cancel()
         if not restore and not self._travelling and hasattr(self, "sync_coordinator"):
             self.sync_coordinator.explicit_bible()
@@ -340,6 +352,7 @@ class ReadingTab(Gtk.Box):
 
     def watch_layout_adjustment(self, scroll, *_):
         # Comparison mode swaps between a shared and an independent adjustment.
+        """Reconnect geometry observation when comparison switches shared/independent adjustments."""
         previous = getattr(scroll, "_layout_adjustment", None)
         if previous:
             adjustment, handlers = previous
@@ -378,6 +391,7 @@ class ReadingTab(Gtk.Box):
         return False
 
     def adapt_comparison(self, *_):
+        """Adapt reader geometry and preserve canonical anchors through comparison reflow."""
         geometry = (
             self.scroll.get_width(),
             self.scroll.get_height(),
@@ -453,6 +467,12 @@ class ReadingTab(Gtk.Box):
         return True
 
     def refresh_comparison(self):
+        """Reuse or rebuild the secondary chapter with verified alignment and source-aware anchors.
+
+        When exact correspondence is unavailable, keep an explicit independent
+        reading position instead of claiming verse equivalence. Shared-row layout
+        failure alone does not disable an otherwise valid reference mapping.
+        """
         name = self.state.comparison
         stamp = (
             name,
@@ -598,6 +618,7 @@ class ReadingTab(Gtk.Box):
             self.comparison_status.set_visible(True)
 
     def set_comparison_alignment(self, error):
+        """Expose an explicit independent-reading state when reference following is unverified."""
         self._comparison_aligned = error is None
         self.comparison_status.set_visible(error is not None)
         self.comparison_status.set_text(
@@ -617,6 +638,7 @@ class ReadingTab(Gtk.Box):
         return True
 
     def comparison_visible_reference(self):
+        """Return the secondary source reference nearest the viewport, respecting actual fragments."""
         offsets = getattr(self, "_comparison_offsets", {})
         if not offsets:
             return None
@@ -637,6 +659,7 @@ class ReadingTab(Gtk.Box):
         return preceding[-1] if preceding else starts[0][0]
 
     def reveal_comparison(self, reference, anchor=None, settle=False):
+        """Position an independent secondary view through cancellable bounded layout frames."""
         if getattr(self, "_shared_comparison", False):
             return
         offsets = getattr(self, "_comparison_offsets", {})
@@ -673,6 +696,7 @@ class ReadingTab(Gtk.Box):
         self._comparison_tick = self.comparison_text.add_tick_callback(reveal)
 
     def render_chapter(self, chapter):
+        """Render primary source/copy spans and invalidate comparison layout dependent on that chapter."""
         if hasattr(self, "comparison_rows"):
             self.comparison_rows.signature = None
             self._comparison_stamp = None
@@ -684,6 +708,7 @@ class ReadingTab(Gtk.Box):
         self.update_highlights()
 
     def update_highlights(self, high=None, palette=None):
+        """Paint saved marks onto verified primary/secondary display spans without changing stored anchors."""
         store = getattr(self, "_highlight_store", None)
         if store is None or not self.reader:
             return
@@ -735,6 +760,7 @@ class ReadingTab(Gtk.Box):
         self.refresh_study_indicator()
 
     def position_anchor(self, offset):
+        """Convert a display position into a source-unit or legacy verse-body anchor."""
         document = getattr(self, "_document", None)
         if document and getattr(self.current, "units", ()):
             anchor = document.anchor(offset)
@@ -756,6 +782,7 @@ class ReadingTab(Gtk.Box):
         return min(self._verse_ranges[ref][1], self._marker_ends[ref] + relative)
 
     def apply_appearance(self):
+        """Reflow current content while restoring source-qualified selection and viewport anchors."""
         if self.current:
             buffer = self.text.get_buffer()
             selection = buffer.get_selection_bounds()
@@ -781,6 +808,7 @@ class ReadingTab(Gtk.Box):
             self.schedule_scroll_restore()
 
     def travel(self, index):
+        """Visit retained history only when its source is installed, preserving missing-resource entries."""
         if not 0 <= index < len(self.state.history):
             return False
         entry = self.state.history[index]
@@ -803,6 +831,7 @@ class ReadingTab(Gtk.Box):
             self._travelling = False
 
     def highlight_selection(self):
+        """Style the selected verse number and update the accessible passage label."""
         buffer = self.text.get_buffer()
         buffer.remove_tag(self._selected_tag, buffer.get_start_iter(), buffer.get_end_iter())
         if self.state.reference in self._verse_offsets:
@@ -822,6 +851,7 @@ class ReadingTab(Gtk.Box):
         self.text.update_property([Gtk.AccessibleProperty.LABEL], [self.passage_title()])
 
     def select_verse(self, reference):
+        """Select an existing rendered address and notify dependants without rebuilding the chapter."""
         if hasattr(self, "sync_coordinator") and not self.sync_coordinator.running:
             self.sync_coordinator.explicit_bible()
         if reference not in self._verse_offsets:
@@ -832,6 +862,7 @@ class ReadingTab(Gtk.Box):
         return True
 
     def verse_clicked(self, gesture, count, x, y):
+        """Resolve a real clicked fragment while leaving inline markers and text selections to their own actions."""
         widget = self.text.pick(x, y, Gtk.PickFlags.DEFAULT)
         while widget and widget is not self.text:
             if widget.has_css_class("inline-marker"):
@@ -868,6 +899,7 @@ class ReadingTab(Gtk.Box):
                     self.notes_requested()
 
     def selected_passage(self):
+        """Return canonical selected endpoints, preserving source-unit membership and linked-entry identity."""
         selection = self.text.get_buffer().get_selection_bounds()
         if selection:
             start, end = (iterator.get_offset() for iterator in selection)
@@ -906,6 +938,7 @@ class ReadingTab(Gtk.Box):
         )
 
     def update_notes(self, force=False):
+        """Refresh generation-dependent note projections without rewriting persisted note references."""
         generation = self.notes_store.generation if self.notes_store else -1
         if generation != getattr(self, "_inline_note_generation", generation):
             self._inline_note_generation = generation
@@ -934,6 +967,7 @@ class ReadingTab(Gtk.Box):
             )
 
     def visible_reference(self):
+        """Find the top visible source fragment without shaping every offscreen verse on scroll."""
         if not self._verse_offsets:
             return None
         rect = self.text.get_visible_rect()
@@ -961,6 +995,7 @@ class ReadingTab(Gtk.Box):
         return entries[max(0, index - 1)][0]
 
     def reveal_reference(self, reference):
+        """Reveal an actual rendered/source reference, cancelling obsolete motion when its context changes."""
         same_document = reference in self._verse_offsets
         if reference not in self._verse_offsets:
             self._travelling = True
@@ -1006,6 +1041,7 @@ class ReadingTab(Gtk.Box):
             self.refresh_study_indicator()
 
     def study_ranges(self, reader, ranges):
+        """Project independently verified study coverage into this reader's visible character intervals."""
         if not self._study_coverage or not self.state.study_visible or not reader:
             return []
         coverage = self._study_coverage
@@ -1039,6 +1075,7 @@ class ReadingTab(Gtk.Box):
             return []
 
     def refresh_study_indicator(self):
+        """Paint current study coverage on both panes and active Bible immersion, without persisting links."""
         if not hasattr(self, "text"):
             return
         ranges = list(getattr(self.text, "_verse_fragments", ())) or [
@@ -1058,6 +1095,7 @@ class ReadingTab(Gtk.Box):
             owner.immersion.update_study_indicator()
 
     def step_verse(self, direction):
+        """Select and reveal the adjacent rendered verse within the current chapter."""
         references = list(self._verse_offsets)
         if self.state.reference in references:
             index = references.index(self.state.reference) + direction
@@ -1078,6 +1116,11 @@ class ReadingTab(Gtk.Box):
             self._tick_id = self.add_tick_callback(self.restore_scroll)
 
     def restore_scroll(self, *_):
+        """Restore canonical anchors/jumps or saved fractions after native text layout settles.
+
+        The GTK callback relinquishes its restoration gate after successful
+        positioning; shared-row settlement and lazy wrapping may require more frames.
+        """
         if getattr(self, "_shared_comparison", False) and self.comparison_rows.settling:
             return True
         # GTK needs layout frames after mapping or replacing a chapter.
@@ -1128,6 +1171,7 @@ class ReadingTab(Gtk.Box):
 
     def scroll_changed(self, *_):
         # Viewport anchors follow input frames, without a permanent idle tick.
+        """Capture the visible scroll fraction as session state without triggering source discovery."""
         self.queue_adapt(frames=1)
         if self._restoring_scroll or not self.get_mapped():
             return

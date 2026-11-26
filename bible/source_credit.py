@@ -6,6 +6,7 @@ from .i18n import tr
 
 
 def source_credit(provenance):
+    """Create a compact accessible attribution from escaped supplied provenance and HTTPS links."""
     lines = provenance.splitlines()
     caption = lines[0] if lines else ""
     urls = [

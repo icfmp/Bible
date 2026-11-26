@@ -9,6 +9,8 @@ from .providers import RESOURCE_ID
 
 
 class StudySettings:
+    """Persist study drawer width/tool/commentary separately from notes and reading appearance."""
+
     def __init__(self, path):
         self.path = Path(path)
         self.width = 420
@@ -41,6 +43,7 @@ class StudySettings:
             self.error = str(error)
 
     def save(self):
+        """Flush and atomically replace valid study choices without overwriting unreadable original preferences."""
         if self.error:
             raise ValueError("Original study preferences preserved; repair the file before saving")
         self.path.parent.mkdir(parents=True, exist_ok=True)

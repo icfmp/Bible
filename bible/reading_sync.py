@@ -133,6 +133,7 @@ class ReadingSync:
         self.schedule()
 
     def moved(self, side, view, bar, tab):
+        """Schedule following only for armed user motion, ignoring reflow, restoration and programmatic scrolling."""
         if self.running or (tab is not None and tab is not self.owner.active_tab):
             return
         if side == "commentary" and self.owner.study.motion.running:

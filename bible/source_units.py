@@ -12,6 +12,7 @@ from .source_sections import ADDRESS, SECTION, SectionIndex
 
 
 def source_reference(value):
+    """Convert an explicit supplied source book/address to the supported OSIS identity without guessing labels."""
     from .youversion_osis import BOOKS
 
     items = value.split(".")
@@ -25,11 +26,15 @@ def source_reference(value):
 
 @dataclass(frozen=True)
 class SourceUnit:
+    """One ordered source fragment with its actual member references and printed label."""
+
     members: tuple[str, ...]
     label: str
 
 
 class ChapterUnits:
+    """Ordered source fragments and their many-to-many memberships within an explicit source chapter."""
+
     def __init__(self, reference, units):
         if not isinstance(reference, str) or not re.fullmatch(
             rf"[1-5]?[A-Za-z][A-Za-z0-9]{{0,15}}\.{SECTION}", reference
@@ -70,6 +75,7 @@ class ChapterUnits:
 
     @staticmethod
     def verse_nodes(document):
+        """Yield actual verse nodes in source document order, including those nested in supported structures."""
         from .youversion_osis import Node
 
         def walk(parts):
@@ -85,6 +91,7 @@ class ChapterUnits:
 
     @classmethod
     def from_document(cls, document):
+        """Collect consecutive source fragment memberships and labels without inferring them from visible text."""
         from .youversion_osis import Node, plain
 
         groups = []
@@ -151,6 +158,7 @@ class ChapterUnits:
 
     @classmethod
     def from_data(cls, value):
+        """Validate serialized fragment records before constructing their reference membership index."""
         if (
             not isinstance(value, dict)
             or set(value) != {"reference", "units"}
@@ -195,6 +203,7 @@ class AddressIndex:
         return self.sections.to_source(reference) if self.sections else reference
 
     def to_native(self, reference, *, allow_zero=False):
+        """Resolve an explicit source address to its first native storage unit, rejecting unindexed references."""
         match = ADDRESS.fullmatch(reference) if isinstance(reference, str) else None
         if not match:
             raise ValueError("Invalid source address")
@@ -211,6 +220,7 @@ class AddressIndex:
         return self.native_chapter(chapter) + "." + verse
 
     def to_sources(self, reference, *, allow_zero=False):
+        """Return all explicit source members of a native storage unit without inventing one-to-one equivalence."""
         match = ADDRESS.fullmatch(reference) if isinstance(reference, str) else None
         if not match:
             raise ValueError("Invalid native address")
@@ -270,6 +280,7 @@ class AddressIndex:
 
     @classmethod
     def from_data(cls, value):
+        """Validate the versioned section/fragment envelope before constructing checked address maps."""
         if (
             not isinstance(value, dict)
             or set(value) != {"schema", "sections", "chapters"}
@@ -285,6 +296,11 @@ class AddressIndex:
 
     @classmethod
     def load(cls, root):
+        """Read the bounded local address sidecar only when its receipt digest agrees.
+
+        Return None when no index was declared; a missing declared sidecar or
+        modified bytes fail explicitly instead of enabling guessed alignment.
+        """
         import hashlib
         import json
         from pathlib import Path

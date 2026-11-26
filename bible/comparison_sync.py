@@ -7,6 +7,8 @@ from .scroll_motion import stop_native_scroll
 
 
 class ComparisonSync(ReadingSync):
+    """Coordinate user-led parallel following independently of the study-panel coordinator."""
+
     def __init__(self, owner, tab):
         self.owner = owner
         self.tab = tab
@@ -22,6 +24,7 @@ class ComparisonSync(ReadingSync):
         self.bind(tab.comparison_scroll, tab.comparison_text, "comparison")
 
     def intent(self, side, tab=None):
+        """Arm the explicitly used pane, cancelling obsolete motion and secondary restore work."""
         if self.tab is not self.owner.active_tab or self.running:
             return False
         if self.driver != side:
@@ -42,6 +45,7 @@ class ComparisonSync(ReadingSync):
         return False
 
     def moved(self, side, view, bar, tab=None):
+        """Observe user-led adjustments while excluding reflow, restoration and programmatic movement."""
         if self.running or self.tab is not self.owner.active_tab:
             return
         if self.tab.scroll_motion.running:
@@ -59,6 +63,12 @@ class ComparisonSync(ReadingSync):
             self.schedule()
 
     def synchronize(self):
+        """Apply one live user intent through verified reader-to-reader correspondence.
+
+        Hidden/inactive/expired gestures do not lead. Shared adjustments already
+        move both panes natively; only semantic context is updated there. Unmapped
+        positions retain independent reading rather than invented equivalence.
+        """
         self.pending = False
         tab = self.tab
         if (

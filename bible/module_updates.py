@@ -19,6 +19,8 @@ MAX_CATALOGUE = 2 * 1024 * 1024
 
 @dataclass(frozen=True)
 class InstalledModule:
+    """Read-only installed module identity, source context, version and local location."""
+
     name: str
     version: str
     source: str
@@ -47,6 +49,12 @@ def public_source(value):
 
 
 def installed_modules(library_root, extra_roots=()):
+    """Inspect app/system/user SWORD configurations without taking ownership of external roots.
+
+    Returns:
+        Deduplicated module records and per-location errors; invalid metadata
+        does not authorize destructive management or invented source attribution.
+    """
     library_root = Path(library_root)
     roots = (
         [p for p in library_root.iterdir() if p.is_dir() and (p / ".complete").is_file()]
@@ -109,6 +117,7 @@ def installed_modules(library_root, extra_roots=()):
 
 
 def parse_catalogue(data):
+    """Validate bounded existing Bible Resources catalogue identity, download origin and integrity fields."""
     if len(data) > MAX_CATALOGUE:
         raise ValueError("Module catalogue exceeds safe limits")
     value = json.loads(data)
@@ -147,10 +156,13 @@ def parse_catalogue(data):
 
 
 class ModuleCatalogue:
+    """Conditional metadata retrieval with a validated saved catalogue for offline discovery."""
+
     def __init__(self, root):
         self.path = Path(root) / "module-catalogue.json"
 
     def saved(self):
+        """Read and validate the saved catalogue envelope/body without modifying it."""
         if self.path.is_symlink() or self.path.stat().st_size > MAX_CATALOGUE * 2:
             raise ValueError("Invalid saved module catalogue")
         record = json.loads(self.path.read_text())
@@ -164,6 +176,11 @@ class ModuleCatalogue:
         return record
 
     def check(self, opener=None):
+        """Refresh conditional metadata and retain a validated cache when the source is unavailable.
+
+        A cached result carries its previous checked time and the current error;
+        it does not claim a fresh successful source check.
+        """
         try:
             saved = self.saved()
         except (OSError, ValueError, TypeError, KeyError):

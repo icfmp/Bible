@@ -139,6 +139,8 @@ MAX_CITATIONS = 200
 
 @dataclass(frozen=True)
 class Citation:
+    """Recognized note-text offsets and an explicit passage range in the supplied numbering system."""
+
     begin: int
     finish: int
     start: str
@@ -147,6 +149,7 @@ class Citation:
 
 
 def fold(text):
+    """Fold case/accents while retaining an index from normalized characters to original note offsets."""
     result = []
     positions = []
     for offset, char in enumerate(text):
@@ -159,6 +162,7 @@ def fold(text):
 
 @lru_cache(maxsize=1)
 def grammar():
+    """Cache the bounded FR/EN book-name and reference grammar without requiring a native reader."""
     names = {}
     for code, label in [*FRENCH.items(), *ENGLISH.items()]:
         names[normalized(label)] = code

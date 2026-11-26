@@ -6,6 +6,8 @@ from .segmented_choice import SegmentedChoice
 
 
 class WorkspaceSelector(SegmentedChoice):
+    """Share the real Bible/Notes workspace switch between native application headers."""
+
     def __init__(self, owner, notes=False):
         super().__init__([tr("Bible"), tr("Notes")], 1 if notes else 0)
         self.add_css_class("workspace-selector")
@@ -21,6 +23,7 @@ class WorkspaceSelector(SegmentedChoice):
             owner.main_pages.connect("notify::visible-child-name", lambda *_: self.sync())
 
     def set_compact(self, compact):
+        """Replace captions with accessible icons while preserving selection and workspace actions."""
         if compact == self.compact:
             return
         self.compact = compact

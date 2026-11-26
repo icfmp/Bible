@@ -130,6 +130,7 @@ class BookStream(PagedStream):
         return plan
 
     def request(self, key):
+        """Submit one missing book plan to the serial worker with an immutable preference snapshot."""
         if self.closed:
             return
         if key not in self.cache and key not in self.futures and key not in self.errors:
@@ -159,6 +160,7 @@ class BookStream(PagedStream):
         self.pending = None
 
     def configure(self, width, height, anchor, key):
+        """Cancel obsolete preparation and request the current geometry/anchor partition only when it changes."""
         if self.closed:
             return
         width, height = max(20, width), max(20, height)
@@ -220,6 +222,7 @@ class BookStream(PagedStream):
                 self.request(neighbour)
 
     def poll(self):
+        """Collect completed plans/errors without blocking and report current/control invalidation."""
         if self.closed:
             return None
         changed = None
@@ -262,6 +265,7 @@ class BookStream(PagedStream):
         return changed
 
     def step(self, address, direction):
+        """Find an adjacent prepared page, returning None while a required neighbour is unavailable."""
         plan = self.plan(address.key)
         if plan is None:
             return None
@@ -277,6 +281,7 @@ class BookStream(PagedStream):
         return PageAddress(key, len(plan.pages) - 1 if direction < 0 else 0)
 
     def spread(self, count):
+        """Return available pages of the current book up to the requested spread size."""
         if not self.cursor:
             return []
         result = [self.cursor]
@@ -288,6 +293,7 @@ class BookStream(PagedStream):
         return result
 
     def turn(self, direction, count):
+        """Advance the prepared cursor by spread, preserving book boundaries and requesting neighbour prefetch."""
         if not self.cursor:
             return False
         if direction < 0 and count == 2 and self.cursor.index < 2:

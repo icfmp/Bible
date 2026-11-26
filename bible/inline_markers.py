@@ -8,6 +8,8 @@ from xml.etree.ElementTree import ParseError
 
 
 class InlineMarkers:
+    """Attach source-aware personal/source-note/place affordances using bounded reader-specific caches."""
+
     def __init__(self, tab):
         self.tab = tab
         self.geo = {}
@@ -20,6 +22,7 @@ class InlineMarkers:
         return getattr(getattr(self.tab, "sync_coordinator", None), "owner", None)
 
     def markers(self, reader, document):
+        """Project actual note/source-note/place metadata onto canonical document members without changing text."""
         tab = self.tab
         result = {}
         primary = {ref: s.reference for s in document.spans for ref in s.members}
@@ -72,6 +75,7 @@ class InlineMarkers:
         }
 
     def load_places(self, key, data, reader, refs):
+        """Resolve source addresses on the owner path, query installed SQLite metadata asynchronously and reject stale completion."""
         from .reference_targets import source_references
 
         owner = self.owner
@@ -124,6 +128,7 @@ class InlineMarkers:
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
     def button(self, view, reader, ref, kind, payload):
+        """Create an accessible marker whose activation preserves separate note, source-note and place actions."""
         if kind.startswith("translation-note:"):
             from .source_note_marker import source_note_marker
 

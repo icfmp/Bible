@@ -18,6 +18,8 @@ from .preparation import checkpoint
 
 
 class BiblePages:
+    """Build source-aware chapter documents for native pagination without storing rendered page state."""
+
     kind = "bible"
 
     def __init__(self, reader, resource):
@@ -28,6 +30,11 @@ class BiblePages:
         return self.reader.key(reference).getOSISRef().rsplit(".", 1)[0]
 
     def document(self, key, preferences, *, cancelled=None):
+        """Project actual chapter units into display/copy text and canonical style spans.
+
+        Generated headings/numbers follow preferences; source editorial material
+        retains its role. Display-only nonbreaking spaces do not alter copied text.
+        """
         checkpoint(cancelled)
         chapter = self.reader.chapter(
             key if getattr(self.reader, "addresses", None) else key + ".1", cancelled=cancelled
@@ -186,6 +193,7 @@ class BibleBookPages(BiblePages):
         return BibleBookPages(Reader(self.reader.root, self.reader.name), self.resource)
 
     def document(self, key, preferences, *, cancelled=None):
+        """Combine actual chapters into one cancellable book document while retaining source/copy anchors."""
         checkpoint(cancelled)
         code = key.split(".")[0]
         if "books" not in self.reader.__dict__:
@@ -233,6 +241,8 @@ class BibleBookPages(BiblePages):
 
 
 class CommentaryPages:
+    """Expose indexed commentary entries and real source prefaces as paginated documents."""
+
     kind = "commentary"
 
     def __init__(self, reader, resource):
@@ -243,6 +253,7 @@ class CommentaryPages:
         return self.reader.index.locate(reference)
 
     def document(self, key, preferences):
+        """Build one actual commentary section with separate UI-context and source style roles."""
         section = self.reader.index.sections[key]
         text = self.reader.index.text(key)
         from .commentary_format import format_entry, preverse_layout
@@ -271,6 +282,7 @@ class CommentaryPages:
         return document
 
     def preface(self, key):
+        """Return the retained source preface as a separately styled document."""
         from .commentary_format import preverse_layout
 
         text, styles, _ = preverse_layout(self.reader.index.raw(key))
@@ -295,11 +307,15 @@ class CommentaryPages:
 
 @dataclass(frozen=True)
 class PageAddress:
+    """An entry/book key and zero-based page position within its measured plan."""
+
     key: object
     index: int
 
 
 class PagedStream:
+    """Navigate a bounded on-demand cache of native page plans and canonical anchors."""
+
     def __init__(self, widget, source, preferences):
         self.widget = widget
         self.source = source
@@ -311,6 +327,7 @@ class PagedStream:
         self.cursor = None
 
     def plan(self, key):
+        """Build a missing plan synchronously and retain at most five recent plans."""
         if key not in self.cache:
             document = self.source.document(key, self.preferences)
             self.cache[key] = paginate(
@@ -336,6 +353,7 @@ class PagedStream:
         self.cursor = PageAddress(key, plan.page_for_anchor(anchor))
 
     def step(self, address, direction):
+        """Return an adjacent page address across real source boundaries, or None at the end."""
         plan = self.plan(address.key)
         index = address.index + direction
         if 0 <= index < len(plan.pages):
@@ -355,6 +373,7 @@ class PagedStream:
         return addresses
 
     def turn(self, direction, count):
+        """Move the cursor by the requested spread, returning whether another spread is available."""
         if direction < 0:
             address = self.cursor
             for _ in range(count):

@@ -31,6 +31,7 @@ def markup_regions(text, offset=0, depth=0):
 
 
 def inline(text, depth=0):
+    """Project supported bounded-depth emphasis and inert link text into native character style spans."""
     if depth > 4:
         return text, []
     output = []
@@ -58,6 +59,7 @@ def inline(text, depth=0):
 
 
 def render(source):
+    """Render supported note Markdown as plain text and style ranges without executing HTML or opening URLs."""
     output, spans, offset = [], [], 0
     for line in source.splitlines(keepends=True):
         line = re.sub(r"^\s*[-*] ", "• ", line)

@@ -9,6 +9,8 @@ from .reading_style import PALETTES
 
 
 class ContextTextView(Gtk.TextView):
+    """Paint transient study coverage without changing selection, text tags or saved highlights."""
+
     def set_study_ranges(self, ranges):
         value = tuple(ranges)
         if value != getattr(self, "study_ranges", ()):
@@ -16,6 +18,7 @@ class ContextTextView(Gtk.TextView):
             self.queue_draw()
 
     def indicator_segments(self):
+        """Measure only visible covered glyphs and merge underline intervals with selection/highlight colors."""
         ranges = getattr(self, "study_ranges", ())
         if not ranges or not self.get_mapped():
             return []
@@ -70,6 +73,7 @@ class ContextTextView(Gtk.TextView):
         return segments
 
     def do_snapshot(self, snapshot):
+        """Append clipped GSK coverage dots after the native text snapshot; retain no periodic worker."""
         Gtk.TextView.do_snapshot(self, snapshot)
         segments = self.indicator_segments()
         if not segments:

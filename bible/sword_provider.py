@@ -11,6 +11,8 @@ from .reference_resolution import VersificationMismatch, resolve
 
 @dataclass(frozen=True)
 class ChapterUnit:
+    """One actual display unit and its canonical members, retaining a native storage address."""
+
     reference: str
     text: str
     members: tuple[str, ...]
@@ -20,6 +22,8 @@ class ChapterUnit:
 
 @dataclass(frozen=True)
 class Chapter:
+    """Source chapter text, linked native entries and optional edition-specific display units."""
+
     reference: str
     verses: tuple[tuple[str, str], ...]
     previous: str | None
@@ -29,6 +33,7 @@ class Chapter:
 
     @property
     def display_units(self):
+        """Return preserved source units, or deduplicated native linked-entry units."""
         return self.units or tuple(
             ChapterUnit(
                 ref,
@@ -51,6 +56,7 @@ class Chapter:
         return self.primary_references.get(reference, reference) if self.links else reference
 
     def members(self, reference):
+        """Return the primary native reference and aliases sharing the same stored entry."""
         if not self.links:
             return (reference,)
         primary = self.primary(reference)
@@ -75,6 +81,7 @@ class Chapter:
         return tuple(result)
 
     def label(self, reference):
+        """Render contiguous linked verse numbers as a range, keeping disjoint members explicit."""
         members = self.members(reference)
         values = [int(ref.rsplit(".", 1)[-1]) for ref in members]
         if len(values) == 1:
@@ -86,6 +93,8 @@ class Chapter:
 
 @dataclass(frozen=True)
 class Book:
+    """An installed canon book with its actual chapter/address inventory."""
+
     code: str
     name: str
     chapters: dict[int | str, tuple[int, ...]]
@@ -146,6 +155,8 @@ class NativeToolReader:
 
 
 class DictionaryReader(NativeToolReader):
+    """Native dictionary handles used for bounded readability verification."""
+
     drivers = {"RawLD", "RawLD4", "zLD"}
 
     def __init__(self, root, name):
@@ -157,6 +168,7 @@ class DictionaryReader(NativeToolReader):
     def verify_readable(self):
         # The packaged SWIG setPosition(SW_POSITION(...)) call stopped native
         # verification. Use the proven dictionary index API instead.
+        """Find a nonempty indexed entry within32 positions, or reject native readability."""
         for position in range(min(self.dictionary.getEntryCount(), 32)):
             text = self.dictionary.getKeyForEntry(position)
             if not text:
@@ -169,9 +181,12 @@ class DictionaryReader(NativeToolReader):
 
 
 class GeneralBookReader(NativeToolReader):
+    """Native tree-key access for supported installed general-book resources."""
+
     drivers = {"RawGenBook"}
 
     def verify_readable(self):
+        """Probe at most256 tree positions without inventing a verse-address interface."""
         key = self.sword.TreeKey.castTo(self.module.getKey())
         if key is None:
             raise ValueError("This general-book key format is unsupported")
@@ -188,6 +203,13 @@ class GeneralBookReader(NativeToolReader):
 
 
 class Reader:
+    """Mutable local SWORD handles with source-aware canonical address projection.
+
+    Keep each reader on its owning execution path; search/preparation workers
+    open independent handles. The resource lease prevents switching backing
+    files while a native consumer still owns them.
+    """
+
     drivers = {"zText", "RawText", "RawText4", "zText4"}
 
     def __init__(self, root: Path, name: str):
@@ -240,6 +262,7 @@ class Reader:
         return value in (self.sword.DIRECTION_RTL, chr(self.sword.DIRECTION_RTL))
 
     def can_align_reference(self, reference):
+        """Check edition-specific evidence before allowing a numbering-system correspondence."""
         if not self._source_osis:
             return self.native_alignment_issue(reference) is None
         from .source_versification import reference_mapping, SOURCE_CONVENTIONS
@@ -402,6 +425,12 @@ class Reader:
             return {}
 
     def key(self, reference):
+        """Validate a reference in the actual reader system before enabling native key normalization.
+
+        Use explicit source-address indices where present; unsupported or
+        out-of-range inputs raise ValueError instead of silently normalizing
+        to a different passage.
+        """
         if isinstance(reference, str):
             reference = canonical_input(reference)
         if self.addresses:
@@ -542,6 +571,7 @@ class Reader:
         return native.getIndex(), verse
 
     def neighbours(self, reference):
+        """Return adjacent actual source chapters, or empty endpoints for an unknown chapter."""
         chapter = self.key(reference).getOSISRef().rsplit(".", 1)[0]
         passages = [
             (f"{book.code}.{number}", f"{book.code}.{number}.{verses[0]}")
@@ -594,6 +624,11 @@ class Reader:
         return value
 
     def chapter(self, reference="Gen.1.1", *, cancelled=None):
+        """Read a chapter using preserved source units/links and cooperative cancellation.
+
+        Source-address sidecars determine public references when present; native
+        storage numbering is not exposed as an invented source equivalence.
+        """
         from .preparation import checkpoint
 
         checkpoint(cancelled)
@@ -628,6 +663,7 @@ class Reader:
         return Chapter(public, verses, before, after, links, tuple(units))
 
     def _native_chapter(self, reference="Gen.1.1", *, cancelled=None):
+        """Read real native entries, preserve links and project verified OSIS bodies without rewriting text."""
         from .preparation import checkpoint
 
         checkpoint(cancelled)
@@ -717,6 +753,7 @@ class Reader:
         return Chapter(first.rsplit(".", 1)[0], tuple(verses), previous, following, tuple(links))
 
     def structured_chapter(self, chapter, *, cancelled=None):
+        """Project markup roles against actual text, retaining source prefaces and linked aliases."""
         from .structured_text import extract
         from .preparation import checkpoint
 
@@ -841,6 +878,8 @@ class Reader:
 
 
 class CommentaryReader(Reader):
+    """A local commentary reader retaining exact-entry availability and numbering checks."""
+
     @cached_property
     def index(self):
         from .commentary_index import CommentaryIndex
@@ -850,6 +889,11 @@ class CommentaryReader(Reader):
     drivers = {"RawCom", "RawCom4", "zCom", "zCom4"}
 
     def entry(self, reference, bible_versification):
+        """Return an exact mapped commentary body, or None for absent/empty entries.
+
+        VersificationMismatch propagates when correspondence is unverified;
+        SWORD's nearest preceding entry is never substituted for a missing entry.
+        """
         try:
             resolved = resolve(reference, bible_versification, self, require_entry=False)
         except VersificationMismatch:

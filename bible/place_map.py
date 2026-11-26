@@ -46,6 +46,8 @@ def region(candidates, width=600, height=260):
 
 
 class PlaceMap(Gtk.Box):
+    """Own an on-demand Shumate map of supplied candidate coordinates with toolkit-managed tiles."""
+
     def __init__(self, candidates):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True)
         self.candidates = tuple(c for c in candidates if c["longitude"] is not None)
@@ -71,6 +73,7 @@ class PlaceMap(Gtk.Box):
         self.connect("unmap", lambda *_: self.stop())
 
     def start(self):
+        """Replace the map with source-coordinate markers and the configured existing tile provider."""
         self.stop()
         self.ready = False
         self.retry.set_visible(False)
@@ -140,6 +143,7 @@ class PlaceMap(Gtk.Box):
         self.retry.set_visible(bool(errors))
 
     def stop(self):
+        """Disconnect map signals and remove its active layer/widget while retaining the current camera."""
         if self.layer and self._loaded_handler:
             self.layer.disconnect(self._loaded_handler)
         self._loaded_handler = 0

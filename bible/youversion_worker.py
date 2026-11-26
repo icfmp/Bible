@@ -18,6 +18,7 @@ def emit(phase, done, total):
 
 
 def digest(value):
+    """Hash a deterministic Unicode JSON projection used to compare source and compiled readback."""
     from dataclasses import asdict, is_dataclass
 
     raw = json.dumps(
@@ -93,6 +94,13 @@ def converted_chapters(archive, edition, addresses=None):
 
 
 def build(archive, metadata, target, compiler, identifier=21):
+    """Convert the supplied edition archive in a private worker and verify complete native readback.
+
+    Build only the source's actual canon/units, retain provenance/address
+    sidecars and compare text, notes, headings, bridges and structural roles.
+    Missing/incompatible content fails before the caller publishes the staged
+    resource. No GTK access or provider permission is inferred here.
+    """
     emit("preparing", 0, 0)
     name = module_id(identifier)
     system = storage_system(identifier)

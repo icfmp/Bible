@@ -98,6 +98,7 @@ def sync_directory(path):
 
 @contextmanager
 def operation_lock(root):
+    """Take a nonblocking POSIX lock on an owned Library directory, releasing it on exit."""
     try:
         import fcntl
     except ImportError:
@@ -140,6 +141,7 @@ def exchange(left, right):
 
 
 def tree_manifest(root):
+    """Return payload fingerprints while refusing aliased roots, links and special files."""
     from .library import file_sha256
 
     result = {}
@@ -156,12 +158,19 @@ def tree_manifest(root):
 
 
 class ModuleLifecycle:
+    """Journal owned module updates/removals and preserve verified rollback/recovery copies."""
+
     def __init__(self, library):
         self.library = library
         self.root = library.root
         self.transactions = self.root / ".transactions"
 
     def owned(self, identifier, *, unchanged=False):
+        """Verify application ownership and allowed payload layout before any managed mutation.
+
+        With unchanged=True, require recorded fingerprints to match every current
+        payload file. Local/external additions are preserved by refusing the operation.
+        """
         from .library import config, safe_path, source_fingerprints
 
         module_name(identifier)
@@ -251,6 +260,7 @@ class ModuleLifecycle:
         sync_directory(folder)
 
     def begin(self, identifier, operation, before):
+        """Create a private operation directory and persist its initial staging journal."""
         self.transactions.mkdir(exist_ok=True)
         if self.transactions.is_symlink():
             raise ValueError("Invalid transaction directory")
@@ -268,6 +278,12 @@ class ModuleLifecycle:
         return folder, record
 
     def switch(self, folder, record, active, backup, *, rollback=False, cancelled=lambda: False):
+        """Lease both directory inodes and atomically exchange only matching manifest-verified resource copies.
+
+        Commit the journal after exchange. On failure, restore the prior layout
+        when its manifests still match; unfamiliar local changes are preserved
+        and reported rather than overwritten during recovery.
+        """
         original = record["after"] if rollback else record["before"]
         target = record["before"] if rollback else record["after"]
         # Lease both directory inodes. A fresh reader cannot enter the new
@@ -295,6 +311,7 @@ class ModuleLifecycle:
                 raise
 
     def records(self):
+        """Yield validated operation directories/journals; refuse unfamiliar files instead of deleting them."""
         if not self.transactions.exists():
             return
         if self.transactions.is_symlink():
@@ -322,6 +339,7 @@ class ModuleLifecycle:
             yield folder, record
 
     def prune(self, identifier, keep=None):
+        """Remove only settled verified transaction copies, returning cleanup errors without data loss."""
         errors = []
         for folder, record in list(self.records() or ()):
             if (
@@ -358,6 +376,12 @@ class ModuleLifecycle:
         installing=lambda: None,
         before_switch=collect_readers,
     ):
+        """Install a candidate separately, verify reference coverage and atomically switch complete trees.
+
+        Ownership, same-edition eligibility and unchanged active bytes are required.
+        The before_switch callback must release native consumers. Failures recover
+        the original transaction state; successful records retain a rollback copy.
+        """
         from .library import Library
         from .module_updates import applicable_update
 
@@ -392,6 +416,7 @@ class ModuleLifecycle:
             return record
 
     def verify_references(self, old, new, candidate):
+        """Reject a Bible update that removes existing source addresses; do not synthesize migrations."""
         from .sword_provider import Reader, CommentaryReader
 
         # The shared installer already validated the dictionary in a bounded
@@ -417,6 +442,7 @@ class ModuleLifecycle:
                     )
 
     def rollback_candidate(self, identifier):
+        """Find the newest committed update record for the requested installed identity."""
         for folder, record in sorted(
             self.records() or (), key=lambda item: item[1].get("created", ""), reverse=True
         ):
@@ -508,6 +534,7 @@ class ModuleLifecycle:
         return result
 
     def rollback(self, identifier, *, before_switch=collect_readers):
+        """Restore the verified previous tree only when both stored/current manifests still match."""
         with operation_lock(self.root):
             self.ready()
             self.owned(identifier)
@@ -533,6 +560,7 @@ class ModuleLifecycle:
             return record
 
     def remove(self, identifier, *, before_switch=collect_readers):
+        """Remove owned unlocked resource files after journaling, leaving annotations/preferences alone."""
         with operation_lock(self.root):
             self.ready()
             resource, before = self.owned(identifier)
@@ -577,6 +605,7 @@ class ModuleLifecycle:
             return dict(removed=True, cleanup_error="\n".join((error, *errors)).strip())
 
     def recover_record(self, folder, record):
+        """Recover one prepared switch/removal only when both copies match recorded fingerprints."""
         active = self.root / record["resource"]
         backup = folder / "backup"
         state = record["state"]
@@ -619,6 +648,7 @@ class ModuleLifecycle:
         self.journal(folder, record)
 
     def recover(self):
+        """Attempt pending local recovery under the operation lock and return errors for preserved copies."""
         if not self.transactions.exists():
             return ()
         errors = []

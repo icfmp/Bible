@@ -14,6 +14,8 @@ from .i18n import tr
 
 
 class NoteTextView(NotePreview):
+    """Edit the actual Markdown buffer with native presentation tags and inert source text."""
+
     def __init__(self, owner, system, navigation_guard):
         super().__init__(owner=owner, system=system, navigation_guard=navigation_guard)
         self.set_editable(True)
@@ -59,6 +61,7 @@ class NoteTextView(NotePreview):
         )
 
     def key_pressed(self, controller, key, code, state):
+        """Preview an actual citation on Ctrl+Enter while preserving ordinary editing/Enter semantics."""
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and state & Gdk.ModifierType.CONTROL_MASK:
             index = self.at_offset(
                 self.get_buffer().get_iter_at_mark(self.get_buffer().get_insert()).get_offset()
@@ -79,6 +82,7 @@ class NoteTextView(NotePreview):
         self.get_buffer().set_text(self._original_display)
 
     def decorate(self, *_):
+        """Reapply formatting/citation tags over retained Markdown offsets without rewriting saved text."""
         preview = self.owner.reference_preview.popover
         if preview and getattr(preview, "_note_preview", None) is self:
             self.owner.reference_preview.dismiss()
@@ -126,6 +130,7 @@ class NoteTextView(NotePreview):
         )
 
     def format(self, kind):
+        """Apply explicit bold/italic/list edits as one undoable native buffer action."""
         buffer = self.get_buffer()
         selection = buffer.get_selection_bounds()
         start, end = selection if selection else (buffer.get_iter_at_mark(buffer.get_insert()),) * 2

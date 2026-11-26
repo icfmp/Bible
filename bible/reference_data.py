@@ -38,10 +38,13 @@ TRANSFORMATIONS = (
 
 
 class ReferenceDataError(ValueError):
+    """Relationship input or the local reference index cannot be validated."""
+
     pass
 
 
 def generation_date(value, prefix, suffix=""):
+    """Validate the actual archive generation header and return its ISO date."""
     if not value.startswith(prefix) or suffix and not value.endswith(suffix):
         raise ReferenceDataError("Unsupported dataset generation header")
     text = value[len(prefix) : len(value) - len(suffix) if suffix else None]
@@ -80,6 +83,7 @@ def canon():
 
 
 def reference_key(reference):
+    """Validate an explicit source-canon address and return its sortable book/chapter/verse key."""
     if not isinstance(reference, str) or not re.fullmatch(
         r"[1-3]?[A-Za-z]+\.[1-9][0-9]{0,2}\.[1-9][0-9]{0,2}", reference
     ):
@@ -169,6 +173,8 @@ def parse_archive(path):
 
 @dataclass(frozen=True)
 class Relationship:
+    """One supplied target range with aggregate score and distinct selected-origin count."""
+
     start: str
     end: str
     score: int
@@ -176,6 +182,8 @@ class Relationship:
 
 
 class ReferenceData:
+    """Validate and locally index existing OpenBible relationships without storing or creating Bible text."""
+
     def __init__(self, root):
         self.root = Path(root)
         self.catalogue = StudyCatalogue(root)
@@ -201,6 +209,11 @@ class ReferenceData:
         return connection
 
     def metadata(self):
+        """Check installed index integrity/provenance and cache metadata by file revision.
+
+        Invalid metadata raises ReferenceDataError rather than presenting the
+        index as a different source or silently assigning a numbering system.
+        """
         try:
             revision = self.revision
             if revision is not None and revision == self._metadata_revision:
@@ -231,6 +244,11 @@ class ReferenceData:
     def install(
         self, progress=lambda done, total: None, installing=lambda: None, *, expected_revision=""
     ):
+        """Use checked catalogue metadata and a verified staged archive to replace the local relationship index.
+
+        Reject changed expected revisions and stale offline metadata that would
+        replace different installed data. Network/import work belongs off GTK.
+        """
         fresh = True
         try:
             revisions = self.catalogue.refresh()
@@ -323,6 +341,7 @@ class ReferenceData:
         return metadata
 
     def query(self, origins):
+        """Aggregate actual relationships for up to 1,000 validated source addresses, ordered by recorded scores."""
         origins = sorted(set(origins))
         if len(origins) > 1000:
             raise ReferenceDataError("Select at most 1000 verses")

@@ -14,6 +14,7 @@ from .highlights import COLORS
 
 
 def passage_label(start, end=None, versification=None):
+    """Format a canonical saved range for display without requiring the original module to be installed."""
     code, chapter, verse = parts(start)
     name = code
     try:
@@ -48,6 +49,7 @@ def buffer_text(view):
 
 
 def message(parent, heading, body, accepted, canceled=None):
+    """Present an explicit destructive confirmation, defaulting cancellation and retaining owner styling."""
     dialog = Adw.MessageDialog.new(parent, tr(heading), tr(body))
     if hasattr(parent, "reading_style"):
         dialog.add_css_class(parent.reading_style.scope + "-window")
@@ -141,6 +143,7 @@ class Labels(Gtk.Box):
         self.refresh_suggestions()
 
     def refresh_suggestions(self):
+        """Show at most eight real unselected matching labels, without committing typed text."""
         from .book_names import normalized
 
         while self.suggestion_rows.get_first_child():
@@ -160,6 +163,7 @@ class Labels(Gtk.Box):
             self.suggestion_rows.append(button)
 
     def add(self):
+        """Validate and explicitly commit a typed label, retaining an error instead of losing invalid input."""
         try:
             self.set_values(clean_labels([*self.values, self.entry.get_text()]))
             self.entry.set_text("")
@@ -170,6 +174,7 @@ class Labels(Gtk.Box):
             self.error.set_text(tr(str(error)))
 
     def set_values(self, values):
+        """Rebuild removable label chips and suggestions from the supplied editor values."""
         self.values = list(values)
         self.refresh_suggestions()
         self.flow.set_visible(bool(self.values))
@@ -479,6 +484,7 @@ class NoteEditor(Adw.Window):
             self.set_focus(self.body)
 
     def source_excerpt(self):
+        """Read a bounded excerpt from the saved origin; keep the note usable if that source is unavailable."""
         from .reference_targets import local_excerpt
 
         try:
@@ -687,6 +693,7 @@ class NoteEditor(Adw.Window):
             )
 
     def delete_confirmed(self):
+        """Cancel pending autosave before revision-checked deletion so a callback cannot recreate the note."""
         self.cancel_autosave()
         try:
             self.owner.notes_store.delete(self.note)
@@ -835,6 +842,7 @@ class NotesWindow(Adw.Window):
         self.refresh()
 
     def refresh(self):
+        """Rebuild the legacy notes-only list from saved notes and explicit filters, reporting read failures."""
         if self.closed:
             return
         try:
@@ -893,6 +901,7 @@ class NotesWindow(Adw.Window):
             self.owner.open_saved_note(self.rows[row.get_index()])
 
     def choose_backup(self, save):
+        """Use the native local-file chooser for notes-only export/restore and retain chooser lifetime."""
         chooser = Gtk.FileChooserNative.new(
             tr("Back up notes") if save else tr("Restore notes"),
             self.owner,
@@ -932,6 +941,7 @@ class NotesWindow(Adw.Window):
             return False
 
     def restore_from(self, path):
+        """Merge a validated notes-only backup and report added/skipped/conflict-copy counts."""
         try:
             added, skipped, conflicts = self.owner.notes_store.restore(path)
             self.owner.notes_changed()
@@ -1006,6 +1016,7 @@ class LabelFilter(Gtk.Box):
         self.changed()
 
     def rebuild(self):
+        """Rebuild filter controls while suppressing synthetic toggle callbacks."""
         from .book_names import normalized
 
         self._updating = True
@@ -1047,6 +1058,8 @@ class LabelFilter(Gtk.Box):
 
 
 class NoteItem(GObject.Object):
+    """A GObject list-model wrapper for an immutable saved note."""
+
     def __init__(self, note):
         super().__init__()
         self.note = note
@@ -1075,6 +1088,8 @@ def readable_date(value):
 
 
 class AnnotationItem(GObject.Object):
+    """A GObject list-model wrapper for an independent annotation projection."""
+
     def __init__(self, annotation):
         super().__init__()
         self.annotation = annotation
@@ -1357,6 +1372,7 @@ class NotesSpace(Gtk.Box):
         self.refresh()
 
     def adapt(self, *_):
+        """Switch collection/navigation/detail presentation at native width breakpoints without replacing the editor."""
         if self.closed:
             return False
         wide = self.get_width() >= 1120
@@ -1376,6 +1392,7 @@ class NotesSpace(Gtk.Box):
         return True
 
     def row_setup(self, _, item):
+        """Create the reusable native row container for annotation cards."""
         item.set_child(
             Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL,
@@ -1387,6 +1404,7 @@ class NotesSpace(Gtk.Box):
         )
 
     def card(self, a):
+        """Build a shared source-aware annotation card with snapshot-checked highlight actions."""
         from .annotation_card import annotation_card, highlight_actions
 
         return annotation_card(
@@ -1458,6 +1476,11 @@ class NotesSpace(Gtk.Box):
         GLib.idle_add(scroll)
 
     def refresh(self):
+        """Refresh independent annotation rows/counts/filters while retaining the selected detail and list scroll.
+
+        Missing/unreadable sources do not remove stored annotations. A live editor
+        is not remounted by collection filtering or a saved-store notification.
+        """
         if self.closed:
             return
         from .annotation_collection import records, filter_records
@@ -1580,6 +1603,7 @@ class NotesSpace(Gtk.Box):
             self._version = self.selected_annotation.origin
 
     def reader(self, resource=None):
+        """Reuse at most four installed source readers; return None for an unavailable module."""
         name = resource or self._version
         if not name or name not in self.owner.library.installed("bible"):
             return None
@@ -1592,6 +1616,7 @@ class NotesSpace(Gtk.Box):
         return self._reader_cache[name]
 
     def mapped_references(self, a, reader):
+        """Validate and enumerate actual saved-range correspondences without guessing endpoint equivalence."""
         from .reference_resolution import resolve, _span
 
         # Imported annotations can contain structurally valid but unavailable
@@ -1610,6 +1635,7 @@ class NotesSpace(Gtk.Box):
         return refs
 
     def excerpt_for(self, a, limit=6):
+        """Cache a bounded exact origin excerpt and label, or an explicit unavailable result."""
         key = (a.origin, a.system, a.start, a.end, limit)
         if key in self._excerpt_cache:
             return self._excerpt_cache[key]
@@ -1654,6 +1680,7 @@ class NotesSpace(Gtk.Box):
         return result
 
     def update_context(self, a):
+        """Display original context and derive related overlaps without persisting note/highlight relationships."""
         from .annotation_card import original_caption, color_dot, highlight_actions, release_card
 
         if self.selected_key != a.key:
@@ -1759,6 +1786,7 @@ class NotesSpace(Gtk.Box):
             self.open_annotation(self.rows[index])
 
     def open_annotation(self, a):
+        """Open a note or highlight detail through the unsaved-draft navigation guard."""
         if a.note:
             return self.open_note(a.note)
 
@@ -1772,6 +1800,7 @@ class NotesSpace(Gtk.Box):
         self.guard(show)
 
     def change_highlight(self, a, color):
+        """Reject a stale card snapshot before recolor/removal and retain independent notes."""
         try:
             key = (a.system, a.start)
             if self.owner.highlights.entries.get(key) != a.mark:
@@ -1796,6 +1825,7 @@ class NotesSpace(Gtk.Box):
             self.status.set_text(str(error))
 
     def open_note(self, note):
+        """Reuse the current note editor or guard navigation before loading the latest saved revision."""
         if (
             self.editor
             and not self.editor.closed
@@ -1807,6 +1837,7 @@ class NotesSpace(Gtk.Box):
         return self.editor
 
     def mount(self, note):
+        """Embed the shared editor and attach source/related context without replacing its undo/autosave model."""
         if note is None:
             return
         editor = NoteEditor(self.owner, note=note, embedded=True, open_passage=self.open_passage)
@@ -1844,6 +1875,7 @@ class NotesSpace(Gtk.Box):
         return editor
 
     def editor_closed(self, editor):
+        """Detach the closed editor's widgets while returning shared context controls to the workspace."""
         self.related_section.get_parent().remove(self.related_section)
         self.editor_panel.insert_child_after(self.related_section, self.highlight_detail)
         parent = editor.embedded_content.get_parent()
@@ -1872,6 +1904,7 @@ class NotesSpace(Gtk.Box):
         self.guard(show)
 
     def open_passage(self):
+        """Navigate to a verified origin target only after pending note edits can safely be left."""
         if not self.selected_annotation:
             return
         a = self.selected_annotation
@@ -1928,6 +1961,7 @@ class NotesSpace(Gtk.Box):
         return bool(self.flush_for_backup() and NotesWindow.restore_from(self, path))
 
     def choose_highlight_backup(self, restore):
+        """Choose a local standalone highlight backup and confirm a merge before restoring."""
         chooser = Gtk.FileChooserNative.new(
             tr("Restore highlights") if restore else tr("Back up highlights"),
             self.owner,

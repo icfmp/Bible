@@ -8,6 +8,8 @@ from .i18n import LANGUAGE
 
 
 class ApplicationSettings:
+    """Keep general application choices separate from reading, notes and resource data."""
+
     def __init__(self, root):
         root = Path(root)
         self.path = root / "application-preferences.json"
@@ -75,6 +77,7 @@ class ApplicationSettings:
             raise
 
     def save(self):
+        """Flush and atomically replace preferences, refusing to overwrite an originally unreadable file."""
         if self.error:
             raise ValueError("Original application preferences preserved")
         self.path.parent.mkdir(parents=True, exist_ok=True)

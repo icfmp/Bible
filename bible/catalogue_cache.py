@@ -9,11 +9,18 @@ import time
 
 
 class CatalogueCache:
+    """Persist provider-qualified metadata snapshots separately from installed resources and user content."""
+
     def __init__(self, root):
         self.root = Path(root)
         self.validators = {}
 
     def read(self, provider):
+        """Return a validated resource snapshot and timestamp, or None for unusable cache data.
+
+        Retain only bounded HTTP validators; a snapshot does not prove current
+        provider availability or authorize replacing installed resources.
+        """
         from .library import Resource
 
         try:
@@ -72,6 +79,7 @@ class CatalogueCache:
             return None
 
     def write(self, provider, resources, validators=None):
+        """Flush and atomically replace one provider metadata snapshot without touching installed modules."""
         self.root.mkdir(parents=True, exist_ok=True)
         temporary = None
         try:

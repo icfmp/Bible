@@ -9,6 +9,7 @@ from .reading_style import apply_direction
 
 
 def passage_title(start, end=None, system=None):
+    """Format actual source ranges and distinguish explicit source headings from numbered verses."""
     end = end or start
     if start == end and start.endswith(".0"):
         import re
@@ -30,12 +31,15 @@ def passage_title(start, end=None, system=None):
 
 
 class ReferencePreview:
+    """Own one native non-navigating local passage preview and its dismissal/source lifetime."""
+
     def __init__(self, owner):
         self.owner = owner
         self.popover = None
         self.target = None
 
     def detach(self, popover):
+        """Disconnect popup/dialog/anchor lifetime guards and release the native preview owner."""
         root = getattr(popover, "_reference_root", None)
         if root:
             entries = root._reading_popovers
@@ -84,6 +88,12 @@ class ReferencePreview:
         navigation_guard=None,
         pointing_to=None,
     ):
+        """Preview a verified local excerpt without moving reading until an explicit Open action.
+
+        Keep unmapped/unavailable content explicit, retain attribution and guard
+        unsaved-note navigation. Native dialog/anchor lifetime is restored on
+        dismissal; preview text never becomes a substitute source dataset.
+        """
         self.dismiss()
         root = anchor.get_root()
         if not isinstance(root, Gtk.Window) or not anchor.get_mapped():

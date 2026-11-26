@@ -21,6 +21,7 @@ def secondary_dialog(dialog, owner):
 
 
 def application_menu():
+    """Create shared accessible application actions with their actual registered accelerators."""
     menu = Gtk.MenuButton(icon_name="open-menu-symbolic", tooltip_text=tr("Main menu"))
     menu.update_property([Gtk.AccessibleProperty.LABEL], [tr("Main menu")])
     popover = Gtk.Popover(halign=Gtk.Align.END)
@@ -80,6 +81,7 @@ def application_menu():
 
 
 def show_preferences(owner):
+    """Present/reuse native general and reading preferences, retaining persistence errors in the dialog."""
     existing = getattr(owner, "preferences_window", None)
     if existing and existing.get_visible():
         existing.present(owner)
@@ -194,6 +196,7 @@ def show_preferences(owner):
 
 
 def show_shortcuts(owner):
+    """Present shortcuts from the application's current action bindings rather than a duplicate static map."""
     window = Gtk.ShortcutsWindow(transient_for=owner, modal=True, title=tr("Keyboard Shortcuts"))
     secondary_dialog(window, owner)
     section = Gtk.ShortcutsSection(section_name="application", title=tr("Bible"))
@@ -234,6 +237,7 @@ def show_shortcuts(owner):
 
 
 def show_about(owner):
+    """Show application identity/license and separately link third-party resource notices."""
     window = Adw.AboutWindow(
         transient_for=owner,
         modal=True,
@@ -257,6 +261,7 @@ def show_about(owner):
 
 
 def welcome_page(owner):
+    """Build the empty-profile entry view without implying that a complete Bible ships with the application."""
     view = Adw.ToolbarView()
     header = Adw.HeaderBar()
     from .workspace_selector import WorkspaceSelector
@@ -297,6 +302,11 @@ def welcome_page(owner):
 
 
 def choose_personal_backup(owner, status, restoring):
+    """Choose a local annotation-only backup and flush matching-window drafts before export/merge.
+
+    Restore is fully validated before confirmation; failure retains the current
+    profile and draft. Resources and credentials are excluded from this backup.
+    """
     from . import personal_backup
     from .notes_window import message
 

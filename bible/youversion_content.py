@@ -29,6 +29,8 @@ def parse(raw):
 
 @dataclass(frozen=True)
 class EditorialNote:
+    """A source-supplied note with its actual reference, locator, type and text."""
+
     reference: str
     locator: str
     kind: str
@@ -36,6 +38,11 @@ class EditorialNote:
 
 
 def project(root, *, milestones=False, preverse=None, normalize=True, editorial=True):
+    """Project actual OSIS verse bodies, notes and titles with explicit milestone/storage boundaries.
+
+    Normalization and editorial inclusion are caller-controlled; no content
+    is synthesized for missing source references.
+    """
     bodies = defaultdict(list)
     notes, titles = [], []
     active = preverse
@@ -148,6 +155,8 @@ def semantic_roles(root):
 
 
 def native_chapter(module, key, chapter, references):
+    """Parse complete native entries plus their physical identities so cross-entry markup stays intact."""
+
     def entry(ref):
         key.setText(ref)
         module.setKey(key)

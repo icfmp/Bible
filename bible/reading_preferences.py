@@ -6,6 +6,8 @@ from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width, side_mar
 
 
 class ReadingSettings:
+    """Expose full native content-reading settings through the same preference/update path as Aa."""
+
     def __init__(self, owner, dialog):
         self.owner = owner
         self.dialog = dialog
@@ -126,6 +128,7 @@ class ReadingSettings:
         self.sync()
 
     def family(self, group, title, key):
+        """Choose an actual native font family asynchronously without silently replacing an unavailable saved choice."""
         row = Adw.ActionRow(title=tr(title))
         preview = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, max_width_chars=22)
         chooser = Gtk.Button(child=preview, valign=Gtk.Align.CENTER)
@@ -171,6 +174,7 @@ class ReadingSettings:
         return row
 
     def choice(self, group, title, key, values):
+        """Create a native saved-value combo row for a documented reading setting."""
         row = Adw.ComboRow(
             title=tr(title), model=Gtk.StringList.new([tr(label) for _, label in values])
         )
@@ -185,6 +189,7 @@ class ReadingSettings:
         return row
 
     def update(self, key, value):
+        """Reuse equivalent presets where possible and defer shared reading reflow after an explicit change."""
         if self.syncing:
             return
         if key == "line_spacing_px":
@@ -202,6 +207,7 @@ class ReadingSettings:
         self.sync()
 
     def sync(self):
+        """Reflect current content settings without writing preferences from synthetic control notifications."""
         self.syncing = True
         p = self.owner.preferences.value
         self.sync_family(self.serif_font, p.serif_font)
@@ -222,6 +228,7 @@ class ReadingSettings:
         self.syncing = False
 
     def sync_family(self, control, saved):
+        """Retain the exact saved family and explicitly label native fallback when it is unavailable."""
         alias = {
             "sans-serif": "Sans",
             "sans": "Sans",

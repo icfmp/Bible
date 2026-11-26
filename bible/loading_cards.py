@@ -10,6 +10,8 @@ def placeholder(area, cr, width, height):
 
 
 class LoadingCards(Gtk.Box):
+    """Show neutral accessible loading shapes, animating only while mapped and animations are enabled."""
+
     def __init__(self, label, count=3):
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
@@ -58,6 +60,7 @@ class LoadingCards(Gtk.Box):
         self._settings_handler = 0
 
     def root_changed(self, *_):
+        """Reconnect animation settings to the current root without retaining the old settings handler."""
         if self._settings_handler:
             self._settings.disconnect(self._settings_handler)
         self._settings_handler = 0
@@ -68,6 +71,7 @@ class LoadingCards(Gtk.Box):
             )
 
     def animate(self, *_):
+        """Replace the pulse callback only when mapped and native animation settings permit it."""
         self.stop()
         if not self.get_mapped() or not self.get_settings().get_property("gtk-enable-animations"):
             return
@@ -81,6 +85,7 @@ class LoadingCards(Gtk.Box):
         self._tick = self.add_tick_callback(pulse)
 
     def stop(self, *_):
+        """Remove the frame callback and restore full opacity when loading is hidden or animations stop."""
         if self._tick:
             self.remove_tick_callback(self._tick)
             self._tick = 0

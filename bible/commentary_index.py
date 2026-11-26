@@ -20,6 +20,8 @@ class Segment:
 
 @dataclass(frozen=True)
 class Section:
+    """One actual native commentary entry, retaining disjoint linked ranges separately."""
+
     index: int
     last_index: int
     start: str
@@ -45,6 +47,13 @@ class Section:
 
 
 class CommentaryIndex:
+    """Index native entry identity and introduction boundaries without grouping entries by matching text.
+
+    Construction scans the mutable reader; keep its owning native manager
+    alive and serialize reader use. Disjoint links remain separate passage
+    ranges even when one physical entry supplies their common content.
+    """
+
     def __init__(self, reader):
         self.reader = reader
         self.sections = []
@@ -139,6 +148,7 @@ class CommentaryIndex:
         return bisect_left(self.starts, self.reader.key(reference).getIndex())
 
     def text(self, position):
+        """Read stripped native text at the indexed entry, changing the reader module key."""
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
         key.setVersificationSystem(self.reader.versification)
@@ -149,6 +159,7 @@ class CommentaryIndex:
         return text if isinstance(text, str) else text.c_str()
 
     def raw(self, position):
+        """Read actual raw markup at the indexed entry, changing the reader module key."""
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
         key.setVersificationSystem(self.reader.versification)
@@ -159,6 +170,7 @@ class CommentaryIndex:
         return text if isinstance(text, str) else text.c_str()
 
     def label(self, position):
+        """Label only the entry introduction or its explicit disjoint passage ranges."""
         section = self.sections[position]
         if section.introduction:
             from .i18n import tr

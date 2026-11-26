@@ -7,6 +7,8 @@ from .module_updates import ModuleCatalogue as ModuleCatalogue, installed_module
 
 
 class ModuleUpdatesWindow(Adw.Window):
+    """Explain copied/external module ownership without exposing a competing update operation."""
+
     def __init__(self, owner, library):
         super().__init__(
             transient_for=owner,

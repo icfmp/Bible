@@ -27,6 +27,7 @@ _INDEPENDENT_BREAKS = frozenset(
 
 
 def first_word_length(body):
+    """Bound the verse-number joining span using actual script break behavior and complete combining clusters."""
     match = re.match(r"\s*\S+", body)
     if not match:
         return 0

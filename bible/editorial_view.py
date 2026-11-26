@@ -11,6 +11,7 @@ import re
 
 
 def text_view(label):
+    """Create a read-only native study-content view with accessible labeling."""
     view = Gtk.TextView(
         editable=False,
         cursor_visible=False,
@@ -130,6 +131,7 @@ def fill_introduction(view, root):
 
 
 def show_introduction(parent, reader, book):
+    """Open the edition-supplied introduction, keeping absent/unreadable content explicit."""
     from .book_names import display_name
     from .i18n import LANGUAGE
 

@@ -11,6 +11,8 @@ from dataclasses import replace
 
 
 class ComparisonRows:
+    """Align verified source units with native paragraph padding and one shared adjustment."""
+
     def __init__(self, tab):
         self.tab = tab
         self.signature = None
@@ -23,6 +25,11 @@ class ComparisonRows:
         self.padding = [[], []]
 
     def build(self, chapter):
+        """Build shared rows from actual bidirectional correspondences and preserve copy/selection anchors.
+
+        Missing target verses remain explicit display gaps; padding and generated
+        context never become fabricated source text or reference matches.
+        """
         tab = self.tab
         left = tab.reader
         right = tab._comparison_reader
@@ -169,6 +176,7 @@ class ComparisonRows:
         tab.update_highlights()
 
     def layout(self):
+        """Measure native row bodies after bounded settling and apply cumulative padding without changing text."""
         tab = self.tab
         if not getattr(tab, "_shared_comparison", False):
             return
@@ -222,6 +230,7 @@ class ComparisonRows:
             self.bottom_tags[side].props.pixels_below_lines = end - ends[side] - added[side]
 
     def leave(self):
+        """Restore independent adjustments and the primary source rendering while retaining its selection."""
         tab = self.tab
         if not getattr(tab, "_shared_comparison", False):
             return

@@ -30,6 +30,8 @@ GENERAL_BOOK_DRIVERS = {"RawGenBook"}
 
 @dataclass(frozen=True)
 class Resource:
+    """Immutable provider metadata and capability flags, independent of an installed reader."""
+
     name: str
     description: str
     language: str
@@ -53,6 +55,7 @@ class Resource:
 
     @property
     def public_code(self):
+        """Return a bounded source abbreviation, suppressing generated/private-looking identifiers."""
         value = self.abbreviation
         if not isinstance(value, str) or len(value) > 40 or any(ord(c) < 32 for c in value):
             return ""
@@ -73,6 +76,7 @@ class Resource:
 
     @property
     def kind(self):
+        """Classify supported module drivers without opening native resource handles."""
         if self.driver in DICTIONARY_DRIVERS:
             return "dictionary"
         if self.driver in GENERAL_BOOK_DRIVERS:
@@ -85,6 +89,7 @@ class Resource:
 
     @property
     def installable(self):
+        """Report supported unencrypted content, requiring a declared offline URL for YouVersion."""
         if self.provider_id == "youversion":
             try:
                 if not (json.loads(self.acquisition).get("offline") or {}).get("url"):
@@ -102,6 +107,7 @@ class Resource:
 def resource_from_section(name, section, provider=CROSSWIRE):
     # Keep provider statements, including unknown/restrictive licenses. Listing a
     # translation does not grant redistribution rights over its contents.
+    """Project SWORD metadata while retaining repeated source/legal statements verbatim."""
     conditions = "\n".join(
         f"{key}: {value}"
         for key, value in section.items()
@@ -136,6 +142,11 @@ def resource_from_section(name, section, provider=CROSSWIRE):
 def config(data):
     # SWORD FileMgr::getLine joins physical lines ending in backslash.
     # Its configuration also permits bare keys and repeated entries.
+    """Parse SWORD continuations/bare keys and retain repeated legal metadata.
+
+    Malformed configuration raises ValueError. Decoding replacement characters
+    do not imply that missing or restrictive source conditions were approved.
+    """
     parser = configparser.ConfigParser(
         interpolation=None, strict=False, allow_no_value=True, delimiters=("=",)
     )
@@ -189,6 +200,7 @@ def file_sha256(path):
 
 
 def source_fingerprints(root):
+    """Hash owned payload files, excluding receipts/markers and refusing symbolic links."""
     root = Path(root)
     result = {}
     for path in root.rglob("*"):
@@ -237,6 +249,12 @@ def download(
     response_headers=None,
     same_origin=False,
 ):
+    """Stream a bounded HTTPS response into a caller-owned writable destination.
+
+    Progress reports received bytes and the declared total, or0 when unknown.
+    The destination may be partial on failure; callers stage it before install.
+    The optional same-origin opener enforces the existing source redirect policy.
+    """
     deadline = time.monotonic() + 120
     request = urllib.request.Request(
         url, headers={"User-Agent": "Bible-prototype/0.1", **(headers or {})}
@@ -284,6 +302,7 @@ def download(
 
 
 def catalogue(provider=CROSSWIRE, timings=None, validators=None):
+    """Fetch/parse one implemented provider with optional validators and timing results."""
     started = time.monotonic()
     data = io.BytesIO()
     if provider not in PROVIDERS:
@@ -329,6 +348,7 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
 
 
 def parse_sword_catalogue(data, provider=CROSSWIRE):
+    """Read bounded configuration members without extracting an untrusted catalogue archive."""
     resources = []
     expanded = 0
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
@@ -357,6 +377,8 @@ def parse_sword_catalogue(data, provider=CROSSWIRE):
 
 @dataclass(frozen=True)
 class CatalogueResult:
+    """Aggregated provider resources together with source errors and timing metadata."""
+
     resources: tuple
     errors: dict
 
@@ -436,6 +458,13 @@ def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=
 
 
 class Library:
+    """Discover and install application-owned resources under one local root.
+
+    Native readers are opened only by the operations needing them. Files are
+    staged and verified before publication; existing complete installs are
+    not replaced by the initial-install path.
+    """
+
     def __init__(self, root):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
@@ -444,6 +473,7 @@ class Library:
         self.recovery_errors = ModuleLifecycle(self).recover()
 
     def installed(self, kind=None):
+        """List completed installations, optionally validating kind and collecting per-item errors."""
         names = sorted(
             p.name
             for p in self.root.iterdir()
@@ -487,6 +517,7 @@ class Library:
         # Cache immutable attribution only, never Readers or library instances.
         # Native file revisions invalidate both configuration and provenance;
         # installation checks above still reject missing/removed resources.
+        """Cache immutable installed attribution by file revision; never cache native readers."""
         parser = config(configuration.read_bytes())
         metadata = json.loads(metadata_path.read_text()) if metadata_path.is_file() else {}
         provider_id = metadata.get("provider_id", "crosswire")
@@ -532,6 +563,13 @@ class Library:
         phase=lambda name, done, total: None,
         permission=None,
     ):
+        """Serialize a validated initial install under the module-operation lock.
+
+        Callbacks run on the calling thread. GTK callers must offload blocking
+        installation and marshal widget access.
+        Cancellation and verification failures leave existing complete resources
+        untouched; this method is not an in-place update operation.
+        """
         from .module_lifecycle import operation_lock
 
         with operation_lock(self.root):
@@ -545,6 +583,7 @@ class Library:
             )
 
     def _install(self, resource, progress, installing, *, cancelled, phase, permission):
+        """Validate provider, archive, notices and native readability before publishing staged files."""
         provider = BY_ID.get(resource.provider_id)
         if (
             provider is None

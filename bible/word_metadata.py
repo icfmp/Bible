@@ -5,6 +5,8 @@ import re
 
 
 class WordParser(HTMLParser):
+    """Collect explicit source word spans and attributes for conservative lexical alignment."""
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.characters = []
@@ -36,6 +38,11 @@ class WordParser(HTMLParser):
 
 
 def aligned_identifiers(raw, source_body, prefix, selected):
+    """Return recorded Strong identifiers only for one exact word span in a verified source text.
+
+    Compare non-whitespace source characters first. Missing, ambiguous or
+    mismatching evidence returns None rather than inferring token alignment.
+    """
     parser = WordParser()
     try:
         parser.feed(raw)
@@ -68,6 +75,11 @@ def aligned_identifiers(raw, source_body, prefix, selected):
 
 
 def selected_metadata(target):
+    """Read explicit OSIS lexical evidence for a native selection contained in one source verse.
+
+    This accesses the mutable native reader position; callers must respect
+    the reader lifetime and serialized-use contract.
+    """
     if not target.native_selection or len(target.references) != 1:
         return None
     source = target.source

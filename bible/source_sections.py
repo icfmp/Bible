@@ -19,6 +19,8 @@ NATIVE_CHAPTER = re.compile(rf"({BOOK})\.([1-9][0-9]{{0,2}})")
 
 @dataclass(frozen=True)
 class SourceChapter:
+    """Explicit source chapter-section identity, printed label and supplied canonical flag."""
+
     reference: str
     human: str
     canonical: bool
@@ -95,6 +97,11 @@ class SectionIndex:
         return cls(chapters, storage)
 
     def transform(self, reference, *, inverse=False, allow_zero=False):
+        """Map checked source/storage chapter identities while preserving the explicit verse number.
+
+        Indexed books reject unknown sections; this storage transform establishes
+        no equivalence to another edition or numbering convention.
+        """
         match = ADDRESS.fullmatch(reference) if isinstance(reference, str) else None
         if not match:
             raise ValueError("Invalid source section reference")
@@ -128,6 +135,7 @@ class SectionIndex:
 
     @classmethod
     def from_data(cls, value):
+        """Validate the versioned source-section inventory and construct its checked bidirectional index."""
         if (
             not isinstance(value, dict)
             or set(value) != {"schema", "chapters"}

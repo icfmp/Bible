@@ -6,6 +6,11 @@ from .pagination import StyleSpan
 
 def decorate(document, markers):
     # Keep trailing paragraph separators after the compact metadata group.
+    """Insert native marker slots and consistently shift spans, styles and source-offset mapping.
+
+    Keep the original source document and copy projection so child anchors
+    do not become Scripture content. Return the input unchanged without slots.
+    """
     last = {ref: index for index, s in enumerate(document.spans) for ref in s.members}
     slots = sorted(
         (s.body + len(document.text[s.body : s.end].rstrip()), ref, kind, payload)

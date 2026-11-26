@@ -6,6 +6,8 @@ import re
 
 @dataclass(frozen=True)
 class Provider:
+    """Existing provider identity with independent catalogue and package endpoints."""
+
     id: str
     name: str
     url: str
@@ -73,6 +75,7 @@ RESOURCE_ID = rf"(?:[a-z0-9-]+~)?{MODULE_NAME}"
 
 
 def identity(provider_id, module_name):
+    """Build a validated provider-qualified identity, preserving historical CrossWire IDs unchanged."""
     if provider_id not in BY_ID or not re.fullmatch(MODULE_NAME, module_name):
         raise ValueError("Invalid resource identity")
     # '~' is not allowed in historical module names. Existing CrossWire IDs stay
@@ -81,6 +84,7 @@ def identity(provider_id, module_name):
 
 
 def module_name(resource_id):
+    """Validate a canonical resource identity and return its original provider module name."""
     parts = resource_id.split("~")
     provider_id, name = parts if len(parts) == 2 else ("crosswire", resource_id)
     if identity(provider_id, name) != resource_id:

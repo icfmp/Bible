@@ -5,6 +5,7 @@ import sys
 
 
 def verify(root, name):
+    """Verify a staged native study module in a bounded subprocess so malformed input cannot terminate GTK."""
     try:
         result = subprocess.run(
             [sys.executable, "-m", "bible.native_module_probe", str(root), name],
@@ -24,6 +25,7 @@ def verify(root, name):
 
 def main():
     # Failed third-party native decoding should not leave large core files.
+    """Read and probe the supplied staged dictionary/general module inside the isolated verification process."""
     try:
         import resource
 

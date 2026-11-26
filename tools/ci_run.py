@@ -7,6 +7,7 @@ import sys
 
 
 def main():
+    """Stream a validation command and expose bounded failure evidence as an escaped Actions annotation."""
     if len(sys.argv) < 2:
         raise SystemExit("Usage: ci_run.py command [arguments...]")
     tail = deque(maxlen=20)

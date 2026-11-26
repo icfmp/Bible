@@ -10,11 +10,15 @@ from .study_catalogue import atomic_write
 
 
 class QueueConflict(ValueError):
+    """Another nonfailed request has a conflicting edition or operation for the same resource."""
+
     pass
 
 
 @dataclass
 class DownloadRequest:
+    """Durable requested operation and exact resource metadata, permission acknowledgement and transfer state."""
+
     resource: object
     operation: str = "install"
     permission: str | None = None
@@ -23,6 +27,7 @@ class DownloadRequest:
 
     @property
     def key(self):
+        """Identify the exact provider/edition/operation, including acquisition or study revision evidence."""
         r = self.resource
         return (
             r.provider_id,
@@ -122,6 +127,7 @@ class DownloadQueue:
             self.error = str(error)
 
     def save(self):
+        """Write bounded queue metadata atomically, refusing unreadable or symlinked original state."""
         if self.error:
             raise ValueError("Download queue could not be recovered: " + self.error)
         if self.path.is_symlink():
@@ -149,6 +155,11 @@ class DownloadQueue:
         return next((r for r in self.requests if r.resource.id == identifier), None)
 
     def enqueue(self, resource, permission=None, operation="install"):
+        """Persist an idempotent request or reject a conflicting active/queued edition.
+
+        Failed requests may be replaced; restore the in-memory list if saving
+        fails so the caller cannot mistake an unpersisted request for success.
+        """
         if self.error:
             raise ValueError("Download queue could not be recovered: " + self.error)
         existing = self.find(resource.id)
@@ -175,6 +186,7 @@ class DownloadQueue:
         return request
 
     def start(self):
+        """Persist the first queued request as active only when no other transfer is active."""
         if any(r.state == "active" for r in self.requests):
             return None
         request = next((r for r in self.requests if r.state == "queued"), None)
@@ -188,6 +200,7 @@ class DownloadQueue:
         return request
 
     def finish(self, request):
+        """Remove a completed request, restoring its position if queue persistence fails."""
         if request not in self.requests:
             return
         position = self.requests.index(request)

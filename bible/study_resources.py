@@ -21,6 +21,8 @@ STEP_RESOURCE_ID = "step-word-study"
 
 @dataclass(frozen=True)
 class StudyResource:
+    """Library metadata for an existing optional study store, independent of Bible translations."""
+
     id: str = REFERENCE_RESOURCE_ID
     name: str = "OpenBible cross-references"
     description: str = "Bible cross-references"
@@ -40,6 +42,8 @@ class StudyResource:
 
 
 class StudyResources:
+    """Discover and install the existing reference, topic, place and STEP stores through their checked adapters."""
+
     def __init__(self, root):
         from .place_data import PlaceData
 
@@ -60,6 +64,7 @@ class StudyResources:
         }
 
     def available(self):
+        """List existing study store choices using checked catalogue revisions and pinned provider metadata."""
         from . import place_data as places
         from . import topic_data as topics
         from . import step_sources as step
@@ -150,6 +155,7 @@ class StudyResources:
         return next((r for r in self.available() if r.id == name), None) or self.unknown()
 
     def installed_resource(self, name):
+        """Describe an installed store using its actual revision rather than the latest advertised revision."""
         resource = self.resource(name)
         metadata = self.stores[name].metadata()
         if name not in (REFERENCE_RESOURCE_ID, TOPIC_RESOURCE_ID):
@@ -179,6 +185,7 @@ class StudyResources:
         raise ValueError("Unknown study resource")
 
     def installed(self):
+        """List only study stores whose installed metadata can be validated."""
         result = []
         for name, store in self.stores.items():
             try:
@@ -189,6 +196,7 @@ class StudyResources:
         return result
 
     def current(self, name):
+        """Compare actual installed components with checked expected revisions, including vocabulary and maps."""
         try:
             metadata = self.stores[name].metadata()
             if name == STEP_RESOURCE_ID:
@@ -211,6 +219,7 @@ class StudyResources:
             return False
 
     def install(self, resource, progress, installing, cancelled=None):
+        """Dispatch an existing store installation with the selected revision and supported cancellation."""
         if resource.id not in self.stores:
             raise ValueError("Unknown study resource")
         if resource.id == STEP_RESOURCE_ID:

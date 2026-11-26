@@ -53,6 +53,7 @@ def wait_pages_artifact():
 
 
 def verify():
+    """Accept only a successful main prerequisite build with matching source ancestry, artifact identity and digest."""
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     run_id = str(event.get("workflow_run", {}).get("id") or os.environ["INPUT_VERIFIED_RUN"])
     assert run_id.isdigit()
@@ -94,6 +95,7 @@ def verify():
 
 
 def restore():
+    """Restore the existing data branch into a symlink-free staging site while retaining its parent identity."""
     site = Path("public")
     site.mkdir()
     heads = run("git", "ls-remote", "--heads", "origin", f"refs/heads/{DATA_BRANCH}")
@@ -178,6 +180,11 @@ def persist():
 
 
 def import_signing_key():
+    """Import the configured secret into a private runner directory and require the exact expected fingerprint.
+
+    Remove the secret from this process environment; never print its value.
+    This prepares signing credentials and does not publish the channel.
+    """
     home = Path(os.environ["RUNNER_TEMP"]) / "alpha-signing-key"
     home.mkdir(mode=0o700)
     secret = os.environ.pop("BIBLE_FLATPAK_GPG_KEY")
@@ -194,6 +201,7 @@ def import_signing_key():
 
 
 def main():
+    """Dispatch the explicit existing channel verification/staging/persistence operation selected by CI."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "action", choices=["verify", "restore", "persist", "import-key", "wait-pages-artifact"]

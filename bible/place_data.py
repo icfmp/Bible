@@ -73,6 +73,7 @@ def identity(value, prefix):
 
 
 def records(path, prefix):
+    """Read bounded source JSON lines keyed by validated unique place identifiers."""
     result = {}
     with Path(path).open(encoding="utf-8") as source:
         for line in source:
@@ -89,6 +90,7 @@ def records(path, prefix):
 
 
 def coordinates(value):
+    """Validate a supplied longitude/latitude pair as finite numbers within world bounds."""
     if isinstance(value, str):
         values = value.split(",")
     else:
@@ -114,6 +116,7 @@ def coordinates(value):
 
 
 def source_number(value):
+    """Accept only bounded finite source scores, excluding booleans."""
     if (
         not isinstance(value, (int, float))
         or isinstance(value, bool)
@@ -216,6 +219,8 @@ def status(values):
 
 
 class PlaceData:
+    """Index existing pinned place evidence and supplied coastline geometry for local queries."""
+
     def __init__(self, root):
         self.root = Path(root)
         self.path = self.root / "openbible-places.sqlite3"
@@ -238,6 +243,7 @@ class PlaceData:
         return connection
 
     def metadata(self):
+        """Return checked installed index metadata, cached by file revision, or None when unusable."""
         try:
             revision = self.revision
             if revision and revision == self._metadata_revision:
@@ -260,6 +266,7 @@ class PlaceData:
             raise ReferenceDataError(str(error)) from error
 
     def install(self, progress=lambda done, total: None, installing=lambda: None):
+        """Download the existing pinned inputs to staging and install only after their checks pass."""
         from .library import download
 
         self.root.mkdir(parents=True, exist_ok=True)
@@ -278,6 +285,11 @@ class PlaceData:
             return self.install_files(files)
 
     def install_files(self, files):
+        """Validate source hashes and relationships, then replace the installed SQLite index after integrity checks.
+
+        Only supplied locations/evidence are indexed. A failed staged import
+        leaves the previous database in place; perform this blocking work off GTK.
+        """
         for name, (_, digest, limit) in FILES.items():
             path = Path(files[name])
             if (
@@ -419,6 +431,7 @@ class PlaceData:
             return False
 
     def query(self, origins):
+        """Return places linked by the source to at most 1,000 requested source verse addresses."""
         origins = sorted(set(origins))
         if len(origins) > 1000:
             raise ReferenceDataError("Select at most 1000 verses")
@@ -437,6 +450,7 @@ class PlaceData:
         return [dict(json.loads(payload), source_verse_count=count) for payload, count in rows]
 
     def coastlines(self, bounds):
+        """Read stored coastline geometries intersecting a validated viewport extent."""
         west, south, east, north = bounds
         if (
             not all(math.isfinite(x) for x in bounds)

@@ -9,6 +9,8 @@ from .preferences import ReadingPreferences
 
 
 class AppearancePopover(Gtk.Popover):
+    """Edit saved reading appearance through shared preferences without forcing interface font families."""
+
     def __init__(self, owner):
         super().__init__()
         self.owner = owner
@@ -242,6 +244,7 @@ class AppearancePopover(Gtk.Popover):
         self.sync()
 
     def choice(self, parent, label, attribute, values):
+        """Bind an accessible preset choice to one saved reading preference."""
         row = Gtk.Box(spacing=8)
         row.append(Gtk.Label(label=tr(label), xalign=0, hexpand=True, wrap=True))
         button = Gtk.DropDown(model=Gtk.StringList.new([tr(title) for _, title in values]))
@@ -261,6 +264,7 @@ class AppearancePopover(Gtk.Popover):
         self.update("size", max(12, min(64, self.owner.preferences.value.size + delta)))
 
     def sync(self):
+        """Reflect current saved reading values while suppressing synthetic control-change writes."""
         self._syncing = True
         p = self.owner.preferences.value
         for style, button in self.fonts.items():
@@ -290,6 +294,7 @@ class AppearancePopover(Gtk.Popover):
             dialog.reading_settings.sync()
 
     def sync_system(self):
+        """Show effective high-contrast state and disable conflicting palette controls."""
         high = self.owner.reading_style.manager.get_high_contrast()
         self.system_status.set_text(
             tr("Colors follow the system high contrast setting.") if high else ""
@@ -302,6 +307,7 @@ class AppearancePopover(Gtk.Popover):
         self.palette_rows["night_palette"].set_visible(dark)
 
     def reset(self):
+        """Explicitly restore reading defaults while preserving independent saved tab palettes."""
         if self._syncing:
             return
         self.owner.reading_style.remember_tab_palettes()
@@ -315,6 +321,7 @@ class AppearancePopover(Gtk.Popover):
         self.persist()
 
     def update(self, key, value, *, defer=False):
+        """Update the requested reading field and its active family/palette dependencies before persistence."""
         if self._syncing:
             return
         if key in {"mode", "day_palette", "night_palette"}:
@@ -368,6 +375,7 @@ class AppearancePopover(Gtk.Popover):
         return False
 
     def persist(self, reflow=True, *, defer=False):
+        """Save reading preferences and coalesce optional reflow, retaining a visible persistence error."""
         try:
             self.owner.preferences.save()
             if defer:

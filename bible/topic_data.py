@@ -52,6 +52,7 @@ def topic_header(header):
 
 
 def parse_archive(path):
+    """Yield validated source topic relationships from the single bounded archive score file."""
     path = Path(path)
     if path.stat().st_size > MAX_ARCHIVE:
         raise ReferenceDataError("Topic archive too large")
@@ -98,11 +99,14 @@ def parse_archive(path):
 
 
 class TopicData(ReferenceData):
+    """Store source topic/reference relationships separately from the independently versioned display vocabulary."""
+
     def __init__(self, root):
         super().__init__(root)
         self.path = self.root / "openbible-topics.sqlite3"
 
     def metadata(self):
+        """Return checked installed topic metadata, cached by file revision, or None when unusable."""
         try:
             revision = self.revision
             if revision and revision == self._metadata_revision:
@@ -132,6 +136,11 @@ class TopicData(ReferenceData):
     def install(
         self, progress=lambda done, total: None, installing=lambda: None, *, expected_revision=""
     ):
+        """Check published revisions and stage changed topic/vocabulary components before replacing installed data.
+
+        Reject stale metadata that would replace a differing installed revision;
+        restore the prior vocabulary if publishing the staged index fails.
+        """
         from .topic_vocabulary import parse as parse_vocabulary
         from .study_catalogue import atomic_write
 
@@ -201,6 +210,7 @@ class TopicData(ReferenceData):
         return self.metadata()
 
     def install_archive(self, path, *, revision=None):
+        """Validate a supplied archive against its revision and publish the staged integrity-checked SQLite index."""
         path = Path(path)
         expected = revision.sha256 if revision else ARCHIVE_SHA256
         if (
@@ -253,6 +263,7 @@ class TopicData(ReferenceData):
         return value
 
     def query(self, topic):
+        """Return at most 1,000 source-recorded passage relationships for the exact requested topic."""
         if (
             not isinstance(topic, str)
             or not topic.strip()

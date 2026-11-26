@@ -16,6 +16,8 @@ from .scroll_motion import stop_native_scroll
 
 
 class StudyPanel(Gtk.Box):
+    """Own GTK study tools and a bounded commentary view synchronized through verified references."""
+
     def __init__(self, owner):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.owner = owner
@@ -242,6 +244,7 @@ class StudyPanel(Gtk.Box):
         return self.tools.get_visible_child_name()
 
     def update_context_heading(self):
+        """Present one contextual reference and expose it accessibly when the reader is not alongside it."""
         if not hasattr(self, "context_heading") or not hasattr(self, "passage"):
             return
         tab = self.owner.active_tab
@@ -275,6 +278,7 @@ class StudyPanel(Gtk.Box):
         self.update_context_heading()
 
     def tool_changed(self, *_):
+        """Persist the chosen study tool, reset stale driving intent and refresh its current context."""
         self.tool_controls()
         self.owner.study_settings.tool = self.tool
         try:
@@ -301,6 +305,7 @@ class StudyPanel(Gtk.Box):
         return "Roboto" if font == "sans-serif" else font
 
     def apply_typography(self):
+        """Apply content typography while leaving generated UI-context labels to the native interface font."""
         from .preferences import ReadingPreferences
 
         size = self.owner.preferences.value.study_size or 12
@@ -328,6 +333,7 @@ class StudyPanel(Gtk.Box):
                     )
 
     def queue_adapt(self, *_, frames=8):
+        """Queue bounded layout-settling frames only while the commentary view is visible."""
         if (
             self.owner.closed
             or not self.text.get_mapped()
@@ -353,6 +359,7 @@ class StudyPanel(Gtk.Box):
         return False
 
     def adapt(self, *_):
+        """Recompute native margins after geometry changes and restore the previous commentary anchor."""
         geometry = (self.scroll.get_width(), self.scroll.get_height())
         if geometry != self._layout_geometry and geometry[0] > 0:
             anchor = self._layout_anchor or self.anchor()
@@ -369,6 +376,7 @@ class StudyPanel(Gtk.Box):
         self.owner.contextual_library("commentary", "commentary")
 
     def refresh(self, force=False):
+        """Refresh tool/source choices only when the active tab/inventory context changes or force is requested."""
         self.words.refresh()
         tab = self.owner.active_tab
         if tab is None:
@@ -420,6 +428,7 @@ class StudyPanel(Gtk.Box):
         self.render(tab, installed)
 
     def clear_content(self):
+        """Cancel view work and clear rendered sections/indicators without altering source or annotations."""
         if self.pages.get_visible_child_name() == "no-entry":
             self.pages.set_visible_child_name("reading")
         self._chapter_context = None
@@ -443,6 +452,7 @@ class StudyPanel(Gtk.Box):
         )
 
     def render(self, tab, installed):
+        """Open the selected installed commentary and restore only a matching saved section context."""
         self.passage.set_text(tab.passage_title())
         name = tab.state.commentary
         if name is None or name not in installed:
@@ -509,6 +519,11 @@ class StudyPanel(Gtk.Box):
         self.entry_controls()
 
     def follow(self, reference):
+        """Follow a Bible reference through verified mapping, keeping introductions distinct from verse bodies.
+
+        Absent/unmappable content clears its indicator and shows an unavailable
+        state; it never substitutes a nearby commentary as an exact correspondence.
+        """
         if not self.reader:
             return
         try:
@@ -579,6 +594,7 @@ class StudyPanel(Gtk.Box):
         self.update_indicator()
 
     def ensure_chapter(self, reference, introduction=False):
+        """Load actual nonempty overlapping sections/intros, returning whether the view was rebuilt."""
         key = (
             introduction_key(reference, self.reader) if introduction else self.reader.key(reference)
         )
@@ -616,6 +632,7 @@ class StudyPanel(Gtk.Box):
         return True
 
     def update_indicator(self):
+        """Project current study coverage into the Bible, clearing unverified/hidden coverage."""
         tab = self.owner.active_tab
         if not tab:
             return
@@ -671,6 +688,7 @@ class StudyPanel(Gtk.Box):
         return position, max(0, iterator.get_offset() - body)
 
     def visible_section(self):
+        """Locate the first commentary section at the viewport using native text geometry."""
         if not self.ranges:
             return None
         rect = self.text.get_visible_rect()
@@ -685,6 +703,11 @@ class StudyPanel(Gtk.Box):
         return next(reversed(self.ranges))
 
     def rebuild(self, anchor=None, incremental=False):
+        """Rebuild the bounded commentary window and exact copy/style metadata on GTK's thread.
+
+        Incremental rebuilds retain the common text buffer portion and its native
+        marks so live scrolling does not lose its anchor.
+        """
         self.cancel_scroll()
         self.cancel_reveal()
         self._positioning = True
@@ -768,6 +791,7 @@ class StudyPanel(Gtk.Box):
         self._positioning = False
 
     def reveal(self, position, offset=0, force=False, animate=False):
+        """Schedule cancellable native layout settling before positioning or animating a section."""
         if position not in self.ranges:
             return
         buffer = self.text.get_buffer()
@@ -832,6 +856,7 @@ class StudyPanel(Gtk.Box):
         self._reveal_tick = self.text.add_tick_callback(restore)
 
     def scrolled(self, *_):
+        """Coalesce eligible visible commentary scroll work after GTK adjustment notification unwinds."""
         if (
             self._positioning
             or self.motion.running
@@ -857,6 +882,7 @@ class StudyPanel(Gtk.Box):
         self._loading = False
 
     def process_scroll(self):
+        """Remember user-led position and queue bounded neighbour loading near the visible window edges."""
         self._scroll_idle = 0
         if (
             self.owner.closed
@@ -886,6 +912,7 @@ class StudyPanel(Gtk.Box):
         return False
 
     def load_more(self, direction):
+        """Expand toward neighbouring sections while retaining at most20 loaded entries and a viewport anchor."""
         self._load_idle = 0
         self._loading = False
         if (
@@ -914,6 +941,7 @@ class StudyPanel(Gtk.Box):
         return False
 
     def remember_position(self):
+        """Save a commentary-driven section/offset to session state without moving the Bible."""
         if (
             not hasattr(self.owner, "reading_sync")
             or self.owner.reading_sync.driver != "commentary"
@@ -929,6 +957,7 @@ class StudyPanel(Gtk.Box):
             self.owner.schedule_save()
 
     def show_preface(self):
+        """Open the actual current source preface when a readable section is available."""
         if self.reader and self.current_position is not None:
             from .commentary_format import show_preface
 
@@ -940,6 +969,7 @@ class StudyPanel(Gtk.Box):
             )
 
     def entry_controls(self):
+        """Enable entry navigation/preface/immersion only for currently available content."""
         self.entry_actions["source-preface"].set_enabled(
             bool(self.reader and getattr(self, "_prefaces", {}).get(self.current_position))
         )
@@ -963,6 +993,7 @@ class StudyPanel(Gtk.Box):
         self.entry_actions["next-entry"].set_enabled(0 <= following < count)
 
     def step_entry(self, direction):
+        """Select a real adjacent indexed entry and explicitly arm commentary-led following."""
         if self.tool != "commentaries":
             self.tools.set_visible_child_name("commentaries")
         if not self.reader:
@@ -993,6 +1024,7 @@ class StudyPanel(Gtk.Box):
         self.owner.reading_sync.explicit_commentary(position)
 
     def resume(self, position, anchor):
+        """Restore a commentary immersion anchor while leaving the Bible passage unchanged."""
         if not self.reader:
             return
         self.current_position = position
@@ -1024,6 +1056,11 @@ class StudyPanel(Gtk.Box):
             self._choice_name = None
 
     def selection_changed(self, *_):
+        """Defer source/model replacement until GtkDropDown selection notification has unwound.
+
+        Idle callbacks validate the original tab/context before applying a source
+        choice or opening Library; later choices cancel obsolete callbacks.
+        """
         if self._syncing or self.owner.active_tab is None:
             return
         index = self.choices.get_selected()
@@ -1075,6 +1112,7 @@ class StudyPanel(Gtk.Box):
     def remember_choice(self, name):
         # Only a deliberate, successfully opened source establishes a default.
         # A missing entry is still a valid selected commentary.
+        """Persist a deliberately opened commentary as default, including valid sources with a missing entry."""
         if (
             not name
             or not self.reader

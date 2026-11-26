@@ -155,6 +155,7 @@ class PassageAnnotations:
         return result
 
     def matches(self, reader, start, end, system, first, last, origin=None):
+        """Test overlap through explicit source units or verified annotation projection, retaining unavailable mappings."""
         if not origin and system == reader.versification and getattr(reader, "addresses", None):
             try:
                 return bool(
@@ -170,6 +171,7 @@ class PassageAnnotations:
         )
 
     def notes(self, reader, start, end, store):
+        """Select independent notes whose explicit links overlap the current source passage."""
         return [
             note
             for note in self.stored_notes(store)
@@ -188,6 +190,7 @@ class PassageAnnotations:
         ]
 
     def highlights(self, reader, start, end, store):
+        """Select saved marks with verified overlap, keeping their original identities unchanged."""
         return [
             mark
             for mark in store.entries.values()
@@ -204,6 +207,7 @@ class PassageAnnotations:
 
     @staticmethod
     def mark_priority(reader, mark):
+        """Prefer current-resource then same-system paint projections with a stable deterministic tie-breaker."""
         return (
             0
             if mark["resource"] == reader.name
@@ -217,6 +221,7 @@ class PassageAnnotations:
         )
 
     def colors(self, reader, references, store):
+        """Project marks onto requested native positions and keep one deterministic display color per reference."""
         from bisect import bisect_left, bisect_right
 
         indexed = sorted((reader.key(ref).getIndex(), ref) for ref in references)
@@ -245,6 +250,7 @@ class PassageAnnotations:
         return result
 
     def note_map(self, reader, references, store):
+        """Associate each requested reader reference with independently stored notes through verified link projections."""
         indices = {ref: reader.key(ref).getIndex() for ref in references}
         result = {}
         for note in self.stored_notes(store):

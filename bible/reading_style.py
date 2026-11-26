@@ -36,6 +36,8 @@ def effective_palette(preferences, dark, high_contrast):
 
 
 class ReadingStyle:
+    """Apply owner-scoped reading palettes/content typography while GTK owns interface font inheritance."""
+
     def __init__(self, owner):
         self.owner = owner
         self.initial_palette = self.palette_settings()
@@ -73,6 +75,7 @@ class ReadingStyle:
         self.owner.appearance.sync()
 
     def apply_mode(self):
+        """Resolve the saved reading/interface mode through libadwaita and refresh the effective palette."""
         mode = self.owner.preferences.value.mode
         if mode == "system":
             mode = {"light": "day", "dark": "night", "system": "system"}[
@@ -89,6 +92,7 @@ class ReadingStyle:
         self.changed()
 
     def decorate(self, view):
+        """Register a reading view and apply content typography/number colors within its owner scope."""
         self.views.add(view)
         view._reading_palette = self.palette
         from .verse_typography import NUMBER_COLORS
@@ -102,6 +106,7 @@ class ReadingStyle:
 
     def apply_text(self, view, preserve=True):
         # GtkTextMarks retain selection/body positions across tag-only reflow.
+        """Apply reading text tags while retaining a native viewport mark through bounded reflow frames."""
         if preserve and view.get_mapped() and not getattr(view, "_reader_reflow_tick", 0):
             rect = view.get_visible_rect()
             _, iterator = view.get_iter_at_location(rect.x, rect.y)
@@ -142,6 +147,12 @@ class ReadingStyle:
                 configure(number, view, preferences, self.palette)
 
     def changed(self, *_):
+        """Refresh scoped palette CSS and content accents after mode/contrast changes.
+
+        Reading/study prose may use explicit saved content families; interface
+        labels retain native GTK family/size inheritance. This does not start
+        periodic repaint or source-discovery work.
+        """
         if hasattr(self.owner, "queue_layout"):
             self.owner.queue_layout()
         mode = self.owner.preferences.value.mode

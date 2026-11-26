@@ -6,6 +6,11 @@ from .reference_preview import passage_title
 
 
 def source_note_marker(markers, view, reader, reference, note, number):
+    """Create a keyboard-accessible source-note marker with a native tooltip and anchored actual-note popover.
+
+    Resolve ownership on activation, dismiss on unmap and detach closed popovers
+    after GTK notification unwinds. Personal annotations are never modified.
+    """
     caption = note.locator or str(number)
     # Official bundled devkit asset; the exact icon is verified in the Flatpak.
     icon = "talking-symbolic"

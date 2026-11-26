@@ -18,6 +18,7 @@ def capture(state):
 
 
 def visit(state, resource, reference):
+    """Record an explicit new passage after capturing the current position and truncating forward history."""
     current = state.history[state.history_index] if state.history else None
     if current and (current["resource"], current["reference"]) == (resource, reference):
         return

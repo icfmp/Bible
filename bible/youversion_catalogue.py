@@ -12,6 +12,7 @@ from .youversion_editions import CONFIGURATION_URL, VERSIONS_URL, module_id, sto
 
 
 def payload(value):
+    """Validate a successful provider metadata envelope and return its actual data object."""
     if not isinstance(value, dict):
         raise ValueError("Invalid source catalogue")
     if "response" in value:
@@ -33,6 +34,7 @@ def language_tag(value):
 
 
 def read_languages(value):
+    """Validate the source language inventory and retain only explicit text availability."""
     records = payload(value).get("default_versions")
     if not isinstance(records, list) or not 1 <= len(records) <= 15000:
         raise ValueError("Invalid source language inventory")
@@ -54,6 +56,7 @@ def read_languages(value):
 
 
 def cached(path):
+    """Read a bounded non-future metadata cache, returning None for unusable data."""
     try:
         if path.stat().st_size > 8 * 1024 * 1024:
             return None
@@ -68,6 +71,7 @@ def cached(path):
 
 
 def metadata(url, path=None, force=False):
+    """Use a fresh same-URL metadata cache or fetch bounded same-origin JSON outside the GTK loop."""
     from .library import download
 
     saved = cached(path) if path else None
@@ -110,6 +114,7 @@ def saved_languages(root):
 
 
 def resource_from_listing(value, tag):
+    """Describe an actual edition listing while keeping offline-package availability and conditions explicit."""
     from .library import Resource
     from .providers import YOUVERSION
     from .youversion_source import offline_url
@@ -150,6 +155,7 @@ def resource_from_listing(value, tag):
 
 
 def editions(tag, root=None, force=False):
+    """Fetch and validate unique text editions for one exact source language tag; cache only validated results."""
     tag = language_tag(tag)
     url = VERSIONS_URL.format(language=quote(tag, safe=""))
     path = Path(root) / (tag + ".json") if root else None
@@ -175,6 +181,7 @@ def editions(tag, root=None, force=False):
 
 
 def tags_for_language(choice, records):
+    """Find catalogue tags matching a language choice without altering the provider identities."""
     key = canonical_language(choice)
     # A base language includes its advertised regional/script editions; an
     # explicit qualified choice retains its source distinction.

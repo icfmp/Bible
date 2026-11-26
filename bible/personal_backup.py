@@ -25,6 +25,7 @@ LIMIT = 72 * 1024 * 1024
 
 
 def atomic(path, data):
+    """Flush and replace backup bytes, then fsync the parent directory before reporting completion."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -50,6 +51,7 @@ def atomic(path, data):
 def retire(marker):
     # Persist the highlight rename before retiring the cross-store journal,
     # then persist its removal before allowing subsequent annotation edits.
+    """Fsync the recovery directory before and after removing a completed restore marker."""
     descriptor = os.open(marker.parent, os.O_RDONLY)
     try:
         os.fsync(descriptor)

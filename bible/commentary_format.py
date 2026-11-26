@@ -25,6 +25,7 @@ class PreverseParts(HTMLParser):
         (self.prefix if self.region else self.body).append(text)
 
     def start(self, tag, attrs, raw, empty):
+        """Retain raw source markup while tracking explicit preverse regions outside hidden content."""
         values = dict(attrs)
         if not self.hidden and tag == "div":
             if values.get("subtype") == "x-preverse" and values.get("sid"):
@@ -101,6 +102,8 @@ def preverse_layout(raw):
 
 
 class InlineOSIS(HTMLParser):
+    """Parse supported source roles and native emphasis decorations for later plain-text verification."""
+
     CDATA_CONTENT_ELEMENTS = ("script", "style")
     RCDATA_CONTENT_ELEMENTS = ()
 
@@ -128,6 +131,7 @@ class InlineOSIS(HTMLParser):
         self.length += len(text)
 
     def handle_starttag(self, tag, attrs):
+        """Track actual source titles, inline emphasis and paragraph/list roles without executing markup."""
         values = dict(attrs)
         if tag in {"script", "style", "note"}:
             self.hidden += 1
@@ -198,6 +202,7 @@ class InlineOSIS(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag):
+        """Close supported style/structure ranges and preserve native decoration positions for verification."""
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
             return
@@ -310,6 +315,12 @@ def _verified_entry(
     nested_amp=False,
     preserve_offsets=False,
 ):
+    """Map verified raw-source characters onto native plain text and return only evidenced display styles.
+
+    Return None on parsing/content/decorations mismatch. Literal asterisks
+    remain source content; only verified native decoration/padding is hidden.
+    Optional paragraph insertions remap every style offset consistently.
+    """
     if nested_amp:
         # Some native filter pipelines also process a nested numeric escape's
         # ampersand. This is only a verification candidate: accept it solely
@@ -473,6 +484,7 @@ def _verified_entry(
 
 
 def apply(view, styles, preferences, palette):
+    """Apply native tags for already-verified character spans without rewriting the buffer or source."""
     from gi.repository import Pango
     from .verse_typography import configure
 

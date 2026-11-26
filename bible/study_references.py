@@ -11,6 +11,8 @@ from .passage_card import passage_card
 
 
 class ReferenceItem(GObject.Object):
+    """A relationship result retaining its original source context and request generation."""
+
     def __init__(self, relationship, context, generation):
         super().__init__()
         self.relationship = relationship
@@ -19,6 +21,8 @@ class ReferenceItem(GObject.Object):
 
 
 class StudyReferences(Gtk.Box):
+    """Follow visible passage intent through installed OpenBible data with explicit pending/unmapped states."""
+
     def __init__(self, owner):
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
@@ -177,6 +181,7 @@ class StudyReferences(Gtk.Box):
         return library
 
     def close(self):
+        """Cancel view-owned timers and queued queries so obsolete results cannot update a closed tool."""
         self.clear_pending_notice()
         if self._follow_timeout:
             GLib.source_remove(self._follow_timeout)
@@ -188,6 +193,7 @@ class StudyReferences(Gtk.Box):
         self.executor.shutdown(wait=False, cancel_futures=True)
 
     def display_context(self, context):
+        """Commit the source-qualified passage heading/accessibility context for accepted results."""
         self.context = context
         resource, reader, start, end = context
         self.heading.set_text(passage_title(start, end, reader.versification))
@@ -198,6 +204,7 @@ class StudyReferences(Gtk.Box):
         self.owner.study.update_indicator()
 
     def pending_display(self, context):
+        """Keep old rows visible but inactive while new source results are pending."""
         self.status.set_visible(False)
         self.download.set_visible(False)
         self.list.set_sensitive(False)
@@ -232,6 +239,7 @@ class StudyReferences(Gtk.Box):
         self.pending_context.set_text("")
 
     def position_new_passage(self):
+        """Scroll the first accepted row into view once per passage change, preserving later manual scrolling."""
         if (
             not self._new_passage
             or self._position_idle
@@ -265,6 +273,7 @@ class StudyReferences(Gtk.Box):
         self.refresh()
 
     def message(self, text, download=False, *, empty=False):
+        """Present empty/unavailable/data-download states without claiming an absent relationship exists."""
         self.status.set_tooltip_text(None)
         self.status.set_text(text)
         self.status.set_visible(bool(text) and not empty)
@@ -275,6 +284,7 @@ class StudyReferences(Gtk.Box):
         self.teaser_download.set_visible(download)
 
     def clear_rows(self):
+        """Dismiss stale previews and clear accepted rows/pending notices without deleting study data."""
         if self._position_idle:
             GLib.source_remove(self._position_idle)
             self._position_idle = 0
@@ -289,6 +299,12 @@ class StudyReferences(Gtk.Box):
         self.return_results.set_visible(False)
 
     def refresh(self, force=False, *, _settled=None):
+        """Coalesce visible-passage requests and commit only matching-generation installed-data results.
+
+        Resolve source references before querying. Manual selection, source/data
+        changes and hidden tools retain their own context; stale asynchronous
+        results never overwrite a later passage or fabricate correspondence.
+        """
         if self.owner.closed or self.owner.study.tool not in ("notes", "references"):
             if _settled and not self.owner.closed:
                 self.pending = False
@@ -459,6 +475,7 @@ class StudyReferences(Gtk.Box):
         return button
 
     def fill(self, button, item):
+        """Bind a cached exact local excerpt and explicit unmapped/unavailable state to a relationship card."""
         button._reference_item = item
         row = item.relationship
         resource, reader, _, _ = item.context
@@ -497,6 +514,7 @@ class StudyReferences(Gtk.Box):
         )
 
     def preview(self, button):
+        """Open only current accepted relationship results with the original OpenBible attribution."""
         item = button._reference_item
         if self.pending or item.generation != self.generation:
             return
@@ -512,6 +530,7 @@ class StudyReferences(Gtk.Box):
         )
 
     def populate(self):
+        """Publish accepted relationship cards and reveal a new passage once after allocation."""
         items = [ReferenceItem(row, self.context, self.generation) for row in self.rows]
         self.model.splice(0, self.model.get_n_items(), items)
         # GTK otherwise retains the initially visible footer as its anchor

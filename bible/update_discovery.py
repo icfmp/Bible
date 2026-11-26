@@ -9,6 +9,7 @@ from .i18n import tr
 
 
 def discovery(owner):
+    """Return the application/profile-scoped update manager shared by its windows."""
     app = owner.get_application()
     key = owner.library.root.resolve()
     if not hasattr(app, "_resource_updates"):
@@ -22,6 +23,8 @@ def discovery(owner):
 
 
 class ResourceUpdates:
+    """Discover metadata-only update offers; installations use the existing Library queue."""
+
     def __init__(self, library, session=None):
         self.library = library
         self.session = session if session and not session.closed else CatalogueSession(library)
@@ -35,12 +38,14 @@ class ResourceUpdates:
         self.session.subscribe(self.snapshot_ready)
 
     def subscribe(self, callback):
+        """Register a weak bound-method listener and immediately deliver current state."""
         from weakref import WeakMethod
 
         self.listeners.append(WeakMethod(callback))
         callback()
 
     def notify(self):
+        """Notify live listeners on the caller's thread unless the shared session is closed."""
         if self.session.closed:
             return False
         self.listeners = [ref for ref in self.listeners if ref() is not None]
@@ -51,6 +56,7 @@ class ResourceUpdates:
     def snapshot_ready(self, snapshot):
         # Module switches publish a new inventory; never keep an offer for a
         # deleted/already replaced edition. No network check is repeated here.
+        """Invalidate offers after an inventory change without starting another network check."""
         previous = self.inventory
         self.inventory = (snapshot.installed, snapshot.study_installed, snapshot.study_current)
         if (
@@ -62,6 +68,7 @@ class ResourceUpdates:
             self.session.schedule(self.reassess)
 
     def reassess(self):
+        """Recompute offers from shared catalogues/inventory and marshal acceptance to GTK."""
         with self.session.lock:
             resources = tuple(r for rows in self.session.providers.values() for r in rows)
             errors = dict(self.session.errors)
@@ -77,6 +84,7 @@ class ResourceUpdates:
         GLib.idle_add(self.accept, reports, inventory)
 
     def add_study(self, reports, errors):
+        """Add installed study-tool revision states, preserving unavailable metadata as errors."""
         study = self.session.study
         for identifier in study.installed():
             try:
@@ -98,6 +106,7 @@ class ResourceUpdates:
                 )
 
     def accept(self, reports, inventory=None):
+        """Accept worker reports on GTK's thread only for the matching current inventory."""
         if self.session.closed:
             return False
         if inventory is not None and inventory != self.inventory:
@@ -110,6 +119,7 @@ class ResourceUpdates:
         return False
 
     def start(self, automatic):
+        """Start the one-time automatic check only when the saved preference enables it."""
         if not automatic or self.started:
             return False
         self.started = True
@@ -117,6 +127,12 @@ class ResourceUpdates:
         return False
 
     def check(self, force=False):
+        """Schedule metadata discovery without blocking the GTK caller or installing resources.
+
+        The existing serial worker waits for bootstrap, refreshes eligible source
+        metadata and posts results through GLib. Repeated active checks coalesce;
+        fresh cache results may be shown while network work finishes.
+        """
         if self.checking or self.session.closed:
             return
         if (
@@ -198,6 +214,8 @@ class ResourceUpdates:
         self.session.schedule(work)
 
     def eligible(self):
+        """Return current available offers whose installed identity still matches the report."""
+
         def present(identifier, report):
             resource = report.get("available")
             if not resource or report["state"] != "available":
@@ -219,6 +237,7 @@ class ResourceUpdates:
         ]
 
     def queue_all(self, owner):
+        """Open Library and submit eligible offers to its shared serial operation queue."""
         dialog = owner.open_library()
         # Reuse the shared service's current snapshot, then the existing serial
         # queue, permission checks and atomic lifecycle for every installation.
@@ -238,6 +257,7 @@ class ResourceUpdates:
     def queue_one(self, dialog, identifier):
         # Recheck the current shared inventory at activation, not the recycled
         # row's old catalogue record. Both entry points use the same queue.
+        """Recheck current eligibility before queuing one install/update request."""
         report = dict(self.eligible()).get(identifier)
         if report is None:
             return
@@ -247,6 +267,7 @@ class ResourceUpdates:
         )
 
     def show(self, owner):
+        """Present current update details on GTK's thread; confirmation reuses Library's queue."""
         window = Adw.Window(
             transient_for=owner,
             modal=True,
@@ -322,6 +343,8 @@ class ResourceUpdates:
 
 
 class UpdateButton(Gtk.Button):
+    """A contextual GTK indicator observing shared metadata discovery, without an installer."""
+
     def __init__(self, owner):
         super().__init__(icon_name="view-refresh-symbolic", visible=False)
         self.add_css_class("flat")
@@ -333,6 +356,7 @@ class UpdateButton(Gtk.Button):
         owner.connect("map", self.mapped)
 
     def mapped(self, *_):
+        """Defer initial discovery until mapping, honoring window lifetime and refresh preference."""
         if self.manager or self._start_pending:
             return
         self._start_pending = True
@@ -349,6 +373,7 @@ class UpdateButton(Gtk.Button):
         GLib.idle_add(start, priority=GLib.PRIORITY_LOW)
 
     def changed(self):
+        """Reflect the current eligible count without starting discovery from a repaint."""
         if self.owner.closed:
             return
         count = len(self.manager.eligible())

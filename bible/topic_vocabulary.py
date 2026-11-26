@@ -14,6 +14,7 @@ MAX_BYTES = 1024 * 1024
 
 
 def parse(data):
+    """Validate the bounded existing vocabulary schema, attribution, unique topic IDs and supplied FR/EN names."""
     if len(data) > MAX_BYTES:
         raise ValueError("Topic vocabulary is too large")
     try:
@@ -75,10 +76,13 @@ def parse(data):
 
 
 class TopicVocabulary:
+    """Read and independently update existing topic labels without changing source topic/reference relationships."""
+
     def __init__(self, root):
         self.path = Path(root) / "topic-vocabulary.json"
 
     def read(self):
+        """Return checked saved labels and their digest, falling back to bundled labels when unusable."""
         try:
             if self.path.is_symlink() or self.path.stat().st_size > MAX_BYTES:
                 raise ValueError("Invalid saved topic vocabulary")
@@ -93,6 +97,7 @@ class TopicVocabulary:
         return self.read()[2] == revision.sha256
 
     def install_file(self, path, revision):
+        """Require a matching published digest and internal revision before atomically replacing saved labels."""
         from .study_catalogue import atomic_write
 
         revision.verify(path)
@@ -110,6 +115,7 @@ VOCABULARY = parse(BUNDLED.read_bytes())[1]
 
 
 def normalized(value):
+    """Fold accents/case and punctuation into space-separated search words."""
     return " ".join(
         re.findall(
             r"\w+",
@@ -124,6 +130,7 @@ def normalized(value):
 
 
 def title(entry, language=None):
+    """Use a supplied French name when available, otherwise the recorded English name or source identifier."""
     base = (language or LANGUAGE).split(":")[0].replace("_", "-").casefold().split("-")[0]
     return (
         entry[1]
@@ -135,6 +142,7 @@ def title(entry, language=None):
 
 
 def suggestions(query, language=None, limit=50, *, entries=None):
+    """Rank actual vocabulary prefix matches, preferring exact terms without generating new topic names."""
     words = normalized(query).split()
     ranked = []
     for entry in VOCABULARY if entries is None else entries:

@@ -56,6 +56,7 @@ def bounded_choices(dropdown):
 
 
 def fit_translation_choices(popover, choices, owner):
+    """Constrain a visible translation list to the current native window bounds."""
     if not popover.get_visible():
         return
     width = max(120, min(520, owner.get_width() - 48))
@@ -131,6 +132,7 @@ class DirectChoices(Gtk.ScrolledWindow):
             self.set_selected(row.get_index())
 
     def set_model(self, model, details=None):
+        """Rebuild native translation rows with source identity, optional code and accessible labels."""
         while self.list.get_first_child():
             self.list.remove(self.list.get_first_child())
         self.rows = []
@@ -198,6 +200,8 @@ class DirectChoices(Gtk.ScrolledWindow):
 
 
 class VersionChooser(Gtk.MenuButton):
+    """Choose installed translations for one reading pane through the existing tab/session state."""
+
     def __init__(self, owner, comparison=False):
         super().__init__(tooltip_text=tr("Version"))
         self.set_can_shrink(True)
@@ -248,6 +252,7 @@ class VersionChooser(Gtk.MenuButton):
         fit_translation_choices(self.popover, self.choices, self.owner)
 
     def sync(self):
+        """Reflect current installed/missing pane resources without changing the selected translation."""
         if self.owner.closed:
             return False
         tab = self.owner.active_tab
@@ -310,6 +315,7 @@ class VersionChooser(Gtk.MenuButton):
         self.choices.update_property([Gtk.AccessibleProperty.LABEL], [tr("Version")])
 
     def selected(self, widget, *_):
+        """Apply an explicit pane choice and restore selector state when switching fails."""
         if self._syncing or widget.get_selected() >= len(self.names):
             return
         tab = self.owner.active_tab

@@ -15,6 +15,12 @@ from .languages import canonical_language
 
 
 def search(root, name, query, scope="all", book=None, offset=0, limit=100):
+    """Run bounded local search in a subprocess with its own mutable SWORD handle.
+
+    The caller must keep this blocking operation off GTK's owner thread.
+    The returned JSON contains references and match classifications, not
+    rewritten Bible text. Subprocess failures and the90-second timeout propagate.
+    """
     query = query.strip()
     if not query or len(query) > 200 or any(ord(c) < 32 for c in query):
         raise ValueError("Enter a phrase of 1–200 characters")
@@ -35,6 +41,12 @@ def search(root, name, query, scope="all", book=None, offset=0, limit=100):
 
 
 def index(root, name, reader):
+    """Reuse an integrity-checked index or atomically replace it from installed source text.
+
+    The signature includes source file revisions and normalization generation.
+    Builds use a private staging database; an interrupted build leaves the old
+    index available. The caller supplies a reader owned by the search worker.
+    """
     files = sorted(
         (str(p.relative_to(reader.root)), p.stat().st_size, p.stat().st_mtime_ns)
         for p in reader.root.rglob("*")
@@ -117,6 +129,8 @@ CANDIDATE_LIMIT = 256
 
 @dataclass(frozen=True)
 class TextMatch:
+    """A canonical result range with an explicit strict/close-match classification."""
+
     start: str
     end: str
     kind: str = "strict"
@@ -125,6 +139,11 @@ class TextMatch:
 def _close_matches(
     db, query, language, scope_filters, scope_parameters, strict_where, strict_parameters
 ):
+    """Rank bounded non-strict candidates by source-word proximity and retained negations.
+
+    Only supported French/English queries without quotes are eligible. Every
+    result remains a source address; this never fabricates a matching passage.
+    """
     base = canonical_language(language).split("-")[0]
     if base not in _COMMON or '"' in query:
         return [], 0
@@ -178,6 +197,15 @@ def _close_matches(
 
 
 def query_index(path, query, scope="all", book=None, offset=0, limit=100):
+    """Search a read-only index by normalized terms and explicit scope.
+
+    Returns:
+        Counts, paginated source references and strict/close classifications.
+        Close candidates supplement sparse strict results with a bounded scan.
+
+    Raises:
+        ValueError: Scope, offset or page-size bounds are invalid.
+    """
     if (
         scope not in ("all", "ot", "nt", "book")
         or type(offset) is not int
@@ -254,6 +282,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
 
 
 def main():
+    """Open an isolated reader, build/reuse its index and print the requested JSON search page."""
     from .sword_provider import Reader
 
     root, name, query, request = sys.argv[1:]

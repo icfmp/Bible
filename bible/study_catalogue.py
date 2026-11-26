@@ -23,6 +23,8 @@ FORMATS = {
 
 @dataclass(frozen=True)
 class ResourceRevision:
+    """Published study archive identity, bounded size and digest used before local installation."""
+
     revision: str
     generation: str
     sha256: str
@@ -31,6 +33,7 @@ class ResourceRevision:
     url: str
 
     def verify(self, path):
+        """Reject symbolic links or bytes that do not match this published archive size and SHA-256."""
         path = Path(path)
         if (
             path.is_symlink()
@@ -43,6 +46,7 @@ class ResourceRevision:
 
 
 def parse(data):
+    """Validate bounded study catalogue schema, identities, formats and allowed archive origins."""
     if len(data) > MAX_CATALOGUE:
         raise ValueError("Study catalogue is too large")
     try:
@@ -103,6 +107,7 @@ def parse(data):
 
 
 def atomic_write(path, data):
+    """Flush bytes to a sibling temporary file and replace the destination after a complete write."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -121,11 +126,14 @@ def atomic_write(path, data):
 
 
 class StudyCatalogue:
+    """Read checked local/bundled archive metadata and explicitly refresh it from the existing origin."""
+
     def __init__(self, root):
         self.root = Path(root)
         self.path = self.root / "resource-catalogue.json"
 
     def load(self):
+        """Use saved checked metadata when valid, otherwise fall back to the bundled catalogue."""
         try:
             if self.path.is_symlink() or self.path.stat().st_size > MAX_CATALOGUE:
                 raise ValueError("Invalid saved study catalogue")
@@ -134,6 +142,10 @@ class StudyCatalogue:
             return parse(BUNDLED.read_bytes())
 
     def refresh(self):
+        """Fetch and validate bounded metadata before atomically replacing the saved catalogue.
+
+        This performs blocking network I/O and belongs on a worker.
+        """
         from .library import download
 
         output = io.BytesIO()
@@ -146,6 +158,7 @@ class StudyCatalogue:
     def download(
         self, identifier, destination, progress=lambda done, total: None, *, revision=None
     ):
+        """Download the selected revision to a staging destination and verify its exact size and digest."""
         from .library import download
 
         item = revision or self.load()[identifier]

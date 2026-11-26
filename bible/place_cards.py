@@ -20,12 +20,16 @@ STATUS = {
 
 
 class PlaceItem(GObject.Object):
+    """A native list-model wrapper retaining one actual place or reference payload."""
+
     def __init__(self, payload):
         super().__init__()
         self.payload = payload
 
 
 class PlaceView(Adw.Bin):
+    """Present recorded place evidence and local reference previews with generation-guarded worker results."""
+
     def __init__(self, owner, context=None, host=None):
         super().__init__()
         self.host = host
@@ -130,6 +134,7 @@ class PlaceView(Adw.Bin):
         return False
 
     def show_list(self):
+        """Stop the detail map and invalidate pending details before restoring the passage place list."""
         self.stop_map()
         self.generation += 1
         self.pages.set_visible_child_name("list")
@@ -157,6 +162,7 @@ class PlaceView(Adw.Bin):
         self.download.set_visible(download)
 
     def refresh(self):
+        """Query places for verified source references off GTK and discard stale or closed-view completions."""
         self.show_list()
         self.model.remove_all()
         self.rows = []
@@ -249,6 +255,7 @@ class PlaceView(Adw.Bin):
         return label
 
     def open_place(self, place):
+        """Present supplied candidate locations, evidence and references without inferring missing coordinates."""
         self.stop_map()
         self.generation += 1
         self.current_place = place
@@ -438,6 +445,7 @@ class PlaceView(Adw.Bin):
         self.card_scroll.get_vadjustment().set_value(0)
 
     def link_label(self, url, title, license_url="", license_name=""):
+        """Create escaped source/attribution links only for HTTP(S), otherwise show plain text."""
         from urllib.parse import urlsplit
 
         label = self.label("", caption=True)
@@ -463,6 +471,7 @@ class PlaceView(Adw.Bin):
         return label
 
     def location_note(self, candidate):
+        """Describe only the candidate role, radius and modifier explicitly recorded by the source."""
         if candidate.get("role") in ("center", "representative point") or candidate.get(
             "radius_meters"
         ):
@@ -494,6 +503,7 @@ class PlaceView(Adw.Bin):
         self.bind_reference(item.get_child(), item.get_item().payload)
 
     def bind_reference(self, button, ref):
+        """Reuse local excerpt caches while keeping unavailable or unverified alignment explicit."""
         button._reference = ref
         resource, reader, _, _ = self.context
         if ref not in self.reference_cache:
@@ -517,6 +527,7 @@ class PlaceView(Adw.Bin):
         excerpt.set_text(body)
 
     def preview_reference(self, button):
+        """Open the shared non-navigating local excerpt preview with source attribution and draft guard."""
         resource, reader, _, _ = self.context
         self.owner.reference_preview.show(
             button,
@@ -528,6 +539,8 @@ class PlaceView(Adw.Bin):
         )
 
     def navigate(self, action):
+        """Close through the active note editor guard before performing explicit navigation."""
+
         def run():
             self.close()
             action()

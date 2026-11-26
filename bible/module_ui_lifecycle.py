@@ -19,6 +19,8 @@ def clear_view(view):
 
 
 class ModuleViewChange:
+    """Bridge a worker file switch to GTK-owned native-reader release and later view restoration."""
+
     def __init__(self, dialog, identifier):
         self.dialog = dialog
         self.identifier = identifier
@@ -31,6 +33,7 @@ class ModuleViewChange:
         return bool(reader and Path(reader.root).resolve() == self.root)
 
     def before_switch(self, identifier):
+        """Wait boundedly for GTK to quiesce consumers; propagate cancellation or release failure."""
         done = Event()
         errors = []
 
@@ -59,6 +62,11 @@ class ModuleViewChange:
             raise errors[0]
 
     def pause(self):
+        """Release resource consumers on GTK's thread while retaining annotation drafts and anchors.
+
+        Cancel callbacks/worker views and clear reader-bearing caches before native
+        collection. This is a temporary operation gate, not resource/data deletion.
+        """
         from .ui import Window
 
         changing(self.root, True)
@@ -205,6 +213,7 @@ class ModuleViewChange:
         gc.collect()
 
     def resume(self):
+        """Reopen settled resources and restore view anchors/context without replacing live note drafts."""
         if not self.paused:
             return
         changing(self.root, False)

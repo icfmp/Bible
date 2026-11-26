@@ -129,6 +129,8 @@ BLOCK |= {
 
 
 class Unsupported(ValueError):
+    """The supplied semantic structure/reference cannot be converted faithfully by this adapter."""
+
     pass
 
 
@@ -147,6 +149,8 @@ def osis_ref(source):
 
 @dataclass
 class Node:
+    """An ordered source semantic node, retaining explicit attributes and mixed child/text parts."""
+
     kind: str
     attrs: dict[str, str]
     parts: list  # Ordered strings and Nodes, including child tails.
@@ -154,6 +158,8 @@ class Node:
 
 @dataclass
 class Document:
+    """A supplied source chapter/introduction with provenance and ordered semantic blocks."""
+
     reference: str
     blocks: list[Node]
     source_sha256: str
@@ -180,6 +186,8 @@ def plain(node):
 
 
 class Writer:
+    """Write supported source nodes to OSIS while retaining explicit verse, note and heading identity."""
+
     def __init__(self, parent, chapter):
         self.chapter = parent
         self.source_chapter = chapter
@@ -203,6 +211,7 @@ class Writer:
     def verse_ids(self, source):
         # Plus-joined identifiers explicitly enumerate a source verse bridge.
         # Do not invent omitted verses, expand suffixes, or cross chapters.
+        """Validate contiguous source-chapter bridge identities without inventing cross-chapter alignment."""
         items = source.split("+")
         pattern = re.escape(self.source_chapter) + r"\.([1-9][0-9]*)"
         matches = [re.fullmatch(pattern, item) for item in items]
@@ -215,6 +224,8 @@ class Writer:
 
     @staticmethod
     def first_verse(parts):
+        """Find the first meaningful explicit verse identity, ignoring empty labels/layout fragments."""
+
         def meaningful(node):
             if isinstance(node, str):
                 return bool(node.strip())
@@ -244,6 +255,7 @@ class Writer:
                 self.inline(part, parent, in_note)
 
     def inline(self, node, parent, in_note=False):
+        """Write supported source inline nodes and anchored notes; reject unknown or conflicting structures."""
         k = node.kind
         if k == "label":
             return
@@ -392,6 +404,7 @@ class Writer:
             raise Unsupported(f"Unexpected inline kind: {k}")
 
     def blocks(self, blocks, parent):
+        """Retain supported source prose/poetry/headings/lists/tables and explicit verse/note boundaries."""
         lg = None
         source_list = None
         for index, block in enumerate(blocks):
@@ -557,6 +570,11 @@ class Writer:
 
 
 def convert(doc: Document):
+    """Convert one supplied semantic document to OSIS and its bounded provenance/structure report.
+
+    Unknown book codes, work IDs and unsupported structures fail explicitly.
+    The report does not by itself establish edition-wide versification.
+    """
     if doc.reference.split(".")[0] not in BOOKS:
         raise Unsupported("Unreviewed USFM book code")
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", doc.work_id):

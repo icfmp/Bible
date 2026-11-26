@@ -4,6 +4,7 @@ from gi.repository import Gtk
 
 
 def position(button, left, right, top, height, width):
+    """Place a native navigation target within the current safe viewport margins."""
     button_width = max(40, button.get_width())
     button_height = max(40, button.get_height())
     button.set_valign(Gtk.Align.START)

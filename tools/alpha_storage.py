@@ -69,6 +69,7 @@ def release():
 
 
 def verify_asset(asset, name, expected_sha, expected_size, *, download=True):
+    """Check source-archive publication identity, size and digest, optionally verifying downloaded bytes."""
     assert asset["name"] == name and asset["state"] == "uploaded"
     assert asset["size"] == expected_size
     assert asset.get("digest") == "sha256:" + expected_sha, "Release asset digest mismatch"
@@ -314,6 +315,11 @@ def repair_indexes(site):
 
 
 def migrate(site):
+    """Stage existing source archival and repository retention while preserving application/signing provenance.
+
+    Require the resulting site to fit the publishing budget. Deployment and
+    data-branch persistence remain separate operations.
+    """
     from tools.flatpak_channel import MAX_SITE_BYTES
     from tools.site_render import render
 
@@ -387,6 +393,11 @@ def seed_client(site, base_url, old_commit):
 
 
 def verify_clients(site, base_url):
+    """Verify a real retained-client update and fresh installation against the published staged provenance.
+
+    Require signed installed commits, GTK startup and preservation of the
+    seeded user-data receipt; this mutates isolated Flatpak test installations.
+    """
     import os
     from tools.check_flatpak_channel import check, verify_data
     from tools.flatpak_channel import APP_ID

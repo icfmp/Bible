@@ -8,6 +8,12 @@ from gi.repository import Gdk, Gtk
 
 
 def install(owner, popovers):
+    """Install parent-surface dismissal without leaving a parent modal grab across nested native choices.
+
+    Outside clicks close visible reading popups and claim that sequence;
+    Escape is limited to the owner/popup surfaces so nested surfaces retain
+    their own native input handling.
+    """
     for popover in popovers:
         popover.set_autohide(False)
 

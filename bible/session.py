@@ -12,6 +12,8 @@ from .providers import RESOURCE_ID
 
 @dataclass
 class TabState:
+    """Persisted pane identities, independent positions, study state and bounded navigation history."""
+
     resource: str | None = None
     reference: str = "Gen.1.1"
     scroll: float = 0.0
@@ -27,19 +29,26 @@ class TabState:
 
 @dataclass
 class Session:
+    """Local reading tabs and selected index, independent of installed resource content."""
+
     tabs: list[TabState] = field(default_factory=list)
     selected: int = 0
 
 
 class SessionError(ValueError):
+    """Saved reading state is oversized, malformed or uses unsupported field values."""
+
     pass
 
 
 class SessionStore:
+    """Load checked reading state and replace session JSON after a complete flushed write."""
+
     def __init__(self, path):
         self.path = Path(path)
 
     def load(self):
+        """Return an empty session only for a missing file; reject malformed or unsupported saved state."""
         try:
             with self.path.open("rb") as source:
                 data = source.read(1024 * 1024 + 1)
@@ -182,6 +191,7 @@ class SessionStore:
             raise SessionError(str(error)) from error
 
     def save(self, session):
+        """Serialize finite session values and atomically replace the file after flushing its temporary copy."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = None
         try:

@@ -93,6 +93,7 @@ def token_rows(path, corpus, cancelled=None):
 
 
 def lexicon_rows(path):
+    """Yield only actual lexical records with valid Greek identifiers, excluding corpus documentation."""
     with Path(path).open(encoding="utf-8-sig") as stream:
         for line in stream:
             fields = line.rstrip("\r\n").split("\t")
@@ -117,6 +118,7 @@ def lexicon_rows(path):
 
 
 def source_header(path):
+    """Read bounded leading source documentation, stopping before token or lexical records."""
     lines = []
     size = 0
     with Path(path).open(encoding="utf-8-sig") as stream:
@@ -149,6 +151,8 @@ def brief_senses(value):
 
 
 class StepData:
+    """Expose locally indexed pinned STEP lexemes, tokens and recorded source occurrences."""
+
     def __init__(self, root):
         self.root = Path(root)
         self.path = self.root / "step-word-study.sqlite3"
@@ -169,6 +173,7 @@ class StepData:
         return connection
 
     def metadata(self):
+        """Return validated installed corpus metadata or None, caching it by database revision."""
         try:
             with closing(self.connect()) as db:
                 value = json.loads(db.execute("SELECT value FROM metadata").fetchone()[0])
@@ -180,6 +185,7 @@ class StepData:
             raise ValueError("Study data unavailable: " + str(error)) from error
 
     def install(self, progress=lambda done, total: None, installing=lambda: None, cancelled=None):
+        """Fetch existing pinned corpus files with cancellation and pass them to the staged importer."""
         from .library import download
         from .step_sources import DOWNLOAD_BYTES
 
@@ -212,6 +218,11 @@ class StepData:
             return self.install_files(files, cancelled)
 
     def install_files(self, files, cancelled=None):
+        """Verify pinned files and corpus counts, then build and atomically publish their checked local index.
+
+        Retain source headers separately from lexical rows. Blocking import and
+        SQLite construction belong off GTK; source text is not translated here.
+        """
         for name, (_, digest, size) in FILES.items():
             checkpoint(cancelled)
             path = Path(files[name])
@@ -288,6 +299,7 @@ class StepData:
         return metadata
 
     def verse(self, corpus, reference):
+        """Return actual corpus tokens for at most 1,000 explicit source verse addresses."""
         if corpus not in CORPORA:
             raise ValueError("Unsupported source corpus")
         with closing(self.connect()) as db:
@@ -300,6 +312,7 @@ class StepData:
             return [json.loads(row[0]) for row in rows]
 
     def lookup(self, identifier):
+        """Look up a supplied lexical identifier using only recorded lexical fields and available glosses."""
         if not STRONG.fullmatch(identifier):
             raise ValueError("Invalid lemma identifier")
         with closing(self.connect()) as db:
@@ -329,6 +342,7 @@ class StepData:
         return None
 
     def candidates(self, identifier):
+        """Find recorded extended identifiers for a basic Strong identifier without claiming exact token alignment."""
         if not STRONG.fullmatch(identifier):
             raise ValueError("Invalid lemma identifier")
         # A basic Strong number is lexical evidence, not a disambiguated sense.
@@ -354,6 +368,11 @@ class StepData:
         return [entry for value in sorted(ids) if (entry := self.lookup(value))]
 
     def occurrences(self, corpus, identifier, offset=0, limit=100):
+        """Return paginated recorded references and separate token, verse and address counts.
+
+        Introduction tokens are excluded from the verse count; counts are corpus
+        evidence, not inferred occurrences in an unrelated translation.
+        """
         if (
             corpus not in CORPORA
             or not STRONG.fullmatch(identifier)

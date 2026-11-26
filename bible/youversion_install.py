@@ -32,6 +32,7 @@ def serialized(value):
 
 
 def write_receipt(path, value):
+    """Atomically write a flushed local metadata receipt without leaving a partial destination."""
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -48,6 +49,7 @@ def write_receipt(path, value):
 
 
 def resource_from_metadata(value, expected_id=21):
+    """Build resource capabilities from verified source metadata, retaining actual notices and offline policy."""
     from .library import Resource
 
     name = module_id(expected_id)
@@ -132,6 +134,7 @@ def checkpoint(cancelled):
 
 
 def open_response(opener, request, cancelled):
+    """Open with bounded cancellable retries only for supported transient HTTP responses."""
     from email.utils import parsedate_to_datetime
 
     for attempt in range(3):
@@ -160,6 +163,8 @@ def open_response(opener, request, cancelled):
 
 
 class SourceRedirect(urllib.request.HTTPRedirectHandler):
+    """Restrict source download redirects through the existing provider origin policy."""
+
     def redirect_request(self, request, fp, code, msg, headers, newurl):
         from urllib.parse import urlsplit
 
@@ -349,6 +354,12 @@ def run_conversion(
 
 
 def install(library, resource, progress, installing, cancelled, phase, permission):
+    """Install a user-acknowledged source edition through isolated conversion and verified staged publication.
+
+    Re-fetch exact conditions before download; changed metadata or unavailable
+    offline content fails. Retain actual reference sidecars and a local
+    acknowledgement without claiming a submitted provider agreement.
+    """
     from .library import download
     import logging
 

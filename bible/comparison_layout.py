@@ -7,6 +7,8 @@ from .pagination import Document, StyleSpan
 
 @dataclass(frozen=True)
 class Correspondence:
+    """One verified correspondence group with actual primary/secondary source members."""
+
     primary: tuple
     secondary: tuple
 

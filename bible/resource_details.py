@@ -7,6 +7,8 @@ from .i18n import tr
 
 
 class PlainMetadata(HTMLParser):
+    """Extract inert text from untrusted provider markup without creating interactive HTML."""
+
     def __init__(self):
         super().__init__()
         self.parts = []
@@ -28,6 +30,7 @@ class PlainMetadata(HTMLParser):
 
 
 def plain(value):
+    """Strip provider markup and recognized presentation escapes for plain metadata display."""
     parser = PlainMetadata()
     parser.feed(value)
     # About fields often contain SWORD's legacy RTF paragraph markers.
@@ -172,6 +175,7 @@ from .languages import language_name
 
 
 def details(resource):
+    """Present actual source metadata, availability and alignment limits without implying usage permission."""
     import json
 
     try:

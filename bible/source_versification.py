@@ -25,6 +25,7 @@ def reference_mapping(system):
 
 
 def declared_mapping(path, receipt):
+    """Expose only declared verified convention books with unchanged native/source addressing."""
     convention = SOURCE_CONVENTIONS.get(receipt.get("source_numbering"))
     if not convention or receipt.get("all_text_notes_headings_verified") is not True:
         return
@@ -70,6 +71,7 @@ def declared_mapping(path, receipt):
 
 
 def register_convention(path, receipt):
+    """Refresh cached convention capability from the current verified source index/receipt."""
     system = path.read_text("ascii").splitlines()[0].removeprefix("BIBLE-VRS-1 ")
     data = declared_mapping(path, receipt)
     if _reference_conventions.get(system) == data:
@@ -84,6 +86,7 @@ def register_convention(path, receipt):
 
 
 def write_index(path, system, canon, testaments):
+    """Serialize a bounded actual source canon for native storage without inventing verse correspondence."""
     if not re.fullmatch(r"YouVersion[1-9][0-9]{0,8}", system):
         raise ValueError("Invalid source index identity")
     rows = ["BIBLE-VRS-1 " + system]
@@ -107,6 +110,7 @@ def write_index(path, system, canon, testaments):
 
 @lru_cache(maxsize=1)
 def native_loader():
+    """Find the packaged native source-index registrar or fail explicitly when unavailable."""
     import Sword
 
     candidates = [
@@ -128,6 +132,7 @@ def native_loader():
 
 
 def register_index(path, *, verified=True):
+    """Register a bounded source index, checking its receipt hash before exposing verified mapping capability."""
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 262144:
         raise ValueError("Invalid source reference index")

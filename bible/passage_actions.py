@@ -11,6 +11,8 @@ BACKDROP_BLUR = 16
 
 @dataclass(frozen=True)
 class Source:
+    """A concrete reading source/document/overlay and its source-relative offset context."""
+
     tab: object
     resource: str
     reader: object
@@ -22,6 +24,8 @@ class Source:
 
 @dataclass(frozen=True)
 class Target:
+    """A frozen selection/copy target retaining source identity, canonical members and actual text."""
+
     source: Source
     view: object
     factory: object
@@ -46,6 +50,7 @@ def copy_text(value, mode="selected"):
 
 
 def references(source, first, last):
+    """Resolve selected document fragments to actual canonical members, preserving source order."""
     numbers = source.tab.preferences.verse_numbers
     refs = tuple(
         dict.fromkeys(
@@ -61,6 +66,7 @@ def references(source, first, last):
 
 
 def target(view, source, factory, clicked=None):
+    """Capture source-qualified selected/clicked content using exact copy text and real linked units."""
     selection = view.get_buffer().get_selection_bounds()
     if selection:
         first, last = (source.base + i.get_offset() for i in selection)
@@ -98,6 +104,7 @@ class Backdrop(Gtk.Widget):
     """Blur only the underlying reader at this small, clipped action surface."""
 
     def do_snapshot(self, snapshot):
+        """Snapshot the native source backdrop through a rounded bounded GSK blur clip, omitting it in high contrast."""
         bounds = Graphene.Rect().init(0, 0, self.get_width(), self.get_height())
         radius = Graphene.Size().init(16, 16)
         # init() returns a borrowed pointer for this non-boxed GSK struct.
@@ -136,6 +143,8 @@ class Backdrop(Gtk.Widget):
 
 
 class ActionSurface(Gtk.Overlay):
+    """Host a contextual action overlay and its native paintable backdrop lifetime."""
+
     def do_get_request_mode(self):
         return Gtk.SizeRequestMode.HEIGHT_FOR_WIDTH
 
@@ -166,6 +175,7 @@ class ActionSurface(Gtk.Overlay):
         self._backdrop_signals = ()
 
     def set_backdrop(self, view):
+        """Observe native content/size invalidation and redraw only a still-mapped valid action target."""
         import weakref
 
         if self.backdrop and self.backdrop.get_widget() is view:
@@ -192,6 +202,8 @@ class ActionSurface(Gtk.Overlay):
 
 
 class PassageActions:
+    """Coordinate explicit selection intent with frozen source targets and short-lived native controls."""
+
     def __init__(self, owner):
         self.owner = owner
         self.target = None
@@ -353,6 +365,7 @@ class PassageActions:
         owner.add_controller(drop)
 
     def native_drag_motion(self, controller, *_):
+        """Observe a native text-selection drag and connect its actual completion/cancellation signals."""
         pending = self._pointer_release
         if not pending:
             return
@@ -386,6 +399,7 @@ class PassageActions:
         )
 
     def native_drag_finished(self, drag, reason, generation):
+        """Complete only the matching user-selection intent; dismiss cancelled or inactive drags."""
         for handler in self._native_drags.pop(drag, ()):
             if drag.handler_is_connected(handler):
                 drag.disconnect(handler)
@@ -402,6 +416,7 @@ class PassageActions:
         return bool(widget and (widget is self.bar or widget.is_ancestor(self.bar)))
 
     def study_word(self):
+        """Offer original-text study for a valid selection or the actual current verse fallback."""
         value = self.target
         if value is not None and not self.valid():
             self.dismiss()
@@ -428,6 +443,7 @@ class PassageActions:
             )
 
     def button(self, icon, label, callback):
+        """Build an accessible contextual action and retain it for responsive layout."""
         button = Gtk.Button(icon_name=icon, tooltip_text=tr(label))
         button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
         row = Gtk.Box(spacing=8)
@@ -448,6 +464,7 @@ class PassageActions:
         return button
 
     def menu(self, button, choices):
+        """Create a contextual submenu tied to its owning action target and parent dismissal policy."""
         popover = Gtk.Popover(autohide=False)
         box = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
@@ -575,6 +592,7 @@ class PassageActions:
         view._passage_context = group
 
     def ordinary(self, tab, comparison=False):
+        """Return the actual primary/secondary reading source, or None without readable document context."""
         reader = tab._comparison_reader if comparison else tab.reader
         doc = getattr(tab, "_comparison_document" if comparison else "_document", None)
         resource = tab.state.comparison if comparison else tab.state.resource
@@ -591,6 +609,7 @@ class PassageActions:
         )
 
     def immersive(self, reading, view):
+        """Return a source-qualified page slice with its offset into the full canonical document."""
         page = getattr(view, "_study_page", None)
         if not page or not view.get_buffer().get_char_count():
             return None
@@ -605,6 +624,11 @@ class PassageActions:
         )
 
     def bind(self, view, factory):
+        """Observe native mouse/touch/keyboard selection without consuming the reader's default gesture.
+
+        Intent generations and native drag completion distinguish real selection
+        from layout changes; inline markers keep their own independent activation.
+        """
         self.context_menu(view, factory)
 
         def selection_changed(*_):
@@ -752,6 +776,7 @@ class PassageActions:
         return self.capture(view, factory, clicked, generation)
 
     def capture(self, view, factory, clicked, generation=None):
+        """Freeze only a current nonempty native selection and show actions for its actual source edition."""
         if generation is not None and generation != self.intent:
             return False
         if self.owner.closed or not view.get_mapped():
@@ -806,6 +831,7 @@ class PassageActions:
         return pending
 
     def adapt(self, *_):
+        """Fit contextual actions to natural content/window width and keep them clear of selected lines."""
         value = self.target
         if not value:
             return True
@@ -863,6 +889,7 @@ class PassageActions:
         return True
 
     def valid(self):
+        """Verify the frozen source/document/selection still matches before any contextual mutation."""
         value = self.target
         if not value or self.owner.closed or self.owner.active_tab is not value.source.tab:
             return False
@@ -893,6 +920,7 @@ class PassageActions:
         return True
 
     def key(self, controller, value, *_):
+        """Dismiss active selection controls on Escape while preserving native drag cancellation semantics."""
         if value == Gdk.KEY_Escape and (
             self.target or self.capture_idle or self.keyboard or self.dragging
         ):
@@ -904,6 +932,7 @@ class PassageActions:
         return False
 
     def dismiss(self):
+        """Invalidate capture intent, remove callbacks/backdrop ownership and return focus to the live reader."""
         self.intent += 1
         self.keyboard = False
         self.dragging = False
@@ -950,6 +979,7 @@ class PassageActions:
         self.dismiss()
 
     def note(self):
+        """Create note context from a valid frozen source selection without changing its canonical anchors."""
         if self.valid():
             value = self.target
             context = dict(
@@ -963,6 +993,7 @@ class PassageActions:
             self.owner.edit_note(context=context)
 
     def highlight(self, color):
+        """Persist a bounded whole-verse selection only after revalidating its source target."""
         if not self.valid():
             self.dismiss()
             return
@@ -980,6 +1011,7 @@ class PassageActions:
             value.source.tab.status.set_visible(True)
 
     def sync_highlights(self):
+        """Reflect a uniform saved mark color across the actual selected references."""
         value = self.target
         if not value:
             return
@@ -995,6 +1027,7 @@ class PassageActions:
             check.set_opacity(1 if active else 0)
 
     def compare(self):
+        """Open comparison through a verified target reference, reporting unavailability without guessed alignment."""
         if not self.valid():
             self.dismiss()
             return

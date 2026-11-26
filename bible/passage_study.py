@@ -7,6 +7,8 @@ from .reference_preview import passage_title
 
 
 class PassageStudy(Adw.Window):
+    """Host the existing source-qualified word/place views in one contextual native window."""
+
     def __init__(
         self, owner, *, target=None, context=None, mode="original", place=None, metadata=None
     ):
@@ -143,6 +145,7 @@ class PassageStudy(Adw.Window):
         return box
 
     def context_target(self, context):
+        """Resolve the requested pane and verified local excerpt, returning None without matching source evidence."""
         tab = self.owner.active_tab
         if not tab or not tab.reader:
             return None
@@ -191,6 +194,7 @@ class PassageStudy(Adw.Window):
             self.places.refresh()
 
     def on_close(self, *_):
+        """Invalidate child views and remove owner references before native window disposal."""
         if self.closed:
             return False
         self.closed = True

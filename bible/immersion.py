@@ -14,6 +14,13 @@ from .notes_window import passage_label
 
 
 class Immersion(Gtk.Overlay):
+    """Own reversible full-screen reading, measured pages and source-qualified selections.
+
+    GTK frames consume prepared plans; background book streams own their native
+    handles/layout contexts. finish releases callbacks/readers and returns the
+    canonical exit position to the ordinary reading host.
+    """
+
     def __init__(self, owner, source, key, anchor):
         super().__init__()
         self.add_css_class(owner.reading_style.scope + "-surface")
@@ -324,6 +331,7 @@ class Immersion(Gtk.Overlay):
         self.focus_cue.set_visible(visible)
 
     def page_button(self, direction):
+        """Create direction-aware native page navigation with a separately targetable revealer."""
         icon = "go-previous-symbolic" if (direction < 0) != self.source.rtl else "go-next-symbolic"
         button = Gtk.Button(
             icon_name=icon,
@@ -356,6 +364,12 @@ class Immersion(Gtk.Overlay):
         return button
 
     def adapt(self, *_):
+        """Collect prepared pages and settle responsive geometry/selection on the GTK frame callback.
+
+        Rapid geometry changes are coalesced before expensive preparation. A
+        discreet indicator appears only after a perceptible wait; closed views
+        stop the callback and obsolete preparation is cancelled.
+        """
         if self._closed:
             return False
         if hasattr(self.stream, "poll"):
@@ -482,6 +496,7 @@ class Immersion(Gtk.Overlay):
         # The shaped trailing-line reserve is buffer safety, not reading space.
         # Center the same nominal body budget for both columns; never center a
         # short final column or a book-end blank independently.
+        """Center a common nominal body grid, not each short final page independently."""
         if not self.stream.cursor:
             return
         plan = self.stream.plan(self.stream.cursor.key)
@@ -500,6 +515,7 @@ class Immersion(Gtk.Overlay):
         self.reading_box = (round(bounds.origin.y + top), capacity)
 
     def reflow(self):
+        """Capture canonical selection/position and invalidate geometry while cancelling obsolete preparation."""
         self.cancel_slide()
         if self._closed:
             return
@@ -523,6 +539,7 @@ class Immersion(Gtk.Overlay):
         self.stream.cursor = None
 
     def capture_selection(self):
+        """Retain a live page selection as source-document anchors rather than fragile page offsets."""
         if self._updating:
             return
         for view, address in zip(self.views, self.addresses):
@@ -546,6 +563,7 @@ class Immersion(Gtk.Overlay):
             self.selection = None
 
     def update_study_indicator(self):
+        """Keep immersion free of coverage overlays without changing the ordinary study state."""
         for view in self.views:
             context = getattr(view, "_study_page", None)
             if self.kind != "bible" or not context:
@@ -564,6 +582,12 @@ class Immersion(Gtk.Overlay):
             )  # Clean immersive presentation; ordinary coverage is untouched.
 
     def render(self):
+        """Project the prepared spread into native buffers with exact source copy/style offsets.
+
+        Pending/error states clear stale pages; source content is never fabricated.
+        The clean-reading highlight/coverage policy affects presentation only,
+        not stored marks or saved visibility preferences.
+        """
         if not self.stream.cursor:
             self.clicked_reference = None
             self._updating = True
@@ -746,6 +770,7 @@ class Immersion(Gtk.Overlay):
         self.forward.set_sensitive(self.stream.step(self.addresses[-1], 1) is not None)
 
     def restore_selection(self):
+        """Project retained canonical selection anchors onto the currently visible page slices."""
         if not self.selection:
             return
         for view, address in zip(self.views, self.addresses):
@@ -769,6 +794,7 @@ class Immersion(Gtk.Overlay):
         self.previous_page.set_paintable(None)
 
     def turn(self, direction):
+        """Turn an available spread and retain keyboard focus through cancellable optional native animation."""
         self._page_focus_pending = True
         reading_focus = self.owner.get_focus() in (*self.views, self)
         self.cancel_slide()
@@ -809,6 +835,7 @@ class Immersion(Gtk.Overlay):
         return False
 
     def go_to_reference(self, reference):
+        """Request a canonical Bible position in the current immersive source."""
         if self.kind != "bible":
             return
         self.cancel_slide()
@@ -820,6 +847,7 @@ class Immersion(Gtk.Overlay):
         self.render()
 
     def change_entry(self, direction):
+        """Open an actual adjacent commentary entry and reset the previous page selection."""
         self.cancel_slide()
         key = self.source.entry_neighbour(self.stream.cursor.key, direction)
         if key is None:
@@ -832,6 +860,7 @@ class Immersion(Gtk.Overlay):
         self.reveal_controls()
 
     def clicked(self, view, x, y):
+        """Resolve a page click into the source anchor without disturbing active text selection."""
         if self._closed or view.get_buffer().get_has_selection() or view not in self.views:
             return
         index = self.views.index(view)
@@ -857,6 +886,7 @@ class Immersion(Gtk.Overlay):
             )
 
     def selected_passage(self):
+        """Return actual selected canonical endpoints or the explicit clicked/current reference."""
         for view, address in zip(self.views, self.addresses):
             bounds = view.get_buffer().get_selection_bounds()
             if bounds:
@@ -872,6 +902,7 @@ class Immersion(Gtk.Overlay):
         return reference, reference
 
     def copy_selection(self, view):
+        """Copy the retained full canonical selection after reflow instead of a clipped page slice."""
         if not self.selection or not getattr(self, "_restored_selection", False):
             return
         key, start, end = self.selection
@@ -886,6 +917,7 @@ class Immersion(Gtk.Overlay):
         return any(view.get_buffer().get_has_selection() for view in self.views)
 
     def key_pressed(self, controller, key, code, state):
+        """Handle immersive navigation while leaving selection, control focus and open popovers to GTK."""
         control_focus = self.controls_focused()
         self.owner.set_focus_visible(True)
         if state & Gdk.ModifierType.SHIFT_MASK and key in (
@@ -940,6 +972,7 @@ class Immersion(Gtk.Overlay):
         self._gesture_turned = False
 
     def wheel_scroll(self, controller, dx, dy):
+        """Coalesce smooth wheel gestures into bounded page turns, respecting active selection and controls."""
         if (
             self.controls_focused()
             or self.any_selection()
@@ -964,6 +997,7 @@ class Immersion(Gtk.Overlay):
     def pointer_moved(self, controller, x, y):
         # Hidden chrome reveals at the edge; visible chrome retains its actual
         # hover area. Neither sensor depends on the revealer's animated size.
+        """Reveal chrome at actual pointer edges/controls, independently of animated revealer size."""
         controls = self.top.get_child()
         self._pointer_top = y < 24 or (controls.get_mapped() and y < max(90, controls.get_height()))
         self._pointer_edge = x < 75 or x > self.get_width() - 75
@@ -986,6 +1020,7 @@ class Immersion(Gtk.Overlay):
         self.schedule_hide()
 
     def open_popovers(self):
+        """Collect currently visible descendant popovers for keyboard/chrome guards."""
         result = []
 
         def visit(widget):
@@ -1000,6 +1035,7 @@ class Immersion(Gtk.Overlay):
         return result
 
     def controls_focused(self):
+        """Report visible keyboard focus in reading controls, including the selection action bar."""
         focus = self.owner.get_focus()
         if not focus or not self.owner.get_focus_visible():
             return False
@@ -1026,6 +1062,7 @@ class Immersion(Gtk.Overlay):
         self._hide_id = GLib.timeout_add(1600, self.hide_controls)
 
     def hide_controls(self):
+        """Hide inactive chrome while retaining keyboard, popover and selection usability."""
         self._hide_id = 0
         if self.controls_focused() or self.open_popovers() or self._pointer_top:
             self.schedule_hide()
@@ -1057,6 +1094,7 @@ class Immersion(Gtk.Overlay):
         return False
 
     def open_in_bible(self):
+        """Return a numbered commentary passage to an actually available same-system Bible reference."""
         section = self.source.reader.index.sections[self.stream.cursor.key]
         if section.introduction:
             return
@@ -1071,6 +1109,12 @@ class Immersion(Gtk.Overlay):
             self.owner.navigate_selection(self.owner.active_tab.state.resource, reference)
 
     def finish(self):
+        """Idempotently stop callbacks/preparation, restore shared controls and release native source owners.
+
+        Returns:
+            The immutable canonical anchor and source key retained for ordinary
+            reading restoration. No notes, preferences or resource data are deleted.
+        """
         if self._closed:
             return self._finish_result
         self.cancel_slide()

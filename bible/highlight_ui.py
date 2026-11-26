@@ -14,6 +14,12 @@ def text_changed(buffer):
 
 
 def paint(view, store, system, ranges, visible, high, palette, *, reader=None, annotations=None):
+    """Apply cached paint-only highlight tags using deterministic projected mark priority.
+
+    Skip unchanged buffer/range/color/palette state. Shared source ranges
+    choose one display color without changing stored annotation identities
+    or rewriting Scripture text.
+    """
     buffer = view.get_buffer()
     table = buffer.get_tag_table()
     if not hasattr(buffer, "_highlight_revision"):
@@ -82,12 +88,16 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
 
 
 class MarkItem(GObject.Object):
+    """Native list-model wrapper for one retained highlight record."""
+
     def __init__(self, mark):
         super().__init__()
         self.mark = mark
 
 
 class HighlightsWindow(Adw.Window):
+    """Browse retained highlights and open them only in an available compatible translation."""
+
     def __init__(self, owner):
         super().__init__(
             transient_for=owner, title=tr("Highlights"), default_width=500, default_height=560
@@ -169,6 +179,7 @@ class HighlightsWindow(Adw.Window):
         return False
 
     def refresh(self):
+        """Filter stored marks without requiring their original resource to remain installed."""
         query = normalized(self.search.get_text())
         self.rows = []
         for mark in reversed(list(self.owner.highlights.entries.values())):
@@ -192,6 +203,7 @@ class HighlightsWindow(Adw.Window):
         )
 
     def activate(self, _, index):
+        """Try compatible installed translations and retain the highlight when none can open its passage."""
         if index >= len(self.rows):
             return
         mark = self.rows[index]
@@ -218,6 +230,7 @@ class HighlightsWindow(Adw.Window):
         )
 
     def choose_file(self, restore):
+        """Run explicit standalone backup/confirmed merge restore through the highlight store contract."""
         title = tr("Restore highlights") if restore else tr("Back up highlights")
         chooser = Gtk.FileChooserNative.new(
             title,

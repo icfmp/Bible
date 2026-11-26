@@ -13,6 +13,8 @@ def stop_native_scroll(scroll):
 
 
 class ScrollMotion:
+    """Own one short cancellable native-adjustment movement, separate from actual user input."""
+
     def __init__(self, scroll):
         self.scroll = scroll
         self.tick = 0
@@ -38,6 +40,11 @@ class ScrollMotion:
         self.target = None
 
     def move(self, target, *, animate=True, valid=lambda: True):
+        """Move within native adjustment bounds, respecting reduced motion and context/geometry validity.
+
+        Long jumps, hidden widgets or disabled animations set the position directly.
+        An active animation stops when its source validity or geometry changes.
+        """
         adjustment = self.scroll.get_vadjustment()
         target = max(
             adjustment.get_lower(), min(target, adjustment.get_upper() - adjustment.get_page_size())

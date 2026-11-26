@@ -5,6 +5,11 @@ from .resource_details import linkable_url
 
 
 def approved_profile(resource, catalogue, locale):
+    """Select source-reported approved prose only for a matching installed edition identity.
+
+    Prefer the interface language, then English/available supplied profiles;
+    return None when provenance or approval metadata cannot be checked.
+    """
     if resource.provider_id != "bible-resources":
         return None
     from .curated_catalogue import package_record
@@ -81,6 +86,7 @@ def profile_text(source):
 
 
 def present_profile(label, source):
+    """Apply supported inert profile styles using UTF-8 byte ranges required by Pango."""
     from gi.repository import Pango
 
     text, spans = profile_text(source)

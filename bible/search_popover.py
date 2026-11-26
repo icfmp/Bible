@@ -6,6 +6,8 @@ from .study_search import StudySearch
 
 
 class SearchPopover(Gtk.Popover):
+    """Own the native Text/Topics search surface over the existing source-qualified search models."""
+
     def __init__(self, owner):
         super().__init__()
         self.owner = owner
@@ -66,6 +68,7 @@ class SearchPopover(Gtk.Popover):
         return self._resource
 
     def reading_context(self):
+        """Choose the active source pane, including an explicitly active comparison reader."""
         tab = self.owner.active_tab if hasattr(self.owner, "view") else None
         if (
             tab
@@ -96,6 +99,7 @@ class SearchPopover(Gtk.Popover):
         )
 
     def mode_changed(self, *_):
+        """Pause the inactive search and refresh the selected mode without keeping stale preview context."""
         mode = self.modes.get_visible_child_name()
         for name, panel in [("text", self.text_search), ("topics", self.topic_search)]:
             if name != mode:
@@ -109,6 +113,7 @@ class SearchPopover(Gtk.Popover):
             self.focus_query()
 
     def focus_query(self):
+        """Replace pending focus work with one visibility-checked GTK idle callback."""
         if self._focus_idle:
             GLib.source_remove(self._focus_idle)
 
@@ -121,6 +126,7 @@ class SearchPopover(Gtk.Popover):
         self._focus_idle = GLib.idle_add(focus)
 
     def visibility_changed(self, *_):
+        """Refresh on opening; pause both searches and cancel pending focus on dismissal."""
         if self.get_visible():
             for other in self.owner._reading_popovers:
                 if other is not self and not self.is_ancestor(other) and other.get_visible():
@@ -145,6 +151,7 @@ class SearchPopover(Gtk.Popover):
                 anchor.grab_focus()
 
     def adapt(self):
+        """Recompute bounded native layout only when visible and its window/content/style stamp changes."""
         if not self.get_visible():
             return
         empty = (
@@ -219,6 +226,7 @@ class SearchPopover(Gtk.Popover):
         self.adapt()
 
     def fit_results(self, scroll, model):
+        """Fit currently mapped result rows within the shared adaptive height budget."""
         if self.owner.closed or not self.get_visible() or not scroll.get_mapped():
             return
         self.adapt()

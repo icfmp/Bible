@@ -4,6 +4,8 @@ from gi.repository import Gtk, GObject
 
 
 class SegmentedChoice(Gtk.Box):
+    """Expose direct mutually exclusive native buttons and emit one logical changed signal per selection."""
+
     __gsignals__ = {"changed": (GObject.SignalFlags.RUN_LAST, None, ())}
 
     def __init__(self, labels, selected=0):

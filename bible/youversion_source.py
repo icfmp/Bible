@@ -24,6 +24,8 @@ from .youversion_osis import BLOCK, INLINE, Document, Node, Unsupported, convert
 
 @dataclass(frozen=True)
 class Edition:
+    """Validated source edition metadata with the explicitly supplied offline archive and chapter inventory."""
+
     metadata: dict
     identifier: int
     title: str
@@ -114,6 +116,7 @@ def read_edition(data, expected_id):
 
 
 def offline_url(offline, expected_id):
+    """Validate a supplied edition-specific HTTPS archive URL and agreement metadata; return None if absent."""
     archive_url = None
     if offline is not None:
         if not isinstance(offline, dict):
@@ -151,6 +154,8 @@ def decode_bytes(data):
 
 
 class TreeParser(HTMLParser):
+    """Retain an ordered bounded local source tree while rejecting ambiguous attributes/invalid characters."""
+
     def __init__(self, *, max_nodes=100000, max_depth=128):
         super().__init__(convert_charrefs=False)
         self.root = {"tag": "#document", "attrs": [], "children": []}
@@ -165,6 +170,7 @@ class TreeParser(HTMLParser):
         self.stack[-1]["children"].append(node)
 
     def handle_starttag(self, tag, attrs):
+        """Append a real source node and enforce duplicate-attribute and nesting-depth limits."""
         if len({k for k, v in attrs}) != len(attrs):
             raise Unsupported("Duplicate HTML attributes")
         node = {"tag": tag, "attrs": attrs, "children": []}
@@ -218,6 +224,7 @@ class TreeParser(HTMLParser):
         self.handle_data(entities.html5[name + ";"])
 
     def handle_charref(self, name):
+        """Decode a source character reference only when it is valid XML text."""
         try:
             value = int(name[1:], 16) if name.lower().startswith("x") else int(name)
         except ValueError as error:
@@ -269,6 +276,11 @@ def projected_text(node):
 
 
 def parse_chapter(encoded, reference, edition):
+    """Decode a supplied local chapter and verify edition/language/reference/container identity.
+
+    Return ordered verse fragments plus source hashes/tree; non-introductions
+    require actual indexed verses. No network or permission inference occurs.
+    """
     source = decode_bytes(encoded).decode("utf-8", errors="strict")
     tree = TreeParser().parse(source)
     nodes = list(walk(tree))
@@ -390,6 +402,7 @@ def archive_chapters(
 
 
 def _semantic(node):
+    """Project only reviewed source node roles/attributes, rejecting ambiguous or unknown structures."""
     if isinstance(node, str):
         return node
     if node["tag"] == "#comment":
@@ -467,6 +480,7 @@ def to_osis(chapter, edition):
 
 
 def main():
+    """Run the explicit local-source research CLI and report its actual validated inputs/results."""
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)

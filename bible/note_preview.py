@@ -6,6 +6,8 @@ from .i18n import tr
 
 
 class NotePreview(Gtk.TextView):
+    """Render inert note Markdown and bounded local-reference previews without rewriting saved notes."""
+
     def __init__(self, *, owner=None, system=None, navigation_guard=None, **kwargs):
         super().__init__(
             editable=False,
@@ -46,6 +48,7 @@ class NotePreview(Gtk.TextView):
         self.add_controller(keys)
 
     def set_source(self, source):
+        """Replace preview tags/citations and dismiss any anchored preview of the previous text."""
         if self.owner:
             preview = self.owner.reference_preview.popover
             if preview and getattr(preview, "_note_preview", None) is self:
@@ -99,6 +102,7 @@ class NotePreview(Gtk.TextView):
         self.set_cursor_from_name("pointer" if self.at_point(x, y) is not None else "text")
 
     def do_focus(self, direction):
+        """Traverse recognized citations with Tab before yielding native focus to surrounding controls."""
         if self.citations and direction in (
             Gtk.DirectionType.TAB_FORWARD,
             Gtk.DirectionType.TAB_BACKWARD,
@@ -136,6 +140,7 @@ class NotePreview(Gtk.TextView):
         return False
 
     def activate(self, index):
+        """Preview a recognized citation in the active reader through the existing draft/navigation guard."""
         if not self.owner or self.owner.closed or not 0 <= index < len(self.citations):
             return
         self._citation_focus = index

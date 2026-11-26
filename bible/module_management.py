@@ -67,6 +67,8 @@ def checked_modules(library, resources, errors):
 
 
 class ModuleManagement:
+    """Bind Library actions to shared eligibility and journaled module lifecycle operations."""
+
     def __init__(self, dialog, detail, primary=None):
         self.dialog = dialog
         self.reports = {}
@@ -109,6 +111,7 @@ class ModuleManagement:
         dialog.add_breakpoint(narrow)
 
     def discovery_changed(self):
+        """Refresh rows/actions from discovery state without treating stale metadata as current."""
         self.reports = self.dialog.updates.reports
         self.revision += 1
         if hasattr(self, "actions") and not self.dialog.closed:
@@ -133,6 +136,7 @@ class ModuleManagement:
         return self.reports.get(identifier, {}).get("state") == "available"
 
     def update_all(self):
+        """Ask for confirmation, then queue available reports through the shared installer."""
         d = self.dialog
         if d.busy:
             return
@@ -192,6 +196,7 @@ class ModuleManagement:
         return tr("Catalogue version notes") + " (" + new.version + "):\n" + plain(changes)
 
     def refresh(self, resource):
+        """Show per-resource update/removal/rollback capabilities using current ownership and queue state."""
         d = self.dialog
         installed = resource and resource.id in d._installed_metadata
         self.actions.set_visible(bool(installed))
@@ -247,6 +252,7 @@ class ModuleManagement:
             self.dialog.updates.check(force=True)
 
     def confirm(self, operation):
+        """Present destructive/rollback consequences before invoking an owned-resource operation."""
         d = self.dialog
         resource = d.selected_resource()
         if not resource or d.busy or resource.id not in d._installed_metadata:
@@ -298,6 +304,12 @@ class ModuleManagement:
         prompt.present()
 
     def run(self, operation, *, resource=None, queued=False):
+        """Dispatch an eligible operation through the worker and GTK resource-lifetime bridge.
+
+        Initial update requests enter the queue; active operations quiesce native
+        consumers before switching files and resume them after settlement. Cleanup
+        errors are reported separately from an operation that already committed.
+        """
         d = self.dialog
         resource = resource or d.selected_resource()
         if not resource or resource.id not in d._installed_metadata:

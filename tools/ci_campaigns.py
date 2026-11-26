@@ -96,6 +96,7 @@ FRENCH_SMOKE = [
 
 
 def select(paths):
+    """Select additional regression campaigns from changed paths, falling back to full coverage for unknown inputs."""
     if paths is None:
         return set(CAMPAIGNS), True
     selected = set()
@@ -129,6 +130,7 @@ def select(paths):
 
 
 def changed_paths(event, payload, head):
+    """Return the checked Git comparison paths, or None when the event/base cannot be trusted."""
     if event == "workflow_dispatch":
         return None
     base = (
@@ -156,6 +158,7 @@ def changed_paths(event, payload, head):
 
 
 def main():
+    """Print campaign selectors and the appropriate French validation targets for the current Actions event."""
     payload = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     groups, localization = select(
         changed_paths(os.environ["GITHUB_EVENT_NAME"], payload, os.environ["GITHUB_SHA"])

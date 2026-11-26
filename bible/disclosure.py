@@ -9,6 +9,7 @@ def activate_focused(widget, arguments):
 
 
 def disclosure(**kwargs):
+    """Create a native expander with keyboard activation restricted to its own focused heading."""
     widget = Gtk.Expander(**kwargs)
     shortcuts = Gtk.ShortcutController(propagation_phase=Gtk.PropagationPhase.CAPTURE)
     for key in (Gdk.KEY_space, Gdk.KEY_Return, Gdk.KEY_KP_Enter):

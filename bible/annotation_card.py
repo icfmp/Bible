@@ -176,6 +176,8 @@ def release_card(card):
 
 
 class AnnotationPreview(Gtk.Label):
+    """Present a bounded inert note excerpt and its original-offset citations without altering the saved body."""
+
     def __init__(self, owner, note, open_note):
         super().__init__(
             xalign=0,
@@ -246,6 +248,7 @@ class AnnotationPreview(Gtk.Label):
     def over_citation(self, x, y):
         # get_current_uri() can retain the keyboard-focused link after the
         # pointer leaves it. Hit-test the actual click instead.
+        """Hit-test the actual pointer position instead of a possibly retained keyboard-focused link URI."""
         left, top = self.get_layout_offsets()
         inside, index, _ = self.get_layout().xy_to_index(
             int((x - left) * Pango.SCALE), int((y - top) * Pango.SCALE)
@@ -267,6 +270,7 @@ class AnnotationPreview(Gtk.Label):
         return self.activate(index)
 
     def activate(self, index):
+        """Open a recognized citation through the shared source-aware preview without navigating immediately."""
         if not 0 <= index < len(self.citations):
             return True
         citation = self.citations[index]

@@ -25,6 +25,12 @@ def bind_copy(view, document, base=0):
 
 
 def render(view, reader, chapter, preferences, document=None):
+    """Render the structured source document into native tags/anchors and return canonical offset maps.
+
+    Replace old marker children on GTK, retain source span membership and
+    exclude marker slots through the document copy contract. Content typography
+    comes from reading preferences, separately from system interface fonts.
+    """
     document = document or BiblePages(reader, None).document(chapter.reference, preferences)
     marker_context = getattr(view, "_marker_context", None)
     if marker_context:

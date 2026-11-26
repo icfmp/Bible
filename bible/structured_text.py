@@ -7,6 +7,8 @@ import re
 
 @dataclass(frozen=True)
 class Segment:
+    """Actual source text with an inert presentation role and optional inline styles."""
+
     text: str
     kind: str = "text"
     styles: tuple[str, ...] = ()
@@ -15,6 +17,8 @@ class Segment:
 class SourceParser(HTMLParser):
     # OSIS/ThML titles contain inline XML. Recent HTMLParser releases give
     # HTML title/textarea RCDATA semantics, which would expose those tags.
+    """Extract a conservative supported markup structure without executing HTML or adding headings."""
+
     CDATA_CONTENT_ELEMENTS = ("script", "style")
     RCDATA_CONTENT_ELEMENTS = ()
 
@@ -29,6 +33,7 @@ class SourceParser(HTMLParser):
         self.inline = []
 
     def handle_starttag(self, tag, attrs):
+        """Track supported inline/block milestones while excluding script/style/note bodies from prose."""
         attrs = dict(attrs)
         # HTMLParser normalizes attribute names, including OSIS sID/eID.
         # A closing milestone is a boundary, never a new enclosing block.
@@ -91,6 +96,7 @@ class SourceParser(HTMLParser):
             self.segments.append(Segment("\n", "poetry", ("poetry",)))
 
     def handle_endtag(self, tag):
+        """Close supported source roles and retain actual paragraph/poetry boundaries."""
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
             return
@@ -113,6 +119,7 @@ class SourceParser(HTMLParser):
     def handle_startendtag(self, tag, attrs):
         # Empty ThML p and OSIS start/end milestones each mark a boundary.
         # Do not synthesize a second end event, or retain an empty title/note.
+        """Apply empty source milestones without incorrectly closing paired start/end markers."""
         self.handle_starttag(tag, attrs)
         if (
             not dict(attrs).get("sid")
@@ -122,6 +129,7 @@ class SourceParser(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_data(self, text):
+        """Retain visible source text with current heading/inline roles."""
         if not self.hidden:
             self.segments.append(
                 Segment(
@@ -206,6 +214,11 @@ def native_emphasis(segments, raw, plain):
 
 
 def checked_segments(segments, plain):
+    """Accept markup roles only when non-whitespace body text matches the supplied plain source.
+
+    Mismatch falls back to the exact plain text. Accepted structural separators
+    are coalesced without introducing new words or inferred editorial headings.
+    """
     body = "".join(s.text for s in segments if s.kind == "text")
     normalize = lambda v: re.sub(r"\s+", "", v)
     if normalize(body) != normalize(plain):

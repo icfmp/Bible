@@ -5,6 +5,8 @@ from .i18n import tr
 
 
 class StudyDivider(Gtk.Box):
+    """Resize the existing adaptive drawer while preserving Bible/commentary source anchors."""
+
     def __init__(self, owner, settings):
         super().__init__(width_request=8, focusable=True, hexpand=False)
         self.owner, self.settings = owner, settings
@@ -68,6 +70,7 @@ class StudyDivider(Gtk.Box):
         return max(320, min(requested or self.settings.width, max(320, width - 480)))
 
     def apply(self):
+        """Apply effective width bounds without conflicting minimum/maximum sidebar properties."""
         split = self.owner.split
         collapsed = split.get_collapsed()
         self.set_visible(not collapsed)
@@ -83,6 +86,7 @@ class StudyDivider(Gtk.Box):
         split.set_sidebar_width_fraction(1.0 if collapsed else 0.5)
 
     def begin(self, gesture=None, *_):
+        """Capture reading anchors and suspend following before a user-controlled divider resize."""
         self.active = True
         self.origin = self.owner.split.get_sidebar().get_width()
         self.pointer_origin = None
@@ -106,6 +110,7 @@ class StudyDivider(Gtk.Box):
         self.commentary_anchor = self.owner.study.anchor()
 
     def update(self, gesture, x, y):
+        """Clamp the requested width to usable window bounds using the current native pointer surface."""
         if not self.active:
             return
         # The divider moves as the right sidebar grows. Gesture offsets in
@@ -120,6 +125,7 @@ class StudyDivider(Gtk.Box):
         self.apply()
 
     def end(self, *_):
+        """Restore captured reading anchors and persist the resulting drawer width after resizing."""
         if not self.active:
             return
         self.active = False

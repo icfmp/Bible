@@ -4,6 +4,8 @@ from gi.repository import Gtk
 
 
 class ComparisonButton(Gtk.Button):
+    """Choose a second translation in simple reading or exit parallel reading directly."""
+
     def __init__(self, owner):
         super().__init__(icon_name="view-dual-symbolic")
         self.owner = owner

@@ -8,6 +8,7 @@ from .citations import grammar, fold
 
 
 def parse_link(text, system):
+    """Parse canonical/localized offline input into a validated explicit same-system passage range."""
     text = text.strip()
     canonical = re.fullmatch(
         r"([1-5]?[A-Za-z][A-Za-z0-9]*\.[0-9]+(?:_[0-9]+)?\.[0-9]+)(?:\s*[-–]\s*([1-5]?[A-Za-z][A-Za-z0-9]*\.[0-9]+(?:_[0-9]+)?\.[0-9]+))?",
@@ -35,6 +36,8 @@ def parse_link(text, system):
 
 
 class PassageLinks(Gtk.Box):
+    """Edit explicit secondary note anchors independently of body citations and resource availability."""
+
     def __init__(self, owner, context, values, changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.owner = owner
@@ -218,6 +221,7 @@ class PassageLinks(Gtk.Box):
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
     def suggestion_reader(self):
+        """Use the installed origin reader or a canon-only key space that supplies no invented excerpt."""
         origin = self.context["origin_translation"]
         if origin in self.owner.library.installed("bible"):
             from .passage_annotations import PassageAnnotations
@@ -300,6 +304,7 @@ class PassageLinks(Gtk.Box):
         self._chapter_cache.clear()
 
     def refresh(self):
+        """Rebuild actual linked-passage cards and unlink actions without changing saved note identity."""
         from .notes_window import passage_label
 
         while self.rows.get_first_child():
@@ -336,6 +341,7 @@ class PassageLinks(Gtk.Box):
             self.disclosure.set_active(False)
 
     def add(self):
+        """Explicitly add one validated nonduplicate passage, respecting the200-link bound."""
         try:
             link = parse_link(self.entry.get_text(), self.context["versification"])
             if link == self.primary or link in self.values:

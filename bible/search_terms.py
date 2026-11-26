@@ -9,6 +9,11 @@ UNSEGMENTED_LANGUAGES = {"zh", "ja", "th", "lo", "km", "my"}
 
 
 def normalized(value, language="und", offsets=False):
+    """Normalize language-aware search characters, optionally retaining original combining-cluster offsets.
+
+    Fold accents only for supported Latin languages; keep combining marks
+    for other scripts rather than treating them as ignorable content.
+    """
     latin = canonical_language(language).split("-")[0] in LATIN_LANGUAGES
     characters = []
     positions = []
@@ -34,6 +39,7 @@ def normalized(value, language="und", offsets=False):
 
 def terms(query, language="und"):
     # Quoted phrases are contiguous; unquoted words are ANDed in any order.
+    """Parse and deduplicate nonempty normalized words/quoted phrases, rejecting unmatched quotes."""
     if query.count('"') % 2:
         raise ValueError("Close the quoted phrase before searching.")
     parts = [phrase or word for phrase, word in re.findall(r'"([^"]*)"|([^\s"]+)', query)]
@@ -45,6 +51,7 @@ def terms(query, language="und"):
 
 
 def match_ranges(text, query, language="und"):
+    """Map normalized word/phrase matches back to original text including trailing combining marks."""
     value, offsets = normalized(text, language, True)
     ranges = []
     for term in terms(query, language):

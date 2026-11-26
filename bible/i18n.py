@@ -517,6 +517,7 @@ except locale.Error:
 
 
 def collation_key(text):
+    """Use locale collation with a case/accent fallback when native language collation is unavailable."""
     value = text.casefold()
     if not _native_collation:
         # Minimal hosts can lack locale data; keep accented titles alongside

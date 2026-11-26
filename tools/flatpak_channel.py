@@ -111,6 +111,12 @@ def prepare(
     allow_loopback=False,
     managed_storage=False,
 ):
+    """Stage the signed alpha repository, exact source archive and matching publication provenance.
+
+    Require source ancestry, the existing signing identity, expected bundle
+    ref and a bounded symlink-free site. This prepares local outputs; remote
+    persistence/deployment remains a separate explicitly authorized step.
+    """
     assert re.fullmatch(r"[0-9a-f]{40}", source), "Expected a full source commit"
     assert re.fullmatch(r"[0-9A-F]{40,64}", fingerprint), "Expected the signing fingerprint"
     parsed = urllib.parse.urlsplit(base_url)

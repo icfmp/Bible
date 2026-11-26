@@ -15,6 +15,7 @@ from .providers import BIBLE_RESOURCES
 
 
 def entries(data):
+    """Validate published edition/package identities and omit unsupported dictionaries from install choices."""
     value = parse_catalogue(data)
     seen = set()
     editions = set()
@@ -56,6 +57,11 @@ def entries(data):
 
 
 def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
+    """Fetch bounded publisher metadata and require JSON identities to agree with its SWORD configurations.
+
+    Run blocking network work outside the GTK loop. A mismatched publication
+    fails explicitly rather than combining incompatible catalogue revisions.
+    """
     from .library import download, parse_sword_catalogue
 
     started = time.monotonic()
@@ -117,6 +123,7 @@ def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
 
 
 def package_record(resource):
+    """Recover and revalidate the exact published package identity retained in a resource acquisition receipt."""
     value = json.loads(resource.acquisition)
     if not isinstance(value, dict) or value.get("catalogue_url") != BIBLE_RESOURCES.catalogue_url:
         raise ValueError("Curated package provenance is missing")

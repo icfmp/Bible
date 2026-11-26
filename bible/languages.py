@@ -42,6 +42,7 @@ def available_languages():
 
 @lru_cache(maxsize=1)
 def iso_languages():
+    """Cache installed ISO 639-3 metadata from the application or system share directory."""
     for root in [Path("/app/share"), Path("/usr/share")]:
         path = root / "iso-codes/json/iso_639-3.json"
         if path.is_file():
@@ -67,6 +68,11 @@ def iso_translation(interface):
 
 @lru_cache(maxsize=4096)
 def language_info(code, interface=None):
+    """Return localized and available native names while preserving unknown source codes explicitly.
+
+    CLDR aliases affect presentation only; callers must retain the original
+    provider code for resource identity and catalogue requests.
+    """
     interface = (interface or LANGUAGE).split("_")[0].split("-")[0].split(":")[0]
     interface = "fr" if interface == "fr" else "en"
     if not isinstance(code, str) or not re.fullmatch(

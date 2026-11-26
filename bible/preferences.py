@@ -9,6 +9,8 @@ import tempfile
 
 @dataclass
 class ReadingPreferences:
+    """Content typography, spacing, visibility and palette choices, independent of native interface fonts."""
+
     font: str = "Roboto Serif"
     size: int = 14
     chapter_numbers: bool = True
@@ -36,6 +38,8 @@ class ReadingPreferences:
 
 
 class Preferences:
+    """Load compatible reading choices while retaining an unreadable original as non-writable."""
+
     def __init__(self, path):
         self.path = Path(path)
         self.value = ReadingPreferences()
@@ -143,6 +147,7 @@ class Preferences:
             self.writable = False
 
     def save(self):
+        """Atomically save reading choices only when the original preference store was writable."""
         if not self.writable:
             raise ValueError("Original preferences preserved; repair the file before saving")
         self.path.parent.mkdir(parents=True, exist_ok=True)
