@@ -133,6 +133,7 @@ class CompatibilityTests(unittest.TestCase):
             original=personal_backup.snapshot(notes,high);value=json.loads(original)
             value['notes'][0]['body']='Interrupted imported note'
             value['highlights'][0]['color']='green';value['highlights'][0]['reference']='Gen.1.2'
+            value['highlights'][0]['id']=str(uuid.uuid4())
             path=root/'incoming.json';path.write_text(json.dumps(value));actual=personal_backup.write_marks
             def power_loss(*args):
                 actual(*args)
