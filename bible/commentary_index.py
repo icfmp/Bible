@@ -28,15 +28,19 @@ class Section:
     segments: tuple[Segment, ...] = ()
 
     def contains_index(self, index):
-        return any(part.contains_index(index) for part in self.segments) if self.segments else (
-            self.index <= index <= self.last_index
+        return (
+            any(part.contains_index(index) for part in self.segments)
+            if self.segments
+            else (self.index <= index <= self.last_index)
         )
 
     @property
     def passages(self):
         """Separate ranges, never a single fictitious range over intervening notes."""
-        return tuple((part.start, part.end) for part in self.segments) if self.segments else (
-            (self.start, self.end),
+        return (
+            tuple((part.start, part.end) for part in self.segments)
+            if self.segments
+            else ((self.start, self.end),)
         )
 
 
@@ -69,22 +73,28 @@ class CommentaryIndex:
                     chapter = current_chapter
                     chapter_origins = []
                 position = None
-                if (previous is not None
-                        and (previous_chapter == current_chapter or intro)
-                        and previous_position is not None
-                        and self.sections[previous_position].introduction == intro
-                        and previous.getIndex() + 1 == index
-                        and reader.module.isLinked(previous, key)):
+                if (
+                    previous is not None
+                    and (previous_chapter == current_chapter or intro)
+                    and previous_position is not None
+                    and self.sections[previous_position].introduction == intro
+                    and previous.getIndex() + 1 == index
+                    and reader.module.isLinked(previous, key)
+                ):
                     position = previous_position
                 elif not intro:
                     # A native section may resume after an independently
                     # authored passage (e.g. two disjoint Bible ranges).
                     # Restrict comparison to this chapter; never group simply
                     # because two different sections have identical words.
-                    position = next((
-                        existing for existing, anchor in chapter_origins
-                        if reader.module.isLinked(anchor, key)
-                    ), None)
+                    position = next(
+                        (
+                            existing
+                            for existing, anchor in chapter_origins
+                            if reader.module.isLinked(anchor, key)
+                        ),
+                        None,
+                    )
 
                 part = Segment(index, index, reference, reference)
                 if position is None:
@@ -103,21 +113,21 @@ class CommentaryIndex:
                     else:
                         parts = (*parts, part)
                     self.sections[position] = replace(
-                        old, last_index=max(old.last_index, index), end=reference,
-                        segments=parts
+                        old, last_index=max(old.last_index, index), end=reference, segments=parts
                     )
                 self._section_by_native_index[index] = position
                 previous = reader.sword.VerseKey(key)
                 previous_position = position
                 previous_chapter = current_chapter
             key.increment()
-            if key.popError() != '\x00':break
+            if key.popError() != "\x00":
+                break
         self.starts = [s.index for s in self.sections]
         # Cache lifetime follows this native reader. A decorator on the class
         # method would keep old index/reader instances alive through its keys,
         # preventing safe module removal after the GTK owners release them.
-        self.text=lru_cache(maxsize=20)(self.text)
-        self.raw=lru_cache(maxsize=20)(self.raw)
+        self.text = lru_cache(maxsize=20)(self.text)
+        self.raw = lru_cache(maxsize=20)(self.raw)
 
     def locate(self, reference):
         # A binary search on first-section indices cannot find a later
@@ -152,9 +162,11 @@ class CommentaryIndex:
         section = self.sections[position]
         if section.introduction:
             from .i18n import tr
-            return tr('Introduction') + (' — ' + section.start if section.start else '')
+
+            return tr("Introduction") + (" — " + section.start if section.start else "")
         from .notes_window import passage_label
-        return '; '.join(
+
+        return "; ".join(
             passage_label(first, last, self.reader.versification)
             for first, last in section.passages
         )

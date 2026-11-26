@@ -1,4 +1,5 @@
 """Native temporary word study, structured occurrences and draft protection."""
+
 import os
 from pathlib import Path
 import tempfile
@@ -6,129 +7,246 @@ import unittest
 from unittest.mock import patch
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class WordStudyTests(unittest.TestCase):
     def test_real_provider_boundary_temporary_back_and_occurrence_search_preserve_draft(self):
-        from bible.ui import Application,Window,Library
+        from bible.ui import Application, Window, Library
         from bible import step_data
         from bible.step_data import StepData
         from tests.test_step_data import fixtures
-        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from bible.passage_actions import target
+
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);installed_fixture(root,entries=[('Gen.1.1','TEST Hebrew context'),('John.1.1','TEST Greek context'),('Acts.1.1','TEST further context')])
-            files,pins=fixtures(root)
-            with patch.object(step_data,'FILES',pins),patch.object(step_data,'EXPECTED_COUNTS',{'tagnt-na27':2,'tahot-main':4}):StepData(root/'study-data').install_files(files)
-            app=Application.get_default() or Application();app.register()
-            window=Window(app,Library(root/'translations'));window.set_default_size(1250,850);window.present();spin()
+            root = Path(directory)
+            installed_fixture(
+                root,
+                entries=[
+                    ("Gen.1.1", "TEST Hebrew context"),
+                    ("John.1.1", "TEST Greek context"),
+                    ("Acts.1.1", "TEST further context"),
+                ],
+            )
+            files, pins = fixtures(root)
+            with (
+                patch.object(step_data, "FILES", pins),
+                patch.object(step_data, "EXPECTED_COUNTS", {"tagnt-na27": 2, "tahot-main": 4}),
+            ):
+                StepData(root / "study-data").install_files(files)
+            app = Application.get_default() or Application()
+            app.register()
+            window = Window(app, Library(root / "translations"))
+            window.set_default_size(1250, 850)
+            window.present()
+            spin()
             try:
-                tab=window.active_tab;tab.navigate('Test','John.1.1');window.study_button.set_active(True)
-                window.study.tools.set_visible_child_name('notes')
-                note=window.notes_store.save('Saved note',[],versification='KJV',start='John.1.1',end='John.1.1',origin_translation='Test',origin_language='en')
-                window.notes_changed();editor=window.study.notes.open_note(note)
-                editor.body.get_buffer().set_text('Unsaved draft kept')
-                source=window.passage_actions.ordinary(tab)
-                value=target(tab.text,source,lambda:window.passage_actions.ordinary(tab),tab._marker_ends['John.1.1'])
-                history=list(tab.state.history);reference=tab.state.reference
-                words=window.study.words;words.open(value)
-                spin(lambda:not words.pending,duration=.2)
-                self.assertEqual(window.study.tool,'notes');self.assertTrue(window.study.tools_switcher.get_visible())
-                self.assertTrue(words.dialog.get_visible());self.assertTrue(words.dialog.get_modal())
-                self.assertIs(words.dialog.get_transient_for(),window)
-                self.assertIs(window.study.notes.editor,editor)
-                buttons=[c for c in words.children() if hasattr(c,'emit') and c.__class__.__name__=='Button']
-                self.assertTrue(buttons)
-                buttons[0].emit('clicked');spin(lambda:not words.pending,duration=.3)
-                self.assertEqual(words.entry['id'],'G3056')
-                self.assertEqual(words.stage,'word')
-                self.assertEqual([c._word_reference for c in words.children() if hasattr(c,'_word_reference')],['John.1.1','Acts.1.1'])
-                self.assertEqual(window.active_tab.state.reference,reference)
-                self.assertEqual(window.active_tab.state.history,history)
-                words.all_occurrences('tagnt-na27',words.entry)
-                spin(lambda:not words.pending,duration=.3)
-                self.assertEqual(words.stage,'occurrences')
-                self.assertEqual([c._word_reference for c in words.children() if hasattr(c,'_word_reference')],['John.1.1','Acts.1.1'])
+                tab = window.active_tab
+                tab.navigate("Test", "John.1.1")
+                window.study_button.set_active(True)
+                window.study.tools.set_visible_child_name("notes")
+                note = window.notes_store.save(
+                    "Saved note",
+                    [],
+                    versification="KJV",
+                    start="John.1.1",
+                    end="John.1.1",
+                    origin_translation="Test",
+                    origin_language="en",
+                )
+                window.notes_changed()
+                editor = window.study.notes.open_note(note)
+                editor.body.get_buffer().set_text("Unsaved draft kept")
+                source = window.passage_actions.ordinary(tab)
+                value = target(
+                    tab.text,
+                    source,
+                    lambda: window.passage_actions.ordinary(tab),
+                    tab._marker_ends["John.1.1"],
+                )
+                history = list(tab.state.history)
+                reference = tab.state.reference
+                words = window.study.words
+                words.open(value)
+                spin(lambda: not words.pending, duration=0.2)
+                self.assertEqual(window.study.tool, "notes")
+                self.assertTrue(window.study.tools_switcher.get_visible())
                 self.assertTrue(words.dialog.get_visible())
-                words.go_back.emit('clicked');spin();self.assertEqual(words.stage,'word')
-                words.go_back.emit('clicked');spin(lambda:not words.pending);self.assertEqual(words.stage,'passage')
-                self.assertTrue(any(hasattr(c,'_source_token') for c in words.children()))
-                words.leave();spin()
-                self.assertEqual(window.study.tool,'notes')
-                self.assertEqual(editor.body.get_buffer().props.text,'Unsaved draft kept')
-                self.assertEqual(window.study_settings.tool,'notes')
-                editor._discard=True;editor.close()
-            finally:close_test_dialogs();window.close()
+                self.assertTrue(words.dialog.get_modal())
+                self.assertIs(words.dialog.get_transient_for(), window)
+                self.assertIs(window.study.notes.editor, editor)
+                buttons = [
+                    c
+                    for c in words.children()
+                    if hasattr(c, "emit") and c.__class__.__name__ == "Button"
+                ]
+                self.assertTrue(buttons)
+                buttons[0].emit("clicked")
+                spin(lambda: not words.pending, duration=0.3)
+                self.assertEqual(words.entry["id"], "G3056")
+                self.assertEqual(words.stage, "word")
+                self.assertEqual(
+                    [c._word_reference for c in words.children() if hasattr(c, "_word_reference")],
+                    ["John.1.1", "Acts.1.1"],
+                )
+                self.assertEqual(window.active_tab.state.reference, reference)
+                self.assertEqual(window.active_tab.state.history, history)
+                words.all_occurrences("tagnt-na27", words.entry)
+                spin(lambda: not words.pending, duration=0.3)
+                self.assertEqual(words.stage, "occurrences")
+                self.assertEqual(
+                    [c._word_reference for c in words.children() if hasattr(c, "_word_reference")],
+                    ["John.1.1", "Acts.1.1"],
+                )
+                self.assertTrue(words.dialog.get_visible())
+                words.go_back.emit("clicked")
+                spin()
+                self.assertEqual(words.stage, "word")
+                words.go_back.emit("clicked")
+                spin(lambda: not words.pending)
+                self.assertEqual(words.stage, "passage")
+                self.assertTrue(any(hasattr(c, "_source_token") for c in words.children()))
+                words.leave()
+                spin()
+                self.assertEqual(window.study.tool, "notes")
+                self.assertEqual(editor.body.get_buffer().props.text, "Unsaved draft kept")
+                self.assertEqual(window.study_settings.tool, "notes")
+                editor._discard = True
+                editor.close()
+            finally:
+                close_test_dialogs()
+                window.close()
 
     def test_replacing_focused_dynamic_content_moves_focus_before_unparenting(self):
-        from bible.ui import Application,Window,Library,Gtk
+        from bible.ui import Application, Window, Library, Gtk
         from bible.passage_actions import target
-        from tests.test_ui import installed_fixture,spin
+        from tests.test_ui import installed_fixture, spin
+
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);installed_fixture(root)
-            app=Application.get_default() or Application();app.register()
-            window=Window(app,Library(root/'translations'));window.present();spin()
+            root = Path(directory)
+            installed_fixture(root)
+            app = Application.get_default() or Application()
+            app.register()
+            window = Window(app, Library(root / "translations"))
+            window.present()
+            spin()
             try:
-                tab=window.active_tab;actions=window.passage_actions
-                value=target(tab.text,actions.ordinary(tab),lambda:actions.ordinary(tab),tab._marker_ends[tab.state.reference])
-                words=window.study.words;words.open(value);spin()
-                for nested in (False,True):
+                tab = window.active_tab
+                actions = window.passage_actions
+                value = target(
+                    tab.text,
+                    actions.ordinary(tab),
+                    lambda: actions.ordinary(tab),
+                    tab._marker_ends[tab.state.reference],
+                )
+                words = window.study.words
+                words.open(value)
+                spin()
+                for nested in (False, True):
                     words.clear()
-                    label=words.label('Synthetic selectable dynamic content')
+                    label = words.label("Synthetic selectable dynamic content")
                     if nested:
-                        child=Gtk.Box();child.append(label)
-                    else:child=label
-                    words.content.append(child);spin();label.grab_focus();spin()
-                    self.assertIs(words.dialog.get_focus(),label)
+                        child = Gtk.Box()
+                        child.append(label)
+                    else:
+                        child = label
+                    words.content.append(child)
+                    spin()
+                    label.grab_focus()
+                    spin()
+                    self.assertIs(words.dialog.get_focus(), label)
                     words.remove_content(child)
-                    self.assertIs(words.dialog.get_focus(),words.dialog.close_button)
+                    self.assertIs(words.dialog.get_focus(), words.dialog.close_button)
                     self.assertIsNone(child.get_parent())
-                    words.content.append(words.label('Replacement selectable content'));spin()
-                    self.assertIs(words.dialog.get_focus(),words.dialog.close_button)
-                words.leave();spin()
-            finally:window.close()
+                    words.content.append(words.label("Replacement selectable content"))
+                    spin()
+                    self.assertIs(words.dialog.get_focus(), words.dialog.close_button)
+                words.leave()
+                spin()
+            finally:
+                window.close()
 
     def test_numbered_source_heading_is_unavailable_without_changing_reader(self):
-        from bible.ui import Application,Window,Library,Gtk
+        from bible.ui import Application, Window, Library, Gtk
         from bible.passage_actions import target
         from bible.i18n import tr
-        from tests.test_ui import installed_fixture,spin
+        from tests.test_ui import installed_fixture, spin
         from tests.test_step_data import fixtures
         from bible import step_data
+
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory)
-            installed_fixture(root,versification='Segond',entries=[('Ps.3.1','TEST source title'),('Ps.3.2','TEST source body')])
-            files,pins=fixtures(root)
-            with patch.object(step_data,'FILES',pins),patch.object(step_data,'EXPECTED_COUNTS',{'tagnt-na27':2,'tahot-main':4}):step_data.StepData(root/'study-data').install_files(files)
-            app=Application.get_default() or Application();app.register()
-            window=Window(app,Library(root/'translations'));window.present();spin()
+            root = Path(directory)
+            installed_fixture(
+                root,
+                versification="Segond",
+                entries=[("Ps.3.1", "TEST source title"), ("Ps.3.2", "TEST source body")],
+            )
+            files, pins = fixtures(root)
+            with (
+                patch.object(step_data, "FILES", pins),
+                patch.object(step_data, "EXPECTED_COUNTS", {"tagnt-na27": 2, "tahot-main": 4}),
+            ):
+                step_data.StepData(root / "study-data").install_files(files)
+            app = Application.get_default() or Application()
+            app.register()
+            window = Window(app, Library(root / "translations"))
+            window.present()
+            spin()
             try:
-                tab=window.active_tab;tab.navigate('Test','Ps.3.1');spin(lambda:not tab._restoring_scroll)
-                source=window.passage_actions.ordinary(tab)
-                value=target(tab.text,source,lambda:window.passage_actions.ordinary(tab),tab._marker_ends['Ps.3.1'])
-                history=list(tab.state.history)
-                window.study.words.open(value);spin()
+                tab = window.active_tab
+                tab.navigate("Test", "Ps.3.1")
+                spin(lambda: not tab._restoring_scroll)
+                source = window.passage_actions.ordinary(tab)
+                value = target(
+                    tab.text,
+                    source,
+                    lambda: window.passage_actions.ordinary(tab),
+                    tab._marker_ends["Ps.3.1"],
+                )
+                history = list(tab.state.history)
+                window.study.words.open(value)
+                spin()
                 self.assertFalse(window.study.words.pending)
-                labels=[c.get_text() for c in window.study.words.children() if isinstance(c,Gtk.Label)]
-                self.assertIn(tr('No verified alignment for this passage.'),labels)
-                self.assertEqual(tab.state.reference,'Ps.3.1');self.assertEqual(tab.state.history,history)
-            finally:window.close()
+                labels = [
+                    c.get_text() for c in window.study.words.children() if isinstance(c, Gtk.Label)
+                ]
+                self.assertIn(tr("No verified alignment for this passage."), labels)
+                self.assertEqual(tab.state.reference, "Ps.3.1")
+                self.assertEqual(tab.state.history, history)
+            finally:
+                window.close()
 
     def test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture(self):
-        from bible.ui import Application,Window,Library
-        from tests.test_ui import installed_fixture,spin
+        from bible.ui import Application, Window, Library
+        from tests.test_ui import installed_fixture, spin
         from bible.passage_actions import target
+
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);installed_fixture(root)
-            app=Application.get_default() or Application();app.register()
-            window=Window(app,Library(root/'translations'));window.present();spin()
+            root = Path(directory)
+            installed_fixture(root)
+            app = Application.get_default() or Application()
+            app.register()
+            window = Window(app, Library(root / "translations"))
+            window.present()
+            spin()
             try:
-                tab=window.active_tab;source=window.passage_actions.ordinary(tab)
-                before=source.document.copy(0,len(source.document.text))
-                value=target(tab.text,source,lambda:window.passage_actions.ordinary(tab),tab._marker_ends[tab.state.reference])
-                with patch('bible.step_data.StepData.install',side_effect=AssertionError('No automatic download')):
-                    window.study.words.open(value);spin()
+                tab = window.active_tab
+                source = window.passage_actions.ordinary(tab)
+                before = source.document.copy(0, len(source.document.text))
+                value = target(
+                    tab.text,
+                    source,
+                    lambda: window.passage_actions.ordinary(tab),
+                    tab._marker_ends[tab.state.reference],
+                )
+                with patch(
+                    "bible.step_data.StepData.install",
+                    side_effect=AssertionError("No automatic download"),
+                ):
+                    window.study.words.open(value)
+                    spin()
                 self.assertFalse(window.study.words.pending)
-                self.assertEqual(tab._document.copy(0,len(tab._document.text)),before)
+                self.assertEqual(tab._document.copy(0, len(tab._document.text)), before)
                 self.assertIsNone(window.catalogue_window)
                 window.study.words.leave()
-            finally:window.close()
+            finally:
+                window.close()

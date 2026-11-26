@@ -1,7 +1,8 @@
 """Immediate passage selector: searchable books beside a chapter grid."""
+
 import gi
 
-gi.require_version('Gtk', '4.0')
+gi.require_version("Gtk", "4.0")
 from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from .book_names import display_name, normalized
@@ -14,7 +15,7 @@ class PassagePopover(Gtk.Popover):
     def __init__(self, owner):
         super().__init__()
         self.owner = owner
-        self.add_css_class('passage-selector')
+        self.add_css_class("passage-selector")
         self._reveal_id = 0
         self.reader = None
         self._updating = False
@@ -24,192 +25,293 @@ class PassagePopover(Gtk.Popover):
         self.names, self.chapters, self.verses = [], [], []
         self.books = ()
         self.book_index, self.chapter_number = 0, None
-        self.verse_number=None
+        self.verse_number = None
         self.book_rows, self.chapter_buttons = {}, {}
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self.direct = Gtk.Entry(placeholder_text=tr('John 3:16 · Jn 3 · Ps 23'),
-                                width_chars=12,max_width_chars=24,hexpand=True)
-        self.direct.update_property([Gtk.AccessibleProperty.LABEL],[tr('Direct reference')])
-        self.direct.connect('activate',lambda *_:self.commit())
-        self._book_choices=();self._completion_preedit=False
-        self.completions=Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE,activate_on_single_click=True,visible=False)
-        self.completions.add_css_class('boxed-list')
-        self.completions.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book suggestions')])
-        self.completions.connect('row-activated',lambda _,row:self.accept_book(row.get_index()))
-        self.direct.set_tooltip_text(tr('Tab completes the selected book. Enter opens the passage.'))
-        self.direct.connect('changed',self.complete_book)
-        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        keys.connect('key-pressed',self.completion_key);self.direct.add_controller(keys)
+        self.direct = Gtk.Entry(
+            placeholder_text=tr("John 3:16 · Jn 3 · Ps 23"),
+            width_chars=12,
+            max_width_chars=24,
+            hexpand=True,
+        )
+        self.direct.update_property([Gtk.AccessibleProperty.LABEL], [tr("Direct reference")])
+        self.direct.connect("activate", lambda *_: self.commit())
+        self._book_choices = ()
+        self._completion_preedit = False
+        self.completions = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.SINGLE, activate_on_single_click=True, visible=False
+        )
+        self.completions.add_css_class("boxed-list")
+        self.completions.update_property([Gtk.AccessibleProperty.LABEL], [tr("Book suggestions")])
+        self.completions.connect("row-activated", lambda _, row: self.accept_book(row.get_index()))
+        self.direct.set_tooltip_text(
+            tr("Tab completes the selected book. Enter opens the passage.")
+        )
+        self.direct.connect("changed", self.complete_book)
+        keys = Gtk.EventControllerKey()
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self.completion_key)
+        self.direct.add_controller(keys)
         from gi.repository import GObject
-        delegate=self.direct.get_delegate()
-        if GObject.signal_lookup('preedit-changed',delegate.__gtype__):delegate.connect('preedit-changed',self.completion_preedit)
-        self.status = Gtk.Label(wrap=True,xalign=0,visible=False,max_width_chars=32)
-        self.version = self.dropdown('Version', self.version_changed)
+
+        delegate = self.direct.get_delegate()
+        if GObject.signal_lookup("preedit-changed", delegate.__gtype__):
+            delegate.connect("preedit-changed", self.completion_preedit)
+        self.status = Gtk.Label(wrap=True, xalign=0, visible=False, max_width_chars=32)
+        self.version = self.dropdown("Version", self.version_changed)
         # Kept as an internal source model for navigation/search, not a duplicate chooser.
-        self.columns = Gtk.Box(spacing=16,vexpand=True)
+        self.columns = Gtk.Box(spacing=16, vexpand=True)
         self.left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.left.add_css_class('navigation-books')
-        self.search = Gtk.SearchEntry(placeholder_text=tr('Search books'))
-        self.search.update_property([Gtk.AccessibleProperty.LABEL], [tr('Search books')])
-        self.search.connect('search-changed', self.filter_books)
+        self.left.add_css_class("navigation-books")
+        self.search = Gtk.SearchEntry(placeholder_text=tr("Search books"))
+        self.search.update_property([Gtk.AccessibleProperty.LABEL], [tr("Search books")])
+        self.search.connect("search-changed", self.filter_books)
         self.left.append(self.search)
-        self.book_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE,
-                                     activate_on_single_click=True)
-        self.book_list.add_css_class('navigation-sidebar')
-        self.book_list.connect('row-activated', self.book_changed)
+        self.book_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.SINGLE, activate_on_single_click=True
+        )
+        self.book_list.add_css_class("navigation-sidebar")
+        self.book_list.connect("row-activated", self.book_changed)
         book_keys = Gtk.EventControllerKey()
         book_keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        book_keys.connect('key-released', self.book_key_released)
+        book_keys.connect("key-released", self.book_key_released)
         self.book_list.add_controller(book_keys)
-        self.book_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                              vexpand=True, propagate_natural_height=False)
+        self.book_scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True, propagate_natural_height=False
+        )
         self.book_scroll.set_child(self.book_list)
         self.left.append(self.book_scroll)
-        self.no_books = Gtk.Label(label=tr('No matching book.'), wrap=True, visible=False)
+        self.no_books = Gtk.Label(label=tr("No matching book."), wrap=True, visible=False)
         self.left.append(self.no_books)
         self.columns.append(self.left)
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, hexpand=True)
-        self.book_title = Gtk.Label(xalign=0, wrap=True, max_width_chars=22,hexpand=True,width_chars=1)
-        self.book_title.add_css_class('heading')
+        self.book_title = Gtk.Label(
+            xalign=0, wrap=True, max_width_chars=22, hexpand=True, width_chars=1
+        )
+        self.book_title.add_css_class("heading")
         right.append(self.book_title)
-        book_header=(Adw.WrapBox(child_spacing=6,line_spacing=4,natural_line_length=240)
-                     if hasattr(Adw,'WrapBox') else Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6))
-        right.remove(self.book_title);book_header.append(self.book_title);right.append(book_header)
-        self.introduction_button=Gtk.Button(label=tr('Introduction'),valign=Gtk.Align.CENTER)
-        self.introduction_button.add_css_class('flat')
-        self.introduction_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('Book introduction')])
-        self.introduction_button.connect('clicked',self.open_introduction)
+        book_header = (
+            Adw.WrapBox(child_spacing=6, line_spacing=4, natural_line_length=240)
+            if hasattr(Adw, "WrapBox")
+            else Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        )
+        right.remove(self.book_title)
+        book_header.append(self.book_title)
+        right.append(book_header)
+        self.introduction_button = Gtk.Button(label=tr("Introduction"), valign=Gtk.Align.CENTER)
+        self.introduction_button.add_css_class("flat")
+        self.introduction_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], [tr("Book introduction")]
+        )
+        self.introduction_button.connect("clicked", self.open_introduction)
         book_header.append(self.introduction_button)
-        self.chapter_grid = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
-                                         min_children_per_line=2, max_children_per_line=5,
-                                         column_spacing=8, row_spacing=8,
-                                         homogeneous=True, valign=Gtk.Align.START)
-        self.chapter_grid.update_property([Gtk.AccessibleProperty.LABEL], [tr('Chapters')])
-        self.chapter_scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                                 min_content_height=120, max_content_height=300,
-                                                 propagate_natural_height=False, vexpand=True)
+        self.chapter_grid = Gtk.FlowBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            min_children_per_line=2,
+            max_children_per_line=5,
+            column_spacing=8,
+            row_spacing=8,
+            homogeneous=True,
+            valign=Gtk.Align.START,
+        )
+        self.chapter_grid.update_property([Gtk.AccessibleProperty.LABEL], [tr("Chapters")])
+        self.chapter_scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            min_content_height=120,
+            max_content_height=300,
+            propagate_natural_height=False,
+            vexpand=True,
+        )
         self.chapter_scroll.set_child(self.chapter_grid)
         right.append(self.chapter_scroll)
         self.columns.append(right)
-        self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        books_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True)
+        self.pages = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
+        books_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
         books_page.append(self.columns)
-        self.pages.add_titled(books_page,'books',tr('Books'))
-        self.history_list=Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-        history_scroll=Gtk.ScrolledWindow(min_content_height=220,max_content_height=380,propagate_natural_height=True)
+        self.pages.add_titled(books_page, "books", tr("Books"))
+        self.history_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        history_scroll = Gtk.ScrolledWindow(
+            min_content_height=220, max_content_height=380, propagate_natural_height=True
+        )
         history_scroll.set_child(self.history_list)
-        self.pages.add_titled(history_scroll,'history',tr('History'))
-        passage=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        reference_row=Gtk.Box(spacing=6)
+        self.pages.add_titled(history_scroll, "history", tr("History"))
+        passage = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        reference_row = Gtk.Box(spacing=6)
         reference_row.append(self.direct)
-        self.history_button=Gtk.ToggleButton(icon_name='document-open-recent-symbolic',tooltip_text=tr('History'))
-        self.history_button.update_property([Gtk.AccessibleProperty.LABEL],[tr('History')])
-        self.history_button.connect('toggled',lambda b:self.pages.set_visible_child_name('history' if b.get_active() else 'books'))
+        self.history_button = Gtk.ToggleButton(
+            icon_name="document-open-recent-symbolic", tooltip_text=tr("History")
+        )
+        self.history_button.update_property([Gtk.AccessibleProperty.LABEL], [tr("History")])
+        self.history_button.connect(
+            "toggled",
+            lambda b: self.pages.set_visible_child_name("history" if b.get_active() else "books"),
+        )
         reference_row.append(self.history_button)
-        passage.append(reference_row);passage.append(self.completions);passage.append(self.status);passage.append(self.pages)
+        passage.append(reference_row)
+        passage.append(self.completions)
+        passage.append(self.status)
+        passage.append(self.pages)
         self.content.append(passage)
-        self.scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                         propagate_natural_width=False,
-                                         propagate_natural_height=True)
+        self.scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_width=False,
+            propagate_natural_height=True,
+        )
         self.scroll.set_child(self.content)
         self.set_child(self.scroll)
-        self.connect('notify::visible', self.visibility_changed)
-        self.connect('map',lambda *_:self.reveal_book())
-        preview_keys=Gtk.EventControllerKey()
+        self.connect("notify::visible", self.visibility_changed)
+        self.connect("map", lambda *_: self.reveal_book())
+        preview_keys = Gtk.EventControllerKey()
         preview_keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        preview_keys.connect('key-pressed',self.preview_key_pressed)
+        preview_keys.connect("key-pressed", self.preview_key_pressed)
         self.add_controller(preview_keys)
 
-    def preview_key_pressed(self,controller,key,code,state):
-        if key!=Gdk.KEY_Escape:return False
-        if self._completion_preedit:return False
-        event=controller.get_current_event()
+    def preview_key_pressed(self, controller, key, code, state):
+        if key != Gdk.KEY_Escape:
+            return False
+        if self._completion_preedit:
+            return False
+        event = controller.get_current_event()
         # An inner native chooser owns its own Escape before the parent picker.
-        if event and event.get_surface() not in (self.get_surface(),self.owner.get_surface()):return False
-        if self.completions.get_visible():self.hide_completions();return True
+        if event and event.get_surface() not in (self.get_surface(), self.owner.get_surface()):
+            return False
+        if self.completions.get_visible():
+            self.hide_completions()
+            return True
         if self.owner.reference_preview.popover:
-            self.owner.reference_preview.dismiss();return True
-        self.popdown();return True
+            self.owner.reference_preview.dismiss()
+            return True
+        self.popdown()
+        return True
 
     def hide_completions(self):
-        self.completions.set_visible(False);self._book_choices=()
+        self.completions.set_visible(False)
+        self._book_choices = ()
 
-    def completion_preedit(self,_,text):
-        self._completion_preedit=bool(text)
-        if text:self.hide_completions()
-        else:self.complete_book()
+    def completion_preedit(self, _, text):
+        self._completion_preedit = bool(text)
+        if text:
+            self.hide_completions()
+        else:
+            self.complete_book()
 
-    def complete_book(self,*_):
+    def complete_book(self, *_):
         if self._updating or self._completion_preedit or not self.get_visible() or not self.reader:
-            self.hide_completions();return
+            self.hide_completions()
+            return
         from .book_names import book_suggestions
-        choices=book_suggestions(self.direct.get_text(),self.books,LANGUAGE,
-            lambda prefix:self.reader.key(prefix+' 1:1').getOSISBookName())
-        while self.completions.get_first_child():self.completions.remove(self.completions.get_first_child())
-        self._book_choices=choices
-        for name,_ in choices:
-            self.completions.append(Gtk.Label(label=name,xalign=0,margin_start=10,margin_end=10,margin_top=4,margin_bottom=4))
+
+        choices = book_suggestions(
+            self.direct.get_text(),
+            self.books,
+            LANGUAGE,
+            lambda prefix: self.reader.key(prefix + " 1:1").getOSISBookName(),
+        )
+        while self.completions.get_first_child():
+            self.completions.remove(self.completions.get_first_child())
+        self._book_choices = choices
+        for name, _ in choices:
+            self.completions.append(
+                Gtk.Label(
+                    label=name,
+                    xalign=0,
+                    margin_start=10,
+                    margin_end=10,
+                    margin_top=4,
+                    margin_bottom=4,
+                )
+            )
         self.completions.set_visible(bool(choices))
-        if choices:self.completions.select_row(self.completions.get_row_at_index(0))
+        if choices:
+            self.completions.select_row(self.completions.get_row_at_index(0))
 
-    def accept_book(self,index=None):
-        if self._completion_preedit or not self._book_choices:return False
-        row=self.completions.get_selected_row()
-        index=index if index is not None else row.get_index() if row else 0
-        if not 0<=index<len(self._book_choices):return False
-        value=self._book_choices[index][1];self.direct.set_text(value);self.hide_completions()
-        self.direct.grab_focus();self.direct.set_position(-1);return True
+    def accept_book(self, index=None):
+        if self._completion_preedit or not self._book_choices:
+            return False
+        row = self.completions.get_selected_row()
+        index = index if index is not None else row.get_index() if row else 0
+        if not 0 <= index < len(self._book_choices):
+            return False
+        value = self._book_choices[index][1]
+        self.direct.set_text(value)
+        self.hide_completions()
+        self.direct.grab_focus()
+        self.direct.set_position(-1)
+        return True
 
-    def completion_key(self,_,key,code,state):
-        if self._completion_preedit or state&(Gdk.ModifierType.SHIFT_MASK|Gdk.ModifierType.CONTROL_MASK|Gdk.ModifierType.ALT_MASK):return False
-        if not self.completions.get_visible():return False
-        if key in (Gdk.KEY_Tab,Gdk.KEY_KP_Tab):return self.accept_book()
-        if key in (Gdk.KEY_Up,Gdk.KEY_Down):
-            row=self.completions.get_selected_row();index=row.get_index() if row else 0
-            index=(index+(1 if key==Gdk.KEY_Down else -1))%len(self._book_choices)
-            self.completions.select_row(self.completions.get_row_at_index(index));return True
+    def completion_key(self, _, key, code, state):
+        if self._completion_preedit or state & (
+            Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK
+        ):
+            return False
+        if not self.completions.get_visible():
+            return False
+        if key in (Gdk.KEY_Tab, Gdk.KEY_KP_Tab):
+            return self.accept_book()
+        if key in (Gdk.KEY_Up, Gdk.KEY_Down):
+            row = self.completions.get_selected_row()
+            index = row.get_index() if row else 0
+            index = (index + (1 if key == Gdk.KEY_Down else -1)) % len(self._book_choices)
+            self.completions.select_row(self.completions.get_row_at_index(index))
+            return True
         return False
 
     def dropdown(self, label, callback):
         dropdown = Gtk.DropDown(enable_search=True, hexpand=True)
         dropdown.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
         factory = Gtk.SignalListItemFactory()
-        factory.connect('setup', lambda _, item: item.set_child(Gtk.Label(
-            xalign=0, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=26)))
-        factory.connect('bind', lambda _, item: item.get_child().set_text(item.get_item().get_string()))
+        factory.connect(
+            "setup",
+            lambda _, item: item.set_child(
+                Gtk.Label(
+                    xalign=0, ellipsize=Pango.EllipsizeMode.END, width_chars=1, max_width_chars=26
+                )
+            ),
+        )
+        factory.connect(
+            "bind", lambda _, item: item.get_child().set_text(item.get_item().get_string())
+        )
         dropdown.set_factory(factory)
         dropdown.set_list_factory(factory)
-        dropdown.connect('notify::selected', callback)
+        dropdown.connect("notify::selected", callback)
         return dropdown
 
     def refresh_history(self):
-        child=self.history_list.get_first_child()
+        child = self.history_list.get_first_child()
         while child:
-            next_child=child.get_next_sibling();self.history_list.remove(child);child=next_child
-        tab=self.owner.active_tab
-        if not tab:return
+            next_child = child.get_next_sibling()
+            self.history_list.remove(child)
+            child = next_child
+        tab = self.owner.active_tab
+        if not tab:
+            return
         from .notes_window import passage_label
+
         if not tab.state.history:
-            self.history_list.append(Gtk.Label(label=tr('No passage history yet.'),margin_top=16,margin_bottom=16))
-        for index in range(len(tab.state.history)-1,-1,-1):
-            entry=tab.state.history[index]
-            label=passage_label(entry['reference'])+' — '+module_name(entry['resource'])
-            button=Gtk.Button(label=label,halign=Gtk.Align.FILL)
-            button.add_css_class('flat')
-            button.connect('clicked',lambda *_,i=index:self.open_history(i))
+            self.history_list.append(
+                Gtk.Label(label=tr("No passage history yet."), margin_top=16, margin_bottom=16)
+            )
+        for index in range(len(tab.state.history) - 1, -1, -1):
+            entry = tab.state.history[index]
+            label = passage_label(entry["reference"]) + " — " + module_name(entry["resource"])
+            button = Gtk.Button(label=label, halign=Gtk.Align.FILL)
+            button.add_css_class("flat")
+            button.connect("clicked", lambda *_, i=index: self.open_history(i))
             self.history_list.append(button)
 
-    def open_history(self,index):
-        if self.owner.active_tab.travel(index):self.sync(force=True)
+    def open_history(self, index):
+        if self.owner.active_tab.travel(index):
+            self.sync(force=True)
         self.refresh_history()
 
     def visibility_changed(self, *_):
         if self.get_visible():
-            if self.owner.search_popover.get_visible():self.owner.search_popover.popdown()
-            self.pages.set_visible_child_name('books')
+            if self.owner.search_popover.get_visible():
+                self.owner.search_popover.popdown()
+            self.pages.set_visible_child_name("books")
             self.history_button.set_active(False)
             self.refresh_history()
-            self.search.set_text('')
+            self.search.set_text("")
             self.sync(force=True)
             self.adapt()
             if not self._resize_id:
@@ -217,8 +319,9 @@ class PassagePopover(Gtk.Popover):
         elif self._resize_id:
             GLib.source_remove(self._resize_id)
             self._resize_id = 0
-            anchor=self.get_parent()
-            if anchor and anchor.get_mapped():anchor.grab_focus()
+            anchor = self.get_parent()
+            if anchor and anchor.get_mapped():
+                anchor.grab_focus()
 
     def adapt(self):
         if not self.get_visible():
@@ -228,18 +331,21 @@ class PassagePopover(Gtk.Popover):
         if size != self._layout_stamp:
             self._layout_stamp = size
             narrow = size[0] < 600
-            self.columns.set_orientation(Gtk.Orientation.VERTICAL if narrow else Gtk.Orientation.HORIZONTAL)
+            self.columns.set_orientation(
+                Gtk.Orientation.VERTICAL if narrow else Gtk.Orientation.HORIZONTAL
+            )
             self.left.set_size_request(-1 if narrow else 210, -1)
             self.book_scroll.set_max_content_height(-1)
             self.book_scroll.set_min_content_height(60 if narrow else 100)
-            if narrow:self.book_scroll.set_max_content_height(100)
+            if narrow:
+                self.book_scroll.set_max_content_height(100)
             self.content.set_size_request(min(680, max(280, size[0] - 64)), -1)
-            available=min(540,max(160,size[1]-140))
+            available = min(540, max(160, size[1] - 140))
             self.scroll.set_min_content_height(-1)
             self.scroll.set_max_content_height(available)
             self.scroll.set_min_content_height(available)
-            self.scroll.set_size_request(-1,available)
-            self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.NEVER)
+            self.scroll.set_size_request(-1, available)
+            self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
             self.chapter_scroll.set_min_content_height(60 if narrow else 100)
             self.chapter_scroll.set_max_content_height(-1)
         return True
@@ -248,7 +354,7 @@ class PassagePopover(Gtk.Popover):
         tab = self.owner.active_tab
         if tab is None or self._updating:
             return
-        installed = self.owner.library.installed('bible')
+        installed = self.owner.library.installed("bible")
         stamp = (id(tab), tab.state.resource, tab.state.reference, tuple(installed))
         if not force and stamp == self._stamp:
             return
@@ -257,14 +363,22 @@ class PassagePopover(Gtk.Popover):
         self.names = installed[:]
         if tab.state.resource and tab.state.resource not in installed:
             self.names.insert(0, tab.state.resource)
-        self.version.set_model(Gtk.StringList.new([
-            name if name in installed else f'{name} ({tr("Missing translation")})' for name in self.names]))
+        self.version.set_model(
+            Gtk.StringList.new(
+                [
+                    name if name in installed else f"{name} ({tr('Missing translation')})"
+                    for name in self.names
+                ]
+            )
+        )
         self.version.set_sensitive(bool(self.names))
-        self.version.set_selected(self.names.index(tab.state.resource) if tab.state.resource in self.names else 0)
+        self.version.set_selected(
+            self.names.index(tab.state.resource) if tab.state.resource in self.names else 0
+        )
         self._updating = False
         self.load_version(tab.state.reference)
 
-    def message(self, text=''):
+    def message(self, text=""):
         self.status.set_text(text)
         self.status.set_visible(bool(text))
 
@@ -277,22 +391,25 @@ class PassagePopover(Gtk.Popover):
         self.reader, self.books = None, ()
         try:
             name = self.selected_resource()
-            if name in self.owner.library.installed('bible'):
+            if name in self.owner.library.installed("bible"):
                 tab = self.owner.active_tab
-                self.reader = tab.reader if tab and tab.state.resource == name and tab.reader else Reader(
-                    self.owner.library.root / name, name)
+                self.reader = (
+                    tab.reader
+                    if tab and tab.state.resource == name and tab.reader
+                    else Reader(self.owner.library.root / name, name)
+                )
                 self.books = self.reader.books
-                self.message('' if self.books else tr('No readable passage in this translation.'))
+                self.message("" if self.books else tr("No readable passage in this translation."))
             else:
-                self.message(tr('Choose a translation') if not name else tr('Missing translation'))
+                self.message(tr("Choose a translation") if not name else tr("Missing translation"))
         except Exception as error:
-            self.message(f'{tr("Unable to read this passage.")} {error}')
+            self.message(f"{tr('Unable to read this passage.')} {error}")
         try:
             canonical = self.reader.key(reference).getOSISRef() if self.reader else reference
-            code, chapter, verse = canonical.split('.')
-            chapter, verse = chapter if '_' in chapter else int(chapter), int(verse)
+            code, chapter, verse = canonical.split(".")
+            chapter, verse = chapter if "_" in chapter else int(chapter), int(verse)
         except (ValueError, AttributeError):
-            code, chapter, verse = '', 1, 1
+            code, chapter, verse = "", 1, 1
         codes = [book.code for book in self.books]
         self.book_index = codes.index(code) if code in codes else 0
         self.filter_books()
@@ -312,19 +429,30 @@ class PassagePopover(Gtk.Popover):
         query = normalized(self.search.get_text())
         testament = None
         for index, book in enumerate(self.books):
-            if query not in normalized(f'{self.book_name(book)} {book.name} {book.code}'):
+            if query not in normalized(f"{self.book_name(book)} {book.name} {book.code}"):
                 continue
             chapter = next(iter(book.chapters))
-            current = self.reader.key(f'{book.code}.{chapter}.{book.chapters[chapter][0]}').getTestament()
+            current = self.reader.key(
+                f"{book.code}.{chapter}.{book.chapters[chapter][0]}"
+            ).getTestament()
             current = ord(current) if isinstance(current, str) else int(current)
             if current != testament:
-                heading = Gtk.Label(label=tr('Old Testament' if current == 1 else 'New Testament'),
-                                    xalign=0, margin_top=8, margin_bottom=4, wrap=True)
-                heading.add_css_class('heading')
-                row = Gtk.ListBoxRow(selectable=False, activatable=False, focusable=False, child=heading)
+                heading = Gtk.Label(
+                    label=tr("Old Testament" if current == 1 else "New Testament"),
+                    xalign=0,
+                    margin_top=8,
+                    margin_bottom=4,
+                    wrap=True,
+                )
+                heading.add_css_class("heading")
+                row = Gtk.ListBoxRow(
+                    selectable=False, activatable=False, focusable=False, child=heading
+                )
                 self.book_list.append(row)
                 testament = current
-            label = Gtk.Label(label=self.book_name(book), xalign=0, ellipsize=Pango.EllipsizeMode.END)
+            label = Gtk.Label(
+                label=self.book_name(book), xalign=0, ellipsize=Pango.EllipsizeMode.END
+            )
             row = Gtk.ListBoxRow(child=label)
             row.book_index = index
             self.book_list.append(row)
@@ -339,6 +467,7 @@ class PassagePopover(Gtk.Popover):
         if self._reveal_id:
             return
         frames = 0
+
         def reveal(*_):
             nonlocal frames
             frames += 1
@@ -349,15 +478,19 @@ class PassagePopover(Gtk.Popover):
                 if book is not None:
                     self.book_list.select_row(book)
                 chapter = self.chapter_buttons.get(self.chapter_number)
-                for widget, container, scroll in ((book, self.book_list, self.book_scroll),
-                                                    (chapter, self.chapter_grid, self.chapter_scroll)):
+                for widget, container, scroll in (
+                    (book, self.book_list, self.book_scroll),
+                    (chapter, self.chapter_grid, self.chapter_scroll),
+                ):
                     if widget is not None and widget.get_mapped():
                         found, bounds = widget.compute_bounds(container)
                         if found:
                             scroll.get_vadjustment().clamp_page(
-                                bounds.origin.y, bounds.origin.y + bounds.size.height)
+                                bounds.origin.y, bounds.origin.y + bounds.size.height
+                            )
             self._reveal_id = 0
             return False
+
         self._reveal_id = self.add_tick_callback(reveal)
 
     def populate_chapters(self, preferred=1, verse=1):
@@ -366,82 +499,114 @@ class PassagePopover(Gtk.Popover):
         self.chapter_buttons = {}
         book = self.books[self.book_index] if self.book_index < len(self.books) else None
         self.introduction_button.set_sensitive(bool(book and self.reader))
-        try:introduction=self.reader.introduction(book.code) if book and self.reader else None
-        except (ValueError,RuntimeError):introduction=None
-        self.introduction_button.set_visible(introduction is not None and bool(''.join(introduction.itertext()).strip()))
-        self.book_title.set_text(self.book_name(book) if book else tr('Choose a passage'))
+        try:
+            introduction = self.reader.introduction(book.code) if book and self.reader else None
+        except (ValueError, RuntimeError):
+            introduction = None
+        self.introduction_button.set_visible(
+            introduction is not None and bool("".join(introduction.itertext()).strip())
+        )
+        self.book_title.set_text(self.book_name(book) if book else tr("Choose a passage"))
         self.chapters = list(book.chapters) if book else []
-        self.chapter_number = preferred if preferred in self.chapters else (self.chapters[0] if self.chapters else None)
+        self.chapter_number = (
+            preferred
+            if preferred in self.chapters
+            else (self.chapters[0] if self.chapters else None)
+        )
         for chapter in self.chapters:
             button = Gtk.ToggleButton(label=str(chapter), height_request=32)
-            button.update_property([Gtk.AccessibleProperty.LABEL], [f'{tr("Chapter")} {chapter}'])
-            button.connect('clicked', lambda _, number=chapter: self.chapter_changed(number))
+            button.update_property([Gtk.AccessibleProperty.LABEL], [f"{tr('Chapter')} {chapter}"])
+            button.connect("clicked", lambda _, number=chapter: self.chapter_changed(number))
             self.chapter_buttons[chapter] = button
             self.chapter_grid.append(button)
         self.populate_verses(verse)
         self.mark_chapter()
         self.reveal_book()
 
-    def open_introduction(self,*_):
-        if self.reader and self.book_index<len(self.books):
+    def open_introduction(self, *_):
+        if self.reader and self.book_index < len(self.books):
             from .editorial_view import show_introduction
-            reader,book=self.reader,self.books[self.book_index].code
-            self.popdown();show_introduction(self.owner,reader,book)
+
+            reader, book = self.reader, self.books[self.book_index].code
+            self.popdown()
+            show_introduction(self.owner, reader, book)
 
     def mark_chapter(self):
         tab = self.owner.active_tab
-        code = self.books[self.book_index].code if self.books else ''
+        code = self.books[self.book_index].code if self.books else ""
         for chapter, button in self.chapter_buttons.items():
-            selected = chapter==self.chapter_number
+            selected = chapter == self.chapter_number
             button.set_active(selected)
             if selected:
-                button.add_css_class('suggested-action')
+                button.add_css_class("suggested-action")
             else:
-                button.remove_css_class('suggested-action')
+                button.remove_css_class("suggested-action")
 
     def populate_verses(self, preferred=1):
-        self.verses = list(self.books[self.book_index].chapters[self.chapter_number]) if self.chapters else []
+        self.verses = (
+            list(self.books[self.book_index].chapters[self.chapter_number]) if self.chapters else []
+        )
         # Preserve the current exact reference for typed input/restoration;
         # graphical navigation commits a chapter's actual first verse.
-        self.verse_number=preferred if preferred in self.verses else (self.verses[0] if self.verses else None)
+        self.verse_number = (
+            preferred if preferred in self.verses else (self.verses[0] if self.verses else None)
+        )
 
     def selected_reference(self):
-        if self.book_index < len(self.books) and self.chapter_number and self.verse_number is not None:
-            return f'{self.books[self.book_index].code}.{self.chapter_number}.{self.verse_number}'
-        return ''
+        if (
+            self.book_index < len(self.books)
+            and self.chapter_number
+            and self.verse_number is not None
+        ):
+            return f"{self.books[self.book_index].code}.{self.chapter_number}.{self.verse_number}"
+        return ""
 
     def update_direct(self):
         from .reference_preview import passage_title
-        reference=self.selected_reference()
-        self.direct.set_text(passage_title(reference,system=self.reader.versification) if reference and self.reader else '')
+
+        reference = self.selected_reference()
+        self.direct.set_text(
+            passage_title(reference, system=self.reader.versification)
+            if reference and self.reader
+            else ""
+        )
 
     def open_selected(self):
         try:
-            self.apply_reference(self.selected_reference());self.message();self.popdown()
+            self.apply_reference(self.selected_reference())
+            self.message()
+            self.popdown()
             self.owner.active_tab.text.grab_focus()
-        except (ValueError,IndexError) as error:self.message(str(error))
+        except (ValueError, IndexError) as error:
+            self.message(str(error))
 
     def apply_reference(self, reference):
         if not self.reader:
-            raise ValueError(tr('This passage is not available in this translation.'))
-        from .book_names import canonical_input,FRENCH
-        normalized_reference=canonical_input(reference)
-        book=normalized_reference.split('.')[0]
+            raise ValueError(tr("This passage is not available in this translation."))
+        from .book_names import canonical_input, FRENCH
+
+        normalized_reference = canonical_input(reference)
+        book = normalized_reference.split(".")[0]
         if book in FRENCH and book not in {b.code for b in self.reader.books}:
-            raise ValueError(tr('This passage is not available in this translation.'))
-        try:key=self.reader.key(reference)
+            raise ValueError(tr("This passage is not available in this translation."))
+        try:
+            key = self.reader.key(reference)
         except ValueError:
-            raise ValueError(tr('Unrecognized or out-of-range reference.')) from None
-        reference=key.getOSISRef()
+            raise ValueError(tr("Unrecognized or out-of-range reference.")) from None
+        reference = key.getOSISRef()
         if not self.reader.has_reference(reference):
-            raise ValueError(tr('This passage is not available in this translation.'))
+            raise ValueError(tr("This passage is not available in this translation."))
         self._updating = True
         try:
             if not self.owner.navigate_selection(self.selected_resource(), reference):
-                raise ValueError(tr('Unable to read this passage.'))
+                raise ValueError(tr("Unable to read this passage."))
             tab = self.owner.active_tab
-            self._stamp = (id(tab), tab.state.resource, tab.state.reference,
-                           tuple(self.owner.library.installed('bible')))
+            self._stamp = (
+                id(tab),
+                tab.state.resource,
+                tab.state.reference,
+                tuple(self.owner.library.installed("bible")),
+            )
         finally:
             self._updating = False
             self.mark_chapter()
@@ -452,7 +617,7 @@ class PassagePopover(Gtk.Popover):
             self.apply_reference(self.selected_reference())
             self.message()
         except Exception as error:
-            self.message(f'{tr("Unable to read this passage.")} {error}')
+            self.message(f"{tr('Unable to read this passage.')} {error}")
 
     def version_changed(self, *_):
         if self._updating:
@@ -464,15 +629,21 @@ class PassagePopover(Gtk.Popover):
         try:
             self.load_version(reference)
             if not self.reader:
-                raise ValueError(tr('Missing translation'))
+                raise ValueError(tr("Missing translation"))
             if previous_reader and previous_reader.versification != self.reader.versification:
-                self.message(tr('Different versifications. Automatic alignment is unavailable.') + '\n' +
-                             tr('Choose a chapter in this translation to start reading.'))
+                self.message(
+                    tr("Different versifications. Automatic alignment is unavailable.")
+                    + "\n"
+                    + tr("Choose a chapter in this translation to start reading.")
+                )
                 return
-            message = ''
+            message = ""
             if not self.reader.has_reference(reference):
-                self.message(tr('This passage is not available in this translation.') + '\n' +
-                             tr('Choose a chapter in this translation to start reading.'))
+                self.message(
+                    tr("This passage is not available in this translation.")
+                    + "\n"
+                    + tr("Choose a chapter in this translation to start reading.")
+                )
                 return
             self.apply_reference(reference)
             self.message(message)
@@ -480,26 +651,44 @@ class PassagePopover(Gtk.Popover):
             # Keep the dropdown model alive during its selected notification.
             # Replacing that model from inside this signal crashes older GTK.
             self._updating = True
-            self.version.set_selected(self.names.index(tab.state.resource)
-                                      if tab.state.resource in self.names else Gtk.INVALID_LIST_POSITION)
+            self.version.set_selected(
+                self.names.index(tab.state.resource)
+                if tab.state.resource in self.names
+                else Gtk.INVALID_LIST_POSITION
+            )
             self.load_version(reference)
             self._updating = False
             self.message(str(error))
 
     def book_changed(self, _, row):
-        if (not self._updating and row and row.get_parent() is self.book_list
-                and hasattr(row, 'book_index') and row.book_index != self.book_index):
+        if (
+            not self._updating
+            and row
+            and row.get_parent() is self.book_list
+            and hasattr(row, "book_index")
+            and row.book_index != self.book_index
+        ):
             self._updating = True
             self.book_list.select_row(row)
             self.book_index = row.book_index
             self.populate_chapters()
             self._updating = False
             self.update_direct()
-            if len(self.chapters)==1 and self.reader.key(self.selected_reference()).getChapterMax()==1:self.open_selected()
+            if (
+                len(self.chapters) == 1
+                and self.reader.key(self.selected_reference()).getChapterMax() == 1
+            ):
+                self.open_selected()
 
     def book_key_released(self, _, keyval, keycode, state):
-        if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Home, Gdk.KEY_End,
-                      Gdk.KEY_Page_Up, Gdk.KEY_Page_Down):
+        if keyval in (
+            Gdk.KEY_Up,
+            Gdk.KEY_Down,
+            Gdk.KEY_Home,
+            Gdk.KEY_End,
+            Gdk.KEY_Page_Up,
+            Gdk.KEY_Page_Down,
+        ):
             self.book_changed(self.book_list, self.book_list.get_selected_row())
 
     def chapter_changed(self, number):
@@ -508,7 +697,8 @@ class PassagePopover(Gtk.Popover):
             self.chapter_number = number
             self.populate_verses()
             self._updating = False
-            self.mark_chapter();self.update_direct()
+            self.mark_chapter()
+            self.update_direct()
             self.open_selected()
 
     def commit(self):
@@ -516,10 +706,11 @@ class PassagePopover(Gtk.Popover):
             self.apply_reference(self.direct.get_text())
             self.sync(force=True)
             self.message()
-            self.popdown();self.owner.active_tab.text.grab_focus()
+            self.popdown()
+            self.owner.active_tab.text.grab_focus()
         except Exception as error:
-            self.message(f'{tr("Unable to read this passage.")} {error}')
+            self.message(f"{tr('Unable to read this passage.')} {error}")
 
     def open_library(self, *_):
         self.popdown()
-        self.owner.open_library('bible')
+        self.owner.open_library("bible")

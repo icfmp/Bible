@@ -1,4 +1,5 @@
 """Read-only passage annotation cards opening the shared note popup."""
+
 from gi.repository import Gtk, Pango, GLib, Gdk
 from .i18n import tr
 from .highlights import COLORS
@@ -10,313 +11,665 @@ from .annotation_card import AnnotationPreview
 
 class PassageNotes(Gtk.Box):
     def __init__(self, owner):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=10,
-                         margin_start=12,margin_end=12,margin_top=12,margin_bottom=16,vexpand=True)
-        self.owner=owner;self.annotations=PassageAnnotations(owner.library)
-        self.context=None;self._stamp=None;self.rows=[];self.marks=[];self.cards=[];self.editor=None
-        self.heading=Gtk.Label(xalign=0,wrap=True)
-        self.following=True;self._follow_idle=0;self._follow_serial=0;self._card_targets=[]
-        self.status=Gtk.Label(xalign=0,wrap=True,visible=False)
-        self.status.add_css_class('dim-label')
-        self.status.connect('notify::label',lambda *_:self.status.set_visible(bool(self.status.get_text())))
+        super().__init__(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=10,
+            margin_start=12,
+            margin_end=12,
+            margin_top=12,
+            margin_bottom=16,
+            vexpand=True,
+        )
+        self.owner = owner
+        self.annotations = PassageAnnotations(owner.library)
+        self.context = None
+        self._stamp = None
+        self.rows = []
+        self.marks = []
+        self.cards = []
+        self.editor = None
+        self.heading = Gtk.Label(xalign=0, wrap=True)
+        self.following = True
+        self._follow_idle = 0
+        self._follow_serial = 0
+        self._card_targets = []
+        self.status = Gtk.Label(xalign=0, wrap=True, visible=False)
+        self.status.add_css_class("dim-label")
+        self.status.connect(
+            "notify::label", lambda *_: self.status.set_visible(bool(self.status.get_text()))
+        )
         self.append(self.status)
         from .study_empty import empty_state
-        self.empty_page=empty_state('No annotations','No personal notes or highlights in this chapter.','notebook-symbolic')
-        self.empty_page.set_visible(False);self.append(self.empty_page)
-        self.list=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);self.append(self.list)
+
+        self.empty_page = empty_state(
+            "No annotations",
+            "No personal notes or highlights in this chapter.",
+            "notebook-symbolic",
+        )
+        self.empty_page.set_visible(False)
+        self.append(self.empty_page)
+        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.append(self.list)
 
     def close(self):
         self.cancel_follow()
 
     def open_collection(self):
-        source_editor=self.editor
-        tab=self.owner.active_tab;reader=tab.reader if tab else None
-        start,end=tab.selected_passage() if reader else (None,None)
-        notes=sorted(self.annotations.notes(reader,start,end,self.owner.notes_store),key=lambda note:(note.created,note.id)) if reader and self.owner.notes_store else []
-        marks=self.annotations.highlights(reader,start,end,self.owner.highlights) if reader else []
-        fallback=(('note',notes[0].id) if notes else ('highlight',marks[0]['system'],marks[0]['reference']) if marks else None)
+        source_editor = self.editor
+        tab = self.owner.active_tab
+        reader = tab.reader if tab else None
+        start, end = tab.selected_passage() if reader else (None, None)
+        notes = (
+            sorted(
+                self.annotations.notes(reader, start, end, self.owner.notes_store),
+                key=lambda note: (note.created, note.id),
+            )
+            if reader and self.owner.notes_store
+            else []
+        )
+        marks = (
+            self.annotations.highlights(reader, start, end, self.owner.highlights) if reader else []
+        )
+        fallback = (
+            ("note", notes[0].id)
+            if notes
+            else ("highlight", marks[0]["system"], marks[0]["reference"])
+            if marks
+            else None
+        )
+
         def shown(space):
-            key=('note',source_editor.note.id) if source_editor and source_editor.note else fallback
-            if key:space.reveal(key)
+            key = (
+                ("note", source_editor.note.id)
+                if source_editor and source_editor.note
+                else fallback
+            )
+            if key:
+                space.reveal(key)
+
         return self.owner.open_notes(on_open=shown)
 
-    def clear(self,box):
-        while box.get_first_child():box.remove(box.get_first_child())
+    def clear(self, box):
+        while box.get_first_child():
+            box.remove(box.get_first_child())
 
-    def bind_scroll(self,scroll):
-        self.scroll=scroll
+    def bind_scroll(self, scroll):
+        self.scroll = scroll
         from .scroll_motion import ScrollMotion
-        self.motion=ScrollMotion(scroll)
-        wheel=Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+
+        self.motion = ScrollMotion(scroll)
+        wheel = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
         wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        wheel.connect('scroll',lambda *_:self.suspend_following() or False);scroll.add_controller(wheel)
-        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        def key(_,value,*args):
-            if value in (Gdk.KEY_Up,Gdk.KEY_Down,Gdk.KEY_Page_Up,Gdk.KEY_Page_Down,Gdk.KEY_Home,Gdk.KEY_End,Gdk.KEY_space):self.suspend_following()
+        wheel.connect("scroll", lambda *_: self.suspend_following() or False)
+        scroll.add_controller(wheel)
+        keys = Gtk.EventControllerKey()
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+
+        def key(_, value, *args):
+            if value in (
+                Gdk.KEY_Up,
+                Gdk.KEY_Down,
+                Gdk.KEY_Page_Up,
+                Gdk.KEY_Page_Down,
+                Gdk.KEY_Home,
+                Gdk.KEY_End,
+                Gdk.KEY_space,
+            ):
+                self.suspend_following()
             return False
-        keys.connect('key-pressed',key);scroll.add_controller(keys)
-        click=Gtk.GestureClick(button=1);click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        click.connect('pressed',lambda *_:self.suspend_following());scroll.add_controller(click)
+
+        keys.connect("key-pressed", key)
+        scroll.add_controller(keys)
+        click = Gtk.GestureClick(button=1)
+        click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        click.connect("pressed", lambda *_: self.suspend_following())
+        scroll.add_controller(click)
 
     def cancel_follow(self):
-        self._follow_serial+=1
-        if self._follow_idle:GLib.source_remove(self._follow_idle);self._follow_idle=0
+        self._follow_serial += 1
+        if self._follow_idle:
+            GLib.source_remove(self._follow_idle)
+            self._follow_idle = 0
 
     def suspend_following(self):
-        if hasattr(self,'motion'):self.motion.cancel()
-        self.following=False;self.cancel_follow()
+        if hasattr(self, "motion"):
+            self.motion.cancel()
+        self.following = False
+        self.cancel_follow()
         self.owner.study.update_indicator()
 
     def indicated_passage(self):
         """Only an actual note/link target, mapped by the shared resolver."""
-        tab=self.owner.active_tab;reader=tab.reader if tab else None
-        if not reader:return None
-        editor=self.editor if self.editor and not self.editor.closed else None
-        if not editor and not self.following:return None
-        notes=[editor.note] if editor and editor.note else self.rows if not editor else []
+        tab = self.owner.active_tab
+        reader = tab.reader if tab else None
+        if not reader:
+            return None
+        editor = self.editor if self.editor and not self.editor.closed else None
+        if not editor and not self.following:
+            return None
+        notes = [editor.note] if editor and editor.note else self.rows if not editor else []
         for note in notes:
             for link in note.passages:
-                if not editor and not self.annotations.matches(reader,tab.state.reference,tab.state.reference,
-                        link.versification,link.start,link.end,note.origin_translation if link.versification==note.versification else None):continue
-                positions=self.annotations.positions(reader,link.versification,link.start,link.end,note.origin_translation if link.versification==note.versification else None)
-                if positions:return positions[0][2],positions[-1][3]
+                if not editor and not self.annotations.matches(
+                    reader,
+                    tab.state.reference,
+                    tab.state.reference,
+                    link.versification,
+                    link.start,
+                    link.end,
+                    note.origin_translation if link.versification == note.versification else None,
+                ):
+                    continue
+                positions = self.annotations.positions(
+                    reader,
+                    link.versification,
+                    link.start,
+                    link.end,
+                    note.origin_translation if link.versification == note.versification else None,
+                )
+                if positions:
+                    return positions[0][2], positions[-1][3]
         if editor and editor.context:
-            c=editor.context
-            positions=self.annotations.positions(reader,c['versification'],c['start'],c['end'],c['origin_translation'])
-            if positions:return positions[0][2],positions[-1][3]
+            c = editor.context
+            positions = self.annotations.positions(
+                reader, c["versification"], c["start"], c["end"], c["origin_translation"]
+            )
+            if positions:
+                return positions[0][2], positions[-1][3]
         return None
 
     def resume_following(self):
         # Reading intent must never move an active draft out of view.
         if self.editor and not self.editor.closed:
-            self.suspend_following();return
-        self.following=True
-        tab=self.owner.active_tab
-        if tab:self.queue_follow(tab.state.reference)
-
-    def refresh(self,force=False):
-        if self.owner.closed:return
-        tab=self.owner.active_tab;reader=tab.reader if tab else None;store=self.owner.notes_store
-        start,end=tab.selected_passage() if reader else (tab.state.reference,tab.state.reference) if tab else (None,None)
-        self.context=(dict(versification=reader.versification,start=start,end=end,origin_translation=tab.state.resource,
-                          origin_language=self.owner.library.resource(tab.state.resource).language) if reader else None)
-        chapter=parts(tab.state.reference)[:2] if tab else None
-        stamp=(id(tab),id(reader),chapter,store.generation if store else -1,
-               tuple(tuple(m.values()) for m in self.owner.highlights.entries.values()))
-        if not force and stamp==self._stamp:
-            if tab:self.queue_follow(tab.state.reference)
+            self.suspend_following()
             return
-        self.cancel_follow();self._stamp=stamp
-        self.heading.set_text(tab.passage_title(chapter_only=True) if chapter else tr('Passage notes'))
+        self.following = True
+        tab = self.owner.active_tab
+        if tab:
+            self.queue_follow(tab.state.reference)
+
+    def refresh(self, force=False):
+        if self.owner.closed:
+            return
+        tab = self.owner.active_tab
+        reader = tab.reader if tab else None
+        store = self.owner.notes_store
+        start, end = (
+            tab.selected_passage()
+            if reader
+            else (tab.state.reference, tab.state.reference)
+            if tab
+            else (None, None)
+        )
+        self.context = (
+            dict(
+                versification=reader.versification,
+                start=start,
+                end=end,
+                origin_translation=tab.state.resource,
+                origin_language=self.owner.library.resource(tab.state.resource).language,
+            )
+            if reader
+            else None
+        )
+        chapter = parts(tab.state.reference)[:2] if tab else None
+        stamp = (
+            id(tab),
+            id(reader),
+            chapter,
+            store.generation if store else -1,
+            tuple(tuple(m.values()) for m in self.owner.highlights.entries.values()),
+        )
+        if not force and stamp == self._stamp:
+            if tab:
+                self.queue_follow(tab.state.reference)
+            return
+        self.cancel_follow()
+        self._stamp = stamp
+        self.heading.set_text(
+            tab.passage_title(chapter_only=True) if chapter else tr("Passage notes")
+        )
         if reader:
-            key=reader.key(tab.state.reference)
-            first=f'{chapter[0]}.{chapter[1]}.1';last=f'{chapter[0]}.{chapter[1]}.{key.getVerseMax()}'
-            if getattr(reader,'addresses',None):
-                book=next((book for book in reader.books if book.code==chapter[0]),None)
-                verses=book.chapters.get(chapter[1],()) if book else ()
+            key = reader.key(tab.state.reference)
+            first = f"{chapter[0]}.{chapter[1]}.1"
+            last = f"{chapter[0]}.{chapter[1]}.{key.getVerseMax()}"
+            if getattr(reader, "addresses", None):
+                book = next((book for book in reader.books if book.code == chapter[0]), None)
+                verses = book.chapters.get(chapter[1], ()) if book else ()
                 if verses:
-                    first=f'{chapter[0]}.{chapter[1]}.{min(verses)}'
-                    last=f'{chapter[0]}.{chapter[1]}.{max(verses)}'
-            self.rows=self.annotations.notes(reader,first,last,store) if store else []
-            self.marks=self.annotations.highlights(reader,first,last,self.owner.highlights)
+                    first = f"{chapter[0]}.{chapter[1]}.{min(verses)}"
+                    last = f"{chapter[0]}.{chapter[1]}.{max(verses)}"
+            self.rows = self.annotations.notes(reader, first, last, store) if store else []
+            self.marks = self.annotations.highlights(reader, first, last, self.owner.highlights)
         else:
-            def original_match(resource,first,last):
+
+            def original_match(resource, first, last):
                 from .notes import BOOK_ORDER
+
                 def order(ref):
                     from .notes import passage_order
-                    b,c,v=passage_order(ref);return BOOK_ORDER.get(b,10000),b,c,v
-                low=f'{chapter[0]}.{chapter[1]}.1';high=f'{chapter[0]}.{chapter[1]}.999'
-                return bool(tab and resource==tab.state.resource and order(first)<=order(high) and order(last)>=order(low))
-            self.rows=[n for n in store.all() if any(link.versification==n.versification and
-                original_match(n.origin_translation,link.start,link.end) for link in n.passages)] if store and chapter else []
-            self.marks=[m for m in self.owner.highlights.entries.values() if original_match(m['resource'],m['reference'],m['reference'])] if chapter else []
-        self.status.set_text(tr('Notes unavailable. The original file has been preserved.') if not store else
-                             tr('No annotations in this chapter.') if not self.rows and not self.marks and not self.editor else '')
-        empty=bool(store and reader and not self.rows and not self.marks and not self.editor)
-        self.empty_page.set_visible(empty)
-        if empty:self.status.set_visible(False)
-        from .annotation_collection import records,bible_order
-        entries=records(self.rows,self.marks)
-        def targets(a):
-            if not reader:return ()
-            if a.note:return tuple(position for link in a.note.passages for position in
-                self.annotations.positions(reader,link.versification,link.start,link.end,a.origin if link.versification==a.system else None))
-            return self.annotations.positions(reader,a.system,a.start,a.end,a.origin)
-        mapped={a.key:targets(a) for a in entries}
-        def order(a):
-            spans=mapped[a.key]
-            return (min((left for left,right,_,_ in spans if right>=reader.key(first).getIndex() and left<=reader.key(last).getIndex()),default=0) if reader else 0,bible_order(a))
-        entries.sort(key=order)
-        self.rows=[a.note for a in entries if a.note];self.marks=[a.mark for a in entries if a.mark]
-        self.clear(self.list);self.cards=[];self._card_targets=[];self._chapter_texts={}
-        for a in entries:
-            if a.note:self.note_card(a.note,reader)
-            else:self.highlight_card(a.mark,reader)
-            card=self.cards[-1];card.annotation_key=a.key
-            self._card_targets.append((card,mapped[a.key]))
-        if tab:self.queue_follow(tab.state.reference)
 
-    def queue_follow(self,reference):
+                    b, c, v = passage_order(ref)
+                    return BOOK_ORDER.get(b, 10000), b, c, v
+
+                low = f"{chapter[0]}.{chapter[1]}.1"
+                high = f"{chapter[0]}.{chapter[1]}.999"
+                return bool(
+                    tab
+                    and resource == tab.state.resource
+                    and order(first) <= order(high)
+                    and order(last) >= order(low)
+                )
+
+            self.rows = (
+                [
+                    n
+                    for n in store.all()
+                    if any(
+                        link.versification == n.versification
+                        and original_match(n.origin_translation, link.start, link.end)
+                        for link in n.passages
+                    )
+                ]
+                if store and chapter
+                else []
+            )
+            self.marks = (
+                [
+                    m
+                    for m in self.owner.highlights.entries.values()
+                    if original_match(m["resource"], m["reference"], m["reference"])
+                ]
+                if chapter
+                else []
+            )
+        self.status.set_text(
+            tr("Notes unavailable. The original file has been preserved.")
+            if not store
+            else tr("No annotations in this chapter.")
+            if not self.rows and not self.marks and not self.editor
+            else ""
+        )
+        empty = bool(store and reader and not self.rows and not self.marks and not self.editor)
+        self.empty_page.set_visible(empty)
+        if empty:
+            self.status.set_visible(False)
+        from .annotation_collection import records, bible_order
+
+        entries = records(self.rows, self.marks)
+
+        def targets(a):
+            if not reader:
+                return ()
+            if a.note:
+                return tuple(
+                    position
+                    for link in a.note.passages
+                    for position in self.annotations.positions(
+                        reader,
+                        link.versification,
+                        link.start,
+                        link.end,
+                        a.origin if link.versification == a.system else None,
+                    )
+                )
+            return self.annotations.positions(reader, a.system, a.start, a.end, a.origin)
+
+        mapped = {a.key: targets(a) for a in entries}
+
+        def order(a):
+            spans = mapped[a.key]
+            return (
+                min(
+                    (
+                        left
+                        for left, right, _, _ in spans
+                        if right >= reader.key(first).getIndex()
+                        and left <= reader.key(last).getIndex()
+                    ),
+                    default=0,
+                )
+                if reader
+                else 0,
+                bible_order(a),
+            )
+
+        entries.sort(key=order)
+        self.rows = [a.note for a in entries if a.note]
+        self.marks = [a.mark for a in entries if a.mark]
+        self.clear(self.list)
+        self.cards = []
+        self._card_targets = []
+        self._chapter_texts = {}
+        for a in entries:
+            if a.note:
+                self.note_card(a.note, reader)
+            else:
+                self.highlight_card(a.mark, reader)
+            card = self.cards[-1]
+            card.annotation_key = a.key
+            self._card_targets.append((card, mapped[a.key]))
+        if tab:
+            self.queue_follow(tab.state.reference)
+
+    def queue_follow(self, reference):
         self.cancel_follow()
         self.owner.study.update_indicator()
-        if not self.following or self.editor or not hasattr(self,'scroll') or not self.owner.split.get_show_sidebar():return
-        tab=self.owner.active_tab;reader=tab.reader if tab else None
-        if not reader or not self._card_targets:return
-        serial=self._follow_serial;stamp=self._stamp;attempts=0
+        if (
+            not self.following
+            or self.editor
+            or not hasattr(self, "scroll")
+            or not self.owner.split.get_show_sidebar()
+        ):
+            return
+        tab = self.owner.active_tab
+        reader = tab.reader if tab else None
+        if not reader or not self._card_targets:
+            return
+        serial = self._follow_serial
+        stamp = self._stamp
+        attempts = 0
+
         def reveal():
             nonlocal attempts
-            self._follow_idle=0
-            if (self.owner.closed or serial!=self._follow_serial or stamp!=self._stamp or not self.following
-                    or self.editor or self.owner.active_tab is not tab or tab.state.reference!=reference
-                    or self.owner.study.tool!='notes'):return False
-            if not self.get_mapped() or any(card.get_height()==0 for card,_ in self._card_targets):
-                attempts+=1
-                if attempts<30:self._follow_idle=GLib.timeout_add(16,reveal)
+            self._follow_idle = 0
+            if (
+                self.owner.closed
+                or serial != self._follow_serial
+                or stamp != self._stamp
+                or not self.following
+                or self.editor
+                or self.owner.active_tab is not tab
+                or tab.state.reference != reference
+                or self.owner.study.tool != "notes"
+            ):
                 return False
-            position=reader.key(reference).getIndex()
-            candidates=[(card,spans) for card,spans in self._card_targets if spans]
-            if getattr(reader,'addresses',None):
-                position=reader.reference_sort_key(reference)
-                candidates=[(card,[(reader.reference_sort_key(first),reader.reference_sort_key(last),first,last)
-                                   for _,_,first,last in spans]) for card,spans in candidates]
-            matching=[(card,spans) for card,spans in candidates if any(low<=position<=high for low,high,_,_ in spans)]
-            if matching:card=matching[0][0]
+            if not self.get_mapped() or any(
+                card.get_height() == 0 for card, _ in self._card_targets
+            ):
+                attempts += 1
+                if attempts < 30:
+                    self._follow_idle = GLib.timeout_add(16, reveal)
+                return False
+            position = reader.key(reference).getIndex()
+            candidates = [(card, spans) for card, spans in self._card_targets if spans]
+            if getattr(reader, "addresses", None):
+                position = reader.reference_sort_key(reference)
+                candidates = [
+                    (
+                        card,
+                        [
+                            (
+                                reader.reference_sort_key(first),
+                                reader.reference_sort_key(last),
+                                first,
+                                last,
+                            )
+                            for _, _, first, last in spans
+                        ],
+                    )
+                    for card, spans in candidates
+                ]
+            matching = [
+                (card, spans)
+                for card, spans in candidates
+                if any(low <= position <= high for low, high, _, _ in spans)
+            ]
+            if matching:
+                card = matching[0][0]
             else:
-                following=[(card,spans) for card,spans in candidates if min(low for low,_,_,_ in spans)>position]
-                if following:card=following[0][0]
+                following = [
+                    (card, spans)
+                    for card, spans in candidates
+                    if min(low for low, _, _, _ in spans) > position
+                ]
+                if following:
+                    card = following[0][0]
                 elif candidates:
-                    last_start=min(low for low,_,_,_ in candidates[-1][1])
-                    card=next(c for c,spans in candidates if min(low for low,_,_,_ in spans)==last_start)
-                else:return False
+                    last_start = min(low for low, _, _, _ in candidates[-1][1])
+                    card = next(
+                        c
+                        for c, spans in candidates
+                        if min(low for low, _, _, _ in spans) == last_start
+                    )
+                else:
+                    return False
             # Keep the group header visible; a tall card remains freely scrollable.
-            found,bounds=card.compute_bounds(self.scroll)
-            if not found:return False
-            adjustment=self.scroll.get_vadjustment();top=bounds.get_y();bottom=top+min(bounds.get_height(),80)
-            height=self.scroll.get_height()
-            target = adjustment.get_value()+top if top<0 else adjustment.get_value()+bottom-height if bottom>height else None
+            found, bounds = card.compute_bounds(self.scroll)
+            if not found:
+                return False
+            adjustment = self.scroll.get_vadjustment()
+            top = bounds.get_y()
+            bottom = top + min(bounds.get_height(), 80)
+            height = self.scroll.get_height()
+            target = (
+                adjustment.get_value() + top
+                if top < 0
+                else adjustment.get_value() + bottom - height
+                if bottom > height
+                else None
+            )
             if target is not None:
-                self.motion.move(target, valid=lambda: not self.owner.closed and stamp==self._stamp
-                                 and self.owner.active_tab is tab and self.following and not self.editor
-                                 and self.owner.study.tool=='notes' and tab.state.reference==reference)
+                self.motion.move(
+                    target,
+                    valid=lambda: not self.owner.closed
+                    and stamp == self._stamp
+                    and self.owner.active_tab is tab
+                    and self.following
+                    and not self.editor
+                    and self.owner.study.tool == "notes"
+                    and tab.state.reference == reference,
+                )
             return False
-        self._follow_idle=GLib.idle_add(reveal)
 
-    def navigate_annotation(self,system,start,origin=None):
-        tab=self.owner.active_tab;reader=tab.reader if tab else None
-        if not reader:return
-        try:
-            spans=self.annotations.positions(reader,system,start,start,origin)
-            if not spans:raise ValueError(tr('Passage unavailable or no verified alignment.'))
-            self.owner.navigate_selection(tab.state.resource,spans[0][2])
-        except (OSError,ValueError) as error:self.status.set_text(str(error))
+        self._follow_idle = GLib.idle_add(reveal)
 
-    def excerpt_text(self,reader,mark):
-        system,start,origin=mark['system'],mark['reference'],mark['resource']
+    def navigate_annotation(self, system, start, origin=None):
+        tab = self.owner.active_tab
+        reader = tab.reader if tab else None
+        if not reader:
+            return
         try:
-            source=self.annotations.source_reader(reader,origin)
-            if source.versification!=system:raise ValueError('Saved source numbering differs')
+            spans = self.annotations.positions(reader, system, start, start, origin)
+            if not spans:
+                raise ValueError(tr("Passage unavailable or no verified alignment."))
+            self.owner.navigate_selection(tab.state.resource, spans[0][2])
+        except (OSError, ValueError) as error:
+            self.status.set_text(str(error))
+
+    def excerpt_text(self, reader, mark):
+        system, start, origin = mark["system"], mark["reference"], mark["resource"]
+        try:
+            source = self.annotations.source_reader(reader, origin)
+            if source.versification != system:
+                raise ValueError("Saved source numbering differs")
             from .reference_resolution import _span
-            refs=[]
-            for _,_,first,last in self.annotations.positions(source,system,start,start,origin):
-                refs.extend(source.reference_range(first,last) if getattr(source,'addresses',None) else _span(first,last,system,source))
+
+            refs = []
+            for _, _, first, last in self.annotations.positions(
+                source, system, start, start, origin
+            ):
+                refs.extend(
+                    source.reference_range(first, last)
+                    if getattr(source, "addresses", None)
+                    else _span(first, last, system, source)
+                )
             from .sword_provider import passage_verses
-            texts=list(passage_verses(source,refs,self._chapter_texts))
-            if len(self._chapter_texts)>64:self._chapter_texts.clear()
-            return ' '.join(text for _,text in texts) or tr('Passage unavailable or no verified alignment.')
-        except (ValueError,OSError,RuntimeError):return tr('Original translation unavailable.')
 
-    def note_card(self,note,reader):
+            texts = list(passage_verses(source, refs, self._chapter_texts))
+            if len(self._chapter_texts) > 64:
+                self._chapter_texts.clear()
+            return " ".join(text for _, text in texts) or tr(
+                "Passage unavailable or no verified alignment."
+            )
+        except (ValueError, OSError, RuntimeError):
+            return tr("Original translation unavailable.")
+
+    def note_card(self, note, reader):
         from .annotation_card import annotation_card
         from .annotation_collection import records
-        card=annotation_card(self.owner,records([note],[])[0],lambda:self.open_note(note))
-        self.list.append(card);self.cards.append(card)
 
-    def highlight_card(self,mark,reader):
+        card = annotation_card(self.owner, records([note], [])[0], lambda: self.open_note(note))
+        self.list.append(card)
+        self.cards.append(card)
+
+    def highlight_card(self, mark, reader):
         from .annotation_card import annotation_card
         from .annotation_collection import records
-        card=annotation_card(self.owner,records([],[mark])[0],
-            lambda:self.navigate_annotation(mark['system'],mark['reference'],mark['resource']),
-            excerpt=self.excerpt_text(reader,mark),colors=lambda menu,value:self.colors(menu,mark=value))
-        self.list.append(card);self.cards.append(card)
 
-    def open_note(self,note=None,context=None):
+        card = annotation_card(
+            self.owner,
+            records([], [mark])[0],
+            lambda: self.navigate_annotation(mark["system"], mark["reference"], mark["resource"]),
+            excerpt=self.excerpt_text(reader, mark),
+            colors=lambda menu, value: self.colors(menu, mark=value),
+        )
+        self.list.append(card)
+        self.cards.append(card)
+
+    def open_note(self, note=None, context=None):
         self.suspend_following()
-        existing=self.owner.note_editor
+        existing = self.owner.note_editor
         if existing and not existing.closed:
-            if note and existing.note and existing.note.id==note.id:
-                existing.present();existing.body.grab_focus()
+            if note and existing.note and existing.note.id == note.id:
+                existing.present()
+                existing.body.grab_focus()
                 return existing
-            snapshot=dict(context) if context else None
-            existing.after_close=lambda:self.open_note(note,snapshot)
-            existing.close();return existing
+            snapshot = dict(context) if context else None
+            existing.after_close = lambda: self.open_note(note, snapshot)
+            existing.close()
+            return existing
         if note:
-            note=self.owner.notes_store.get(note.id)
-            if note is None:self.refresh(force=True);return None
-        position=self.scroll.get_vadjustment().get_value() if hasattr(self,'scroll') else None
-        editor=self.owner.edit_note(note=note,context=dict(context) if context else None)
-        if editor is None:return None
-        editor.embedded_host=self;self.editor=editor
-        editor._study_return=(self._stamp[:3] if self._stamp else None,position)
+            note = self.owner.notes_store.get(note.id)
+            if note is None:
+                self.refresh(force=True)
+                return None
+        position = self.scroll.get_vadjustment().get_value() if hasattr(self, "scroll") else None
+        editor = self.owner.edit_note(note=note, context=dict(context) if context else None)
+        if editor is None:
+            return None
+        editor.embedded_host = self
+        self.editor = editor
+        editor._study_return = (self._stamp[:3] if self._stamp else None, position)
         editor.body.grab_focus()
         self.owner.study.update_indicator()
         return editor
 
-    def add_note(self,*_):
-        tab=self.owner.active_tab
-        if not tab or not tab.reader:return
-        start,end=tab.selected_passage()
-        context=dict(versification=tab.reader.versification,start=start,end=end,origin_translation=tab.state.resource,
-                     origin_language=self.owner.library.resource(tab.state.resource).language)
+    def add_note(self, *_):
+        tab = self.owner.active_tab
+        if not tab or not tab.reader:
+            return
+        start, end = tab.selected_passage()
+        context = dict(
+            versification=tab.reader.versification,
+            start=start,
+            end=end,
+            origin_translation=tab.state.resource,
+            origin_language=self.owner.library.resource(tab.state.resource).language,
+        )
         return self.open_note(context=context)
 
-    def editor_closed(self,editor):
-        if self.editor is editor:self.editor=None
-        if self.owner.closed:return
+    def editor_closed(self, editor):
+        if self.editor is editor:
+            self.editor = None
+        if self.owner.closed:
+            return
         self.refresh(force=True)
+
         def restore():
-            current=self.owner.note_editor
-            if self.owner.closed or current is not editor and current and not current.closed:return False
-            stamp,position=editor._study_return
-            if not self._stamp or self._stamp[:3]!=stamp or not self.get_mapped():return False
-            if position is not None:self.scroll.get_vadjustment().set_value(position)
-            card=next((card for card in self.cards if getattr(card,'note_id',None)==getattr(editor.note,'id',None)),None)
-            if card:card.primary_action.grab_focus()
+            current = self.owner.note_editor
+            if self.owner.closed or current is not editor and current and not current.closed:
+                return False
+            stamp, position = editor._study_return
+            if not self._stamp or self._stamp[:3] != stamp or not self.get_mapped():
+                return False
+            if position is not None:
+                self.scroll.get_vadjustment().set_value(position)
+            card = next(
+                (
+                    card
+                    for card in self.cards
+                    if getattr(card, "note_id", None) == getattr(editor.note, "id", None)
+                ),
+                None,
+            )
+            if card:
+                card.primary_action.grab_focus()
             return False
+
         GLib.idle_add(restore)
 
-    def delete_note(self,note,popover=None):
-        if popover:popover.popdown()
-        current=self.owner.note_editor
-        if current and not current.closed and (not current.note or current.note.id!=note.id):
-            current.after_close=lambda:self.delete_note(note);current.close();return
-        editor=self.open_note(note)
-        if editor.note and editor.note.id==note.id:editor.ask_delete()
+    def delete_note(self, note, popover=None):
+        if popover:
+            popover.popdown()
+        current = self.owner.note_editor
+        if current and not current.closed and (not current.note or current.note.id != note.id):
+            current.after_close = lambda: self.delete_note(note)
+            current.close()
+            return
+        editor = self.open_note(note)
+        if editor.note and editor.note.id == note.id:
+            editor.ask_delete()
 
-    def colors(self,menu,*,mark=None,context=None,reader=None,annotate=False):
+    def colors(self, menu, *, mark=None, context=None, reader=None, annotate=False):
         if mark:
             from .annotation_card import highlight_actions
-            def changed(snapshot,color):
-                self.owner.highlights.set(snapshot['system'],[snapshot['reference']],color,snapshot['resource'])
+
+            def changed(snapshot, color):
+                self.owner.highlights.set(
+                    snapshot["system"], [snapshot["reference"]], color, snapshot["resource"]
+                )
                 self.owner.refresh_highlights()
-            highlight_actions(menu,self.owner,mark,changed,self.status.set_text)
+
+            highlight_actions(menu, self.owner, mark, changed, self.status.set_text)
             return
-        popover=Gtk.Popover();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,
-            margin_start=8,margin_end=8,margin_top=8,margin_bottom=8)
+        popover = Gtk.Popover()
+        box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=4,
+            margin_start=8,
+            margin_end=8,
+            margin_top=8,
+            margin_bottom=8,
+        )
         if context:
-            box.append(Gtk.Label(label=passage_label(context['start'],context['end'],context['versification']),wrap=True))
-        for color in [*COLORS,None] if mark else COLORS:
-            button=Gtk.Button(label=tr(COLORS[color][1] if color else 'Remove highlight'))
-            def choose(_,value=color,snapshot=dict(mark) if mark else dict(context)):
+            box.append(
+                Gtk.Label(
+                    label=passage_label(context["start"], context["end"], context["versification"]),
+                    wrap=True,
+                )
+            )
+        for color in [*COLORS, None] if mark else COLORS:
+            button = Gtk.Button(label=tr(COLORS[color][1] if color else "Remove highlight"))
+
+            def choose(_, value=color, snapshot=dict(mark) if mark else dict(context)):
                 try:
-                    if mark:system,refs,resource=snapshot['system'],[snapshot['reference']],snapshot['resource']
+                    if mark:
+                        system, refs, resource = (
+                            snapshot["system"],
+                            [snapshot["reference"]],
+                            snapshot["resource"],
+                        )
                     else:
-                        system,resource=snapshot['versification'],snapshot['origin_translation']
+                        system, resource = snapshot["versification"], snapshot["origin_translation"]
                         from .reference_resolution import _span
-                        refs=[ref for ref in _span(snapshot['start'],snapshot['end'],system,reader) if reader.has_reference(ref)]
-                        if len(refs)>1000:raise ValueError('Select at most 1000 verses')
-                    self.owner.highlights.set(system,refs,value,resource)
-                    popover.popdown();self.owner.refresh_highlights()
-                    if annotate:self.open_note(context=snapshot)
-                except (OSError,ValueError) as error:self.status.set_text(str(error))
-            button.connect('clicked',choose);box.append(button)
-        popover.set_child(box);menu.set_popover(popover)
+
+                        refs = [
+                            ref
+                            for ref in _span(snapshot["start"], snapshot["end"], system, reader)
+                            if reader.has_reference(ref)
+                        ]
+                        if len(refs) > 1000:
+                            raise ValueError("Select at most 1000 verses")
+                    self.owner.highlights.set(system, refs, value, resource)
+                    popover.popdown()
+                    self.owner.refresh_highlights()
+                    if annotate:
+                        self.open_note(context=snapshot)
+                except (OSError, ValueError) as error:
+                    self.status.set_text(str(error))
+
+            button.connect("clicked", choose)
+            box.append(button)
+        popover.set_child(box)
+        menu.set_popover(popover)

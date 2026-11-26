@@ -1,136 +1,194 @@
 """Scoped reader palettes; libadwaita remains responsible for native widgets."""
+
 import gi
 
-gi.require_version('Adw', '1')
+gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
 from .reading_metrics import SPACING, WIDTHS, line_spacing
 
 # background, text, link, selection background, selection text; opaque colors.
 PALETTES = {
-    'white': ('#ffffff', '#202020', '#003f87', '#004a99', '#ffffff'),
-    'paper': ('#f4ecd8', '#302719', '#003f87', '#004a99', '#ffffff'),
-    'dark': ('#282828', '#eeeeee', '#9fc5ff', '#b3d4ff', '#101010'),
-    'black': ('#000000', '#eeeeee', '#9fc5ff', '#b3d4ff', '#101010'),
-    'contrast-day': ('#ffffff', '#000000', '#003f87', '#004a99', '#ffffff'),
-    'contrast-night': ('#000000', '#ffffff', '#9fc5ff', '#ffdf00', '#000000'),
+    "white": ("#ffffff", "#202020", "#003f87", "#004a99", "#ffffff"),
+    "paper": ("#f4ecd8", "#302719", "#003f87", "#004a99", "#ffffff"),
+    "dark": ("#282828", "#eeeeee", "#9fc5ff", "#b3d4ff", "#101010"),
+    "black": ("#000000", "#eeeeee", "#9fc5ff", "#b3d4ff", "#101010"),
+    "contrast-day": ("#ffffff", "#000000", "#003f87", "#004a99", "#ffffff"),
+    "contrast-night": ("#000000", "#ffffff", "#9fc5ff", "#ffdf00", "#000000"),
 }
 
 
-def apply_direction(view,reader,preferences=None):
+def apply_direction(view, reader, preferences=None):
     """Resource direction affects the content, not the application's controls."""
     view.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
-    view.set_justification(Gtk.Justification.FILL if preferences and preferences.alignment=='justified' else
-                           Gtk.Justification.RIGHT if reader.rtl else Gtk.Justification.LEFT)
+    view.set_justification(
+        Gtk.Justification.FILL
+        if preferences and preferences.alignment == "justified"
+        else Gtk.Justification.RIGHT
+        if reader.rtl
+        else Gtk.Justification.LEFT
+    )
 
 
 def effective_palette(preferences, dark, high_contrast):
     if high_contrast:
-        return 'contrast-night' if dark else 'contrast-day'
+        return "contrast-night" if dark else "contrast-day"
     return preferences.night_palette if dark else preferences.day_palette
 
 
 class ReadingStyle:
     def __init__(self, owner):
         self.owner = owner
-        self.initial_palette=self.palette_settings()
+        self.initial_palette = self.palette_settings()
         from weakref import WeakSet
+
         self.views = WeakSet()
         self.manager = Adw.StyleManager.get_default()
-        self.scope = 'bible-content-' + str(id(owner))
-        owner.add_css_class(self.scope+'-window')
+        self.scope = "bible-content-" + str(id(owner))
+        owner.add_css_class(self.scope + "-window")
         self.provider = Gtk.CssProvider()
-        Gtk.StyleContext.add_provider_for_display(owner.get_display(), self.provider,
-                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.handlers = [self.manager.connect('notify::'+name, self.changed)
-                         for name in ['dark', 'high-contrast']]
+        Gtk.StyleContext.add_provider_for_display(
+            owner.get_display(), self.provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        self.handlers = [
+            self.manager.connect("notify::" + name, self.changed)
+            for name in ["dark", "high-contrast"]
+        ]
         self.apply_mode()
 
     def palette_settings(self):
-        return {k:getattr(self.owner.preferences.value,k) for k in ('mode','day_palette','night_palette')}
+        return {
+            k: getattr(self.owner.preferences.value, k)
+            for k in ("mode", "day_palette", "night_palette")
+        }
 
     def remember_tab_palettes(self):
         for tab in self.owner.tabs():
-            if not tab.state.reading_palette:tab.state.reading_palette=self.palette_settings()
+            if not tab.state.reading_palette:
+                tab.state.reading_palette = self.palette_settings()
 
-    def activate_tab(self,tab):
-        for key,value in tab.state.reading_palette.items():setattr(self.owner.preferences.value,key,value)
+    def activate_tab(self, tab):
+        for key, value in tab.state.reading_palette.items():
+            setattr(self.owner.preferences.value, key, value)
         self.apply_mode()
         self.owner.appearance.sync()
 
     def apply_mode(self):
-        mode=self.owner.preferences.value.mode
-        if mode=='system':
-            mode={'light':'day','dark':'night','system':'system'}[self.owner.application_settings.value['interface_appearance']]
-        self.dark = mode=='night' or (mode=='system' and self.manager.get_dark())
-        self.manager.set_color_scheme({'system':Adw.ColorScheme.DEFAULT,
-                                      'day':Adw.ColorScheme.FORCE_LIGHT,
-                                      'night':Adw.ColorScheme.FORCE_DARK}[mode])
+        mode = self.owner.preferences.value.mode
+        if mode == "system":
+            mode = {"light": "day", "dark": "night", "system": "system"}[
+                self.owner.application_settings.value["interface_appearance"]
+            ]
+        self.dark = mode == "night" or (mode == "system" and self.manager.get_dark())
+        self.manager.set_color_scheme(
+            {
+                "system": Adw.ColorScheme.DEFAULT,
+                "day": Adw.ColorScheme.FORCE_LIGHT,
+                "night": Adw.ColorScheme.FORCE_DARK,
+            }[mode]
+        )
         self.changed()
 
     def decorate(self, view):
         self.views.add(view)
         view._reading_palette = self.palette
         from .verse_typography import NUMBER_COLORS
-        for name in ['verse-number', 'page-number', 'verse-editorial', 'source-editorial']:
+
+        for name in ["verse-number", "page-number", "verse-editorial", "source-editorial"]:
             tag = view.get_buffer().get_tag_table().lookup(name)
-            if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
+            if tag:
+                tag.props.foreground = NUMBER_COLORS[self.palette]
         view.add_css_class(self.scope)
         self.apply_text(view)
 
     def apply_text(self, view, preserve=True):
         # GtkTextMarks retain selection/body positions across tag-only reflow.
-        if preserve and view.get_mapped() and not getattr(view,'_reader_reflow_tick',0):
-            rect=view.get_visible_rect();_,iterator=view.get_iter_at_location(rect.x,rect.y)
-            mark=view.get_buffer().create_mark(None,iterator,True)
-            frames=[0]
-            def restore(widget,*_):
-                frames[0]+=1
+        if preserve and view.get_mapped() and not getattr(view, "_reader_reflow_tick", 0):
+            rect = view.get_visible_rect()
+            _, iterator = view.get_iter_at_location(rect.x, rect.y)
+            mark = view.get_buffer().create_mark(None, iterator, True)
+            frames = [0]
+
+            def restore(widget, *_):
+                frames[0] += 1
                 if widget.get_mapped() and not self.owner.closed:
-                    if frames[0]<3:return True
-                    target=widget.get_iter_location(widget.get_buffer().get_iter_at_mark(mark))
-                    visible=widget.get_visible_rect()
-                    adjustment=widget.get_parent().get_vadjustment()
-                    adjustment.set_value(adjustment.get_value()+target.y-visible.y)
-                    if frames[0]<5:return True
-                widget.get_buffer().delete_mark(mark);widget._reader_reflow_tick=0
+                    if frames[0] < 3:
+                        return True
+                    target = widget.get_iter_location(widget.get_buffer().get_iter_at_mark(mark))
+                    visible = widget.get_visible_rect()
+                    adjustment = widget.get_parent().get_vadjustment()
+                    adjustment.set_value(adjustment.get_value() + target.y - visible.y)
+                    if frames[0] < 5:
+                        return True
+                widget.get_buffer().delete_mark(mark)
+                widget._reader_reflow_tick = 0
                 return False
-            view._reader_reflow_tick=view.add_tick_callback(restore)
+
+            view._reader_reflow_tick = view.add_tick_callback(restore)
         preferences = self.owner.preferences.value
         view.set_pixels_inside_wrap(line_spacing(preferences))
         view.set_pixels_below_lines(line_spacing(preferences) + 4)
         buffer = view.get_buffer()
-        tag = buffer.get_tag_table().lookup('reader-typography')
+        tag = buffer.get_tag_table().lookup("reader-typography")
         if tag is None:
-            tag = buffer.create_tag('reader-typography')
+            tag = buffer.create_tag("reader-typography")
         tag.props.family = preferences.font
         tag.props.size_points = preferences.size
         buffer.apply_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
         from .verse_typography import configure
-        for name in ['verse-number','page-number','source-number']:
-            number=buffer.get_tag_table().lookup(name)
-            if number:configure(number,view,preferences,self.palette)
+
+        for name in ["verse-number", "page-number", "source-number"]:
+            number = buffer.get_tag_table().lookup(name)
+            if number:
+                configure(number, view, preferences, self.palette)
 
     def changed(self, *_):
-        if hasattr(self.owner,'queue_layout'):self.owner.queue_layout()
-        mode=self.owner.preferences.value.mode
-        base=self.owner.application_settings.value['interface_appearance']
-        self.dark=(mode=='night' or mode=='system' and (base=='dark' or base=='system' and self.manager.get_dark()))
-        self.palette = effective_palette(self.owner.preferences.value,self.dark,self.manager.get_high_contrast())
+        if hasattr(self.owner, "queue_layout"):
+            self.owner.queue_layout()
+        mode = self.owner.preferences.value.mode
+        base = self.owner.application_settings.value["interface_appearance"]
+        self.dark = (
+            mode == "night"
+            or mode == "system"
+            and (base == "dark" or base == "system" and self.manager.get_dark())
+        )
+        self.palette = effective_palette(
+            self.owner.preferences.value, self.dark, self.manager.get_high_contrast()
+        )
         bg, fg, link, selection, selected = PALETTES[self.palette]
-        selector = 'textview.' + self.scope
+        selector = "textview." + self.scope
         focus_width = 3 if self.manager.get_high_contrast() else 2
         from .verse_typography import NUMBER_COLORS
-        marker_color=NUMBER_COLORS[self.palette]
+
+        marker_color = NUMBER_COLORS[self.palette]
         import json
-        study_family=json.dumps(self.owner.preferences.value.study_font,ensure_ascii=False)
-        study_size=self.owner.preferences.value.study_size
-        study_size_css=f'font-size: {study_size}pt;' if study_size is not None else ''
-        action_background='#101010' if self.manager.get_high_contrast() else 'rgba(12,12,14,.84)'
+
+        study_family = json.dumps(self.owner.preferences.value.study_font, ensure_ascii=False)
+        study_size = self.owner.preferences.value.study_size
+        study_size_css = f"font-size: {study_size}pt;" if study_size is not None else ""
+        action_background = "#101010" if self.manager.get_high_contrast() else "rgba(12,12,14,.84)"
         from .highlights import COLORS
-        swatches=''.join('.passage-actions .highlight-'+color+', .highlight-swatch.highlight-'+color+' { background-color: '+rgb+'; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }' for color,(rgb,_) in COLORS.items())
-        study_accents=''.join('.'+self.scope+'-window .study-action-card.annotation-card.highlight-'+color+
-                              ' { border-left: 3px solid '+rgb+'; }' for color,(rgb,_) in COLORS.items())
-        self.css = f'''
+
+        swatches = "".join(
+            ".passage-actions .highlight-"
+            + color
+            + ", .highlight-swatch.highlight-"
+            + color
+            + " { background-color: "
+            + rgb
+            + "; color: #202020; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); }"
+            for color, (rgb, _) in COLORS.items()
+        )
+        study_accents = "".join(
+            "."
+            + self.scope
+            + "-window .study-action-card.annotation-card.highlight-"
+            + color
+            + " { border-left: 3px solid "
+            + rgb
+            + "; }"
+            for color, (rgb, _) in COLORS.items()
+        )
+        self.css = f"""
 {swatches}
 {study_accents}
 .workspace-selector > button {{ padding: 4px 14px; min-height: 28px; font-weight: 500; }}
@@ -197,14 +255,24 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 {selector}:not(.immersive-page):dir(rtl):focus-visible text {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
 .{self.scope}-focus-cue {{ box-shadow: inset {focus_width}px 0 0 {link}; }}
 .{self.scope}-focus-cue.rtl-reading {{ box-shadow: inset -{focus_width}px 0 0 {link}; }}
-'''
-        window='.'+self.scope+'-window'
+"""
+        window = "." + self.scope + "-window"
         if not self.manager.get_high_contrast():
-            sidebar={'paper':'#e5dcc3','black':'#121212','white':'#f0f0f0','dark':'#303030'}[self.palette]
-            chrome={'paper':'#eee4cb','black':'#080808','white':'#fafafa','dark':'#242424'}[self.palette]
+            sidebar = {
+                "paper": "#e5dcc3",
+                "black": "#121212",
+                "white": "#f0f0f0",
+                "dark": "#303030",
+            }[self.palette]
+            chrome = {
+                "paper": "#eee4cb",
+                "black": "#080808",
+                "white": "#fafafa",
+                "dark": "#242424",
+            }[self.palette]
             # Scope native surfaces to this owner; leave tags, images and semantic
             # accents to their existing renderers. Transparent controls inherit.
-            self.css+=f"""
+            self.css += f"""
 {window}, {window} .background:not(popover), {window} .view, {window} .card,
 {window} popover contents, {window} dialog {{ background-color: {bg}; color: {fg}; }}
 {window} headerbar, {window} tabbar, {window} tabbar tabbox {{ background-color: {chrome}; color: {fg}; }}
@@ -223,27 +291,37 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
 """
         # Override the owner-scoped reading background on the native tooltip
         # surface too, including its padding around the text.
-        self.css+=f'''
+        self.css += f"""
 /* The reader keeps its distinct chrome. Secondary dialogs use one continuous
    native surface; the old owner-wide chrome rule must not repaint a gray band. */
 {window}.bible-secondary-dialog headerbar,
 {window} .bible-secondary-dialog headerbar {{ background: transparent; color: inherit; border: none; box-shadow: none; }}
 .{self.scope}-window tooltip.background, .{self.scope}-window tooltip.background label {{ background-color: #101010; color: #ffffff; }}
-'''
-        for name,(background,foreground,*_) in PALETTES.items():
-            if name.startswith('contrast'):continue
-            self.css+=f'.{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n'
+"""
+        for name, (background, foreground, *_) in PALETTES.items():
+            if name.startswith("contrast"):
+                continue
+            self.css += f".{self.scope}-window .palette-preview-{name} {{ background-color: {background}; color: {foreground}; border-radius: 6px; padding: 6px 14px; border: 1px solid alpha(currentColor,.3); }}\n"
         self.provider.load_from_data(self.css.encode())
         from .verse_typography import NUMBER_COLORS
+
         for view in self.views:
             view._reading_palette = self.palette
-            for name in ['verse-number', 'page-number', 'source-number', 'verse-editorial', 'source-editorial']:
+            for name in [
+                "verse-number",
+                "page-number",
+                "source-number",
+                "verse-editorial",
+                "source-editorial",
+            ]:
                 tag = view.get_buffer().get_tag_table().lookup(name)
-                if tag:tag.props.foreground = NUMBER_COLORS[self.palette]
-        appearance = getattr(self.owner, 'appearance', None)
+                if tag:
+                    tag.props.foreground = NUMBER_COLORS[self.palette]
+        appearance = getattr(self.owner, "appearance", None)
         if appearance:
             appearance.sync_system()
-        if hasattr(self.owner,'view') and hasattr(self.owner,'highlights'):self.owner.refresh_highlights()
+        if hasattr(self.owner, "view") and hasattr(self.owner, "highlights"):
+            self.owner.refresh_highlights()
 
     def close(self):
         for handler in self.handlers:

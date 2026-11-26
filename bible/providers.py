@@ -1,4 +1,5 @@
 """Reviewed SWORD providers. Catalogue and package paths are independent."""
+
 from dataclasses import dataclass
 import re
 
@@ -12,47 +13,76 @@ class Provider:
     packages_url: str
 
 
-CROSSWIRE = Provider('crosswire', 'CrossWire', 'https://www.crosswire.org/ftpmirror/pub/sword/',
-                     'https://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz',
-                     'https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/')
+CROSSWIRE = Provider(
+    "crosswire",
+    "CrossWire",
+    "https://www.crosswire.org/ftpmirror/pub/sword/",
+    "https://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz",
+    "https://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/",
+)
 # Source: AndBible app/src/main/res/raw/repositories.txt; see docs/SOURCES_AFFILIEES_11.md.
-EXTRA = Provider('andbible-extra', 'AndBible Extra (Xiphos)', 'https://andbible.github.io/andbible-extra/',
-                 'https://andbible.github.io/andbible-extra/mods.d.tar.gz',
-                 'https://andbible.github.io/andbible-extra/zip/')
-ANDBIBLE = Provider('andbible', 'AndBible', 'https://andbible.github.io/data/andbible/',
-                    'https://andbible.github.io/data/andbible/mods.d.tar.gz',
-                    'https://andbible.github.io/data/andbible/zip/')
-STEP = Provider('step', 'STEP Bible (Tyndale)', 'https://public.modules.stepbible.org/',
-                'https://public.modules.stepbible.org/catalog/mods.d.tar.gz',
-                'https://public.modules.stepbible.org/packages/')
-EBIBLE = Provider('ebible', 'eBible', 'https://ebible.org/sword/',
-                  'https://ebible.org/sword/mods.d.tar.gz',
-                  'https://ebible.org/sword/zip/')
-YOUVERSION = Provider('youversion', 'YouVersion / Bible.com', 'https://www.bible.com/',
-                      'https://bible.youversionapi.com/3.1/configuration.json', '')
-BIBLE_RESOURCES = Provider('bible-resources','Bible Resources','https://icfmp.github.io/Bible-Resources/',
-    'https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json',
-    'https://icfmp.github.io/Bible-Resources/sword/packages/')
+EXTRA = Provider(
+    "andbible-extra",
+    "AndBible Extra (Xiphos)",
+    "https://andbible.github.io/andbible-extra/",
+    "https://andbible.github.io/andbible-extra/mods.d.tar.gz",
+    "https://andbible.github.io/andbible-extra/zip/",
+)
+ANDBIBLE = Provider(
+    "andbible",
+    "AndBible",
+    "https://andbible.github.io/data/andbible/",
+    "https://andbible.github.io/data/andbible/mods.d.tar.gz",
+    "https://andbible.github.io/data/andbible/zip/",
+)
+STEP = Provider(
+    "step",
+    "STEP Bible (Tyndale)",
+    "https://public.modules.stepbible.org/",
+    "https://public.modules.stepbible.org/catalog/mods.d.tar.gz",
+    "https://public.modules.stepbible.org/packages/",
+)
+EBIBLE = Provider(
+    "ebible",
+    "eBible",
+    "https://ebible.org/sword/",
+    "https://ebible.org/sword/mods.d.tar.gz",
+    "https://ebible.org/sword/zip/",
+)
+YOUVERSION = Provider(
+    "youversion",
+    "YouVersion / Bible.com",
+    "https://www.bible.com/",
+    "https://bible.youversionapi.com/3.1/configuration.json",
+    "",
+)
+BIBLE_RESOURCES = Provider(
+    "bible-resources",
+    "Bible Resources",
+    "https://icfmp.github.io/Bible-Resources/",
+    "https://icfmp.github.io/Bible-Resources/catalog/v1/catalog.json",
+    "https://icfmp.github.io/Bible-Resources/sword/packages/",
+)
 # The optional curated catalogue is contacted only after an explicit source
 # choice/check, not by adding a new network request to existing users' defaults.
 DEFAULT_PROVIDERS = (CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, YOUVERSION)
-PROVIDERS = (*DEFAULT_PROVIDERS,BIBLE_RESOURCES)
+PROVIDERS = (*DEFAULT_PROVIDERS, BIBLE_RESOURCES)
 BY_ID = {p.id: p for p in PROVIDERS}
-MODULE_NAME = r'[A-Za-z0-9_-]+'
-RESOURCE_ID = rf'(?:[a-z0-9-]+~)?{MODULE_NAME}'
+MODULE_NAME = r"[A-Za-z0-9_-]+"
+RESOURCE_ID = rf"(?:[a-z0-9-]+~)?{MODULE_NAME}"
 
 
 def identity(provider_id, module_name):
     if provider_id not in BY_ID or not re.fullmatch(MODULE_NAME, module_name):
-        raise ValueError('Invalid resource identity')
+        raise ValueError("Invalid resource identity")
     # '~' is not allowed in historical module names. Existing CrossWire IDs stay
     # byte-for-byte unchanged; other providers cannot collide with them.
-    return module_name if provider_id == 'crosswire' else f'{provider_id}~{module_name}'
+    return module_name if provider_id == "crosswire" else f"{provider_id}~{module_name}"
 
 
 def module_name(resource_id):
-    parts = resource_id.split('~')
-    provider_id, name = parts if len(parts) == 2 else ('crosswire', resource_id)
+    parts = resource_id.split("~")
+    provider_id, name = parts if len(parts) == 2 else ("crosswire", resource_id)
     if identity(provider_id, name) != resource_id:
-        raise ValueError('Invalid resource identity')
+        raise ValueError("Invalid resource identity")
     return name

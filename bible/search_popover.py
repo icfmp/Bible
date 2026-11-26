@@ -1,170 +1,276 @@
 """Dedicated native Text/Topics entry point over the existing search models."""
-from gi.repository import Gdk,GLib,Gtk
+
+from gi.repository import Gdk, GLib, Gtk
 from .i18n import tr
 from .study_search import StudySearch
 
 
 class SearchPopover(Gtk.Popover):
-    def __init__(self,owner):
+    def __init__(self, owner):
         super().__init__()
-        self.owner=owner;self.reader=None;self._resource=None;self._layout_stamp=None;self._focus_idle=0
-        self.add_css_class('passage-selector')
-        self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        self.modes=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
-        self.text_search=StudySearch(self,'text');self.topic_search=StudySearch(self,'topics')
-        self.modes.add_titled(self.text_search,'text',tr('Text'));self.modes.add_titled(self.topic_search,'topics',tr('Themes'))
-        self.mode_switcher=Gtk.Box(halign=Gtk.Align.FILL);self.mode_switcher.add_css_class('linked');self.mode_buttons={}
-        first=None
-        for name,label in [('text','Text'),('topics','Themes')]:
-            button=Gtk.ToggleButton(label=tr(label),hexpand=True)
-            if first:button.set_group(first)
-            else:first=button
-            button.connect('toggled',lambda b,n=name:self.modes.set_visible_child_name(n) if b.get_active() else None)
-            self.mode_switcher.append(button);self.mode_buttons[name]=button
+        self.owner = owner
+        self.reader = None
+        self._resource = None
+        self._layout_stamp = None
+        self._focus_idle = 0
+        self.add_css_class("passage-selector")
+        self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        self.modes = Gtk.Stack(hhomogeneous=False, vhomogeneous=False)
+        self.text_search = StudySearch(self, "text")
+        self.topic_search = StudySearch(self, "topics")
+        self.modes.add_titled(self.text_search, "text", tr("Text"))
+        self.modes.add_titled(self.topic_search, "topics", tr("Themes"))
+        self.mode_switcher = Gtk.Box(halign=Gtk.Align.FILL)
+        self.mode_switcher.add_css_class("linked")
+        self.mode_buttons = {}
+        first = None
+        for name, label in [("text", "Text"), ("topics", "Themes")]:
+            button = Gtk.ToggleButton(label=tr(label), hexpand=True)
+            if first:
+                button.set_group(first)
+            else:
+                first = button
+            button.connect(
+                "toggled",
+                lambda b, n=name: self.modes.set_visible_child_name(n) if b.get_active() else None,
+            )
+            self.mode_switcher.append(button)
+            self.mode_buttons[name] = button
         first.set_active(True)
-        self.content.append(self.mode_switcher);self.content.append(self.modes)
-        self.scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,propagate_natural_height=True)
-        self.scroll.set_child(self.content);self.set_child(self.scroll)
-        self.modes.connect('notify::visible-child-name',self.mode_changed)
-        self.connect('notify::visible',self.visibility_changed)
-        for scroll,model in ((self.text_search.result_scroll,self.text_search.model),
-                             (self.topic_search.result_scroll,self.topic_search.model),
-                             (self.topic_search.topic_scroll,self.topic_search.topic_model)):
-            model.connect('items-changed',lambda *_,s=scroll:self.results_changed(s))
-            scroll.get_vadjustment().connect('changed',lambda *_,s=scroll,m=model:self.fit_results(s,m))
-            scroll.connect('map',lambda *_,s=scroll,m=model:self.fit_results(s,m))
-        self.topic_search.topic_pages.connect('notify::visible-child-name',lambda *_:self.adapt())
-        keys=Gtk.EventControllerKey();keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        keys.connect('key-pressed',self.preview_key_pressed);self.add_controller(keys)
+        self.content.append(self.mode_switcher)
+        self.content.append(self.modes)
+        self.scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True
+        )
+        self.scroll.set_child(self.content)
+        self.set_child(self.scroll)
+        self.modes.connect("notify::visible-child-name", self.mode_changed)
+        self.connect("notify::visible", self.visibility_changed)
+        for scroll, model in (
+            (self.text_search.result_scroll, self.text_search.model),
+            (self.topic_search.result_scroll, self.topic_search.model),
+            (self.topic_search.topic_scroll, self.topic_search.topic_model),
+        ):
+            model.connect("items-changed", lambda *_, s=scroll: self.results_changed(s))
+            scroll.get_vadjustment().connect(
+                "changed", lambda *_, s=scroll, m=model: self.fit_results(s, m)
+            )
+            scroll.connect("map", lambda *_, s=scroll, m=model: self.fit_results(s, m))
+        self.topic_search.topic_pages.connect("notify::visible-child-name", lambda *_: self.adapt())
+        keys = Gtk.EventControllerKey()
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self.preview_key_pressed)
+        self.add_controller(keys)
 
-    def selected_resource(self):return self._resource
+    def selected_resource(self):
+        return self._resource
 
     def reading_context(self):
-        tab=self.owner.active_tab if hasattr(self.owner,'view') else None
-        if tab and tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison' and tab._comparison_reader:
-            return tab.state.comparison,tab._comparison_reader
-        return (tab.state.resource,tab.reader) if tab else (None,None)
+        tab = self.owner.active_tab if hasattr(self.owner, "view") else None
+        if (
+            tab
+            and tab.state.comparison
+            and getattr(tab, "_active_source_side", "primary") == "comparison"
+            and tab._comparison_reader
+        ):
+            return tab.state.comparison, tab._comparison_reader
+        return (tab.state.resource, tab.reader) if tab else (None, None)
 
     def current_reference(self):
-        tab=self.owner.active_tab if hasattr(self.owner,'view') else None
-        if not tab:return None
-        if tab.state.comparison and getattr(tab,'_active_source_side','primary')=='comparison':
+        tab = self.owner.active_tab if hasattr(self.owner, "view") else None
+        if not tab:
+            return None
+        if tab.state.comparison and getattr(tab, "_active_source_side", "primary") == "comparison":
             return tab.comparison_visible_reference() or tab.comparison_reference
         return tab.state.reference
 
     def sync(self):
-        self._resource,self.reader=self.reading_context()
+        self._resource, self.reader = self.reading_context()
         self.active_panel().refresh()
 
     def active_panel(self):
-        return self.topic_search if self.modes.get_visible_child_name()=='topics' else self.text_search
+        return (
+            self.topic_search
+            if self.modes.get_visible_child_name() == "topics"
+            else self.text_search
+        )
 
-    def mode_changed(self,*_):
-        mode=self.modes.get_visible_child_name()
-        for name,panel in [('text',self.text_search),('topics',self.topic_search)]:
-            if name!=mode:panel.pause()
+    def mode_changed(self, *_):
+        mode = self.modes.get_visible_child_name()
+        for name, panel in [("text", self.text_search), ("topics", self.topic_search)]:
+            if name != mode:
+                panel.pause()
         self.mode_buttons[mode].set_active(True)
-        self.owner.reference_preview.dismiss();self._layout_stamp=None
-        self.sync();self.adapt()
-        if self.get_visible():self.focus_query()
+        self.owner.reference_preview.dismiss()
+        self._layout_stamp = None
+        self.sync()
+        self.adapt()
+        if self.get_visible():
+            self.focus_query()
 
     def focus_query(self):
-        if self._focus_idle:GLib.source_remove(self._focus_idle)
-        def focus():
-            self._focus_idle=0
-            if self.get_visible() and not self.owner.closed:self.active_panel().entry.grab_focus()
-            return False
-        self._focus_idle=GLib.idle_add(focus)
+        if self._focus_idle:
+            GLib.source_remove(self._focus_idle)
 
-    def visibility_changed(self,*_):
+        def focus():
+            self._focus_idle = 0
+            if self.get_visible() and not self.owner.closed:
+                self.active_panel().entry.grab_focus()
+            return False
+
+        self._focus_idle = GLib.idle_add(focus)
+
+    def visibility_changed(self, *_):
         if self.get_visible():
             for other in self.owner._reading_popovers:
-                if other is not self and not self.is_ancestor(other) and other.get_visible():other.popdown()
-            self.sync();self.adapt();self.focus_query()
+                if other is not self and not self.is_ancestor(other) and other.get_visible():
+                    other.popdown()
+            self.sync()
+            self.adapt()
+            self.focus_query()
         else:
-            if self._focus_idle:GLib.source_remove(self._focus_idle);self._focus_idle=0
-            self.text_search.pause();self.topic_search.pause()
-            anchor=self.get_parent()
+            if self._focus_idle:
+                GLib.source_remove(self._focus_idle)
+                self._focus_idle = 0
+            self.text_search.pause()
+            self.topic_search.pause()
+            anchor = self.get_parent()
             if anchor and anchor.get_parent() is self.owner.reader_overflow_box:
                 # The adaptive anchor lives inside another native menu. Leave
                 # that menu too, otherwise it retains focus and inhibits the
                 # window's passage/search accelerators after Escape.
                 self.owner.reading_tools_menu.popdown()
-                anchor=self.owner.reading_tools_menu
-            if anchor and anchor.get_mapped():anchor.grab_focus()
+                anchor = self.owner.reading_tools_menu
+            if anchor and anchor.get_mapped():
+                anchor.grab_focus()
 
     def adapt(self):
-        if not self.get_visible():return
-        empty=self.modes.get_visible_child_name()=='text' and not self.text_search.model.get_n_items()
-        size=(self.owner.get_width(),self.owner.get_height(),self.modes.get_visible_child_name(),empty,
-              self.text_search.loading_cards.get_visible(),
-              self.text_search.model.get_n_items(),self.topic_search.model.get_n_items(),
-              self.topic_search.topic_model.get_n_items(),self.topic_search.topic_pages.get_visible_child_name(),
-              self.owner.get_pango_context().get_serial())
-        if size==self._layout_stamp:return
-        self._layout_stamp=size
-        self.content.set_size_request(min(480,max(240,size[0]-64)),-1)
-        available=min(540,max(160,size[1]-140))
-        self.scroll.set_min_content_height(-1);self.scroll.set_max_content_height(available)
-        self.text_search.result_scroll.set_visible(not empty and not self.text_search.loading_cards.get_visible())
-        topics=self.topic_search
-        topics.topic_pages.set_visible(topics.topic_pages.get_visible_child_name()!='topics' or bool(topics.topic_model.get_n_items()))
+        if not self.get_visible():
+            return
+        empty = (
+            self.modes.get_visible_child_name() == "text"
+            and not self.text_search.model.get_n_items()
+        )
+        size = (
+            self.owner.get_width(),
+            self.owner.get_height(),
+            self.modes.get_visible_child_name(),
+            empty,
+            self.text_search.loading_cards.get_visible(),
+            self.text_search.model.get_n_items(),
+            self.topic_search.model.get_n_items(),
+            self.topic_search.topic_model.get_n_items(),
+            self.topic_search.topic_pages.get_visible_child_name(),
+            self.owner.get_pango_context().get_serial(),
+        )
+        if size == self._layout_stamp:
+            return
+        self._layout_stamp = size
+        self.content.set_size_request(min(480, max(240, size[0] - 64)), -1)
+        available = min(540, max(160, size[1] - 140))
+        self.scroll.set_min_content_height(-1)
+        self.scroll.set_max_content_height(available)
+        self.text_search.result_scroll.set_visible(
+            not empty and not self.text_search.loading_cards.get_visible()
+        )
+        topics = self.topic_search
+        topics.topic_pages.set_visible(
+            topics.topic_pages.get_visible_child_name() != "topics"
+            or bool(topics.topic_model.get_n_items())
+        )
         # Let GTK measure short result lists. Only the result region scrolls
         # under ordinary geometry; never reserve a full-height empty body.
-        self.scroll.set_size_request(-1,-1);self.modes.set_vexpand(False)
-        width=self.content.get_width() or min(480,max(240,size[0]-64))
-        tabs=self.mode_switcher.measure(Gtk.Orientation.VERTICAL,width)[1]+self.content.get_spacing()
-        panel=self.active_panel()
-        chrome=sum(child.measure(Gtk.Orientation.VERTICAL,width)[1]
-                   for child in self._panel_children(panel)
-                   if child.get_visible() and child not in (panel.result_scroll,getattr(panel,'topic_pages',None),getattr(panel,'loading_cards',None)))
-        budget=max(60,available-tabs-chrome-48)
-        for item in (self.text_search.result_scroll,self.topic_search.result_scroll,self.topic_search.topic_scroll):
-            if item.get_max_content_height()!=budget:
-                item.set_min_content_height(0);item.set_max_content_height(budget)
-        self.scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
+        self.scroll.set_size_request(-1, -1)
+        self.modes.set_vexpand(False)
+        width = self.content.get_width() or min(480, max(240, size[0] - 64))
+        tabs = (
+            self.mode_switcher.measure(Gtk.Orientation.VERTICAL, width)[1]
+            + self.content.get_spacing()
+        )
+        panel = self.active_panel()
+        chrome = sum(
+            child.measure(Gtk.Orientation.VERTICAL, width)[1]
+            for child in self._panel_children(panel)
+            if child.get_visible()
+            and child
+            not in (
+                panel.result_scroll,
+                getattr(panel, "topic_pages", None),
+                getattr(panel, "loading_cards", None),
+            )
+        )
+        budget = max(60, available - tabs - chrome - 48)
+        for item in (
+            self.text_search.result_scroll,
+            self.topic_search.result_scroll,
+            self.topic_search.topic_scroll,
+        ):
+            if item.get_max_content_height() != budget:
+                item.set_min_content_height(0)
+                item.set_max_content_height(budget)
+        self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         from .popover_dismissal import fit_reader_popover
-        fit_reader_popover(self,self.owner)
 
-    def results_changed(self,scroll):
+        fit_reader_popover(self, self.owner)
+
+    def results_changed(self, scroll):
         # Discard the previous model's height before GTK lays out the new rows.
-        scroll.set_min_content_height(0);self.adapt()
+        scroll.set_min_content_height(0)
+        self.adapt()
 
-    def fit_results(self,scroll,model):
-        if self.owner.closed or not self.get_visible() or not scroll.get_mapped():return
+    def fit_results(self, scroll, model):
+        if self.owner.closed or not self.get_visible() or not scroll.get_mapped():
+            return
         self.adapt()
         # Virtual lists estimate their natural height. Measure the native rows
         # when the complete short list is realized; long lists keep the limit.
         # Adjustment.upper includes the viewport, so it cannot shrink a former
         # long list. Geometry notifications add no timer or value-change work.
-        rows=[];view=scroll.get_child();child=view.get_first_child()
+        rows = []
+        view = scroll.get_child()
+        child = view.get_first_child()
         while child:
-            if child.get_css_name()=='row':rows.append(child)
-            child=child.get_next_sibling()
+            if child.get_css_name() == "row":
+                rows.append(child)
+            child = child.get_next_sibling()
         # The new results map before their first allocation. Use the already
         # allocated popover width rather than measuring wrapped text at 1px,
         # or leaving a virtual list with no initial height to allocate at all.
-        width=view.get_width() if view.get_width()>1 else self.content.get_width()
-        if width<=1:return
-        count=model.get_n_items();limit=scroll.get_max_content_height()
-        height=limit if count else 0
-        if count and len(rows)==count:
-            height=min(limit,sum(row.measure(Gtk.Orientation.VERTICAL,width)[1] for row in rows))
-        if height>=0 and scroll.get_min_content_height()!=height:scroll.set_min_content_height(height)
+        width = view.get_width() if view.get_width() > 1 else self.content.get_width()
+        if width <= 1:
+            return
+        count = model.get_n_items()
+        limit = scroll.get_max_content_height()
+        height = limit if count else 0
+        if count and len(rows) == count:
+            height = min(
+                limit, sum(row.measure(Gtk.Orientation.VERTICAL, width)[1] for row in rows)
+            )
+        if height >= 0 and scroll.get_min_content_height() != height:
+            scroll.set_min_content_height(height)
 
     @staticmethod
     def _panel_children(panel):
-        child=panel.get_first_child()
+        child = panel.get_first_child()
         while child:
-            yield child;child=child.get_next_sibling()
+            yield child
+            child = child.get_next_sibling()
 
-    def preview_key_pressed(self,controller,key,code,state):
-        if key!=Gdk.KEY_Escape:return False
-        event=controller.get_current_event()
-        if event and event.get_surface() not in (self.get_surface(),self.owner.get_surface()):return False
-        if self.owner.reference_preview.popover:self.owner.reference_preview.dismiss();return True
-        self.popdown();return True
+    def preview_key_pressed(self, controller, key, code, state):
+        if key != Gdk.KEY_Escape:
+            return False
+        event = controller.get_current_event()
+        if event and event.get_surface() not in (self.get_surface(), self.owner.get_surface()):
+            return False
+        if self.owner.reference_preview.popover:
+            self.owner.reference_preview.dismiss()
+            return True
+        self.popdown()
+        return True
 
     def close(self):
-        if self._focus_idle:GLib.source_remove(self._focus_idle);self._focus_idle=0
-        self.text_search.close();self.topic_search.close()
+        if self._focus_idle:
+            GLib.source_remove(self._focus_idle)
+            self._focus_idle = 0
+        self.text_search.close()
+        self.topic_search.close()

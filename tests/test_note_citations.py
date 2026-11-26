@@ -1,115 +1,243 @@
 """Shared note previews preserve note identity, drafts and explicit navigation."""
+
 import os
 from pathlib import Path
 import tempfile
 import unittest
-from tests.test_ui import installed_fixture,spin,close_test_dialogs
+from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class NoteCitationTests(unittest.TestCase):
     def setUp(self):
-        from bible.ui import Application,Window,Library
-        self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
-        for name,system,psalm in [('French','Segond','Ps.3.2'),('English','KJV','Ps.3.1')]:
-            installed_fixture(self.directory,name,versification=system,entries=[
-                ('John.1.5','SOURCE '+name),('John.3.16','EXACT JOHN '+name),(psalm,'EXACT PSALM '+name)])
-        self.app=Application.get_default() or Application();self.app.register()
-        self.window=Window(self.app,Library(self.root/'translations'));self.window.set_default_size(1200,900);self.window.present()
-        self.window.active_tab.navigate('English','John.1.5')
-        self.note=self.window.notes_store.save('Voir **Psaumes 3:2** et John 3:16. `John 1:5`',[],
-            versification='Segond',start='John.1.5',end='John.1.5',origin_translation='French',origin_language='fr')
+        from bible.ui import Application, Window, Library
+
+        self.directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(self.directory)
+        for name, system, psalm in [("French", "Segond", "Ps.3.2"), ("English", "KJV", "Ps.3.1")]:
+            installed_fixture(
+                self.directory,
+                name,
+                versification=system,
+                entries=[
+                    ("John.1.5", "SOURCE " + name),
+                    ("John.3.16", "EXACT JOHN " + name),
+                    (psalm, "EXACT PSALM " + name),
+                ],
+            )
+        self.app = Application.get_default() or Application()
+        self.app.register()
+        self.window = Window(self.app, Library(self.root / "translations"))
+        self.window.set_default_size(1200, 900)
+        self.window.present()
+        self.window.active_tab.navigate("English", "John.1.5")
+        self.note = self.window.notes_store.save(
+            "Voir **Psaumes 3:2** et John 3:16. `John 1:5`",
+            [],
+            versification="Segond",
+            start="John.1.5",
+            end="John.1.5",
+            origin_translation="French",
+            origin_language="fr",
+        )
 
     def tearDown(self):
         close_test_dialogs()
-        if self.window.note_editor:self.window.note_editor._discard=True;self.window.note_editor.close()
+        if self.window.note_editor:
+            self.window.note_editor._discard = True
+            self.window.note_editor.close()
         self.window.close()
 
-    def editor(self,embedded=True):
+    def editor(self, embedded=True):
         if embedded:
-            notes=self.window.open_notes();notes.open_note(self.note);editor=notes.editor
-        else:editor=self.window.edit_note(note=self.note)
-        spin(duration=.2)
+            notes = self.window.open_notes()
+            notes.open_note(self.note)
+            editor = notes.editor
+        else:
+            editor = self.window.edit_note(note=self.note)
+        spin(duration=0.2)
         return editor
 
-    def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(self):
+    def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(
+        self,
+    ):
         from bible.note_preview import NotePreview
         from bible.annotation_card import AnnotationPreview
-        w=self.window;w.study_button.set_active(True);w.study.tools.set_visible_child_name('notes');w.study.notes.refresh()
+
+        w = self.window
+        w.study_button.set_active(True)
+        w.study.tools.set_visible_child_name("notes")
+        w.study.notes.refresh()
         # Unlike a pointer activation, this direct callback can run during the
         # drawer's first allocation/follow animation. Wait for its real anchor.
-        spin(lambda:w.study.notes.get_mapped() and not w.active_tab._restoring_scroll
-             and not w.study.notes._follow_idle,duration=.4)
-        def walk(widget):
-            if isinstance(widget,(NotePreview,AnnotationPreview)):yield widget
-            child=widget.get_first_child()
-            while child:yield from walk(child);child=child.get_next_sibling()
-        preview=next(walk(w.study.notes.list));self.assertEqual(len(preview.citations),2)
-        self.assertIn('<b>Psaumes 3:2</b>',preview.get_label(),
-                      'Generated links must preserve Markdown bold weight')
-        before=(w.active_tab.state.reference,list(w.active_tab.state.history),w.view.get_n_pages())
-        preview.activate(0);spin()
-        self.assertEqual(w.reference_preview.body.get_buffer().props.text,'EXACT PSALM English')
-        self.assertEqual(w.reference_preview.target,('English','Ps.3.1'))
-        self.assertEqual((w.active_tab.state.reference,w.active_tab.state.history,w.view.get_n_pages()),before)
-        w.reference_preview.dismiss();editor=self.editor()
-        cursor=editor.body.get_buffer().get_iter_at_mark(editor.body.get_buffer().get_insert()).get_offset()
-        editor.body.activate(0);spin()
-        self.assertEqual(w.reference_preview.target,('English','Ps.3.1'))
-        w.reference_preview.dismiss()
-        self.assertEqual(editor.body.get_buffer().get_iter_at_mark(editor.body.get_buffer().get_insert()).get_offset(),cursor)
-        self.assertEqual(w.notes_store.get(self.note.id),self.note)
+        spin(
+            lambda: w.study.notes.get_mapped()
+            and not w.active_tab._restoring_scroll
+            and not w.study.notes._follow_idle,
+            duration=0.4,
+        )
 
-    def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(self):
+        def walk(widget):
+            if isinstance(widget, (NotePreview, AnnotationPreview)):
+                yield widget
+            child = widget.get_first_child()
+            while child:
+                yield from walk(child)
+                child = child.get_next_sibling()
+
+        preview = next(walk(w.study.notes.list))
+        self.assertEqual(len(preview.citations), 2)
+        self.assertIn(
+            "<b>Psaumes 3:2</b>",
+            preview.get_label(),
+            "Generated links must preserve Markdown bold weight",
+        )
+        before = (
+            w.active_tab.state.reference,
+            list(w.active_tab.state.history),
+            w.view.get_n_pages(),
+        )
+        preview.activate(0)
+        spin()
+        self.assertEqual(w.reference_preview.body.get_buffer().props.text, "EXACT PSALM English")
+        self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))
+        self.assertEqual(
+            (w.active_tab.state.reference, w.active_tab.state.history, w.view.get_n_pages()), before
+        )
+        w.reference_preview.dismiss()
+        editor = self.editor()
+        cursor = (
+            editor.body.get_buffer()
+            .get_iter_at_mark(editor.body.get_buffer().get_insert())
+            .get_offset()
+        )
+        editor.body.activate(0)
+        spin()
+        self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))
+        w.reference_preview.dismiss()
+        self.assertEqual(
+            editor.body.get_buffer()
+            .get_iter_at_mark(editor.body.get_buffer().get_insert())
+            .get_offset(),
+            cursor,
+        )
+        self.assertEqual(w.notes_store.get(self.note.id), self.note)
+
+    def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(
+        self,
+    ):
         from bible.notes_window import buffer_text
-        w=self.window;editor=self.editor();editor.body.get_buffer().insert_at_cursor(' unsaved')
-        before=(w.active_tab.state.reference,w.view.get_n_pages())
+
+        w = self.window
+        editor = self.editor()
+        editor.body.get_buffer().insert_at_cursor(" unsaved")
+        before = (w.active_tab.state.reference, w.view.get_n_pages())
         from unittest.mock import patch
-        with patch.object(w.notes_store,'save',side_effect=OSError('Test write failure')):
-            editor.body.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
+
+        with patch.object(w.notes_store, "save", side_effect=OSError("Test write failure")):
+            editor.body.activate(0)
+            spin()
+            w.reference_preview.open_new.emit("clicked")
+            spin()
         self.assertTrue(editor._confirmation.get_visible())
-        self.assertEqual((w.active_tab.state.reference,w.view.get_n_pages()),before)
-        editor._confirmation.response('cancel');editor._confirmation.destroy();spin()
-        self.assertFalse(editor.closed);self.assertIn('unsaved',buffer_text(editor.body))
-        editor.body.activate(0);spin();w.reference_preview.open_new.emit('clicked');spin()
+        self.assertEqual((w.active_tab.state.reference, w.view.get_n_pages()), before)
+        editor._confirmation.response("cancel")
+        editor._confirmation.destroy()
+        spin()
+        self.assertFalse(editor.closed)
+        self.assertIn("unsaved", buffer_text(editor.body))
+        editor.body.activate(0)
+        spin()
+        w.reference_preview.open_new.emit("clicked")
+        spin()
         self.assertTrue(editor.closed)
-        self.assertEqual(w.view.get_n_pages(),before[1]+1)
-        self.assertEqual(w.active_tab.state.reference,'Ps.3.1');self.assertEqual(w.active_tab.state.resource,'English')
-        saved=w.notes_store.get(self.note.id)
-        self.assertEqual((saved.versification,saved.start,saved.origin_translation),('Segond','John.1.5','French'))
-        self.assertIn('unsaved',saved.body)
+        self.assertEqual(w.view.get_n_pages(), before[1] + 1)
+        self.assertEqual(w.active_tab.state.reference, "Ps.3.1")
+        self.assertEqual(w.active_tab.state.resource, "English")
+        saved = w.notes_store.get(self.note.id)
+        self.assertEqual(
+            (saved.versification, saved.start, saved.origin_translation),
+            ("Segond", "John.1.5", "French"),
+        )
+        self.assertIn("unsaved", saved.body)
 
     def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(self):
-        w=self.window;editor=self.editor(embedded=False)
-        editor.body.activate(1);spin();self.assertIsNotNone(w.reference_preview.popover)
-        editor.body_scroll.set_visible(False);spin();self.assertIsNone(w.reference_preview.popover)
-        editor.body_scroll.set_visible(True);spin();editor.body.activate(1);spin()
-        w.reference_preview.open_here.emit('clicked');spin()
-        self.assertTrue(editor.closed);self.assertEqual(w.active_tab.state.reference,'John.3.16')
-        self.assertEqual(w.notes_store.get(self.note.id),self.note)
+        w = self.window
+        editor = self.editor(embedded=False)
+        editor.body.activate(1)
+        spin()
+        self.assertIsNotNone(w.reference_preview.popover)
+        editor.body_scroll.set_visible(False)
+        spin()
+        self.assertIsNone(w.reference_preview.popover)
+        editor.body_scroll.set_visible(True)
+        spin()
+        editor.body.activate(1)
+        spin()
+        w.reference_preview.open_here.emit("clicked")
+        spin()
+        self.assertTrue(editor.closed)
+        self.assertEqual(w.active_tab.state.reference, "John.3.16")
+        self.assertEqual(w.notes_store.get(self.note.id), self.note)
 
     def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
-        if os.environ.get('BIBLE_TEST_ISOLATED_CLICK')!='1':
-            import subprocess,sys
-            result=subprocess.run(['dbus-run-session','--','xvfb-run','-a',sys.executable,
-                '-m','tools.composited_x11',sys.executable,'-m','unittest',self.id(),'-v'],env=dict(os.environ,BIBLE_TEST_ISOLATED_CLICK='1'),
-                capture_output=True,text=True,timeout=60)
-            self.assertEqual(result.returncode,0,result.stdout+result.stderr);return
+        if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
+            import subprocess, sys
+
+            result = subprocess.run(
+                [
+                    "dbus-run-session",
+                    "--",
+                    "xvfb-run",
+                    "-a",
+                    sys.executable,
+                    "-m",
+                    "tools.composited_x11",
+                    sys.executable,
+                    "-m",
+                    "unittest",
+                    self.id(),
+                    "-v",
+                ],
+                env=dict(os.environ, BIBLE_TEST_ISOLATED_CLICK="1"),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return
         from bible.ui import Gtk
-        w=self.window;editor=self.editor();preview=editor.body
+
+        w = self.window
+        editor = self.editor()
+        preview = editor.body
         from tools.check_alpha_ui import X11Input
-        native=X11Input()
+
+        native = X11Input()
         try:
-            native.activate(w);preview.grab_focus()
-            first=preview.citations[0];preview.get_buffer().place_cursor(preview.get_buffer().get_iter_at_offset(first.begin))
-            code=native.x11.XKeysymToKeycode(native.display,native.x11.XStringToKeysym(b'Control_L'))
-            native.xtest.XTestFakeKeyEvent(native.display,code,True,0);native.key('Return')
-            native.xtest.XTestFakeKeyEvent(native.display,code,False,0);native.x11.XFlush(native.display);spin()
+            native.activate(w)
+            preview.grab_focus()
+            first = preview.citations[0]
+            preview.get_buffer().place_cursor(preview.get_buffer().get_iter_at_offset(first.begin))
+            code = native.x11.XKeysymToKeycode(
+                native.display, native.x11.XStringToKeysym(b"Control_L")
+            )
+            native.xtest.XTestFakeKeyEvent(native.display, code, True, 0)
+            native.key("Return")
+            native.xtest.XTestFakeKeyEvent(native.display, code, False, 0)
+            native.x11.XFlush(native.display)
+            spin()
             self.assertIsNotNone(w.reference_preview.popover)
             w.reference_preview.dismiss()
-        finally:native.close()
-        w.active_tab.state.resource=None;w.active_tab.load_resource();w.tab_changed(w.active_tab);spin()
-        preview.activate(0);spin()
-        self.assertFalse(w.reference_preview.open_here.get_sensitive());self.assertFalse(w.reference_preview.open_new.get_sensitive())
-        self.assertEqual(w.reference_preview.body.get_buffer().props.text,'')
-        self.assertEqual(w.notes_store.get(self.note.id),self.note)
+        finally:
+            native.close()
+        w.active_tab.state.resource = None
+        w.active_tab.load_resource()
+        w.tab_changed(w.active_tab)
+        spin()
+        preview.activate(0)
+        spin()
+        self.assertFalse(w.reference_preview.open_here.get_sensitive())
+        self.assertFalse(w.reference_preview.open_new.get_sensitive())
+        self.assertEqual(w.reference_preview.body.get_buffer().props.text, "")
+        self.assertEqual(w.notes_store.get(self.note.id), self.note)

@@ -3,6 +3,7 @@
 No application key, account impersonation or remote agreement submission. The
 user's acknowledgement is local and is bound to the exact displayed metadata.
 """
+
 import hashlib
 import io
 import json
@@ -16,56 +17,84 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 
 from .providers import YOUVERSION
 from .youversion_source import read_edition
-from .youversion_editions import EDITIONS,METADATA_URL,module_id,edition_id,storage_system
+from .youversion_editions import EDITIONS, METADATA_URL, module_id, edition_id, storage_system
 from .i18n import tr
 
 MAX_ZIP = 32 * 1024 * 1024
 
 
 def serialized(value):
-    return json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'))
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def write_receipt(path,value):
-    temporary=None
+def write_receipt(path, value):
+    temporary = None
     try:
-        with tempfile.NamedTemporaryFile('w',dir=path.parent,prefix='.receipt-',delete=False) as output:
-            temporary=Path(output.name);output.write(serialized(value));output.flush();os.fsync(output.fileno())
-        os.replace(temporary,path)
+        with tempfile.NamedTemporaryFile(
+            "w", dir=path.parent, prefix=".receipt-", delete=False
+        ) as output:
+            temporary = Path(output.name)
+            output.write(serialized(value))
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
     finally:
-        if temporary:temporary.unlink(missing_ok=True)
+        if temporary:
+            temporary.unlink(missing_ok=True)
 
 
-def resource_from_metadata(value,expected_id=21):
+def resource_from_metadata(value, expected_id=21):
     from .library import Resource
-    name=module_id(expected_id)
-    edition = read_edition(value,expected_id)
-    if expected_id in EDITIONS and edition.language!=EDITIONS[expected_id][2]:raise ValueError('Unexpected edition language')
-    policy = edition.metadata.get('offline') or {}
+
+    name = module_id(expected_id)
+    edition = read_edition(value, expected_id)
+    if expected_id in EDITIONS and edition.language != EDITIONS[expected_id][2]:
+        raise ValueError("Unexpected edition language")
+    policy = edition.metadata.get("offline") or {}
     # Pilot only. New editions or numbering systems require separate fidelity
     # and numbering validation, rather than being silently treated as KJV.
-    if expected_id in EDITIONS and edition.metadata.get('vrs') != EDITIONS[expected_id][0]:
-        raise ValueError('Unsupported source numbering')
-    notices=[edition.attribution]
-    for notice_key in ('copyright_long','reader_footer'):
-        notice=edition.metadata.get(notice_key)
-        if isinstance(notice,dict) and isinstance(notice.get('text'),str) and notice['text'] not in notices:notices.append(notice['text'])
-    conditions = '\n\n'.join(notices)+'\n\n'+serialized(policy)
-    language=edition.metadata['language'].get('language_tag') or edition.language
+    if expected_id in EDITIONS and edition.metadata.get("vrs") != EDITIONS[expected_id][0]:
+        raise ValueError("Unsupported source numbering")
+    notices = [edition.attribution]
+    for notice_key in ("copyright_long", "reader_footer"):
+        notice = edition.metadata.get(notice_key)
+        if (
+            isinstance(notice, dict)
+            and isinstance(notice.get("text"), str)
+            and notice["text"] not in notices
+        ):
+            notices.append(notice["text"])
+    conditions = "\n\n".join(notices) + "\n\n" + serialized(policy)
+    language = edition.metadata["language"].get("language_tag") or edition.language
     from .youversion_catalogue import language_tag
+
     language_tag(language)
-    return Resource(name,edition.title,language,'Source conditions apply',
-        about='https://www.bible.com/versions/'+str(expected_id), conditions=conditions,
-        driver='RawText',
-        source=YOUVERSION.name,source_url=YOUVERSION.url,
-        versification=storage_system(expected_id),provider_id=YOUVERSION.id,
+    return Resource(
+        name,
+        edition.title,
+        language,
+        "Source conditions apply",
+        about="https://www.bible.com/versions/" + str(expected_id),
+        conditions=conditions,
+        driver="RawText",
+        source=YOUVERSION.name,
+        source_url=YOUVERSION.url,
+        versification=storage_system(expected_id),
+        provider_id=YOUVERSION.id,
         acquisition=serialized(edition.metadata),
-        abbreviation=next((edition.metadata.get(key) for key in ('local_abbreviation','abbreviation')
-            if isinstance(edition.metadata.get(key),str) and edition.metadata[key].strip()),''))
+        abbreviation=next(
+            (
+                edition.metadata.get(key)
+                for key in ("local_abbreviation", "abbreviation")
+                if isinstance(edition.metadata.get(key), str) and edition.metadata[key].strip()
+            ),
+            "",
+        ),
+    )
 
 
 def acknowledgement(resource):
@@ -74,234 +103,389 @@ def acknowledgement(resource):
 
 def catalogue(timings=None):
     """Language discovery and one initial list; other languages load on demand."""
-    from .youversion_catalogue import languages,editions,tags_for_language
+    from .youversion_catalogue import languages, editions, tags_for_language
     from .i18n import LANGUAGE
-    records=languages();tags=tags_for_language(LANGUAGE.split('_')[0],records)
-    resources=[resource for tag in tags for resource in editions(tag)]
-    if timings is not None:timings.update(requests=1+len(tags),source_languages=records,source_loaded_tags=tags,validators={})
+
+    records = languages()
+    tags = tags_for_language(LANGUAGE.split("_")[0], records)
+    resources = [resource for tag in tags for resource in editions(tag)]
+    if timings is not None:
+        timings.update(
+            requests=1 + len(tags), source_languages=records, source_loaded_tags=tags, validators={}
+        )
     return resources
 
 
 def fetch_resource(identifier):
     """Hydrate a catalogue row before showing conditions or downloading bytes."""
     from .library import download
-    module_id(identifier);data=io.BytesIO()
-    download(METADATA_URL.format(edition=identifier),data,limit=2*1024*1024,same_origin=True)
-    return resource_from_metadata(json.loads(data.getvalue()),identifier)
+
+    module_id(identifier)
+    data = io.BytesIO()
+    download(METADATA_URL.format(edition=identifier), data, limit=2 * 1024 * 1024, same_origin=True)
+    return resource_from_metadata(json.loads(data.getvalue()), identifier)
 
 
 def checkpoint(cancelled):
-    if cancelled():raise OSError(tr('Download cancelled.'))
+    if cancelled():
+        raise OSError(tr("Download cancelled."))
 
 
-def open_response(opener,request,cancelled):
+def open_response(opener, request, cancelled):
     from email.utils import parsedate_to_datetime
+
     for attempt in range(3):
         checkpoint(cancelled)
-        try:return opener(request,timeout=30)
+        try:
+            return opener(request, timeout=30)
         except urllib.error.HTTPError as error:
-            if error.code not in (429,502,503,504) or attempt==2:raise
-            raw=error.headers.get('Retry-After','')
-            try:delay=float(raw)
+            if error.code not in (429, 502, 503, 504) or attempt == 2:
+                raise
+            raw = error.headers.get("Retry-After", "")
+            try:
+                delay = float(raw)
             except ValueError:
-                try:delay=parsedate_to_datetime(raw).timestamp()-time.time()
-                except (TypeError,ValueError,OverflowError):delay=2**attempt
+                try:
+                    delay = parsedate_to_datetime(raw).timestamp() - time.time()
+                except (TypeError, ValueError, OverflowError):
+                    delay = 2**attempt
             # Honour long provider delays by ending the attempt, rather than
             # retrying earlier than requested or blocking cancellation.
-            if delay>30:raise
-            deadline=time.monotonic()+max(0,delay)
-            while time.monotonic()<deadline:
-                checkpoint(cancelled);time.sleep(min(.1,max(0,deadline-time.monotonic())))
+            if delay > 30:
+                raise
+            deadline = time.monotonic() + max(0, delay)
+            while time.monotonic() < deadline:
+                checkpoint(cancelled)
+                time.sleep(min(0.1, max(0, deadline - time.monotonic())))
 
 
 class SourceRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self,request,fp,code,msg,headers,newurl):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
         from urllib.parse import urlsplit
-        old,new=urlsplit(request.full_url),urlsplit(newurl)
-        if new.scheme!='https' or new.netloc!=old.netloc:
-            raise ValueError('Unexpected source redirect')
-        return super().redirect_request(request,fp,code,msg,headers,newurl)
+
+        old, new = urlsplit(request.full_url), urlsplit(newurl)
+        if new.scheme != "https" or new.netloc != old.netloc:
+            raise ValueError("Unexpected source redirect")
+        return super().redirect_request(request, fp, code, msg, headers, newurl)
 
 
-def cached_download(url, cache, progress, cancelled, *, opener=None, downloaded=lambda:None):
+def cached_download(url, cache, progress, cancelled, *, opener=None, downloaded=lambda: None):
     """Resume only this exact returned URL, with a strong server validator.
 
     Incomplete bytes are never compiled. Completed packages are retained for
     retrying conversion without requesting a redownload from the provider.
     """
-    opener=opener or urllib.request.build_opener(SourceRedirect()).open
-    cache.mkdir(parents=True,exist_ok=True,mode=0o700)
-    key=hashlib.sha256(url.encode()).hexdigest()
-    path=cache/(key+'.zip');receipt=cache/(key+'.json')
-    if path.is_symlink() or receipt.is_symlink():raise ValueError('Unsafe cache path')
-    state={}
+    opener = opener or urllib.request.build_opener(SourceRedirect()).open
+    cache.mkdir(parents=True, exist_ok=True, mode=0o700)
+    key = hashlib.sha256(url.encode()).hexdigest()
+    path = cache / (key + ".zip")
+    receipt = cache / (key + ".json")
+    if path.is_symlink() or receipt.is_symlink():
+        raise ValueError("Unsafe cache path")
+    state = {}
     try:
-        if receipt.stat().st_size<4096:state=json.loads(receipt.read_text())
-    except (OSError,ValueError):pass
-    if not isinstance(state,dict):state={}
-    if path.is_file() and state.get('complete') and state.get('url')==url:
-        if path.stat().st_size<=MAX_ZIP and hashlib.sha256(path.read_bytes()).hexdigest()==state.get('sha256'):
-            progress(path.stat().st_size,path.stat().st_size);downloaded();checkpoint(cancelled);return path
+        if receipt.stat().st_size < 4096:
+            state = json.loads(receipt.read_text())
+    except (OSError, ValueError):
+        pass
+    if not isinstance(state, dict):
+        state = {}
+    if path.is_file() and state.get("complete") and state.get("url") == url:
+        if path.stat().st_size <= MAX_ZIP and hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest() == state.get("sha256"):
+            progress(path.stat().st_size, path.stat().st_size)
+            downloaded()
+            checkpoint(cancelled)
+            return path
         # A damaged completed cache is not a valid resumable prefix. Restart
         # this derived package only, leaving installed resources untouched.
-        state={}
-    start=path.stat().st_size if path.is_file() and state.get('url')==url and state.get('etag') else 0
-    if start>MAX_ZIP:raise ValueError('Download too large')
-    headers={'User-Agent':'Bible/0.1'}
-    if start:headers.update(Range=f'bytes={start}-',**{'If-Range':state['etag']})
-    request=urllib.request.Request(url,headers=headers)
+        state = {}
+    start = (
+        path.stat().st_size
+        if path.is_file() and state.get("url") == url and state.get("etag")
+        else 0
+    )
+    if start > MAX_ZIP:
+        raise ValueError("Download too large")
+    headers = {"User-Agent": "Bible/0.1"}
+    if start:
+        headers.update(Range=f"bytes={start}-", **{"If-Range": state["etag"]})
+    request = urllib.request.Request(url, headers=headers)
     checkpoint(cancelled)
-    with open_response(opener,request,cancelled) as response:
-        if response.url!=url:raise ValueError('Unexpected source response URL')
-        status=response.status
-        if status==206:
+    with open_response(opener, request, cancelled) as response:
+        if response.url != url:
+            raise ValueError("Unexpected source response URL")
+        status = response.status
+        if status == 206:
             import re
-            match=re.fullmatch(r'bytes ([0-9]+)-([0-9]+)/([0-9]+)',response.headers.get('Content-Range',''))
-            if not start or not match or int(match[1])!=start or int(match[2])+1!=int(match[3]):
-                raise ValueError('Invalid resumed response')
-            total=int(match[3])
-            if response.headers.get('ETag')!=state.get('etag'):raise ValueError('Source changed during resume')
-        elif status==200:
-            start=0;total=int(response.headers.get('Content-Length',0))
-        else:raise ValueError('Unexpected source HTTP status')
-        if total<0 or total>MAX_ZIP:raise ValueError('Download too large')
-        etag=response.headers.get('ETag','')
+
+            match = re.fullmatch(
+                r"bytes ([0-9]+)-([0-9]+)/([0-9]+)", response.headers.get("Content-Range", "")
+            )
+            if (
+                not start
+                or not match
+                or int(match[1]) != start
+                or int(match[2]) + 1 != int(match[3])
+            ):
+                raise ValueError("Invalid resumed response")
+            total = int(match[3])
+            if response.headers.get("ETag") != state.get("etag"):
+                raise ValueError("Source changed during resume")
+        elif status == 200:
+            start = 0
+            total = int(response.headers.get("Content-Length", 0))
+        else:
+            raise ValueError("Unexpected source HTTP status")
+        if total < 0 or total > MAX_ZIP:
+            raise ValueError("Download too large")
+        etag = response.headers.get("ETag", "")
         import re
-        if len(etag)>512 or not re.fullmatch(r'"[\x21\x23-\x7e\x80-\xff]*"',etag):etag=''
-        state={'url':url,'etag':etag,'complete':False}
-        write_receipt(receipt,state)
-        done=start;deadline=time.monotonic()+180
-        with path.open('ab' if start else 'wb') as output:
-            progress(done,total)
-            read=getattr(response,'read1',response.read)
+
+        if len(etag) > 512 or not re.fullmatch(r'"[\x21\x23-\x7e\x80-\xff]*"', etag):
+            etag = ""
+        state = {"url": url, "etag": etag, "complete": False}
+        write_receipt(receipt, state)
+        done = start
+        deadline = time.monotonic() + 180
+        with path.open("ab" if start else "wb") as output:
+            progress(done, total)
+            read = getattr(response, "read1", response.read)
             while True:
                 checkpoint(cancelled)
-                chunk=read(64*1024)
-                if not chunk:break
-                done+=len(chunk)
-                if done>MAX_ZIP or time.monotonic()>deadline:raise ValueError('Download limit exceeded')
-                output.write(chunk);progress(done,total)
-            if total and done!=total:raise ValueError('Incomplete download')
-            checkpoint(cancelled);downloaded()
-            output.flush();os.fsync(output.fileno())
+                chunk = read(64 * 1024)
+                if not chunk:
+                    break
+                done += len(chunk)
+                if done > MAX_ZIP or time.monotonic() > deadline:
+                    raise ValueError("Download limit exceeded")
+                output.write(chunk)
+                progress(done, total)
+            if total and done != total:
+                raise ValueError("Incomplete download")
+            checkpoint(cancelled)
+            downloaded()
+            output.flush()
+            os.fsync(output.fileno())
         checkpoint(cancelled)
-        state.update(complete=True,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
-                     acquired_at=datetime.now(timezone.utc).isoformat())
-        write_receipt(receipt,state)
+        state.update(
+            complete=True,
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            acquired_at=datetime.now(timezone.utc).isoformat(),
+        )
+        write_receipt(receipt, state)
         return path
 
 
-def run_conversion(archive,metadata,target,phase,cancelled,*,compiler='/app/bin/osis2mod',edition=21):
+def run_conversion(
+    archive, metadata, target, phase, cancelled, *, compiler="/app/bin/osis2mod", edition=21
+):
     """A separate process owns all temporary Python/native conversion heaps."""
     module_id(edition)
-    command=[sys.executable,'-m','bible.youversion_worker',str(archive),str(metadata),str(target),compiler,str(edition)]
+    command = [
+        sys.executable,
+        "-m",
+        "bible.youversion_worker",
+        str(archive),
+        str(metadata),
+        str(target),
+        compiler,
+        str(edition),
+    ]
     with tempfile.TemporaryFile() as errors:
-        process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=errors,start_new_session=True)
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=errors, start_new_session=True
+        )
         try:
             with selectors.DefaultSelector() as selector:
-                selector.register(process.stdout,selectors.EVENT_READ)
-                pending=b''
+                selector.register(process.stdout, selectors.EVENT_READ)
+                pending = b""
                 while selector.get_map():
                     checkpoint(cancelled)
-                    for selected,_ in selector.select(.1):
-                        chunk=os.read(selected.fileobj.fileno(),8192)
-                        if not chunk:selector.unregister(selected.fileobj);break
-                        pending+=chunk
-                        if len(pending)>65536:raise ValueError('Invalid conversion progress')
-                        while b'\n' in pending:
-                            line,pending=pending.split(b'\n',1)
-                            value=json.loads(line)
-                            phase(value['phase'],value['done'],value['total'])
-            if process.wait()!=0:
+                    for selected, _ in selector.select(0.1):
+                        chunk = os.read(selected.fileobj.fileno(), 8192)
+                        if not chunk:
+                            selector.unregister(selected.fileobj)
+                            break
+                        pending += chunk
+                        if len(pending) > 65536:
+                            raise ValueError("Invalid conversion progress")
+                        while b"\n" in pending:
+                            line, pending = pending.split(b"\n", 1)
+                            value = json.loads(line)
+                            phase(value["phase"], value["done"], value["total"])
+            if process.wait() != 0:
                 # Show a bounded structural diagnostic, never the traceback or
                 # compiler output, so the reported error identifies its own job.
-                errors.seek(0);lines=errors.read(65536).decode('utf-8',errors='replace').splitlines()
-                detail=next((line.split(': ',1)[1] for line in reversed(lines) if line.startswith(('ValueError: ','bible.youversion_osis.Unsupported: '))), '')
-                detail=detail[:400] if not any(c in detail for c in ('<','>','http:','https:')) else ''
-                message=tr('Translation conversion or verification failed. No resource was installed.')
-                raise ValueError(message+('\n'+detail if detail else ''))
+                errors.seek(0)
+                lines = errors.read(65536).decode("utf-8", errors="replace").splitlines()
+                detail = next(
+                    (
+                        line.split(": ", 1)[1]
+                        for line in reversed(lines)
+                        if line.startswith(("ValueError: ", "bible.youversion_osis.Unsupported: "))
+                    ),
+                    "",
+                )
+                detail = (
+                    detail[:400]
+                    if not any(c in detail for c in ("<", ">", "http:", "https:"))
+                    else ""
+                )
+                message = tr(
+                    "Translation conversion or verification failed. No resource was installed."
+                )
+                raise ValueError(message + ("\n" + detail if detail else ""))
         finally:
             if process.poll() is None:
-                os.killpg(process.pid,signal.SIGTERM)
-                try:process.wait(timeout=3)
-                except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
             process.stdout.close()
 
 
-def install(library,resource,progress,installing,cancelled,phase,permission):
+def install(library, resource, progress, installing, cancelled, phase, permission):
     from .library import download
     import logging
-    logger=logging.getLogger(__name__)
-    previous=None;entered=time.monotonic()
-    def report(name,done=0,total=0):
-        nonlocal previous,entered
-        now=time.monotonic()
-        if name!=previous:
-            if previous:logger.info('resource=%s operation=install stage=%s event=exit monotonic=%.6f duration=%.6f',resource.id,previous,now,now-entered)
-            logger.info('resource=%s operation=install stage=%s event=enter monotonic=%.6f',resource.id,name,now)
-            previous=name;entered=now
-        phase(name,done,total)
-    identifier=edition_id(resource.name)
-    if permission!=acknowledgement(resource):
-        raise ValueError(tr('Confirm the source conditions before downloading.'))
+
+    logger = logging.getLogger(__name__)
+    previous = None
+    entered = time.monotonic()
+
+    def report(name, done=0, total=0):
+        nonlocal previous, entered
+        now = time.monotonic()
+        if name != previous:
+            if previous:
+                logger.info(
+                    "resource=%s operation=install stage=%s event=exit monotonic=%.6f duration=%.6f",
+                    resource.id,
+                    previous,
+                    now,
+                    now - entered,
+                )
+            logger.info(
+                "resource=%s operation=install stage=%s event=enter monotonic=%.6f",
+                resource.id,
+                name,
+                now,
+            )
+            previous = name
+            entered = now
+        phase(name, done, total)
+
+    identifier = edition_id(resource.name)
+    if permission != acknowledgement(resource):
+        raise ValueError(tr("Confirm the source conditions before downloading."))
     checkpoint(cancelled)
-    report('preparing')
-    metadata_started=time.monotonic()
-    current=io.BytesIO();download(METADATA_URL.format(edition=identifier),current,limit=2*1024*1024,same_origin=True)
-    actual=resource_from_metadata(json.loads(current.getvalue()),identifier)
-    if actual.acquisition!=resource.acquisition:
-        raise ValueError(tr('Source conditions or edition changed. Refresh the catalogue and review them again.'))
-    edition=read_edition(json.loads(actual.acquisition),identifier)
-    if not edition.archive_url:raise ValueError('No offline package supplied by the source')
-    logger.info('resource=%s operation=install stage=metadata event=complete monotonic=%.6f duration=%.6f',resource.id,time.monotonic(),time.monotonic()-metadata_started)
-    report('downloading')
-    archive=cached_download(edition.archive_url,library.root.parent/'cache/youversion',progress,cancelled,
-                            downloaded=lambda:report('preparing'))
-    report('preparing')
-    with tempfile.TemporaryDirectory(prefix='.install-',dir=library.root) as temporary:
-        stage=Path(temporary);metadata=stage/'metadata.json';metadata.write_text(actual.acquisition)
-        target=stage/'content'
-        run_conversion(archive,metadata,target,report,cancelled,edition=identifier)
+    report("preparing")
+    metadata_started = time.monotonic()
+    current = io.BytesIO()
+    download(
+        METADATA_URL.format(edition=identifier), current, limit=2 * 1024 * 1024, same_origin=True
+    )
+    actual = resource_from_metadata(json.loads(current.getvalue()), identifier)
+    if actual.acquisition != resource.acquisition:
+        raise ValueError(
+            tr("Source conditions or edition changed. Refresh the catalogue and review them again.")
+        )
+    edition = read_edition(json.loads(actual.acquisition), identifier)
+    if not edition.archive_url:
+        raise ValueError("No offline package supplied by the source")
+    logger.info(
+        "resource=%s operation=install stage=metadata event=complete monotonic=%.6f duration=%.6f",
+        resource.id,
+        time.monotonic(),
+        time.monotonic() - metadata_started,
+    )
+    report("downloading")
+    archive = cached_download(
+        edition.archive_url,
+        library.root.parent / "cache/youversion",
+        progress,
+        cancelled,
+        downloaded=lambda: report("preparing"),
+    )
+    report("preparing")
+    with tempfile.TemporaryDirectory(prefix=".install-", dir=library.root) as temporary:
+        stage = Path(temporary)
+        metadata = stage / "metadata.json"
+        metadata.write_text(actual.acquisition)
+        target = stage / "content"
+        run_conversion(archive, metadata, target, report, cancelled, edition=identifier)
         checkpoint(cancelled)
-        report('installing')
+        report("installing")
         installing()  # Only the short atomic commit becomes non-cancellable.
-        index=target/'.source-versification'
+        index = target / ".source-versification"
         if index.is_file():
             # Reference-only metadata outlives resource removal, like personal
             # notes. Never replace a previous index used by stored annotations.
-            directory=library.root.parent/'reference-indexes';directory.mkdir(exist_ok=True)
-            saved=directory/(actual.versification+'.vrs')
-            if directory.is_symlink() or saved.is_symlink():raise ValueError('Unsafe source reference-index path')
-            data=index.read_bytes()
-            if saved.exists() and saved.read_bytes()!=data:raise ValueError('Stored source reference index differs')
+            directory = library.root.parent / "reference-indexes"
+            directory.mkdir(exist_ok=True)
+            saved = directory / (actual.versification + ".vrs")
+            if directory.is_symlink() or saved.is_symlink():
+                raise ValueError("Unsafe source reference-index path")
+            data = index.read_bytes()
+            if saved.exists() and saved.read_bytes() != data:
+                raise ValueError("Stored source reference index differs")
             if not saved.exists():
-                with tempfile.NamedTemporaryFile('wb',dir=directory,delete=False) as output:
-                    temporary=Path(output.name);output.write(data);output.flush();os.fsync(output.fileno())
-                try:os.replace(temporary,saved)
-                finally:temporary.unlink(missing_ok=True)
-        addresses=target/'.source-addresses.json'
+                with tempfile.NamedTemporaryFile("wb", dir=directory, delete=False) as output:
+                    temporary = Path(output.name)
+                    output.write(data)
+                    output.flush()
+                    os.fsync(output.fileno())
+                try:
+                    os.replace(temporary, saved)
+                finally:
+                    temporary.unlink(missing_ok=True)
+        addresses = target / ".source-addresses.json"
         if addresses.is_file():
             from .source_units import AddressIndex
+
             AddressIndex.load(target)
-            directory=library.root.parent/'reference-indexes';directory.mkdir(exist_ok=True)
-            saved=directory/(actual.versification+'.addresses.json')
-            if directory.is_symlink() or saved.is_symlink():raise ValueError('Unsafe source address-index path')
-            data=addresses.read_bytes()
-            if saved.exists() and saved.read_bytes()!=data:raise ValueError('Stored source address index differs')
+            directory = library.root.parent / "reference-indexes"
+            directory.mkdir(exist_ok=True)
+            saved = directory / (actual.versification + ".addresses.json")
+            if directory.is_symlink() or saved.is_symlink():
+                raise ValueError("Unsafe source address-index path")
+            data = addresses.read_bytes()
+            if saved.exists() and saved.read_bytes() != data:
+                raise ValueError("Stored source address index differs")
             if not saved.exists():
-                with tempfile.NamedTemporaryFile('wb',dir=directory,delete=False) as output:
-                    temporary=Path(output.name);output.write(data);output.flush();os.fsync(output.fileno())
-                try:os.replace(temporary,saved)
-                finally:temporary.unlink(missing_ok=True)
-        source={'provider_id':YOUVERSION.id,'module_name':resource.name,
-                'source':YOUVERSION.name,'url':YOUVERSION.url,'acquisition':actual.acquisition,
-                'source_versification':edition.metadata.get('vrs'),'storage_versification':actual.versification,
-                'local_permission_acknowledgement':permission,
-                'provider_agreement_submitted':False}
-        source.update(parser_version=1,installed_at=datetime.now(timezone.utc).isoformat())
-        (target/'.source.json').write_text(serialized(source),encoding='utf-8')
-        (target/'.complete').write_text(resource.id,encoding='utf-8')
-        destination=library.root/resource.id
-        if destination.exists():raise ValueError('Resource directory already exists')
-        os.rename(target,destination)
-    logger.info('resource=%s operation=install stage=installing event=exit monotonic=%.6f duration=%.6f',resource.id,time.monotonic(),time.monotonic()-entered)
+                with tempfile.NamedTemporaryFile("wb", dir=directory, delete=False) as output:
+                    temporary = Path(output.name)
+                    output.write(data)
+                    output.flush()
+                    os.fsync(output.fileno())
+                try:
+                    os.replace(temporary, saved)
+                finally:
+                    temporary.unlink(missing_ok=True)
+        source = {
+            "provider_id": YOUVERSION.id,
+            "module_name": resource.name,
+            "source": YOUVERSION.name,
+            "url": YOUVERSION.url,
+            "acquisition": actual.acquisition,
+            "source_versification": edition.metadata.get("vrs"),
+            "storage_versification": actual.versification,
+            "local_permission_acknowledgement": permission,
+            "provider_agreement_submitted": False,
+        }
+        source.update(parser_version=1, installed_at=datetime.now(timezone.utc).isoformat())
+        (target / ".source.json").write_text(serialized(source), encoding="utf-8")
+        (target / ".complete").write_text(resource.id, encoding="utf-8")
+        destination = library.root / resource.id
+        if destination.exists():
+            raise ValueError("Resource directory already exists")
+        os.rename(target, destination)
+    logger.info(
+        "resource=%s operation=install stage=installing event=exit monotonic=%.6f duration=%.6f",
+        resource.id,
+        time.monotonic(),
+        time.monotonic() - entered,
+    )

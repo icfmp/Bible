@@ -1,7 +1,8 @@
 """Read-only unified annotation projection; existing records keep their identity."""
+
 from dataclasses import dataclass
-from .book_names import FRENCH,normalized
-from .notes import BOOK_ORDER,parts,label_key,passage_order
+from .book_names import FRENCH, normalized
+from .notes import BOOK_ORDER, parts, label_key, passage_order
 from .markdown import render
 
 
@@ -16,45 +17,107 @@ class Annotation:
     mark: object = None
 
     @property
-    def labels(self):return self.note.labels if self.note else ()
+    def labels(self):
+        return self.note.labels if self.note else ()
+
     @property
-    def body(self):return self.note.body if self.note else ''
+    def body(self):
+        return self.note.body if self.note else ""
+
     @property
-    def modified(self):return self.note.modified if self.note else (self.mark.get('modified') or '')
+    def modified(self):
+        return self.note.modified if self.note else (self.mark.get("modified") or "")
+
     @property
-    def color(self):return self.mark['color'] if self.mark else None
+    def color(self):
+        return self.mark["color"] if self.mark else None
 
 
-def records(notes,marks):
+def records(notes, marks):
     """One row per note UUID or stored (versification, verse) highlight key."""
-    return [Annotation(('note',n.id),n.versification,n.start,n.end,n.origin_translation,note=n) for n in notes]+[
-        Annotation(('highlight',m['system'],m['reference']),m['system'],m['reference'],m['reference'],m['resource'],mark=dict(m)) for m in marks]
+    return [
+        Annotation(("note", n.id), n.versification, n.start, n.end, n.origin_translation, note=n)
+        for n in notes
+    ] + [
+        Annotation(
+            ("highlight", m["system"], m["reference"]),
+            m["system"],
+            m["reference"],
+            m["reference"],
+            m["resource"],
+            mark=dict(m),
+        )
+        for m in marks
+    ]
 
 
 def bible_order(item):
-    book,chapter,verse=passage_order(item.start)
-    return BOOK_ORDER.get(book,10000),book,chapter,verse,passage_order(item.end),item.key
+    book, chapter, verse = passage_order(item.start)
+    return BOOK_ORDER.get(book, 10000), book, chapter, verse, passage_order(item.end), item.key
 
 
-def filter_records(items,query='',labels=(),category='all',book='',color='',order='recent',reference_names=None):
-    words=[normalized(word) for word in query.split() if normalized(word)]
-    wanted={label_key(label) for label in labels};result=[]
+def filter_records(
+    items,
+    query="",
+    labels=(),
+    category="all",
+    book="",
+    color="",
+    order="recent",
+    reference_names=None,
+):
+    words = [normalized(word) for word in query.split() if normalized(word)]
+    wanted = {label_key(label) for label in labels}
+    result = []
     for item in items:
-        if category=='notes' and not item.note or category=='highlights' and not item.mark:continue
-        code,chapter,verse=parts(item.start)
-        links=item.note.passages if item.note else ()
-        if book and code!=book and not any(parts(link.start)[0]==book for link in links) or color and item.color!=color:continue
-        if not wanted <= {label_key(label) for label in item.labels}:continue
-        text=normalized(' '.join((render(item.body)[0],item.start,item.end,FRENCH.get(code,code),
-                                  f'{chapter}:{verse}',(reference_names or {}).get(code,''),item.origin,item.system,item.color or '',*item.labels,
-                                  *(value for link in links for value in (link.start,link.end,FRENCH.get(parts(link.start)[0],parts(link.start)[0]))))))
-        if not all(word in text for word in words):continue
+        if category == "notes" and not item.note or category == "highlights" and not item.mark:
+            continue
+        code, chapter, verse = parts(item.start)
+        links = item.note.passages if item.note else ()
+        if (
+            book
+            and code != book
+            and not any(parts(link.start)[0] == book for link in links)
+            or color
+            and item.color != color
+        ):
+            continue
+        if not wanted <= {label_key(label) for label in item.labels}:
+            continue
+        text = normalized(
+            " ".join(
+                (
+                    render(item.body)[0],
+                    item.start,
+                    item.end,
+                    FRENCH.get(code, code),
+                    f"{chapter}:{verse}",
+                    (reference_names or {}).get(code, ""),
+                    item.origin,
+                    item.system,
+                    item.color or "",
+                    *item.labels,
+                    *(
+                        value
+                        for link in links
+                        for value in (
+                            link.start,
+                            link.end,
+                            FRENCH.get(parts(link.start)[0], parts(link.start)[0]),
+                        )
+                    ),
+                )
+            )
+        )
+        if not all(word in text for word in words):
+            continue
         result.append(item)
     result.sort(key=bible_order)
     # Legacy highlights have unknown dates; keep them in Bible order after
     # records with actual recorded modification dates.
-    if order in ('recent','oldest'):
-        dated=[item for item in result if item.modified];undated=[item for item in result if not item.modified]
-        dated.sort(key=lambda item:(item.modified,item.key),reverse=order=='recent')
-        result=dated+undated
+    if order in ("recent", "oldest"):
+        dated = [item for item in result if item.modified]
+        undated = [item for item in result if not item.modified]
+        dated.sort(key=lambda item: (item.modified, item.key), reverse=order == "recent")
+        result = dated + undated
     return result

@@ -1,4 +1,5 @@
 """Cooperative cancellation at boundaries of native SWORD/Pango operations."""
+
 from concurrent.futures import CancelledError
 
 

@@ -1,4 +1,5 @@
 """Native pointer/key regression for #43; Xvfb is not manual GNOME validation."""
+
 from pathlib import Path
 import tempfile
 from tests.test_ui import installed_fixture, spin
@@ -7,34 +8,47 @@ from bible.ui import Application, Window, Library, Gtk
 
 
 def main():
-    app = Application(); app.register()
-    Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
+    app = Application()
+    app.register()
+    Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
     native = X11Input()
     with tempfile.TemporaryDirectory() as directory:
         installed_fixture(directory)
-        installed_fixture(directory, 'Other')
-        window = Window(app, Library(Path(directory) / 'translations'))
-        window.set_default_size(1200, 900); window.present(); spin(duration=.3)
+        installed_fixture(directory, "Other")
+        window = Window(app, Library(Path(directory) / "translations"))
+        window.set_default_size(1200, 900)
+        window.present()
+        spin(duration=0.3)
         try:
-            for button, popover in [(window.passage_button, window.navigation),
-                                    (window.comparison_button, window.comparison_popover),
-                                    (window.appearance_button, window.appearance)]:
+            for button, popover in [
+                (window.passage_button, window.navigation),
+                (window.comparison_button, window.comparison_popover),
+                (window.appearance_button, window.appearance),
+            ]:
                 for _ in range(3):
                     reference = window.active_tab.state.reference
-                    native.click(button); assert popover.get_visible()
-                    native.click(button); assert not popover.get_visible()
-                    native.click(button); native.click_at(window.active_tab.text, 8, 100)
+                    native.click(button)
+                    assert popover.get_visible()
+                    native.click(button)
+                    assert not popover.get_visible()
+                    native.click(button)
+                    native.click_at(window.active_tab.text, 8, 100)
                     assert not popover.get_visible()
                     assert window.active_tab.state.reference == reference
-                    native.click(button); native.key('Escape'); assert not popover.get_visible()
+                    native.click(button)
+                    native.key("Escape")
+                    assert not popover.get_visible()
             for _ in range(3):
                 native.click(window.comparison_button)
                 assert window.comparison_choices.list.get_mapped()
                 window.comparison_choices.list.get_row_at_index(0).grab_focus()
-                native.key('End');native.key('Return');spin(duration=.2)
-                assert window.active_tab.state.comparison==window._comparison_names[-1]
+                native.key("End")
+                native.key("Return")
+                spin(duration=0.2)
+                assert window.active_tab.state.comparison == window._comparison_names[-1]
                 assert not window.comparison_popover.get_visible()
-                native.click(window.compared_version);native.key('Escape')
+                native.click(window.compared_version)
+                native.key("Escape")
                 assert not window.compared_version.popover.get_visible()
                 native.click(window.comparison_button)
                 assert window.active_tab.state.comparison is None
@@ -44,23 +58,36 @@ def main():
             aa = window.appearance
             for index in [0, 1, 2, 0, 2]:
                 native.click(window.appearance_button)
-                native.click(aa.mode.buttons[index]);spin(duration=.2)
-                assert window.preferences.value.mode == ['system','day','night'][index]
+                native.click(aa.mode.buttons[index])
+                spin(duration=0.2)
+                assert window.preferences.value.mode == ["system", "day", "night"][index]
                 assert aa.get_visible()  # Further immediate adjustments are intentional.
-                native.click(aa.larger); native.click(aa.smaller)
-                native.click_at(window.active_tab.text, 8, 100); assert not aa.get_visible()
-            search=window.search_popover
+                native.click(aa.larger)
+                native.click(aa.smaller)
+                native.click_at(window.active_tab.text, 8, 100)
+                assert not aa.get_visible()
+            search = window.search_popover
             for index in range(4):
-                native.click(window.search_button);scope=search.text_search.scope
-                native.click(scope);native.key('Home')
-                for _ in range(index):native.key('Down')
-                native.key('Return');spin()
-                assert scope.get_selected()==index and search.get_visible()
-                native.click_at(window.active_tab.text,8,100);assert not search.get_visible()
-            print('PASS: repeated trigger/outside/Escape; parent-surface fallback; comparison '
-                  'apply/close; direct Aa modes; nested search scopes and continued adjustment', flush=True)
+                native.click(window.search_button)
+                scope = search.text_search.scope
+                native.click(scope)
+                native.key("Home")
+                for _ in range(index):
+                    native.key("Down")
+                native.key("Return")
+                spin()
+                assert scope.get_selected() == index and search.get_visible()
+                native.click_at(window.active_tab.text, 8, 100)
+                assert not search.get_visible()
+            print(
+                "PASS: repeated trigger/outside/Escape; parent-surface fallback; comparison "
+                "apply/close; direct Aa modes; nested search scopes and continued adjustment",
+                flush=True,
+            )
         finally:
-            window.close(); native.close()
+            window.close()
+            native.close()
 
 
-if __name__ == '__main__': main()
+if __name__ == "__main__":
+    main()

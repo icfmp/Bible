@@ -1,17 +1,18 @@
 """Native tabbed GNOME reader; downloads live in a dedicated window."""
+
 from pathlib import Path
 import os
 import sys
 
 # GTK 4.20's Vulkan path retains growing native memory while scrolling live
 # text-view children. Use GSK's native OpenGL renderer; honor explicit overrides.
-if sys.platform.startswith('linux'):
-    os.environ.setdefault('GSK_RENDERER', 'gl')
+if sys.platform.startswith("linux"):
+    os.environ.setdefault("GSK_RENDERER", "gl")
 
 import gi
 
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .catalogue_window import CatalogueWindow
@@ -29,41 +30,50 @@ from .reading_sync import ReadingSync
 from .immersion import Immersion
 from .pagination import Anchor
 from .paged_sources import BibleBookPages, CommentaryPages
-from .highlights import HighlightStore,COLORS
+from .highlights import HighlightStore, COLORS
 from .notes_window import NoteEditor, NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
 
 class Window(Adw.ApplicationWindow):
     def __init__(self, app, library, session_path=None):
-        super().__init__(application=app, title='Bible', default_width=960, default_height=700)
+        super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
         self.library = library
         from .application_settings import ApplicationSettings
-        if not hasattr(app,'_application_settings'):app._application_settings={}
-        key=library.root.parent.resolve()
-        if key not in app._application_settings:app._application_settings[key]=ApplicationSettings(key)
-        self.application_settings=app._application_settings[key]
-        self.application_settings.first_launch=False
-        self.store = SessionStore(session_path or library.root.parent / 'session.json')
-        self.preferences = Preferences(library.root.parent / 'reading-preferences.json')
+
+        if not hasattr(app, "_application_settings"):
+            app._application_settings = {}
+        key = library.root.parent.resolve()
+        if key not in app._application_settings:
+            app._application_settings[key] = ApplicationSettings(key)
+        self.application_settings = app._application_settings[key]
+        self.application_settings.first_launch = False
+        self.store = SessionStore(session_path or library.root.parent / "session.json")
+        self.preferences = Preferences(library.root.parent / "reading-preferences.json")
         from .study_settings import StudySettings
-        self.study_settings = StudySettings(library.root.parent / 'study-preferences.json')
+
+        self.study_settings = StudySettings(library.root.parent / "study-preferences.json")
         self._study_resizing = False
         from weakref import WeakValueDictionary
-        if not hasattr(app,'_highlight_stores'):app._highlight_stores=WeakValueDictionary()
-        path=(library.root.parent/'highlights.json').resolve()
-        self.highlights=app._highlight_stores.get(path)
+
+        if not hasattr(app, "_highlight_stores"):
+            app._highlight_stores = WeakValueDictionary()
+        path = (library.root.parent / "highlights.json").resolve()
+        self.highlights = app._highlight_stores.get(path)
         if self.highlights is None:
-            self.highlights=HighlightStore(path);app._highlight_stores[path]=self.highlights
-        self.highlights_window=None
+            self.highlights = HighlightStore(path)
+            app._highlight_stores[path] = self.highlights
+        self.highlights_window = None
         self.reading_style = ReadingStyle(self)
         self.closed = False
-        self.immersion=None
+        self.immersion = None
         # Retire the abandoned notification-hint preference only. Unreadable or
         # read-only legacy state must never prevent opening the existing profile.
-        try:(library.root.parent/'immersion-help.json').unlink(missing_ok=True)
-        except OSError:pass
+        try:
+            (library.root.parent / "immersion-help.json").unlink(missing_ok=True)
+        except OSError:
+            pass
         self._initializing = True
         self._syncing_study = False
         self._save_id = 0
@@ -72,327 +82,498 @@ class Window(Adw.ApplicationWindow):
         self.notes_window = None
         self.notes_space = None
         self.note_editor = None
-        self.notes_error = ''
+        self.notes_error = ""
         try:
-            self.notes_store = NoteStore(library.root.parent / 'notes.sqlite3')
+            self.notes_store = NoteStore(library.root.parent / "notes.sqlite3")
             from .personal_backup import recover
-            recover(self.notes_store,self.highlights)
+
+            recover(self.notes_store, self.highlights)
         except Exception as error:
-            if getattr(self,'notes_store',None):self.notes_store.close()
+            if getattr(self, "notes_store", None):
+                self.notes_store.close()
             self.notes_store = None
             self.notes_error = str(error)
-        self.connect('close-request', self.on_close)
+        self.connect("close-request", self.on_close)
         layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
         header.set_centering_policy(Adw.CenteringPolicy.LOOSE)
-        self.heading = Adw.WindowTitle(title=tr('Choose a passage'))
+        self.heading = Adw.WindowTitle(title=tr("Choose a passage"))
+
         # Bound both title and version even with long affiliated module IDs.
-        def constrain_labels(widget,maximum=18):
-            if isinstance(widget,Gtk.Label):
-                widget.set_max_width_chars(maximum);widget.set_width_chars(1)
+        def constrain_labels(widget, maximum=18):
+            if isinstance(widget, Gtk.Label):
+                widget.set_max_width_chars(maximum)
+                widget.set_width_chars(1)
                 widget.set_wrap(False)
                 widget.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-            child=widget.get_first_child()
+            child = widget.get_first_child()
             while child:
-                constrain_labels(child,maximum);child=child.get_next_sibling()
+                constrain_labels(child, maximum)
+                child = child.get_next_sibling()
+
         constrain_labels(self.heading)
-        self.heading.set_halign(Gtk.Align.FILL);self.heading.set_hexpand(True)
+        self.heading.set_halign(Gtk.Align.FILL)
+        self.heading.set_hexpand(True)
         heading_box = Gtk.Box(spacing=4)
         heading_box.append(self.heading)
-        heading_box.append(Gtk.Image(icon_name='pan-down-symbolic',pixel_size=12))
-        self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr('Choose a passage'))
+        heading_box.append(Gtk.Image(icon_name="pan-down-symbolic", pixel_size=12))
+        self.passage_button = Gtk.MenuButton(child=heading_box, tooltip_text=tr("Choose a passage"))
         self.passage_button.set_can_shrink(True)
-        self.passage_button.add_css_class('flat')
+        self.passage_button.add_css_class("flat")
         self.navigation = PassagePopover(self)
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
         from .update_discovery import UpdateButton
-        self.resource_updates_button=UpdateButton(self)
+
+        self.resource_updates_button = UpdateButton(self)
         from .workspace_selector import WorkspaceSelector
-        self.space_selector=WorkspaceSelector(self);header.pack_start(self.space_selector)
+
+        self.space_selector = WorkspaceSelector(self)
+        header.pack_start(self.space_selector)
         self.space_selector.set_valign(Gtk.Align.CENTER)
-        new = Gtk.Button(icon_name='tab-new-symbolic', tooltip_text=tr('New tab'),
-                         action_name='win.new-tab')
-        self.new_tab_button=new
+        new = Gtk.Button(
+            icon_name="tab-new-symbolic", tooltip_text=tr("New tab"), action_name="win.new-tab"
+        )
+        self.new_tab_button = new
         new.set_valign(Gtk.Align.CENTER)
         header.pack_start(new)
         from .application_surfaces import application_menu
-        self.menu=application_menu()
-        self.study_button=Gtk.ToggleButton(icon_name='sidebar-show-right-symbolic',tooltip_text=tr('Study'))
-        self.study_button.connect('toggled',self.toggle_study)
+
+        self.menu = application_menu()
+        self.study_button = Gtk.ToggleButton(
+            icon_name="sidebar-show-right-symbolic", tooltip_text=tr("Study")
+        )
+        self.study_button.connect("toggled", self.toggle_study)
         from .search_popover import SearchPopover
-        self.search_button=Gtk.MenuButton(icon_name='system-search-symbolic',tooltip_text=tr('Search'))
-        self.search_popover=SearchPopover(self);self.search_button.set_popover(self.search_popover)
-        self.immersive_button=Gtk.ToggleButton(icon_name='view-fullscreen-symbolic',tooltip_text=tr('Immersive mode'))
-        self.immersive_button.connect('clicked',lambda *_:self.toggle_immersion())
-        self.appearance_button=Gtk.MenuButton(child=Gtk.Label(label='Aa'),tooltip_text=tr('Reading appearance'))
-        self.appearance=AppearancePopover(self);self.appearance_button.set_popover(self.appearance)
+
+        self.search_button = Gtk.MenuButton(
+            icon_name="system-search-symbolic", tooltip_text=tr("Search")
+        )
+        self.search_popover = SearchPopover(self)
+        self.search_button.set_popover(self.search_popover)
+        self.immersive_button = Gtk.ToggleButton(
+            icon_name="view-fullscreen-symbolic", tooltip_text=tr("Immersive mode")
+        )
+        self.immersive_button.connect("clicked", lambda *_: self.toggle_immersion())
+        self.appearance_button = Gtk.MenuButton(
+            child=Gtk.Label(label="Aa"), tooltip_text=tr("Reading appearance")
+        )
+        self.appearance = AppearancePopover(self)
+        self.appearance_button.set_popover(self.appearance)
         from .comparison_control import ComparisonButton
-        self.comparison_button=ComparisonButton(self)
-        self.comparison_popover=Gtk.Popover()
+
+        self.comparison_button = ComparisonButton(self)
+        self.comparison_popover = Gtk.Popover()
         from .version_chooser import DirectChoices
-        self.comparison_choices=DirectChoices()
-        self.comparison_choices.connect('notify::selected',self.comparison_selected)
-        self.comparison_choices.connect('reselected',lambda *_:self.comparison_popover.popdown())
-        comparison_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
+
+        self.comparison_choices = DirectChoices()
+        self.comparison_choices.connect("notify::selected", self.comparison_selected)
+        self.comparison_choices.connect("reselected", lambda *_: self.comparison_popover.popdown())
+        comparison_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=8,
+            margin_top=8,
+            margin_bottom=8,
+            margin_start=8,
+            margin_end=8,
+        )
         comparison_box.append(self.comparison_choices)
-        self.comparison_empty=Gtk.Label(label=tr('Download another Bible to compare translations.'),
-            wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,visible=False)
+        self.comparison_empty = Gtk.Label(
+            label=tr("Download another Bible to compare translations."),
+            wrap=True,
+            wrap_mode=Pango.WrapMode.WORD_CHAR,
+            width_chars=1,
+            visible=False,
+        )
         comparison_box.append(self.comparison_empty)
-        self.stop_comparison=Gtk.Button(label=tr('Stop comparison'))
-        self.stop_comparison.connect('clicked',lambda *_:self.end_comparison())
+        self.stop_comparison = Gtk.Button(label=tr("Stop comparison"))
+        self.stop_comparison.connect("clicked", lambda *_: self.end_comparison())
         self.stop_comparison.set_visible(False)
         from .version_chooser import download_translations_action
-        self.download_comparison=download_translations_action()
-        self.download_comparison.connect('clicked',lambda *_:self.contextual_library('bible','comparison'))
-        comparison_box.append(Gtk.Separator());comparison_box.append(self.download_comparison)
+
+        self.download_comparison = download_translations_action()
+        self.download_comparison.connect(
+            "clicked", lambda *_: self.contextual_library("bible", "comparison")
+        )
+        comparison_box.append(Gtk.Separator())
+        comparison_box.append(self.download_comparison)
         self.comparison_popover.set_child(comparison_box)
         self.comparison_button.set_popover(self.comparison_popover)
         from .popover_dismissal import install
-        self._reading_popovers = [self.navigation,self.search_popover,self.appearance,self.comparison_popover]
+
+        self._reading_popovers = [
+            self.navigation,
+            self.search_popover,
+            self.appearance,
+            self.comparison_popover,
+        ]
         self._popover_dismissal = install(self, self._reading_popovers)
-        self.comparison_popover.connect_after('show',lambda *_:self.fit_comparison_popup())
-        self._comparison_syncing=False
+        self.comparison_popover.connect_after("show", lambda *_: self.fit_comparison_popup())
+        self._comparison_syncing = False
         # Notes has a working application-space selector at the top left.
-        for widget,label in [(self.menu,'Main menu'),
-                             (self.study_button,'Study')]:
-            widget.add_css_class('flat')
-            widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+        for widget, label in [(self.menu, "Main menu"), (self.study_button, "Study")]:
+            widget.add_css_class("flat")
+            widget.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
             header.pack_end(widget)
         # Explicit native symbolic size leaves Header Bar hit targets untouched.
-        for button in (self.study_button,self.search_button):
-            image=Gtk.Image(icon_name=button.get_icon_name(),pixel_size=16)
+        for button in (self.study_button, self.search_button):
+            image = Gtk.Image(icon_name=button.get_icon_name(), pixel_size=16)
             button.set_child(image)
         from .version_chooser import VersionChooser
-        self.primary_version=VersionChooser(self)
-        self.compared_version=VersionChooser(self,comparison=True)
-        self.header_title=Gtk.Box(spacing=8,halign=Gtk.Align.FILL)
+
+        self.primary_version = VersionChooser(self)
+        self.compared_version = VersionChooser(self, comparison=True)
+        self.header_title = Gtk.Box(spacing=8, halign=Gtk.Align.FILL)
         header.set_title_widget(None)
-        self.header_title.append(self.passage_button);self.header_title.append(self.primary_version)
+        self.header_title.append(self.passage_button)
+        self.header_title.append(self.primary_version)
         header.set_title_widget(self.header_title)
-        self.reader_controls=Gtk.Box(spacing=4)
-        for widget,label in [(self.search_button,'Search'),(self.comparison_button,'Compare translations'),(self.appearance_button,'Reading appearance'),(self.immersive_button,'Immersive mode')]:
-            widget.add_css_class('flat')
-            widget.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+        self.reader_controls = Gtk.Box(spacing=4)
+        for widget, label in [
+            (self.search_button, "Search"),
+            (self.comparison_button, "Compare translations"),
+            (self.appearance_button, "Reading appearance"),
+            (self.immersive_button, "Immersive mode"),
+        ]:
+            widget.add_css_class("flat")
+            widget.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
             self.reader_controls.append(widget)
-        self.reader_overflow=Gtk.MenuButton(icon_name='view-more-symbolic',tooltip_text=tr('Reading tools'),visible=False)
-        self.reader_overflow_box=Gtk.Box(spacing=6,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
-        overflow=Gtk.Popover();overflow.set_child(self.reader_overflow_box);self.reader_overflow.set_popover(overflow)
-        self._reading_popovers.extend((overflow,self.menu.get_popover()))
-        self.reading_tools_menu=self.reader_overflow
-        self.header_tools=Gtk.Box(spacing=0);self.header_tools.append(self.reader_controls);self.header_tools.append(self.reader_overflow)
+        self.reader_overflow = Gtk.MenuButton(
+            icon_name="view-more-symbolic", tooltip_text=tr("Reading tools"), visible=False
+        )
+        self.reader_overflow_box = Gtk.Box(
+            spacing=6, margin_top=8, margin_bottom=8, margin_start=8, margin_end=8
+        )
+        overflow = Gtk.Popover()
+        overflow.set_child(self.reader_overflow_box)
+        self.reader_overflow.set_popover(overflow)
+        self._reading_popovers.extend((overflow, self.menu.get_popover()))
+        self.reading_tools_menu = self.reader_overflow
+        self.header_tools = Gtk.Box(spacing=0)
+        self.header_tools.append(self.reader_controls)
+        self.header_tools.append(self.reader_overflow)
         header.pack_end(self.header_tools)
         header.pack_end(self.resource_updates_button)
+
         def move_tools(*_):
-            target=self.reader_overflow_box if self.reader_overflow.get_visible() else self.reader_controls
-            for widget in (self.search_button,self.comparison_button,self.appearance_button,self.immersive_button):
-                parent=widget.get_parent()
+            target = (
+                self.reader_overflow_box
+                if self.reader_overflow.get_visible()
+                else self.reader_controls
+            )
+            for widget in (
+                self.search_button,
+                self.comparison_button,
+                self.appearance_button,
+                self.immersive_button,
+            ):
+                parent = widget.get_parent()
                 if parent is not target:
-                    if parent:parent.remove(widget)
+                    if parent:
+                        parent.remove(widget)
                     target.append(widget)
-        self.reader_overflow.connect('notify::visible',move_tools)
-        self.compact_title=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,visible=False,
-            margin_start=8,margin_end=8,margin_top=4,margin_bottom=4)
-        self.header_bin=Adw.BreakpointBin();self.header_bin.set_child(header)
-        self.header_bin.set_size_request(300,46)
+
+        self.reader_overflow.connect("notify::visible", move_tools)
+        self.compact_title = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            visible=False,
+            margin_start=8,
+            margin_end=8,
+            margin_top=4,
+            margin_bottom=4,
+        )
+        self.header_bin = Adw.BreakpointBin()
+        self.header_bin.set_child(header)
+        self.header_bin.set_size_request(300, 46)
+
         def study_in_overflow(enabled):
             if enabled:
                 for button in (self.study_button,):
                     if button.get_parent() is not self.reader_overflow_box:
-                        header.remove(button);self.reader_overflow_box.append(button)
+                        header.remove(button)
+                        self.reader_overflow_box.append(button)
             elif self.study_button.get_parent() is self.reader_overflow_box:
                 self.reader_overflow_box.remove(self.study_button)
                 header.remove(self.header_tools)
                 header.remove(self.resource_updates_button)
-                header.pack_end(self.study_button);header.pack_end(self.header_tools);header.pack_end(self.resource_updates_button)
-            parent=self.new_tab_button.get_parent()
+                header.pack_end(self.study_button)
+                header.pack_end(self.header_tools)
+                header.pack_end(self.resource_updates_button)
+            parent = self.new_tab_button.get_parent()
             if enabled and parent is not self.reader_overflow_box:
-                header.remove(self.new_tab_button);self.reader_overflow_box.prepend(self.new_tab_button)
+                header.remove(self.new_tab_button)
+                self.reader_overflow_box.prepend(self.new_tab_button)
             elif not enabled and parent is self.reader_overflow_box:
-                self.reader_overflow_box.remove(self.new_tab_button);header.pack_start(self.new_tab_button)
+                self.reader_overflow_box.remove(self.new_tab_button)
+                header.pack_start(self.new_tab_button)
+
         def tools_in_main_menu(tiny):
-            parent=self.reader_overflow_box.get_parent()
-            menu_box=self.menu.get_popover().get_child().get_child()
+            parent = self.reader_overflow_box.get_parent()
+            menu_box = self.menu.get_popover().get_child().get_child()
             if tiny and parent is not menu_box:
-                overflow.set_child(None);menu_box.prepend(self.reader_overflow_box)
+                overflow.set_child(None)
+                menu_box.prepend(self.reader_overflow_box)
             elif not tiny and parent is menu_box:
-                menu_box.remove(self.reader_overflow_box);overflow.set_child(self.reader_overflow_box)
-            self.reading_tools_menu=self.menu if tiny else self.reader_overflow
+                menu_box.remove(self.reader_overflow_box)
+                overflow.set_child(self.reader_overflow_box)
+            self.reading_tools_menu = self.menu if tiny else self.reader_overflow
             self.header_tools.set_visible(not tiny)
             self.menu.get_popover().set_autohide(not tiny)
-        def compact_applied(breakpoint,tiny):
-            self.space_selector.add_css_class('compact-space');study_in_overflow(tiny)
-            self.space_selector.set_compact(tiny);tools_in_main_menu(tiny)
+
+        def compact_applied(breakpoint, tiny):
+            self.space_selector.add_css_class("compact-space")
+            study_in_overflow(tiny)
+            self.space_selector.set_compact(tiny)
+            tools_in_main_menu(tiny)
             self.queue_controls()
+
         def compact_removed(*_):
-            self.space_selector.remove_css_class('compact-space');study_in_overflow(False)
-            self.space_selector.set_compact(False);tools_in_main_menu(False)
+            self.space_selector.remove_css_class("compact-space")
+            study_in_overflow(False)
+            self.space_selector.set_compact(False)
+            tools_in_main_menu(False)
             if self.header_title.get_parent() is self.compact_title:
                 self.compact_title.remove(self.header_title)
                 header.set_title_widget(self.header_title)
             self.compact_title.set_visible(False)
             self.queue_controls()
-        self._header_breakpoints=[];self._header_font_size=None
-        for width,tiny in [(760,False),(420,True)]:
-            compact_tools=Adw.Breakpoint.new(Adw.BreakpointCondition.parse(f'max-width: {width}sp'))
-            compact_tools.add_setter(self.reader_controls,'visible',False)
-            compact_tools.add_setter(self.reader_overflow,'visible',True)
-            compact_tools.add_setter(self.header_title,'spacing',4)
-            compact_tools.add_setter(header,'decoration-layout',':close')
-            compact_tools.connect('apply',compact_applied,tiny)
-            compact_tools.connect('unapply',compact_removed)
+
+        self._header_breakpoints = []
+        self._header_font_size = None
+        for width, tiny in [(760, False), (420, True)]:
+            compact_tools = Adw.Breakpoint.new(
+                Adw.BreakpointCondition.parse(f"max-width: {width}sp")
+            )
+            compact_tools.add_setter(self.reader_controls, "visible", False)
+            compact_tools.add_setter(self.reader_overflow, "visible", True)
+            compact_tools.add_setter(self.header_title, "spacing", 4)
+            compact_tools.add_setter(header, "decoration-layout", ":close")
+            compact_tools.connect("apply", compact_applied, tiny)
+            compact_tools.connect("unapply", compact_removed)
             self.header_bin.add_breakpoint(compact_tools)
-            self._header_breakpoints.append((compact_tools,width))
-        self._controls_tick=0;self._controls_frames=0
-        self.primary_version.caption.connect('notify::label',self.queue_controls)
-        self.compared_version.caption.connect('notify::label',self.queue_controls)
-        self.reader_overflow_box.connect('map',self.queue_controls)
-        self._layout_surface=None;self._layout_surface_handlers=[]
-        self.connect('map',self.watch_layout_surface)
-        self.connect('unmap',self.unwatch_layout_surface)
-        settings=Gtk.Settings.get_default()
-        self._layout_settings_handlers=[settings.connect('notify::'+name,self.queue_layout)
-            for name in ('gtk-font-name','gtk-theme-name','gtk-xft-dpi')]
+            self._header_breakpoints.append((compact_tools, width))
+        self._controls_tick = 0
+        self._controls_frames = 0
+        self.primary_version.caption.connect("notify::label", self.queue_controls)
+        self.compared_version.caption.connect("notify::label", self.queue_controls)
+        self.reader_overflow_box.connect("map", self.queue_controls)
+        self._layout_surface = None
+        self._layout_surface_handlers = []
+        self.connect("map", self.watch_layout_surface)
+        self.connect("unmap", self.unwatch_layout_surface)
+        settings = Gtk.Settings.get_default()
+        self._layout_settings_handlers = [
+            settings.connect("notify::" + name, self.queue_layout)
+            for name in ("gtk-font-name", "gtk-theme-name", "gtk-xft-dpi")
+        ]
         layout.append(self.header_bin)
         layout.append(self.compact_title)
-        self.session_status = Gtk.Label(wrap=True, xalign=0, visible=False,
-                                        margin_start=12, margin_end=12)
+        self.session_status = Gtk.Label(
+            wrap=True, xalign=0, visible=False, margin_start=12, margin_end=12
+        )
         layout.append(self.session_status)
-        self.notes_status = Gtk.Label(wrap=True, xalign=0, visible=bool(self.notes_error),
-                                       margin_start=12, margin_end=12,
-                                       label=(tr('Notes unavailable. The original file has been preserved.') + '\n' + self.notes_error) if self.notes_error else '')
+        self.notes_status = Gtk.Label(
+            wrap=True,
+            xalign=0,
+            visible=bool(self.notes_error),
+            margin_start=12,
+            margin_end=12,
+            label=(
+                tr("Notes unavailable. The original file has been preserved.")
+                + "\n"
+                + self.notes_error
+            )
+            if self.notes_error
+            else "",
+        )
         layout.append(self.notes_status)
         self.view = Adw.TabView(vexpand=True)
         self.bar = Adw.TabBar(view=self.view, autohide=False)
-        self.tab_new_button=Gtk.Button(icon_name='tab-new-symbolic',tooltip_text=tr('New tab'),action_name='win.new-tab',visible=False)
-        self.tab_new_button.add_css_class('flat');self.bar.set_end_action_widget(self.tab_new_button)
+        self.tab_new_button = Gtk.Button(
+            icon_name="tab-new-symbolic",
+            tooltip_text=tr("New tab"),
+            action_name="win.new-tab",
+            visible=False,
+        )
+        self.tab_new_button.add_css_class("flat")
+        self.bar.set_end_action_widget(self.tab_new_button)
         layout.append(self.bar)
         layout.append(self.view)
         self.header = header
-        self.split = Adw.OverlaySplitView(content=layout, show_sidebar=False,
-                                          min_sidebar_width=360, max_sidebar_width=560,
-                                          sidebar_width_fraction=.38,
-                                          sidebar_position=Gtk.PackType.END)
+        self.split = Adw.OverlaySplitView(
+            content=layout,
+            show_sidebar=False,
+            min_sidebar_width=360,
+            max_sidebar_width=560,
+            sidebar_width_fraction=0.38,
+            sidebar_position=Gtk.PackType.END,
+        )
         from .reference_preview import ReferencePreview
-        self.reference_preview=ReferencePreview(self)
+
+        self.reference_preview = ReferencePreview(self)
         self.study = StudyPanel(self)
         self.header_height_group = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.VERTICAL)
         self.header_height_group.add_widget(header)
         self.header_height_group.add_widget(self.study.header)
-        self.reading_sync=ReadingSync(self)
+        self.reading_sync = ReadingSync(self)
         from .study_resize import StudyDivider
+
         sidebar = Gtk.Box()
         self.study_divider = StudyDivider(self, self.study_settings)
-        sidebar.append(self.study_divider); sidebar.append(self.study)
+        sidebar.append(self.study_divider)
+        sidebar.append(self.study)
         self.study.set_hexpand(True)
         self.split.set_sidebar(sidebar)
-        self.split.connect('notify::show-sidebar', lambda *_:self.sync_header_controls())
-        self.split.connect('notify::show-sidebar', self.sidebar_changed)
-        self.split.connect('notify::collapsed',lambda *_:self.study.update_context_heading())
-        self.main_pages=Gtk.Stack(hhomogeneous=False,vhomogeneous=False)
-        self.main_pages.connect('notify::visible-child-name',self.workspace_changed)
-        self.main_pages.add_named(self.split,'reading')
+        self.split.connect("notify::show-sidebar", lambda *_: self.sync_header_controls())
+        self.split.connect("notify::show-sidebar", self.sidebar_changed)
+        self.split.connect("notify::collapsed", lambda *_: self.study.update_context_heading())
+        self.main_pages = Gtk.Stack(hhomogeneous=False, vhomogeneous=False)
+        self.main_pages.connect("notify::visible-child-name", self.workspace_changed)
+        self.main_pages.add_named(self.split, "reading")
         self.set_content(self.main_pages)
-        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse('max-width: 860px'))
-        breakpoint.add_setter(self.split, 'collapsed', True)
+        breakpoint = Adw.Breakpoint.new(Adw.BreakpointCondition.parse("max-width: 860px"))
+        breakpoint.add_setter(self.split, "collapsed", True)
         self.add_breakpoint(breakpoint)
         from .icons import configure_theme
+
         configure_theme(Gtk.IconTheme.get_for_display(self.get_display()))
         css = Gtk.CssProvider()
-        css.load_from_data(b'textview.reading { } '
-                           b'.workspace-selector button { padding-left: 8px; padding-right: 8px; } '
-                           b'.compact-space button { padding-left: 2px; padding-right: 2px; } '
-                           b'.annotation-navigation { background-color: @sidebar_bg_color; color: @view_fg_color; } '
-                           b'.annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } '
-                           b'.annotation-list > row { padding: 0; margin: 0; border: none; background: none; box-shadow: none; } '
-                           b'.study-drawer textview, .study-drawer textview text { background-color: transparent; color: @view_fg_color; } '
-                           b'.study-drawer listview { background-color: transparent; } '
-                           b'.study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } '
-                           b'.study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } '
-                           b'.passage-study-tabs > button { min-width: 0; padding-left: 6px; padding-right: 6px; } '
-                           b'.reference-excerpt { font-weight: normal; } '
-                           b'.source-attribution { color: alpha(@window_fg_color, .72); } '
-                           b'.source-attribution link { color: inherit; } '
-                           b'.place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } '
-                           b'.study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } '
-                           b'button.chapter-navigation { min-width: 40px; min-height: 40px; '
-                           b'padding: 0; border-radius: 9999px; } '
-                           b'.reader-action { min-width: 34px; min-height: 34px; padding: 0; border-radius: 9999px; } '
-                           b'.version-pill > button { border-radius: 9999px; } '
-                           b'.translation-code { padding: 2px 6px; border-radius: 6px; background-color: alpha(currentColor,.10); } '
-                           b'box.navigation-books { background-color: alpha(currentColor, 0.04); '
-                           b'padding: 8px; border-radius: 12px; } '
-                           b'popover.passage-selector > contents { border-radius: 18px; }')
-        Gtk.StyleContext.add_provider_for_display(self.get_display(), css,
-                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        self.view.connect('notify::selected-page', self.selected_changed)
-        self.view.connect('page-detached', self.page_detached)
-        self.view.connect('notify::n-pages',lambda *_:self.bar.set_visible(self.view.get_n_pages()>1))
+        css.load_from_data(
+            b"textview.reading { } "
+            b".workspace-selector button { padding-left: 8px; padding-right: 8px; } "
+            b".compact-space button { padding-left: 2px; padding-right: 2px; } "
+            b".annotation-navigation { background-color: @sidebar_bg_color; color: @view_fg_color; } "
+            b".annotation-sidebar, .annotation-list, .annotation-detail { background-color: @view_bg_color; color: @view_fg_color; } "
+            b".annotation-list > row { padding: 0; margin: 0; border: none; background: none; box-shadow: none; } "
+            b".study-drawer textview, .study-drawer textview text { background-color: transparent; color: @view_fg_color; } "
+            b".study-drawer listview { background-color: transparent; } "
+            b".study-tools button { min-width: 0; border-radius: 0; background: transparent; box-shadow: none; border: none; border-bottom: 2px solid transparent; } "
+            b".study-tools button:checked { font-weight: bold; border-bottom-color: @accent_color; } "
+            b".passage-study-tabs > button { min-width: 0; padding-left: 6px; padding-right: 6px; } "
+            b".reference-excerpt { font-weight: normal; } "
+            b".source-attribution { color: alpha(@window_fg_color, .72); } "
+            b".source-attribution link { color: inherit; } "
+            b".place-map-marker { background-color: @window_bg_color; color: @window_fg_color; border-radius: 12px; } "
+            b".study-divider:focus-visible { outline: 2px solid @accent_color; outline-offset: -2px; } "
+            b"button.chapter-navigation { min-width: 40px; min-height: 40px; "
+            b"padding: 0; border-radius: 9999px; } "
+            b".reader-action { min-width: 34px; min-height: 34px; padding: 0; border-radius: 9999px; } "
+            b".version-pill > button { border-radius: 9999px; } "
+            b".translation-code { padding: 2px 6px; border-radius: 6px; background-color: alpha(currentColor,.10); } "
+            b"box.navigation-books { background-color: alpha(currentColor, 0.04); "
+            b"padding: 8px; border-radius: 12px; } "
+            b"popover.passage-selector > contents { border-radius: 18px; }"
+        )
+        Gtk.StyleContext.add_provider_for_display(
+            self.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        self.view.connect("notify::selected-page", self.selected_changed)
+        self.view.connect("page-detached", self.page_detached)
+        self.view.connect(
+            "notify::n-pages", lambda *_: self.bar.set_visible(self.view.get_n_pages() > 1)
+        )
         self.bar.set_visible(False)
-        self.view.connect('page-reordered', lambda *_: self.schedule_save())
-        self.add_action_callback('new-tab', lambda *_: self.new_tab())
-        self.add_action_callback('close-tab', lambda *_: self.close_tab())
-        self.add_action_callback('translations', lambda *_: self.open_library())
-        from .application_surfaces import show_preferences,show_shortcuts,show_about
-        self.add_action_callback('preferences',lambda *_:show_preferences(self))
-        self.add_action_callback('shortcuts',lambda *_:show_shortcuts(self))
-        self.add_action_callback('about',lambda *_:show_about(self))
-        app.set_accels_for_action('win.preferences',['<Control>comma'])
-        app.set_accels_for_action('win.shortcuts',['<Control>question'])
-        self.add_action_callback('choose-passage', lambda *_: self.choose_passage())
-        self.add_action_callback('reference', lambda *_: self.choose_passage(direct=True))
-        self.add_action_callback('search',lambda *_:self.show_search())
-        self.add_action_callback('previous-chapter', lambda *_: self.step_chapter(-1))
-        self.add_action_callback('next-chapter', lambda *_: self.step_chapter(1))
-        self.add_action_callback('previous-verse', lambda *_: self.active_tab.step_verse(-1))
-        self.add_action_callback('next-verse', lambda *_: self.active_tab.step_verse(1))
-        self.add_action_callback('appearance',lambda *_:self.show_appearance())
-        self.add_action_callback('compare',lambda *_:self.show_comparison())
-        self.add_action_callback('study-word',lambda *_:self.passage_actions.study_word())
-        self.add_action_callback('immersive',lambda *_:self.toggle_immersion())
-        self.add_action_callback('previous-commentary-entry',lambda *_:self.immersion.change_entry(-1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(-1))
-        self.add_action_callback('next-commentary-entry',lambda *_:self.immersion.change_entry(1) if self.immersion and self.immersion.kind=='commentary' else self.study.step_entry(1))
-        self.add_action_callback('immersive-open-bible',lambda *_:self.immersion.open_in_bible() if self.immersion and self.immersion.kind=='commentary' else None)
-        self.add_action_callback('history-back',lambda *_:self.active_tab.travel(self.active_tab.state.history_index-1))
-        self.add_action_callback('history-forward',lambda *_:self.active_tab.travel(self.active_tab.state.history_index+1))
-        self.add_action_callback('copy-passage',lambda *_:self.copy_passage())
-        self.add_action_callback('copy-with-reference',lambda *_:self.copy_passage(True))
-        self.add_action_callback('copy-reference',lambda *_:self.copy_passage(reference_only=True))
-        self.add_action_callback('note', lambda *_: self.new_note())
-        self.add_action_callback('notes', lambda *_: self.open_notes())
-        self.add_action_callback('highlights',lambda *_:self.open_highlights())
-        for color in COLORS:self.add_action_callback('highlight-'+color,lambda *_,value=color:self.mark_highlight(value))
-        self.add_action_callback('highlight-remove',lambda *_:self.mark_highlight(None))
-        self.lookup_action('note').set_enabled(self.notes_store is not None)
-        self.lookup_action('notes').set_enabled(self.notes_store is not None)
-        self.add_action_callback('study', lambda *_: self.study_button.set_active(not self.study_button.get_active()))
-        app.set_accels_for_action('win.immersive',['F11'])
-        app.set_accels_for_action('win.new-tab', ['<Control>t'])
-        app.set_accels_for_action('win.close-tab', ['<Control>w'])
-        app.set_accels_for_action('win.translations', ['<Control>l'])
-        app.set_accels_for_action('win.study', ['F9'])
-        app.set_accels_for_action('win.note', ['<Control>n'])
-        app.set_accels_for_action('win.notes', ['<Control><Shift>n'])
-        app.set_accels_for_action('win.previous-verse', ['<Alt>Up'])
-        app.set_accels_for_action('win.next-verse', ['<Alt>Down'])
-        app.set_accels_for_action('win.choose-passage', ['<Control>g'])
-        app.set_accels_for_action('win.reference', ['<Control>k'])
-        app.set_accels_for_action('win.search',['<Control>f'])
-        app.set_accels_for_action('win.previous-chapter', ['<Alt>Page_Up'])
-        app.set_accels_for_action('win.history-back',['<Alt>Left'])
-        app.set_accels_for_action('win.next-chapter', ['<Alt>Page_Down'])
-        app.set_accels_for_action('win.history-forward',['<Alt>Right'])
+        self.view.connect("page-reordered", lambda *_: self.schedule_save())
+        self.add_action_callback("new-tab", lambda *_: self.new_tab())
+        self.add_action_callback("close-tab", lambda *_: self.close_tab())
+        self.add_action_callback("translations", lambda *_: self.open_library())
+        from .application_surfaces import show_preferences, show_shortcuts, show_about
+
+        self.add_action_callback("preferences", lambda *_: show_preferences(self))
+        self.add_action_callback("shortcuts", lambda *_: show_shortcuts(self))
+        self.add_action_callback("about", lambda *_: show_about(self))
+        app.set_accels_for_action("win.preferences", ["<Control>comma"])
+        app.set_accels_for_action("win.shortcuts", ["<Control>question"])
+        self.add_action_callback("choose-passage", lambda *_: self.choose_passage())
+        self.add_action_callback("reference", lambda *_: self.choose_passage(direct=True))
+        self.add_action_callback("search", lambda *_: self.show_search())
+        self.add_action_callback("previous-chapter", lambda *_: self.step_chapter(-1))
+        self.add_action_callback("next-chapter", lambda *_: self.step_chapter(1))
+        self.add_action_callback("previous-verse", lambda *_: self.active_tab.step_verse(-1))
+        self.add_action_callback("next-verse", lambda *_: self.active_tab.step_verse(1))
+        self.add_action_callback("appearance", lambda *_: self.show_appearance())
+        self.add_action_callback("compare", lambda *_: self.show_comparison())
+        self.add_action_callback("study-word", lambda *_: self.passage_actions.study_word())
+        self.add_action_callback("immersive", lambda *_: self.toggle_immersion())
+        self.add_action_callback(
+            "previous-commentary-entry",
+            lambda *_: self.immersion.change_entry(-1)
+            if self.immersion and self.immersion.kind == "commentary"
+            else self.study.step_entry(-1),
+        )
+        self.add_action_callback(
+            "next-commentary-entry",
+            lambda *_: self.immersion.change_entry(1)
+            if self.immersion and self.immersion.kind == "commentary"
+            else self.study.step_entry(1),
+        )
+        self.add_action_callback(
+            "immersive-open-bible",
+            lambda *_: self.immersion.open_in_bible()
+            if self.immersion and self.immersion.kind == "commentary"
+            else None,
+        )
+        self.add_action_callback(
+            "history-back",
+            lambda *_: self.active_tab.travel(self.active_tab.state.history_index - 1),
+        )
+        self.add_action_callback(
+            "history-forward",
+            lambda *_: self.active_tab.travel(self.active_tab.state.history_index + 1),
+        )
+        self.add_action_callback("copy-passage", lambda *_: self.copy_passage())
+        self.add_action_callback("copy-with-reference", lambda *_: self.copy_passage(True))
+        self.add_action_callback(
+            "copy-reference", lambda *_: self.copy_passage(reference_only=True)
+        )
+        self.add_action_callback("note", lambda *_: self.new_note())
+        self.add_action_callback("notes", lambda *_: self.open_notes())
+        self.add_action_callback("highlights", lambda *_: self.open_highlights())
+        for color in COLORS:
+            self.add_action_callback(
+                "highlight-" + color, lambda *_, value=color: self.mark_highlight(value)
+            )
+        self.add_action_callback("highlight-remove", lambda *_: self.mark_highlight(None))
+        self.lookup_action("note").set_enabled(self.notes_store is not None)
+        self.lookup_action("notes").set_enabled(self.notes_store is not None)
+        self.add_action_callback(
+            "study", lambda *_: self.study_button.set_active(not self.study_button.get_active())
+        )
+        app.set_accels_for_action("win.immersive", ["F11"])
+        app.set_accels_for_action("win.new-tab", ["<Control>t"])
+        app.set_accels_for_action("win.close-tab", ["<Control>w"])
+        app.set_accels_for_action("win.translations", ["<Control>l"])
+        app.set_accels_for_action("win.study", ["F9"])
+        app.set_accels_for_action("win.note", ["<Control>n"])
+        app.set_accels_for_action("win.notes", ["<Control><Shift>n"])
+        app.set_accels_for_action("win.previous-verse", ["<Alt>Up"])
+        app.set_accels_for_action("win.next-verse", ["<Alt>Down"])
+        app.set_accels_for_action("win.choose-passage", ["<Control>g"])
+        app.set_accels_for_action("win.reference", ["<Control>k"])
+        app.set_accels_for_action("win.search", ["<Control>f"])
+        app.set_accels_for_action("win.previous-chapter", ["<Alt>Page_Up"])
+        app.set_accels_for_action("win.history-back", ["<Alt>Left"])
+        app.set_accels_for_action("win.next-chapter", ["<Alt>Page_Down"])
+        app.set_accels_for_action("win.history-forward", ["<Alt>Right"])
         try:
-            session = self.store.load() if self.application_settings.value["restore_tabs"] else Session()
+            session = (
+                self.store.load() if self.application_settings.value["restore_tabs"] else Session()
+            )
         except (OSError, SessionError) as error:
             self._session_writable = False
-            self.report_session_error(tr('Unable to restore the session. The original file has been preserved.') + '\n' + tr('Session saving is disabled to preserve the original file.'), error)
+            self.report_session_error(
+                tr("Unable to restore the session. The original file has been preserved.")
+                + "\n"
+                + tr("Session saving is disabled to preserve the original file."),
+                error,
+            )
             session = Session()
         if not session.tabs:
-            names = self.library.installed('bible')
+            names = self.library.installed("bible")
             session.tabs = [TabState(resource=names[0] if names else None)]
         from .passage_actions import PassageActions
-        self.passage_actions=PassageActions(self)
+
+        self.passage_actions = PassageActions(self)
         for state in session.tabs:
             self.append_tab(state)
         self.view.set_selected_page(self.view.get_nth_page(session.selected))
@@ -400,209 +581,330 @@ class Window(Adw.ApplicationWindow):
         self.selected_changed()
         self.study_divider.apply()
         from .application_surfaces import welcome_page
-        self.welcome=welcome_page(self);self.main_pages.add_named(self.welcome,'welcome')
-        self.startup_resource_error=''
-        readable=self.ensure_readable_tab()
-        if not readable:
-            self.main_pages.set_visible_child_name('welcome')
-            if self.startup_resource_error:self.welcome_status.set_description(GLib.markup_escape_text(tr('Some installed Bibles could not be read. They are preserved. Retry from Library.')+' '+self.startup_resource_error))
-        if self.application_settings.error:self.report_session_error(tr('Unable to load application preferences. Original file preserved.'),self.application_settings.error)
 
-    def watch_layout_surface(self,*_):
-        surface=self.get_surface()
+        self.welcome = welcome_page(self)
+        self.main_pages.add_named(self.welcome, "welcome")
+        self.startup_resource_error = ""
+        readable = self.ensure_readable_tab()
+        if not readable:
+            self.main_pages.set_visible_child_name("welcome")
+            if self.startup_resource_error:
+                self.welcome_status.set_description(
+                    GLib.markup_escape_text(
+                        tr(
+                            "Some installed Bibles could not be read. They are preserved. Retry from Library."
+                        )
+                        + " "
+                        + self.startup_resource_error
+                    )
+                )
+        if self.application_settings.error:
+            self.report_session_error(
+                tr("Unable to load application preferences. Original file preserved."),
+                self.application_settings.error,
+            )
+
+    def watch_layout_surface(self, *_):
+        surface = self.get_surface()
         if surface is not self._layout_surface:
             self.unwatch_layout_surface()
-            self._layout_surface=surface
-            self._layout_surface_handlers=[surface.connect('notify::'+name,self.queue_layout)
-                for name in ('width','height','scale-factor','scale')]
+            self._layout_surface = surface
+            self._layout_surface_handlers = [
+                surface.connect("notify::" + name, self.queue_layout)
+                for name in ("width", "height", "scale-factor", "scale")
+            ]
         self.queue_layout()
 
-    def unwatch_layout_surface(self,*_):
+    def unwatch_layout_surface(self, *_):
         if self._layout_surface:
-            for handler in self._layout_surface_handlers:self._layout_surface.disconnect(handler)
-        self._layout_surface=None;self._layout_surface_handlers=[]
+            for handler in self._layout_surface_handlers:
+                self._layout_surface.disconnect(handler)
+        self._layout_surface = None
+        self._layout_surface_handlers = []
         self.cancel_controls()
-        if hasattr(self,'study_divider'):self.study_divider.cancel_adapt()
-        if hasattr(self,'study'):self.study.cancel_adapt()
+        if hasattr(self, "study_divider"):
+            self.study_divider.cancel_adapt()
+        if hasattr(self, "study"):
+            self.study.cancel_adapt()
 
     def refresh_header_conditions(self):
         # SP follows GNOME text scaling; a custom UI font size is independent.
-        settings=Gtk.Settings.get_default()
-        size=Pango.FontDescription.from_string(settings.props.gtk_font_name).get_size()/Pango.SCALE
-        if size==self._header_font_size:return
-        self._header_font_size=size;ratio=max(1,size/11)
-        for breakpoint,width in self._header_breakpoints:
-            breakpoint.set_condition(Adw.BreakpointCondition.parse(f'max-width: {width*ratio:g}sp'))
+        settings = Gtk.Settings.get_default()
+        size = (
+            Pango.FontDescription.from_string(settings.props.gtk_font_name).get_size() / Pango.SCALE
+        )
+        if size == self._header_font_size:
+            return
+        self._header_font_size = size
+        ratio = max(1, size / 11)
+        for breakpoint, width in self._header_breakpoints:
+            breakpoint.set_condition(
+                Adw.BreakpointCondition.parse(f"max-width: {width * ratio:g}sp")
+            )
 
-    def queue_layout(self,*_):
-        if not self.get_mapped() or self.closed:return
-        self.refresh_header_conditions();self.queue_controls()
-        if hasattr(self,'study_divider'):self.study_divider.queue_adapt()
-        if hasattr(self,'study'):self.study.queue_adapt()
-        if hasattr(self,'view'):
-            for tab in self.tabs():tab.queue_adapt()
+    def queue_layout(self, *_):
+        if not self.get_mapped() or self.closed:
+            return
+        self.refresh_header_conditions()
+        self.queue_controls()
+        if hasattr(self, "study_divider"):
+            self.study_divider.queue_adapt()
+        if hasattr(self, "study"):
+            self.study.queue_adapt()
+        if hasattr(self, "view"):
+            for tab in self.tabs():
+                tab.queue_adapt()
 
-    def queue_controls(self,*_):
-        if self.closed or not self.get_mapped():return
-        self._controls_frames=3
-        if not self._controls_tick:self._controls_tick=self.add_tick_callback(self._settle_controls)
+    def queue_controls(self, *_):
+        if self.closed or not self.get_mapped():
+            return
+        self._controls_frames = 3
+        if not self._controls_tick:
+            self._controls_tick = self.add_tick_callback(self._settle_controls)
 
-    def cancel_controls(self,*_):
-        if self._controls_tick:self.remove_tick_callback(self._controls_tick)
-        self._controls_tick=0;self._controls_frames=0
+    def cancel_controls(self, *_):
+        if self._controls_tick:
+            self.remove_tick_callback(self._controls_tick)
+        self._controls_tick = 0
+        self._controls_frames = 0
 
-    def _settle_controls(self,*_):
-        self.fit_reader_controls();self._controls_frames-=1
-        if self._controls_frames>0:return True
-        self._controls_tick=0;return False
+    def _settle_controls(self, *_):
+        self.fit_reader_controls()
+        self._controls_frames -= 1
+        if self._controls_frames > 0:
+            return True
+        self._controls_tick = 0
+        return False
 
-    def fit_reader_controls(self,*_):
+    def fit_reader_controls(self, *_):
         from .version_chooser import fit_wrapped_button
-        fit_wrapped_button(self.primary_version,self.primary_version.caption.get_text())
-        fit_wrapped_button(self.compared_version,self.compared_version.caption.get_text())
-        fit_wrapped_button(self.passage_button,self.heading.get_title())
-        self.primary_version.fit_popup();self.compared_version.fit_popup();self.fit_comparison_popup()
+
+        fit_wrapped_button(self.primary_version, self.primary_version.caption.get_text())
+        fit_wrapped_button(self.compared_version, self.compared_version.caption.get_text())
+        fit_wrapped_button(self.passage_button, self.heading.get_title())
+        self.primary_version.fit_popup()
+        self.compared_version.fit_popup()
+        self.fit_comparison_popup()
         self.search_popover.adapt()
 
     def fit_comparison_popup(self):
         from .version_chooser import fit_translation_choices
-        fit_translation_choices(self.comparison_popover,self.comparison_choices,self)
 
-    def position_primary_version(self,force=False):
-        if not force and self.immersion and self.immersion.kind=='bible':return
-        tab=self.active_tab
-        target=tab.primary_controls if tab and tab.state.comparison else self.header_title
-        parent=self.primary_version.get_parent()
+        fit_translation_choices(self.comparison_popover, self.comparison_choices, self)
+
+    def position_primary_version(self, force=False):
+        if not force and self.immersion and self.immersion.kind == "bible":
+            return
+        tab = self.active_tab
+        target = tab.primary_controls if tab and tab.state.comparison else self.header_title
+        parent = self.primary_version.get_parent()
         if parent is not target:
-            if parent:parent.remove(self.primary_version)
+            if parent:
+                parent.remove(self.primary_version)
             target.append(self.primary_version)
         self.primary_version.set_hexpand(bool(tab and tab.state.comparison))
 
-    def open_reading_popup(self,button):
+    def open_reading_popup(self, button):
         if button.get_parent() is self.reader_overflow_box:
             self.reading_tools_menu.popup()
-            def show():
-                if not self.closed and self.reader_overflow_box.get_mapped():button.popup()
-                return False
-            GLib.idle_add(show)
-        else:button.popup()
 
-    def copy_passage(self,with_reference=False,reference_only=False):
-        from .notes_window import passage_label
-        tab=self.active_tab
-        if not tab or not tab.reader:return
-        if self.immersion:
-            if self.immersion.kind!='bible':return
-            first,last=self.immersion.selected_passage();reader=self.immersion.source.reader
-            version=self.immersion.source.resource.name
-        else:first,last=tab.selected_passage();reader=tab.reader;version=module_name(tab.state.resource)
-        label=passage_label(first,last,reader.versification)+' — '+version
-        if reference_only:value=label
-        elif getattr(reader,'addresses',None):
-            from .sword_provider import passage_verses
-            value='\n'.join(text for _,text in passage_verses(reader,reader.reference_range(first,last)))
-            if with_reference:value=label+'\n'+value
+            def show():
+                if not self.closed and self.reader_overflow_box.get_mapped():
+                    button.popup()
+                return False
+
+            GLib.idle_add(show)
         else:
-            start,end=reader.key(first).getIndex(),reader.key(last).getIndex()
-            chapter=reader.chapter(first)
-            refs=[ref for ref,_ in chapter.verses if start<=reader.key(ref).getIndex()<=end]
-            value='\n'.join(text for _,text in chapter.unique_verses(refs))
-            if with_reference:value=label+'\n'+value
+            button.popup()
+
+    def copy_passage(self, with_reference=False, reference_only=False):
+        from .notes_window import passage_label
+
+        tab = self.active_tab
+        if not tab or not tab.reader:
+            return
+        if self.immersion:
+            if self.immersion.kind != "bible":
+                return
+            first, last = self.immersion.selected_passage()
+            reader = self.immersion.source.reader
+            version = self.immersion.source.resource.name
+        else:
+            first, last = tab.selected_passage()
+            reader = tab.reader
+            version = module_name(tab.state.resource)
+        label = passage_label(first, last, reader.versification) + " — " + version
+        if reference_only:
+            value = label
+        elif getattr(reader, "addresses", None):
+            from .sword_provider import passage_verses
+
+            value = "\n".join(
+                text for _, text in passage_verses(reader, reader.reference_range(first, last))
+            )
+            if with_reference:
+                value = label + "\n" + value
+        else:
+            start, end = reader.key(first).getIndex(), reader.key(last).getIndex()
+            chapter = reader.chapter(first)
+            refs = [ref for ref, _ in chapter.verses if start <= reader.key(ref).getIndex() <= end]
+            value = "\n".join(text for _, text in chapter.unique_verses(refs))
+            if with_reference:
+                value = label + "\n" + value
         self.get_clipboard().set(value)
 
     def show_appearance(self):
-        if self.immersion:self.immersion.reveal_controls();self.immersion.aa.popup()
-        else:self.open_reading_popup(self.appearance_button)
+        if self.immersion:
+            self.immersion.reveal_controls()
+            self.immersion.aa.popup()
+        else:
+            self.open_reading_popup(self.appearance_button)
 
     def show_comparison(self):
-        if self.immersion:self.leave_immersion()
-        if self.active_tab and self.active_tab.state.comparison:self.end_comparison()
-        else:self.open_reading_popup(self.comparison_button)
+        if self.immersion:
+            self.leave_immersion()
+        if self.active_tab and self.active_tab.state.comparison:
+            self.end_comparison()
+        else:
+            self.open_reading_popup(self.comparison_button)
 
     def toggle_immersion(self):
-        if self.immersion:self.leave_immersion()
-        else:self.enter_immersion('bible')
-
-    def enter_immersion(self,kind='bible'):
-        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
-        if self.immersion:self.leave_immersion()
-        tab=self.active_tab
-        if not tab or not tab.reader:return False
-        if kind=='commentary':
-            study=self.study
-            if not study.reader or study.current_position is None:return False
-            source=CommentaryPages(study.reader,self.library.resource(tab.state.commentary))
-            key=study.current_position
-            doc=source.document(key,self.preferences.value);anchor=doc.anchor(0)
-            saved=tab.state.commentary_positions.get(tab.state.commentary)
-            if saved and saved.get('immersive'):
-                positions=[i for i,section in enumerate(source.reader.index.sections) if section.index==saved['index']]
-                if positions:
-                    key=positions[0];doc=source.document(key,self.preferences.value)
-                    anchor=Anchor(doc.spans[0].reference,saved['offset'],True)
-            else:
-                current=study.anchor()
-                if current:
-                    key,offset=current;doc=source.document(key,self.preferences.value)
-                    anchor=doc.anchor(doc.spans[0].body+offset if offset else 0)
+        if self.immersion:
+            self.leave_immersion()
         else:
-            source=BibleBookPages(tab.reader,self.library.resource(tab.state.resource))
-            anchor=Anchor(tab.state.reference)
+            self.enter_immersion("bible")
+
+    def enter_immersion(self, kind="bible"):
+        if hasattr(self, "passage_actions"):
+            self.passage_actions.dismiss()
+        if self.immersion:
+            self.leave_immersion()
+        tab = self.active_tab
+        if not tab or not tab.reader:
+            return False
+        if kind == "commentary":
+            study = self.study
+            if not study.reader or study.current_position is None:
+                return False
+            source = CommentaryPages(study.reader, self.library.resource(tab.state.commentary))
+            key = study.current_position
+            doc = source.document(key, self.preferences.value)
+            anchor = doc.anchor(0)
+            saved = tab.state.commentary_positions.get(tab.state.commentary)
+            if saved and saved.get("immersive"):
+                positions = [
+                    i
+                    for i, section in enumerate(source.reader.index.sections)
+                    if section.index == saved["index"]
+                ]
+                if positions:
+                    key = positions[0]
+                    doc = source.document(key, self.preferences.value)
+                    anchor = Anchor(doc.spans[0].reference, saved["offset"], True)
+            else:
+                current = study.anchor()
+                if current:
+                    key, offset = current
+                    doc = source.document(key, self.preferences.value)
+                    anchor = doc.anchor(doc.spans[0].body + offset if offset else 0)
+        else:
+            source = BibleBookPages(tab.reader, self.library.resource(tab.state.resource))
+            anchor = Anchor(tab.state.reference)
             if tab.text.get_mapped() and not tab._restoring_scroll:
-                rect=tab.text.get_visible_rect();_,iterator=tab.text.get_iter_at_location(rect.x,rect.y)
-                position=tab.position_anchor(iterator.get_offset())
+                rect = tab.text.get_visible_rect()
+                _, iterator = tab.text.get_iter_at_location(rect.x, rect.y)
+                position = tab.position_anchor(iterator.get_offset())
                 if position:
-                    reference,offset=position
-                    if isinstance(offset,Anchor):anchor=offset
+                    reference, offset = position
+                    if isinstance(offset, Anchor):
+                        anchor = offset
                     else:
-                        buffer=tab.text.get_buffer();first=tab._marker_ends[reference]
-                        text=buffer.get_text(buffer.get_iter_at_offset(first),buffer.get_iter_at_offset(first+offset),False)
-                        anchor=Anchor(reference,sum(not c.isspace() for c in text),iterator.get_offset()>=first)
-            key=source.key(anchor.reference)
-        for popover in self._reading_popovers:popover.popdown()
-        self.reading_sync.driver=None
-        immersion=Immersion(self,source,key,anchor);self.immersion=immersion
-        self.main_pages.add_named(immersion,'immersive');self.main_pages.set_visible_child_name('immersive')
-        self.immersive_button.set_active(True);self.lookup_action('note').set_enabled(kind=='bible' and self.notes_store is not None)
-        self.fullscreen();return True
+                        buffer = tab.text.get_buffer()
+                        first = tab._marker_ends[reference]
+                        text = buffer.get_text(
+                            buffer.get_iter_at_offset(first),
+                            buffer.get_iter_at_offset(first + offset),
+                            False,
+                        )
+                        anchor = Anchor(
+                            reference,
+                            sum(not c.isspace() for c in text),
+                            iterator.get_offset() >= first,
+                        )
+            key = source.key(anchor.reference)
+        for popover in self._reading_popovers:
+            popover.popdown()
+        self.reading_sync.driver = None
+        immersion = Immersion(self, source, key, anchor)
+        self.immersion = immersion
+        self.main_pages.add_named(immersion, "immersive")
+        self.main_pages.set_visible_child_name("immersive")
+        self.immersive_button.set_active(True)
+        self.lookup_action("note").set_enabled(kind == "bible" and self.notes_store is not None)
+        self.fullscreen()
+        return True
 
     def leave_immersion(self):
-        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
-        immersion=self.immersion
-        if not immersion:return
-        anchor,key=immersion.finish();tab=immersion.tab;self.immersion=None
-        self.main_pages.set_visible_child_name('reading');self.main_pages.remove(immersion)
-        if not immersion.was_fullscreen:self.unfullscreen()
-        self.immersive_button.set_active(False);self.lookup_action('note').set_enabled(self.notes_store is not None)
-        self.reading_sync.driver=None
-        if immersion.kind=='bible' and tab.reader:
-            tab._travelling=True
-            try:tab.show(anchor.reference)
-            finally:tab._travelling=False
+        if hasattr(self, "passage_actions"):
+            self.passage_actions.dismiss()
+        immersion = self.immersion
+        if not immersion:
+            return
+        anchor, key = immersion.finish()
+        tab = immersion.tab
+        self.immersion = None
+        self.main_pages.set_visible_child_name("reading")
+        self.main_pages.remove(immersion)
+        if not immersion.was_fullscreen:
+            self.unfullscreen()
+        self.immersive_button.set_active(False)
+        self.lookup_action("note").set_enabled(self.notes_store is not None)
+        self.reading_sync.driver = None
+        if immersion.kind == "bible" and tab.reader:
+            tab._travelling = True
+            try:
+                tab.show(anchor.reference)
+            finally:
+                tab._travelling = False
             if anchor.reference in tab._verse_ranges:
-                if getattr(tab.current,'units',()):
-                    tab._appearance_anchor=(anchor.reference,anchor) if anchor.at_body else None
-                    tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
+                if getattr(tab.current, "units", ()):
+                    tab._appearance_anchor = (anchor.reference, anchor) if anchor.at_body else None
+                    tab._jump_reference = None if anchor.at_body else anchor.reference
+                    tab.schedule_scroll_restore()
                 else:
-                    first,last=tab._verse_ranges[anchor.reference];body=tab._marker_ends[anchor.reference]
-                    buffer=tab.text.get_buffer();text=buffer.get_text(buffer.get_iter_at_offset(body),buffer.get_iter_at_offset(last),False)
-                    remaining=anchor.offset;offset=0
-                    for offset,char in enumerate(text):
+                    first, last = tab._verse_ranges[anchor.reference]
+                    body = tab._marker_ends[anchor.reference]
+                    buffer = tab.text.get_buffer()
+                    text = buffer.get_text(
+                        buffer.get_iter_at_offset(body), buffer.get_iter_at_offset(last), False
+                    )
+                    remaining = anchor.offset
+                    offset = 0
+                    for offset, char in enumerate(text):
                         if not char.isspace():
-                            if remaining<=0:break
-                            remaining-=1
-                    tab._appearance_anchor=(anchor.reference,offset) if anchor.at_body else None
-                    tab._jump_reference=None if anchor.at_body else anchor.reference;tab.schedule_scroll_restore()
-        elif immersion.kind=='commentary':
-            section=immersion.finished_section
-            tab.state.commentary_positions[tab.state.commentary]=dict(reference=section.start,index=section.index,offset=anchor.offset,canonical=True,immersive=True)
-            if tab is self.active_tab:self.study.resume(key,anchor)
-        self.update_navigation() if immersion.kind=='bible' else None
+                            if remaining <= 0:
+                                break
+                            remaining -= 1
+                    tab._appearance_anchor = (anchor.reference, offset) if anchor.at_body else None
+                    tab._jump_reference = None if anchor.at_body else anchor.reference
+                    tab.schedule_scroll_restore()
+        elif immersion.kind == "commentary":
+            section = immersion.finished_section
+            tab.state.commentary_positions[tab.state.commentary] = dict(
+                reference=section.start,
+                index=section.index,
+                offset=anchor.offset,
+                canonical=True,
+                immersive=True,
+            )
+            if tab is self.active_tab:
+                self.study.resume(key, anchor)
+        self.update_navigation() if immersion.kind == "bible" else None
         self.schedule_save()
 
     def add_action_callback(self, name, callback):
         action = Gio.SimpleAction.new(name, None)
-        action.connect('activate', callback)
+        action.connect("activate", callback)
         self.add_action(action)
 
     @property
@@ -619,88 +921,140 @@ class Window(Adw.ApplicationWindow):
         return self.active_tab.following
 
     def tabs(self):
-        return [self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())]
+        return [
+            self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())
+        ]
 
     def append_tab(self, state, jump_to_reference=False):
         if not state.reading_palette:
-            state.reading_palette=dict(self.reading_style.initial_palette if self._initializing else self.reading_style.palette_settings())
-        tab = ReadingTab(self.library, state, self.tab_changed, jump_to_reference,
-                         self.notes_store, self.reveal_passage_annotations, self.preferences.value,
-                         position_changed=lambda _tab:self.schedule_save())
-        self.reading_sync.bind(tab.scroll,tab.text,'bible',tab)
-        for scroll in (tab.scroll,tab.comparison_scroll):
-            scroll.get_hadjustment().connect('changed',self.queue_controls)
+            state.reading_palette = dict(
+                self.reading_style.initial_palette
+                if self._initializing
+                else self.reading_style.palette_settings()
+            )
+        tab = ReadingTab(
+            self.library,
+            state,
+            self.tab_changed,
+            jump_to_reference,
+            self.notes_store,
+            self.reveal_passage_annotations,
+            self.preferences.value,
+            position_changed=lambda _tab: self.schedule_save(),
+        )
+        self.reading_sync.bind(tab.scroll, tab.text, "bible", tab)
+        for scroll in (tab.scroll, tab.comparison_scroll):
+            scroll.get_hadjustment().connect("changed", self.queue_controls)
         self.reading_style.decorate(tab.text)
         # The viewport, headers, gutters and empty comparison space belong to
         # the same reading palette as the text, not the native window surface.
-        for surface in (tab.reading_layout,tab.reading_overlay,tab.scroll,
-                        tab.comparison_box,tab.comparison_overlay,tab.comparison_scroll):
-            surface.add_css_class(self.reading_style.scope+'-surface')
+        for surface in (
+            tab.reading_layout,
+            tab.reading_overlay,
+            tab.scroll,
+            tab.comparison_box,
+            tab.comparison_overlay,
+            tab.comparison_scroll,
+        ):
+            surface.add_css_class(self.reading_style.scope + "-surface")
         self.reading_style.decorate(tab.comparison_text)
         from .comparison_sync import ComparisonSync
+
         tab.comparison_sync = ComparisonSync(self, tab)
-        tab._highlight_store=self.highlights
-        tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
-        self.passage_actions.bind(tab.text,lambda:self.passage_actions.ordinary(tab))
-        self.passage_actions.bind(tab.comparison_text,lambda:self.passage_actions.ordinary(tab,True))
-        tab.download_bible=Gtk.Button(label=tr('Download a Bible'),halign=Gtk.Align.CENTER,visible=tab.reader is None)
-        tab.download_bible.connect('clicked',lambda *_:self.open_library('bible',context=self.library_context(tab,'bible')))
-        tab.insert_child_after(tab.download_bible,tab.status)
+        tab._highlight_store = self.highlights
+        tab.update_highlights(
+            self.reading_style.manager.get_high_contrast(), self.reading_style.palette
+        )
+        self.passage_actions.bind(tab.text, lambda: self.passage_actions.ordinary(tab))
+        self.passage_actions.bind(
+            tab.comparison_text, lambda: self.passage_actions.ordinary(tab, True)
+        )
+        tab.download_bible = Gtk.Button(
+            label=tr("Download a Bible"), halign=Gtk.Align.CENTER, visible=tab.reader is None
+        )
+        tab.download_bible.connect(
+            "clicked",
+            lambda *_: self.open_library("bible", context=self.library_context(tab, "bible")),
+        )
+        tab.insert_child_after(tab.download_bible, tab.status)
         page = self.view.append(tab)
-        def selection_changed(buffer,location,mark):
+
+        def selection_changed(buffer, location, mark):
             # GTK also moves private viewport/paragraph marks while scrolling.
             # Those are not user selections and must not bypass ReadingSync.
-            if mark not in (buffer.get_insert(),buffer.get_selection_bound()):return
-            if self.active_tab is tab and self.study.tool in ('notes','references'):
-                if not getattr(self.study,'_notes_idle',0):
+            if mark not in (buffer.get_insert(), buffer.get_selection_bound()):
+                return
+            if self.active_tab is tab and self.study.tool in ("notes", "references"):
+                if not getattr(self.study, "_notes_idle", 0):
+
                     def refresh():
-                        self.study._notes_idle=0
+                        self.study._notes_idle = 0
                         if not self.closed:
-                            if self.study.tool=='notes':self.study.notes.refresh()
+                            if self.study.tool == "notes":
+                                self.study.notes.refresh()
                             self.study.references.refresh()
                         return False
-                    self.study._notes_idle=GLib.idle_add(refresh)
-        tab.text.get_buffer().connect('mark-set',selection_changed)
+
+                    self.study._notes_idle = GLib.idle_add(refresh)
+
+        tab.text.get_buffer().connect("mark-set", selection_changed)
         page.set_title(tab.title())
         return page
 
     def return_to_reading(self):
-        readable=self.ensure_readable_tab()
-        self.main_pages.set_visible_child_name('reading' if readable else 'welcome')
+        readable = self.ensure_readable_tab()
+        self.main_pages.set_visible_child_name("reading" if readable else "welcome")
 
     def ensure_readable_tab(self, preferred=None):
         """Repair only an unusable active reader, preserving valid sessions."""
-        tab=self.active_tab
-        if tab is None:return False
-        if tab.reader and tab.current and any(text.strip() for _,text in tab.current.verses):return True
-        names=self.library.installed('bible')
+        tab = self.active_tab
+        if tab is None:
+            return False
+        if tab.reader and tab.current and any(text.strip() for _, text in tab.current.verses):
+            return True
+        names = self.library.installed("bible")
         from .module_lifecycle import ModuleLifecycle
+
         if preferred not in names and ModuleLifecycle(self.library).was_removed(tab.state.resource):
             # Preserve an explicit removal and the saved passage. A different
             # translation is selected only through the user's existing chooser.
             return False
         from .sword_provider import Reader
+
         if self.library.discovery_errors:
-            self.startup_resource_error='; '.join(self.library.discovery_errors.values())
-        for name in dict.fromkeys(([preferred] if preferred in names else [])+names):
+            self.startup_resource_error = "; ".join(self.library.discovery_errors.values())
+        for name in dict.fromkeys(([preferred] if preferred in names else []) + names):
             try:
-                reader=Reader(self.library.root/name,name)
-                reference='Gen.1.1' if reader.has_reference('Gen.1.1') else reader.first_reference()
-                if not any(text.strip() for _,text in reader.chapter(reference).verses):continue
-                if tab.navigate(name,reference):
+                reader = Reader(self.library.root / name, name)
+                reference = (
+                    "Gen.1.1" if reader.has_reference("Gen.1.1") else reader.first_reference()
+                )
+                if not any(text.strip() for _, text in reader.chapter(reference).verses):
+                    continue
+                if tab.navigate(name, reference):
                     tab.download_bible.set_visible(False)
                     return True
-            except (OSError,ValueError) as error:self.startup_resource_error=str(error)
+            except (OSError, ValueError) as error:
+                self.startup_resource_error = str(error)
         return False
 
     def new_tab(self):
-        if self.immersion:self.leave_immersion()
+        if self.immersion:
+            self.leave_immersion()
         current = self.active_tab
-        names = self.library.installed('bible')
-        state = TabState(current.state.resource, current.state.reference, current.state.scroll,
-                         commentary=current.state.commentary) if current else TabState(
-            resource=names[0] if names else None)
-        if current:state.reading_palette=self.reading_style.palette_settings()
+        names = self.library.installed("bible")
+        state = (
+            TabState(
+                current.state.resource,
+                current.state.reference,
+                current.state.scroll,
+                commentary=current.state.commentary,
+            )
+            if current
+            else TabState(resource=names[0] if names else None)
+        )
+        if current:
+            state.reading_palette = self.reading_style.palette_settings()
         page = self.append_tab(state)
         self.view.set_selected_page(page)
         self.schedule_save()
@@ -708,53 +1062,72 @@ class Window(Adw.ApplicationWindow):
         return page.get_child()
 
     def navigate_selection(self, resource, reference, new_tab=False):
-        if hasattr(self,'passage_actions'):self.passage_actions.dismiss()
+        if hasattr(self, "passage_actions"):
+            self.passage_actions.dismiss()
         try:
             if new_tab:
                 from .sword_provider import Reader
+
                 reader = Reader(self.library.root / resource, resource)
                 if not reader.has_reference(reference):
-                    raise ValueError(tr('This passage is not available in this translation.'))
-                page = self.append_tab(TabState(resource, reader.key(reference).getOSISRef(),
-                                                commentary=self.active_tab.state.commentary if self.active_tab else None),
-                                       jump_to_reference=True)
+                    raise ValueError(tr("This passage is not available in this translation."))
+                page = self.append_tab(
+                    TabState(
+                        resource,
+                        reader.key(reference).getOSISRef(),
+                        commentary=self.active_tab.state.commentary if self.active_tab else None,
+                    ),
+                    jump_to_reference=True,
+                )
                 self.view.set_selected_page(page)
                 self.schedule_save()
                 return True
             return bool(self.active_tab and self.active_tab.navigate(resource, reference))
         except Exception as error:
             if self.active_tab:
-                self.active_tab.status.set_text(f'{tr("Unable to read this passage.")} {error}')
+                self.active_tab.status.set_text(f"{tr('Unable to read this passage.')} {error}")
                 self.active_tab.status.set_visible(True)
             return False
 
     def choose_passage(self, direct=False):
-        if self.immersion and self.immersion.kind=='commentary':self.leave_immersion()
-        button=self.immersion.passage_button if self.immersion else self.passage_button
-        if self.immersion:self.immersion.reveal_controls()
+        if self.immersion and self.immersion.kind == "commentary":
+            self.leave_immersion()
+        button = self.immersion.passage_button if self.immersion else self.passage_button
+        if self.immersion:
+            self.immersion.reveal_controls()
         button.set_active(True)
         self.navigation.sync(force=True)
         self.navigation.direct.grab_focus()
 
-    def show_search(self,mode=None):
-        if self.immersion:self.leave_immersion()
+    def show_search(self, mode=None):
+        if self.immersion:
+            self.leave_immersion()
         self.dismiss_popovers()
-        if mode is not None:self.search_popover.modes.set_visible_child_name(mode)
+        if mode is not None:
+            self.search_popover.modes.set_visible_child_name(mode)
         self.open_reading_popup(self.search_button)
-        self.search_popover.sync();self.search_popover.focus_query()
+        self.search_popover.sync()
+        self.search_popover.focus_query()
 
-    def switch_translation(self,name):
+    def switch_translation(self, name):
         """A missing correspondence does not make the target unreadable."""
         from .sword_provider import Reader
-        from .reference_resolution import resolve,available_chapter
-        tab=self.active_tab
-        if not tab:return False
-        reader=Reader(self.library.root/name,name)
+        from .reference_resolution import resolve, available_chapter
+
+        tab = self.active_tab
+        if not tab:
+            return False
+        reader = Reader(self.library.root / name, name)
         try:
-            reference=resolve(tab.state.reference,tab.reader.versification,reader).start if tab.reader else reader.first_reference()
+            reference = (
+                resolve(tab.state.reference, tab.reader.versification, reader).start
+                if tab.reader
+                else reader.first_reference()
+            )
         except ValueError:
-            reference=available_chapter(tab.state.reference,reader) or reader.first_reference()
-        if not self.navigate_selection(name,reference):return False
+            reference = available_chapter(tab.state.reference, reader) or reader.first_reference()
+        if not self.navigate_selection(name, reference):
+            return False
         return True
 
     def step_chapter(self, direction):
@@ -770,97 +1143,148 @@ class Window(Adw.ApplicationWindow):
         tab = self.active_tab
         if not tab:
             return
-        for color in [*COLORS,'remove']:
-            self.lookup_action('highlight-'+color).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
+        for color in [*COLORS, "remove"]:
+            self.lookup_action("highlight-" + color).set_enabled(
+                tab.reader is not None
+                and not (self.immersion and self.immersion.kind == "commentary")
+            )
         self.position_primary_version()
-        right_parent=self.compared_version.get_parent()
+        right_parent = self.compared_version.get_parent()
         if right_parent is not tab.comparison_controls:
-            if right_parent:right_parent.remove(self.compared_version)
+            if right_parent:
+                right_parent.remove(self.compared_version)
             tab.comparison_controls.append(self.compared_version)
-        self.primary_version.sync();self.compared_version.sync()
+        self.primary_version.sync()
+        self.compared_version.sync()
         self.immersive_button.set_visible(not bool(tab.state.comparison))
         self.immersive_button.set_sensitive(tab.reader is not None)
-        self.lookup_action('immersive').set_enabled(tab.reader is not None)
-        for name in ['copy-passage','copy-with-reference','copy-reference']:
-            self.lookup_action(name).set_enabled(tab.reader is not None and not (self.immersion and self.immersion.kind=='commentary'))
+        self.lookup_action("immersive").set_enabled(tab.reader is not None)
+        for name in ["copy-passage", "copy-with-reference", "copy-reference"]:
+            self.lookup_action(name).set_enabled(
+                tab.reader is not None
+                and not (self.immersion and self.immersion.kind == "commentary")
+            )
         self.heading.set_title(tab.passage_title(chapter_only=True))
-        subtitle = self.library.resource(tab.state.resource).short_label if tab.reader else tr('Choose a translation')
+        subtitle = (
+            self.library.resource(tab.state.resource).short_label
+            if tab.reader
+            else tr("Choose a translation")
+        )
         if tab.state.resource and tab.state.resource not in self.library.installed():
-            subtitle += f' ({tr("Missing translation")})'
-        self.heading.set_subtitle('')
-        self.passage_button.set_tooltip_text(f'{tab.passage_title(chapter_only=True)}\n{tr("Choose a passage")} (Ctrl+G)')
-        self.passage_button.update_property([Gtk.AccessibleProperty.LABEL],
-                                             [f'{tr("Choose a passage")}: {tab.passage_title(chapter_only=True)}'])
-        previous, following = tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
-        self.lookup_action('previous-chapter').set_enabled(previous is not None)
-        self.lookup_action('next-chapter').set_enabled(following is not None)
+            subtitle += f" ({tr('Missing translation')})"
+        self.heading.set_subtitle("")
+        self.passage_button.set_tooltip_text(
+            f"{tab.passage_title(chapter_only=True)}\n{tr('Choose a passage')} (Ctrl+G)"
+        )
+        self.passage_button.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            [f"{tr('Choose a passage')}: {tab.passage_title(chapter_only=True)}"],
+        )
+        previous, following = (
+            tab.reader.neighbours(tab.state.reference) if tab.reader else (None, None)
+        )
+        self.lookup_action("previous-chapter").set_enabled(previous is not None)
+        self.lookup_action("next-chapter").set_enabled(following is not None)
         # Tab/source changes keep the initial model ready for direct commands.
         # Hidden verse following must not rebuild book/chapter/search widgets;
         # opening the passage menu always performs a forced fresh sync.
-        stamp=self.navigation._stamp
-        if self.navigation.get_visible() or stamp is None or stamp[:2]!=(id(tab),tab.state.resource):self.navigation.sync()
-        if self.search_popover.get_visible():self.search_popover.sync()
+        stamp = self.navigation._stamp
+        if (
+            self.navigation.get_visible()
+            or stamp is None
+            or stamp[:2] != (id(tab), tab.state.resource)
+        ):
+            self.navigation.sync()
+        if self.search_popover.get_visible():
+            self.search_popover.sync()
         self.sync_comparison()
-        self.lookup_action('history-back').set_enabled(tab.state.history_index>0)
-        self.lookup_action('history-forward').set_enabled(tab.state.history_index+1<len(tab.state.history))
+        self.lookup_action("history-back").set_enabled(tab.state.history_index > 0)
+        self.lookup_action("history-forward").set_enabled(
+            tab.state.history_index + 1 < len(tab.state.history)
+        )
         self.study.refresh()
         tab.update_notes()
 
-    def apply_appearance(self,reflow=True):
+    def apply_appearance(self, reflow=True):
         self.reading_style.apply_mode()
         self.appearance.sync()
-        if (self.study.sidebar_preferences is None or self.study.sidebar_preferences.font!=self.study.commentary_font
-                or self.study.sidebar_preferences.size!=(self.preferences.value.study_size or 12)):
+        if (
+            self.study.sidebar_preferences is None
+            or self.study.sidebar_preferences.font != self.study.commentary_font
+            or self.study.sidebar_preferences.size != (self.preferences.value.study_size or 12)
+        ):
             self.study.apply_typography()
-        if not reflow:return
-        for tab in self.tabs():tab.apply_appearance()
-        if self.active_tab:self.active_tab.refresh_comparison()
-        if self.immersion:self.immersion.reflow()
+        if not reflow:
+            return
+        for tab in self.tabs():
+            tab.apply_appearance()
+        if self.active_tab:
+            self.active_tab.refresh_comparison()
+        if self.immersion:
+            self.immersion.reflow()
 
     def sync_comparison(self):
-        tab=self.active_tab
-        self._comparison_syncing=True
-        self._comparison_names=[name for name in self.library.installed('bible') if name!=tab.state.resource]
+        tab = self.active_tab
+        self._comparison_syncing = True
+        self._comparison_names = [
+            name for name in self.library.installed("bible") if name != tab.state.resource
+        ]
         from .version_chooser import choice_details
-        details=[choice_details(self.library.resource(name)) for name in self._comparison_names]
-        labels=[item[0] for item in details]
+
+        details = [choice_details(self.library.resource(name)) for name in self._comparison_names]
+        labels = [item[0] for item in details]
         # Synchronization must not emit another selection for an unchanged row.
-        if getattr(self,'_comparison_details',None)!=details:
-            self.comparison_choices.set_model(Gtk.StringList.new(labels),details)
-            self._comparison_labels=labels;self._comparison_details=details
-        self.comparison_choices.set_selected(self._comparison_names.index(tab.state.comparison) if tab.state.comparison in self._comparison_names else Gtk.INVALID_LIST_POSITION)
-        self.comparison_choices.update_property([Gtk.AccessibleProperty.LABEL],[tr('Compare translations')])
-        self._comparison_syncing=False
+        if getattr(self, "_comparison_details", None) != details:
+            self.comparison_choices.set_model(Gtk.StringList.new(labels), details)
+            self._comparison_labels = labels
+            self._comparison_details = details
+        self.comparison_choices.set_selected(
+            self._comparison_names.index(tab.state.comparison)
+            if tab.state.comparison in self._comparison_names
+            else Gtk.INVALID_LIST_POSITION
+        )
+        self.comparison_choices.update_property(
+            [Gtk.AccessibleProperty.LABEL], [tr("Compare translations")]
+        )
+        self._comparison_syncing = False
         self.comparison_choices.set_visible(bool(self._comparison_names))
         self.comparison_empty.set_visible(not self._comparison_names)
         self.stop_comparison.set_visible(False)
-        label=tr('Exit parallel view') if tab.state.comparison else tr('Compare translations')
-        self.comparison_button.set_icon_name('bible-parallel-off-symbolic' if tab.state.comparison else 'view-dual-symbolic')
+        label = tr("Exit parallel view") if tab.state.comparison else tr("Compare translations")
+        self.comparison_button.set_icon_name(
+            "bible-parallel-off-symbolic" if tab.state.comparison else "view-dual-symbolic"
+        )
         self.comparison_button.set_tooltip_text(label)
-        self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL],[label])
+        self.comparison_button.update_property([Gtk.AccessibleProperty.LABEL], [label])
         tab.refresh_comparison()
         self.view.get_page(tab).set_title(tab.title())
         self.position_primary_version()
-        self.primary_version.sync();self.compared_version.sync()
+        self.primary_version.sync()
+        self.compared_version.sync()
         self.immersive_button.set_visible(not bool(tab.state.comparison))
 
     def end_comparison(self):
-        self.active_tab.state.comparison=None
-        self.active_tab.state.comparison_position={}
-        self.sync_comparison();self.schedule_save();self.comparison_popover.popdown()
+        self.active_tab.state.comparison = None
+        self.active_tab.state.comparison_position = {}
+        self.sync_comparison()
+        self.schedule_save()
+        self.comparison_popover.popdown()
 
-    def comparison_selected(self,widget,*_):
-        if self._comparison_syncing or not self.active_tab:return
-        index=widget.get_selected()
-        if index>=len(self._comparison_names):return
-        self.active_tab.state.comparison=self._comparison_names[index]
+    def comparison_selected(self, widget, *_):
+        if self._comparison_syncing or not self.active_tab:
+            return
+        index = widget.get_selected()
+        if index >= len(self._comparison_names):
+            return
+        self.active_tab.state.comparison = self._comparison_names[index]
         self.sync_comparison()
         self.schedule_save()
         # Finish native row activation before dismissing its parent.
         GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
     def close_tab(self):
-        if self.immersion:self.leave_immersion()
+        if self.immersion:
+            self.leave_immersion()
         page = self.view.get_selected_page()
         if page:
             self.view.close_page(page)
@@ -873,16 +1297,26 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def tab_changed(self, tab):
-        if hasattr(tab,'download_bible'):tab.download_bible.set_visible(tab.reader is None)
-        active=self.active_tab
-        context=(id(active),id(active.reader),active.state.resource) if active else None
-        if context!=getattr(self,'_reference_context',None):
-            self.reference_preview.dismiss();self._reference_context=context
-        if self.immersion and self.immersion.kind=='bible' and tab is self.immersion.tab:
-            current=self.immersion.stream.anchor() if self.immersion.stream.cursor else self.immersion.initial_anchor
-            if current.reference!=tab.state.reference or self.immersion.source.reader is not tab.reader:
-                source=BibleBookPages(tab.reader,self.library.resource(tab.state.resource))
-                self.immersion.source=source;self.immersion.stream.source=source
+        if hasattr(tab, "download_bible"):
+            tab.download_bible.set_visible(tab.reader is None)
+        active = self.active_tab
+        context = (id(active), id(active.reader), active.state.resource) if active else None
+        if context != getattr(self, "_reference_context", None):
+            self.reference_preview.dismiss()
+            self._reference_context = context
+        if self.immersion and self.immersion.kind == "bible" and tab is self.immersion.tab:
+            current = (
+                self.immersion.stream.anchor()
+                if self.immersion.stream.cursor
+                else self.immersion.initial_anchor
+            )
+            if (
+                current.reference != tab.state.reference
+                or self.immersion.source.reader is not tab.reader
+            ):
+                source = BibleBookPages(tab.reader, self.library.resource(tab.state.resource))
+                self.immersion.source = source
+                self.immersion.stream.source = source
                 self.immersion.go_to_reference(tab.state.reference)
         if self._initializing:
             return
@@ -896,12 +1330,14 @@ class Window(Adw.ApplicationWindow):
         self.schedule_save()
 
     def selected_changed(self, *_):
-        if self.immersion:self.leave_immersion()
-        self.reading_sync.driver=None
+        if self.immersion:
+            self.leave_immersion()
+        self.reading_sync.driver = None
         tab = self.active_tab
         if tab is None:
             return
-        if hasattr(self,'appearance'):self.reading_style.activate_tab(tab)
+        if hasattr(self, "appearance"):
+            self.reading_style.activate_tab(tab)
         self._syncing_study = True
         self.study_button.set_active(tab.state.study_visible)
         self.split.set_show_sidebar(tab.state.study_visible)
@@ -911,23 +1347,28 @@ class Window(Adw.ApplicationWindow):
 
     def toggle_study(self, *_):
         if not self._syncing_study:
-            if self.study_button.get_parent() is self.reader_overflow_box:self.reading_tools_menu.popdown()
+            if self.study_button.get_parent() is self.reader_overflow_box:
+                self.reading_tools_menu.popdown()
             self.split.set_show_sidebar(self.study_button.get_active())
 
     def sync_header_controls(self):
-        decoration=self.header.get_decoration_layout()
-        visible=self.split.get_show_sidebar()
+        decoration = self.header.get_decoration_layout()
+        visible = self.split.get_show_sidebar()
         self.header.set_show_end_title_buttons(not visible)
         self.study.header.set_show_end_title_buttons(visible)
         # Older libadwaita recreates end controls when the sidebar changes.
         # Reapply the compact layout to that new native control instance.
         if decoration is not None:
-            self.header.set_decoration_layout(None);self.header.set_decoration_layout(decoration)
+            self.header.set_decoration_layout(None)
+            self.header.set_decoration_layout(decoration)
 
     def sidebar_changed(self, *_):
         if not self.split.get_show_sidebar():
-            self.study.cancel_scroll();self.study.cancel_reveal();self.study.notes.cancel_follow()
-            if self.study.tool=='word':self.study.words.leave()
+            self.study.cancel_scroll()
+            self.study.cancel_reveal()
+            self.study.notes.cancel_follow()
+            if self.study.tool == "word":
+                self.study.words.leave()
         if self._syncing_study:
             return
         visible = self.split.get_show_sidebar()
@@ -939,49 +1380,73 @@ class Window(Adw.ApplicationWindow):
                 # Child mapping can precede show-sidebar's final value. Refresh
                 # after notification as well as on map, including a restored
                 # tool whose selection has not changed while hidden.
-                self.study.refresh();self.study.update_indicator()
-                if self.reading_sync.driver=='bible' and self.reading_sync.armed_until>0:
+                self.study.refresh()
+                self.study.update_indicator()
+                if self.reading_sync.driver == "bible" and self.reading_sync.armed_until > 0:
                     # Hidden tools do no scroll work. Reconcile once after the
                     # restored reader layout settles when the drawer reopens.
-                    self.reading_sync.needs_sync=True;self.reading_sync.schedule()
-            else:self.active_tab.mark_commentary_range(None,None)
+                    self.reading_sync.needs_sync = True
+                    self.reading_sync.schedule()
+            else:
+                self.active_tab.mark_commentary_range(None, None)
         self._syncing_study = False
         self.schedule_save()
 
     def open_places(self):
-        return self.open_passage_study(mode='map')
+        return self.open_passage_study(mode="map")
 
-    def open_passage_study(self,*,target=None,context=None,mode='original',place=None,metadata=None):
-        previous=getattr(self,'passage_study_dialog',None)
-        if previous and not previous.closed:previous.close()
+    def open_passage_study(
+        self, *, target=None, context=None, mode="original", place=None, metadata=None
+    ):
+        previous = getattr(self, "passage_study_dialog", None)
+        if previous and not previous.closed:
+            previous.close()
         from .passage_study import PassageStudy
-        dialog=PassageStudy(self,target=target,context=context,mode=mode,place=place,metadata=metadata)
-        self.passage_study_dialog=dialog;self.place_dialog=dialog
-        dialog.present();dialog.close_button.grab_focus()
+
+        dialog = PassageStudy(
+            self, target=target, context=context, mode=mode, place=place, metadata=metadata
+        )
+        self.passage_study_dialog = dialog
+        self.place_dialog = dialog
+        dialog.present()
+        dialog.close_button.grab_focus()
         return dialog
 
-    def library_context(self,tab,destination):
+    def library_context(self, tab, destination):
         import weakref
-        return (weakref.ref(tab),destination)
 
-    def contextual_library(self,kind,destination):
+        return (weakref.ref(tab), destination)
+
+    def contextual_library(self, kind, destination):
         self.dismiss_popovers()
-        return self.open_library(kind,context=self.library_context(self.active_tab,destination))
+        return self.open_library(kind, context=self.library_context(self.active_tab, destination))
 
     def dismiss_popovers(self):
-        for popover in self._reading_popovers:popover.popdown()
+        for popover in self._reading_popovers:
+            popover.popdown()
 
     def open_library(self, kind=None, context=None):
         if self.catalogue_window is None or self.catalogue_window.closed:
-            existing=next((w for w in Gtk.Window.list_toplevels() if isinstance(w,CatalogueWindow)
-                and not w.closed and w.owner.get_application() is self.get_application()
-                and w.library.root.resolve()==self.library.root.resolve()),None)
-            if existing:existing.adopt_owner(self)
-            else:self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
+            existing = next(
+                (
+                    w
+                    for w in Gtk.Window.list_toplevels()
+                    if isinstance(w, CatalogueWindow)
+                    and not w.closed
+                    and w.owner.get_application() is self.get_application()
+                    and w.library.root.resolve() == self.library.root.resolve()
+                ),
+                None,
+            )
+            if existing:
+                existing.adopt_owner(self)
+            else:
+                self.catalogue_window = CatalogueWindow(self, self.library, self.resource_installed)
         if kind is not None:
-            self.catalogue_window.kind.set_selected({'commentary':1,'study':2}.get(kind,0))
-        elif self.catalogue_window.kind.get_selected()==2:self.catalogue_window.kind.set_selected(0)
-        self.catalogue_window.open_context=context
+            self.catalogue_window.kind.set_selected({"commentary": 1, "study": 2}.get(kind, 0))
+        elif self.catalogue_window.kind.get_selected() == 2:
+            self.catalogue_window.kind.set_selected(0)
+        self.catalogue_window.open_context = context
         self.catalogue_window.present()
         GLib.idle_add(self.catalogue_window.review_downloads)
         return self.catalogue_window
@@ -989,159 +1454,265 @@ class Window(Adw.ApplicationWindow):
     def resource_installed(self, name):
         if self.closed:
             return
-        from .study_resources import REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID
-        if name in (REFERENCE_RESOURCE_ID,PLACE_RESOURCE_ID,TOPIC_RESOURCE_ID,STEP_RESOURCE_ID):
+        from .study_resources import (
+            REFERENCE_RESOURCE_ID,
+            PLACE_RESOURCE_ID,
+            TOPIC_RESOURCE_ID,
+            STEP_RESOURCE_ID,
+        )
+
+        if name in (REFERENCE_RESOURCE_ID, PLACE_RESOURCE_ID, TOPIC_RESOURCE_ID, STEP_RESOURCE_ID):
             for window in self.get_application().get_windows():
-                if isinstance(window,Window) and not window.closed and window.library.root==self.library.root:
-                    if name==REFERENCE_RESOURCE_ID:window.study.references.invalidate()
-                    elif name==TOPIC_RESOURCE_ID:window.search_popover.topic_search.refresh()
-                    elif name==STEP_RESOURCE_ID:
-                        if window.study.words.valid():window.study.words.begin()
-                    elif name==PLACE_RESOURCE_ID:
-                        for tab in window.tabs():tab.apply_appearance();tab.refresh_comparison()
-                        if getattr(window,'place_dialog',None) and not window.place_dialog.closed:window.place_dialog.refresh()
+                if (
+                    isinstance(window, Window)
+                    and not window.closed
+                    and window.library.root == self.library.root
+                ):
+                    if name == REFERENCE_RESOURCE_ID:
+                        window.study.references.invalidate()
+                    elif name == TOPIC_RESOURCE_ID:
+                        window.search_popover.topic_search.refresh()
+                    elif name == STEP_RESOURCE_ID:
+                        if window.study.words.valid():
+                            window.study.words.begin()
+                    elif name == PLACE_RESOURCE_ID:
+                        for tab in window.tabs():
+                            tab.apply_appearance()
+                            tab.refresh_comparison()
+                        if getattr(window, "place_dialog", None) and not window.place_dialog.closed:
+                            window.place_dialog.refresh()
             return
         # Preserve usable readers; the first readable install repairs an empty view.
         for window in self.get_application().get_windows():
-            if not isinstance(window,Window) or window.closed or window.library.root!=self.library.root:continue
-            if getattr(window,'catalogue_session',None):window.catalogue_session.reload_installed()
+            if (
+                not isinstance(window, Window)
+                or window.closed
+                or window.library.root != self.library.root
+            ):
+                continue
+            if getattr(window, "catalogue_session", None):
+                window.catalogue_session.reload_installed()
             for tab in window.tabs():
-                if tab.state.resource==name:tab.load_resource();window.tab_changed(tab)
-            had_reader=bool(window.active_tab and window.active_tab.reader and window.active_tab.current
-                            and any(text.strip() for _,text in window.active_tab.current.verses))
+                if tab.state.resource == name:
+                    tab.load_resource()
+                    window.tab_changed(tab)
+            had_reader = bool(
+                window.active_tab
+                and window.active_tab.reader
+                and window.active_tab.current
+                and any(text.strip() for _, text in window.active_tab.current.verses)
+            )
             if not had_reader and window.ensure_readable_tab(name):
-                if window.main_pages.get_visible_child_name()=='notes':window.notes_space.leave()
-                else:window.return_to_reading()
-            window.study._readers.pop(name,None)
+                if window.main_pages.get_visible_child_name() == "notes":
+                    window.notes_space.leave()
+                else:
+                    window.return_to_reading()
+            window.study._readers.pop(name, None)
             window.study.refresh(force=True)
-            window.primary_version.sync();window.compared_version.sync();window.sync_comparison()
+            window.primary_version.sync()
+            window.compared_version.sync()
+            window.sync_comparison()
             if window.notes_space:
-                window.notes_space._reader_cache.pop(name,None);window.notes_space._excerpt_cache.clear()
+                window.notes_space._reader_cache.pop(name, None)
+                window.notes_space._excerpt_cache.clear()
                 window.notes_space.refresh()
-                if window.notes_space.selected_annotation:window.notes_space.update_context(window.notes_space.selected_annotation)
+                if window.notes_space.selected_annotation:
+                    window.notes_space.update_context(window.notes_space.selected_annotation)
 
-    def open_installed_resource(self,name,context=None):
-        tab=context[0]() if context else self.active_tab
-        destination=context[1] if context else 'bible'
-        if tab not in self.tabs():return False
-        resource=self.library.resource(name)
+    def open_installed_resource(self, name, context=None):
+        tab = context[0]() if context else self.active_tab
+        destination = context[1] if context else "bible"
+        if tab not in self.tabs():
+            return False
+        resource = self.library.resource(name)
+
         def open_now():
-            if self.closed or tab not in self.tabs():return
-            if self.immersion:self.leave_immersion()
+            if self.closed or tab not in self.tabs():
+                return
+            if self.immersion:
+                self.leave_immersion()
             self.view.set_selected_page(self.view.get_page(tab))
-            if resource.kind=='commentary':
-                if self.study.tool=='word':self.study.words.leave()
-                tab.state.commentary=name;self.study.tools.set_visible_child_name('commentaries')
-                self.study_button.set_active(True);self.study.refresh(force=True)
+            if resource.kind == "commentary":
+                if self.study.tool == "word":
+                    self.study.words.leave()
+                tab.state.commentary = name
+                self.study.tools.set_visible_child_name("commentaries")
+                self.study_button.set_active(True)
+                self.study.refresh(force=True)
                 self.study.remember_choice(name)
-            elif destination=='comparison':
-                tab.state.comparison=name;self.sync_comparison()
+            elif destination == "comparison":
+                tab.state.comparison = name
+                self.sync_comparison()
             else:
-                if not self.switch_translation(name):return
-            self.main_pages.set_visible_child_name('reading');self.schedule_save()
-        if self.main_pages.get_visible_child_name()=='notes':
+                if not self.switch_translation(name):
+                    return
+            self.main_pages.set_visible_child_name("reading")
+            self.schedule_save()
+
+        if self.main_pages.get_visible_child_name() == "notes":
+
             def guarded_open():
-                try:open_now()
-                except (OSError,ValueError) as error:self.report_session_error(tr('Unable to read this passage.'),error)
+                try:
+                    open_now()
+                except (OSError, ValueError) as error:
+                    self.report_session_error(tr("Unable to read this passage."), error)
+
             self.notes_space.guard(guarded_open)
-        else:open_now()
+        else:
+            open_now()
         return True
 
     def notes_changed(self):
         for window in self.get_application().get_windows():
-            if not isinstance(window,Window) or window.closed or window.library.root!=self.library.root or not window.notes_store:continue
-            if window is not self:window.notes_store.generation+=1
-            for tab in window.tabs():tab.update_notes(force=True)
+            if (
+                not isinstance(window, Window)
+                or window.closed
+                or window.library.root != self.library.root
+                or not window.notes_store
+            ):
+                continue
+            if window is not self:
+                window.notes_store.generation += 1
+            for tab in window.tabs():
+                tab.update_notes(force=True)
             if window.notes_window and not window.notes_window.closed:
-                window.notes_window.labels.set_suggestions(window.notes_store.labels());window.notes_window.refresh()
-            if window.study.tool=='notes':window.study.notes.refresh()
+                window.notes_window.labels.set_suggestions(window.notes_store.labels())
+                window.notes_window.refresh()
+            if window.study.tool == "notes":
+                window.study.notes.refresh()
 
     def refresh_highlights(self):
         for window in self.get_application().get_windows():
-            if (isinstance(window,Window) and not getattr(window,'closed',True)
-                    and hasattr(window,'view') and window.highlights is self.highlights):
+            if (
+                isinstance(window, Window)
+                and not getattr(window, "closed", True)
+                and hasattr(window, "view")
+                and window.highlights is self.highlights
+            ):
                 window.paint_highlights()
 
     def paint_highlights(self):
-        for tab in self.tabs():tab.update_highlights(self.reading_style.manager.get_high_contrast(),self.reading_style.palette)
+        for tab in self.tabs():
+            tab.update_highlights(
+                self.reading_style.manager.get_high_contrast(), self.reading_style.palette
+            )
         if self.immersion:
-            self.immersion.capture_selection();self.immersion.render()
-        if self.highlights_window and not self.highlights_window.closed:self.highlights_window.refresh()
-        if self.notes_space and not self.notes_space.closed:self.notes_space.refresh()
-        if self.study.tool=='notes':self.study.notes.refresh()
+            self.immersion.capture_selection()
+            self.immersion.render()
+        if self.highlights_window and not self.highlights_window.closed:
+            self.highlights_window.refresh()
+        if self.notes_space and not self.notes_space.closed:
+            self.notes_space.refresh()
+        if self.study.tool == "notes":
+            self.study.notes.refresh()
 
-    def mark_highlight(self,color):
-        tab=self.active_tab
-        if not tab or not tab.reader or (self.immersion and self.immersion.kind!='bible'):return
+    def mark_highlight(self, color):
+        tab = self.active_tab
+        if not tab or not tab.reader or (self.immersion and self.immersion.kind != "bible"):
+            return
         try:
-            start,end=self.immersion.selected_passage() if self.immersion else tab.selected_passage()
-            key=tab.reader.key(start);last=tab.reader.key(end).getIndex();references=[]
-            while key.getIndex()<=last:
-                reference=key.getOSISRef()
-                if tab.reader.has_reference(reference):references.append(reference)
-                if len(references)>1000:raise ValueError('Select at most 1000 verses')
+            start, end = (
+                self.immersion.selected_passage() if self.immersion else tab.selected_passage()
+            )
+            key = tab.reader.key(start)
+            last = tab.reader.key(end).getIndex()
+            references = []
+            while key.getIndex() <= last:
+                reference = key.getOSISRef()
+                if tab.reader.has_reference(reference):
+                    references.append(reference)
+                if len(references) > 1000:
+                    raise ValueError("Select at most 1000 verses")
                 key.increment()
-                if key.popError()!='\x00':break
-            self.highlights.set(tab.reader.versification,references,color,tab.state.resource)
+                if key.popError() != "\x00":
+                    break
+            self.highlights.set(tab.reader.versification, references, color, tab.state.resource)
             self.refresh_highlights()
-        except (ValueError,OSError,TypeError) as error:
-            tab.status.set_text(str(error));tab.status.set_visible(True)
+        except (ValueError, OSError, TypeError) as error:
+            tab.status.set_text(str(error))
+            tab.status.set_visible(True)
 
     def open_highlights(self):
-        def shown(space):space.set_category('highlights');space.split.set_show_sidebar(True)
+        def shown(space):
+            space.set_category("highlights")
+            space.split.set_show_sidebar(True)
+
         return self.open_notes(on_open=shown)
 
-    def workspace_changed(self,*_):
+    def workspace_changed(self, *_):
         self.space_selector.sync()
-        page=self.main_pages.get_visible_child_name()
-        action=self.lookup_action('note')
-        if action:action.set_enabled(self.notes_store is not None and page in ('reading','immersive')
-                                     and (not self.immersion or self.immersion.kind=='bible'))
-        if page not in ('reading','immersive') and hasattr(self,'passage_actions'):
+        page = self.main_pages.get_visible_child_name()
+        action = self.lookup_action("note")
+        if action:
+            action.set_enabled(
+                self.notes_store is not None
+                and page in ("reading", "immersive")
+                and (not self.immersion or self.immersion.kind == "bible")
+            )
+        if page not in ("reading", "immersive") and hasattr(self, "passage_actions"):
             self.passage_actions.dismiss()
 
-    def open_notes(self,on_open=None):
-        if self.immersion:self.leave_immersion()
-        if self.notes_store is None:return
-        editor=self.note_editor
+    def open_notes(self, on_open=None):
+        if self.immersion:
+            self.leave_immersion()
+        if self.notes_store is None:
+            return
+        editor = self.note_editor
         if editor and not editor.closed and editor.embedded_host is not self.notes_space:
-            editor.after_close=lambda:self.open_notes(on_open=on_open);editor.close();return
+            editor.after_close = lambda: self.open_notes(on_open=on_open)
+            editor.close()
+            return
         if self.notes_space is None:
-            self.notes_space=NotesSpace(self)
-            self.notes_window=self.notes_space
-            self.main_pages.add_named(self.notes_space,'notes')
-        self.notes_space.refresh();self.notes_space.present()
-        if on_open:on_open(self.notes_space)
+            self.notes_space = NotesSpace(self)
+            self.notes_window = self.notes_space
+            self.main_pages.add_named(self.notes_space, "notes")
+        self.notes_space.refresh()
+        self.notes_space.present()
+        if on_open:
+            on_open(self.notes_space)
         return self.notes_space
 
     def new_note(self, force_new=False):
-        if self.main_pages.get_visible_child_name()=='notes':return
-        override=self.immersion.selected_passage() if self.immersion and self.immersion.kind=='bible' else None
-        if self.immersion:self.leave_immersion()
+        if self.main_pages.get_visible_child_name() == "notes":
+            return
+        override = (
+            self.immersion.selected_passage()
+            if self.immersion and self.immersion.kind == "bible"
+            else None
+        )
+        if self.immersion:
+            self.leave_immersion()
         tab = self.active_tab
         if not self.notes_store or tab is None or tab.reader is None:
-            self.notes_status.set_text(tr('Open a Bible passage before creating a note.'))
+            self.notes_status.set_text(tr("Open a Bible passage before creating a note."))
             self.notes_status.set_visible(True)
             return
         start, end = override or tab.selected_passage()
         matching = self.notes_store.passage(tab.reader.versification, start, end)
         if matching and not force_new:
-            return self.open_passage_notes((start,end))
-        context = dict(versification=tab.reader.versification, start=start, end=end,
-                       origin_translation=tab.state.resource,
-                       origin_language=self.library.resource(tab.state.resource).language)
+            return self.open_passage_notes((start, end))
+        context = dict(
+            versification=tab.reader.versification,
+            start=start,
+            end=end,
+            origin_translation=tab.state.resource,
+            origin_language=self.library.resource(tab.state.resource).language,
+        )
         return self.edit_note(context=context)
 
     def reveal_passage_annotations(self):
         # Intentional inline markers reveal the chapter list, never enter edit.
-        if self.study.tool=='word':self.study.words.leave()
-        self.study_button.set_active(True);self.study.tools.set_visible_child_name('notes')
-        self.study.notes.refresh();self.study.notes.resume_following()
+        if self.study.tool == "word":
+            self.study.words.leave()
+        self.study_button.set_active(True)
+        self.study.tools.set_visible_child_name("notes")
+        self.study.notes.refresh()
+        self.study.notes.resume_following()
 
     def open_passage_notes(self, passage=None, *, resource=None, reader=None):
         tab = self.active_tab
-        reader=reader or (tab.reader if tab else None)
-        resource=resource or (tab.state.resource if tab else None)
+        reader = reader or (tab.reader if tab else None)
+        resource = resource or (tab.state.resource if tab else None)
         if not self.notes_store or not tab or not reader:
             return
         start, end = passage or tab.selected_passage()
@@ -1149,18 +1720,30 @@ class Window(Adw.ApplicationWindow):
         if len(notes) == 1:
             return self.edit_note(note=notes[0])
         if not notes:
-            context=dict(versification=reader.versification,start=start,end=end,
-                         origin_translation=resource,origin_language=self.library.resource(resource).language)
+            context = dict(
+                versification=reader.versification,
+                start=start,
+                end=end,
+                origin_translation=resource,
+                origin_language=self.library.resource(resource).language,
+            )
             return self.edit_note(context=context)
+
         def shown(window):
-            window.search.set_text('');window.labels.set_values([])
-            window.passage_filter=(reader.versification,start,end);window.set_category('all')
+            window.search.set_text("")
+            window.labels.set_values([])
+            window.passage_filter = (reader.versification, start, end)
+            window.set_category("all")
+
         return self.open_notes(on_open=shown)
 
-    def edit_note(self, note=None, context=None, explanation=''):
-        if note is None and self.main_pages.get_visible_child_name()=='notes':return
+    def edit_note(self, note=None, context=None, explanation=""):
+        if note is None and self.main_pages.get_visible_child_name() == "notes":
+            return
         if self.note_editor and not self.note_editor.closed:
-            self.note_editor.status.set_text(tr('Save or close the current note before opening another.'))
+            self.note_editor.status.set_text(
+                tr("Save or close the current note before opening another.")
+            )
             self.note_editor.present()
             return self.note_editor
         self.notes_status.set_visible(False)
@@ -1172,27 +1755,42 @@ class Window(Adw.ApplicationWindow):
         note = self.notes_store.get(note.id)
         if note is None:
             return
-        if edit and self.main_pages.get_visible_child_name()=='notes':
+        if edit and self.main_pages.get_visible_child_name() == "notes":
             return self.notes_space.open_note(note)
         from .sword_provider import Reader
+
         tab = self.active_tab
-        candidates = list(dict.fromkeys([tab.state.resource if tab else None,
-                                         note.origin_translation, *self.library.installed('bible')]))
-        explanation = tr('No compatible translation installed. The note remains available.')
+        candidates = list(
+            dict.fromkeys(
+                [
+                    tab.state.resource if tab else None,
+                    note.origin_translation,
+                    *self.library.installed("bible"),
+                ]
+            )
+        )
+        explanation = tr("No compatible translation installed. The note remains available.")
         for name in candidates:
-            if name not in self.library.installed('bible'):
+            if name not in self.library.installed("bible"):
                 continue
             try:
-                reader = tab.reader if tab and tab.state.resource == name and tab.reader else Reader(self.library.root / name, name)
-                if (reader.versification == note.versification and reader.has_reference(note.start)
-                        and reader.has_reference(note.end)):
+                reader = (
+                    tab.reader
+                    if tab and tab.state.resource == name and tab.reader
+                    else Reader(self.library.root / name, name)
+                )
+                if (
+                    reader.versification == note.versification
+                    and reader.has_reference(note.start)
+                    and reader.has_reference(note.end)
+                ):
                     if self.navigate_selection(name, note.start):
-                        explanation = ''
+                        explanation = ""
                         break
             except Exception:
                 continue
         if explanation:
-            explanation += f' [{note.versification}]'
+            explanation += f" [{note.versification}]"
         return self.edit_note(note=note, explanation=explanation) if edit else not explanation
 
     def schedule_save(self):
@@ -1214,41 +1812,51 @@ class Window(Adw.ApplicationWindow):
             self.store.save(Session([tab.state for tab in pages], selected))
             self.session_status.set_visible(False)
         except OSError as error:
-            self.report_session_error(tr('Unable to save the session.'), error)
+            self.report_session_error(tr("Unable to save the session."), error)
         return False
 
     def report_session_error(self, message, error):
-        self.session_status.set_text(f'{message}\n{error}')
+        self.session_status.set_text(f"{message}\n{error}")
         self.session_status.set_visible(True)
 
     def on_close(self, *_):
-        if self.immersion:self.leave_immersion()
+        if self.immersion:
+            self.leave_immersion()
         if self.note_editor and not self.note_editor.closed:
+
             def close_later():
-                if not self.closed:self.close()
+                if not self.closed:
+                    self.close()
                 return False
-            self.note_editor.after_close = lambda:GLib.idle_add(close_later)
+
+            self.note_editor.after_close = lambda: GLib.idle_add(close_later)
             self.note_editor.close()
             # Synchronous autosave/clean close can finish inside close-request.
             # Continue this request; a nested Gtk.Window.close is ignored.
-            if not self.note_editor.closed:return True
+            if not self.note_editor.closed:
+                return True
         if self._save_id:
             GLib.source_remove(self._save_id)
             self._save_id = 0
         self.save_session()
         self.closed = True
-        getattr(self.library,'_annotation_readers',{}).clear()
+        getattr(self.library, "_annotation_readers", {}).clear()
         self.appearance.cancel_pending()
         self.passage_actions.dismiss()
-        if getattr(self,'place_dialog',None):self.place_dialog.close()
+        if getattr(self, "place_dialog", None):
+            self.place_dialog.close()
         self.unwatch_layout_surface()
-        settings=Gtk.Settings.get_default()
-        for handler in self._layout_settings_handlers:settings.disconnect(handler)
-        self._layout_settings_handlers=[]
-        if hasattr(self,'_inline_marker_executor'):self._inline_marker_executor.shutdown(wait=False,cancel_futures=True)
-        for tab in self.tabs():tab.inline_markers.executor.shutdown(wait=False,cancel_futures=True)
+        settings = Gtk.Settings.get_default()
+        for handler in self._layout_settings_handlers:
+            settings.disconnect(handler)
+        self._layout_settings_handlers = []
+        if hasattr(self, "_inline_marker_executor"):
+            self._inline_marker_executor.shutdown(wait=False, cancel_futures=True)
+        for tab in self.tabs():
+            tab.inline_markers.executor.shutdown(wait=False, cancel_futures=True)
         self.reference_preview.dismiss()
-        self.comparison_popover.popdown();self.comparison_popover.unparent()
+        self.comparison_popover.popdown()
+        self.comparison_popover.unparent()
         self.study.references.close()
         self.study.notes.close()
         self.study.words.close()
@@ -1257,38 +1865,60 @@ class Window(Adw.ApplicationWindow):
         self.study.cancel_reveal()
         self.study.cancel_scroll()
         self.reading_style.close()
-        if self.notes_space:self.notes_space.closed=True
+        if self.notes_space:
+            self.notes_space.closed = True
         if self.notes_store:
             self.notes_store.close()
         if self.catalogue_window is not None and not self.catalogue_window.closed:
-            replacement=next((w for w in self.get_application().get_windows() if isinstance(w,Window)
-                and not w.closed and w.library.root.resolve()==self.library.root.resolve()),None)
-            if replacement:self.catalogue_window.adopt_owner(replacement)
-            else:self.catalogue_window.close()
-        if getattr(self,'catalogue_session',None):
-            other=next((w for w in self.get_application().get_windows() if isinstance(w,Window) and not w.closed
-                and w.library.root.resolve()==self.library.root.resolve()),None)
-            if not other:self.catalogue_session.close()
+            replacement = next(
+                (
+                    w
+                    for w in self.get_application().get_windows()
+                    if isinstance(w, Window)
+                    and not w.closed
+                    and w.library.root.resolve() == self.library.root.resolve()
+                ),
+                None,
+            )
+            if replacement:
+                self.catalogue_window.adopt_owner(replacement)
+            else:
+                self.catalogue_window.close()
+        if getattr(self, "catalogue_session", None):
+            other = next(
+                (
+                    w
+                    for w in self.get_application().get_windows()
+                    if isinstance(w, Window)
+                    and not w.closed
+                    and w.library.root.resolve() == self.library.root.resolve()
+                ),
+                None,
+            )
+            if not other:
+                self.catalogue_session.close()
         return False
 
 
 class Application(Adw.Application):
     def __init__(self):
-        super().__init__(application_id='io.github.icfmp.Bible')
-        action=Gio.SimpleAction.new('quit',None)
-        action.connect('activate',lambda *_:self.request_quit())
-        self.add_action(action);self.set_accels_for_action('app.quit',['<Control>q'])
+        super().__init__(application_id="io.github.icfmp.Bible")
+        action = Gio.SimpleAction.new("quit", None)
+        action.connect("activate", lambda *_: self.request_quit())
+        self.add_action(action)
+        self.set_accels_for_action("app.quit", ["<Control>q"])
 
     def request_quit(self):
         # Application.quit() bypasses close-request and pending note writes.
         # The last safely closed application window ends the normal lifecycle;
         # a failed save leaves its window/editor alive for the user's decision.
         for window in list(self.get_windows()):
-            if isinstance(window,Window) and not window.closed:window.close()
+            if isinstance(window, Window) and not window.closed:
+                window.close()
 
     def do_activate(self):
         if not self.get_active_window():
-            root = Path(GLib.get_user_data_dir()) / 'bible' / 'translations'
+            root = Path(GLib.get_user_data_dir()) / "bible" / "translations"
             Window(self, Library(root)).present()
         else:
             self.get_active_window().present()

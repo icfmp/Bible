@@ -1,4 +1,5 @@
 """Local, source-aware note and place affordances in ordinary Bible prose."""
+
 from gi.repository import Gtk, GLib, Pango, Gdk
 from .i18n import tr
 from .reference_resolution import resolve
@@ -7,144 +8,243 @@ from xml.etree.ElementTree import ParseError
 
 
 class InlineMarkers:
-    def __init__(self,tab):
-        self.tab=tab;self.geo={};self.editorial={};self.pending=set();self.executor=MetadataExecutor()
+    def __init__(self, tab):
+        self.tab = tab
+        self.geo = {}
+        self.editorial = {}
+        self.pending = set()
+        self.executor = MetadataExecutor()
 
     @property
     def owner(self):
-        return getattr(getattr(self.tab,'sync_coordinator',None),'owner',None)
+        return getattr(getattr(self.tab, "sync_coordinator", None), "owner", None)
 
-    def markers(self,reader,document):
-        tab=self.tab;result={};primary={ref:s.reference for s in document.spans for ref in s.members};refs=set(primary)
+    def markers(self, reader, document):
+        tab = self.tab
+        result = {}
+        primary = {ref: s.reference for s in document.spans for ref in s.members}
+        refs = set(primary)
         if tab.preferences.note_indicators and tab.notes_store:
             from .passage_annotations import PassageAnnotations
-            annotations=getattr(self,'annotations',None)
-            if annotations is None:self.annotations=annotations=PassageAnnotations(tab.library)
-            seen=set()
-            for reference,notes in annotations.note_map(reader,primary,tab.notes_store).items():
+
+            annotations = getattr(self, "annotations", None)
+            if annotations is None:
+                self.annotations = annotations = PassageAnnotations(tab.library)
+            seen = set()
+            for reference, notes in annotations.note_map(reader, primary, tab.notes_store).items():
                 for note in notes:
-                    if not note.body.strip() or note.id in seen:continue
-                    result.setdefault(primary[reference],{}).setdefault('note',[]).append(note.id);seen.add(note.id)
+                    if not note.body.strip() or note.id in seen:
+                        continue
+                    result.setdefault(primary[reference], {}).setdefault("note", []).append(note.id)
+                    seen.add(note.id)
         if tab.preferences.note_indicators and document.spans:
-            key=(reader,document.key)
+            key = (reader, document.key)
             if key not in self.editorial:
-                try:self.editorial[key]=reader.editorial_notes(document.spans[0].reference)
-                except (ValueError,RuntimeError,ParseError):self.editorial[key]=()
-                if len(self.editorial)>8:self.editorial.pop(next(iter(self.editorial)))
-            for index,note in enumerate(self.editorial[key]):
-                reference=next((ref for ref in note.reference.split() if ref in refs),None)
+                try:
+                    self.editorial[key] = reader.editorial_notes(document.spans[0].reference)
+                except (ValueError, RuntimeError, ParseError):
+                    self.editorial[key] = ()
+                if len(self.editorial) > 8:
+                    self.editorial.pop(next(iter(self.editorial)))
+            for index, note in enumerate(self.editorial[key]):
+                reference = next((ref for ref in note.reference.split() if ref in refs), None)
                 if reference and note.text:
-                    result.setdefault(primary[reference],{})['translation-note:'+str(index)]=note
+                    result.setdefault(primary[reference], {})["translation-note:" + str(index)] = (
+                        note
+                    )
         if tab.preferences.place_markers:
-            owner=self.owner
+            owner = self.owner
             if owner:
                 from .place_data import PlaceData
-                data=PlaceData(owner.library.root.parent/'study-data')
-                key=(reader.name,reader.versification,document.key,data.revision)
-                if data.revision and key not in self.geo and key not in self.pending:
-                    self.load_places(key,data,reader,refs)
-                for ref,places in self.geo.get(key,{}).items():
-                    if ref in refs:
-                        values=result.setdefault(primary[ref],{}).setdefault('place',[])
-                        seen={p['id'] for p in values}
-                        values.extend(p for p in places if p['id'] not in seen)
-        return {ref:tuple((kind,payload) for kind,payload in sorted(values.items())) for ref,values in result.items()}
 
-    def load_places(self,key,data,reader,refs):
+                data = PlaceData(owner.library.root.parent / "study-data")
+                key = (reader.name, reader.versification, document.key, data.revision)
+                if data.revision and key not in self.geo and key not in self.pending:
+                    self.load_places(key, data, reader, refs)
+                for ref, places in self.geo.get(key, {}).items():
+                    if ref in refs:
+                        values = result.setdefault(primary[ref], {}).setdefault("place", [])
+                        seen = {p["id"] for p in values}
+                        values.extend(p for p in places if p["id"] not in seen)
+        return {
+            ref: tuple((kind, payload) for kind, payload in sorted(values.items()))
+            for ref, values in result.items()
+        }
+
+    def load_places(self, key, data, reader, refs):
         from .reference_targets import source_references
-        owner=self.owner
-        if not hasattr(owner,'_inline_marker_executor'):
-            owner._inline_marker_executor=MetadataExecutor(thread_name_prefix='bible-inline-places')
-        self.executor=owner._inline_marker_executor
+
+        owner = self.owner
+        if not hasattr(owner, "_inline_marker_executor"):
+            owner._inline_marker_executor = MetadataExecutor(
+                thread_name_prefix="bible-inline-places"
+            )
+        self.executor = owner._inline_marker_executor
         # SWORD handles stay on their owner thread; the worker uses SQLite only.
-        origins={}
+        origins = {}
         for ref in refs:
-            try:origins[ref]=set(source_references(reader,ref,ref))
-            except ValueError:continue
+            try:
+                origins[ref] = set(source_references(reader, ref, ref))
+            except ValueError:
+                continue
         self.pending.add(key)
-        future=self.executor.submit(data.query,set().union(*origins.values()) if origins else ())
+        future = self.executor.submit(data.query, set().union(*origins.values()) if origins else ())
+
         def complete():
             self.pending.discard(key)
-            owner=self.owner;tab=self.tab
-            if not owner or owner.closed or tab not in owner.tabs():return False
+            owner = self.owner
+            tab = self.tab
+            if not owner or owner.closed or tab not in owner.tabs():
+                return False
             try:
-                places=future.result()
-                self.geo[key]={ref:[p for p in places if supplied.intersection(p['references'])] for ref,supplied in origins.items()}
-                self.geo[key]={ref:p for ref,p in self.geo[key].items() if p}
+                places = future.result()
+                self.geo[key] = {
+                    ref: [p for p in places if supplied.intersection(p["references"])]
+                    for ref, supplied in origins.items()
+                }
+                self.geo[key] = {ref: p for ref, p in self.geo[key].items() if p}
             except Exception as error:
-                self.geo[key]={};self.error=str(error)
-            if len(self.geo)>64:self.geo.pop(next(iter(self.geo)))
-            if tab.current and ((tab.reader and tab.reader.name==key[0] and tab.current.reference==key[2])
-                    or (tab._comparison_reader and tab._comparison_reader.name==key[0]
-                        and getattr(tab,'_comparison_document',None) and tab._comparison_document.key==key[2])):
-                tab.apply_appearance();tab.refresh_comparison()
+                self.geo[key] = {}
+                self.error = str(error)
+            if len(self.geo) > 64:
+                self.geo.pop(next(iter(self.geo)))
+            if tab.current and (
+                (tab.reader and tab.reader.name == key[0] and tab.current.reference == key[2])
+                or (
+                    tab._comparison_reader
+                    and tab._comparison_reader.name == key[0]
+                    and getattr(tab, "_comparison_document", None)
+                    and tab._comparison_document.key == key[2]
+                )
+            ):
+                tab.apply_appearance()
+                tab.refresh_comparison()
             return False
-        future.add_done_callback(lambda _:GLib.idle_add(complete))
 
-    def button(self,view,reader,ref,kind,payload):
-        if kind.startswith('translation-note:'):
+        future.add_done_callback(lambda _: GLib.idle_add(complete))
+
+    def button(self, view, reader, ref, kind, payload):
+        if kind.startswith("translation-note:"):
             from .source_note_marker import source_note_marker
-            return source_note_marker(self,view,reader,ref,payload,int(kind.split(':')[1])+1)
-        title=tr('Notes on this verse' if kind=='note' else 'Places in this verse')
-        button=Gtk.Button(icon_name='notebook-symbolic' if kind=='note' else 'mark-location-symbolic',
-                          tooltip_text=title,halign=Gtk.Align.CENTER,valign=Gtk.Align.CENTER)
-        button.add_css_class('flat');button.add_css_class('inline-marker')
-        button.set_cursor_from_name('pointer')
+
+            return source_note_marker(self, view, reader, ref, payload, int(kind.split(":")[1]) + 1)
+        title = tr("Notes on this verse" if kind == "note" else "Places in this verse")
+        button = Gtk.Button(
+            icon_name="notebook-symbolic" if kind == "note" else "mark-location-symbolic",
+            tooltip_text=title,
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.CENTER,
+        )
+        button.add_css_class("flat")
+        button.add_css_class("inline-marker")
+        button.set_cursor_from_name("pointer")
         from .reference_preview import passage_title
-        button.update_property([Gtk.AccessibleProperty.LABEL],[title+' · '+passage_title(ref,system=reader.versification)])
-        button._marker_reference=ref;button._marker_kind=kind
+
+        button.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            [title + " · " + passage_title(ref, system=reader.versification)],
+        )
+        button._marker_reference = ref
+        button._marker_kind = kind
+
         def activate(*_):
-            owner=self.owner;tab=self.tab
-            if not owner or owner.closed or owner.active_tab is not tab:return
-            if kind=='note':
-                try:reference=resolve(ref,reader.versification,tab.reader).start
-                except ValueError:return
-                tab.select_verse(reference);owner.reveal_passage_annotations()
-            elif len(payload)==1:self.place(reader,ref,payload[0])
+            owner = self.owner
+            tab = self.tab
+            if not owner or owner.closed or owner.active_tab is not tab:
+                return
+            if kind == "note":
+                try:
+                    reference = resolve(ref, reader.versification, tab.reader).start
+                except ValueError:
+                    return
+                tab.select_verse(reference)
+                owner.reveal_passage_annotations()
+            elif len(payload) == 1:
+                self.place(reader, ref, payload[0])
             else:
                 # A child anchor is translated by GtkTextView while scrolling.
                 # Anchor the native popup to the stable reading overlay using
                 # the button's current visible bounds, not its buffer position.
-                anchor=tab.comparison_overlay if view is tab.comparison_text else tab.reading_overlay
-                found,bounds=button.compute_bounds(anchor)
-                if not found:return
-                pop=Gtk.Popover(autohide=False);pop.set_parent(anchor)
-                rect=Gdk.Rectangle();rect.x=round(bounds.origin.x);rect.y=round(bounds.origin.y)
-                rect.width=round(bounds.size.width);rect.height=round(bounds.size.height)
+                anchor = (
+                    tab.comparison_overlay if view is tab.comparison_text else tab.reading_overlay
+                )
+                found, bounds = button.compute_bounds(anchor)
+                if not found:
+                    return
+                pop = Gtk.Popover(autohide=False)
+                pop.set_parent(anchor)
+                rect = Gdk.Rectangle()
+                rect.x = round(bounds.origin.x)
+                rect.y = round(bounds.origin.y)
+                rect.width = round(bounds.size.width)
+                rect.height = round(bounds.size.height)
                 pop.set_pointing_to(rect)
                 owner._reading_popovers.append(pop)
-                box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4,margin_top=8,margin_bottom=8,margin_start=8,margin_end=8)
+                box = Gtk.Box(
+                    orientation=Gtk.Orientation.VERTICAL,
+                    spacing=4,
+                    margin_top=8,
+                    margin_bottom=8,
+                    margin_start=8,
+                    margin_end=8,
+                )
                 from .place_names import place_name
-                for place in {p['id']:p for p in payload}.values():
-                    name=place_name(place['name'])
-                    row=Gtk.Box(spacing=12)
-                    row.append(Gtk.Label(label=name,xalign=0,wrap=True,
-                        wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1,max_width_chars=32,hexpand=True))
-                    row.append(Gtk.Image(icon_name='go-next-symbolic'))
-                    choice=Gtk.Button(child=row)
-                    choice.set_cursor_from_name('pointer')
-                    choice.update_property([Gtk.AccessibleProperty.LABEL],[name])
-                    choice._place_id=place['id']
-                    choice.connect('clicked',lambda _,p=place:(pop.popdown(),self.place(reader,ref,p)))
+
+                for place in {p["id"]: p for p in payload}.values():
+                    name = place_name(place["name"])
+                    row = Gtk.Box(spacing=12)
+                    row.append(
+                        Gtk.Label(
+                            label=name,
+                            xalign=0,
+                            wrap=True,
+                            wrap_mode=Pango.WrapMode.WORD_CHAR,
+                            width_chars=1,
+                            max_width_chars=32,
+                            hexpand=True,
+                        )
+                    )
+                    row.append(Gtk.Image(icon_name="go-next-symbolic"))
+                    choice = Gtk.Button(child=row)
+                    choice.set_cursor_from_name("pointer")
+                    choice.update_property([Gtk.AccessibleProperty.LABEL], [name])
+                    choice._place_id = place["id"]
+                    choice.connect(
+                        "clicked", lambda _, p=place: (pop.popdown(), self.place(reader, ref, p))
+                    )
                     box.append(choice)
-                scroll=Gtk.ScrolledWindow(min_content_width=max(160,min(320,owner.get_width()-64)),
-                    max_content_height=max(120,min(300,owner.get_height()-120)),
-                    propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-                scroll.set_size_request(max(160,min(320,owner.get_width()-64)),-1)
-                scroll.set_child(box);pop.set_child(scroll)
-                unmap=button.connect('unmap',lambda *_:pop.popdown())
+                scroll = Gtk.ScrolledWindow(
+                    min_content_width=max(160, min(320, owner.get_width() - 64)),
+                    max_content_height=max(120, min(300, owner.get_height() - 120)),
+                    propagate_natural_height=True,
+                    hscrollbar_policy=Gtk.PolicyType.NEVER,
+                )
+                scroll.set_size_request(max(160, min(320, owner.get_width() - 64)), -1)
+                scroll.set_child(box)
+                pop.set_child(scroll)
+                unmap = button.connect("unmap", lambda *_: pop.popdown())
+
                 def closed(*_):
-                    if pop in owner._reading_popovers:owner._reading_popovers.remove(pop)
-                    if button.handler_is_connected(unmap):button.disconnect(unmap)
-                    GLib.idle_add(lambda:pop.unparent() or False)
-                pop.connect('closed',closed)
+                    if pop in owner._reading_popovers:
+                        owner._reading_popovers.remove(pop)
+                    if button.handler_is_connected(unmap):
+                        button.disconnect(unmap)
+                    GLib.idle_add(lambda: pop.unparent() or False)
+
+                pop.connect("closed", closed)
                 from .popover_dismissal import fit_reader_popover
-                pop.connect('show',lambda *_:fit_reader_popover(pop,owner));pop.popup()
-        button.connect('clicked',activate)
+
+                pop.connect("show", lambda *_: fit_reader_popover(pop, owner))
+                pop.popup()
+
+        button.connect("clicked", activate)
         return button
 
-    def place(self,reader,ref,place):
-        owner=self.owner
-        if not owner or owner.closed:return
-        dialog=owner.open_passage_study(context=(reader.name,reader,ref,ref),mode='map',place=dict(place))
+    def place(self, reader, ref, place):
+        owner = self.owner
+        if not owner or owner.closed:
+            return
+        dialog = owner.open_passage_study(
+            context=(reader.name, reader, ref, ref), mode="map", place=dict(place)
+        )
         dialog.places.back.set_visible(False)

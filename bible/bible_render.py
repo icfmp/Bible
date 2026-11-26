@@ -1,94 +1,145 @@
 """One structured renderer for ordinary and comparison Bible panes."""
+
 from .paged_sources import BiblePages
 from .reading_style import SPACING, apply_direction
-from .reading_metrics import line_spacing,paragraph_space_size,EDITORIAL_GAP,HEADING_LINE_HEIGHT
-from .verse_typography import configure,NUMBER_COLORS
-from gi.repository import Gtk,Pango
+from .reading_metrics import line_spacing, paragraph_space_size, EDITORIAL_GAP, HEADING_LINE_HEIGHT
+from .verse_typography import configure, NUMBER_COLORS
+from gi.repository import Gtk, Pango
 from gi.repository import GObject
 
 
 def copy_selection(view):
-    selection=view.get_buffer().get_selection_bounds()
-    if not selection:return
-    document,base=view._bible_copy_source
-    start,end=(base+i.get_offset() for i in selection)
-    view.get_clipboard().set(document.copy(start,end))
-    GObject.signal_stop_emission_by_name(view,'copy-clipboard')
+    selection = view.get_buffer().get_selection_bounds()
+    if not selection:
+        return
+    document, base = view._bible_copy_source
+    start, end = (base + i.get_offset() for i in selection)
+    view.get_clipboard().set(document.copy(start, end))
+    GObject.signal_stop_emission_by_name(view, "copy-clipboard")
 
 
 def bind_copy(view, document, base=0):
-    view._bible_copy_source=(document,base)
-    if not getattr(view,'_bible_copy_handler',None):
-        view._bible_copy_handler=view.connect('copy-clipboard',copy_selection)
+    view._bible_copy_source = (document, base)
+    if not getattr(view, "_bible_copy_handler", None):
+        view._bible_copy_handler = view.connect("copy-clipboard", copy_selection)
 
 
 def render(view, reader, chapter, preferences, document=None):
     document = document or BiblePages(reader, None).document(chapter.reference, preferences)
-    marker_context=getattr(view,'_marker_context',None)
+    marker_context = getattr(view, "_marker_context", None)
     if marker_context:
         from .inline_document import decorate
-        document=decorate(document,marker_context.markers(reader,document))
+
+        document = decorate(document, marker_context.markers(reader, document))
     buffer = view.get_buffer()
-    inline=getattr(document,'inline',{})
+    inline = getattr(document, "inline", {})
     # Unmap hovered/focused children while the text tree is still intact.
     # Deleting their anchors inside set_text can reenter GTK's selection
     # invalidation with a partially deleted tree (GTK 4.20).
-    for button in getattr(view,'_inline_buttons',()):view.remove(button)
-    view._inline_buttons=[]
-    buffer.set_text('')
-    previous=0;children=[]
-    for offset,(reference,kind,payload) in inline.items():
-        buffer.insert(buffer.get_end_iter(),document.text[previous:offset])
-        anchor=buffer.create_child_anchor(buffer.get_end_iter())
-        button=marker_context.button(view,reader,reference,kind,payload)
-        view.add_child_at_anchor(button,anchor);children.append(button);previous=offset+1
-    buffer.insert(buffer.get_end_iter(),document.text[previous:])
-    view._inline_buttons=children
-    bind_copy(view,document)
-    apply_direction(view, reader,preferences)
+    for button in getattr(view, "_inline_buttons", ()):
+        view.remove(button)
+    view._inline_buttons = []
+    buffer.set_text("")
+    previous = 0
+    children = []
+    for offset, (reference, kind, payload) in inline.items():
+        buffer.insert(buffer.get_end_iter(), document.text[previous:offset])
+        anchor = buffer.create_child_anchor(buffer.get_end_iter())
+        button = marker_context.button(view, reader, reference, kind, payload)
+        view.add_child_at_anchor(button, anchor)
+        children.append(button)
+        previous = offset + 1
+    buffer.insert(buffer.get_end_iter(), document.text[previous:])
+    view._inline_buttons = children
+    bind_copy(view, document)
+    apply_direction(view, reader, preferences)
     view.set_pixels_inside_wrap(line_spacing(preferences))
-    view.set_pixels_below_lines(line_spacing(preferences)+4)
+    view.set_pixels_below_lines(line_spacing(preferences) + 4)
     table = buffer.get_tag_table()
     tags = {}
-    for kind in ['body','chapter','heading','editorial','poetry','number','verse-start','hidden','italic','bold','small-caps','superscript','paragraph-space','native-decoration']:
-        name = 'verse-'+kind if kind != 'verse-start' else kind
+    for kind in [
+        "body",
+        "chapter",
+        "heading",
+        "editorial",
+        "poetry",
+        "number",
+        "verse-start",
+        "hidden",
+        "italic",
+        "bold",
+        "small-caps",
+        "superscript",
+        "paragraph-space",
+        "native-decoration",
+    ]:
+        name = "verse-" + kind if kind != "verse-start" else kind
         tag = table.lookup(name) or buffer.create_tag(name)
         tags[kind] = tag
-        if kind=='body':tag.props.family=preferences.font;tag.props.size_points=preferences.size
-        elif kind=='number':configure(tag,view,preferences,getattr(view,'_reading_palette','white'))
-        elif kind=='verse-start':tag.props.allow_breaks=False
-        elif kind=='hidden':tag.props.style=2
-        elif kind=='native-decoration':tag.props.scale=0
-        elif kind=='italic':tag.props.style=Pango.Style.ITALIC
-        elif kind=='bold':tag.props.weight=Pango.Weight.BOLD
-        elif kind=='small-caps':tag.props.variant=Pango.Variant.SMALL_CAPS
-        elif kind=='superscript':tag.props.rise=int(preferences.size*Pango.SCALE*.35);tag.props.size_points=preferences.size*.75
-        elif kind=='editorial':
+        if kind == "body":
+            tag.props.family = preferences.font
+            tag.props.size_points = preferences.size
+        elif kind == "number":
+            configure(tag, view, preferences, getattr(view, "_reading_palette", "white"))
+        elif kind == "verse-start":
+            tag.props.allow_breaks = False
+        elif kind == "hidden":
+            tag.props.style = 2
+        elif kind == "native-decoration":
+            tag.props.scale = 0
+        elif kind == "italic":
+            tag.props.style = Pango.Style.ITALIC
+        elif kind == "bold":
+            tag.props.weight = Pango.Weight.BOLD
+        elif kind == "small-caps":
+            tag.props.variant = Pango.Variant.SMALL_CAPS
+        elif kind == "superscript":
+            tag.props.rise = int(preferences.size * Pango.SCALE * 0.35)
+            tag.props.size_points = preferences.size * 0.75
+        elif kind == "editorial":
             # Reuse the reader's contrast-checked secondary foreground. The
             # existing ReadingStyle invalidation updates this tag on palette
             # changes without rebuilding the text or moving the reading anchor.
-            tag.props.foreground=NUMBER_COLORS[getattr(view,'_reading_palette','white')]
-            tag.props.weight=Pango.Weight.NORMAL;tag.props.size_points=preferences.size*.9
-            tag.props.pixels_above_lines=2;tag.props.pixels_below_lines=2+EDITORIAL_GAP
-        elif kind=='poetry':tag.props.pixels_below_lines=line_spacing(preferences)
-        elif kind=='paragraph-space':
-            tag.props.size_points=paragraph_space_size(preferences)
-            tag.props.pixels_above_lines=0;tag.props.pixels_below_lines=0;tag.props.pixels_inside_wrap=0
+            tag.props.foreground = NUMBER_COLORS[getattr(view, "_reading_palette", "white")]
+            tag.props.weight = Pango.Weight.NORMAL
+            tag.props.size_points = preferences.size * 0.9
+            tag.props.pixels_above_lines = 2
+            tag.props.pixels_below_lines = 2 + EDITORIAL_GAP
+        elif kind == "poetry":
+            tag.props.pixels_below_lines = line_spacing(preferences)
+        elif kind == "paragraph-space":
+            tag.props.size_points = paragraph_space_size(preferences)
+            tag.props.pixels_above_lines = 0
+            tag.props.pixels_below_lines = 0
+            tag.props.pixels_inside_wrap = 0
         else:
-            tag.props.weight=700;tag.props.size_points=preferences.size*(1.35 if kind=='chapter' else 1.12)
-            tag.props.line_height=HEADING_LINE_HEIGHT
-            tag.props.pixels_above_lines=12 if kind=='chapter' else 6
-            tag.props.pixels_below_lines=8 if kind=='chapter' else 4
-            tag.props.justification=Gtk.Justification.CENTER if kind=='chapter' else Gtk.Justification.LEFT
-    buffer.apply_tag(tags['body'],buffer.get_start_iter(),buffer.get_end_iter())
+            tag.props.weight = 700
+            tag.props.size_points = preferences.size * (1.35 if kind == "chapter" else 1.12)
+            tag.props.line_height = HEADING_LINE_HEIGHT
+            tag.props.pixels_above_lines = 12 if kind == "chapter" else 6
+            tag.props.pixels_below_lines = 8 if kind == "chapter" else 4
+            tag.props.justification = (
+                Gtk.Justification.CENTER if kind == "chapter" else Gtk.Justification.LEFT
+            )
+    buffer.apply_tag(tags["body"], buffer.get_start_iter(), buffer.get_end_iter())
     for style in document.styles:
-        buffer.apply_tag(tags[style.kind],buffer.get_iter_at_offset(style.start),buffer.get_iter_at_offset(style.end))
-    offsets,ranges,markers,labels = {},{},{},{};fragments=[]
+        buffer.apply_tag(
+            tags[style.kind],
+            buffer.get_iter_at_offset(style.start),
+            buffer.get_iter_at_offset(style.end),
+        )
+    offsets, ranges, markers, labels = {}, {}, {}, {}
+    fragments = []
     for span in document.spans:
-        marker=span.body-(len(span.number)+1 if preferences.verse_numbers and span.number else 0)
+        marker = span.body - (
+            len(span.number) + 1 if preferences.verse_numbers and span.number else 0
+        )
         for reference in span.members:
-            offsets.setdefault(reference,marker);ranges.setdefault(reference,(marker,span.end));markers.setdefault(reference,span.body)
-            labels.setdefault(reference,span.number);fragments.append((reference,marker,span.end))
-    view._verse_labels=labels
-    view._verse_fragments=tuple(fragments)
+            offsets.setdefault(reference, marker)
+            ranges.setdefault(reference, (marker, span.end))
+            markers.setdefault(reference, span.body)
+            labels.setdefault(reference, span.number)
+            fragments.append((reference, marker, span.end))
+    view._verse_labels = labels
+    view._verse_fragments = tuple(fragments)
     return document, offsets, ranges, markers

@@ -1,4 +1,5 @@
 """Native editorial views use synthetic text and preserve personal annotations."""
+
 import os
 from pathlib import Path
 import tempfile
@@ -6,174 +7,324 @@ import unittest
 from unittest.mock import patch
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class EditorialUITests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from bible.ui import Application
-        cls.app=Application.get_default() or Application();cls.app.register()
+
+        cls.app = Application.get_default() or Application()
+        cls.app.register()
 
     def test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive(self):
         import threading
-        from bible.ui import Window,Library,Adw,Gtk
-        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from bible.ui import Window, Library, Adw, Gtk
+        from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from tools.research.test_yves_source import metadata
         from tests.test_youversion_catalogue import listing
         from bible.youversion_catalogue import resource_from_listing
         from bible.youversion_install import resource_from_metadata
-        identifier=900021;data=metadata();data['id']=identifier
-        data['language'].update(iso_639_3='spa',language_tag='spa')
-        data['copyright_short']['text']='Synthetic publisher notice'
-        data['offline']=listing()['offline'];actual=resource_from_metadata(data,identifier)
-        summary=resource_from_listing(listing(),'spa');main=threading.get_ident()
+
+        identifier = 900021
+        data = metadata()
+        data["id"] = identifier
+        data["language"].update(iso_639_3="spa", language_tag="spa")
+        data["copyright_short"]["text"] = "Synthetic publisher notice"
+        data["offline"] = listing()["offline"]
+        actual = resource_from_metadata(data, identifier)
+        summary = resource_from_listing(listing(), "spa")
+        main = threading.get_ident()
+
         def hydrate(value):
-            self.assertEqual(value,identifier);self.assertNotEqual(threading.get_ident(),main)
+            self.assertEqual(value, identifier)
+            self.assertNotEqual(threading.get_ident(), main)
             self.assertTrue(threading.current_thread().daemon)
             return actual
-        with tempfile.TemporaryDirectory() as directory,patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+        ):
             installed_fixture(directory)
-            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin();dialog=None
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.present()
+            spin()
+            dialog = None
             try:
-                with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
-                    dialog=window.open_library();spin(lambda:not dialog.preparing)
-                with patch('bible.youversion_install.fetch_resource',side_effect=hydrate) as fetched,patch.object(window.library,'install') as installed:
-                    dialog.language_choice='es'
+                with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+                    dialog = window.open_library()
+                    spin(lambda: not dialog.preparing)
+                with (
+                    patch(
+                        "bible.youversion_install.fetch_resource", side_effect=hydrate
+                    ) as fetched,
+                    patch.object(window.library, "install") as installed,
+                ):
+                    dialog.language_choice = "es"
                     from bible.providers import YOUVERSION
-                    with dialog.session.lock:dialog.session.providers[YOUVERSION.id]=(summary,)
+
+                    with dialog.session.lock:
+                        dialog.session.providers[YOUVERSION.id] = (summary,)
                     dialog.session.schedule(dialog.session.publish).result(5)
-                    spin(lambda:len(dialog.filtered_resources)==1 and dialog.filtered_resources[0].id==summary.id)
-                    dialog.open_details(None,0);spin(lambda:not dialog._transfer_busy)
-                    fetched.assert_called_once();installed.assert_not_called()
-                    self.assertIn('Synthetic publisher notice',dialog.metadata.get_text())
-                    dialog.install(resource=summary);spin(lambda:not dialog._transfer_busy)
-                    fetched.assert_called_once();installed.assert_not_called()
-                    confirmation=next(d for d in Gtk.Window.list_toplevels() if isinstance(d,Adw.MessageDialog))
-                    notice=confirmation.get_extra_child().get_child()
-                    if isinstance(notice,Gtk.Viewport):notice=notice.get_child()
-                    self.assertIn('Synthetic publisher notice',notice.get_text())
-                    self.assertNotIn('email',confirmation.get_body().lower())
-                    self.assertNotIn('courriel',confirmation.get_body().lower())
-                    confirmation.response('cancel');confirmation.destroy();spin()
+                    spin(
+                        lambda: len(dialog.filtered_resources) == 1
+                        and dialog.filtered_resources[0].id == summary.id
+                    )
+                    dialog.open_details(None, 0)
+                    spin(lambda: not dialog._transfer_busy)
+                    fetched.assert_called_once()
+                    installed.assert_not_called()
+                    self.assertIn("Synthetic publisher notice", dialog.metadata.get_text())
+                    dialog.install(resource=summary)
+                    spin(lambda: not dialog._transfer_busy)
+                    fetched.assert_called_once()
+                    installed.assert_not_called()
+                    confirmation = next(
+                        d for d in Gtk.Window.list_toplevels() if isinstance(d, Adw.MessageDialog)
+                    )
+                    notice = confirmation.get_extra_child().get_child()
+                    if isinstance(notice, Gtk.Viewport):
+                        notice = notice.get_child()
+                    self.assertIn("Synthetic publisher notice", notice.get_text())
+                    self.assertNotIn("email", confirmation.get_body().lower())
+                    self.assertNotIn("courriel", confirmation.get_body().lower())
+                    confirmation.response("cancel")
+                    confirmation.destroy()
+                    spin()
                     installed.assert_not_called()
                 dialog._edition_details.clear()
-                with patch('bible.youversion_install.fetch_resource',side_effect=OSError('Synthetic metadata refusal')):
-                    dialog.install(resource=summary);spin(lambda:not dialog._transfer_busy)
-                    self.assertEqual(dialog._failed_resource,summary.id)
-                    self.assertIn('Synthetic metadata refusal',dialog.status.get_text())
+                with patch(
+                    "bible.youversion_install.fetch_resource",
+                    side_effect=OSError("Synthetic metadata refusal"),
+                ):
+                    dialog.install(resource=summary)
+                    spin(lambda: not dialog._transfer_busy)
+                    self.assertEqual(dialog._failed_resource, summary.id)
+                    self.assertIn("Synthetic metadata refusal", dialog.status.get_text())
             finally:
-                if dialog:dialog.close()
-                window.close();close_test_dialogs();spin()
+                if dialog:
+                    dialog.close()
+                window.close()
+                close_test_dialogs()
+                spin()
 
     def test_library_download_requires_acknowledgement_and_keeps_failure_retryable(self):
-        from bible.ui import Window,Library,Adw,Gtk
-        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from bible.ui import Window, Library, Adw, Gtk
+        from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from tests.test_youversion import edition_metadata
-        from bible.youversion_install import resource_from_metadata,acknowledgement
+        from bible.youversion_install import resource_from_metadata, acknowledgement
+
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
-            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin()
-            library_dialog=None
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.present()
+            spin()
+            library_dialog = None
             try:
-                with patch('bible.catalogue_window.CatalogueWindow.auto_load',return_value=False):
-                    library_dialog=window.open_library();spin(lambda:not library_dialog.preparing)
-                item=resource_from_metadata(edition_metadata())
-                before=window.notes_store.all()
-                with patch.object(window.library,'install',side_effect=OSError('Synthetic transfer failure')) as installed:
-                    library_dialog.install(resource=item);spin()
+                with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+                    library_dialog = window.open_library()
+                    spin(lambda: not library_dialog.preparing)
+                item = resource_from_metadata(edition_metadata())
+                before = window.notes_store.all()
+                with patch.object(
+                    window.library, "install", side_effect=OSError("Synthetic transfer failure")
+                ) as installed:
+                    library_dialog.install(resource=item)
+                    spin()
                     installed.assert_not_called()
-                    confirmation=next(dialog for dialog in Gtk.Window.list_toplevels()
-                                      if isinstance(dialog,Adw.MessageDialog))
-                    confirmation.response('download');confirmation.destroy()
-                    spin(lambda:not library_dialog._transfer_busy)
+                    confirmation = next(
+                        dialog
+                        for dialog in Gtk.Window.list_toplevels()
+                        if isinstance(dialog, Adw.MessageDialog)
+                    )
+                    confirmation.response("download")
+                    confirmation.destroy()
+                    spin(lambda: not library_dialog._transfer_busy)
                     installed.assert_called_once()
-                    self.assertEqual(installed.call_args.kwargs['permission'],acknowledgement(item))
-                    self.assertIn('cancelled',installed.call_args.kwargs)
-                    self.assertIn('phase',installed.call_args.kwargs)
-                    self.assertEqual(library_dialog._failed_resource,item.id)
-                    self.assertNotIn(item.id,window.library.installed())
-                    self.assertEqual(window.notes_store.all(),before)
+                    self.assertEqual(
+                        installed.call_args.kwargs["permission"], acknowledgement(item)
+                    )
+                    self.assertIn("cancelled", installed.call_args.kwargs)
+                    self.assertIn("phase", installed.call_args.kwargs)
+                    self.assertEqual(library_dialog._failed_resource, item.id)
+                    self.assertNotIn(item.id, window.library.installed())
+                    self.assertEqual(window.notes_store.all(), before)
             finally:
-                if library_dialog:library_dialog.close()
-                window.close();close_test_dialogs();spin()
+                if library_dialog:
+                    library_dialog.close()
+                window.close()
+                close_test_dialogs()
+                spin()
 
     def test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive(self):
-        from bible.ui import Window,Library
-        from tests.test_ui import installed_fixture,spin,close_test_dialogs
+        from bible.ui import Window, Library
+        from tests.test_ui import installed_fixture, spin, close_test_dialogs
         import Sword
+
         with tempfile.TemporaryDirectory() as directory:
-            root=installed_fixture(directory,entries=[('John.1.1','<p>TEXT <hi type="italic">STYLE</hi><note n="1.1" osisRef="John.1.1" type="study">EDITORIAL ONLY</note></p>'),('John.1.2','SECOND TEXT'),('John.2.1','NEXT TEXT<note n="2.1">SECOND EDITORIAL</note>')])
-            conf=next((root/'mods.d').glob('*.conf'))
-            conf.write_text(conf.read_text().replace('SourceType=Plaintext','SourceType=OSIS')+'GlobalOptionFilter=OSISFootnotes\n')
-            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin()
+            root = installed_fixture(
+                directory,
+                entries=[
+                    (
+                        "John.1.1",
+                        '<p>TEXT <hi type="italic">STYLE</hi><note n="1.1" osisRef="John.1.1" type="study">EDITORIAL ONLY</note></p>',
+                    ),
+                    ("John.1.2", "SECOND TEXT"),
+                    ("John.2.1", 'NEXT TEXT<note n="2.1">SECOND EDITORIAL</note>'),
+                ],
+            )
+            conf = next((root / "mods.d").glob("*.conf"))
+            conf.write_text(
+                conf.read_text().replace("SourceType=Plaintext", "SourceType=OSIS")
+                + "GlobalOptionFilter=OSISFootnotes\n"
+            )
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.present()
+            spin()
             try:
-                tab=window.active_tab;tab.navigate('Test','John.1.1');spin()
-                before=window.notes_store.all()
+                tab = window.active_tab
+                tab.navigate("Test", "John.1.1")
+                spin()
+                before = window.notes_store.all()
                 # The legacy tool name must no longer create a standalone page.
-                self.assertFalse(hasattr(window.study,'translation_notes'))
-                self.assertFalse(hasattr(window.study,'translation_notes_button'))
-                window.study_button.set_active(True);spin()
+                self.assertFalse(hasattr(window.study, "translation_notes"))
+                self.assertFalse(hasattr(window.study, "translation_notes_button"))
+                window.study_button.set_active(True)
+                spin()
+
                 def markers():
-                    return [b for b in tab.text._inline_buttons if b._marker_kind=='translation-note']
-                spin(lambda:bool(markers()))
-                first=markers()[0];first.emit('clicked');spin()
-                pop=first._source_note_popover
+                    return [
+                        b for b in tab.text._inline_buttons if b._marker_kind == "translation-note"
+                    ]
+
+                spin(lambda: bool(markers()))
+                first = markers()[0]
+                first.emit("clicked")
+                spin()
+                pop = first._source_note_popover
                 self.assertTrue(pop and pop.get_visible())
-                self.assertIn('EDITORIAL ONLY',first.get_tooltip_text())
-                pop.popdown();spin()
+                self.assertIn("EDITORIAL ONLY", first.get_tooltip_text())
+                pop.popdown()
+                spin()
                 # Changing selection within the chapter retains the source notes;
                 # moving to another chapter replaces them without stale contents.
-                tab.select_verse('John.1.2');spin()
-                self.assertTrue(any('EDITORIAL ONLY' in b.get_tooltip_text() for b in markers()))
-                tab.show('John.2.1');spin(lambda:any('SECOND EDITORIAL' in b.get_tooltip_text() for b in markers()))
-                self.assertFalse(any('EDITORIAL ONLY' in b.get_tooltip_text() for b in markers()))
-                self.assertNotIn('EDITORIAL ONLY',tab.text.get_buffer().props.text)
-                self.assertEqual(window.notes_store.all(),before)
-                self.assertIn(window.study_settings.tool,('notes','references','commentaries'))
-            finally:window.close();close_test_dialogs();spin()
+                tab.select_verse("John.1.2")
+                spin()
+                self.assertTrue(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
+                tab.show("John.2.1")
+                spin(lambda: any("SECOND EDITORIAL" in b.get_tooltip_text() for b in markers()))
+                self.assertFalse(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
+                self.assertNotIn("EDITORIAL ONLY", tab.text.get_buffer().props.text)
+                self.assertEqual(window.notes_store.all(), before)
+                self.assertIn(window.study_settings.tool, ("notes", "references", "commentaries"))
+            finally:
+                window.close()
+                close_test_dialogs()
+                spin()
 
     def test_introduction_preserves_inline_words_and_leaves_passage_unchanged(self):
-        from bible.ui import Window,Library
-        from tests.test_ui import installed_fixture,spin,close_test_dialogs
-        from bible.editorial_view import show_introduction,introduction_text
+        from bible.ui import Window, Library
+        from tests.test_ui import installed_fixture, spin, close_test_dialogs
+        from bible.editorial_view import show_introduction, introduction_text
         from bible.youversion_content import parse
         import Sword
-        self.assertEqual(introduction_text(parse('<root><p>1<hi type="super">er</hi> document</p><p>Suite</p></root>')),'1er document\n\nSuite')
-        self.assertEqual(introduction_text(parse('<root><div><p>1<hi type="super">er</hi> document</p></div>\n<div><p>Suite</p></div></root>')),'1er document\n\nSuite')
+
+        self.assertEqual(
+            introduction_text(
+                parse('<root><p>1<hi type="super">er</hi> document</p><p>Suite</p></root>')
+            ),
+            "1er document\n\nSuite",
+        )
+        self.assertEqual(
+            introduction_text(
+                parse(
+                    '<root><div><p>1<hi type="super">er</hi> document</p></div>\n<div><p>Suite</p></div></root>'
+                )
+            ),
+            "1er document\n\nSuite",
+        )
         with tempfile.TemporaryDirectory() as directory:
-            root=installed_fixture(directory,entries=[('John.1.1','READING DATA')])
-            module=Sword.RawText(str(root/'modules/texts/rawtext/test'),'Test','Synthetic')
-            key=Sword.VerseKey();key.setIntros(True);key.setAutoNormalize(False);key.setText('John.0.0')
-            module.setKey(key);module.setEntry('<div type="introduction"><title>INTRO TITLE</title><p>1<hi type="super">er</hi> document</p></div>');del module
-            window=Window(self.app,Library(Path(directory)/'translations'));window.present();spin()
-            dialog=None
+            root = installed_fixture(directory, entries=[("John.1.1", "READING DATA")])
+            module = Sword.RawText(str(root / "modules/texts/rawtext/test"), "Test", "Synthetic")
+            key = Sword.VerseKey()
+            key.setIntros(True)
+            key.setAutoNormalize(False)
+            key.setText("John.0.0")
+            module.setKey(key)
+            module.setEntry(
+                '<div type="introduction"><title>INTRO TITLE</title><p>1<hi type="super">er</hi> document</p></div>'
+            )
+            del module
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.present()
+            spin()
+            dialog = None
             try:
-                tab=window.active_tab;tab.navigate('Test','John.1.1');spin()
-                before=(tab.state.reference,window.notes_store.all(),tab.text.get_buffer().props.text)
-                intro=tab.reader.introduction('John');self.assertIsNotNone(intro)
-                self.assertIn('1er document',introduction_text(intro))
-                dialog=show_introduction(window,tab.reader,'John');spin()
-                window.set_default_size(360,560);dialog.set_default_size(320,400);spin()
-                self.assertEqual((tab.state.reference,window.notes_store.all(),tab.text.get_buffer().props.text),before)
+                tab = window.active_tab
+                tab.navigate("Test", "John.1.1")
+                spin()
+                before = (
+                    tab.state.reference,
+                    window.notes_store.all(),
+                    tab.text.get_buffer().props.text,
+                )
+                intro = tab.reader.introduction("John")
+                self.assertIsNotNone(intro)
+                self.assertIn("1er document", introduction_text(intro))
+                dialog = show_introduction(window, tab.reader, "John")
+                spin()
+                window.set_default_size(360, 560)
+                dialog.set_default_size(320, 400)
+                spin()
+                self.assertEqual(
+                    (
+                        tab.state.reference,
+                        window.notes_store.all(),
+                        tab.text.get_buffer().props.text,
+                    ),
+                    before,
+                )
             finally:
-                if dialog:dialog.close()
-                window.close();close_test_dialogs();spin()
+                if dialog:
+                    dialog.close()
+                window.close()
+                close_test_dialogs()
+                spin()
 
     def test_rich_introduction_normalizes_nested_blocks_without_losing_source_styles(self):
-        from bible.editorial_view import fill_introduction,introduction_text,text_view
+        from bible.editorial_view import fill_introduction, introduction_text, text_view
         from bible.youversion_content import parse
-        source=parse('<root><div><title>ÉTUDE Ω</title><p>1<hi type="super">er</hi> '
-                     '<hi type="bold">mot exact</hi> et <hi type="italic">sens</hi>.</p></div>'
-                     '\n<div><p>Suite conservée.</p><list><item>Premier</item>'
-                     '<item>Second</item></list></div></root>')
-        view=text_view('Book introduction');fill_introduction(view,source)
-        buffer=view.get_buffer();text=buffer.props.text
-        self.assertEqual(text,introduction_text(source))
-        self.assertNotIn('\n\n\n',text)
-        for fragment,tag in [('ÉTUDE Ω','intro-heading'),('er','intro-super'),
-                             ('mot exact','intro-bold'),('sens','intro-italic'),
-                             ('Premier','intro-list'),('Second','intro-list')]:
-            start=text.index(fragment)
-            self.assertTrue(all(buffer.get_iter_at_offset(offset).has_tag(
-                buffer.get_tag_table().lookup(tag)) for offset in range(start,start+len(fragment))),fragment)
-        self.assertFalse(buffer.get_iter_at_offset(text.index('Suite')).has_tag(
-            buffer.get_tag_table().lookup('intro-bold')))
+
+        source = parse(
+            '<root><div><title>ÉTUDE Ω</title><p>1<hi type="super">er</hi> '
+            '<hi type="bold">mot exact</hi> et <hi type="italic">sens</hi>.</p></div>'
+            "\n<div><p>Suite conservée.</p><list><item>Premier</item>"
+            "<item>Second</item></list></div></root>"
+        )
+        view = text_view("Book introduction")
+        fill_introduction(view, source)
+        buffer = view.get_buffer()
+        text = buffer.props.text
+        self.assertEqual(text, introduction_text(source))
+        self.assertNotIn("\n\n\n", text)
+        for fragment, tag in [
+            ("ÉTUDE Ω", "intro-heading"),
+            ("er", "intro-super"),
+            ("mot exact", "intro-bold"),
+            ("sens", "intro-italic"),
+            ("Premier", "intro-list"),
+            ("Second", "intro-list"),
+        ]:
+            start = text.index(fragment)
+            self.assertTrue(
+                all(
+                    buffer.get_iter_at_offset(offset).has_tag(buffer.get_tag_table().lookup(tag))
+                    for offset in range(start, start + len(fragment))
+                ),
+                fragment,
+            )
+        self.assertFalse(
+            buffer.get_iter_at_offset(text.index("Suite")).has_tag(
+                buffer.get_tag_table().lookup("intro-bold")
+            )
+        )

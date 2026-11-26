@@ -1,41 +1,54 @@
 """The same real Bible/Notes space switch in each native application header."""
+
 from gi.repository import Gtk
 from .i18n import tr
 from .segmented_choice import SegmentedChoice
 
 
 class WorkspaceSelector(SegmentedChoice):
-    def __init__(self,owner,notes=False):
-        super().__init__([tr('Bible'),tr('Notes')],1 if notes else 0)
-        self.add_css_class('workspace-selector')
+    def __init__(self, owner, notes=False):
+        super().__init__([tr("Bible"), tr("Notes")], 1 if notes else 0)
+        self.add_css_class("workspace-selector")
         self.set_homogeneous(True)
         self.set_margin_end(6)
-        self.owner=owner;self.syncing=False
-        self.compact=False
+        self.owner = owner
+        self.syncing = False
+        self.compact = False
         self.set_selected(1 if notes else 0)
-        self.update_property([Gtk.AccessibleProperty.LABEL],[tr('Application space')])
-        self.connect('changed',self.changed)
-        if hasattr(owner,'main_pages'):owner.main_pages.connect('notify::visible-child-name',lambda *_:self.sync())
+        self.update_property([Gtk.AccessibleProperty.LABEL], [tr("Application space")])
+        self.connect("changed", self.changed)
+        if hasattr(owner, "main_pages"):
+            owner.main_pages.connect("notify::visible-child-name", lambda *_: self.sync())
 
-    def set_compact(self,compact):
-        if compact==self.compact:return
-        self.compact=compact
-        (self.add_css_class if compact else self.remove_css_class)('compact')
-        for button,label,icon in zip(self.buttons,('Bible','Notes'),('dictionary-symbolic','notebook-symbolic')):
-            if compact:button.set_icon_name(icon)
-            else:button.set_label(tr(label))
+    def set_compact(self, compact):
+        if compact == self.compact:
+            return
+        self.compact = compact
+        (self.add_css_class if compact else self.remove_css_class)("compact")
+        for button, label, icon in zip(
+            self.buttons, ("Bible", "Notes"), ("dictionary-symbolic", "notebook-symbolic")
+        ):
+            if compact:
+                button.set_icon_name(icon)
+            else:
+                button.set_label(tr(label))
             button.set_tooltip_text(tr(label))
-            button.update_property([Gtk.AccessibleProperty.LABEL],[tr(label)])
+            button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
 
     def sync(self):
-        if not hasattr(self.owner,'main_pages'):return
-        self.syncing=True
-        self.set_selected(1 if self.owner.main_pages.get_visible_child_name()=='notes' else 0)
-        self.syncing=False
+        if not hasattr(self.owner, "main_pages"):
+            return
+        self.syncing = True
+        self.set_selected(1 if self.owner.main_pages.get_visible_child_name() == "notes" else 0)
+        self.syncing = False
 
-    def changed(self,*_):
-        if self.syncing:return
-        if self.get_selected()==1:self.owner.open_notes()
-        elif self.owner.notes_space:self.owner.notes_space.leave()
-        else:self.owner.main_pages.set_visible_child_name('reading')
+    def changed(self, *_):
+        if self.syncing:
+            return
+        if self.get_selected() == 1:
+            self.owner.open_notes()
+        elif self.owner.notes_space:
+            self.owner.notes_space.leave()
+        else:
+            self.owner.main_pages.set_visible_child_name("reading")
         self.sync()

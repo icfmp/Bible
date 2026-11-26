@@ -1,303 +1,536 @@
 """Current-passage OpenBible suggestions, with stale-result and focus guards."""
+
 from concurrent.futures import ThreadPoolExecutor
-from gi.repository import Gtk,GLib,Gio,GObject,Pango
+from gi.repository import Gtk, GLib, Gio, GObject, Pango
 from .i18n import tr
-from .reference_data import ReferenceData,SOURCE_URL,LICENSE_URL
-from .reference_targets import source_references,local_excerpt,local_target_ranges
+from .reference_data import ReferenceData, SOURCE_URL, LICENSE_URL
+from .reference_targets import source_references, local_excerpt, local_target_ranges
 from .reference_preview import passage_title
 from .reference_resolution import VersificationMismatch
 from .passage_card import passage_card
 
 
 class ReferenceItem(GObject.Object):
-    def __init__(self,relationship,context,generation):
-        super().__init__();self.relationship=relationship;self.context=context;self.generation=generation
+    def __init__(self, relationship, context, generation):
+        super().__init__()
+        self.relationship = relationship
+        self.context = context
+        self.generation = generation
 
 
 class StudyReferences(Gtk.Box):
-    def __init__(self,owner):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8,
-                         margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-        self.owner=owner;self.data=ReferenceData(owner.library.root.parent/'study-data')
-        self.executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='bible-references')
-        self.generation=0;self.stamp=None;self.context=None;self.rows=[];self.pending=False
-        self.all_results=False;self.chapter_cache={};self.row_cache={};self._new_passage=False;self._position_idle=0
-        self._future=None;self._follow_timeout=0;self._queued_stamp=None;self._pending_notice=0
-        self.metrics=dict(requests=0,commits=0,cancellations=0)
-        self.heading=Gtk.Label(xalign=0,wrap=True)
-        self.status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
+    def __init__(self, owner):
+        super().__init__(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=8,
+            margin_start=12,
+            margin_end=12,
+            margin_top=12,
+            margin_bottom=12,
+        )
+        self.owner = owner
+        self.data = ReferenceData(owner.library.root.parent / "study-data")
+        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bible-references")
+        self.generation = 0
+        self.stamp = None
+        self.context = None
+        self.rows = []
+        self.pending = False
+        self.all_results = False
+        self.chapter_cache = {}
+        self.row_cache = {}
+        self._new_passage = False
+        self._position_idle = 0
+        self._future = None
+        self._follow_timeout = 0
+        self._queued_stamp = None
+        self._pending_notice = 0
+        self.metrics = dict(requests=0, commits=0, cancellations=0)
+        self.heading = Gtk.Label(xalign=0, wrap=True)
+        self.status = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
         self.append(self.status)
-        self.download=Gtk.Button(label=tr('Download reference data'))
-        self.download.connect('clicked',self.open_library);self.append(self.download)
-        self.model=Gio.ListStore.new(ReferenceItem)
-        self.return_results=Gtk.Button(label=tr('Back to first references'),halign=Gtk.Align.START,visible=False)
-        self.return_results.add_css_class('flat');self.return_results.connect('clicked',self.show_initial);self.append(self.return_results)
+        self.download = Gtk.Button(label=tr("Download reference data"))
+        self.download.connect("clicked", self.open_library)
+        self.append(self.download)
+        self.model = Gio.ListStore.new(ReferenceItem)
+        self.return_results = Gtk.Button(
+            label=tr("Back to first references"), halign=Gtk.Align.START, visible=False
+        )
+        self.return_results.add_css_class("flat")
+        self.return_results.connect("clicked", self.show_initial)
+        self.append(self.return_results)
         # A footer item shares the virtualized list's normal content flow.
         # The data model remains only actual relationships, with unchanged ordering.
-        footer_model=Gio.ListStore.new(ReferenceItem);footer_model.append(ReferenceItem(None,None,None))
-        sections=Gio.ListStore.new(Gio.ListModel);sections.append(self.model);sections.append(footer_model)
-        combined=Gtk.FlattenListModel(model=sections)
-        factory=Gtk.SignalListItemFactory();factory.connect('bind',self.bind)
-        factory.connect('unbind',lambda _,item:item.set_child(None))
-        self.list=Gtk.ListView(model=Gtk.NoSelection(model=combined),factory=factory,vexpand=True,show_separators=False)
-        self.list.add_css_class('study-card-list')
-        self.list.connect('map',lambda *_:self.position_new_passage())
-        scroll=Gtk.ScrolledWindow(vexpand=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        scroll.set_child(self.list);self.scroll=scroll
-        self.pages=Gtk.Stack(vexpand=True,hhomogeneous=False,vhomogeneous=False)
-        results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        self.pending_context=Gtk.Label(xalign=0,ellipsize=Pango.EllipsizeMode.END,
-            height_request=18,margin_start=8,margin_end=8)
-        self.pending_context.add_css_class('caption');self.pending_context.add_css_class('dim-label')
-        self.pending_context.set_can_target(False);results.append(self.pending_context);results.append(scroll)
-        self.pages.add_named(results,'results');self.append(self.pages)
+        footer_model = Gio.ListStore.new(ReferenceItem)
+        footer_model.append(ReferenceItem(None, None, None))
+        sections = Gio.ListStore.new(Gio.ListModel)
+        sections.append(self.model)
+        sections.append(footer_model)
+        combined = Gtk.FlattenListModel(model=sections)
+        factory = Gtk.SignalListItemFactory()
+        factory.connect("bind", self.bind)
+        factory.connect("unbind", lambda _, item: item.set_child(None))
+        self.list = Gtk.ListView(
+            model=Gtk.NoSelection(model=combined),
+            factory=factory,
+            vexpand=True,
+            show_separators=False,
+        )
+        self.list.add_css_class("study-card-list")
+        self.list.connect("map", lambda *_: self.position_new_passage())
+        scroll = Gtk.ScrolledWindow(vexpand=True, hscrollbar_policy=Gtk.PolicyType.NEVER)
+        scroll.set_child(self.list)
+        self.scroll = scroll
+        self.pages = Gtk.Stack(vexpand=True, hhomogeneous=False, vhomogeneous=False)
+        results = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.pending_context = Gtk.Label(
+            xalign=0,
+            ellipsize=Pango.EllipsizeMode.END,
+            height_request=18,
+            margin_start=8,
+            margin_end=8,
+        )
+        self.pending_context.add_css_class("caption")
+        self.pending_context.add_css_class("dim-label")
+        self.pending_context.set_can_target(False)
+        results.append(self.pending_context)
+        results.append(scroll)
+        self.pages.add_named(results, "results")
+        self.append(self.pages)
         from .loading_cards import LoadingCards
-        self.loading=LoadingCards(tr('Loading references…'))
-        self.pages.add_named(self.loading,'loading')
-        self.footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,margin_top=8,margin_bottom=12,margin_start=8,margin_end=8)
-        self.view_all=Gtk.Button(label=tr('View all'),halign=Gtk.Align.START,visible=False);self.view_all.connect('clicked',self.show_all);self.footer.append(self.view_all)
-        credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,width_chars=1)
-        credit.set_markup('<a href="'+SOURCE_URL+'">OpenBible.info</a> · <a href="'+LICENSE_URL+'">CC BY 4.0</a>')
-        credit.add_css_class('caption');credit.add_css_class('source-attribution');credit.set_tooltip_text(SOURCE_URL+'\n'+LICENSE_URL);self.footer.append(credit)
-        from .study_empty import empty_state
-        self.empty_page=empty_state('No cross-references','No biblical cross-references are available for this passage.','view-list-symbolic')
-        empty=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,vexpand=True,spacing=8)
-        empty.append(self.empty_page)
-        empty_credit=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR,
-                               margin_start=8,margin_end=8,margin_bottom=12)
-        empty_credit.set_markup(credit.get_label())
-        empty_credit.add_css_class('caption');empty_credit.add_css_class('source-attribution')
-        empty_credit.set_tooltip_text(credit.get_tooltip_text());empty.append(empty_credit)
-        self.pages.add_named(empty,'empty')
-        self.teaser=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        header=Gtk.Box(spacing=6)
-        title=Gtk.Label(label=tr('Cross-references'),xalign=0,hexpand=True);title.add_css_class('heading');header.append(title)
-        see_all=Gtk.Button(label=tr('View all'));see_all.add_css_class('flat')
-        see_all.connect('clicked',lambda *_:owner.study.tools.set_visible_child_name('references'));header.append(see_all)
-        self.teaser.append(header)
-        self.teaser_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);self.teaser.append(self.teaser_rows)
-        self.teaser_status=Gtk.Label(xalign=0,wrap=True,wrap_mode=Pango.WrapMode.WORD_CHAR)
-        self.teaser_status.add_css_class('dim-label');self.teaser.append(self.teaser_status)
-        self.teaser_download=Gtk.Button(label=tr('Download reference data'))
-        self.teaser_download.connect('clicked',self.open_library);self.teaser.append(self.teaser_download)
-        self.message(tr('Open a Bible passage to see its references.'))
 
-    def open_library(self,*_):
+        self.loading = LoadingCards(tr("Loading references…"))
+        self.pages.add_named(self.loading, "loading")
+        self.footer = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=8,
+            margin_top=8,
+            margin_bottom=12,
+            margin_start=8,
+            margin_end=8,
+        )
+        self.view_all = Gtk.Button(label=tr("View all"), halign=Gtk.Align.START, visible=False)
+        self.view_all.connect("clicked", self.show_all)
+        self.footer.append(self.view_all)
+        credit = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, width_chars=1)
+        credit.set_markup(
+            '<a href="'
+            + SOURCE_URL
+            + '">OpenBible.info</a> · <a href="'
+            + LICENSE_URL
+            + '">CC BY 4.0</a>'
+        )
+        credit.add_css_class("caption")
+        credit.add_css_class("source-attribution")
+        credit.set_tooltip_text(SOURCE_URL + "\n" + LICENSE_URL)
+        self.footer.append(credit)
+        from .study_empty import empty_state
+
+        self.empty_page = empty_state(
+            "No cross-references",
+            "No biblical cross-references are available for this passage.",
+            "view-list-symbolic",
+        )
+        empty = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True, spacing=8)
+        empty.append(self.empty_page)
+        empty_credit = Gtk.Label(
+            xalign=0,
+            wrap=True,
+            wrap_mode=Pango.WrapMode.WORD_CHAR,
+            margin_start=8,
+            margin_end=8,
+            margin_bottom=12,
+        )
+        empty_credit.set_markup(credit.get_label())
+        empty_credit.add_css_class("caption")
+        empty_credit.add_css_class("source-attribution")
+        empty_credit.set_tooltip_text(credit.get_tooltip_text())
+        empty.append(empty_credit)
+        self.pages.add_named(empty, "empty")
+        self.teaser = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        header = Gtk.Box(spacing=6)
+        title = Gtk.Label(label=tr("Cross-references"), xalign=0, hexpand=True)
+        title.add_css_class("heading")
+        header.append(title)
+        see_all = Gtk.Button(label=tr("View all"))
+        see_all.add_css_class("flat")
+        see_all.connect(
+            "clicked", lambda *_: owner.study.tools.set_visible_child_name("references")
+        )
+        header.append(see_all)
+        self.teaser.append(header)
+        self.teaser_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self.teaser.append(self.teaser_rows)
+        self.teaser_status = Gtk.Label(xalign=0, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR)
+        self.teaser_status.add_css_class("dim-label")
+        self.teaser.append(self.teaser_status)
+        self.teaser_download = Gtk.Button(label=tr("Download reference data"))
+        self.teaser_download.connect("clicked", self.open_library)
+        self.teaser.append(self.teaser_download)
+        self.message(tr("Open a Bible passage to see its references."))
+
+    def open_library(self, *_):
         from .study_resources import REFERENCE_RESOURCE_ID
-        library=self.owner.open_library('study')
+
+        library = self.owner.open_library("study")
         library.reveal_study_resource(REFERENCE_RESOURCE_ID)
         return library
 
     def close(self):
         self.clear_pending_notice()
-        if self._follow_timeout:GLib.source_remove(self._follow_timeout);self._follow_timeout=0
-        if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
-        self.generation+=1;self.executor.shutdown(wait=False,cancel_futures=True)
+        if self._follow_timeout:
+            GLib.source_remove(self._follow_timeout)
+            self._follow_timeout = 0
+        if self._position_idle:
+            GLib.source_remove(self._position_idle)
+            self._position_idle = 0
+        self.generation += 1
+        self.executor.shutdown(wait=False, cancel_futures=True)
 
-    def display_context(self,context):
-        self.context=context
-        resource,reader,start,end=context
-        self.heading.set_text(passage_title(start,end,reader.versification))
-        self.list.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
-            [tr('Cross-references')+': '+self.heading.get_text(),''])
+    def display_context(self, context):
+        self.context = context
+        resource, reader, start, end = context
+        self.heading.set_text(passage_title(start, end, reader.versification))
+        self.list.update_property(
+            [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
+            [tr("Cross-references") + ": " + self.heading.get_text(), ""],
+        )
         self.owner.study.update_indicator()
 
-    def pending_display(self,context):
-        self.status.set_visible(False);self.download.set_visible(False)
-        self.list.set_sensitive(False);self.list.add_css_class('references-pending')
+    def pending_display(self, context):
+        self.status.set_visible(False)
+        self.download.set_visible(False)
+        self.list.set_sensitive(False)
+        self.list.add_css_class("references-pending")
         self.owner.reference_preview.dismiss()
         if self.model.get_n_items():
             # The heading and each captured item still belong to the previous
             # passage. Keep their geometry while making stale actions inert.
-            self.pages.set_visible_child_name('results')
+            self.pages.set_visible_child_name("results")
             if not self._pending_notice and not self.pending_context.get_text():
+
                 def notice():
-                    self._pending_notice=0
-                    if self.pending and not self.owner.closed:self.pending_context.set_text(tr('Updating references…'))
+                    self._pending_notice = 0
+                    if self.pending and not self.owner.closed:
+                        self.pending_context.set_text(tr("Updating references…"))
                     return False
-                self._pending_notice=GLib.timeout_add(150,notice)
-            self.list.update_property([Gtk.AccessibleProperty.DESCRIPTION],
-                [tr('Updating references. Previous results are temporarily unavailable.')])
+
+                self._pending_notice = GLib.timeout_add(150, notice)
+            self.list.update_property(
+                [Gtk.AccessibleProperty.DESCRIPTION],
+                [tr("Updating references. Previous results are temporarily unavailable.")],
+            )
         else:
             self.clear_pending_notice()
-            self.display_context(context);self.pages.set_visible_child_name('loading')
+            self.display_context(context)
+            self.pages.set_visible_child_name("loading")
 
     def clear_pending_notice(self):
-        if self._pending_notice:GLib.source_remove(self._pending_notice);self._pending_notice=0
-        self.pending_context.set_text('')
+        if self._pending_notice:
+            GLib.source_remove(self._pending_notice)
+            self._pending_notice = 0
+        self.pending_context.set_text("")
 
     def position_new_passage(self):
-        if not self._new_passage or self._position_idle or not self.model.get_n_items() or not self.list.get_mapped():return
-        generation=self.generation
+        if (
+            not self._new_passage
+            or self._position_idle
+            or not self.model.get_n_items()
+            or not self.list.get_mapped()
+        ):
+            return
+        generation = self.generation
+
         def position():
-            self._position_idle=0
-            if (self.owner.closed or generation!=self.generation or not self._new_passage
-                    or not self.list.get_mapped() or self.list.get_width()<=0):return False
-            self._new_passage=False
-            self.list.scroll_to(0,Gtk.ListScrollFlags.NONE,None)
+            self._position_idle = 0
+            if (
+                self.owner.closed
+                or generation != self.generation
+                or not self._new_passage
+                or not self.list.get_mapped()
+                or self.list.get_width() <= 0
+            ):
+                return False
+            self._new_passage = False
+            self.list.scroll_to(0, Gtk.ListScrollFlags.NONE, None)
             return False
+
         # One request after GTK's first allocation. Calling scroll_to while
         # an unmapped list has no width triggers invalid size requests in GTK
         # 4.18. No polling, repeated top reset or hidden-list work is needed.
-        self._position_idle=GLib.idle_add(position)
+        self._position_idle = GLib.idle_add(position)
 
     def invalidate(self):
-        self.stamp=None;self.refresh()
+        self.stamp = None
+        self.refresh()
 
-    def message(self,text,download=False,*,empty=False):
+    def message(self, text, download=False, *, empty=False):
         self.status.set_tooltip_text(None)
-        self.status.set_text(text);self.status.set_visible(bool(text) and not empty)
-        self.pages.set_visible_child_name('empty' if empty else 'results')
-        self.teaser_status.set_text(text);self.teaser_status.set_visible(bool(text))
-        self.download.set_visible(download);self.teaser_download.set_visible(download)
+        self.status.set_text(text)
+        self.status.set_visible(bool(text) and not empty)
+        self.pages.set_visible_child_name("empty" if empty else "results")
+        self.teaser_status.set_text(text)
+        self.teaser_status.set_visible(bool(text))
+        self.download.set_visible(download)
+        self.teaser_download.set_visible(download)
 
     def clear_rows(self):
-        if self._position_idle:GLib.source_remove(self._position_idle);self._position_idle=0
+        if self._position_idle:
+            GLib.source_remove(self._position_idle)
+            self._position_idle = 0
         self.owner.reference_preview.dismiss()
-        self.clear_pending_notice();self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
+        self.clear_pending_notice()
+        self.list.set_sensitive(True)
+        self.list.remove_css_class("references-pending")
         self.model.remove_all()
-        while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
+        while self.teaser_rows.get_first_child():
+            self.teaser_rows.remove(self.teaser_rows.get_first_child())
         self.view_all.set_visible(False)
         self.return_results.set_visible(False)
 
-    def refresh(self,force=False,*,_settled=None):
-        if self.owner.closed or self.owner.study.tool not in ('notes','references'):
+    def refresh(self, force=False, *, _settled=None):
+        if self.owner.closed or self.owner.study.tool not in ("notes", "references"):
             if _settled and not self.owner.closed:
-                self.pending=False;self.stamp=None;self.clear_pending_notice()
-                self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
+                self.pending = False
+                self.stamp = None
+                self.clear_pending_notice()
+                self.list.set_sensitive(True)
+                self.list.remove_css_class("references-pending")
             return
-        tab=self.owner.active_tab
+        tab = self.owner.active_tab
         if not tab or not tab.reader:
-            self.generation+=1;self.context=None;self.stamp=None;self.pending=False;self.clear_rows()
-            self.rows=[];self.row_cache={};self.chapter_cache={};self.all_results=False
-            self.heading.set_text(tr('References'))
-            self.message(tr('Open a Bible passage to see its references.'));return
-        start,end=tab.selected_passage();reader=tab.reader
-        coordinator=getattr(self.owner,'reading_sync',None)
-        if (coordinator and coordinator.driver=='bible' and coordinator.armed_until>0 and not tab._restoring_scroll
-                and not tab.text.get_buffer().get_has_selection() and tab.text.get_mapped()):
+            self.generation += 1
+            self.context = None
+            self.stamp = None
+            self.pending = False
+            self.clear_rows()
+            self.rows = []
+            self.row_cache = {}
+            self.chapter_cache = {}
+            self.all_results = False
+            self.heading.set_text(tr("References"))
+            self.message(tr("Open a Bible passage to see its references."))
+            return
+        start, end = tab.selected_passage()
+        reader = tab.reader
+        coordinator = getattr(self.owner, "reading_sync", None)
+        if (
+            coordinator
+            and coordinator.driver == "bible"
+            and coordinator.armed_until > 0
+            and not tab._restoring_scroll
+            and not tab.text.get_buffer().get_has_selection()
+            and tab.text.get_mapped()
+        ):
             # Scrolling while this tool/drawer was hidden intentionally did not
             # run queries. Reopening must use that actual visible anchor, not
             # the last explicit verse selection. Preserve explicit selections.
-            start=end=tab.visible_reference() or start
+            start = end = tab.visible_reference() or start
         if _settled:
-            if _settled[:3]!=(id(tab),id(reader),tab.state.resource):
-                self.stamp=None;self.refresh();return
-            start,end=_settled[3:5]
-        stamp=(id(tab),id(reader),tab.state.resource,start,end,self.data.revision)
-        if not _settled and coordinator and coordinator.driver=='bible' and coordinator.armed_until>0:
-            if stamp==self._queued_stamp or stamp==self.stamp and not self._follow_timeout:return
-            self._queued_stamp=stamp;self.generation+=1
+            if _settled[:3] != (id(tab), id(reader), tab.state.resource):
+                self.stamp = None
+                self.refresh()
+                return
+            start, end = _settled[3:5]
+        stamp = (id(tab), id(reader), tab.state.resource, start, end, self.data.revision)
+        if (
+            not _settled
+            and coordinator
+            and coordinator.driver == "bible"
+            and coordinator.armed_until > 0
+        ):
+            if stamp == self._queued_stamp or stamp == self.stamp and not self._follow_timeout:
+                return
+            self._queued_stamp = stamp
+            self.generation += 1
             if self._future:
-                self._future.cancel();self._future=None;self.metrics['cancellations']+=1
-            self.pending=True;self.pending_display((tab.state.resource,reader,start,end))
+                self._future.cancel()
+                self._future = None
+                self.metrics["cancellations"] += 1
+            self.pending = True
+            self.pending_display((tab.state.resource, reader, start, end))
             if not self._follow_timeout:
+
                 def follow():
-                    self._follow_timeout=0;queued=self._queued_stamp;self._queued_stamp=None
-                    self.refresh(_settled=queued);return False
-                self._follow_timeout=GLib.timeout_add(75,follow)
+                    self._follow_timeout = 0
+                    queued = self._queued_stamp
+                    self._queued_stamp = None
+                    self.refresh(_settled=queued)
+                    return False
+
+                self._follow_timeout = GLib.timeout_add(75, follow)
             return
-        if self._follow_timeout:GLib.source_remove(self._follow_timeout);self._follow_timeout=0
-        self._queued_stamp=None
+        if self._follow_timeout:
+            GLib.source_remove(self._follow_timeout)
+            self._follow_timeout = 0
+        self._queued_stamp = None
         # Tool activation forces the study coordinator to refresh. It does not
         # change this passage or dataset; rebuilding here loses manual scroll.
-        if stamp==self.stamp and (not self.pending or self._future is not None):return
-        same_source=bool(self.stamp and self.stamp[:3]==stamp[:3] and self.stamp[-1]==stamp[-1])
-        self.stamp=stamp;self.generation+=1;generation=self.generation
-        if self._future:self._future.cancel();self._future=None
-        context=(tab.state.resource,reader,start,end)
-        self._new_passage=(self.context!=context
-                           or not self.model.get_n_items())
-        self.all_results=False;self.pending=False
+        if stamp == self.stamp and (not self.pending or self._future is not None):
+            return
+        same_source = bool(
+            self.stamp and self.stamp[:3] == stamp[:3] and self.stamp[-1] == stamp[-1]
+        )
+        self.stamp = stamp
+        self.generation += 1
+        generation = self.generation
+        if self._future:
+            self._future.cancel()
+            self._future = None
+        context = (tab.state.resource, reader, start, end)
+        self._new_passage = self.context != context or not self.model.get_n_items()
+        self.all_results = False
+        self.pending = False
         # Excerpts are immutable for this Reader/dataset revision. Keep the
         # existing bounded chapter cache when only the followed verse changes.
-        if not same_source:self.chapter_cache={};self.row_cache={}
+        if not same_source:
+            self.chapter_cache = {}
+            self.row_cache = {}
         if self.data.revision is None:
-            self.rows=[];self.display_context(context)
+            self.rows = []
+            self.display_context(context)
             self.clear_rows()
-            self.message(tr('Download OpenBible reference data once to use it offline.'),download=True);return
-        try:origins=source_references(reader,start,end)
+            self.message(
+                tr("Download OpenBible reference data once to use it offline."), download=True
+            )
+            return
+        try:
+            origins = source_references(reader, start, end)
         except ValueError as error:
-            self.rows=[];self.display_context(context)
+            self.rows = []
+            self.display_context(context)
             self.clear_rows()
-            self.message(tr('No verified alignment for this passage.'));self.status.set_tooltip_text(str(error));return
-        self.pending=True;self.pending_display(context)
+            self.message(tr("No verified alignment for this passage."))
+            self.status.set_tooltip_text(str(error))
+            return
+        self.pending = True
+        self.pending_display(context)
         self.owner.study.update_indicator()
-        revision=self.data.revision
-        self.metrics['requests']+=1
-        future=self.executor.submit(self.data.query,origins);self._future=future
+        revision = self.data.revision
+        self.metrics["requests"] += 1
+        future = self.executor.submit(self.data.query, origins)
+        self._future = future
+
         def complete():
-            if self.owner.closed or generation!=self.generation:return False
-            self.pending=False;self._future=None
-            if revision!=self.data.revision:self.invalidate();return False
-            self.list.set_sensitive(True);self.list.remove_css_class('references-pending')
+            if self.owner.closed or generation != self.generation:
+                return False
+            self.pending = False
+            self._future = None
+            if revision != self.data.revision:
+                self.invalidate()
+                return False
+            self.list.set_sensitive(True)
+            self.list.remove_css_class("references-pending")
             self.clear_pending_notice()
             self.display_context(context)
-            try:self.rows=future.result()
+            try:
+                self.rows = future.result()
             except Exception as error:
-                self.rows=[]
+                self.rows = []
                 self.clear_rows()
-                self.message(tr('Reference data is unavailable. Download it again from Library.'),download=True)
-                self.status.set_tooltip_text(str(error));return False
-            self.message(tr('No cross-references for this passage.') if not self.rows else '',empty=not self.rows)
-            self.populate();self.metrics['commits']+=1;return False
-        future.add_done_callback(lambda _:GLib.idle_add(complete))
+                self.message(
+                    tr("Reference data is unavailable. Download it again from Library."),
+                    download=True,
+                )
+                self.status.set_tooltip_text(str(error))
+                return False
+            self.message(
+                tr("No cross-references for this passage.") if not self.rows else "",
+                empty=not self.rows,
+            )
+            self.populate()
+            self.metrics["commits"] += 1
+            return False
 
-    def bind(self,_,item):
-        if item.get_item().relationship is None:item.set_child(self.footer)
+        future.add_done_callback(lambda _: GLib.idle_add(complete))
+
+    def bind(self, _, item):
+        if item.get_item().relationship is None:
+            item.set_child(self.footer)
         else:
-            button=self.button();self.fill(button,item.get_item());item.set_child(button)
+            button = self.button()
+            self.fill(button, item.get_item())
+            item.set_child(button)
 
     def button(self):
-        button=passage_card()
-        button.add_css_class('study-action-card')
-        button.connect('clicked',self.preview)
+        button = passage_card()
+        button.add_css_class("study-action-card")
+        button.connect("clicked", self.preview)
         return button
 
-    def fill(self,button,item):
-        button._reference_item=item
-        row=item.relationship;resource,reader,_,_=item.context;title,text=button._reference_labels
+    def fill(self, button, item):
+        button._reference_item = item
+        row = item.relationship
+        resource, reader, _, _ = item.context
+        title, text = button._reference_labels
         text.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
         text.set_xalign(1 if reader.rtl else 0)
-        key=(row.start,row.end)
+        key = (row.start, row.end)
         if key not in self.row_cache:
-            caption=passage_title(row.start,row.end)
+            caption = passage_title(row.start, row.end)
             try:
-                targets=local_target_ranges(reader,row.start,row.end)
-                caption='; '.join(passage_title(first,last,reader.versification) for first,last in targets)
-                excerpt=local_excerpt(reader,row.start,row.end,chapter_cache=self.chapter_cache)
-                result=(caption,' '.join(excerpt.text.split())+(' …' if excerpt.more else ''))
-            except (ValueError,OSError) as error:
-                result=(caption,tr('No verified alignment for this passage.') if isinstance(error,VersificationMismatch)
-                        else tr('This passage is unavailable in the selected translation.'))
-            self.row_cache[key]=result
-            if len(self.row_cache)>512:self.row_cache.pop(next(iter(self.row_cache)))
-        caption,body=self.row_cache[key];title.set_text(caption);text.set_text(body)
+                targets = local_target_ranges(reader, row.start, row.end)
+                caption = "; ".join(
+                    passage_title(first, last, reader.versification) for first, last in targets
+                )
+                excerpt = local_excerpt(
+                    reader, row.start, row.end, chapter_cache=self.chapter_cache
+                )
+                result = (caption, " ".join(excerpt.text.split()) + (" …" if excerpt.more else ""))
+            except (ValueError, OSError) as error:
+                result = (
+                    caption,
+                    tr("No verified alignment for this passage.")
+                    if isinstance(error, VersificationMismatch)
+                    else tr("This passage is unavailable in the selected translation."),
+                )
+            self.row_cache[key] = result
+            if len(self.row_cache) > 512:
+                self.row_cache.pop(next(iter(self.row_cache)))
+        caption, body = self.row_cache[key]
+        title.set_text(caption)
+        text.set_text(body)
         button.set_tooltip_text(None)
-        button.update_property([Gtk.AccessibleProperty.LABEL,Gtk.AccessibleProperty.DESCRIPTION],
-            [caption,tr('Related to {count} selected verses.').format(count=row.source_count)])
+        button.update_property(
+            [Gtk.AccessibleProperty.LABEL, Gtk.AccessibleProperty.DESCRIPTION],
+            [caption, tr("Related to {count} selected verses.").format(count=row.source_count)],
+        )
 
-    def preview(self,button):
-        item=button._reference_item
-        if self.pending or item.generation!=self.generation:return
-        row=item.relationship;resource,reader,_,_=item.context
-        self.owner.reference_preview.show(button,resource,reader,row.start,row.end,
-            provenance='OpenBible.info · CC BY 4.0\n'+SOURCE_URL)
+    def preview(self, button):
+        item = button._reference_item
+        if self.pending or item.generation != self.generation:
+            return
+        row = item.relationship
+        resource, reader, _, _ = item.context
+        self.owner.reference_preview.show(
+            button,
+            resource,
+            reader,
+            row.start,
+            row.end,
+            provenance="OpenBible.info · CC BY 4.0\n" + SOURCE_URL,
+        )
 
     def populate(self):
-        items=[ReferenceItem(row,self.context,self.generation) for row in self.rows]
-        self.model.splice(0,self.model.get_n_items(),items)
+        items = [ReferenceItem(row, self.context, self.generation) for row in self.rows]
+        self.model.splice(0, self.model.get_n_items(), items)
         # GTK otherwise retains the initially visible footer as its anchor
         # when cards are inserted above it. Position the first reference once.
         self.position_new_passage()
         self.view_all.set_visible(False)
         self.return_results.set_visible(False)
-        while self.teaser_rows.get_first_child():self.teaser_rows.remove(self.teaser_rows.get_first_child())
+        while self.teaser_rows.get_first_child():
+            self.teaser_rows.remove(self.teaser_rows.get_first_child())
         for item in items[:3]:
-            button=self.button();self.fill(button,item);self.teaser_rows.append(button)
+            button = self.button()
+            self.fill(button, item)
+            self.teaser_rows.append(button)
 
-    def show_all(self,*_):
-        self.all_results=True;self.populate()
+    def show_all(self, *_):
+        self.all_results = True
+        self.populate()
 
-    def show_initial(self,*_):
-        self.all_results=False;self.populate();self.scroll.get_vadjustment().set_value(0)
+    def show_initial(self, *_):
+        self.all_results = False
+        self.populate()
+        self.scroll.get_vadjustment().set_value(0)

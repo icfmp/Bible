@@ -1,338 +1,556 @@
 """Native references/preview state, async invalidation and the Library data flow."""
+
 import hashlib
 import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from tests.test_ui import installed_fixture,spin,close_test_dialogs
+from tests.test_ui import installed_fixture, spin, close_test_dialogs
 from tests.test_reference_data import archive
 from bible import reference_data
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class StudyReferenceTests(unittest.TestCase):
     def test_rapid_follow_updates_coalesce_but_explicit_navigation_is_immediate(self):
         import time
-        self.install();refs=self.show();tab=self.window.active_tab;coordinator=self.window.reading_sync
-        coordinator.driver='bible';coordinator.armed_until=time.monotonic()+5
-        reference=['John.1.6'];requests=refs.metrics['requests']
-        with patch.object(tab,'visible_reference',side_effect=lambda:reference[0]),patch.object(tab,'_restoring_scroll',False),patch.object(tab.text,'get_mapped',return_value=True):
-            refs.refresh();reference[0]='John.3.16';refs.refresh()
-            self.assertEqual(refs.metrics['requests'],requests)
-            spin(lambda:not refs.pending)
-            self.assertEqual(refs.metrics['requests'],requests+1)
-            self.assertEqual(refs.context[2:2+1],('John.3.16',))
-            reference[0]='John.1.6';refs.refresh();reference[0]='John.3.16';refs.refresh()
-            spin(lambda:not refs.pending)
+
+        self.install()
+        refs = self.show()
+        tab = self.window.active_tab
+        coordinator = self.window.reading_sync
+        coordinator.driver = "bible"
+        coordinator.armed_until = time.monotonic() + 5
+        reference = ["John.1.6"]
+        requests = refs.metrics["requests"]
+        with (
+            patch.object(tab, "visible_reference", side_effect=lambda: reference[0]),
+            patch.object(tab, "_restoring_scroll", False),
+            patch.object(tab.text, "get_mapped", return_value=True),
+        ):
+            refs.refresh()
+            reference[0] = "John.3.16"
+            refs.refresh()
+            self.assertEqual(refs.metrics["requests"], requests)
+            spin(lambda: not refs.pending)
+            self.assertEqual(refs.metrics["requests"], requests + 1)
+            self.assertEqual(refs.context[2 : 2 + 1], ("John.3.16",))
+            reference[0] = "John.1.6"
+            refs.refresh()
+            reference[0] = "John.3.16"
+            refs.refresh()
+            spin(lambda: not refs.pending)
             self.assertTrue(refs.list.get_sensitive())
-            self.assertEqual(refs.metrics['requests'],requests+2)
-        coordinator.explicit_bible();tab.state.reference='John.1.6';refs.refresh()
-        self.assertEqual(refs._follow_timeout,0)
-        self.assertEqual(refs.metrics['requests'],requests+3)
-        spin(lambda:not refs.pending)
+            self.assertEqual(refs.metrics["requests"], requests + 2)
+        coordinator.explicit_bible()
+        tab.state.reference = "John.1.6"
+        refs.refresh()
+        self.assertEqual(refs._follow_timeout, 0)
+        self.assertEqual(refs.metrics["requests"], requests + 3)
+        spin(lambda: not refs.pending)
 
     def test_pending_passage_keeps_old_context_inert_and_only_latest_response_can_replace_it(self):
         from concurrent.futures import Future
-        self.install();refs=self.show();tab=self.window.active_tab
-        old=refs.model.get_item(0);context=refs.context;heading=refs.heading.get_text();requests=[]
-        def submit(function,*args):
-            future=Future();requests.append((future,function,args));return future
+
+        self.install()
+        refs = self.show()
+        tab = self.window.active_tab
+        old = refs.model.get_item(0)
+        context = refs.context
+        heading = refs.heading.get_text()
+        requests = []
+
+        def submit(function, *args):
+            future = Future()
+            requests.append((future, function, args))
+            return future
+
         tab.text.grab_focus()
-        with patch.object(refs.executor,'submit',side_effect=submit):
-            tab.select_verse('John.1.6');spin(lambda:len(requests)==1)
+        with patch.object(refs.executor, "submit", side_effect=submit):
+            tab.select_verse("John.1.6")
+            spin(lambda: len(requests) == 1)
             requests[0][0].set_running_or_notify_cancel()
-            self.assertTrue(refs.pending);self.assertIs(refs.model.get_item(0),old)
-            self.assertEqual(refs.context,context);self.assertEqual(refs.heading.get_text(),heading)
+            self.assertTrue(refs.pending)
+            self.assertIs(refs.model.get_item(0), old)
+            self.assertEqual(refs.context, context)
+            self.assertEqual(refs.heading.get_text(), heading)
             self.assertTrue(refs.pending_context.get_visible())
-            self.assertFalse(refs.list.get_sensitive());self.assertEqual(refs.list.get_opacity(),1)
-            self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertFalse(refs.status.get_visible())
-            self.assertIs(self.window.get_focus(),tab.text)
-            tab.navigate('Test','John.3.16');spin(lambda:len(requests)==2)
-            tab.navigate('Test','John.1.5');spin(lambda:len(requests)==3)
+            self.assertFalse(refs.list.get_sensitive())
+            self.assertEqual(refs.list.get_opacity(), 1)
+            self.assertEqual(refs.pages.get_visible_child_name(), "results")
+            self.assertFalse(refs.status.get_visible())
+            self.assertIs(self.window.get_focus(), tab.text)
+            tab.navigate("Test", "John.3.16")
+            spin(lambda: len(requests) == 2)
+            tab.navigate("Test", "John.1.5")
+            spin(lambda: len(requests) == 3)
             self.assertTrue(requests[1][0].cancelled())
-            future,query,args=requests[2];expected=query(*args);future.set_result(expected)
-            spin(lambda:not refs.pending)
-            self.assertEqual(refs.context[2:],('John.1.5','John.1.5'))
-            self.assertEqual(refs.rows,expected);self.assertTrue(refs.list.get_sensitive())
-            stale,query,args=requests[0];stale.set_result(query(*args));spin()
-            self.assertEqual(refs.rows,expected);self.assertEqual(refs.context[2:],('John.1.5','John.1.5'))
+            future, query, args = requests[2]
+            expected = query(*args)
+            future.set_result(expected)
+            spin(lambda: not refs.pending)
+            self.assertEqual(refs.context[2:], ("John.1.5", "John.1.5"))
+            self.assertEqual(refs.rows, expected)
+            self.assertTrue(refs.list.get_sensitive())
+            stale, query, args = requests[0]
+            stale.set_result(query(*args))
+            spin()
+            self.assertEqual(refs.rows, expected)
+            self.assertEqual(refs.context[2:], ("John.1.5", "John.1.5"))
 
     def test_first_load_skeleton_error_and_empty_states_are_truthful_with_reduced_motion(self):
         from concurrent.futures import Future
         from bible.ui import Gtk
-        self.install();refs=self.window.study.references;requests=[]
-        def submit(function,*args):
-            future=Future();requests.append((future,function,args));return future
-        settings=Gtk.Settings.get_default();animations=settings.props.gtk_enable_animations
-        settings.props.gtk_enable_animations=False
+
+        self.install()
+        refs = self.window.study.references
+        requests = []
+
+        def submit(function, *args):
+            future = Future()
+            requests.append((future, function, args))
+            return future
+
+        settings = Gtk.Settings.get_default()
+        animations = settings.props.gtk_enable_animations
+        settings.props.gtk_enable_animations = False
         try:
-            with patch.object(refs.executor,'submit',side_effect=submit):
-                self.window.active_tab.navigate('Test','John.1.5');self.window.study_button.set_active(True)
-                self.window.study.tools.set_visible_child_name('references');refs.refresh()
-                spin(lambda:bool(requests) and refs.loading.get_mapped());self.assertTrue(refs.pending)
-                self.assertEqual(refs.pages.get_visible_child_name(),'loading')
-                self.assertEqual(refs.model.get_n_items(),0);self.assertFalse(refs.status.get_visible())
-                self.assertEqual(refs.loading._tick,0)
-                requests[-1][0].set_exception(OSError('Controlled unavailable source'));spin(lambda:not refs.pending)
-                self.assertTrue(refs.download.get_visible());self.assertNotEqual(refs.pages.get_visible_child_name(),'empty')
-                refs.invalidate();self.assertTrue(refs.pending);requests[-1][0].set_result([])
-                spin(lambda:not refs.pending);self.assertEqual(refs.pages.get_visible_child_name(),'empty')
-                refs.invalidate();future,query,args=requests[-1];future.set_result(query(*args))
-                spin(lambda:not refs.pending);self.assertTrue(refs.rows)
-                self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertEqual(refs.loading._tick,0)
-        finally:settings.props.gtk_enable_animations=animations
+            with patch.object(refs.executor, "submit", side_effect=submit):
+                self.window.active_tab.navigate("Test", "John.1.5")
+                self.window.study_button.set_active(True)
+                self.window.study.tools.set_visible_child_name("references")
+                refs.refresh()
+                spin(lambda: bool(requests) and refs.loading.get_mapped())
+                self.assertTrue(refs.pending)
+                self.assertEqual(refs.pages.get_visible_child_name(), "loading")
+                self.assertEqual(refs.model.get_n_items(), 0)
+                self.assertFalse(refs.status.get_visible())
+                self.assertEqual(refs.loading._tick, 0)
+                requests[-1][0].set_exception(OSError("Controlled unavailable source"))
+                spin(lambda: not refs.pending)
+                self.assertTrue(refs.download.get_visible())
+                self.assertNotEqual(refs.pages.get_visible_child_name(), "empty")
+                refs.invalidate()
+                self.assertTrue(refs.pending)
+                requests[-1][0].set_result([])
+                spin(lambda: not refs.pending)
+                self.assertEqual(refs.pages.get_visible_child_name(), "empty")
+                refs.invalidate()
+                future, query, args = requests[-1]
+                future.set_result(query(*args))
+                spin(lambda: not refs.pending)
+                self.assertTrue(refs.rows)
+                self.assertEqual(refs.pages.get_visible_child_name(), "results")
+                self.assertEqual(refs.loading._tick, 0)
+        finally:
+            settings.props.gtk_enable_animations = animations
 
     def test_centered_empty_is_only_a_successful_zero_lookup_and_keeps_credit(self):
-        self.install();refs=self.show('John.3.16')
+        self.install()
+        refs = self.show("John.3.16")
         self.assertFalse(refs.rows)
-        self.assertEqual(refs.pages.get_visible_child_name(),'empty')
+        self.assertEqual(refs.pages.get_visible_child_name(), "empty")
         self.assertFalse(refs.status.get_visible())
-        credit=refs.empty_page.get_next_sibling()
-        self.assertIn(reference_data.LICENSE_URL,credit.get_label())
-        self.window.active_tab.navigate('Test','John.1.5');spin(lambda:not refs.pending)
-        self.assertEqual(refs.pages.get_visible_child_name(),'results');self.assertTrue(refs.rows)
-        with patch.object(refs.data,'query',side_effect=OSError('unreadable source')):
-            self.window.active_tab.select_verse('John.1.6');spin(lambda:not refs.pending)
-        self.assertEqual(refs.pages.get_visible_child_name(),'results')
-        self.assertTrue(refs.download.get_visible());self.assertTrue(refs.status.get_visible())
+        credit = refs.empty_page.get_next_sibling()
+        self.assertIn(reference_data.LICENSE_URL, credit.get_label())
+        self.window.active_tab.navigate("Test", "John.1.5")
+        spin(lambda: not refs.pending)
+        self.assertEqual(refs.pages.get_visible_child_name(), "results")
+        self.assertTrue(refs.rows)
+        with patch.object(refs.data, "query", side_effect=OSError("unreadable source")):
+            self.window.active_tab.select_verse("John.1.6")
+            spin(lambda: not refs.pending)
+        self.assertEqual(refs.pages.get_visible_child_name(), "results")
+        self.assertTrue(refs.download.get_visible())
+        self.assertTrue(refs.status.get_visible())
 
     def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self):
         from dataclasses import replace
         from bible.ui import Gtk
         from tools.check_alpha_ui import X11Input
         from tools.check_client_feedback import Screen
-        self.install();refs=self.show();w=self.window
-        settings=Gtk.Settings.get_default();font=settings.props.gtk_font_name
-        native=X11Input();screen=Screen(native)
+
+        self.install()
+        refs = self.show()
+        w = self.window
+        settings = Gtk.Settings.get_default()
+        font = settings.props.gtk_font_name
+        native = X11Input()
+        screen = Screen(native)
         try:
-            settings.props.gtk_font_name='Sans 18';w.set_default_size(360,480);spin(duration=.3)
-            w.split.set_show_sidebar(True);spin(duration=.3)
-            resource=replace(w.library.resource('Test'),description='TEST very long translation title for constrained preview layout')
-            with patch.object(w.library,'resource',return_value=resource):
-                popup=w.reference_preview.show(w.study.tools_switcher,'Test',w.active_tab.reader,'John.3.16',
-                    provenance='OpenBible.info · CC BY 4.0\nhttps://www.openbible.info/labs/cross-references/')
-            spin(duration=.3);self.assertIsNotNone(popup)
-            x,y=screen.point(w,0,0)
-            for widget in (w.reference_preview.open_here,w.reference_preview.open_new):
-                px,py=screen.point(widget,0,0)
-                self.assertGreaterEqual(px,x);self.assertGreaterEqual(py,y)
-                self.assertLessEqual(px+widget.get_width(),x+w.get_width())
-                self.assertLessEqual(py+widget.get_height(),y+w.get_height())
-            outer=popup.get_child().get_vadjustment()
-            self.assertLessEqual(outer.get_upper(),outer.get_page_size()+1)
-            self.assertEqual(w.reference_preview.body.get_buffer().props.text,'DESTINATION SIXTEEN')
+            settings.props.gtk_font_name = "Sans 18"
+            w.set_default_size(360, 480)
+            spin(duration=0.3)
+            w.split.set_show_sidebar(True)
+            spin(duration=0.3)
+            resource = replace(
+                w.library.resource("Test"),
+                description="TEST very long translation title for constrained preview layout",
+            )
+            with patch.object(w.library, "resource", return_value=resource):
+                popup = w.reference_preview.show(
+                    w.study.tools_switcher,
+                    "Test",
+                    w.active_tab.reader,
+                    "John.3.16",
+                    provenance="OpenBible.info · CC BY 4.0\nhttps://www.openbible.info/labs/cross-references/",
+                )
+            spin(duration=0.3)
+            self.assertIsNotNone(popup)
+            x, y = screen.point(w, 0, 0)
+            for widget in (w.reference_preview.open_here, w.reference_preview.open_new):
+                px, py = screen.point(widget, 0, 0)
+                self.assertGreaterEqual(px, x)
+                self.assertGreaterEqual(py, y)
+                self.assertLessEqual(px + widget.get_width(), x + w.get_width())
+                self.assertLessEqual(py + widget.get_height(), y + w.get_height())
+            outer = popup.get_child().get_vadjustment()
+            self.assertLessEqual(outer.get_upper(), outer.get_page_size() + 1)
+            self.assertEqual(
+                w.reference_preview.body.get_buffer().props.text, "DESTINATION SIXTEEN"
+            )
         finally:
-            w.reference_preview.dismiss();settings.props.gtk_font_name=font;native.close()
+            w.reference_preview.dismiss()
+            settings.props.gtk_font_name = font
+            native.close()
 
     def setUp(self):
-        self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
-        installed_fixture(self.directory,entries=[('John.1.5','SOURCE VERSE FIVE'),('John.1.6','SOURCE VERSE SIX'),
-            ('John.3.16','DESTINATION SIXTEEN'),('John.3.17','DESTINATION SEVENTEEN'),('Ps.3.1','PSALM SOURCE')])
-        source=self.root/'data.zip'
-        digest=archive(source,'John.1.5\tJohn.3.16\t14\nJohn.1.6\tJohn.3.16\t19\nJohn.1.5\tJohn.3.17\t12\n')
-        self.source=source;self.digest=digest
-        from bible.ui import Application,Window,Library
-        app=Application.get_default() or Application();app.register()
-        self.window=Window(app,Library(self.root/'translations'));self.window.set_default_size(1100,850);self.window.present()
+        self.directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(self.directory)
+        installed_fixture(
+            self.directory,
+            entries=[
+                ("John.1.5", "SOURCE VERSE FIVE"),
+                ("John.1.6", "SOURCE VERSE SIX"),
+                ("John.3.16", "DESTINATION SIXTEEN"),
+                ("John.3.17", "DESTINATION SEVENTEEN"),
+                ("Ps.3.1", "PSALM SOURCE"),
+            ],
+        )
+        source = self.root / "data.zip"
+        digest = archive(
+            source, "John.1.5\tJohn.3.16\t14\nJohn.1.6\tJohn.3.16\t19\nJohn.1.5\tJohn.3.17\t12\n"
+        )
+        self.source = source
+        self.digest = digest
+        from bible.ui import Application, Window, Library
+
+        app = Application.get_default() or Application()
+        app.register()
+        self.window = Window(app, Library(self.root / "translations"))
+        self.window.set_default_size(1100, 850)
+        self.window.present()
 
     def tearDown(self):
         close_test_dialogs()
-        if self.window.note_editor:self.window.note_editor._discard=True
+        if self.window.note_editor:
+            self.window.note_editor._discard = True
         self.window.close()
 
     def install(self):
-        with patch.object(reference_data,'ARCHIVE_SHA256',self.digest):
+        with patch.object(reference_data, "ARCHIVE_SHA256", self.digest):
             self.window.study.references.data.install_archive(self.source)
 
-    def show(self,reference='John.1.5'):
-        w=self.window;w.active_tab.navigate('Test',reference);w.study_button.set_active(True)
-        w.study.tools.set_visible_child_name('references');w.study.references.refresh()
-        spin(lambda:not w.study.references.pending,duration=.2)
+    def show(self, reference="John.1.5"):
+        w = self.window
+        w.active_tab.navigate("Test", reference)
+        w.study_button.set_active(True)
+        w.study.tools.set_visible_child_name("references")
+        w.study.references.refresh()
+        spin(lambda: not w.study.references.pending, duration=0.2)
         return w.study.references
 
     def test_internal_viewport_marks_do_not_refresh_study_but_real_selection_does(self):
-        self.install();refs=self.show();w=self.window;tab=w.active_tab
-        buffer=tab.text.get_buffer()
-        for tool in ('references','notes'):
+        self.install()
+        refs = self.show()
+        w = self.window
+        tab = w.active_tab
+        buffer = tab.text.get_buffer()
+        for tool in ("references", "notes"):
             w.study.tools.set_visible_child_name(tool)
             buffer.place_cursor(buffer.get_start_iter())
-            spin(lambda:not refs.pending and not getattr(w.study,'_notes_idle',0))
-            with patch.object(refs,'refresh',wraps=refs.refresh) as refresh,patch.object(w.study.notes,'refresh',wraps=w.study.notes.refresh) as notes:
-                internal=buffer.create_mark(None,buffer.get_start_iter(),True)
-                for offset in range(1,min(30,buffer.get_char_count())):
-                    buffer.move_mark(internal,buffer.get_iter_at_offset(offset))
-                spin(duration=.15)
-                self.assertEqual(refresh.call_count,0,tool)
-                self.assertEqual(notes.call_count,0,tool)
+            spin(lambda: not refs.pending and not getattr(w.study, "_notes_idle", 0))
+            with (
+                patch.object(refs, "refresh", wraps=refs.refresh) as refresh,
+                patch.object(w.study.notes, "refresh", wraps=w.study.notes.refresh) as notes,
+            ):
+                internal = buffer.create_mark(None, buffer.get_start_iter(), True)
+                for offset in range(1, min(30, buffer.get_char_count())):
+                    buffer.move_mark(internal, buffer.get_iter_at_offset(offset))
+                spin(duration=0.15)
+                self.assertEqual(refresh.call_count, 0, tool)
+                self.assertEqual(notes.call_count, 0, tool)
                 buffer.delete_mark(internal)
-                buffer.select_range(buffer.get_iter_at_offset(tab._marker_ends['John.1.5']),
-                                    buffer.get_iter_at_offset(tab._verse_ranges['John.1.6'][1]))
-                spin(lambda:not refs.pending and not getattr(w.study,'_notes_idle',0))
-                self.assertGreater(refresh.call_count,0,tool)
-                self.assertEqual(refs.context[2:],('John.1.5','John.1.6'))
-                if tool=='notes':self.assertGreater(notes.call_count,0)
+                buffer.select_range(
+                    buffer.get_iter_at_offset(tab._marker_ends["John.1.5"]),
+                    buffer.get_iter_at_offset(tab._verse_ranges["John.1.6"][1]),
+                )
+                spin(lambda: not refs.pending and not getattr(w.study, "_notes_idle", 0))
+                self.assertGreater(refresh.call_count, 0, tool)
+                self.assertEqual(refs.context[2:], ("John.1.5", "John.1.6"))
+                if tool == "notes":
+                    self.assertGreater(notes.call_count, 0)
 
     def test_followed_verses_reuse_excerpts_but_another_reader_cannot_reuse_their_text(self):
-        self.install();refs=self.show();w=self.window;reader=w.active_tab.reader
-        with patch.object(reader,'chapter',wraps=reader.chapter) as chapters:
-            w.active_tab.select_verse('John.1.6')
-            spin(lambda:not refs.pending)
-            self.assertEqual(chapters.call_count,0,'The same destination excerpt was already read')
-            refs.invalidate();spin(lambda:not refs.pending)
-            self.assertGreater(chapters.call_count,0,'Explicit invalidation must revalidate excerpts')
-        installed_fixture(self.directory,'Other',entries=[('John.1.6','OTHER SOURCE'),('John.3.16','OTHER DESTINATION WORDING')])
-        w.active_tab.navigate('Other','John.1.6')
-        spin(lambda:not w.active_tab._restoring_scroll and not refs.pending)
-        button=refs.button();refs.fill(button,refs.model.get_item(0))
-        self.assertEqual(button._reference_labels[1].get_text(),'OTHER DESTINATION WORDING')
-        self.assertEqual(refs.context[0],'Other')
+        self.install()
+        refs = self.show()
+        w = self.window
+        reader = w.active_tab.reader
+        with patch.object(reader, "chapter", wraps=reader.chapter) as chapters:
+            w.active_tab.select_verse("John.1.6")
+            spin(lambda: not refs.pending)
+            self.assertEqual(
+                chapters.call_count, 0, "The same destination excerpt was already read"
+            )
+            refs.invalidate()
+            spin(lambda: not refs.pending)
+            self.assertGreater(
+                chapters.call_count, 0, "Explicit invalidation must revalidate excerpts"
+            )
+        installed_fixture(
+            self.directory,
+            "Other",
+            entries=[("John.1.6", "OTHER SOURCE"), ("John.3.16", "OTHER DESTINATION WORDING")],
+        )
+        w.active_tab.navigate("Other", "John.1.6")
+        spin(lambda: not w.active_tab._restoring_scroll and not refs.pending)
+        button = refs.button()
+        refs.fill(button, refs.model.get_item(0))
+        self.assertEqual(button._reference_labels[1].get_text(), "OTHER DESTINATION WORDING")
+        self.assertEqual(refs.context[0], "Other")
 
     def test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs(self):
-        self.install();refs=self.show();w=self.window;tab=w.active_tab
-        self.assertEqual(len(refs.rows),2)
-        before=(tab.state.reference,list(tab.state.history),w.view.get_n_pages())
-        anchor=refs.teaser_rows.get_first_child()
+        self.install()
+        refs = self.show()
+        w = self.window
+        tab = w.active_tab
+        self.assertEqual(len(refs.rows), 2)
+        before = (tab.state.reference, list(tab.state.history), w.view.get_n_pages())
+        anchor = refs.teaser_rows.get_first_child()
         # A mapped anchor is needed; use the References header in this test.
-        popover=w.reference_preview.show(w.study.tools_switcher,'Test',tab.reader,'John.3.16')
-        spin();self.assertTrue(popover.get_visible())
-        self.assertEqual(w.reference_preview.body.get_buffer().props.text,'DESTINATION SIXTEEN')
-        self.assertEqual((tab.state.reference,tab.state.history,w.view.get_n_pages()),before)
-        w.reference_preview.open_new.emit('clicked');spin()
-        self.assertEqual(w.view.get_n_pages(),before[2]+1)
-        self.assertEqual(w.active_tab.state.reference,'John.3.16')
-        self.assertEqual(w.active_tab.state.resource,'Test')
-        self.assertEqual((tab.state.reference,tab.state.history),(before[0],before[1]))
-        w.view.set_selected_page(w.view.get_page(tab));w.study_button.set_active(True);spin()
-        w.reference_preview.show(w.study.tools_switcher,'Test',tab.reader,'John.3.17');spin()
-        w.reference_preview.open_here.emit('clicked');spin()
-        self.assertEqual(tab.state.reference,'John.3.17')
-        self.assertEqual(len(tab.state.history),len(before[1])+1)
+        popover = w.reference_preview.show(w.study.tools_switcher, "Test", tab.reader, "John.3.16")
+        spin()
+        self.assertTrue(popover.get_visible())
+        self.assertEqual(w.reference_preview.body.get_buffer().props.text, "DESTINATION SIXTEEN")
+        self.assertEqual((tab.state.reference, tab.state.history, w.view.get_n_pages()), before)
+        w.reference_preview.open_new.emit("clicked")
+        spin()
+        self.assertEqual(w.view.get_n_pages(), before[2] + 1)
+        self.assertEqual(w.active_tab.state.reference, "John.3.16")
+        self.assertEqual(w.active_tab.state.resource, "Test")
+        self.assertEqual((tab.state.reference, tab.state.history), (before[0], before[1]))
+        w.view.set_selected_page(w.view.get_page(tab))
+        w.study_button.set_active(True)
+        spin()
+        w.reference_preview.show(w.study.tools_switcher, "Test", tab.reader, "John.3.17")
+        spin()
+        w.reference_preview.open_here.emit("clicked")
+        spin()
+        self.assertEqual(tab.state.reference, "John.3.17")
+        self.assertEqual(len(tab.state.history), len(before[1]) + 1)
 
     def test_range_aggregation_rapid_navigation_and_preview_dismissal(self):
-        self.install();refs=self.show();w=self.window;tab=w.active_tab
-        buffer=tab.text.get_buffer()
-        buffer.select_range(buffer.get_iter_at_offset(tab._marker_ends['John.1.5']),
-                            buffer.get_iter_at_offset(tab._verse_ranges['John.1.6'][1]))
-        spin(lambda:not refs.pending and refs.context[2:] == ('John.1.5','John.1.6'),duration=.2)
-        self.assertEqual(refs.rows[0].score,19);self.assertEqual(refs.rows[0].source_count,2)
-        w.reference_preview.show(w.study.tools_switcher,'Test',tab.reader,'John.3.16')
-        tab.navigate('Test','John.1.5');tab.navigate('Test','Ps.3.1');tab.navigate('Test','John.1.6')
-        spin(lambda:not refs.pending and refs.context[2:] == ('John.1.6','John.1.6'),duration=.2)
+        self.install()
+        refs = self.show()
+        w = self.window
+        tab = w.active_tab
+        buffer = tab.text.get_buffer()
+        buffer.select_range(
+            buffer.get_iter_at_offset(tab._marker_ends["John.1.5"]),
+            buffer.get_iter_at_offset(tab._verse_ranges["John.1.6"][1]),
+        )
+        spin(
+            lambda: not refs.pending and refs.context[2:] == ("John.1.5", "John.1.6"), duration=0.2
+        )
+        self.assertEqual(refs.rows[0].score, 19)
+        self.assertEqual(refs.rows[0].source_count, 2)
+        w.reference_preview.show(w.study.tools_switcher, "Test", tab.reader, "John.3.16")
+        tab.navigate("Test", "John.1.5")
+        tab.navigate("Test", "Ps.3.1")
+        tab.navigate("Test", "John.1.6")
+        spin(
+            lambda: not refs.pending and refs.context[2:] == ("John.1.6", "John.1.6"), duration=0.2
+        )
         self.assertIsNone(w.reference_preview.popover)
-        self.assertEqual([(r.start,r.score) for r in refs.rows],[('John.3.16',19)])
+        self.assertEqual([(r.start, r.score) for r in refs.rows], [("John.3.16", 19)])
 
     def test_missing_data_library_flow_and_offline_browse_do_not_change_bible_resources(self):
         from bible.study_resources import REFERENCE_RESOURCE_ID
-        refs=self.show();self.assertTrue(refs.download.get_visible())
-        original=self.window.library.installed()
-        with patch('bible.catalogue_window.catalogue',side_effect=AssertionError('Study data needs no SWORD refresh')):
-            refs.download.emit('clicked');dialog=self.window.catalogue_window
-            spin(lambda:dialog.pages.get_visible_child_name()=='detail',duration=.2)
+
+        refs = self.show()
+        self.assertTrue(refs.download.get_visible())
+        original = self.window.library.installed()
+        with patch(
+            "bible.catalogue_window.catalogue",
+            side_effect=AssertionError("Study data needs no SWORD refresh"),
+        ):
+            refs.download.emit("clicked")
+            dialog = self.window.catalogue_window
+            spin(lambda: dialog.pages.get_visible_child_name() == "detail", duration=0.2)
             self.assertFalse(dialog._catalogue_requested)
-            self.assertEqual(dialog.selected_resource().id,REFERENCE_RESOURCE_ID)
-            self.assertIn(reference_data.LICENSE_URL,dialog.metadata.get_text())
-            self.install();self.window.resource_installed(REFERENCE_RESOURCE_ID);dialog.filter_resources()
-            spin(lambda:not refs.pending,duration=.2)
-            self.assertTrue(dialog.installed_state.get_visible() or dialog.download_button.get_visible())
-            self.assertEqual(self.window.library.installed(),original)
-            self.assertNotIn(REFERENCE_RESOURCE_ID,self.window.library.installed('bible'))
+            self.assertEqual(dialog.selected_resource().id, REFERENCE_RESOURCE_ID)
+            self.assertIn(reference_data.LICENSE_URL, dialog.metadata.get_text())
+            self.install()
+            self.window.resource_installed(REFERENCE_RESOURCE_ID)
+            dialog.filter_resources()
+            spin(lambda: not refs.pending, duration=0.2)
+            self.assertTrue(
+                dialog.installed_state.get_visible() or dialog.download_button.get_visible()
+            )
+            self.assertEqual(self.window.library.installed(), original)
+            self.assertNotIn(REFERENCE_RESOURCE_ID, self.window.library.installed("bible"))
             self.assertTrue(refs.rows)
 
     def test_missing_local_text_keeps_preview_non_navigating_and_data_available(self):
-        self.install();refs=self.show();w=self.window;tab=w.active_tab
-        before=(tab.state.reference,list(tab.state.history))
-        w.reference_preview.show(w.study.tools_switcher,'Test',tab.reader,'Gen.1.1');spin()
+        self.install()
+        refs = self.show()
+        w = self.window
+        tab = w.active_tab
+        before = (tab.state.reference, list(tab.state.history))
+        w.reference_preview.show(w.study.tools_switcher, "Test", tab.reader, "Gen.1.1")
+        spin()
         self.assertFalse(w.reference_preview.open_here.get_sensitive())
         self.assertFalse(w.reference_preview.open_new.get_sensitive())
-        self.assertEqual((tab.state.reference,tab.state.history),before)
-        self.assertEqual(len(refs.rows),2)
-        tab.state.resource=None;tab.load_resource();w.tab_changed(tab);spin()
-        self.assertEqual(refs.rows,[])
-        self.assertEqual(refs.model.get_n_items(),0)
+        self.assertEqual((tab.state.reference, tab.state.history), before)
+        self.assertEqual(len(refs.rows), 2)
+        tab.state.resource = None
+        tab.load_resource()
+        w.tab_changed(tab)
+        spin()
+        self.assertEqual(refs.rows, [])
+        self.assertEqual(refs.model.get_n_items(), 0)
         self.assertIsNone(refs.context)
 
     def test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records(self):
         from bible.study_references import ReferenceItem
         from bible.reference_data import Relationship
         from bible.reference_preview import passage_title
-        self.install();refs=self.show();w=self.window
-        item=ReferenceItem(Relationship('John.3.16','John.3.18',20,1),refs.context,refs.generation)
-        button=refs.button();refs.fill(button,item);title,excerpt=button._reference_labels
-        self.assertEqual(title.get_text(),passage_title('John.3.16','John.3.18','KJV'))
-        self.assertNotIn('…',title.get_text());self.assertEqual(excerpt.get_lines(),3)
+
+        self.install()
+        refs = self.show()
+        w = self.window
+        item = ReferenceItem(
+            Relationship("John.3.16", "John.3.18", 20, 1), refs.context, refs.generation
+        )
+        button = refs.button()
+        refs.fill(button, item)
+        title, excerpt = button._reference_labels
+        self.assertEqual(title.get_text(), passage_title("John.3.16", "John.3.18", "KJV"))
+        self.assertNotIn("…", title.get_text())
+        self.assertEqual(excerpt.get_lines(), 3)
         self.assertTrue(excerpt.get_text())  # Missing final verse retains the complete target.
-        self.assertEqual(len(button._reference_labels),2)
-        self.assertEqual(len(refs.rows),2);self.assertFalse(refs.view_all.get_visible())
+        self.assertEqual(len(button._reference_labels), 2)
+        self.assertEqual(len(refs.rows), 2)
+        self.assertFalse(refs.view_all.get_visible())
 
     def test_all_references_and_inline_credit_preserve_source_order_and_reader(self):
         from bible.reference_data import Relationship
-        self.install();refs=self.show();w=self.window;tab=w.active_tab
-        rows=[Relationship(f'John.3.{i+1}',f'John.3.{i+1}',99-i,1) for i in range(30)]
-        refs.rows=rows;refs.populate();spin()
-        self.assertEqual(refs.model.get_n_items(),30)
+
+        self.install()
+        refs = self.show()
+        w = self.window
+        tab = w.active_tab
+        rows = [Relationship(f"John.3.{i + 1}", f"John.3.{i + 1}", 99 - i, 1) for i in range(30)]
+        refs.rows = rows
+        refs.populate()
+        spin()
+        self.assertEqual(refs.model.get_n_items(), 30)
         self.assertFalse(refs.view_all.get_visible())
-        self.assertIs(refs.footer.get_first_child(),refs.view_all)
+        self.assertIs(refs.footer.get_first_child(), refs.view_all)
         self.assertIsNotNone(refs.footer.get_ancestor(type(refs.list)))
-        before=(tab.state.reference,list(tab.state.history))
-        refs.show_all();spin();self.assertEqual(refs.model.get_n_items(),30)
-        self.assertFalse(refs.return_results.get_visible());self.assertFalse(refs.view_all.get_visible())
-        self.assertEqual(refs.rows,rows)
-        refs.show_initial();spin();self.assertEqual(refs.model.get_n_items(),30)
+        before = (tab.state.reference, list(tab.state.history))
+        refs.show_all()
+        spin()
+        self.assertEqual(refs.model.get_n_items(), 30)
         self.assertFalse(refs.return_results.get_visible())
-        self.assertEqual((tab.state.reference,tab.state.history),before)
+        self.assertFalse(refs.view_all.get_visible())
+        self.assertEqual(refs.rows, rows)
+        refs.show_initial()
+        spin()
+        self.assertEqual(refs.model.get_n_items(), 30)
+        self.assertFalse(refs.return_results.get_visible())
+        self.assertEqual((tab.state.reference, tab.state.history), before)
 
     def test_new_context_starts_at_first_card_but_manual_scroll_survives_refresh(self):
         from bible.reference_data import Relationship
-        self.install();refs=self.show()
-        refs.rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
-        refs._new_passage=True;refs.populate();spin(duration=.3)
-        adjustment=refs.scroll.get_vadjustment()
-        self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
-        self.assertEqual(adjustment.get_value(),0)
-        adjustment.set_value(250);spin()
-        previous=adjustment.get_value();refs.refresh();spin()
-        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
-        refs.owner.study.tools.set_visible_child_name('notes');spin()
-        refs.owner.study.tools.set_visible_child_name('references');spin()
-        self.assertAlmostEqual(adjustment.get_value(),previous,delta=1)
-        refs.owner.active_tab.navigate('Test','John.1.6')
-        spin(lambda:not refs.pending,duration=.3)
-        self.assertEqual(adjustment.get_value(),0)
+
+        self.install()
+        refs = self.show()
+        refs.rows = [Relationship("John.3.16", "John.3.16", 50 - i, 1) for i in range(40)]
+        refs._new_passage = True
+        refs.populate()
+        spin(duration=0.3)
+        adjustment = refs.scroll.get_vadjustment()
+        self.assertGreater(adjustment.get_upper(), adjustment.get_page_size())
+        self.assertEqual(adjustment.get_value(), 0)
+        adjustment.set_value(250)
+        spin()
+        previous = adjustment.get_value()
+        refs.refresh()
+        spin()
+        self.assertAlmostEqual(adjustment.get_value(), previous, delta=1)
+        refs.owner.study.tools.set_visible_child_name("notes")
+        spin()
+        refs.owner.study.tools.set_visible_child_name("references")
+        spin()
+        self.assertAlmostEqual(adjustment.get_value(), previous, delta=1)
+        refs.owner.active_tab.navigate("Test", "John.1.6")
+        spin(lambda: not refs.pending, duration=0.3)
+        self.assertEqual(adjustment.get_value(), 0)
 
     def test_async_data_refresh_keeps_the_manually_scrolled_list_in_place(self):
         from threading import Event
         from bible.reference_data import Relationship
-        self.install();refs=self.show()
-        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
-        refs.rows=rows;refs._new_passage=True;refs.populate();spin(duration=.3)
-        adjustment=refs.scroll.get_vadjustment();adjustment.set_value(250);spin()
-        position=adjustment.get_value();viewport=adjustment.get_page_size()
-        release=Event();updated=[Relationship(row.start,row.end,100+i,1) for i,row in enumerate(rows)]
+
+        self.install()
+        refs = self.show()
+        rows = [Relationship("John.3.16", "John.3.16", 50 - i, 1) for i in range(40)]
+        refs.rows = rows
+        refs._new_passage = True
+        refs.populate()
+        spin(duration=0.3)
+        adjustment = refs.scroll.get_vadjustment()
+        adjustment.set_value(250)
+        spin()
+        position = adjustment.get_value()
+        viewport = adjustment.get_page_size()
+        release = Event()
+        updated = [Relationship(row.start, row.end, 100 + i, 1) for i, row in enumerate(rows)]
+
         def query(*_):
             release.wait(3)
             return updated
-        with patch.object(refs.data,'query',side_effect=query):
+
+        with patch.object(refs.data, "query", side_effect=query):
             try:
-                refs.invalidate();spin(duration=.1)
+                refs.invalidate()
+                spin(duration=0.1)
                 self.assertTrue(refs.pending)
-                self.assertEqual(refs.model.get_n_items(),len(rows))
+                self.assertEqual(refs.model.get_n_items(), len(rows))
                 self.assertFalse(refs.status.get_visible())
-                self.assertEqual(adjustment.get_page_size(),viewport)
-                self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
-            finally:release.set()
-            spin(lambda:not refs.pending,duration=.3)
-        self.assertEqual(refs.rows,updated)
-        self.assertAlmostEqual(adjustment.get_value(),position,delta=4)
+                self.assertEqual(adjustment.get_page_size(), viewport)
+                self.assertAlmostEqual(adjustment.get_value(), position, delta=4)
+            finally:
+                release.set()
+            spin(lambda: not refs.pending, duration=0.3)
+        self.assertEqual(refs.rows, updated)
+        self.assertAlmostEqual(adjustment.get_value(), position, delta=4)
 
     def test_recovered_query_starts_at_first_card_after_an_empty_error_state(self):
         from bible.reference_data import Relationship
-        self.install();refs=self.show()
-        rows=[Relationship('John.3.16','John.3.16',50-i,1) for i in range(40)]
-        with patch.object(refs.data,'query',side_effect=OSError('Controlled query failure')):
-            refs.invalidate();spin(lambda:not refs.pending)
-        self.assertEqual(refs.model.get_n_items(),0)
-        with patch.object(refs.data,'query',return_value=rows):
-            refs.invalidate();spin(lambda:not refs.pending,duration=.3)
-        self.assertGreater(refs.scroll.get_vadjustment().get_upper(),refs.scroll.get_vadjustment().get_page_size())
-        self.assertEqual(refs.scroll.get_vadjustment().get_value(),0)
+
+        self.install()
+        refs = self.show()
+        rows = [Relationship("John.3.16", "John.3.16", 50 - i, 1) for i in range(40)]
+        with patch.object(refs.data, "query", side_effect=OSError("Controlled query failure")):
+            refs.invalidate()
+            spin(lambda: not refs.pending)
+        self.assertEqual(refs.model.get_n_items(), 0)
+        with patch.object(refs.data, "query", return_value=rows):
+            refs.invalidate()
+            spin(lambda: not refs.pending, duration=0.3)
+        self.assertGreater(
+            refs.scroll.get_vadjustment().get_upper(), refs.scroll.get_vadjustment().get_page_size()
+        )
+        self.assertEqual(refs.scroll.get_vadjustment().get_value(), 0)
