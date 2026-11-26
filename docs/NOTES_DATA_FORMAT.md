@@ -58,7 +58,8 @@ No reference normalization/mapping is performed during persistence or import.
 Recoloring retains the highlight UUID, creation date and original resource.
 An unchanged color/context is a no-op for metadata. Deletion removes the active
 record; a subsequent new mark gets a fresh UUID and recorded creation date.
-Revision is local edit detection, not a distributed clock. No tombstones,
+Revision is local edit detection, not a distributed clock. Wall-clock corrections
+may move modification dates backwards; dates never decide conflict precedence. No tombstones,
 partial-text offsets, sync journal or grouped marks are introduced. A future
 finer granularity requires an explicit new schema/backup migration; it must not
 reinterpret existing whole-verse marks or conflate independent note identities.

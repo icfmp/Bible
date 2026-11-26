@@ -360,3 +360,33 @@ class CompatibilityTests(unittest.TestCase):
             self.assertFalse(high.pending.exists())
             self.assertFalse(high.path.exists())
             self.assertFalse((root / "backups").exists())
+
+    def test_legacy_identity_does_not_hide_divergent_v2_provenance_or_revision(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            store = HighlightStore(root / "highlights.json")
+            store.set("KJV", ["Gen.1.1"], "yellow", "Absent")
+            raw = root / "legacy.json"
+            raw.write_text(json.dumps(legacy()))
+            normalized = payload(raw)
+            key = ("KJV", "Gen.1.1")
+            for altered in (
+                dict(normalized[key], revision=2),
+                dict(normalized[key], origin_resource="Other"),
+            ):
+                merged, conflicts = merge(store.entries, {key: altered})
+                self.assertEqual(merged, store.entries)
+                self.assertEqual(conflicts, {key: altered})
+
+    def test_wall_clock_correction_cannot_prevent_recoloring_or_reassign_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = HighlightStore(Path(d) / "highlights.json")
+            store.set("KJV", ["Gen.1.1"], "yellow", "Absent")
+            original = store.entries[("KJV", "Gen.1.1")]
+            with patch("bible.highlights.now", return_value="2000-01-01T00:00:00+00:00"):
+                store.set("KJV", ["Gen.1.1"], "blue", "Absent")
+            edited = payload(store.path)[("KJV", "Gen.1.1")]
+            self.assertEqual(edited["id"], original["id"])
+            self.assertEqual(edited["created"], original["created"])
+            self.assertEqual(edited["modified"], "2000-01-01T00:00:00+00:00")
+            self.assertEqual(edited["revision"], original["revision"] + 1)

@@ -214,6 +214,7 @@ def restore(notes, highlights, source):
                 if backup.read_bytes() != original:
                     raise ValueError("Unable to verify pre-restore backup")
                 merged, rejected = merge_marks(highlights.entries, marks)
+                encode_marks(merged)
                 if rejected:
                     data = encode_marks(marks)
                     conflict_backup = str(

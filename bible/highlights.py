@@ -80,18 +80,13 @@ def decode(value):
                 raise ValueError("Invalid highlight identifier")
             if type(mark["revision"]) is not int or mark["revision"] < 1:
                 raise ValueError("Invalid highlight revision")
-            stamps = []
             for stamp in (mark["created"], mark["modified"]):
                 if stamp is None:
-                    stamps.append(None)
-                elif (
-                    isinstance(stamp, str) and datetime.fromisoformat(stamp).utcoffset() is not None
-                ):
-                    stamps.append(datetime.fromisoformat(stamp))
-                else:
+                    continue
+                if not isinstance(stamp, str) or datetime.fromisoformat(stamp).utcoffset() is None:
                     raise ValueError("Invalid highlight date")
-            if stamps[0] is not None and (stamps[1] is None or stamps[1] < stamps[0]):
-                raise ValueError("Invalid highlight date order")
+            # Wall clocks may move backwards. Local revisions, not timestamp
+            # precedence, represent edit order; notes use the same date policy.
             if (
                 not isinstance(mark["origin_resource"], str)
                 or len(mark["origin_resource"]) > 256
@@ -212,6 +207,8 @@ def merge(current, imported):
                 mark["id"] == legacy_id
                 and mark["created"] is None
                 and mark["modified"] is None
+                and mark["revision"] == 1
+                and mark["origin_resource"] == mark["resource"]
                 and all(mark[k] == local[k] for k in LEGACY_FIELDS)
             )
             if mark != local and not identical_legacy:
@@ -382,6 +379,7 @@ class HighlightStore:
         with self.locked():
             self.check_current()
             merged, conflicts = merge(self.entries, imported)
+            encoded(merged)
             recovery = None
             if conflicts:
                 data = encoded(imported)
