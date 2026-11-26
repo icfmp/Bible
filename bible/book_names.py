@@ -1,6 +1,13 @@
 """Book-name UI metadata and French input aliases, never a list of module contents."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING
 import re
+
+if TYPE_CHECKING:
+    from .sword_provider import Book
 import unicodedata
 
 FRENCH = dict(
@@ -110,7 +117,8 @@ FRENCH.update(
 )
 
 
-def normalized(value):
+def normalized(value: str) -> str:
+    """Fold accents and punctuation for matching without changing displayed text."""
     return "".join(
         char
         for char in unicodedata.normalize("NFKD", value.casefold())
@@ -139,7 +147,7 @@ _INPUT_ALIASES.update(
 _INPUT_ALIASES.update({normalized(code): code for code in FRENCH})
 
 
-def canonical_input(reference):
+def canonical_input(reference: str) -> str:
     """Resolve full French names; let SWORD resolve its own names and abbreviations."""
     book = (
         _INPUT_ALIASES.get(normalized(reference)) if not any(c in reference for c in ".:") else None
@@ -157,11 +165,17 @@ def canonical_input(reference):
     return reference.strip()
 
 
-def display_name(code, fallback, language="en"):
+def display_name(code: str, fallback: str, language: str = "en") -> str:
+    """Localize known book names while retaining provider names as the fallback."""
     return FRENCH.get(code, fallback) if language.startswith("fr") else fallback
 
 
-def book_suggestions(text, books, language="en", native_alias=None):
+def book_suggestions(
+    text: str,
+    books: Sequence[Book],
+    language: str = "en",
+    native_alias: Callable[[str], str | None] | None = None,
+) -> tuple[tuple[str, str], ...]:
     """Optional book completion only; chapter/verse validation stays in Reader."""
     if len(text) > 256:
         return ()

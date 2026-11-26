@@ -5,6 +5,11 @@ from __future__ import annotations
 import re
 import unicodedata
 from gi.repository import Pango, GLib
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from gi.repository import Gtk
+    from .preferences import ReadingPreferences
 
 NUMBER_SCALE = 0.60
 NUMBER_COLORS = {
@@ -28,7 +33,7 @@ _INDEPENDENT_BREAKS = frozenset(
 )
 
 
-def first_word_length(body):
+def first_word_length(body: str) -> int:
     """Bound the verse-number joining span using actual script break behavior and complete combining clusters."""
     match = re.match(r"\s*\S+", body)
     if not match:
@@ -51,14 +56,17 @@ def first_word_length(body):
     return match.end()
 
 
-def number_rise(context, preferences):
+def number_rise(context: Pango.Context, preferences: ReadingPreferences) -> int:
+    """Keep superscript rise proportional to the selected body font’s actual ascent."""
     font = Pango.FontDescription(f"{preferences.font} {preferences.size}")
     # A fixed 6000-unit rise could exceed the small glyph's line box. Keep the
     # scaled ascent plus rise safely inside the actual body font ascent.
     return int(context.get_metrics(font, context.get_language()).get_ascent() * 0.22)
 
 
-def configure(tag, view, preferences, palette="white") -> None:
+def configure(
+    tag: Gtk.TextTag, view: Gtk.Widget, preferences: ReadingPreferences, palette: str = "white"
+) -> None:
     tag.props.scale = NUMBER_SCALE
     tag.props.rise = number_rise(view.get_pango_context(), preferences)
     tag.props.foreground = NUMBER_COLORS[palette]

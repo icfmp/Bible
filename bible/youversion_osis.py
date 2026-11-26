@@ -153,7 +153,7 @@ class Node:
 
     kind: str
     attrs: dict[str, str]
-    parts: list  # Ordered strings and Nodes, including child tails.
+    parts: list[str | Node]  # Ordered strings and Nodes, including child tails.
 
 
 @dataclass

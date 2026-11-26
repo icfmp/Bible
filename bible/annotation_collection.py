@@ -1,41 +1,59 @@
 """Read-only unified annotation projection; existing records keep their identity."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from typing import cast
+from .highlights import Highlight
+from .notes import Note
 from .book_names import FRENCH, normalized
 from .notes import BOOK_ORDER, parts, label_key, passage_order
 from .markdown import render
 
 
+# Historical callers may project four-field highlights before migration. The
+# current store supplies Highlight records, including nullable legacy dates.
+type _Mark = Highlight | Mapping[str, str]
+type AnnotationKey = tuple[str, ...]
+type BibleOrder = tuple[
+    int, str, tuple[int, int], int, tuple[str, tuple[int, int], int], AnnotationKey
+]
+
+
 @dataclass(frozen=True)
 class Annotation:
-    """A read-only note/highlight projection; overlap never creates persisted associations."""
+    """A read-only note/highlight projection; overlap never creates persisted associations.
 
-    key: tuple
+    records() supplies exactly one underlying note or highlight.
+    """
+
+    key: AnnotationKey
     system: str
     start: str
     end: str
     origin: str
-    note: object = None
-    mark: object = None
+    note: Note | None = None
+    mark: _Mark | None = None
 
     @property
-    def labels(self):
+    def labels(self) -> tuple[str, ...]:
         return self.note.labels if self.note else ()
 
     @property
-    def body(self):
+    def body(self) -> str:
         return self.note.body if self.note else ""
 
     @property
-    def modified(self):
-        return self.note.modified if self.note else (self.mark.get("modified") or "")
+    def modified(self) -> str:
+        return self.note.modified if self.note else (cast(_Mark, self.mark).get("modified") or "")
 
     @property
-    def color(self):
+    def color(self) -> str | None:
         return self.mark["color"] if self.mark else None
 
 
-def records(notes, marks):
+def records(notes: Iterable[Note], marks: Iterable[_Mark]) -> list[Annotation]:
     """One row per note UUID or stored (versification, verse) highlight key."""
     return [
         Annotation(("note", n.id), n.versification, n.start, n.end, n.origin_translation, note=n)
@@ -47,28 +65,28 @@ def records(notes, marks):
             m["reference"],
             m["reference"],
             m["resource"],
-            mark=dict(m),
+            mark=cast(_Mark, dict(m)),  # Copy preserves the proven source field types.
         )
         for m in marks
     ]
 
 
-def bible_order(item):
+def bible_order(item: Annotation) -> BibleOrder:
     """Build a deterministic display sort key without conflating numbering systems."""
     book, chapter, verse = passage_order(item.start)
     return BOOK_ORDER.get(book, 10000), book, chapter, verse, passage_order(item.end), item.key
 
 
 def filter_records(
-    items,
-    query="",
-    labels=(),
-    category="all",
-    book="",
-    color="",
-    order="recent",
-    reference_names=None,
-):
+    items: Iterable[Annotation],
+    query: str = "",
+    labels: Iterable[str] = (),
+    category: str = "all",
+    book: str = "",
+    color: str = "",
+    order: str = "recent",
+    reference_names: Mapping[str, str] | None = None,
+) -> list[Annotation]:
     """Filter annotation projections without mutating their underlying stored records.
 
     Date sorting retains unknown-date legacy highlights after dated records in

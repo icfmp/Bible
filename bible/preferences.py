@@ -1,10 +1,38 @@
 """Small, atomic local reading preferences independent of note/session data."""
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass
 import json
 import os
 from pathlib import Path
+from os import PathLike
+from typing import TypedDict, cast
 import tempfile
+
+
+class _Appearance(TypedDict):
+    mode: str
+    day_palette: str
+    night_palette: str
+    line_spacing: str
+    column_width: str
+
+
+class _Typography(TypedDict):
+    font_style: str
+    serif_font: str
+    sans_font: str
+    study_size: int | None
+    visible_elements_expanded: bool
+
+
+class _Layout(TypedDict):
+    line_spacing_px: int | None
+    text_width_px: int | None
+    side_margin_px: int | None
+    alignment: str
+    immersion_columns: str
 
 
 @dataclass
@@ -40,7 +68,7 @@ class ReadingPreferences:
 class Preferences:
     """Load compatible reading choices while retaining an unreadable original as non-writable."""
 
-    def __init__(self, path):
+    def __init__(self, path: str | PathLike[str]) -> None:
         self.path = Path(path)
         self.value = ReadingPreferences()
         self.error = ""
@@ -127,6 +155,8 @@ class Preferences:
                 if option not in options:
                     raise ValueError("Invalid reading layout")
                 advanced[key] = option
+            # The loops above validate every named field before the JSON boundary
+            # is narrowed. These contracts describe the existing file schema.
             self.value = ReadingPreferences(
                 font,
                 size,
@@ -136,9 +166,9 @@ class Preferences:
                 note_indicators=value.get("note_indicators", True),
                 place_markers=value.get("place_markers", True),
                 study_font=study_font,
-                **selected,
-                **advanced,
-                **typography,
+                **cast(_Appearance, selected),
+                **cast(_Layout, advanced),
+                **cast(_Typography, typography),
             )
         except FileNotFoundError:
             pass
@@ -146,7 +176,7 @@ class Preferences:
             self.error = str(error)
             self.writable = False
 
-    def save(self):
+    def save(self) -> None:
         """Atomically save reading choices only when the original preference store was writable."""
         if not self.writable:
             raise ValueError("Original preferences preserved; repair the file before saving")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
+from os import PathLike
 from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
@@ -29,7 +31,7 @@ from .topic_vocabulary import TopicVocabulary
 
 SOURCE_URL = "https://www.openbible.info/topics/"
 DOWNLOAD_URL = "https://a.openbible.info/data/topic-scores.zip"
-from .study_catalogue import BUNDLED, parse as parse_catalogue
+from .study_catalogue import ResourceRevision, BUNDLED, parse as parse_catalogue
 
 _DEFAULT = parse_catalogue(BUNDLED.read_bytes())["openbible-topics"]
 SOURCE_DATE = _DEFAULT.generation
@@ -43,7 +45,8 @@ TRANSFORMATIONS = (
 )
 
 
-def topic_header(header):
+def topic_header(header: list[str]) -> str:
+    """Validate the existing topic-column header and extract its generation date."""
     if len(header) != 4 or header[:3] != [
         "Topic",
         "OSIS",
@@ -53,7 +56,7 @@ def topic_header(header):
     return generation_date(header[3], "# Generated ", ". CC-BY License: www.openbible.info/topics")
 
 
-def parse_archive(path):
+def parse_archive(path: str | PathLike[str]) -> Iterator[tuple[str, str, str, int, int]]:
     """Yield validated source topic relationships from the single bounded archive score file."""
     path = Path(path)
     if path.stat().st_size > MAX_ARCHIVE:
@@ -72,8 +75,8 @@ def parse_archive(path):
             or entry.file_size > MAX_TEXT
         ):
             raise ReferenceDataError("Unsupported topic archive")
-        with archive.open(entry) as source:
-            raw = source.read(MAX_TEXT + 1)
+        with archive.open(entry) as raw_source:
+            raw = raw_source.read(MAX_TEXT + 1)
         if len(raw) > MAX_TEXT:
             raise ReferenceDataError("Topic expansion exceeds limit")
     source = io.StringIO(raw.decode("utf-8-sig"))
@@ -103,15 +106,15 @@ def parse_archive(path):
 class TopicData(ReferenceData):
     """Store source topic/reference relationships separately from the independently versioned display vocabulary."""
 
-    def __init__(self, root) -> None:
+    def __init__(self, root: str | PathLike[str]) -> None:
         super().__init__(root)
         self.path = self.root / "openbible-topics.sqlite3"
 
-    def metadata(self):
+    def metadata(self) -> dict[str, object]:
         """Return revision-cached checked topic metadata; raise ReferenceDataError for an unusable index."""
         try:
             revision = self.revision
-            if revision and revision == self._metadata_revision:
+            if revision and revision == self._metadata_revision and self._metadata is not None:
                 return dict(self._metadata)
             with closing(self.connect()) as connection:
                 value = json.loads(
@@ -136,8 +139,12 @@ class TopicData(ReferenceData):
             raise ReferenceDataError(str(error)) from error
 
     def install(
-        self, progress=lambda done, total: None, installing=lambda: None, *, expected_revision=""
-    ):
+        self,
+        progress: Callable[[int, int], object] = lambda done, total: None,
+        installing: Callable[[], object] = lambda: None,
+        *,
+        expected_revision: str = "",
+    ) -> dict[str, object]:
         """Check published revisions and stage changed topic/vocabulary components before replacing installed data.
 
         Reject stale metadata that would replace a differing installed revision;
@@ -170,8 +177,10 @@ class TopicData(ReferenceData):
                 "The study catalogue could not be refreshed; installed topics and vocabulary were preserved. Retry when metadata is available."
             )
         self.root.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(prefix=".topic-download-", dir=self.root) as temporary:
-            temporary = Path(temporary)
+        with tempfile.TemporaryDirectory(
+            prefix=".topic-download-", dir=self.root
+        ) as temporary_name:
+            temporary = Path(temporary_name)
             vocabulary_path = None
             candidate = None
             try:
@@ -211,7 +220,9 @@ class TopicData(ReferenceData):
                 raise ReferenceDataError(str(error)) from error
         return self.metadata()
 
-    def install_archive(self, path, *, revision=None):
+    def install_archive(
+        self, path: str | PathLike[str], *, revision: ResourceRevision | None = None
+    ) -> dict[str, object]:
         """Validate a supplied archive against its revision and publish the staged integrity-checked SQLite index."""
         path = Path(path)
         expected = revision.sha256 if revision else ARCHIVE_SHA256
@@ -264,7 +275,7 @@ class TopicData(ReferenceData):
             os.replace(candidate, self.path)
         return value
 
-    def query(self, topic):
+    def query(self, topic: object) -> list[Relationship]:
         """Return at most 1,000 source-recorded passage relationships for the exact requested topic."""
         if (
             not isinstance(topic, str)
@@ -282,7 +293,8 @@ class TopicData(ReferenceData):
             ).fetchall()
         return [Relationship(*row) for row in rows]
 
-    def identifiers(self):
+    def identifiers(self) -> frozenset[str]:
+        """Return exact source topic identities from the checked installed index."""
         self.metadata()
         with closing(self.connect()) as connection:
             return frozenset(

@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING
 import re
+
+if TYPE_CHECKING:
+    from gi.repository import Gtk
+    from .library import Resource
+    from .markdown import StyleSpan
 from .resource_details import linkable_url
 
 
-def approved_profile(resource, catalogue, locale):
+def approved_profile(
+    resource: Resource, catalogue: Iterable[Resource], locale: str
+) -> tuple[str, str, Mapping[str, object]] | None:
     """Select source-reported approved prose only for a matching installed edition identity.
 
     Prefer the interface language, then English/available supplied profiles;
@@ -69,12 +78,12 @@ def approved_profile(resource, catalogue, locale):
     return None
 
 
-def profile_text(source):
+def profile_text(source: str) -> tuple[str, list[StyleSpan]]:
     """Existing inert inline Markdown with native block heading styles."""
     from .markdown import render
 
     text = []
-    spans = []
+    spans: list[StyleSpan] = []
     offset = 0
     for line in source.splitlines(keepends=True):
         heading = re.match(r"^ {0,3}(#{1,6})\s+(.+?)(?:\s+#+)?(\n?)$", line)
@@ -87,7 +96,7 @@ def profile_text(source):
     return "".join(text), spans
 
 
-def present_profile(label, source) -> None:
+def present_profile(label: Gtk.Label, source: str) -> None:
     """Apply supported inert profile styles using UTF-8 byte ranges required by Pango."""
     from gi.repository import Pango
 

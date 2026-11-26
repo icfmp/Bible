@@ -2,14 +2,48 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Literal, cast, overload
 from gi.repository import Gtk, Pango
 
+if TYPE_CHECKING:
+    # These contracts describe attributes attached by the factory below. They
+    # introduce no runtime subclasses or additional GTK GTypes.
+    class ButtonCard(Gtk.Button):
+        _card_content: Gtk.Box
+        _reference_labels: tuple[Gtk.Label, Gtk.Label]
+        primary_action: Gtk.Button
 
-def passage_card(*, compound: bool = False):
+    class CompoundCard(Gtk.Box):
+        _card_content: Gtk.Box
+        _reference_labels: tuple[Gtk.Label, Gtk.Label]
+        primary_action: Gtk.Button
+
+
+type PassageCard = ButtonCard | CompoundCard
+
+
+@overload
+def passage_card(*, compound: Literal[False] = False) -> ButtonCard: ...
+
+
+@overload
+def passage_card(*, compound: Literal[True]) -> CompoundCard: ...
+
+
+@overload
+def passage_card(*, compound: bool) -> PassageCard: ...
+
+
+def passage_card(*, compound: bool = False) -> PassageCard:
     # Cards with embedded links need a native composite instead of nesting
     # competing interactive descendants inside a GtkButton.
     """Build the shared native reference/excerpt card, optionally leaving actions to a compound container."""
-    button = Gtk.Box(orientation=Gtk.Orientation.VERTICAL) if compound else Gtk.Button()
+    button = (
+        cast("CompoundCard", Gtk.Box(orientation=Gtk.Orientation.VERTICAL))
+        if compound
+        else cast("ButtonCard", Gtk.Button())
+    )
     for name in ("card", "annotation-card", "reference-card", "action-card"):
         button.add_css_class(name)
     button.set_cursor_from_name("pointer")
@@ -34,7 +68,7 @@ def passage_card(*, compound: bool = False):
     header.append(arrow)
     content.append(header)
     content.append(text)
-    if compound:
+    if isinstance(button, Gtk.Box):
         button.append(content)
     else:
         button.set_child(content)
@@ -43,10 +77,18 @@ def passage_card(*, compound: bool = False):
     return button
 
 
-def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()) -> None:
+def bind_card_actions(
+    card: PassageCard,
+    activate: Callable[[], object],
+    *,
+    secondary: Gtk.Widget | None = None,
+    label: str = "",
+    ignore: tuple[type[Gtk.Widget], ...] = (),
+) -> None:
     """Independent native controls on one shared, full-width card surface."""
     content = card._card_content
-    header = content.get_first_child()
+    # The factory always places this header first and its arrow last.
+    header = cast(Gtk.Box, content.get_first_child())
     content.remove(header)
     title, _ = card._reference_labels
     action = Gtk.Button(child=header, hexpand=secondary is None)
@@ -58,7 +100,7 @@ def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()) ->
     row.append(action)
     content.prepend(row)
     if secondary is not None:
-        arrow = header.get_last_child()
+        arrow = cast(Gtk.Widget, header.get_last_child())
         header.remove(arrow)
         title.set_hexpand(False)
         title.set_width_chars(-1)
@@ -70,7 +112,7 @@ def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()) ->
         row.append(arrow)
     click = Gtk.GestureClick(button=1)
 
-    def clicked(_: object, count, x, y) -> None:
+    def clicked(_: object, count: int, x: float, y: float) -> None:
         if count != 1:
             return
         target = card.pick(x, y, Gtk.PickFlags.DEFAULT)

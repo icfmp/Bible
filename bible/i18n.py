@@ -482,7 +482,8 @@ LANGUAGE = os.environ.get("LANGUAGE") or locale.getlocale()[0] or "en"
 
 # Read only the real application's saved language before constructing any UI.
 # An explicit Library resource-language choice remains independent.
-def _application_language(system):
+def _application_language(system: str) -> str:
+    """Read the saved interface choice without making malformed settings fatal."""
     import json
     from pathlib import Path
 
@@ -516,7 +517,7 @@ except locale.Error:
     _native_collation = False
 
 
-def collation_key(text):
+def collation_key(text: str) -> str:
     """Use locale collation with a case/accent fallback when native language collation is unavailable."""
     value = text.casefold()
     if not _native_collation:
@@ -530,7 +531,8 @@ def collation_key(text):
     return locale.strxfrm(value)
 
 
-def tr(message):
+def tr(message: str) -> str:
+    """Translate interface messages while retaining unknown English source strings."""
     return FR.get(message, message) if LANGUAGE.startswith("fr") else message
 
 

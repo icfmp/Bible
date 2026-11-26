@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from os import PathLike
 from dataclasses import dataclass
 from datetime import date
 import hashlib
@@ -34,7 +36,7 @@ class ResourceRevision:
     format: str
     url: str
 
-    def verify(self, path) -> None:
+    def verify(self, path: str | PathLike[str]) -> None:
         """Reject symbolic links or bytes that do not match this published archive size and SHA-256."""
         path = Path(path)
         if (
@@ -47,7 +49,7 @@ class ResourceRevision:
             )
 
 
-def parse(data):
+def parse(data: bytes) -> dict[str, ResourceRevision]:
     """Validate bounded study catalogue schema, identities, formats and allowed archive origins."""
     if len(data) > MAX_CATALOGUE:
         raise ValueError("Study catalogue is too large")
@@ -108,7 +110,7 @@ def parse(data):
     return result
 
 
-def atomic_write(path, data) -> None:
+def atomic_write(path: str | PathLike[str], data: bytes) -> None:
     """Flush bytes to a sibling temporary file and replace the destination after a complete write."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,11 +132,11 @@ def atomic_write(path, data) -> None:
 class StudyCatalogue:
     """Read checked local/bundled archive metadata and explicitly refresh it from the existing origin."""
 
-    def __init__(self, root) -> None:
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.root = Path(root)
         self.path = self.root / "resource-catalogue.json"
 
-    def load(self):
+    def load(self) -> dict[str, ResourceRevision]:
         """Use saved checked metadata when valid, otherwise fall back to the bundled catalogue."""
         try:
             if self.path.is_symlink() or self.path.stat().st_size > MAX_CATALOGUE:
@@ -143,7 +145,7 @@ class StudyCatalogue:
         except (OSError, ValueError, TypeError, KeyError):
             return parse(BUNDLED.read_bytes())
 
-    def refresh(self):
+    def refresh(self) -> dict[str, ResourceRevision]:
         """Fetch and validate bounded metadata before atomically replacing the saved catalogue.
 
         This performs blocking network I/O and belongs on a worker.
@@ -158,8 +160,13 @@ class StudyCatalogue:
         return value
 
     def download(
-        self, identifier, destination, progress=lambda done, total: None, *, revision=None
-    ):
+        self,
+        identifier: str,
+        destination: str | PathLike[str],
+        progress: Callable[[int, int], object] = lambda done, total: None,
+        *,
+        revision: ResourceRevision | None = None,
+    ) -> ResourceRevision:
         """Download the selected revision to a staging destination and verify its exact size and digest."""
         from .library import download
 

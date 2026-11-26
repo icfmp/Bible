@@ -5,7 +5,7 @@ from gi.repository import Gtk, GLib, Pango
 from .i18n import tr
 
 
-def source_credit(provenance):
+def source_credit(provenance: str) -> Gtk.Label:
     """Create a compact accessible attribution from escaped supplied provenance and HTTPS links."""
     lines = provenance.splitlines()
     caption = lines[0] if lines else ""

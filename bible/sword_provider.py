@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+from os import PathLike
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -142,7 +144,9 @@ def passage_verses(reader, references, chapter_cache=None):
 class NativeToolReader:
     """Native handles for installed non-verse tools; no invented resource data."""
 
-    def __init__(self, root, name) -> None:
+    drivers: ClassVar[set[str]]
+
+    def __init__(self, root: str | PathLike[str], name: str) -> None:
         import Sword
         from .module_lifecycle import reader_lease
         from .providers import module_name
@@ -150,10 +154,11 @@ class NativeToolReader:
         self.root = Path(root)
         reader_lease(self, self.root)
         self.manager = Sword.SWMgr(str(root))
-        self.module = self.manager.getModule(module_name(name))
+        module = self.manager.getModule(module_name(name))
         self.sword = Sword
-        if self.module is None or self.module.getConfigEntry("ModDrv") not in self.drivers:
+        if module is None or module.getConfigEntry("ModDrv") not in self.drivers:
             raise ValueError("Unsupported native tool module")
+        self.module = module
 
 
 class DictionaryReader(NativeToolReader):
@@ -229,11 +234,12 @@ class Reader:
         self.manager = Sword.SWMgr(str(root))
         from .providers import module_name
 
-        self.module = self.manager.getModule(module_name(name))
-        if self.module is None:
+        module = self.manager.getModule(module_name(name))
+        if module is None:
             raise ValueError(f"SWORD cannot open {name}")
-        if self.module.getConfigEntry("ModDrv") not in self.drivers:
+        if module.getConfigEntry("ModDrv") not in self.drivers:
             raise ValueError("Unsupported resource type")
+        self.module = module
         self.versification = self.module.getConfigEntry("Versification") or "KJV"
         short = self.module.getConfigEntry("Abbreviation") or module_name(name)
         self.short_name = (

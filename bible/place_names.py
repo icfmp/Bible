@@ -93,7 +93,7 @@ FRENCH = {
 }
 
 
-def place_name(name):
+def place_name(name: str) -> str:
     if not LANGUAGE.startswith("fr"):
         return name
     base, space, number = name.rpartition(" ")
