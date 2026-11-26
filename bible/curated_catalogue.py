@@ -6,38 +6,60 @@ the publisher's SWORD configuration supplies driver, attribution and rights.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .library import Resource, CatalogueTimings
+    from .providers import Provider
+
 from dataclasses import replace
 import hashlib
 import io
 import json
 import re
 import time
-from .module_updates import parse_catalogue
+from pathlib import Path
+from .module_updates import parse_catalogue, _CatalogueModule
 from .providers import BIBLE_RESOURCES
 
 
-def entries(data):
+class CuratedEdition(_CatalogueModule):
+    """Existing catalogue identity plus edition fields verified by this adapter."""
+
+    canonical_edition_id: str
+    language: str
+    category: str
+    versification: str
+    title: dict[str, str]
+
+
+def entries(data: bytes) -> list[CuratedEdition]:
     """Validate published edition/package identities and omit unsupported dictionaries from install choices."""
     value = parse_catalogue(data)
-    seen = set()
-    editions = set()
-    modules = set()
+    seen: set[str] = set()
+    editions: set[tuple[str, str]] = set()
+    modules: set[str] = set()
     for entry in value["modules"]:
         canonical = entry.get("canonical_edition_id")
+        language = entry.get("language")
+        category = entry.get("category")
+        versification = entry.get("versification")
+        title = entry.get("title")
         if (
             not isinstance(canonical, str)
             or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,199}", canonical)
-            or not isinstance(entry.get("language"), str)
-            or not entry["language"]
-            or entry.get("category") not in ("bible", "commentary", "dictionary")
-            or entry["category"] != "dictionary"
-            and (not isinstance(entry.get("versification"), str) or not entry["versification"])
-            or not isinstance(entry.get("title"), dict)
+            or not isinstance(language, str)
+            or not language
+            or category not in ("bible", "commentary", "dictionary")
+            or category != "dictionary"
+            and (not isinstance(versification, str) or not versification)
+            or not isinstance(title, dict)
             or not all(
                 isinstance(k, str) and isinstance(v, str) and 0 < len(v) <= 500
-                for k, v in entry["title"].items()
+                for k, v in title.items()
             )
-            or not entry["title"]
+            or not title
         ):
             raise ValueError("Incomplete curated edition metadata")
         if (
@@ -55,10 +77,20 @@ def entries(data):
     # records must not block them, but remain unavailable until their separate
     # integration is developed. Validate shared identity/integrity above even
     # for ignored records; never invent a dictionary versification.
-    return [entry for entry in value["modules"] if entry["category"] != "dictionary"]
+    # Shared identity is already checked; the filter excludes dictionaries for
+    # which this adapter deliberately does not require verse numbering.
+    return [
+        cast(CuratedEdition, entry)
+        for entry in value["modules"]
+        if entry.get("category") != "dictionary"
+    ]
 
 
-def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
+def catalogue(
+    provider: Provider = BIBLE_RESOURCES,
+    timings: CatalogueTimings | None = None,
+    validators: Mapping[str, str] | None = None,
+) -> list[Resource]:
     """Fetch bounded publisher metadata and require JSON identities to agree with its SWORD configurations.
 
     Run blocking network work outside the GTK loop. A mismatched publication
@@ -72,7 +104,7 @@ def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
     for key, name in (("ETag", "If-None-Match"), ("Last-Modified", "If-Modified-Since")):
         if validators and key in validators:
             headers[name] = validators[key]
-    received = {}
+    received: dict[str, str] = {}
     download(
         provider.catalogue_url,
         data,
@@ -84,17 +116,22 @@ def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
     if not records:
         if timings is not None:
             timings.update(
-                requests=1, metadata_bytes=data.tell(), validators=received, http_status=200
+                {
+                    "requests": 1,
+                    "metadata_bytes": data.tell(),
+                    "validators": received,
+                    "http_status": 200,
+                }
             )
         return []
     metadata = io.BytesIO()
     download(provider.url + "sword/mods.d.tar.gz", metadata, limit=8 * 1024 * 1024)
     resources = parse_sword_catalogue(metadata.getvalue(), provider)
-    configs = {}
-    for resource in resources:
-        if resource.name in configs:
+    configs: dict[str, Resource] = {}
+    for listed in resources:
+        if listed.name in configs:
             raise ValueError("Duplicate SWORD catalogue configuration")
-        configs[resource.name] = resource
+        configs[listed.name] = listed
     result = []
     for entry in records:
         resource = configs.get(entry["sword_id"])
@@ -115,16 +152,18 @@ def catalogue(provider=BIBLE_RESOURCES, timings=None, validators=None):
         )
     if timings is not None:
         timings.update(
-            requests=2,
-            metadata_bytes=data.tell() + metadata.tell(),
-            validators=received,
-            http_status=200,
-            network_seconds=time.monotonic() - started,
+            {
+                "requests": 2,
+                "metadata_bytes": data.tell() + metadata.tell(),
+                "validators": received,
+                "http_status": 200,
+                "network_seconds": time.monotonic() - started,
+            }
         )
     return result
 
 
-def package_record(resource):
+def package_record(resource: Resource) -> CuratedEdition:
     """Recover and revalidate the exact published package identity retained in a resource acquisition receipt."""
     value = json.loads(resource.acquisition)
     if not isinstance(value, dict) or value.get("catalogue_url") != BIBLE_RESOURCES.catalogue_url:
@@ -154,7 +193,8 @@ def package_record(resource):
     return entry
 
 
-def verify_package(path, entry) -> None:
+def verify_package(path: Path, entry: CuratedEdition) -> None:
+    """Verify exact catalogue byte length and SHA-256 before reading package contents."""
     if path.stat().st_size != entry["download"]["size_bytes"]:
         raise ValueError("Curated package size does not match its catalogue")
     with path.open("rb") as stream:

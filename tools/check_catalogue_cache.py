@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from bible.providers import Provider
-from bible.library import Resource
+from bible.library import Resource, CatalogueTimings
 
 import argparse
 import json
@@ -28,7 +28,7 @@ def main() -> None:
             provider: Provider,
             items: Sequence[Resource],
             error: str | None,
-            timings: dict[str, float | int | str],
+            timings: CatalogueTimings,
         ) -> None:
             events.append(
                 dict(

@@ -107,9 +107,10 @@ def installed_modules(
                             metadata = json.loads((root / ".source.json").read_text())
                             if not isinstance(metadata, dict):
                                 raise ValueError("Invalid source receipt")
-                            source = metadata.get("url", metadata.get("source_url", ""))
-                            if not isinstance(source, str):
+                            raw_source = metadata.get("url", metadata.get("source_url", ""))
+                            if not isinstance(raw_source, str):
                                 raise ValueError("Invalid source origin")
+                            source = raw_source
                         except (OSError, ValueError, TypeError) as error:
                             errors.append((str(root), str(error)))
                             source = ""
