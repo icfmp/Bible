@@ -20,7 +20,7 @@ class Annotation:
     @property
     def body(self):return self.note.body if self.note else ''
     @property
-    def modified(self):return self.note.modified if self.note else ''
+    def modified(self):return self.note.modified if self.note else (self.mark.get('modified') or '')
     @property
     def color(self):return self.mark['color'] if self.mark else None
 
@@ -51,8 +51,8 @@ def filter_records(items,query='',labels=(),category='all',book='',color='',orde
         if not all(word in text for word in words):continue
         result.append(item)
     result.sort(key=bible_order)
-    # Highlight storage has no timestamps. Do not invent modification dates:
-    # keep those in Bible order after the dated notes.
+    # Legacy highlights have unknown dates; keep them in Bible order after
+    # records with actual recorded modification dates.
     if order in ('recent','oldest'):
         dated=[item for item in result if item.modified];undated=[item for item in result if not item.modified]
         dated.sort(key=lambda item:(item.modified,item.key),reverse=order=='recent')

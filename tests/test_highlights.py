@@ -25,7 +25,7 @@ class HighlightStoreTests(unittest.TestCase):
     def test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'highlights.json'
-            for original in ('{broken','{"version":2,"marks":[]}','{"version":true,"marks":[]}'):
+            for original in ('{broken','{"version":99,"marks":[]}','{"version":true,"marks":[]}'):
                 path.write_text(original);store=HighlightStore(path)
                 self.assertTrue(store.error)
                 with self.assertRaises(ValueError):store.set('KJV',['Gen.1.1'],'yellow','Test')
@@ -42,4 +42,4 @@ class HighlightStoreTests(unittest.TestCase):
             with patch('bible.highlights.os.replace',side_effect=OSError('interrupted')):
                 with self.assertRaises(OSError):store.set('KJV',['Gen.1.1'],'blue','Test')
             self.assertEqual(path.read_bytes(),before);self.assertEqual(store.entries,entries)
-            self.assertEqual(list(Path(directory).iterdir()),[path])
+            self.assertEqual(sorted(p.name for p in Path(directory).iterdir()),['highlights.json','highlights.json.lock'])
