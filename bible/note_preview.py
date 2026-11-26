@@ -2,16 +2,52 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Literal, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .citations import Citation
+
 from gi.repository import Gtk, Pango, Gdk
 from .markdown import render
 from .i18n import tr
 
 
+type FocusDirection = (
+    Gtk.DirectionType
+    | Literal[
+        "GTK_DIR_DOWN",
+        "GTK_DIR_LEFT",
+        "GTK_DIR_RIGHT",
+        "GTK_DIR_TAB_BACKWARD",
+        "GTK_DIR_TAB_FORWARD",
+        "GTK_DIR_UP",
+        "down",
+        "left",
+        "right",
+        "tab-backward",
+        "tab-forward",
+        "up",
+    ]
+)
+
+
 class NotePreview(Gtk.TextView):
     """Render inert note Markdown and bounded local-reference previews without rewriting saved notes."""
 
-    def __init__(self, *, owner=None, system=None, navigation_guard=None, **kwargs) -> None:
-        super().__init__(
+    def __init__(
+        self,
+        *,
+        owner: Window | None = None,
+        system: str | None = None,
+        navigation_guard: Callable[[Callable[[], None]], None] | None = None,
+        **kwargs: object,
+    ) -> None:
+        # GObject validates this public bag of native construction properties.
+        # Keep that boundary dynamic without weakening the note/citation model.
+        initialize = cast(Callable[..., None], super().__init__)
+        initialize(
             editable=False,
             cursor_visible=False,
             wrap_mode=Gtk.WrapMode.WORD_CHAR,
@@ -25,9 +61,9 @@ class NotePreview(Gtk.TextView):
         self.owner = owner
         self.system = system
         self.navigation_guard = navigation_guard
-        self.citations = []
+        self.citations: list[Citation] = []
         self._citation_focus = -1
-        self._pressed = None
+        self._pressed: tuple[int, float, float] | None = None
         self.set_accepts_tab(False)
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr("Safe preview")])
         buffer = self.get_buffer()
@@ -49,7 +85,7 @@ class NotePreview(Gtk.TextView):
         keys.connect("key-pressed", self.key_pressed)
         self.add_controller(keys)
 
-    def set_source(self, source) -> None:
+    def set_source(self, source: str) -> None:
         """Replace preview tags/citations and dismiss any anchored preview of the previous text."""
         if self.owner:
             preview = self.owner.reference_preview.popover
@@ -76,18 +112,20 @@ class NotePreview(Gtk.TextView):
             tr("Bible references: Tab to choose, Enter to preview.") if self.citations else None
         )
 
-    def at_offset(self, offset):
+    def at_offset(self, offset: int) -> int | None:
+        """Find the citation containing a half-open display-buffer offset."""
         return next((i for i, c in enumerate(self.citations) if c.begin <= offset < c.finish), None)
 
-    def at_point(self, x, y):
+    def at_point(self, x: float, y: float) -> int | None:
+        """Resolve widget coordinates through GTK without guessing a passage."""
         bx, by = self.window_to_buffer_coords(Gtk.TextWindowType.WIDGET, int(x), int(y))
         found, iterator = self.get_iter_at_location(bx, by)
         return self.at_offset(iterator.get_offset()) if found else None
 
-    def pressed(self, _: object, count, x, y) -> None:
+    def pressed(self, _: Gtk.GestureClick, count: int, x: float, y: float) -> None:
         self._pressed = (count, x, y)
 
-    def released(self, _: object, count, x, y) -> None:
+    def released(self, _: object, count: int, x: float, y: float) -> None:
         if not self._pressed:
             return
         previous, px, py = self._pressed
@@ -98,12 +136,12 @@ class NotePreview(Gtk.TextView):
             return
         index = self.at_point(x, y)
         if index is not None:
-            self.activate(index)
+            self.activate_citation(index)
 
-    def motion(self, _: object, x, y) -> None:
+    def motion(self, _: Gtk.EventControllerMotion, x: float, y: float) -> None:
         self.set_cursor_from_name("pointer" if self.at_point(x, y) is not None else "text")
 
-    def do_focus(self, direction):
+    def do_focus(self, direction: FocusDirection) -> bool:
         """Traverse recognized citations with Tab before yielding native focus to surrounding controls."""
         if self.citations and direction in (
             Gtk.DirectionType.TAB_FORWARD,
@@ -130,18 +168,18 @@ class NotePreview(Gtk.TextView):
             return False
         return Gtk.TextView.do_focus(self, direction)
 
-    def key_pressed(self, _: object, key, code: object, state) -> bool:
+    def key_pressed(self, _: object, key: int, code: object, state: Gdk.ModifierType) -> bool:
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space) and not state & (
             Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK
         ):
             offset = self.get_buffer().get_iter_at_mark(self.get_buffer().get_insert()).get_offset()
             index = self.at_offset(offset)
             if index is not None:
-                self.activate(index)
+                self.activate_citation(index)
                 return True
         return False
 
-    def activate(self, index) -> None:
+    def activate_citation(self, index: int) -> None:
         """Preview a recognized citation in the active reader through the existing draft/navigation guard."""
         if not self.owner or self.owner.closed or not 0 <= index < len(self.citations):
             return

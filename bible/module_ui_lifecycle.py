@@ -2,42 +2,64 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Protocol, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .library import Library
+    from .reading_tab import ReadingTab
+    from .sword_provider import Reader
+    from .pagination import Anchor
+    from .catalogue_session import CatalogueSession
+
 import gc
 from pathlib import Path
 from threading import Event
-from gi.repository import GLib
+from gi.repository import GLib, Gtk
 from .i18n import tr
 from .module_lifecycle import changing
 
 
-def clear_view(view) -> None:
+def clear_view(view: Gtk.TextView) -> None:
+    """Detach native inline children before clearing text and transient source offsets."""
     # Child anchors must be unmapped while their text tree is still intact.
     for button in getattr(view, "_inline_buttons", ()):
         view.remove(button)
-    view._inline_buttons = []
+    setattr(view, "_inline_buttons", [])
     view.get_buffer().set_text("")
-    view._verse_fragments = ()
-    view._verse_labels = {}
+    setattr(view, "_verse_fragments", ())
+    setattr(view, "_verse_labels", {})
+
+
+class _ResourceDialog(Protocol):
+    """Read-only ownership needed to quiesce a resource-details operation."""
+
+    @property
+    def owner(self) -> Window: ...
+
+    @property
+    def library(self) -> Library: ...
 
 
 class ModuleViewChange:
     """Bridge a worker file switch to GTK-owned native-reader release and later view restoration."""
 
-    def __init__(self, dialog, identifier) -> None:
+    def __init__(self, dialog: _ResourceDialog, identifier: str) -> None:
         self.dialog = dialog
         self.identifier = identifier
         self.root = (dialog.library.root / identifier).resolve()
-        self.windows = []
+        self.windows: list[Window] = []
         self.paused = False
-        self.tabs = []
+        self.tabs: list[tuple[Window, ReadingTab, bool, bool, Anchor | None]] = []
 
-    def matches(self, reader):
+    def matches(self, reader: Reader | None) -> bool:
+        """Match the resolved module root rather than a title or translation label."""
         return bool(reader and Path(reader.root).resolve() == self.root)
 
     def before_switch(self, identifier: object) -> None:
         """Wait boundedly for GTK to quiesce consumers; propagate cancellation or release failure."""
         done = Event()
-        errors = []
+        errors: list[Exception] = []
 
         def prepare() -> bool:
             try:
@@ -71,9 +93,13 @@ class ModuleViewChange:
         """
         from .ui import Window
 
+        key: tuple[Reader, object] | None
+        reader: Reader | None
+
         changing(self.root, True)
         self.paused = True
-        for window in self.dialog.owner.get_application().get_windows():
+        application = cast(Gtk.Application, self.dialog.owner.get_application())
+        for window in application.get_windows():
             if (
                 not isinstance(window, Window)
                 or window.closed
@@ -95,8 +121,8 @@ class ModuleViewChange:
                 annotations = getattr(tab.inline_markers, "annotations", None)
                 if annotations:
                     annotations.clear()
-                tab.text._highlight_paint_state = None
-                tab.comparison_text._highlight_paint_state = None
+                setattr(tab.text, "_highlight_paint_state", None)
+                setattr(tab.comparison_text, "_highlight_paint_state", None)
             window.reading_sync.driver = None
             window.reading_sync.needs_sync = False
             window.passage_actions.dismiss()
@@ -239,8 +265,9 @@ class ModuleViewChange:
             for tab in window.tabs():
                 tab.update_highlights()
                 tab.update_notes(force=True)
-            if getattr(window, "catalogue_session", None):
-                window.catalogue_session.reload_installed()
+            session = cast("CatalogueSession | None", getattr(window, "catalogue_session", None))
+            if session:
+                session.reload_installed()
             window.study.refresh(force=True)
             window.primary_version.sync()
             window.compared_version.sync()

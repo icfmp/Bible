@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from gi.repository import Adw, GLib, Gtk, Pango
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+
+from gi.repository import Adw, Gio, GLib, Gtk, Pango
 from .i18n import tr
 from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width, side_margin
 
@@ -10,7 +16,7 @@ from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width, side_mar
 class ReadingSettings:
     """Expose full native content-reading settings through the same preference/update path as Aa."""
 
-    def __init__(self, owner, dialog) -> None:
+    def __init__(self, owner: Window, dialog: Adw.PreferencesDialog) -> None:
         self.owner = owner
         self.dialog = dialog
         self.syncing = True
@@ -19,7 +25,9 @@ class ReadingSettings:
         )
         self.families = {
             family.get_name().casefold(): family
-            for family in self.page.get_pango_context().get_font_map().list_families()
+            for family in cast(
+                Pango.FontMap, self.page.get_pango_context().get_font_map()
+            ).list_families()
         }
         self.typography_heading = Adw.PreferencesGroup(title=tr("Typography"))
         self.page.add(self.typography_heading)
@@ -84,7 +92,7 @@ class ReadingSettings:
             "mode",
             [("system", "System"), ("day", "Light"), ("night", "Dark")],
         )
-        self.palettes = {}
+        self.palettes: dict[str, Gtk.ToggleButton] = {}
         self.palette_grid = Gtk.Grid(
             column_homogeneous=True,
             row_homogeneous=True,
@@ -129,13 +137,13 @@ class ReadingSettings:
         self.page.set_sensitive(owner.preferences.writable)
         self.sync()
 
-    def family(self, group, title, key):
+    def family(self, group: Adw.PreferencesGroup, title: str, key: str) -> Gtk.Button:
         """Choose an actual native font family asynchronously without silently replacing an unavailable saved choice."""
         row = Adw.ActionRow(title=tr(title))
         preview = Gtk.Label(ellipsize=Pango.EllipsizeMode.END, max_width_chars=22)
         chooser = Gtk.Button(child=preview, valign=Gtk.Align.CENTER)
-        chooser._family_row = row
-        chooser._family_preview = preview
+        setattr(chooser, "_family_row", row)
+        setattr(chooser, "_family_preview", preview)
         native = Gtk.FontDialog(title=tr(title))
 
         def choose(*_: object) -> None:
@@ -148,7 +156,7 @@ class ReadingSettings:
             }.get(saved.casefold(), saved)
             initial = self.families.get(alias.casefold())
 
-            def chosen(dialog, result) -> None:
+            def chosen(dialog: Gtk.FontDialog, result: Gio.AsyncResult) -> None:
                 try:
                     family = dialog.choose_family_finish(result)
                 except GLib.Error as error:
@@ -158,7 +166,7 @@ class ReadingSettings:
                 if family and not self.owner.closed and self.dialog.get_visible():
                     self.update(key, family.get_name())
 
-            native.choose_family(self.dialog.get_native(), initial, None, chosen)
+            native.choose_family(cast(Gtk.Window, self.dialog.get_native()), initial, None, chosen)
 
         chooser.connect("clicked", choose)
         row.add_suffix(chooser)
@@ -166,7 +174,17 @@ class ReadingSettings:
         group.add(row)
         return chooser
 
-    def number(self, group, title, key, low, high, step=1, hint=None):
+    def number(
+        self,
+        group: Adw.PreferencesGroup,
+        title: str,
+        key: str,
+        low: int,
+        high: int,
+        step: int = 1,
+        hint: str | None = None,
+    ) -> Adw.SpinRow:
+        """Bind a bounded integer control to the shared saved reading setting."""
         row = Adw.SpinRow.new_with_range(low, high, step)
         row.set_title(tr(title))
         if hint:
@@ -175,12 +193,18 @@ class ReadingSettings:
         group.add(row)
         return row
 
-    def choice(self, group, title, key, values):
+    def choice(
+        self,
+        group: Adw.PreferencesGroup,
+        title: str,
+        key: str,
+        values: Sequence[tuple[str, str]],
+    ) -> Adw.ComboRow:
         """Create a native saved-value combo row for a documented reading setting."""
         row = Adw.ComboRow(
             title=tr(title), model=Gtk.StringList.new([tr(label) for _, label in values])
         )
-        row._reading_values = [value for value, _ in values]
+        setattr(row, "_reading_values", [value for value, _ in values])
         row.connect(
             "notify::selected",
             lambda widget, *_: self.update(key, values[widget.get_selected()][0])
@@ -190,7 +214,7 @@ class ReadingSettings:
         group.add(row)
         return row
 
-    def update(self, key, value) -> None:
+    def update(self, key: str, value: str | int) -> None:
         """Reuse equivalent presets where possible and defer shared reading reflow after an explicit change."""
         if self.syncing:
             return
@@ -229,7 +253,7 @@ class ReadingSettings:
             button.set_sensitive(not high)
         self.syncing = False
 
-    def sync_family(self, control, saved) -> None:
+    def sync_family(self, control: Gtk.Button, saved: str) -> None:
         """Retain the exact saved family and explicitly label native fallback when it is unavailable."""
         alias = {
             "sans-serif": "Sans",
@@ -238,10 +262,13 @@ class ReadingSettings:
             "monospace": "Monospace",
         }.get(saved.casefold(), saved)
         family = self.families.get(alias.casefold())
-        control._family_row.set_subtitle(
+        # These private widgets are attached by family() above.
+        row = cast(Adw.ActionRow, getattr(control, "_family_row"))
+        preview = cast(Gtk.Label, getattr(control, "_family_preview"))
+        row.set_subtitle(
             ""
             if family
             else tr("Unavailable font: {family}. A fallback is used.").format(family=saved)
         )
-        control._family_preview.set_text(family.get_name() if family else saved)
+        preview.set_text(family.get_name() if family else saved)
         control.set_tooltip_text(saved)

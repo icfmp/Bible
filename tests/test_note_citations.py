@@ -113,7 +113,7 @@ class NoteCitationTests(unittest.TestCase):
             .get_iter_at_mark(editor.body.get_buffer().get_insert())
             .get_offset()
         )
-        editor.body.activate(0)
+        editor.body.activate_citation(0)
         spin()
         self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))
         w.reference_preview.dismiss()
@@ -137,7 +137,7 @@ class NoteCitationTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch.object(w.notes_store, "save", side_effect=OSError("Test write failure")):
-            editor.body.activate(0)
+            editor.body.activate_citation(0)
             spin()
             w.reference_preview.open_new.emit("clicked")
             spin()
@@ -148,7 +148,7 @@ class NoteCitationTests(unittest.TestCase):
         spin()
         self.assertFalse(editor.closed)
         self.assertIn("unsaved", buffer_text(editor.body))
-        editor.body.activate(0)
+        editor.body.activate_citation(0)
         spin()
         w.reference_preview.open_new.emit("clicked")
         spin()
@@ -168,7 +168,7 @@ class NoteCitationTests(unittest.TestCase):
     ) -> None:
         w = self.window
         editor = self.editor(embedded=False)
-        editor.body.activate(1)
+        editor.body.activate_citation(1)
         spin()
         self.assertIsNotNone(w.reference_preview.popover)
         editor.body_scroll.set_visible(False)
@@ -176,7 +176,7 @@ class NoteCitationTests(unittest.TestCase):
         self.assertIsNone(w.reference_preview.popover)
         editor.body_scroll.set_visible(True)
         spin()
-        editor.body.activate(1)
+        editor.body.activate_citation(1)
         spin()
         w.reference_preview.open_here.emit("clicked")
         spin()
@@ -242,7 +242,7 @@ class NoteCitationTests(unittest.TestCase):
         w.active_tab.load_resource()
         w.tab_changed(w.active_tab)
         spin()
-        preview.activate(0)
+        preview.activate_citation(0)
         spin()
         self.assertFalse(w.reference_preview.open_here.get_sensitive())
         self.assertFalse(w.reference_preview.open_new.get_sensitive())

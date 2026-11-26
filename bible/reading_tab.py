@@ -30,6 +30,7 @@ class ReadingTab(Gtk.Box):
     # Assigned by binding/reveal; annotations preserve the existing hasattr guards.
     sync_coordinator: ReadingSync
     _comparison_tick: int
+    _comparison_stamp: tuple[object, ...] | None
 
     def __init__(
         self,
