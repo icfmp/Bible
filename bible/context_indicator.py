@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import gi
 
 gi.require_version("Graphene", "1.0")
@@ -13,13 +15,18 @@ from .reading_style import PALETTES
 class ContextTextView(Gtk.TextView):
     """Paint transient study coverage without changing selection, text tags or saved highlights."""
 
-    def set_study_ranges(self, ranges) -> None:
+    def set_study_ranges(self, ranges: Iterable[tuple[int, int]]) -> None:
+        """Replace half-open buffer offsets and redraw only when coverage changes.
+
+        Call on the GTK owner thread after projecting references into this view.
+        The immutable snapshot prevents later caller mutations affecting paint.
+        """
         value = tuple(ranges)
         if value != getattr(self, "study_ranges", ()):
             self.study_ranges = value
             self.queue_draw()
 
-    def indicator_segments(self):
+    def indicator_segments(self) -> list[tuple[float, float, float, str]]:
         """Measure only visible covered glyphs and merge underline intervals with selection/highlight colors."""
         ranges = getattr(self, "study_ranges", ())
         if not ranges or not self.get_mapped():
@@ -74,7 +81,7 @@ class ContextTextView(Gtk.TextView):
                 segments.append((left, right, y, color))
         return segments
 
-    def do_snapshot(self, snapshot) -> None:
+    def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
         """Append clipped GSK coverage dots after the native text snapshot; retain no periodic worker."""
         Gtk.TextView.do_snapshot(self, snapshot)
         segments = self.indicator_segments()
