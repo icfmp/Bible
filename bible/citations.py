@@ -1,5 +1,7 @@
 """Bounded FR/EN note citations; recognition never navigates or edits notes."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import lru_cache
 from html.parser import HTMLParser
@@ -241,7 +243,7 @@ def excluded_ranges(text, style_spans=()):
 class InertHTML(HTMLParser):
     """Locate inert HTML regions only; never render tags, URLs or scripts."""
 
-    def __init__(self, text):
+    def __init__(self, text) -> None:
         super().__init__(convert_charrefs=False)
         self.stack = []
         self.ranges = []
@@ -252,7 +254,7 @@ class InertHTML(HTMLParser):
         line, column = self.getpos()
         return self.lines[line - 1] + column
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs: object) -> None:
         start = self.position()
         end = start + len(self.get_starttag_text())
         self.ranges.append((start, end))
@@ -274,10 +276,10 @@ class InertHTML(HTMLParser):
         }:
             self.stack.append((tag, start))
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag: object, attrs: object) -> None:
         self.ranges.append((self.position(), self.position() + len(self.get_starttag_text())))
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         index = next(
             (i for i in range(len(self.stack) - 1, -1, -1) if self.stack[i][0] == tag), None
         )
@@ -285,7 +287,7 @@ class InertHTML(HTMLParser):
             self.ranges.append((self.stack[index][1], self.position() + len(tag) + 3))
             del self.stack[index:]
 
-    def handle_comment(self, data):
+    def handle_comment(self, data) -> None:
         self.ranges.append((self.position(), self.position() + len(data) + 7))
 
 

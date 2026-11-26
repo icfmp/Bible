@@ -1,5 +1,7 @@
 """Read-only information for copied/external modules; no competing updater."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, Gtk, GLib
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
@@ -9,7 +11,7 @@ from .module_updates import ModuleCatalogue as ModuleCatalogue, installed_module
 class ModuleUpdatesWindow(Adw.Window):
     """Explain copied/external module ownership without exposing a competing update operation."""
 
-    def __init__(self, owner, library):
+    def __init__(self, owner, library) -> None:
         super().__init__(
             transient_for=owner,
             modal=True,
@@ -113,7 +115,7 @@ class ModuleUpdatesWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def on_close(self, *_):
+    def on_close(self, *_: object):
         self.closed = True
         self.worker.shutdown(wait=False, cancel_futures=True)
         return False

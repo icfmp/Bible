@@ -1,11 +1,13 @@
 """Native resource metadata, source attribution and detail actions."""
 
+from __future__ import annotations
+
 import unittest
 from bible.resource_details import plain
 
 
 class MetadataTests(unittest.TestCase):
-    def test_non_sword_study_notice_remains_complete_without_optional_text_source(self):
+    def test_non_sword_study_notice_remains_complete_without_optional_text_source(self) -> None:
         import tempfile
         from bible.study_resources import StudyResource
         from bible.resource_details import conditions_presentation
@@ -18,7 +20,7 @@ class MetadataTests(unittest.TestCase):
                 (tr("Original source notice") + "\n" + resource.conditions, ()),
             )
 
-    def test_legal_keys_are_labelled_only_after_exact_source_verification(self):
+    def test_legal_keys_are_labelled_only_after_exact_source_verification(self) -> None:
         import tempfile
         from pathlib import Path
         from dataclasses import replace
@@ -60,7 +62,7 @@ class MetadataTests(unittest.TestCase):
             )
             self.assertEqual(resource.conditions, before)
 
-    def test_only_structured_text_source_line_moves_to_link_without_mutating_terms(self):
+    def test_only_structured_text_source_line_moves_to_link_without_mutating_terms(self) -> None:
         from bible.library import resource_from_section, config
         from bible.resource_details import visible_conditions, details
 
@@ -85,7 +87,7 @@ class MetadataTests(unittest.TestCase):
         )
         self.assertEqual(visible_conditions(mixed), mixed.conditions)
 
-    def test_youversion_summary_does_not_claim_unfetched_conditions_are_absent(self):
+    def test_youversion_summary_does_not_claim_unfetched_conditions_are_absent(self) -> None:
         from bible.resource_details import details
         from bible.i18n import tr
         from bible.youversion_catalogue import resource_from_listing
@@ -95,7 +97,7 @@ class MetadataTests(unittest.TestCase):
         self.assertIn(tr("Loading edition details…"), text)
         self.assertNotIn(tr("No additional conditions supplied by the source."), text)
 
-    def test_only_explicit_http_links_are_displayed(self):
+    def test_only_explicit_http_links_are_displayed(self) -> None:
         from bible.resource_details import linkable_url, first_link
 
         self.assertEqual(linkable_url("https://crosswire.org/"), "https://crosswire.org/")
@@ -108,7 +110,7 @@ class MetadataTests(unittest.TestCase):
         )
         self.assertEqual(first_link("No link supplied"), "")
 
-    def test_legacy_paragraphs_keep_attribution_words(self):
+    def test_legacy_paragraphs_keep_attribution_words(self) -> None:
         value = r"First paragraph. \\par\\parSource: Richard Lemay. \\parPermission retained."
         text = plain(value)
         self.assertNotIn("\\par", text)
@@ -117,7 +119,9 @@ class MetadataTests(unittest.TestCase):
         self.assertIn("\n", text)
         self.assertEqual(plain(r"Keep \\parallel unknown text"), r"Keep \\parallel unknown text")
 
-    def test_repeated_verified_public_domain_claims_deduplicate_without_losing_authored_terms(self):
+    def test_repeated_verified_public_domain_claims_deduplicate_without_losing_authored_terms(
+        self,
+    ) -> None:
         import tempfile
         from pathlib import Path
         from bible.library import config, resource_from_section
@@ -138,7 +142,9 @@ class MetadataTests(unittest.TestCase):
             self.assertIn("Different substantive attribution", text)
             self.assertIn("PUBLIC DOMAIN", resource.conditions)
 
-    def test_approved_profile_uses_exact_cached_edition_independently_from_installed_version(self):
+    def test_approved_profile_uses_exact_cached_edition_independently_from_installed_version(
+        self,
+    ) -> None:
         import json
         import tempfile
         from dataclasses import replace
@@ -161,7 +167,7 @@ class MetadataTests(unittest.TestCase):
             )
         }
 
-        def fetch(url, out, **kw):
+        def fetch(url, out, **kw: object) -> None:
             out.write(
                 body([entry]) if url.endswith(".json") else sword_metadata(CONF + b"Version=1.0\n")
             )

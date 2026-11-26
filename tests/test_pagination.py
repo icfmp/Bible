@@ -1,5 +1,7 @@
 """Native Pango pagination, exact text partitions and canonical reflow anchors."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from bible.paged_sources import BiblePages, PagedStream
 
 
 class AnchorTests(unittest.TestCase):
-    def test_chapter_anchor_displays_the_chapter_after_its_leading_separator(self):
+    def test_chapter_anchor_displays_the_chapter_after_its_leading_separator(self) -> None:
         from bible.pagination import Page, PagePlan
 
         document = Document(
@@ -27,7 +29,7 @@ class AnchorTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native Pango/GTK")
 class PaginationTests(unittest.TestCase):
-    def test_wrapped_editorial_reference_inset_is_counted_once_per_paragraph(self):
+    def test_wrapped_editorial_reference_inset_is_counted_once_per_paragraph(self) -> None:
         from bible.pagination import attributes, shaped_lines
         from bible.reading_metrics import line_spacing, EDITORIAL_GAP
         from gi.repository import Pango
@@ -69,13 +71,13 @@ class PaginationTests(unittest.TestCase):
         self.assertEqual(doc.copy(0, len(text)), text)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Gtk
 
         Gtk.init()
         cls.widget = Gtk.TextView()
 
-    def test_source_parallel_titles_keep_a_distinct_editorial_role(self):
+    def test_source_parallel_titles_keep_a_distinct_editorial_role(self) -> None:
         from bible.structured_text import SourceParser
 
         parser = SourceParser()
@@ -90,7 +92,7 @@ class PaginationTests(unittest.TestCase):
         self.assertIn(("heading", "Psalm superscription"), kinds)
         self.assertIn(("text", "Scripture text."), kinds)
 
-    def test_source_title_fragments_stay_together_and_start_on_their_own_line(self):
+    def test_source_title_fragments_stay_together_and_start_on_their_own_line(self) -> None:
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
         from bible.structured_text import Segment
@@ -125,7 +127,7 @@ class PaginationTests(unittest.TestCase):
             for span in document.spans:
                 self.assertEqual(document.locate(document.anchor(span.body)), span.body)
 
-    def test_empty_paragraph_spacing_reduces_only_blank_line_allocation(self):
+    def test_empty_paragraph_spacing_reduces_only_blank_line_allocation(self) -> None:
         from dataclasses import replace
         from bible.ui import Gtk
         from bible.bible_render import render
@@ -173,7 +175,7 @@ class PaginationTests(unittest.TestCase):
         finally:
             window.destroy()
 
-    def test_bounded_shaping_matches_one_native_layout_exactly(self):
+    def test_bounded_shaping_matches_one_native_layout_exactly(self) -> None:
         from bible.pagination import attributes, shaped_lines
         from bible.reading_metrics import line_spacing
         from gi.repository import Pango
@@ -230,7 +232,7 @@ class PaginationTests(unittest.TestCase):
                     list(shaped_lines(self.widget, document, prefs, 290, 0, len(text))), expected
                 )
 
-    def test_heading_visibility_removes_generated_prefix_only(self):
+    def test_heading_visibility_removes_generated_prefix_only(self) -> None:
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
         from bible.library import Library
@@ -252,7 +254,7 @@ class PaginationTests(unittest.TestCase):
             )
             self.assertEqual(hidden.copy(0, len(hidden.text)), shown.copy(prefix, len(shown.text)))
 
-    def test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor(self):
+    def test_exact_unicode_partition_long_verse_inside_words_and_reflow_anchor(self) -> None:
         text = "TITLE\n\n" + ("Écriture Ελληνικά עברית العربية e\u0301 — source text. " * 230)
         doc = Document(
             "test", text, (PassageSpan("Gen.1.1", 0, 7, len(text)),), (StyleSpan("heading", 0, 5),)
@@ -274,7 +276,7 @@ class PaginationTests(unittest.TestCase):
             page = resized.pages[resized.containing(doc.locate(anchor))]
             self.assertEqual(doc.anchor(page.start), anchor)
 
-    def test_real_sword_chapter_boundaries_and_spread_roundtrip(self):
+    def test_real_sword_chapter_boundaries_and_spread_roundtrip(self) -> None:
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
         from bible.library import Library

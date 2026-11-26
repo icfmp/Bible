@@ -1,5 +1,7 @@
 """Download a real extra commentary; verify SWORD fidelity and GTK verse following offline."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -90,7 +92,7 @@ def offline_snapshot(directory, commentary):
     }
 
 
-def main():
+def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "--offline":
         with patch("urllib.request.urlopen", side_effect=AssertionError("Offline")):
             directory, commentary, output = sys.argv[2:]

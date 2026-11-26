@@ -1,5 +1,7 @@
 """Versioned, atomic metadata caches, isolated from installed modules and notes."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 import json
 import os
@@ -11,7 +13,7 @@ import time
 class CatalogueCache:
     """Persist provider-qualified metadata snapshots separately from installed resources and user content."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.validators = {}
 
@@ -78,7 +80,7 @@ class CatalogueCache:
         except (OSError, ValueError, KeyError, TypeError):
             return None
 
-    def write(self, provider, resources, validators=None):
+    def write(self, provider, resources, validators=None) -> None:
         """Flush and atomically replace one provider metadata snapshot without touching installed modules."""
         self.root.mkdir(parents=True, exist_ok=True)
         temporary = None

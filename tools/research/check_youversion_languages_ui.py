@@ -1,5 +1,7 @@
 """Actual GTK language discovery and offline new-edition reading, disposable profiles only."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -7,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)

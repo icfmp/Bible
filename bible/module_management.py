@@ -1,5 +1,7 @@
 """Library actions over the shared provider, installer and module lifecycle."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, Gtk
 from .i18n import tr
 from .providers import BY_ID as BY_ID
@@ -69,7 +71,7 @@ def checked_modules(library, resources, errors):
 class ModuleManagement:
     """Bind Library actions to shared eligibility and journaled module lifecycle operations."""
 
-    def __init__(self, dialog, detail, primary=None):
+    def __init__(self, dialog, detail, primary=None) -> None:
         self.dialog = dialog
         self.reports = {}
         self.revision = 0
@@ -110,7 +112,7 @@ class ModuleManagement:
         narrow.add_setter(self.actions, "orientation", Gtk.Orientation.VERTICAL)
         dialog.add_breakpoint(narrow)
 
-    def discovery_changed(self):
+    def discovery_changed(self) -> None:
         """Refresh rows/actions from discovery state without treating stale metadata as current."""
         self.reports = self.dialog.updates.reports
         self.revision += 1
@@ -135,7 +137,7 @@ class ModuleManagement:
     def available(self, identifier):
         return self.reports.get(identifier, {}).get("state") == "available"
 
-    def update_all(self):
+    def update_all(self) -> None:
         """Ask for confirmation, then queue available reports through the shared installer."""
         d = self.dialog
         if d.busy:
@@ -164,7 +166,7 @@ class ModuleManagement:
         prompt.set_default_response("cancel")
         prompt.set_close_response("cancel")
 
-        def respond(_, response):
+        def respond(_: object, response) -> None:
             if response == "update":
                 for resource in resources:
                     d.queue_request(
@@ -195,7 +197,7 @@ class ModuleManagement:
             return ""
         return tr("Catalogue version notes") + " (" + new.version + "):\n" + plain(changes)
 
-    def refresh(self, resource):
+    def refresh(self, resource) -> None:
         """Show per-resource update/removal/rollback capabilities using current ownership and queue state."""
         d = self.dialog
         installed = resource and resource.id in d._installed_metadata
@@ -247,11 +249,11 @@ class ModuleManagement:
         self.remove_button.set_sensitive(removable and not d.busy and not pending)
         self.remove_button.set_tooltip_text(None)
 
-    def check(self):
+    def check(self) -> None:
         if not self.dialog.busy:
             self.dialog.updates.check(force=True)
 
-    def confirm(self, operation):
+    def confirm(self, operation) -> None:
         """Present destructive/rollback consequences before invoking an owned-resource operation."""
         d = self.dialog
         resource = d.selected_resource()
@@ -303,7 +305,7 @@ class ModuleManagement:
         )
         prompt.present()
 
-    def run(self, operation, *, resource=None, queued=False):
+    def run(self, operation, *, resource=None, queued: bool = False) -> None:
         """Dispatch an eligible operation through the worker and GTK resource-lifetime bridge.
 
         Initial update requests enter the queue; active operations quiesce native
@@ -329,7 +331,7 @@ class ModuleManagement:
         lifecycle = ModuleLifecycle(d.library)
         bridge = ModuleViewChange(d, resource.id)
 
-        def before(identifier):
+        def before(identifier) -> None:
             if d._cancel.is_set():
                 raise InterruptedError(tr("Download cancelled."))
             d.begin_installation()
@@ -348,7 +350,7 @@ class ModuleManagement:
                 return lifecycle.rollback(resource.id, before_switch=before)
             return lifecycle.remove(resource.id, before_switch=before)
 
-        def ready(record):
+        def ready(record) -> None:
             self.reports.pop(resource.id, None)
             self.revision += 1
             d.preparing = True

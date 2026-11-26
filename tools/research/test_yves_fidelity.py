@@ -1,5 +1,7 @@
 """Research oracle checks; lxml is not an application runtime dependency."""
 
+from __future__ import annotations
+
 import unittest
 
 try:
@@ -11,7 +13,7 @@ except ImportError:
 
 @unittest.skipIf(compiled_chapter is None, "Requires the isolated research lxml oracle")
 class NativeFragmentOracleTests(unittest.TestCase):
-    def test_list_crosses_native_entries_without_recovery_or_lost_body(self):
+    def test_list_crosses_native_entries_without_recovery_or_lost_body(self) -> None:
         bodies, notes, titles = compiled_chapter(
             [
                 ("Gen.1.0", "<list>"),
@@ -23,7 +25,7 @@ class NativeFragmentOracleTests(unittest.TestCase):
         self.assertEqual(notes, [])
         self.assertEqual(titles, [])
 
-    def test_heading_note_stays_separate_and_inline_ordinal_has_no_inserted_space(self):
+    def test_heading_note_stays_separate_and_inline_ordinal_has_no_inserted_space(self) -> None:
         bodies, notes, titles = compiled_chapter(
             [
                 ("Gen.1.0", '<title>Test heading<note n="1.1">Header note.</note></title>'),
@@ -35,6 +37,6 @@ class NativeFragmentOracleTests(unittest.TestCase):
         self.assertEqual(notes[0].get("n"), "1.1")
         self.assertEqual(len(titles), 1)
 
-    def test_unbalanced_complete_chapter_is_rejected(self):
+    def test_unbalanced_complete_chapter_is_rejected(self) -> None:
         with self.assertRaises(XMLSyntaxError):
             compiled_chapter([("Gen.1.1", "<list><item>Test")])

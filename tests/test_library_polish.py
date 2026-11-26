@@ -1,5 +1,7 @@
 """Approved Library/onboarding/global-menu contracts, including upgrade safety."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -17,7 +19,7 @@ from tests.test_ui import spin, installed_fixture, close_test_dialogs
 
 
 class ApplicationSettingsTests(unittest.TestCase):
-    def test_new_locale_defaults_explicit_choice_and_restart(self):
+    def test_new_locale_defaults_explicit_choice_and_restart(self) -> None:
         for locale, expected in [("fr_FR", "fr"), ("en_US", "en"), ("C", "en"), ("de_DE", "en")]:
             with (
                 self.subTest(locale=locale),
@@ -34,7 +36,7 @@ class ApplicationSettingsTests(unittest.TestCase):
                 self.assertFalse(restored.first_launch)
                 self.assertEqual(restored.language, "")
 
-    def test_upgrade_missing_marker_and_corrupt_settings_preserve_originals(self):
+    def test_upgrade_missing_marker_and_corrupt_settings_preserve_originals(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "notes.sqlite3").write_bytes(b"existing sentinel")
@@ -48,7 +50,7 @@ class ApplicationSettingsTests(unittest.TestCase):
                 corrupt.set("library_language", "fr")
             self.assertEqual(settings.path.read_bytes(), b"{corrupt original")
 
-    def test_saved_ui_language_is_loaded_at_next_process_start(self):
+    def test_saved_ui_language_is_loaded_at_next_process_start(self) -> None:
         import subprocess
         import sys
 
@@ -71,14 +73,14 @@ class ApplicationSettingsTests(unittest.TestCase):
             self.assertEqual(output.strip(), "fr Paramètres")
             self.assertEqual(ApplicationSettings(root).language, "azb")
 
-    def test_language_aliases_do_not_conflate_scripts_or_regions(self):
+    def test_language_aliases_do_not_conflate_scripts_or_regions(self) -> None:
         self.assertEqual({canonical_language(x) for x in ["fr", "fra", "fre"]}, {"fr"})
         self.assertIn("fre", search_terms("fr"))
         self.assertIn("fra", search_terms("fr"))
         self.assertNotEqual(canonical_language("zh-Hans"), canonical_language("zh-Hant"))
         self.assertNotEqual(canonical_language("pt-BR"), canonical_language("pt-PT"))
 
-    def test_scoped_refresh_keeps_other_providers_and_runs_only_selected_source(self):
+    def test_scoped_refresh_keeps_other_providers_and_runs_only_selected_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             session = CatalogueSession(Library(Path(directory) / "translations"))
             try:
@@ -107,7 +109,7 @@ class ApplicationSettingsTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class LibraryPolishTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -119,11 +121,11 @@ class LibraryPolishTests(unittest.TestCase):
         self.window = Window(self.app, Library(self.root / "translations"))
         self.window.present()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         self.window.close()
 
-    def test_welcome_skip_restart_and_later_empty_download_route(self):
+    def test_welcome_skip_restart_and_later_empty_download_route(self) -> None:
         w = self.window
         self.assertEqual(w.main_pages.get_visible_child_name(), "welcome")
         self.assertEqual(w.library.installed(), [])
@@ -140,7 +142,7 @@ class LibraryPolishTests(unittest.TestCase):
         w.welcome_choose.emit("clicked")
         self.assertEqual(w.catalogue_window.kind.get_selected(), 0)
 
-    def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self):
+    def test_narrow_reader_keeps_mouse_routes_after_menu_cleanup(self) -> None:
         installed_fixture(self.root)
         w = self.window
         w.navigate_selection("Test", "Gen.1.1")
@@ -160,7 +162,7 @@ class LibraryPolishTests(unittest.TestCase):
         w.space_selector.set_selected(1)
         self.assertEqual(w.main_pages.get_visible_child_name(), "notes")
 
-    def test_global_menu_preferences_shortcuts_about_and_notes_share_routes(self):
+    def test_global_menu_preferences_shortcuts_about_and_notes_share_routes(self) -> None:
         w = self.window
         self.assertFalse(hasattr(w, "library_button"))
         self.assertEqual(
@@ -183,7 +185,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertTrue(w.catalogue_window.get_visible())
         self.assertEqual(w.main_pages.get_visible_child_name(), "notes")
 
-    def test_general_preferences_reuse_persist_and_do_not_change_library_or_reader(self):
+    def test_general_preferences_reuse_persist_and_do_not_change_library_or_reader(self) -> None:
         from bible.application_surfaces import show_preferences
         from bible.ui import Adw, Window
 
@@ -221,7 +223,7 @@ class LibraryPolishTests(unittest.TestCase):
 
     def test_source_backed_language_choices_are_category_scoped_without_overwriting_preference(
         self,
-    ):
+    ) -> None:
         w = self.window
         w.application_settings.set("library_language", "azb")
         d = w.open_library()
@@ -242,7 +244,7 @@ class LibraryPolishTests(unittest.TestCase):
         d = w.open_library()
         self.assertEqual(d.language_choice, "azb")
 
-    def test_filter_change_during_refresh_rejects_stale_type_and_language_rows(self):
+    def test_filter_change_during_refresh_rejects_stale_type_and_language_rows(self) -> None:
         w = self.window
         w.application_settings.set("library_language", "en")
         d = w.open_library()
@@ -296,7 +298,7 @@ class LibraryPolishTests(unittest.TestCase):
             (w.active_tab.state.resource, w.active_tab.state.reference, w.active_tab.state.history),
         )
 
-    def test_language_choice_empty_alias_and_type_persistence_without_fetch(self):
+    def test_language_choice_empty_alias_and_type_persistence_without_fetch(self) -> None:
         w = self.window
         w.application_settings.set("library_language", "fr")
         d = w.open_library()
@@ -330,7 +332,7 @@ class LibraryPolishTests(unittest.TestCase):
 
     def test_first_install_opens_active_unusable_reader_explicit_read_still_targets_intended_tab(
         self,
-    ):
+    ) -> None:
         w = self.window
         w.welcome_skip.emit("clicked")
         initial = w.active_tab
@@ -353,7 +355,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertFalse(w.open_installed_resource("Test", context))
         self.assertEqual(before, (w.active_tab.state.resource, w.active_tab.state.reference))
 
-    def test_contextual_downloads_preserve_passage_and_installed_selection(self):
+    def test_contextual_downloads_preserve_passage_and_installed_selection(self) -> None:
         w = self.window
         installed_fixture(self.root, "Test")
         w.open_installed_resource("Test")
@@ -386,7 +388,7 @@ class LibraryPolishTests(unittest.TestCase):
             (w.active_tab.state.resource, w.active_tab.state.reference, w.active_tab.state.history),
         )
 
-    def test_library_install_and_explicit_read_keep_unsaved_note_guard(self):
+    def test_library_install_and_explicit_read_keep_unsaved_note_guard(self) -> None:
         w = self.window
         installed_fixture(self.root, "Test")
         installed_fixture(self.root, "Other")
@@ -416,13 +418,13 @@ class LibraryPolishTests(unittest.TestCase):
         editor._discard = True
         editor.close()
 
-    def test_success_footer_is_temporary_and_other_job_failures_survive(self):
+    def test_success_footer_is_temporary_and_other_job_failures_survive(self) -> None:
         d = self.window.open_library()
         spin(lambda: not d.busy)
         first = replace(RESOURCE, name="First")
         second = replace(RESOURCE, name="Second")
 
-        def fail():
+        def fail() -> None:
             raise OSError("Synthetic failed resource")
 
         d.task("Download", fail, lambda _: None, resource=first)
@@ -461,7 +463,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertFalse(reopened.status.get_visible())
         self.assertFalse(reopened.progress.get_visible())
 
-    def test_study_category_keeps_queries_filters_and_local_catalogue_independent(self):
+    def test_study_category_keeps_queries_filters_and_local_catalogue_independent(self) -> None:
         w = self.window
         w.application_settings.set("library_language", "fr")
         d = w.open_library()
@@ -506,7 +508,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertFalse(d._transfer_busy)
         self.assertIs(w.open_library("study"), d)
 
-    def test_success_confirmation_cannot_cover_the_next_resource_action(self):
+    def test_success_confirmation_cannot_cover_the_next_resource_action(self) -> None:
         self.window.application_settings.set("library_language", "")
         d = self.window.open_library()
         spin(lambda: not d.busy)
@@ -544,7 +546,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.assertFalse(d.status.get_visible())
         self.assertEqual(d._task_errors, {})
 
-    def test_study_metadata_refresh_is_visible_and_does_not_fetch_bible_catalogues(self):
+    def test_study_metadata_refresh_is_visible_and_does_not_fetch_bible_catalogues(self) -> None:
         d = self.window.open_library("study")
         spin(lambda: not d.busy and not d._building_rows)
         self.assertTrue(d.catalogue_button.get_mapped())
@@ -564,7 +566,7 @@ class LibraryPolishTests(unittest.TestCase):
             before, (d.kind.get_selected(), d.language_choice, d.source_filter.get_selected())
         )
 
-    def test_study_transfer_survives_category_switch_and_cancellation_can_retry(self):
+    def test_study_transfer_survives_category_switch_and_cancellation_can_retry(self) -> None:
         w = self.window
         d = w.open_library("study")
         spin(lambda: not d.busy)
@@ -572,7 +574,7 @@ class LibraryPolishTests(unittest.TestCase):
         release = threading.Event()
         self.addCleanup(release.set)
 
-        def interrupted(resource, progress, installing, cancelled):
+        def interrupted(resource: object, progress, installing: object, cancelled) -> None:
             progress(1024, 4096)
             release.wait(3)
             if cancelled():

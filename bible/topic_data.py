@@ -1,5 +1,7 @@
 """Optional, pinned OpenBible topic relationships; no imported Bible quotations."""
 
+from __future__ import annotations
+
 from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
@@ -101,7 +103,7 @@ def parse_archive(path):
 class TopicData(ReferenceData):
     """Store source topic/reference relationships separately from the independently versioned display vocabulary."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         super().__init__(root)
         self.path = self.root / "openbible-topics.sqlite3"
 

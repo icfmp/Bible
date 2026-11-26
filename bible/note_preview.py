@@ -1,5 +1,7 @@
 """Safe native Markdown preview; generated citations never rewrite note data."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango, Gdk
 from .markdown import render
 from .i18n import tr
@@ -8,7 +10,7 @@ from .i18n import tr
 class NotePreview(Gtk.TextView):
     """Render inert note Markdown and bounded local-reference previews without rewriting saved notes."""
 
-    def __init__(self, *, owner=None, system=None, navigation_guard=None, **kwargs):
+    def __init__(self, *, owner=None, system=None, navigation_guard=None, **kwargs) -> None:
         super().__init__(
             editable=False,
             cursor_visible=False,
@@ -47,7 +49,7 @@ class NotePreview(Gtk.TextView):
         keys.connect("key-pressed", self.key_pressed)
         self.add_controller(keys)
 
-    def set_source(self, source):
+    def set_source(self, source) -> None:
         """Replace preview tags/citations and dismiss any anchored preview of the previous text."""
         if self.owner:
             preview = self.owner.reference_preview.popover
@@ -82,10 +84,10 @@ class NotePreview(Gtk.TextView):
         found, iterator = self.get_iter_at_location(bx, by)
         return self.at_offset(iterator.get_offset()) if found else None
 
-    def pressed(self, _, count, x, y):
+    def pressed(self, _: object, count, x, y) -> None:
         self._pressed = (count, x, y)
 
-    def released(self, _, count, x, y):
+    def released(self, _: object, count, x, y) -> None:
         if not self._pressed:
             return
         previous, px, py = self._pressed
@@ -98,7 +100,7 @@ class NotePreview(Gtk.TextView):
         if index is not None:
             self.activate(index)
 
-    def motion(self, _, x, y):
+    def motion(self, _: object, x, y) -> None:
         self.set_cursor_from_name("pointer" if self.at_point(x, y) is not None else "text")
 
     def do_focus(self, direction):
@@ -128,7 +130,7 @@ class NotePreview(Gtk.TextView):
             return False
         return Gtk.TextView.do_focus(self, direction)
 
-    def key_pressed(self, _, key, code, state):
+    def key_pressed(self, _: object, key, code: object, state):
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space) and not state & (
             Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK
         ):
@@ -139,7 +141,7 @@ class NotePreview(Gtk.TextView):
                 return True
         return False
 
-    def activate(self, index):
+    def activate(self, index) -> None:
         """Preview a recognized citation in the active reader through the existing draft/navigation guard."""
         if not self.owner or self.owner.closed or not 0 <= index < len(self.citations):
             return

@@ -1,5 +1,7 @@
 """Select additional CI campaigns; unknown inputs retain full coverage."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -157,7 +159,7 @@ def changed_paths(event, payload, head):
         return None
 
 
-def main():
+def main() -> None:
     """Print campaign selectors and the appropriate French validation targets for the current Actions event."""
     payload = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
     groups, localization = select(

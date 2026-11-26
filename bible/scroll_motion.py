@@ -1,9 +1,11 @@
 """Short, interruptible adjustment motion; never synthesizes user input."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 
 
-def stop_native_scroll(scroll):
+def stop_native_scroll(scroll) -> None:
     """Cancel an old GTK deceleration without changing its kinetic setting."""
     # GtkScrolledWindow otherwise ignores external adjustment changes while
     # decelerating and can overwrite a new target with its old edge rebound.
@@ -15,7 +17,7 @@ def stop_native_scroll(scroll):
 class ScrollMotion:
     """Own one short cancellable native-adjustment movement, separate from actual user input."""
 
-    def __init__(self, scroll):
+    def __init__(self, scroll) -> None:
         self.scroll = scroll
         self.tick = 0
         self.target = None
@@ -33,13 +35,13 @@ class ScrollMotion:
     def running(self):
         return bool(self.tick)
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self.tick:
             self.scroll.remove_tick_callback(self.tick)
             self.tick = 0
         self.target = None
 
-    def move(self, target, *, animate=True, valid=lambda: True):
+    def move(self, target, *, animate: bool = True, valid=lambda: True) -> None:
         """Move within native adjustment bounds, respecting reduced motion and context/geometry validity.
 
         Long jumps, hidden widgets or disabled animations set the position directly.

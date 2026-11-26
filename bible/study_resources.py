@@ -1,5 +1,7 @@
 """Non-SWORD study data offered in the existing Library, kept out of translations."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 from .i18n import tr
 from .reference_data import (
@@ -44,7 +46,7 @@ class StudyResource:
 class StudyResources:
     """Discover and install the existing reference, topic, place and STEP stores through their checked adapters."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         from .place_data import PlaceData
 
         self.references = ReferenceData(root)
@@ -181,7 +183,7 @@ class StudyResources:
             )
         return replace(resource, about=about, revision=revision)
 
-    def unknown(self):
+    def unknown(self) -> None:
         raise ValueError("Unknown study resource")
 
     def installed(self):

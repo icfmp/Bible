@@ -1,5 +1,7 @@
 """Queue requests persist intent, never source content or completed installs."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 from pathlib import Path
 import tempfile
@@ -12,14 +14,14 @@ from tests.test_library import RESOURCE
 
 
 class DownloadQueueTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.path = self.root / "download-queue.json"
         self.queue = DownloadQueue(self.path)
         self.a = replace(RESOURCE, name="First", version="1.0")
         self.b = replace(RESOURCE, name="Second", version="2.0")
 
-    def test_fifo_deduplication_uses_identity_and_preserves_a_different_provider(self):
+    def test_fifo_deduplication_uses_identity_and_preserves_a_different_provider(self) -> None:
         first = self.queue.enqueue(self.a)
         self.assertIs(self.queue.enqueue(self.a), first)
         foreign = replace(self.a, provider_id=EXTRA.id, source=EXTRA.name, source_url=EXTRA.url)
@@ -30,7 +32,7 @@ class DownloadQueueTests(unittest.TestCase):
         self.assertIs(self.queue.start(), other)
         self.assertNotEqual(first.key, other.key)
 
-    def test_different_version_or_operation_cannot_silently_replace_the_same_target(self):
+    def test_different_version_or_operation_cannot_silently_replace_the_same_target(self) -> None:
         self.queue.enqueue(self.a)
         for resource, operation in (
             (replace(self.a, version="2.0"), "install"),
@@ -40,7 +42,7 @@ class DownloadQueueTests(unittest.TestCase):
                 self.queue.enqueue(resource, operation=operation)
         self.assertEqual(self.queue.requests[0].resource, self.a)
 
-    def test_failed_item_does_not_block_the_next_request_and_retry_is_explicit(self):
+    def test_failed_item_does_not_block_the_next_request_and_retry_is_explicit(self) -> None:
         first = self.queue.enqueue(self.a)
         second = self.queue.enqueue(self.b)
         self.queue.start()
@@ -54,7 +56,7 @@ class DownloadQueueTests(unittest.TestCase):
         retry = restored.enqueue(self.a)
         self.assertIs(restored.start(), retry)
 
-    def test_pending_cancel_does_not_cancel_active_work(self):
+    def test_pending_cancel_does_not_cancel_active_work(self) -> None:
         first = self.queue.enqueue(self.a)
         self.queue.enqueue(self.b)
         self.queue.start()
@@ -62,7 +64,7 @@ class DownloadQueueTests(unittest.TestCase):
         self.assertTrue(self.queue.cancel(self.b.id))
         self.assertEqual(self.queue.requests, [first])
 
-    def test_restart_requires_explicit_resume_and_includes_study_requests(self):
+    def test_restart_requires_explicit_resume_and_includes_study_requests(self) -> None:
         first = self.queue.enqueue(self.a)
         self.queue.enqueue(StudyResource())
         self.queue.start()
@@ -73,7 +75,7 @@ class DownloadQueueTests(unittest.TestCase):
         self.assertEqual(restored.start().key, first.key)
         self.assertEqual(restored.requests[1].resource.kind, "study")
 
-    def test_write_failures_preserve_the_last_journal_and_memory_state(self):
+    def test_write_failures_preserve_the_last_journal_and_memory_state(self) -> None:
         request = self.queue.enqueue(self.a)
         before = self.path.read_bytes()
         with patch("bible.download_queue.atomic_write", side_effect=OSError("disk full")):
@@ -87,7 +89,7 @@ class DownloadQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.requests, [request])
         self.assertEqual(request.state, "queued")
 
-    def test_invalid_journal_is_retained_and_blocks_mutations(self):
+    def test_invalid_journal_is_retained_and_blocks_mutations(self) -> None:
         for data in (
             b"{invalid original",
             b"[]",

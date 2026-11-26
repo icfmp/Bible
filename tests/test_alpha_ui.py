@@ -1,5 +1,7 @@
 """Alpha regressions: real GTK layouts and controlled, verified local HTTPS."""
 
+from __future__ import annotations
+
 import io
 import os
 from pathlib import Path
@@ -19,11 +21,11 @@ from bible.library import BASE, Resource
 
 
 class Transfer:
-    def __init__(self, payload, known=True, truncated=False):
+    def __init__(self, payload, known: bool = True, truncated: bool = False) -> None:
         self.payload, self.known, self.truncated = payload, known, truncated
         self.gates = [threading.Event() for _ in range(3)]
 
-    def release(self):
+    def release(self) -> None:
         for gate in self.gates:
             gate.set()
 
@@ -33,7 +35,7 @@ class AlphaTests(unittest.TestCase):
     setUpClass = classmethod(test_ui.WindowTests.setUpClass.__func__)
     window = test_ui.WindowTests.window
 
-    def transfer(self, name, commentary=False, known=True, truncated=False):
+    def transfer(self, name, commentary: bool = False, known: bool = True, truncated: bool = False):
         with tempfile.TemporaryDirectory() as source:
             module_fixture(source, name, [("Gen.1.1", "TRANSFER TEST DATA")], commentary=commentary)
             data = io.BytesIO()
@@ -82,10 +84,10 @@ class AlphaTests(unittest.TestCase):
         )
 
         class Handler(BaseHTTPRequestHandler):
-            def log_message(self, *_):
+            def log_message(self, *_: object) -> None:
                 pass
 
-            def do_GET(self):
+            def do_GET(self) -> None:
                 self.send_response(200)
                 if transfer.known:
                     self.send_header("Content-Length", str(len(transfer.payload)))
@@ -116,7 +118,7 @@ class AlphaTests(unittest.TestCase):
         )
         thread.start()
 
-        def close():
+        def close() -> None:
             transfer.release()
             server.shutdown()
             server.server_close()
@@ -148,7 +150,7 @@ class AlphaTests(unittest.TestCase):
 
         return find(bar)
 
-    def start_transfer(self, dialog, resource):
+    def start_transfer(self, dialog, resource) -> None:
         test_ui.spin(lambda: dialog.session.bootstrap_future.done() and not dialog.preparing)
         with dialog.session.lock:
             dialog.session.providers[resource.provider_id] = (resource,)
@@ -167,7 +169,7 @@ class AlphaTests(unittest.TestCase):
         self.assertTrue(dialog.busy)
         self.assertIn(resource.description, dialog.status.get_text())
 
-    def test_slow_transfer_renders_bytes_before_eof_and_installation(self):
+    def test_slow_transfer_renders_bytes_before_eof_and_installation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
@@ -177,7 +179,7 @@ class AlphaTests(unittest.TestCase):
             original_install = window.library.install
 
             def hold_validation(resource, progress, installing, **options):
-                def started():
+                def started() -> None:
                     installing()
                     if not validation.wait(8):
                         raise TimeoutError("Validation test was not released")
@@ -210,7 +212,7 @@ class AlphaTests(unittest.TestCase):
             self.assertFalse(dialog.status.get_visible())
             self.assertIn(resource.description, dialog._success_toast.get_title())
 
-    def test_cancelled_transfer_does_not_publish_a_partial_resource(self):
+    def test_cancelled_transfer_does_not_publish_a_partial_resource(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
@@ -227,7 +229,7 @@ class AlphaTests(unittest.TestCase):
             self.assertEqual(dialog._failed_resource, resource.id)
             self.assertTrue(dialog.download_button.get_sensitive())
 
-    def test_unknown_size_commentary_error_and_second_download(self):
+    def test_unknown_size_commentary_error_and_second_download(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
@@ -266,7 +268,7 @@ class AlphaTests(unittest.TestCase):
                 test_ui.spin(lambda: not dialog.busy)
             self.assertIn(resource.name, window.library.installed("bible"))
 
-    def test_book_search_grid_and_explicit_chapter_or_verse_open_keep_other_tabs(self):
+    def test_book_search_grid_and_explicit_chapter_or_verse_open_keep_other_tabs(self) -> None:
         from bible.ui import Gtk
         from bible.i18n import tr as tr
 
@@ -336,7 +338,7 @@ class AlphaTests(unittest.TestCase):
             self.assertFalse(nav.get_visible())
             self.assertEqual(second.state.reference, "1Cor.16.1")
 
-    def test_version_rejects_missing_passage_and_different_versification(self):
+    def test_version_rejects_missing_passage_and_different_versification(self) -> None:
         from bible.i18n import tr
 
         with tempfile.TemporaryDirectory() as directory:
@@ -373,7 +375,7 @@ class AlphaTests(unittest.TestCase):
             self.assertEqual(window.active_tab.state.resource, "Catholic")
             self.assertEqual(window.active_tab.reader.versification, "Catholic")
 
-    def test_chapter_overlay_stays_in_viewport_and_bible_panel(self):
+    def test_chapter_overlay_stays_in_viewport_and_bible_panel(self) -> None:
         from bible.ui import Adw
 
         with tempfile.TemporaryDirectory() as directory:
@@ -436,7 +438,7 @@ class AlphaTests(unittest.TestCase):
             finally:
                 style.set_color_scheme(old_scheme)
 
-    def test_overlay_chapter_limits_sparse_books_and_independent_tabs(self):
+    def test_overlay_chapter_limits_sparse_books_and_independent_tabs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             entries = [
                 ("Matt.1.1", "START TEST DATA"),

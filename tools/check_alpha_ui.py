@@ -4,6 +4,8 @@ Run with dbus-run-session and xvfb-run; requires libXtst. This automated check
 is distinct from manual validation on the client's GNOME desktop.
 """
 
+from __future__ import annotations
+
 import ctypes
 import os
 from pathlib import Path
@@ -19,7 +21,7 @@ from bible.ui import Application, Gtk, Library, Window
 
 
 class X11Input:
-    def __init__(self):
+    def __init__(self) -> None:
         self.x11 = ctypes.CDLL("libX11.so.6")
         self.xtest = ctypes.CDLL("libXtst.so.6")
         pointer = ctypes.c_void_p
@@ -53,14 +55,14 @@ class X11Input:
         if not self.display:
             raise RuntimeError("Requires an X11 display (use xvfb-run)")
 
-    def activate(self, window):
+    def activate(self, window) -> None:
         """Supply the window manager's focus handoff in a bare Xvfb session."""
         assert window.get_mapped()
         self.x11.XSetInputFocus(self.display, window.get_surface().get_xid(), 2, 0)
         self.x11.XFlush(self.display)
         spin(lambda: window.is_active())
 
-    def key(self, name):
+    def key(self, name) -> None:
         symbol = self.x11.XStringToKeysym(name.encode())
         code = self.x11.XKeysymToKeycode(self.display, symbol)
         assert code, name
@@ -69,10 +71,10 @@ class X11Input:
         self.x11.XFlush(self.display)
         spin(duration=0.15)
 
-    def click(self, widget):
+    def click(self, widget) -> None:
         self.click_at(widget, widget.get_width() / 2, widget.get_height() / 2)
 
-    def move_at(self, widget, local_x, local_y):
+    def move_at(self, widget, local_x, local_y) -> None:
         native = widget.get_native()
         found, point = widget.compute_point(native, Graphene.Point().init(local_x, local_y))
         assert found and widget.get_mapped()
@@ -95,14 +97,14 @@ class X11Input:
         self.xtest.XTestFakeMotionEvent(self.display, -1, x, y, 0)
         self.x11.XFlush(self.display)
 
-    def click_at(self, widget, local_x, local_y):
+    def click_at(self, widget, local_x, local_y) -> None:
         self.move_at(widget, local_x, local_y)
         self.xtest.XTestFakeButtonEvent(self.display, 1, True, 0)
         self.xtest.XTestFakeButtonEvent(self.display, 1, False, 0)
         self.x11.XFlush(self.display)
         spin(duration=0.2)
 
-    def wheel(self, widget, steps):
+    def wheel(self, widget, steps) -> None:
         self.move_at(widget, widget.get_width() / 2, widget.get_height() / 2)
         spin(duration=0.1)
         for _ in range(abs(steps)):
@@ -112,7 +114,7 @@ class X11Input:
         self.x11.XFlush(self.display)
         spin(duration=0.2)
 
-    def drag_at(self, widget, x, start, end, observed=None):
+    def drag_at(self, widget, x, start, end, observed=None) -> None:
         self.move_at(widget, x, start)
         spin(duration=0.15)
         self.xtest.XTestFakeButtonEvent(self.display, 1, True, 0)
@@ -129,11 +131,11 @@ class X11Input:
             self.x11.XFlush(self.display)
             spin(duration=0.2)
 
-    def close(self):
+    def close(self) -> None:
         self.x11.XCloseDisplay(self.display)
 
 
-def main():
+def main() -> None:
     app = Application()
     app.register()
     Gtk.Settings.get_default().set_property("gtk-enable-animations", False)

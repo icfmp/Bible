@@ -1,5 +1,7 @@
 """Scoped reader palettes; libadwaita remains responsible for native widgets."""
 
+from __future__ import annotations
+
 import gi
 
 gi.require_version("Adw", "1")
@@ -17,7 +19,7 @@ PALETTES = {
 }
 
 
-def apply_direction(view, reader, preferences=None):
+def apply_direction(view, reader, preferences=None) -> None:
     """Resource direction affects the content, not the application's controls."""
     view.set_direction(Gtk.TextDirection.RTL if reader.rtl else Gtk.TextDirection.LTR)
     view.set_justification(
@@ -38,7 +40,7 @@ def effective_palette(preferences, dark, high_contrast):
 class ReadingStyle:
     """Apply owner-scoped reading palettes/content typography while GTK owns interface font inheritance."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         self.owner = owner
         self.initial_palette = self.palette_settings()
         from weakref import WeakSet
@@ -63,18 +65,18 @@ class ReadingStyle:
             for k in ("mode", "day_palette", "night_palette")
         }
 
-    def remember_tab_palettes(self):
+    def remember_tab_palettes(self) -> None:
         for tab in self.owner.tabs():
             if not tab.state.reading_palette:
                 tab.state.reading_palette = self.palette_settings()
 
-    def activate_tab(self, tab):
+    def activate_tab(self, tab) -> None:
         for key, value in tab.state.reading_palette.items():
             setattr(self.owner.preferences.value, key, value)
         self.apply_mode()
         self.owner.appearance.sync()
 
-    def apply_mode(self):
+    def apply_mode(self) -> None:
         """Resolve the saved reading/interface mode through libadwaita and refresh the effective palette."""
         mode = self.owner.preferences.value.mode
         if mode == "system":
@@ -91,7 +93,7 @@ class ReadingStyle:
         )
         self.changed()
 
-    def decorate(self, view):
+    def decorate(self, view) -> None:
         """Register a reading view and apply content typography/number colors within its owner scope."""
         self.views.add(view)
         view._reading_palette = self.palette
@@ -104,7 +106,7 @@ class ReadingStyle:
         view.add_css_class(self.scope)
         self.apply_text(view)
 
-    def apply_text(self, view, preserve=True):
+    def apply_text(self, view, preserve: bool = True) -> None:
         # GtkTextMarks retain selection/body positions across tag-only reflow.
         """Apply reading text tags while retaining a native viewport mark through bounded reflow frames."""
         if preserve and view.get_mapped() and not getattr(view, "_reader_reflow_tick", 0):
@@ -113,7 +115,7 @@ class ReadingStyle:
             mark = view.get_buffer().create_mark(None, iterator, True)
             frames = [0]
 
-            def restore(widget, *_):
+            def restore(widget, *_: object):
                 frames[0] += 1
                 if widget.get_mapped() and not self.owner.closed:
                     if frames[0] < 3:
@@ -146,7 +148,7 @@ class ReadingStyle:
             if number:
                 configure(number, view, preferences, self.palette)
 
-    def changed(self, *_):
+    def changed(self, *_: object) -> None:
         """Refresh scoped palette CSS and content accents after mode/contrast changes.
 
         Reading/study prose may use explicit saved content families; interface
@@ -334,7 +336,7 @@ textview.{self.scope} button.source-note-marker {{ color: {marker_color}; min-wi
         if hasattr(self.owner, "view") and hasattr(self.owner, "highlights"):
             self.owner.refresh_highlights()
 
-    def close(self):
+    def close(self) -> None:
         for handler in self.handlers:
             self.manager.disconnect(handler)
         Gtk.StyleContext.remove_provider_for_display(self.owner.get_display(), self.provider)

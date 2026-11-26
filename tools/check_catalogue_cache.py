@@ -1,5 +1,7 @@
 """Measure real per-provider cold/warm catalogue startup without timing fixtures."""
 
+from __future__ import annotations
+
 import argparse
 import json
 from pathlib import Path
@@ -8,7 +10,7 @@ from bible.catalogue_cache import CatalogueCache
 from bible.library import catalogues
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     args = parser.parse_args()
@@ -17,7 +19,7 @@ def main():
         start = time.monotonic()
         events = []
 
-        def delivered(provider, items, error, timings):
+        def delivered(provider, items, error, timings) -> None:
             events.append(
                 dict(
                     provider=provider.id,

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Report actual prototype prerequisites without installing or downloading content."""
 
+from __future__ import annotations
+
 import argparse
 import importlib
 import shutil
@@ -19,7 +21,7 @@ def main():
     args = parser.parse_args()
     failures = []
 
-    def check(label, action, required=True):
+    def check(label, action, required: bool = True) -> None:
         try:
             print(f"OK {label}: {action()}")
         except Exception as error:

@@ -1,5 +1,7 @@
 """Local, source-aware note and place affordances in ordinary Bible prose."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, GLib, Pango, Gdk
 from .i18n import tr
 from .reference_resolution import resolve
@@ -10,7 +12,7 @@ from xml.etree.ElementTree import ParseError
 class InlineMarkers:
     """Attach source-aware personal/source-note/place affordances using bounded reader-specific caches."""
 
-    def __init__(self, tab):
+    def __init__(self, tab) -> None:
         self.tab = tab
         self.geo = {}
         self.editorial = {}
@@ -74,7 +76,7 @@ class InlineMarkers:
             for ref, values in result.items()
         }
 
-    def load_places(self, key, data, reader, refs):
+    def load_places(self, key, data, reader, refs) -> None:
         """Resolve source addresses on the owner path, query installed SQLite metadata asynchronously and reject stale completion."""
         from .reference_targets import source_references
 
@@ -152,7 +154,7 @@ class InlineMarkers:
         button._marker_reference = ref
         button._marker_kind = kind
 
-        def activate(*_):
+        def activate(*_: object) -> None:
             owner = self.owner
             tab = self.tab
             if not owner or owner.closed or owner.active_tab is not tab:
@@ -229,7 +231,7 @@ class InlineMarkers:
                 pop.set_child(scroll)
                 unmap = button.connect("unmap", lambda *_: pop.popdown())
 
-                def closed(*_):
+                def closed(*_: object) -> None:
                     if pop in owner._reading_popovers:
                         owner._reading_popovers.remove(pop)
                     if button.handler_is_connected(unmap):
@@ -245,7 +247,7 @@ class InlineMarkers:
         button.connect("clicked", activate)
         return button
 
-    def place(self, reader, ref, place):
+    def place(self, reader, ref, place) -> None:
         owner = self.owner
         if not owner or owner.closed:
             return

@@ -1,10 +1,12 @@
 """Shared global menu and native general preferences/help/about surfaces."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, Gtk, Pango
 from .i18n import tr
 
 
-def secondary_dialog(dialog, owner):
+def secondary_dialog(dialog, owner) -> None:
     """Mark native secondary surfaces; keep their actual headers/actions."""
     dialog.add_css_class("bible-secondary-dialog")
     shortcut = Gtk.ShortcutController(scope=Gtk.ShortcutScope.GLOBAL)
@@ -97,7 +99,7 @@ def show_preferences(owner):
     status = Gtk.Label(wrap=True, xalign=0)
     settings = owner.application_settings
 
-    def save(key, value):
+    def save(key, value) -> None:
         try:
             settings.set(key, value)
             if key == "interface_appearance":
@@ -110,7 +112,7 @@ def show_preferences(owner):
         except (OSError, ValueError) as error:
             status.set_label(tr("Unable to save application preferences.") + " " + str(error))
 
-    def choice(title, key, values, description, segmented=False):
+    def choice(title, key, values, description, segmented: bool = False):
         row = Adw.PreferencesRow(title=tr(title), activatable=False)
         box = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
@@ -301,7 +303,7 @@ def welcome_page(owner):
     return view
 
 
-def choose_personal_backup(owner, status, restoring):
+def choose_personal_backup(owner, status, restoring) -> None:
     """Choose a local annotation-only backup and flush matching-window drafts before export/merge.
 
     Restore is fully validated before confirmation; failure retains the current
@@ -310,7 +312,7 @@ def choose_personal_backup(owner, status, restoring):
     from . import personal_backup
     from .notes_window import message
 
-    def flush():
+    def flush() -> None:
         if owner.notes_store is None:
             raise ValueError(tr("Notes unavailable. The original file has been preserved."))
         for window in owner.get_application().get_windows():
@@ -330,7 +332,7 @@ def choose_personal_backup(owner, status, restoring):
         chooser.set_current_name("Bible-annotations.json")
     owner._personal_backup_chooser = chooser
 
-    def response(dialog, result):
+    def response(dialog, result) -> None:
         try:
             if result != Gtk.ResponseType.ACCEPT:
                 return
@@ -342,7 +344,7 @@ def choose_personal_backup(owner, status, restoring):
                 with open(path, "rb") as f:
                     personal_backup.decode(f.read(personal_backup.LIMIT + 1))
 
-                def apply():
+                def apply() -> None:
                     try:
                         flush()
                         result = personal_backup.restore(owner.notes_store, owner.highlights, path)

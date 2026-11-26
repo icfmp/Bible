@@ -1,5 +1,7 @@
 """Pinned OpenBible relationships: bounded parsing and atomic offline indexing."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from contextlib import closing
 from datetime import date, datetime, timezone
@@ -184,7 +186,7 @@ class Relationship:
 class ReferenceData:
     """Validate and locally index existing OpenBible relationships without storing or creating Bible text."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.catalogue = StudyCatalogue(root)
         self.path = self.root / "openbible-cross-references.sqlite3"

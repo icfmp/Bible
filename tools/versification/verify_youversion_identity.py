@@ -5,6 +5,8 @@ then independently installed CrossWire FreSegond1910 root. All unmatched verses
 remain unmapped; equal numbering or an equal chapter size is never sufficient.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -22,7 +24,7 @@ def wording(value):
     return re.findall(r"[^\W_]+", value)
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("source", type=Path)
     p.add_argument("control", type=Path)

@@ -1,5 +1,7 @@
 """Mapped Psalm titles remain source contexts, never ordinary verse zero."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -9,7 +11,7 @@ from bible.sword_provider import CommentaryReader
 from tests.test_commentary import commentary_fixture
 
 
-def context_fixture(root, with_intro=True):
+def context_fixture(root, with_intro: bool = True):
     import Sword
 
     path = commentary_fixture(
@@ -35,7 +37,7 @@ def context_fixture(root, with_intro=True):
 
 
 class CommentaryContextTests(unittest.TestCase):
-    def test_verified_combined_title_and_verse_do_not_weaken_annotation_mapping(self):
+    def test_verified_combined_title_and_verse_do_not_weaken_annotation_mapping(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             reader = CommentaryReader(context_fixture(directory), "Notes")
             with self.assertRaises(VersificationMismatch):
@@ -52,7 +54,9 @@ class CommentaryContextTests(unittest.TestCase):
             self.assertEqual(ordinary.start, "Ps.17.2")
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
-    def test_follow_intro_body_missing_intro_and_later_verse_without_changing_reference(self):
+    def test_follow_intro_body_missing_intro_and_later_verse_without_changing_reference(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 

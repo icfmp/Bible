@@ -1,5 +1,7 @@
 """Whole-verse highlight edits, merge behavior and atomic-write failures."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -8,7 +10,7 @@ from bible.highlights import HighlightStore
 
 
 class HighlightStoreTests(unittest.TestCase):
-    def test_canonical_identity_colors_backup_and_merge_preserve_other_passages(self):
+    def test_canonical_identity_colors_backup_and_merge_preserve_other_passages(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "highlights.json"
             store = HighlightStore(path)
@@ -26,7 +28,7 @@ class HighlightStoreTests(unittest.TestCase):
             self.assertIn(("KJV", "John.3.16"), store.entries)
             self.assertIn(("KJV", "Gen.1.2"), store.entries)
 
-    def test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write(self):
+    def test_corrupt_or_unknown_file_is_preserved_and_invalid_restore_does_not_write(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "highlights.json"
             for original in ("{broken", '{"version":99,"marks":[]}', '{"version":true,"marks":[]}'):
@@ -46,7 +48,7 @@ class HighlightStoreTests(unittest.TestCase):
                 store.restore(bad)
             self.assertEqual(path.read_bytes(), before)
 
-    def test_failed_atomic_replace_preserves_file_and_memory(self):
+    def test_failed_atomic_replace_preserves_file_and_memory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "highlights.json"
             store = HighlightStore(path)

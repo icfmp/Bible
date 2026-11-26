@@ -27,7 +27,7 @@ def run(*args):
     return subprocess.check_output(list(map(str, args)), text=True).strip()
 
 
-def restore_repository_layout(repo):
+def restore_repository_layout(repo) -> None:
     """Recreate only empty directories lost by Git; preserve repository contents."""
     repo = Path(repo)
     assert (
@@ -108,8 +108,8 @@ def prepare(
     source,
     ci_run,
     revision,
-    allow_loopback=False,
-    managed_storage=False,
+    allow_loopback: bool = False,
+    managed_storage: bool = False,
 ):
     """Stage the signed alpha repository, exact source archive and matching publication provenance.
 
@@ -237,7 +237,7 @@ def prepare(
     return provenance
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     for name in [
         "bundle",

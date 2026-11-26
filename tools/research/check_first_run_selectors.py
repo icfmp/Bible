@@ -1,5 +1,7 @@
 """Clean first-run, real index/install and native selectors without restart."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -46,7 +48,7 @@ def walk(widget):
         c = c.get_next_sibling()
 
 
-def state(phase):
+def state(phase) -> None:
     item = dict(
         phase=phase,
         resources=len(d.resources),

@@ -1,5 +1,7 @@
 """Shared full/express settings, legacy persistence and actual reading reflow."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -10,7 +12,7 @@ from bible.reading_metrics import line_spacing, text_width
 
 
 class ReadingPreferenceDataTests(unittest.TestCase):
-    def test_legacy_defaults_custom_values_and_future_files_are_preserved(self):
+    def test_legacy_defaults_custom_values_and_future_files_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "reading.json"
             path.write_text(
@@ -43,7 +45,7 @@ class ReadingPreferenceDataTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ReadingSettingsTests(unittest.TestCase):
-    def test_full_express_custom_roundtrip_independent_study_font_and_reset(self):
+    def test_full_express_custom_roundtrip_independent_study_font_and_reset(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
         from bible.application_surfaces import show_preferences
         from tests.test_ui import installed_fixture, spin

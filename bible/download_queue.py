@@ -1,5 +1,7 @@
 """Small durable request list; existing installers own transfer and validation."""
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass
 import hashlib
 import json
@@ -43,7 +45,7 @@ class DownloadRequest:
 class DownloadQueue:
     """Main-thread owned. Recovered requests wait for an explicit Resume click."""
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = Path(path)
         self.requests = []
         self.error = None
@@ -126,7 +128,7 @@ class DownloadQueue:
             self.requests = []
             self.error = str(error)
 
-    def save(self):
+    def save(self) -> None:
         """Write bounded queue metadata atomically, refusing unreadable or symlinked original state."""
         if self.error:
             raise ValueError("Download queue could not be recovered: " + self.error)
@@ -199,7 +201,7 @@ class DownloadQueue:
                 raise
         return request
 
-    def finish(self, request):
+    def finish(self, request) -> None:
         """Remove a completed request, restoring its position if queue persistence fails."""
         if request not in self.requests:
             return
@@ -218,18 +220,18 @@ class DownloadQueue:
             return True
         return False
 
-    def fail(self, request, error):
+    def fail(self, request, error) -> None:
         request.state = "failed"
         request.error = str(error)[:4096]
         self.save()
 
-    def pause(self):
+    def pause(self) -> None:
         for request in self.requests:
             if request.state != "failed":
                 request.state = "paused"
         self.save()
 
-    def resume(self):
+    def resume(self) -> None:
         for request in self.requests:
             if request.state == "paused":
                 request.state = "queued"

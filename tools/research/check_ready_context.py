@@ -1,5 +1,7 @@
 """Real resource/context study walkthrough; disposable profiles, native GTK input."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -24,7 +26,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -56,7 +58,7 @@ def main():
     )
     notes = w.notes_store.all()
 
-    def shot(name):
+    def shot(name) -> None:
         native.move_at(w, 2, 2)
         spin(duration=0.25)
         screen.grab(a.output / (name + ".png"))

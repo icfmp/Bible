@@ -1,5 +1,7 @@
 """Plain, noninteractive presentation of untrusted provider metadata."""
 
+from __future__ import annotations
+
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 import re
@@ -9,22 +11,22 @@ from .i18n import tr
 class PlainMetadata(HTMLParser):
     """Extract inert text from untrusted provider markup without creating interactive HTML."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.parts = []
         self.hidden = 0
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs: object) -> None:
         if tag in ("script", "style"):
             self.hidden += 1
         if tag in ("br", "p", "div"):
             self.parts.append("\n")
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if tag in ("script", "style"):
             self.hidden = max(0, self.hidden - 1)
 
-    def handle_data(self, data):
+    def handle_data(self, data) -> None:
         if not self.hidden:
             self.parts.append(data)
 

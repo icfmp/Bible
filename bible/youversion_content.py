@@ -4,6 +4,8 @@ Native entries can contain markup spanning verse boundaries. Parse complete
 chapters, with processing instructions retaining physical entry identities.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from dataclasses import dataclass
 import re
@@ -37,7 +39,9 @@ class EditorialNote:
     text: str
 
 
-def project(root, *, milestones=False, preverse=None, normalize=True, editorial=True):
+def project(
+    root, *, milestones: bool = False, preverse=None, normalize: bool = True, editorial: bool = True
+):
     """Project actual OSIS verse bodies, notes and titles with explicit milestone/storage boundaries.
 
     Normalization and editorial inclusion are caller-controlled; no content
@@ -47,7 +51,7 @@ def project(root, *, milestones=False, preverse=None, normalize=True, editorial=
     notes, titles = [], []
     active = preverse
 
-    def visit(node):
+    def visit(node) -> None:
         nonlocal active
         if node.tag is E.ProcessingInstruction:
             target, _, reference = (node.text or "").partition(" ")
@@ -84,7 +88,7 @@ def project(root, *, milestones=False, preverse=None, normalize=True, editorial=
             # the heading or the biblical body.
             parts = []
 
-            def heading(el):
+            def heading(el) -> None:
                 if tag(el) == "note":
                     visit(el)
                     return

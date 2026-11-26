@@ -1,5 +1,7 @@
 """Dataset identity, safe atomic updates and verified numbering with real SWORD."""
 
+from __future__ import annotations
+
 import hashlib
 from pathlib import Path
 import sqlite3
@@ -24,7 +26,7 @@ def archive(path, rows):
 
 
 class ReferenceDataTests(unittest.TestCase):
-    def test_directed_relationship_ranking_range_deduplication_and_offline_reopen(self):
+    def test_directed_relationship_ranking_range_deduplication_and_offline_reopen(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "data.zip"
@@ -49,7 +51,7 @@ class ReferenceDataTests(unittest.TestCase):
             self.assertEqual(reopened.query([]), [])
             self.assertEqual(reopened.metadata()["license_url"], data.LICENSE_URL)
 
-    def test_failed_corrupt_and_interrupted_replacement_preserve_the_previous_index(self):
+    def test_failed_corrupt_and_interrupted_replacement_preserve_the_previous_index(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "data.zip"
@@ -75,7 +77,7 @@ class ReferenceDataTests(unittest.TestCase):
             self.assertEqual(sentinel.read_bytes(), b"UNCHANGED PERSONAL DATA")
             self.assertFalse(list(store.root.glob(".reference-*")))
 
-    def test_archive_layout_headers_limits_and_identifiers_are_untrusted(self):
+    def test_archive_layout_headers_limits_and_identifiers_are_untrusted(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "data.zip"
             for name in ("../escape.txt", "/cross_references.txt", "cross_references.txt/extra"):
@@ -103,7 +105,7 @@ class ReferenceDataTests(unittest.TestCase):
                 with self.assertRaises(ReferenceDataError):
                     list(data.parse_archive(path))
 
-    def test_corrupt_or_future_local_schema_is_explicit_and_untouched(self):
+    def test_corrupt_or_future_local_schema_is_explicit_and_untouched(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = ReferenceData(directory)
             store.path.write_bytes(b"CORRUPT LOCAL FILE")
@@ -117,7 +119,7 @@ class ReferenceDataTests(unittest.TestCase):
                 ["3John.1.14", "3John.1.15", "Jude.1.1"],
             )
 
-    def test_damaged_relationship_table_remains_repairable_from_library(self):
+    def test_damaged_relationship_table_remains_repairable_from_library(self) -> None:
         from bible.study_resources import StudyResources, REFERENCE_RESOURCE_ID
 
         with tempfile.TemporaryDirectory() as directory:
@@ -138,7 +140,7 @@ class ReferenceDataTests(unittest.TestCase):
 
 
 class ReferenceNumberingTests(unittest.TestCase):
-    def test_complete_targets_do_not_use_excerpt_end_or_require_module_text(self):
+    def test_complete_targets_do_not_use_excerpt_end_or_require_module_text(self) -> None:
         from bible.reference_targets import Canon, local_target_ranges
 
         self.assertEqual(
@@ -157,7 +159,7 @@ class ReferenceNumberingTests(unittest.TestCase):
             (("John.1.51", "John.2.2"),),
         )
 
-    def test_verified_psalm_and_split_john_boundaries_in_both_directions(self):
+    def test_verified_psalm_and_split_john_boundaries_in_both_directions(self) -> None:
         from bible.reference_targets import Canon, destination as destination, source_references
         from bible.reference_resolution import resolve
 
@@ -174,7 +176,7 @@ class ReferenceNumberingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve("3John.1.15", "KJV", segond, require_entry=False)
 
-    def test_exact_local_excerpts_boundaries_and_missing_text_without_network(self):
+    def test_exact_local_excerpts_boundaries_and_missing_text_without_network(self) -> None:
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
         from bible.reference_targets import local_excerpt

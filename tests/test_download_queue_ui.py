@@ -1,5 +1,7 @@
 """Real native installs and reference indexing through the shared GTK queue."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 import os
 import tempfile
@@ -12,7 +14,7 @@ from tests.test_library import archive_bytes
 from tests.test_ui import installed_fixture, spin
 
 
-def package(name, commentary=False):
+def package(name, commentary: bool = False):
     from tests.fixtures import module_fixture
 
     with tempfile.TemporaryDirectory() as directory:
@@ -28,7 +30,7 @@ def package(name, commentary=False):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class DownloadQueueUITests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window as Window
         from bible.application_settings import ApplicationSettings
 
@@ -75,14 +77,14 @@ class DownloadQueueUITests(unittest.TestCase):
         spin()
         return w
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.release.set()
         for w in self.windows:
             if not w.closed:
                 w.close()
         spin(duration=0.1)
 
-    def transfer(self, url, output, progress=lambda *_: None, **_):
+    def transfer(self, url, output, progress=lambda *_: None, **_: object) -> None:
         name = url.rsplit("/", 1)[-1]
         with self.lock:
             self.assertFalse(self.inflight, "Overlapping archive transfers")
@@ -105,7 +107,9 @@ class DownloadQueueUITests(unittest.TestCase):
             r.state in ("active", "queued") for r in self.d.downloads.requests
         )
 
-    def test_mixed_backends_continue_hidden_share_windows_and_preserve_browsing_and_notes(self):
+    def test_mixed_backends_continue_hidden_share_windows_and_preserve_browsing_and_notes(
+        self,
+    ) -> None:
         from bible.study_catalogue import CATALOGUE_URL
         from bible.study_resources import REFERENCE_RESOURCE_ID
         from tests.test_study_catalogue import archive, revision, catalogue
@@ -192,7 +196,9 @@ class DownloadQueueUITests(unittest.TestCase):
             "Second QUEUE TEST DATA",
         )
 
-    def test_pending_active_cancel_and_corrupt_source_do_not_block_a_later_install_or_retry(self):
+    def test_pending_active_cancel_and_corrupt_source_do_not_block_a_later_install_or_retry(
+        self,
+    ) -> None:
         with patch("bible.library.download", side_effect=self.transfer):
             self.d.install(resource=self.a)
             spin(lambda: self.entered.is_set())
@@ -219,7 +225,9 @@ class DownloadQueueUITests(unittest.TestCase):
         )
         self.assertFalse(self.d.downloads.requests)
 
-    def test_last_window_close_pauses_requests_and_restart_does_not_transfer_until_resume(self):
+    def test_last_window_close_pauses_requests_and_restart_does_not_transfer_until_resume(
+        self,
+    ) -> None:
         with patch("bible.library.download", side_effect=self.transfer):
             self.d.install(resource=self.a)
             spin(lambda: self.entered.is_set())
@@ -238,7 +246,7 @@ class DownloadQueueUITests(unittest.TestCase):
         self.assertEqual(self.calls, ["First.zip", "First.zip", "Second.zip"])
         self.assertEqual(set(self.library.installed()), {"Existing", self.a.id, self.b.id})
 
-    def test_committed_install_is_discovered_after_restart_without_redownloading_it(self):
+    def test_committed_install_is_discovered_after_restart_without_redownloading_it(self) -> None:
         self.d.downloads.enqueue(self.a)
         self.d.downloads.start()
         self.d.downloads.enqueue(self.b)
@@ -256,7 +264,7 @@ class DownloadQueueUITests(unittest.TestCase):
             spin(self.settled, timeout=20)
         self.assertEqual(self.calls, ["First.zip", "Second.zip"])
 
-    def test_a_conflicting_version_request_does_not_block_the_existing_queue(self):
+    def test_a_conflicting_version_request_does_not_block_the_existing_queue(self) -> None:
         from dataclasses import replace
 
         self.d.downloads.enqueue(self.a)

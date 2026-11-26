@@ -5,6 +5,8 @@ input. Both GDK Wayland and XTest are intentional: Mutter owns inner activation.
 This is distinct from the client's GNOME Shell session and deferred accessibility.
 """
 
+from __future__ import annotations
+
 import argparse
 import ctypes
 import json
@@ -21,7 +23,7 @@ from bible.ui import Application, Window, Library
 from tools.check_alpha_ui import X11Input
 
 
-def spin(until=lambda: True, duration=0.15):
+def spin(until=lambda: True, duration=0.15) -> None:
     loop = GLib.MainLoop()
     start = time.monotonic()
     failed = []
@@ -41,7 +43,7 @@ def spin(until=lambda: True, duration=0.15):
     assert not failed
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -119,7 +121,7 @@ def main():
         "personal_gnome_desktop": "Not accessed; actual nested Mutter Wayland app switching",
     }
 
-    def record(stage):
+    def record(stage) -> None:
         r = dict(
             stage=stage,
             active=w.is_active(),
@@ -136,7 +138,7 @@ def main():
         print(json.dumps(r), flush=True)
         ImageGrab.grab().save(out / (stage + ".png"))
 
-    def chord(*names):
+    def chord(*names) -> None:
         codes = [
             inputs.x11.XKeysymToKeycode(inputs.display, inputs.x11.XStringToKeysym(n.encode()))
             for n in names
@@ -210,7 +212,7 @@ def main():
         chord("Control_L", "c")
         copied = []
 
-        def copied_text(clipboard, result):
+        def copied_text(clipboard, result) -> None:
             copied.append(clipboard.read_text_finish(result))
 
         view.get_clipboard().read_text_async(None, copied_text)

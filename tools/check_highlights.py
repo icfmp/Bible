@@ -1,11 +1,13 @@
 """Real-resource paint/backup probe. Use only a disposable validation profile."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--screenshot-prefix")

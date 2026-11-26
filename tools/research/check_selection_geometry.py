@@ -1,5 +1,7 @@
 """Native selection-bar bounds and dismissal, including physical HiDPI input."""
 
+from __future__ import annotations
+
 import argparse
 import ctypes
 import inspect
@@ -16,7 +18,7 @@ from tools.check_client_feedback import Screen
 
 
 class ScaledInput(X11Input):
-    def move_at(self, widget, local_x, local_y):
+    def move_at(self, widget, local_x, local_y) -> None:
         native = widget.get_native()
         found, point = widget.compute_point(native, Graphene.Point().init(local_x, local_y))
         assert found and widget.get_mapped()
@@ -51,7 +53,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)

@@ -1,5 +1,7 @@
 """Two-store annotation safety: whole-input validation and interrupted recovery."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import tempfile
@@ -17,7 +19,7 @@ class PersonalBackupTests(unittest.TestCase):
         self.addCleanup(notes.close)
         return notes, HighlightStore(root / "highlights.json")
 
-    def test_unicode_markdown_labels_ranges_missing_resources_roundtrip_merge(self):
+    def test_unicode_markdown_labels_ranges_missing_resources_roundtrip_merge(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes, marks = self.stores(root)
@@ -45,7 +47,7 @@ class PersonalBackupTests(unittest.TestCase):
             self.assertEqual(other.get(original.id), original)
             self.assertEqual(len(colors.entries), 2)
 
-    def test_invalid_entire_input_or_backup_write_failure_changes_nothing(self):
+    def test_invalid_entire_input_or_backup_write_failure_changes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes, marks = self.stores(root)
@@ -71,7 +73,7 @@ class PersonalBackupTests(unittest.TestCase):
             self.assertEqual(backup.snapshot(notes, marks), good)
             self.assertFalse((root / "annotation-restore.pending.json").exists())
 
-    def test_highlight_write_failure_recovers_both_stores_and_restart_is_repeatable(self):
+    def test_highlight_write_failure_recovers_both_stores_and_restart_is_repeatable(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes, marks = self.stores(root)
@@ -114,7 +116,7 @@ class PersonalBackupTests(unittest.TestCase):
             self.assertEqual(backup.snapshot(notes, marks), before)
             self.assertFalse(backup.recover(notes, marks))
 
-    def test_legacy_notes_and_highlights_backups_remain_importable(self):
+    def test_legacy_notes_and_highlights_backups_remain_importable(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes, marks = self.stores(root)
@@ -132,7 +134,7 @@ class PersonalBackupTests(unittest.TestCase):
             self.assertEqual(other.get(original.id), original)
             self.assertEqual(colors.entries, marks.entries)
 
-    def test_failed_recovery_blocks_further_edits_and_exports_until_reopened(self):
+    def test_failed_recovery_blocks_further_edits_and_exports_until_reopened(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes, marks = self.stores(root)

@@ -1,5 +1,7 @@
 """Validate actual public installation/update; never substitute a bundle test."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -10,7 +12,7 @@ from tools.check_flatpak_channel import check, verify_data, verify_client, acqui
 from tools.flatpak_channel import APP_ID, run
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["snapshot", "install", "update"])
     parser.add_argument("--base-url", required=True)

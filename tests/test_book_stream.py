@@ -1,5 +1,7 @@
 """Background book preparation, cancellation and bounded document/page caches."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -12,13 +14,13 @@ from tests.test_ui import installed_fixture, spin
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/Pango")
 class BookStreamTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Gtk
 
         Gtk.init()
         cls.widget = Gtk.TextView()
 
-    def source(self, directory, long=False):
+    def source(self, directory, long: bool = False):
         from bible.library import Library
         from bible.sword_provider import Reader
         from bible.paged_sources import BibleBookPages
@@ -35,10 +37,10 @@ class BookStreamTests(unittest.TestCase):
             Reader(root, "Test"), Library(Path(directory) / "translations").resource("Test")
         )
 
-    def ready(self, stream):
+    def ready(self, stream) -> None:
         spin(lambda: (stream.poll(), stream.cursor is not None and "Exod" in stream.cache)[1])
 
-    def test_chapters_share_a_page_and_odd_book_leaves_right_page_blank(self):
+    def test_chapters_share_a_page_and_odd_book_leaves_right_page_blank(self) -> None:
         from bible.book_stream import BookStream
         from bible.pagination import Anchor
         from bible.preferences import ReadingPreferences
@@ -61,7 +63,7 @@ class BookStreamTests(unittest.TestCase):
             finally:
                 stream.close()
 
-    def test_even_book_returns_to_last_full_spread_without_extra_blank_spread(self):
+    def test_even_book_returns_to_last_full_spread_without_extra_blank_spread(self) -> None:
         from bible.book_stream import BookStream
         from bible.pagination import Anchor
         from bible.paged_sources import PageAddress
@@ -88,7 +90,7 @@ class BookStreamTests(unittest.TestCase):
             finally:
                 stream.close()
 
-    def test_main_loop_runs_while_book_preparation_is_waiting(self):
+    def test_main_loop_runs_while_book_preparation_is_waiting(self) -> None:
         from gi.repository import GLib
         from bible.book_stream import BookStream
         from bible.pagination import Anchor

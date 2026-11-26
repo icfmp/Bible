@@ -1,5 +1,7 @@
 """Quiesce native resource consumers on GTK's thread before a file switch."""
 
+from __future__ import annotations
+
 import gc
 from pathlib import Path
 from threading import Event
@@ -8,7 +10,7 @@ from .i18n import tr
 from .module_lifecycle import changing
 
 
-def clear_view(view):
+def clear_view(view) -> None:
     # Child anchors must be unmapped while their text tree is still intact.
     for button in getattr(view, "_inline_buttons", ()):
         view.remove(button)
@@ -21,7 +23,7 @@ def clear_view(view):
 class ModuleViewChange:
     """Bridge a worker file switch to GTK-owned native-reader release and later view restoration."""
 
-    def __init__(self, dialog, identifier):
+    def __init__(self, dialog, identifier) -> None:
         self.dialog = dialog
         self.identifier = identifier
         self.root = (dialog.library.root / identifier).resolve()
@@ -32,7 +34,7 @@ class ModuleViewChange:
     def matches(self, reader):
         return bool(reader and Path(reader.root).resolve() == self.root)
 
-    def before_switch(self, identifier):
+    def before_switch(self, identifier: object) -> None:
         """Wait boundedly for GTK to quiesce consumers; propagate cancellation or release failure."""
         done = Event()
         errors = []
@@ -61,7 +63,7 @@ class ModuleViewChange:
         if errors:
             raise errors[0]
 
-    def pause(self):
+    def pause(self) -> None:
         """Release resource consumers on GTK's thread while retaining annotation drafts and anchors.
 
         Cancel callbacks/worker views and clear reader-bearing caches before native
@@ -212,7 +214,7 @@ class ModuleViewChange:
         host = None
         gc.collect()
 
-    def resume(self):
+    def resume(self) -> None:
         """Reopen settled resources and restore view anchors/context without replacing live note drafts."""
         if not self.paused:
             return

@@ -1,5 +1,7 @@
 """Search lifecycle and passage-selector integration against a real SWORD fixture."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -12,7 +14,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class StudySearchTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         installed_fixture(self.root)
         from bible.ui import Application, Window, Library
@@ -26,11 +28,13 @@ class StudySearchTests(unittest.TestCase):
         self.navigation = self.window.search_popover
         self.navigation.sync()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         self.window.close()
 
-    def test_dedicated_search_retains_query_results_while_passage_entry_stays_independent(self):
+    def test_dedicated_search_retains_query_results_while_passage_entry_stays_independent(
+        self,
+    ) -> None:
         w = self.window
         w.show_search("text")
         spin()
@@ -58,7 +62,9 @@ class StudySearchTests(unittest.TestCase):
         self.assertTrue(focus is panel.entry or focus.is_ancestor(panel.entry))
         self.assertIn("<Control>f", w.get_application().get_accels_for_action("win.search"))
 
-    def test_loading_keeps_completed_rows_inert_without_a_status_line_or_control_resize(self):
+    def test_loading_keeps_completed_rows_inert_without_a_status_line_or_control_resize(
+        self,
+    ) -> None:
         panel = self.navigation.text_search
         self.window.show_search("text")
         spin()
@@ -101,7 +107,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertFalse(panel.loading_cards._tick)
         self.assertFalse(panel._loading_delay)
 
-    def test_pending_placeholders_stop_on_hide_and_honor_reduced_motion(self):
+    def test_pending_placeholders_stop_on_hide_and_honor_reduced_motion(self) -> None:
         from bible.ui import Gtk
 
         panel = self.navigation.text_search
@@ -129,7 +135,7 @@ class StudySearchTests(unittest.TestCase):
         spin()
         self.assertFalse(panel.model.get_n_items())
 
-    def test_superseded_worker_cannot_replace_new_result_or_reopen_preview(self):
+    def test_superseded_worker_cannot_replace_new_result_or_reopen_preview(self) -> None:
         panel = self.navigation.text_search
         started = threading.Event()
         release = threading.Event()
@@ -150,7 +156,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertIsNone(self.window.reference_preview.popover)
         self.assertEqual(self.window.active_tab.state.reference, "John.1.1")
 
-    def test_closing_adaptive_search_releases_its_parent_menu_and_focus(self):
+    def test_closing_adaptive_search_releases_its_parent_menu_and_focus(self) -> None:
         w = self.window
         w.set_default_size(360, 820)
         spin(lambda: not w._controls_tick, duration=0.4)
@@ -167,7 +173,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertTrue(focus.get_mapped())
         self.assertTrue(focus is parent or focus.is_ancestor(parent))
 
-    def test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable(self):
+    def test_mode_change_invalidates_results_and_missing_data_keeps_passage_usable(self) -> None:
         n = self.navigation
         p = n.topic_search
         before = list(self.window.active_tab.state.history)
@@ -186,7 +192,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertEqual(self.window.active_tab.state.reference, "John.3.16")
         self.assertEqual(len(self.window.active_tab.state.history), len(before) + 1)
 
-    def test_unavailable_translation_and_invalid_phrase_do_not_launch_worker(self):
+    def test_unavailable_translation_and_invalid_phrase_do_not_launch_worker(self) -> None:
         p = self.navigation.text_search
         p.entry.set_text("x" * 201)
         p.run_text()
@@ -198,7 +204,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertFalse(p.pending)
         self.assertEqual(p.model.get_n_items(), 0)
 
-    def test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one(self):
+    def test_source_heading_occurrence_remains_unmapped_without_fabricated_verse_one(self) -> None:
         from gi.repository import Gtk
 
         n = self.navigation
@@ -234,7 +240,7 @@ class StudySearchTests(unittest.TestCase):
             (self.window.active_tab.state.reference, self.window.active_tab.state.history), before
         )
 
-    def test_delayed_text_notification_keeps_explicit_search_results(self):
+    def test_delayed_text_notification_keeps_explicit_search_results(self) -> None:
         panel = self.navigation.text_search
         panel.entry.set_text("SENTINEL")
         panel.run_text()
@@ -248,7 +254,7 @@ class StudySearchTests(unittest.TestCase):
         spin(duration=0.3)
         self.assertEqual(panel.rows, [])
 
-    def test_delayed_topic_notification_keeps_selected_results_and_preview(self):
+    def test_delayed_topic_notification_keeps_selected_results_and_preview(self) -> None:
         from unittest.mock import patch
         from tests.test_topic_data import archive
         from bible.topic_data import TopicData
@@ -287,7 +293,7 @@ class StudySearchTests(unittest.TestCase):
         self.assertIsNone(self.window.reference_preview.popover)
         self.assertEqual(panel.rows, [])
 
-    def test_paused_query_keeps_draft_without_leaving_a_stale_searching_state(self):
+    def test_paused_query_keeps_draft_without_leaving_a_stale_searching_state(self) -> None:
         from bible.i18n import tr
 
         panel = self.navigation.text_search

@@ -1,5 +1,7 @@
 """Topics and literal text in the dedicated search popover, with local previews."""
 
+from __future__ import annotations
+
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw, Gtk, GLib, Gio, GObject, Pango
 from .i18n import tr, LANGUAGE
@@ -15,7 +17,7 @@ from .passage_card import passage_card
 class SearchItem(GObject.Object):
     """A native list-model wrapper retaining the result and its request generation."""
 
-    def __init__(self, value):
+    def __init__(self, value) -> None:
         super().__init__()
         self.value = value
 
@@ -23,7 +25,7 @@ class SearchItem(GObject.Object):
 class StudySearch(Gtk.Box):
     """Own local text/topic search state, asynchronous result generations and exact source previews."""
 
-    def __init__(self, navigation, mode):
+    def __init__(self, navigation, mode) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.navigation = navigation
         self.owner = navigation.owner
@@ -244,12 +246,12 @@ class StudySearch(Gtk.Box):
         self.append(self.credit)
         self.refresh()
 
-    def close(self):
+    def close(self) -> None:
         self.generation += 1
         self.busy(False)
         self.executor.shutdown(wait=False, cancel_futures=True)
 
-    def pause(self):
+    def pause(self) -> None:
         """Invalidate pending work and stop loading presentation when the search surface is paused."""
         self.epoch += 1
         if self.pending:
@@ -264,7 +266,7 @@ class StudySearch(Gtk.Box):
         self.pending = False
         self.busy(False)
 
-    def busy(self, value):
+    def busy(self, value) -> None:
         # A short one-shot delay avoids flashing placeholders for local hits.
         # Cancellation/hiding removes it and the mapped-only animation entirely.
         """Reflect request state accessibly and delay text-loading cards until a perceptible wait."""
@@ -295,7 +297,7 @@ class StudySearch(Gtk.Box):
             self._loading_delay = GLib.timeout_add(120, show)
         self.navigation.adapt()
 
-    def invalidate(self, keep_results=False):
+    def invalidate(self, keep_results: bool = False) -> None:
         """Cancel stale results/preview context, optionally retaining disabled previous rows while editing."""
         if hasattr(self, "more"):
             self.more.set_visible(False)
@@ -318,7 +320,7 @@ class StudySearch(Gtk.Box):
         self.status.set_text("")
         self.status.set_tooltip_text(None)
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh installed sources/topic vocabulary only when their relevant context stamp changes."""
         names = self.owner.library.installed("bible")
         revision = self.data.revision if self.mode == "topics" else None
@@ -389,7 +391,7 @@ class StudySearch(Gtk.Box):
             self.status.set_text("")
             self.status.set_visible(False)
 
-    def source_changed(self, *_):
+    def source_changed(self, *_: object) -> None:
         """Open the explicit installed search source and derive scopes from its actual canon."""
         if self.mode != "text" or getattr(self, "_source_syncing", False):
             return
@@ -436,7 +438,7 @@ class StudySearch(Gtk.Box):
         except (OSError, ValueError) as error:
             self.status.set_text(str(error))
 
-    def changed(self, *_):
+    def changed(self, *_) -> None:
         """Update topic filtering or invalidate text results without launching an implicit text search."""
         if getattr(self, "_setting_lemma", False):
             return
@@ -494,7 +496,7 @@ class StudySearch(Gtk.Box):
         )
         self.download.set_visible(self.data.revision is None)
 
-    def show_topics(self, *_):
+    def show_topics(self, *_) -> None:
         """Return to topic choices while retaining the explicit topic filter."""
         if self.mode != "topics":
             return
@@ -506,26 +508,26 @@ class StudySearch(Gtk.Box):
             self._topic_filter = None
             self.changed()
 
-    def open_library(self, *_):
+    def open_library(self, *_: object) -> None:
         from .study_resources import TOPIC_RESOURCE_ID
 
         self.navigation.popdown()
         library = self.owner.open_library("study")
         library.reveal_study_resource(TOPIC_RESOURCE_ID)
 
-    def topic_setup(self, _, item):
+    def topic_setup(self, _: object, item) -> None:
         button = passage_card()
         button._reference_labels[1].set_visible(False)
         button.connect("clicked", lambda b: self.choose(b._topic))
         item.set_child(button)
 
-    def topic_bind(self, _, item):
+    def topic_bind(self, _: object, item) -> None:
         button = item.get_child()
         button._topic = item.get_item().value
         button._reference_labels[0].set_text(title(button._topic))
         button.update_property([Gtk.AccessibleProperty.LABEL], [title(button._topic)])
 
-    def activate_first(self, *_):
+    def activate_first(self, *_: object) -> None:
         if self.topic_model.get_n_items():
             self.choose(self.topic_model.get_item(0).value)
 
@@ -546,7 +548,7 @@ class StudySearch(Gtk.Box):
         self.context = (resource, reader)
         return True
 
-    def launch(self, operation, caption, source_system, append=False):
+    def launch(self, operation, caption, source_system, append: bool = False) -> None:
         """Run search off the main loop and accept results only for the matching generation/context epoch.
 
         GTK updates occur in the completion idle. Source switches clear incompatible
@@ -624,7 +626,7 @@ class StudySearch(Gtk.Box):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def choose(self, entry):
+    def choose(self, entry) -> None:
         # An explicit choice wins over the SearchEntry's delayed notification.
         """Query an actually installed topic index and show its source-qualified passage results."""
         self._topic_filter = self.entry.get_text()
@@ -644,7 +646,7 @@ class StudySearch(Gtk.Box):
         self.topic_count.set_text("")
         self.launch(operation, title(entry), "openbible")
 
-    def run_text(self, *_, append=False):
+    def run_text(self, *_: object, append: bool = False):
         """Validate an explicit submitted phrase/scope and launch isolated local text search."""
         if self.mode != "text":
             return
@@ -686,7 +688,7 @@ class StudySearch(Gtk.Box):
         self.launch(operation, query, reader.versification, append=append)
         self._submitted_query = self.entry.get_text()
 
-    def show_lemma(self, corpus, identifier, caption, resource):
+    def show_lemma(self, corpus, identifier, caption, resource) -> None:
         """Switch to actual source-corpus lemma occurrences while retaining the selected translation."""
         if resource in self.search_names:
             self.source.set_selected(self.search_names.index(resource))
@@ -698,7 +700,7 @@ class StudySearch(Gtk.Box):
         self.scope.set_visible(False)
         self.run_lemma()
 
-    def run_lemma(self, append=False):
+    def run_lemma(self, append: bool = False) -> None:
         """Page supplied STEP occurrences, explicitly retaining their source corpus numbering."""
         if not self.lemma_query:
             return
@@ -724,7 +726,7 @@ class StudySearch(Gtk.Box):
         )
         self.launch(operation, self._lemma_caption, "NRSV", append=append)
 
-    def result_setup(self, _, item):
+    def result_setup(self, _: object, item) -> None:
         """Create a reusable passage card whose actual result is attached during native row binding."""
         button = passage_card()
         content = button.get_child()
@@ -736,7 +738,7 @@ class StudySearch(Gtk.Box):
         button.connect("clicked", self.preview)
         item.set_child(button)
 
-    def result_bind(self, _, item):
+    def result_bind(self, _: object, item) -> None:
         """Bind an exact local excerpt and source-word emphasis, labeling close matches explicitly."""
         row, generation = item.get_item().value
         button = item.get_child()
@@ -803,14 +805,14 @@ class StudySearch(Gtk.Box):
         score.set_visible(close)
         score.set_text(tr("Close match") if close else "")
 
-    def preview(self, button):
+    def preview(self, button) -> None:
         """Preview only a current-generation source result and guard navigation from unsaved Notes."""
         row, generation = button._result
         if generation != self.generation:
             return
         resource, reader = self.context
 
-        def navigate(action):
+        def navigate(action) -> None:
             self.navigation.popdown()
             if self.owner.main_pages.get_visible_child_name() == "notes":
                 self.owner.notes_space.guard(action)

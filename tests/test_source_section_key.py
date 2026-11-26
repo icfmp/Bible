@@ -1,5 +1,7 @@
 """Real SWORD storage retains distinct, unchanged source identities."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,7 +9,7 @@ from bible.source_sections import SourceChapter, SectionIndex
 
 
 class SourceSectionKeyTests(unittest.TestCase):
-    def test_native_fields_and_public_section_id_are_distinct_and_roundtrip(self):
+    def test_native_fields_and_public_section_id_are_distinct_and_roundtrip(self) -> None:
         import Sword
         from bible.source_section_key import key_type
         from tests.test_ui import installed_fixture

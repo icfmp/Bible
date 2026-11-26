@@ -1,5 +1,7 @@
 """Local note validation, optimistic edits, Unicode and portable backup safety."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 import json
 from pathlib import Path
@@ -36,7 +38,7 @@ class NoteTests(unittest.TestCase):
         self.addCleanup(store.close)
         return store
 
-    def test_initial_schema_persistence_passages_and_labels(self):
+    def test_initial_schema_persistence_passages_and_labels(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             first = create(store, end="John.3.18")
@@ -60,7 +62,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(reopened.search(order="recent")[0].id, second.id)
             self.assertEqual(reopened.search(order="oldest")[0].id, first.id)
 
-    def test_cross_chapter_range_roundtrip_keeps_schema_identity_and_legacy_notes(self):
+    def test_cross_chapter_range_roundtrip_keeps_schema_identity_and_legacy_notes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             legacy = create(store)
@@ -81,7 +83,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(target.get(crossing.id), crossing)
             self.assertEqual(target.get(legacy.id), legacy)
 
-    def test_future_or_unrelated_database_is_not_modified(self):
+    def test_future_or_unrelated_database_is_not_modified(self) -> None:
         for version, app in [(99, APPLICATION_ID), (1, 0), (0, 0)]:
             with self.subTest(version=version, app=app), tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / "notes.sqlite3"
@@ -95,7 +97,7 @@ class NoteTests(unittest.TestCase):
                     NoteStore(path)
                 self.assertEqual(path.read_bytes(), before)
 
-    def test_empty_database_migrates_explicitly_and_private_files(self):
+    def test_empty_database_migrates_explicitly_and_private_files(self) -> None:
         import stat
 
         with tempfile.TemporaryDirectory() as directory:
@@ -107,7 +109,7 @@ class NoteTests(unittest.TestCase):
             store.export(backup)
             self.assertEqual(stat.S_IMODE(backup.stat().st_mode), 0o600)
 
-    def test_optimistic_edits_and_failed_write_preserve_old_note(self):
+    def test_optimistic_edits_and_failed_write_preserve_old_note(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             first = create(store)
@@ -124,7 +126,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(store.get(first.id), updated)
             self.assertEqual(store.labels(), ["New"])
 
-    def test_backup_merge_conflicts_duplicates_and_unicode(self):
+    def test_backup_merge_conflicts_duplicates_and_unicode(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             first = create(store)
@@ -143,7 +145,7 @@ class NoteTests(unittest.TestCase):
                 self.assertEqual(restored.restore(backup), (1, 0, 0))
                 self.assertEqual(restored.get(first.id), first)
 
-    def test_invalid_restore_validates_every_record_before_writing(self):
+    def test_invalid_restore_validates_every_record_before_writing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             original = create(store)
@@ -171,7 +173,7 @@ class NoteTests(unittest.TestCase):
                 store.restore(backup)
             self.assertEqual(store.all(), [original])
 
-    def test_restore_transaction_rolls_back_after_a_partial_write_failure(self):
+    def test_restore_transaction_rolls_back_after_a_partial_write_failure(self) -> None:
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as target:
             original = self.store(source)
             create(original, "Imported first")
@@ -183,7 +185,7 @@ class NoteTests(unittest.TestCase):
             write = store._write
             calls = []
 
-            def fail_on_second(note):
+            def fail_on_second(note) -> None:
                 calls.append(note.id)
                 if len(calls) == 2:
                     raise OSError("disk full")
@@ -195,7 +197,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(store.all(), [existing])
             self.assertEqual(store.labels(), ["Local"])
 
-    def test_failed_export_preserves_existing_backup_and_protects_database(self):
+    def test_failed_export_preserves_existing_backup_and_protects_database(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             first = create(store)
@@ -210,7 +212,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(store.get(first.id), first)
             self.assertEqual(list(Path(directory).glob(".notes-backup-*")), [])
 
-    def test_delete_is_transactional_and_does_not_touch_other_notes(self):
+    def test_delete_is_transactional_and_does_not_touch_other_notes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             first = create(store)
@@ -219,7 +221,7 @@ class NoteTests(unittest.TestCase):
             self.assertEqual(store.all(), [second])
             self.assertEqual(store.labels(), ["Other"])
 
-    def test_invalid_passage_body_labels_and_backup_size(self):
+    def test_invalid_passage_body_labels_and_backup_size(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = self.store(directory)
             for start, end in [
@@ -243,7 +245,7 @@ class NoteTests(unittest.TestCase):
             with self.assertRaises(NotesError):
                 store.restore(oversized)
 
-    def test_markdown_is_inert_and_preserves_untrusted_text(self):
+    def test_markdown_is_inert_and_preserves_untrusted_text(self) -> None:
         source = "**Gras** et *italique*\n- στοιχείο עברית\n<script>bad()</script>\n[x](javascript:bad) [web](https://example.test) ![image](file:///secret)"
         text, spans = render(source)
         self.assertIn("Gras et italique", text)

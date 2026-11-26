@@ -1,5 +1,7 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 
+from __future__ import annotations
+
 from .paged_sources import BiblePages
 from .reading_style import SPACING as SPACING, apply_direction
 from .reading_metrics import line_spacing, paragraph_space_size, EDITORIAL_GAP, HEADING_LINE_HEIGHT
@@ -8,7 +10,7 @@ from gi.repository import Gtk, Pango
 from gi.repository import GObject
 
 
-def copy_selection(view):
+def copy_selection(view) -> None:
     selection = view.get_buffer().get_selection_bounds()
     if not selection:
         return
@@ -18,7 +20,7 @@ def copy_selection(view):
     GObject.signal_stop_emission_by_name(view, "copy-clipboard")
 
 
-def bind_copy(view, document, base=0):
+def bind_copy(view, document, base=0) -> None:
     view._bible_copy_source = (document, base)
     if not getattr(view, "_bible_copy_handler", None):
         view._bible_copy_handler = view.connect("copy-clipboard", copy_selection)

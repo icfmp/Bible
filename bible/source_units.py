@@ -6,6 +6,8 @@ partially shared text cannot be represented by identical complete entries.
 No Scripture text is stored here or inferred from printed verse labels.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 import re
 from .source_sections import ADDRESS, SECTION, SectionIndex
@@ -35,7 +37,7 @@ class SourceUnit:
 class ChapterUnits:
     """Ordered source fragments and their many-to-many memberships within an explicit source chapter."""
 
-    def __init__(self, reference, units):
+    def __init__(self, reference, units) -> None:
         if not isinstance(reference, str) or not re.fullmatch(
             rf"[1-5]?[A-Za-z][A-Za-z0-9]{{0,15}}\.{SECTION}", reference
         ):
@@ -180,7 +182,7 @@ class ChapterUnits:
 class AddressIndex:
     """Public chapter/verse IDs over private chapter and ordered-unit slots."""
 
-    def __init__(self, sections=None, chapters=()):
+    def __init__(self, sections=None, chapters=()) -> None:
         if sections is not None and not isinstance(sections, SectionIndex):
             raise ValueError("Invalid source section index")
         self.sections = sections
@@ -202,7 +204,7 @@ class AddressIndex:
     def source_chapter(self, reference):
         return self.sections.to_source(reference) if self.sections else reference
 
-    def to_native(self, reference, *, allow_zero=False):
+    def to_native(self, reference, *, allow_zero: bool = False):
         """Resolve an explicit source address to its first native storage unit, rejecting unindexed references."""
         match = ADDRESS.fullmatch(reference) if isinstance(reference, str) else None
         if not match:
@@ -219,7 +221,7 @@ class AddressIndex:
             verse = str(units.by_reference[reference][0])
         return self.native_chapter(chapter) + "." + verse
 
-    def to_sources(self, reference, *, allow_zero=False):
+    def to_sources(self, reference, *, allow_zero: bool = False):
         """Return all explicit source members of a native storage unit without inventing one-to-one equivalence."""
         match = ADDRESS.fullmatch(reference) if isinstance(reference, str) else None
         if not match:
@@ -237,7 +239,7 @@ class AddressIndex:
             return units.units[int(verse) - 1].members
         return (chapter + "." + verse,)
 
-    def to_source(self, reference, *, allow_zero=False):
+    def to_source(self, reference, *, allow_zero: bool = False):
         return self.to_sources(reference, allow_zero=allow_zero)[0]
 
     def storage_document(self, document):

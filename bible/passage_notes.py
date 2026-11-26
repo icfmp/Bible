@@ -1,5 +1,7 @@
 """Read-only passage annotation cards opening the shared note popup."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango as Pango, GLib, Gdk
 from .i18n import tr
 from .highlights import COLORS
@@ -12,7 +14,7 @@ from .annotation_card import AnnotationPreview as AnnotationPreview
 class PassageNotes(Gtk.Box):
     """Project current chapter annotations into source-aware cards and guarded shared note editors."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=10,
@@ -53,7 +55,7 @@ class PassageNotes(Gtk.Box):
         self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.append(self.list)
 
-    def close(self):
+    def close(self) -> None:
         self.cancel_follow()
 
     def open_collection(self):
@@ -81,7 +83,7 @@ class PassageNotes(Gtk.Box):
             else None
         )
 
-        def shown(space):
+        def shown(space) -> None:
             key = (
                 ("note", source_editor.note.id)
                 if source_editor and source_editor.note
@@ -92,11 +94,11 @@ class PassageNotes(Gtk.Box):
 
         return self.owner.open_notes(on_open=shown)
 
-    def clear(self, box):
+    def clear(self, box) -> None:
         while box.get_first_child():
             box.remove(box.get_first_child())
 
-    def bind_scroll(self, scroll):
+    def bind_scroll(self, scroll) -> None:
         """Observe manual wheel/key/click intent so automatic following yields to panel browsing."""
         self.scroll = scroll
         from .scroll_motion import ScrollMotion
@@ -109,7 +111,7 @@ class PassageNotes(Gtk.Box):
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_, value, *args):
+        def key(_: object, value, *args: object):
             if value in (
                 Gdk.KEY_Up,
                 Gdk.KEY_Down,
@@ -129,13 +131,13 @@ class PassageNotes(Gtk.Box):
         click.connect("pressed", lambda *_: self.suspend_following())
         scroll.add_controller(click)
 
-    def cancel_follow(self):
+    def cancel_follow(self) -> None:
         self._follow_serial += 1
         if self._follow_idle:
             GLib.source_remove(self._follow_idle)
             self._follow_idle = 0
 
-    def suspend_following(self):
+    def suspend_following(self) -> None:
         if hasattr(self, "motion"):
             self.motion.cancel()
         self.following = False
@@ -182,7 +184,7 @@ class PassageNotes(Gtk.Box):
                 return positions[0][2], positions[-1][3]
         return None
 
-    def resume_following(self):
+    def resume_following(self) -> None:
         # Reading intent must never move an active draft out of view.
         """Resume Bible-led card following only when no active editor draft needs a stable viewport."""
         if self.editor and not self.editor.closed:
@@ -193,7 +195,7 @@ class PassageNotes(Gtk.Box):
         if tab:
             self.queue_follow(tab.state.reference)
 
-    def refresh(self, force=False):
+    def refresh(self, force: bool = False) -> None:
         """Rebuild chapter cards only when source/annotation context changes, retaining unavailable saved anchors.
 
         Cards are independent stored records; ordering uses verified projections
@@ -362,7 +364,7 @@ class PassageNotes(Gtk.Box):
         if tab:
             self.queue_follow(tab.state.reference)
 
-    def queue_follow(self, reference):
+    def queue_follow(self, reference) -> None:
         """Reveal a verified matching/nearby card through bounded context-checked callbacks.
 
         Manual scrolling, hidden tools, changed passages or an active editor cancel
@@ -479,7 +481,7 @@ class PassageNotes(Gtk.Box):
 
         self._follow_idle = GLib.idle_add(reveal)
 
-    def navigate_annotation(self, system, start, origin=None):
+    def navigate_annotation(self, system, start, origin=None) -> None:
         """Navigate only through a verified annotation-to-current-reader correspondence."""
         tab = self.owner.active_tab
         reader = tab.reader if tab else None
@@ -522,7 +524,7 @@ class PassageNotes(Gtk.Box):
         except (ValueError, OSError, RuntimeError):
             return tr("Original translation unavailable.")
 
-    def note_card(self, note, reader):
+    def note_card(self, note, reader: object) -> None:
         from .annotation_card import annotation_card
         from .annotation_collection import records
 
@@ -530,7 +532,7 @@ class PassageNotes(Gtk.Box):
         self.list.append(card)
         self.cards.append(card)
 
-    def highlight_card(self, mark, reader):
+    def highlight_card(self, mark, reader) -> None:
         """Create a shared highlight card retaining its own original reference/source context."""
         from .annotation_card import annotation_card
         from .annotation_collection import records
@@ -574,7 +576,7 @@ class PassageNotes(Gtk.Box):
         self.owner.study.update_indicator()
         return editor
 
-    def add_note(self, *_):
+    def add_note(self, *_: object):
         """Capture the selected source-qualified passage explicitly for a new independent note."""
         tab = self.owner.active_tab
         if not tab or not tab.reader:
@@ -589,7 +591,7 @@ class PassageNotes(Gtk.Box):
         )
         return self.open_note(context=context)
 
-    def editor_closed(self, editor):
+    def editor_closed(self, editor) -> None:
         """Restore the matching chapter card/scroll after editor closure without reviving stale context."""
         if self.editor is editor:
             self.editor = None
@@ -620,7 +622,7 @@ class PassageNotes(Gtk.Box):
 
         GLib.idle_add(restore)
 
-    def delete_note(self, note, popover=None):
+    def delete_note(self, note, popover=None) -> None:
         """Route deletion through the existing editor confirmation and unsaved-draft guards."""
         if popover:
             popover.popdown()
@@ -633,12 +635,12 @@ class PassageNotes(Gtk.Box):
         if editor.note and editor.note.id == note.id:
             editor.ask_delete()
 
-    def colors(self, menu, *, mark=None, context=None, reader=None, annotate=False):
+    def colors(self, menu, *, mark=None, context=None, reader=None, annotate: bool = False) -> None:
         """Build snapshot-based whole-verse mark actions without mutating notes or inventing unavailable verses."""
         if mark:
             from .annotation_card import highlight_actions
 
-            def changed(snapshot, color):
+            def changed(snapshot, color) -> None:
                 self.owner.highlights.set(
                     snapshot["system"], [snapshot["reference"]], color, snapshot["resource"]
                 )
@@ -665,7 +667,9 @@ class PassageNotes(Gtk.Box):
         for color in [*COLORS, None] if mark else COLORS:
             button = Gtk.Button(label=tr(COLORS[color][1] if color else "Remove highlight"))
 
-            def choose(_, value=color, snapshot=dict(mark) if mark else dict(context)):
+            def choose(
+                _: object, value=color, snapshot=dict(mark) if mark else dict(context)
+            ) -> None:
                 try:
                     if mark:
                         system, refs, resource = (

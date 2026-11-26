@@ -1,5 +1,7 @@
 """Source-verified SWORD styling and structural display-offset remapping."""
 
+from __future__ import annotations
+
 from bisect import bisect_left, bisect_right
 from itertools import accumulate
 from html.parser import HTMLParser
@@ -14,17 +16,17 @@ class PreverseParts(HTMLParser):
     CDATA_CONTENT_ELEMENTS = ("script", "style")
     RCDATA_CONTENT_ELEMENTS = ()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(convert_charrefs=False)
         self.body = []
         self.prefix = []
         self.region = None
         self.hidden = 0
 
-    def append(self, text):
+    def append(self, text) -> None:
         (self.prefix if self.region else self.body).append(text)
 
-    def start(self, tag, attrs, raw, empty):
+    def start(self, tag, attrs, raw, empty) -> None:
         """Retain raw source markup while tracking explicit preverse regions outside hidden content."""
         values = dict(attrs)
         if not self.hidden and tag == "div":
@@ -38,24 +40,24 @@ class PreverseParts(HTMLParser):
         if not empty and tag in {"script", "style", "note"}:
             self.hidden += 1
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         self.start(tag, attrs, self.get_starttag_text(), False)
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag, attrs) -> None:
         self.start(tag, attrs, self.get_starttag_text(), True)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         self.append("</" + tag + ">")
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
 
-    def handle_data(self, text):
+    def handle_data(self, text) -> None:
         self.append(text)
 
-    def handle_entityref(self, name):
+    def handle_entityref(self, name) -> None:
         self.append("&" + name + ";")
 
-    def handle_charref(self, name):
+    def handle_charref(self, name) -> None:
         self.append("&#" + name + ";")
 
 
@@ -107,7 +109,13 @@ class InlineOSIS(HTMLParser):
     CDATA_CONTENT_ELEMENTS = ("script", "style")
     RCDATA_CONTENT_ELEMENTS = ()
 
-    def __init__(self, source_type="OSIS", *, inline_titles=False, native_numeric_entities=False):
+    def __init__(
+        self,
+        source_type="OSIS",
+        *,
+        inline_titles: bool = False,
+        native_numeric_entities: bool = False,
+    ) -> None:
         super().__init__(convert_charrefs=not native_numeric_entities)
         self.source_type = source_type
         self.inline_titles = inline_titles
@@ -126,11 +134,11 @@ class InlineOSIS(HTMLParser):
         self.divisions = []
         self.paragraph_ids = set()
 
-    def append(self, text):
+    def append(self, text) -> None:
         self.parts.append(text)
         self.length += len(text)
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         """Track actual source titles, inline emphasis and paragraph/list roles without executing markup."""
         values = dict(attrs)
         if tag in {"script", "style", "note"}:
@@ -195,13 +203,13 @@ class InlineOSIS(HTMLParser):
         if kind and not values.get("eid"):
             self.structure_stack.append((tag, kind, self.length))
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag, attrs) -> None:
         values = dict(attrs)
         self.handle_starttag(tag, attrs)
         if not values.get("sid") and not values.get("eid"):
             self.handle_endtag(tag)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         """Close supported style/structure ranges and preserve native decoration positions for verification."""
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
@@ -242,7 +250,7 @@ class InlineOSIS(HTMLParser):
             self.append(" *")
             self.emphasis.append((kind, first, body, end, self.length - 1))
 
-    def handle_data(self, text):
+    def handle_data(self, text) -> None:
         if self.hidden:
             return
         if self.title:
@@ -250,10 +258,10 @@ class InlineOSIS(HTMLParser):
         else:
             self.append(text)
 
-    def handle_entityref(self, name):
+    def handle_entityref(self, name) -> None:
         self.handle_data(unescape("&" + name + ";"))
 
-    def handle_charref(self, name):
+    def handle_charref(self, name) -> None:
         # SWORD OSISPlain drops numeric entity tokens, unlike named XML
         # entities. Verify this native form without repairing missing text or
         # treating an authored literal "&amp;#...;" as a numeric token.
@@ -261,7 +269,7 @@ class InlineOSIS(HTMLParser):
             self.handle_data(unescape("&#" + name + ";"))
 
 
-def format_entry(raw, plain, source_type, *, preserve_offsets=False):
+def format_entry(raw, plain, source_type, *, preserve_offsets: bool = False):
     """Return verified body, typed ranges and real source headings.
 
     SWORD OSISPlain inserts stars around hi elements. Validate source characters,
@@ -310,10 +318,10 @@ def _verified_entry(
     plain,
     source_type,
     *,
-    inline_titles=False,
-    native_numeric_entities=False,
-    nested_amp=False,
-    preserve_offsets=False,
+    inline_titles: bool = False,
+    native_numeric_entities: bool = False,
+    nested_amp: bool = False,
+    preserve_offsets: bool = False,
 ):
     """Map verified raw-source characters onto native plain text and return only evidenced display styles.
 
@@ -483,7 +491,7 @@ def _verified_entry(
     return "".join(display), tuple(styles), tuple(parser.titles)
 
 
-def apply(view, styles, preferences, palette):
+def apply(view, styles, preferences, palette) -> None:
     """Apply native tags for already-verified character spans without rewriting the buffer or source."""
     from gi.repository import Pango
     from .verse_typography import configure
@@ -602,7 +610,7 @@ def show_preface(owner, reader, resource, position):
     window.source_document = document
     owner.commentary_preface = window
 
-    def closed(*_):
+    def closed(*_: object):
         if getattr(owner, "commentary_preface", None) is window:
             owner.commentary_preface = None
         return False

@@ -1,5 +1,7 @@
 """One native contextual host for the existing word and place components."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 from gi.repository import Adw, Gdk, Gtk, Pango as Pango
 from .i18n import tr
@@ -11,7 +13,7 @@ class PassageStudy(Adw.Window):
 
     def __init__(
         self, owner, *, target=None, context=None, mode="original", place=None, metadata=None
-    ):
+    ) -> None:
         super().__init__(
             title=tr("Study passage"),
             transient_for=owner,
@@ -108,7 +110,7 @@ class PassageStudy(Adw.Window):
         self.tabs.set_visible_child_name(mode)
         self._words_started = mode == "original"
 
-        def selected(*_):
+        def selected(*_: object) -> None:
             if (
                 self.words
                 and self.tabs.get_visible_child_name() == "original"
@@ -187,13 +189,13 @@ class PassageStudy(Adw.Window):
             )
         return value
 
-    def refresh(self):
+    def refresh(self) -> None:
         if self.words:
             self.words.refresh()
         if not self.closed:
             self.places.refresh()
 
-    def on_close(self, *_):
+    def on_close(self, *_: object):
         """Invalidate child views and remove owner references before native window disposal."""
         if self.closed:
             return False

@@ -1,5 +1,7 @@
 """Isolated, cached local SWORD search; never mutate GTK's reading handle."""
 
+from __future__ import annotations
+
 from contextlib import closing
 from dataclasses import dataclass
 import hashlib
@@ -281,7 +283,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
     )
 
 
-def main():
+def main() -> None:
     """Open an isolated reader, build/reuse its index and print the requested JSON search page."""
     from .sword_provider import Reader
 

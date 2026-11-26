@@ -1,5 +1,7 @@
 """Chapter membership, semantic following and draft ownership without migrations."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class ChapterNotesTests(unittest.TestCase):
-    def test_popup_has_native_close_controls_and_flushes_the_same_buffer(self):
+    def test_popup_has_native_close_controls_and_flushes_the_same_buffer(self) -> None:
         editor = self.p.open_note(self.notes[0])
         buffer = editor.body.get_buffer()
         editor.body.set_source("An unsaved personal draft")
@@ -28,7 +30,7 @@ class ChapterNotesTests(unittest.TestCase):
         self.assertEqual(stored.body, "An unsaved personal draft")
         self.assertEqual((stored.start, stored.end), (saved.start, saved.end))
 
-    def test_empty_chapter_never_hides_a_draft_or_existing_annotations(self):
+    def test_empty_chapter_never_hides_a_draft_or_existing_annotations(self) -> None:
         p = self.p
         self.assertFalse(p.empty_page.get_visible())
         self.w.active_tab.navigate("Test", "Acts.2.1")
@@ -44,7 +46,7 @@ class ChapterNotesTests(unittest.TestCase):
         self.assertTrue(editor.get_visible())
         self.assertEqual(editor.body.get_buffer().props.text, "Retained unsaved writing")
 
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -79,14 +81,14 @@ class ChapterNotesTests(unittest.TestCase):
             origin_language="en",
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.w.note_editor:
             self.w.note_editor._discard = True
             self.w.note_editor.close()
         close_test_dialogs()
         self.w.close()
 
-    def test_whole_chapter_canonical_order_group_gaps_no_rebuild_or_navigation(self):
+    def test_whole_chapter_canonical_order_group_gaps_no_rebuild_or_navigation(self) -> None:
         p = self.p
         tab = self.w.active_tab
         cards = list(p.cards)
@@ -120,7 +122,7 @@ class ChapterNotesTests(unittest.TestCase):
         spin()
         self.assertEqual(p.scroll.get_vadjustment().get_value(), before)
 
-    def test_manual_browsing_suspends_and_explicit_resume_uses_same_records(self):
+    def test_manual_browsing_suspends_and_explicit_resume_uses_same_records(self) -> None:
         p = self.p
         tab = self.w.active_tab
         p.suspend_following()
@@ -141,7 +143,7 @@ class ChapterNotesTests(unittest.TestCase):
         spin()
         self.assertTrue(p.following)
 
-    def test_draft_keeps_context_across_chapter_tab_callbacks_and_restart(self):
+    def test_draft_keeps_context_across_chapter_tab_callbacks_and_restart(self) -> None:
         p = self.p
         editor = p.open_note(self.notes[1])
         editor.body.get_buffer().set_text("Captured draft kept")
@@ -165,7 +167,7 @@ class ChapterNotesTests(unittest.TestCase):
         )
         self.assertEqual(len(p.rows), 4)
 
-    def test_verified_cross_chapter_mapping_and_range_projection_once(self):
+    def test_verified_cross_chapter_mapping_and_range_projection_once(self) -> None:
         from bible.sword_provider import Reader
         from bible.passage_annotations import PassageAnnotations
         from bible.reference_targets import Canon
@@ -265,7 +267,7 @@ class ChapterNotesTests(unittest.TestCase):
         self.assertEqual(tab.state.history, history)
         self.assertEqual([n.id for n in self.p.rows], [note.id])
 
-    def test_large_collection_all_reachable_and_stale_reveal_cancelled(self):
+    def test_large_collection_all_reachable_and_stale_reveal_cancelled(self) -> None:
         for i in range(200):
             self.save(20, f"Independent note {i}")
         self.p.refresh(force=True)

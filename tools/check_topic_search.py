@@ -1,5 +1,7 @@
 """Native real-resource integrated search; only use a disposable validation profile."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -16,7 +18,7 @@ from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 
 
-def wait(predicate, timeout=90):
+def wait(predicate, timeout=90) -> None:
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         GLib.MainContext.default().iteration(False)
@@ -35,7 +37,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -63,7 +65,7 @@ def main():
     original_resources = w.library.installed()
     original_notes = w.notes_store.all()
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 
@@ -72,10 +74,10 @@ def main():
             spin()
             ImageGrab.grab().save(args.captures / (name + ".png"))
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not w.active_tab._restoring_scroll, duration=0.3)
 
-    def mode(name):
+    def mode(name) -> None:
         if name == "Topics":
             name = "Themes"
         native.click(
@@ -97,7 +99,7 @@ def main():
         spin()
         return w.search_popover
 
-    def choose(source_id):
+    def choose(source_id) -> None:
         button = next(
             b
             for b in walk(search.topics)

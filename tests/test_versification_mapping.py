@@ -1,5 +1,7 @@
 """Independent upstream reference vectors, plus actual SWORD target entries."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import tempfile
@@ -12,7 +14,7 @@ from bible.versification_mapping import table, to_base, from_base
 
 
 class MappingTests(unittest.TestCase):
-    def test_independent_upstream_vectors_and_canon_compatibility(self):
+    def test_independent_upstream_vectors_and_canon_compatibility(self) -> None:
         oracle = json.loads(
             (Path(__file__).parent / "fixtures/versification-oracle.json").read_text()
         )
@@ -31,7 +33,7 @@ class MappingTests(unittest.TestCase):
         native = Sword.VerseKey
 
         class ChangedCanon:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.key = native()
 
             def __getattr__(self, name):
@@ -50,7 +52,7 @@ class MappingTests(unittest.TestCase):
             table.cache_clear()
         self.assertIsNotNone(table("Luther"))
 
-    def test_real_keys_boundaries_parts_and_merged_verses(self):
+    def test_real_keys_boundaries_parts_and_merged_verses(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             module_fixture(
@@ -112,7 +114,7 @@ class MappingTests(unittest.TestCase):
             with self.assertRaises(VersificationMismatch):
                 resolve("Ps.51.3", "Luther", native_target)
 
-    def test_disjoint_and_qualified_ranges_are_not_filled_or_truncated(self):
+    def test_disjoint_and_qualified_ranges_are_not_filled_or_truncated(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             module_fixture(
                 directory,

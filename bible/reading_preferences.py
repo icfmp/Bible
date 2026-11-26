@@ -1,5 +1,7 @@
 """Full native reading preferences, sharing the express Aa state and renderer."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, GLib, Gtk, Pango
 from .i18n import tr
 from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width, side_margin
@@ -8,7 +10,7 @@ from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width, side_mar
 class ReadingSettings:
     """Expose full native content-reading settings through the same preference/update path as Aa."""
 
-    def __init__(self, owner, dialog):
+    def __init__(self, owner, dialog) -> None:
         self.owner = owner
         self.dialog = dialog
         self.syncing = True
@@ -136,7 +138,7 @@ class ReadingSettings:
         chooser._family_preview = preview
         native = Gtk.FontDialog(title=tr(title))
 
-        def choose(*_):
+        def choose(*_: object) -> None:
             saved = getattr(self.owner.preferences.value, key)
             alias = {
                 "sans-serif": "Sans",
@@ -146,7 +148,7 @@ class ReadingSettings:
             }.get(saved.casefold(), saved)
             initial = self.families.get(alias.casefold())
 
-            def chosen(dialog, result):
+            def chosen(dialog, result) -> None:
                 try:
                     family = dialog.choose_family_finish(result)
                 except GLib.Error as error:
@@ -188,7 +190,7 @@ class ReadingSettings:
         group.add(row)
         return row
 
-    def update(self, key, value):
+    def update(self, key, value) -> None:
         """Reuse equivalent presets where possible and defer shared reading reflow after an explicit change."""
         if self.syncing:
             return
@@ -206,7 +208,7 @@ class ReadingSettings:
         self.status.set_text(self.owner.appearance.status.get_text())
         self.sync()
 
-    def sync(self):
+    def sync(self) -> None:
         """Reflect current content settings without writing preferences from synthetic control notifications."""
         self.syncing = True
         p = self.owner.preferences.value
@@ -227,7 +229,7 @@ class ReadingSettings:
             button.set_sensitive(not high)
         self.syncing = False
 
-    def sync_family(self, control, saved):
+    def sync_family(self, control, saved) -> None:
         """Retain the exact saved family and explicitly label native fallback when it is unavailable."""
         alias = {
             "sans-serif": "Sans",

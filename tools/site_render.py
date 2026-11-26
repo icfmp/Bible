@@ -1,12 +1,14 @@
 """Render the alpha landing page without changing the signed channel."""
 
+from __future__ import annotations
+
 import html
 from pathlib import Path
 import shutil
 from string import Template
 
 
-def render(site, provenance):
+def render(site, provenance) -> None:
     assets = Path(__file__).with_name("site_assets")
     site = Path(site)
     shutil.copytree(

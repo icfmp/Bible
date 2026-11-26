@@ -1,5 +1,7 @@
 """Reviewed, deliberately partial FR/EN topic names; identifiers are source facts."""
 
+from __future__ import annotations
+
 import locale
 import json
 import hashlib
@@ -39,7 +41,7 @@ def parse(data):
     entries = []
     seen = set()
 
-    def text(item, empty=False):
+    def text(item, empty: bool = False):
         return (
             isinstance(item, str)
             and (empty or bool(item.strip()))
@@ -78,7 +80,7 @@ def parse(data):
 class TopicVocabulary:
     """Read and independently update existing topic labels without changing source topic/reference relationships."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.path = Path(root) / "topic-vocabulary.json"
 
     def read(self):

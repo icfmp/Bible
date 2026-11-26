@@ -1,5 +1,7 @@
 """Small native highlight list and paint-only tags; never change scripture words."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, Gio, GObject, Gtk, Pango
 from .highlights import COLORS
 from .i18n import tr, LANGUAGE
@@ -9,11 +11,13 @@ from .notes_window import passage_label, message
 from .reading_style import PALETTES
 
 
-def text_changed(buffer):
+def text_changed(buffer) -> None:
     buffer._highlight_revision += 1
 
 
-def paint(view, store, system, ranges, visible, high, palette, *, reader=None, annotations=None):
+def paint(
+    view, store, system, ranges, visible, high, palette, *, reader=None, annotations=None
+) -> None:
     """Apply cached paint-only highlight tags using deterministic projected mark priority.
 
     Skip unchanged buffer/range/color/palette state. Shared source ranges
@@ -90,7 +94,7 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
 class MarkItem(GObject.Object):
     """Native list-model wrapper for one retained highlight record."""
 
-    def __init__(self, mark):
+    def __init__(self, mark) -> None:
         super().__init__()
         self.mark = mark
 
@@ -98,7 +102,7 @@ class MarkItem(GObject.Object):
 class HighlightsWindow(Adw.Window):
     """Browse retained highlights and open them only in an available compatible translation."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__(
             transient_for=owner, title=tr("Highlights"), default_width=500, default_height=560
         )
@@ -156,7 +160,7 @@ class HighlightsWindow(Adw.Window):
             ),
         )
 
-        def bind(_, item):
+        def bind(_: object, item) -> None:
             mark = item.get_item().mark
             item.get_child().set_text(
                 passage_label(mark["reference"], versification=mark["system"])
@@ -174,11 +178,11 @@ class HighlightsWindow(Adw.Window):
         self.set_content(box)
         self.refresh()
 
-    def closed_request(self, *_):
+    def closed_request(self, *_: object):
         self.closed = True
         return False
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Filter stored marks without requiring their original resource to remain installed."""
         query = normalized(self.search.get_text())
         self.rows = []
@@ -202,7 +206,7 @@ class HighlightsWindow(Adw.Window):
             else ""
         )
 
-    def activate(self, _, index):
+    def activate(self, _: object, index) -> None:
         """Try compatible installed translations and retain the highlight when none can open its passage."""
         if index >= len(self.rows):
             return
@@ -229,7 +233,7 @@ class HighlightsWindow(Adw.Window):
             tr("No installed translation can open this highlight. The highlight is retained.")
         )
 
-    def choose_file(self, restore):
+    def choose_file(self, restore) -> None:
         """Run explicit standalone backup/confirmed merge restore through the highlight store contract."""
         title = tr("Restore highlights") if restore else tr("Back up highlights")
         chooser = Gtk.FileChooserNative.new(
@@ -243,11 +247,11 @@ class HighlightsWindow(Adw.Window):
             chooser.set_current_name("Bible-highlights.json")
         self.choosers.append(chooser)
 
-        def response(dialog, result):
+        def response(dialog, result) -> None:
             if result == Gtk.ResponseType.ACCEPT:
                 path = dialog.get_file().get_path()
 
-                def apply():
+                def apply() -> None:
                     try:
                         if restore:
                             self.owner.highlights.restore(path)

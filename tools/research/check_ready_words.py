@@ -1,5 +1,7 @@
 """Real native original-word walkthrough; use only disposable validation profiles."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -64,7 +66,7 @@ if a.require_packaged:
         report["fonts"][family] = path
 
 
-def shot(name):
+def shot(name) -> None:
     n.move_at(w, 2, 2)
     spin(duration=0.25)
     screen.grab(a.output / (name + ".png"))

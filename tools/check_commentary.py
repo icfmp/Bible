@@ -1,5 +1,7 @@
 """Real CrossWire commentary integration, including an isolated offline process."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -32,7 +34,7 @@ def snapshot(library, name, reference):
     }
 
 
-def main():
+def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "--offline":
         directory, name, reference = sys.argv[2:]
         with patch("urllib.request.urlopen", side_effect=AssertionError("Offline")):

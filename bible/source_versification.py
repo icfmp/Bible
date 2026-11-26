@@ -1,5 +1,7 @@
 """Small source-specific native indexes; no Scripture cache or inferred mapping."""
 
+from __future__ import annotations
+
 import ctypes
 from functools import lru_cache
 import hashlib
@@ -70,7 +72,7 @@ def declared_mapping(path, receipt):
     return dict(canon=canon, declared_convention=dict(system=convention, books=books))
 
 
-def register_convention(path, receipt):
+def register_convention(path, receipt) -> None:
     """Refresh cached convention capability from the current verified source index/receipt."""
     system = path.read_text("ascii").splitlines()[0].removeprefix("BIBLE-VRS-1 ")
     data = declared_mapping(path, receipt)
@@ -131,7 +133,7 @@ def native_loader():
     raise ValueError("Packaged source reference-index support is required")
 
 
-def register_index(path, *, verified=True):
+def register_index(path, *, verified: bool = True) -> None:
     """Register a bounded source index, checking its receipt hash before exposing verified mapping capability."""
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 262144:

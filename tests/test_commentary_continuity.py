@@ -1,5 +1,7 @@
 """Incremental commentary extension preserves native selection and source styling."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -10,7 +12,7 @@ from tests.test_commentary import commentary_fixture
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class CommentaryContinuityTests(unittest.TestCase):
-    def test_append_prepend_keep_selected_text_and_do_not_inherit_heading_or_emphasis(self):
+    def test_append_prepend_keep_selected_text_and_do_not_inherit_heading_or_emphasis(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()

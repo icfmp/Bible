@@ -1,5 +1,7 @@
 """Private, cancellable conversion/readback worker; never imports GTK."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -13,7 +15,7 @@ from .youversion_source import read_edition, archive_chapters, to_osis
 from .youversion_editions import EDITIONS, module_id, storage_system
 
 
-def emit(phase, done, total):
+def emit(phase, done, total) -> None:
     print(json.dumps(dict(phase=phase, done=done, total=total)), flush=True)
 
 
@@ -93,7 +95,7 @@ def converted_chapters(archive, edition, addresses=None):
         yield current[1], current[2], current[3]
 
 
-def build(archive, metadata, target, compiler, identifier=21):
+def build(archive, metadata, target, compiler, identifier=21) -> None:
     """Convert the supplied edition archive in a private worker and verify complete native readback.
 
     Build only the source's actual canon/units, retain provenance/address

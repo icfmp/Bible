@@ -1,5 +1,7 @@
 """Actual X11 chapter following and manual browsing; disposable SWORD fixtures."""
 
+from __future__ import annotations
+
 import inspect
 import json
 import tempfile
@@ -10,7 +12,7 @@ from tools.check_alpha_ui import X11Input
 from tools.check_passage_actions import point
 
 
-def main():
+def main() -> None:
     app = Application()
     app.register()
     native = X11Input()

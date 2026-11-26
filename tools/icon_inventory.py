@@ -1,5 +1,7 @@
 """Audit application icon references without importing GTK or starting Bible."""
 
+from __future__ import annotations
+
 import ast
 import json
 from pathlib import Path
@@ -28,7 +30,7 @@ def references(root):
     return result, sorted(set(computed))
 
 
-def main():
+def main() -> None:
     root = Path(__file__).resolve().parents[1]
     used, computed = references(root)
     print(json.dumps(dict(icons=used, unreviewed_computed_names=computed), indent=2))

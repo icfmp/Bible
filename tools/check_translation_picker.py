@@ -4,13 +4,15 @@ Never exports profile data, Scripture dumps or traces. Use --require-packaged
 to prove application imports come from the installed Flatpak, not this checkout.
 """
 
+from __future__ import annotations
+
 import argparse
 import inspect
 from pathlib import Path
 from unittest.mock import patch
 
 
-def prepare(root):
+def prepare(root) -> None:
     marker = root / ".translation-picker-research"
     if root.exists() and not marker.exists():
         raise ValueError("Refusing an unmarked profile")
@@ -30,7 +32,7 @@ def prepare(root):
             library.install(resource, permission=acknowledgement(resource))
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)

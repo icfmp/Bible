@@ -1,5 +1,7 @@
 """Real OpenBible/GTK acceptance; only disposable profiles, never client data."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -14,7 +16,7 @@ from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 
 
-def wait(predicate, timeout=150):
+def wait(predicate, timeout=150) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         GLib.MainContext.default().iteration(False)
@@ -25,7 +27,7 @@ def wait(predicate, timeout=150):
     raise AssertionError("GTK reference operation did not finish")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -52,7 +54,7 @@ def main():
         accessibility="Deferred; not tested",
     )
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 
@@ -63,10 +65,10 @@ def main():
 
     refs = window.study.references
 
-    def ready():
+    def ready() -> None:
         wait(lambda: not refs.pending, timeout=10)
 
-    def select(resource, reference):
+    def select(resource, reference) -> None:
         assert window.active_tab.navigate(resource, reference)
         window.study_button.set_active(True)
         window.study.tools.set_visible_child_name("references")

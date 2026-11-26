@@ -1,5 +1,7 @@
 """On-demand language/version metadata; never downloads Scripture on browsing."""
 
+from __future__ import annotations
+
 import io
 import json
 from pathlib import Path
@@ -70,7 +72,7 @@ def cached(path):
         return None
 
 
-def metadata(url, path=None, force=False):
+def metadata(url, path=None, force: bool = False):
     """Use a fresh same-URL metadata cache or fetch bounded same-origin JSON outside the GTK loop."""
     from .library import download
 
@@ -86,7 +88,7 @@ def metadata(url, path=None, force=False):
     return value, True
 
 
-def remember(path, url, value):
+def remember(path, url, value) -> None:
     if path:
         from .youversion_install import write_receipt
 
@@ -94,7 +96,7 @@ def remember(path, url, value):
         write_receipt(path, dict(version=1, url=url, updated=time.time(), data=value))
 
 
-def languages(root=None, force=False):
+def languages(root=None, force: bool = False):
     path = Path(root) / "languages.json" if root else None
     value, fetched = metadata(CONFIGURATION_URL, path, force)
     records = read_languages(value)
@@ -154,7 +156,7 @@ def resource_from_listing(value, tag):
     )
 
 
-def editions(tag, root=None, force=False):
+def editions(tag, root=None, force: bool = False):
     """Fetch and validate unique text editions for one exact source language tag; cache only validated results."""
     tag = language_tag(tag)
     url = VERSIONS_URL.format(language=quote(tag, safe=""))

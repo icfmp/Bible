@@ -1,5 +1,7 @@
 """Versioned reading-session validation and atomic persistence."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import stat
@@ -11,13 +13,13 @@ from bible.session import Session, SessionError, SessionStore, TabState
 
 
 class SessionTests(unittest.TestCase):
-    def test_new_profile(self):
+    def test_new_profile(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = SessionStore(Path(directory) / "session.json")
             self.assertEqual(store.load(), Session())
             self.assertFalse(store.path.exists())
 
-    def test_roundtrip_preserves_order_selection_positions_and_missing_resources(self):
+    def test_roundtrip_preserves_order_selection_positions_and_missing_resources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = SessionStore(Path(directory) / "session.json")
             session = Session(
@@ -45,7 +47,7 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(store.load(), session)
             self.assertEqual(stat.S_IMODE(store.path.stat().st_mode), 0o600)
 
-    def test_existing_version_one_session_without_commentary_is_preserved(self):
+    def test_existing_version_one_session_without_commentary_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = SessionStore(Path(directory) / "session.json")
             original = '{"version":1,"tabs":[{"resource":"KJV","reference":"John.3.16","scroll":0.3,"study_visible":true}]}'
@@ -59,7 +61,7 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(store.load(), session)
             self.assertEqual(session.tabs[0].scroll, 0.3)
 
-    def test_failed_atomic_replace_preserves_existing_session(self):
+    def test_failed_atomic_replace_preserves_existing_session(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = SessionStore(Path(directory) / "session.json")
             original = Session([TabState("KJV")])
@@ -70,7 +72,7 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(store.load(), original)
             self.assertEqual(list(Path(directory).iterdir()), [store.path])
 
-    def test_corrupt_or_future_formats_are_not_rewritten(self):
+    def test_corrupt_or_future_formats_are_not_rewritten(self) -> None:
         for content in [
             "{",
             '{"version":2,"tabs":[]}',
@@ -85,7 +87,7 @@ class SessionTests(unittest.TestCase):
                     store.load()
                 self.assertEqual(store.path.read_text(), content)
 
-    def test_untrusted_values_are_rejected(self):
+    def test_untrusted_values_are_rejected(self) -> None:
         for field, value in [
             ("resource", "../outside"),
             ("reference", 3),

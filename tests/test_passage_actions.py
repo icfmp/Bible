@@ -1,5 +1,7 @@
 """Native selection actions, source-aware copying and annotation commands."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class PassageActionTests(unittest.TestCase):
-    def test_copy_formats_preserve_unicode_and_cross_chapter_selection_extent(self):
+    def test_copy_formats_preserve_unicode_and_cross_chapter_selection_extent(self) -> None:
         from types import SimpleNamespace
         from bible.passage_actions import Source, Target, copy_text
 
@@ -37,7 +39,7 @@ class PassageActionTests(unittest.TestCase):
             self.assertEqual(copy_text(value, "reference"), citation + "\n" + text)
             self.assertNotIn("WHOLE", copy_text(value, "reference"))
 
-    def test_frozen_comparison_source_copy_note_and_stale_selection(self):
+    def test_frozen_comparison_source_copy_note_and_stale_selection(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()
@@ -92,7 +94,7 @@ class PassageActionTests(unittest.TestCase):
 
                 native = X11Input()
 
-                def activate(button):
+                def activate(button) -> None:
                     if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") == "1":
                         native.click(button)
                     elif hasattr(button, "popup"):
@@ -197,7 +199,7 @@ class PassageActionTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_programmatic_anchor_and_study_updates_do_not_open_actions(self):
+    def test_programmatic_anchor_and_study_updates_do_not_open_actions(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()
@@ -215,7 +217,7 @@ class PassageActionTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_vertical_labelled_actions_fit_and_tab_in_order(self):
+    def test_vertical_labelled_actions_fit_and_tab_in_order(self) -> None:
         from bible.ui import Application, Window, Library
         from tools.check_alpha_ui import X11Input
 

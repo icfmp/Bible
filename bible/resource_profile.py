@@ -1,5 +1,7 @@
 """Display approved catalogue prose without changing the installed module."""
 
+from __future__ import annotations
+
 import re
 from .resource_details import linkable_url
 
@@ -85,7 +87,7 @@ def profile_text(source):
     return "".join(text), spans
 
 
-def present_profile(label, source):
+def present_profile(label, source) -> None:
     """Apply supported inert profile styles using UTF-8 byte ranges required by Pango."""
     from gi.repository import Pango
 

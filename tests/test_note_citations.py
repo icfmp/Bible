@@ -1,5 +1,7 @@
 """Shared note previews preserve note identity, drafts and explicit navigation."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class NoteCitationTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
@@ -41,14 +43,14 @@ class NoteCitationTests(unittest.TestCase):
             origin_language="fr",
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if self.window.note_editor:
             self.window.note_editor._discard = True
             self.window.note_editor.close()
         self.window.close()
 
-    def editor(self, embedded=True):
+    def editor(self, embedded: bool = True):
         if embedded:
             notes = self.window.open_notes()
             notes.open_note(self.note)
@@ -60,7 +62,7 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(
         self,
-    ):
+    ) -> None:
         from bible.note_preview import NotePreview
         from bible.annotation_card import AnnotationPreview
 
@@ -125,7 +127,7 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(
         self,
-    ):
+    ) -> None:
         from bible.notes_window import buffer_text
 
         w = self.window
@@ -161,7 +163,9 @@ class NoteCitationTests(unittest.TestCase):
         )
         self.assertIn("unsaved", saved.body)
 
-    def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(self):
+    def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(
+        self,
+    ) -> None:
         w = self.window
         editor = self.editor(embedded=False)
         editor.body.activate(1)
@@ -180,7 +184,9 @@ class NoteCitationTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.reference, "John.3.16")
         self.assertEqual(w.notes_store.get(self.note.id), self.note)
 
-    def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
+    def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(
+        self,
+    ) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             import subprocess
             import sys

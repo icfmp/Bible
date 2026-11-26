@@ -1,5 +1,7 @@
 """Native, keyboard-accessible source-note actions, separate from personal data."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango, Gdk, GLib
 from .i18n import tr
 from .reference_preview import passage_title
@@ -29,7 +31,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
     button.set_tooltip_text(note.text if len(note.text) <= 220 else note.text[:220] + "…")
     button._source_note_popover = None
 
-    def create(*_):
+    def create(*_: object) -> None:
         # The first chapter can render before the tab is bound to its window.
         # Resolve the action owner when activated, as other marker kinds do.
         owner = markers.owner
@@ -97,7 +99,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
         scroll.set_child(box)
         pop.set_child(scroll)
 
-        def visibility(*_):
+        def visibility(*_: object) -> None:
             if pop.get_visible():
                 scroll.set_min_content_width(max(160, min(340, owner.get_width() - 64)))
                 scroll.set_size_request(max(160, min(340, owner.get_width() - 64)), -1)
@@ -112,7 +114,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
 
         pop.connect("notify::visible", visibility)
 
-        def closed(*_):
+        def closed(*_: object) -> None:
             if pop in owner._reading_popovers:
                 owner._reading_popovers.remove(pop)
             if button._source_note_popover is pop:
@@ -124,7 +126,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
 
     button.connect("clicked", create)
 
-    def hidden(*_):
+    def hidden(*_: object) -> None:
         pop = button._source_note_popover
         if pop:
             pop.popdown()

@@ -1,5 +1,7 @@
 """Responsive edition rows keep native selection and truthful source metadata."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -11,7 +13,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class TranslationPickerTests(unittest.TestCase):
-    def test_long_edition_rows_resize_while_open_and_keep_selection(self):
+    def test_long_edition_rows_resize_while_open_and_keep_selection(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
 
         app = Application.get_default() or Application()
@@ -79,7 +81,7 @@ class TranslationPickerTests(unittest.TestCase):
                 finally:
                     w.close()
 
-    def test_comparison_names_are_centered_in_full_width_pane_controls(self):
+    def test_comparison_names_are_centered_in_full_width_pane_controls(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()

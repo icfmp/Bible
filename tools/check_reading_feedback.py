@@ -4,6 +4,8 @@ No downloaded corpora are exported. Captures are unedited native root surfaces.
 Baseline mode records the delivered implementation without applying new rules.
 """
 
+from __future__ import annotations
+
 import argparse
 import ctypes
 import inspect
@@ -23,7 +25,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -63,7 +65,7 @@ def main():
         if args.require_packaged:
             assert "GL" in report["renderer"]
 
-        def settled():
+        def settled() -> None:
             spin(lambda: not w.active_tab._restoring_scroll, duration=0.4)
 
         def shot(name):
@@ -71,7 +73,7 @@ def main():
             spin(duration=0.15)
             return screen.grab(args.output / (name + ".png"))
 
-        def palette(mode, name, style, high=False):
+        def palette(mode, name, style, high: bool = False) -> None:
             style.set(dark=mode == "night", high=high)
             w.appearance.update("mode", mode)
             if not high:

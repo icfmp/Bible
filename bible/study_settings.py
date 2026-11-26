@@ -1,5 +1,7 @@
 """Atomic drawer preferences, separate from reading appearance and annotations."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -11,7 +13,7 @@ from .providers import RESOURCE_ID
 class StudySettings:
     """Persist study drawer width/tool/commentary separately from notes and reading appearance."""
 
-    def __init__(self, path):
+    def __init__(self, path) -> None:
         self.path = Path(path)
         self.width = 420
         self.tool = "commentaries"
@@ -42,7 +44,7 @@ class StudySettings:
         except (OSError, ValueError, TypeError) as error:
             self.error = str(error)
 
-    def save(self):
+    def save(self) -> None:
         """Flush and atomically replace valid study choices without overwriting unreadable original preferences."""
         if self.error:
             raise ValueError("Original study preferences preserved; repair the file before saving")

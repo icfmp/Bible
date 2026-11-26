@@ -1,5 +1,7 @@
 """Retained real study data and native reader follow-up evidence, no client profile."""
 
+from __future__ import annotations
+
 import argparse
 import gzip
 import hashlib
@@ -9,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)

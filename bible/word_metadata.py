@@ -1,5 +1,7 @@
 """Conservative OSIS lexical evidence; no inferred STEP token alignment."""
 
+from __future__ import annotations
+
 from html.parser import HTMLParser
 import re
 
@@ -7,20 +9,20 @@ import re
 class WordParser(HTMLParser):
     """Collect explicit source word spans and attributes for conservative lexical alignment."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.characters = []
         self.words = []
         self.current = []
         self.hidden = 0
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         if tag in ("note", "title", "script", "style"):
             self.hidden += 1
         if not self.hidden and tag == "w":
             self.current.append((len(self.characters), dict(attrs)))
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if tag in ("note", "title", "script", "style"):
             self.hidden = max(0, self.hidden - 1)
             return
@@ -28,11 +30,11 @@ class WordParser(HTMLParser):
             start, attrs = self.current.pop()
             self.words.append((start, len(self.characters), attrs))
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag, attrs) -> None:
         self.handle_starttag(tag, attrs)
         self.handle_endtag(tag)
 
-    def handle_data(self, text):
+    def handle_data(self, text) -> None:
         if not self.hidden:
             self.characters.extend(c for c in text if not c.isspace())
 

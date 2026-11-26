@@ -1,5 +1,7 @@
 """Read-only installed/curated version discovery; never replaces a SWORD root."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -158,7 +160,7 @@ def parse_catalogue(data):
 class ModuleCatalogue:
     """Conditional metadata retrieval with a validated saved catalogue for offline discovery."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.path = Path(root) / "module-catalogue.json"
 
     def saved(self):

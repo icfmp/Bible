@@ -4,6 +4,8 @@ Nested native dropdowns keep their own grabs. The reading popup itself uses
 parent-surface dismissal, so selecting a nested item cannot strand its grab.
 """
 
+from __future__ import annotations
+
 from gi.repository import Gdk, Gtk
 
 
@@ -26,7 +28,7 @@ def install(owner, popovers):
     gesture = Gtk.GestureClick(button=1)
     gesture.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-    def pressed(controller, count, x, y):
+    def pressed(controller, count: object, x, y) -> None:
         event = controller.get_current_event()
         # Coordinates on a nested native popup are not window coordinates.
         if not event or event.get_surface() != owner.get_surface():
@@ -51,7 +53,7 @@ def install(owner, popovers):
     keys = Gtk.EventControllerKey()
     keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-    def key(controller, value, *_):
+    def key(controller, value, *_: object):
         if value != Gdk.KEY_Escape:
             return False
         event = controller.get_current_event()
@@ -64,7 +66,7 @@ def install(owner, popovers):
     return gesture
 
 
-def fit_reader_popover(popover, owner):
+def fit_reader_popover(popover, owner) -> None:
     """Keep a reader-anchored popup inside a constrained application window."""
     anchor = popover.get_parent()
     if not anchor:

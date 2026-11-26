@@ -1,5 +1,7 @@
 """Shared contextual host and source-backed verse/word presentation."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -11,7 +13,7 @@ from tests.test_step_data import fixtures
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ContextualStudyTests(unittest.TestCase):
-    def test_commentary_empty_chapter_is_distinct_from_mapping_failure(self):
+    def test_commentary_empty_chapter_is_distinct_from_mapping_failure(self) -> None:
         from tests.test_commentary import commentary_fixture
         from tests.test_ui import installed_fixture
         from bible.i18n import tr
@@ -43,7 +45,7 @@ class ContextualStudyTests(unittest.TestCase):
         self.assertEqual(s.pages.get_visible_child_name(), "reading")
         self.assertEqual(s.status.get_text(), tr("No verified alignment for this passage."))
 
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
         from bible import step_data
 
@@ -70,7 +72,7 @@ class ContextualStudyTests(unittest.TestCase):
         self.w.active_tab.navigate("Test", "John.1.1")
         spin(lambda: not self.w.active_tab._restoring_scroll)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         self.w.close()
 
@@ -86,7 +88,9 @@ class ContextualStudyTests(unittest.TestCase):
         )
         return target(tab.text, source, lambda: self.w.passage_actions.ordinary(tab))
 
-    def test_verse_excerpts_follow_only_dialog_version_without_fabricated_missing_verse(self):
+    def test_verse_excerpts_follow_only_dialog_version_without_fabricated_missing_verse(
+        self,
+    ) -> None:
         from bible.ui import Gtk as Gtk
 
         words = self.w.study.words
@@ -128,7 +132,9 @@ class ContextualStudyTests(unittest.TestCase):
         self.assertEqual(tokens[0]._source_token["form"], "λόγος")
         self.assertEqual(self.w.passage_study_dialog.get_title(), tr("Study passage"))
 
-    def test_two_v1_tabs_preserve_context_and_one_word_component_without_legacy_ghost_pages(self):
+    def test_two_v1_tabs_preserve_context_and_one_word_component_without_legacy_ghost_pages(
+        self,
+    ) -> None:
         w = self.w
         w.study.tools.set_visible_child_name("notes")
         tool = w.study.tool
@@ -189,7 +195,7 @@ class ContextualStudyTests(unittest.TestCase):
             legacy.close()
             spin()
 
-    def test_missing_and_supplied_glosses_remain_source_text(self):
+    def test_missing_and_supplied_glosses_remain_source_text(self) -> None:
         words = self.w.study.words
         words.open(self.target())
         spin(lambda: not words.pending)

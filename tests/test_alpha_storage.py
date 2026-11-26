@@ -1,5 +1,7 @@
 """Archive migration is fail-closed and retention preserves complete trees."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -16,7 +18,7 @@ class AlphaStorageTests(unittest.TestCase):
         all(shutil.which(name) for name in ("ostree", "flatpak", "gpg")),
         "Native signed Flatpak tools required",
     )
-    def test_pruned_deltas_keep_signed_clients_off_missing_parts_and_indexes(self):
+    def test_pruned_deltas_keep_signed_clients_off_missing_parts_and_indexes(self) -> None:
         import configparser
         import functools
         from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -111,10 +113,10 @@ class AlphaStorageTests(unittest.TestCase):
                 missing = []
 
                 class Handler(SimpleHTTPRequestHandler):
-                    def log_message(self, *_):
+                    def log_message(self, *_: object) -> None:
                         pass
 
-                    def do_GET(self):
+                    def do_GET(self) -> None:
                         if (
                             self.path.startswith(("/deltas/", "/delta-indexes/"))
                             and not Path(self.translate_path(self.path)).is_file()
@@ -201,7 +203,7 @@ class AlphaStorageTests(unittest.TestCase):
             browser_download_url=f"https://github.com/icfmp/Bible/releases/download/{storage.SOURCE_TAG}/{name}",
         )
 
-    def test_all_public_bytes_verified_before_any_local_archive_removed(self):
+    def test_all_public_bytes_verified_before_any_local_archive_removed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory)
             alpha = site / "alpha"
@@ -227,7 +229,7 @@ class AlphaStorageTests(unittest.TestCase):
             self.assertTrue(all(p.exists() for p in paths))
             self.assertFalse((alpha / "sources.json").exists())
 
-    def test_verified_migration_preserves_digest_and_updates_source_link(self):
+    def test_verified_migration_preserves_digest_and_updates_source_link(self) -> None:
         import io
 
         with tempfile.TemporaryDirectory() as directory:
@@ -267,12 +269,12 @@ class AlphaStorageTests(unittest.TestCase):
                 with self.assertRaisesRegex(AssertionError, "replaced"):
                     storage.archive_sources(site)
 
-    def test_corrupt_remote_digest_is_rejected(self):
+    def test_corrupt_remote_digest_is_rejected(self) -> None:
         asset = self.asset("archive", b"original")
         with self.assertRaisesRegex(AssertionError, "digest mismatch"):
             storage.verify_asset(asset, "archive", "0" * 64, len(b"original"))
 
-    def test_unrecorded_upload_reuses_original_bytes_only_for_identical_payload(self):
+    def test_unrecorded_upload_reuses_original_bytes_only_for_identical_payload(self) -> None:
         import io
         import tarfile
 
@@ -280,8 +282,8 @@ class AlphaStorageTests(unittest.TestCase):
             payload,
             mtime,
             *,
-            link=False,
-            duplicate=False,
+            link: bool = False,
+            duplicate: bool = False,
             mode=0o644,
             name="source/Bible-source.tar",
         ):
@@ -350,7 +352,7 @@ class AlphaStorageTests(unittest.TestCase):
                         self.assertEqual(path.read_bytes(), candidate)
                         self.assertFalse((alpha / "sources.json").exists())
 
-    def test_unrecorded_upload_still_rejects_corrupt_public_bytes(self):
+    def test_unrecorded_upload_still_rejects_corrupt_public_bytes(self) -> None:
         import io
 
         with tempfile.TemporaryDirectory() as directory:
@@ -374,7 +376,7 @@ class AlphaStorageTests(unittest.TestCase):
                     storage.archive_sources(directory)
             self.assertEqual(path.read_bytes(), b"new local archive")
 
-    def test_public_bytes_are_checked_independently_of_asset_metadata(self):
+    def test_public_bytes_are_checked_independently_of_asset_metadata(self) -> None:
         import io
 
         name = f"Bible-{'a' * 40}-sources.tar.gz"
@@ -384,7 +386,7 @@ class AlphaStorageTests(unittest.TestCase):
                 storage.verify_asset(asset, name, asset["digest"][7:], asset["size"])
 
     @unittest.skipUnless(shutil.which("ostree"), "OSTree CLI required")
-    def test_prune_keeps_ten_complete_revisions_and_current_ref(self):
+    def test_prune_keeps_ten_complete_revisions_and_current_ref(self) -> None:
         from tools.flatpak_channel import REF
 
         with tempfile.TemporaryDirectory() as directory:

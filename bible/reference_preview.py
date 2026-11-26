@@ -1,5 +1,7 @@
 """One native, non-navigating preview shared by study links and note citations."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango, Adw
 from .i18n import tr
 from .notes_window import passage_label
@@ -33,12 +35,12 @@ def passage_title(start, end=None, system=None):
 class ReferencePreview:
     """Own one native non-navigating local passage preview and its dismissal/source lifetime."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         self.owner = owner
         self.popover = None
         self.target = None
 
-    def detach(self, popover):
+    def detach(self, popover) -> None:
         """Disconnect popup/dialog/anchor lifetime guards and release the native preview owner."""
         root = getattr(popover, "_reference_root", None)
         if root:
@@ -69,7 +71,7 @@ class ReferencePreview:
             self.popover = None
             self.target = None
 
-    def dismiss(self):
+    def dismiss(self) -> None:
         popover = self.popover
         if popover:
             popover.popdown()
@@ -245,7 +247,7 @@ class ReferencePreview:
             new.set_sensitive(False)
             target = None
 
-        def open_target(new_tab):
+        def open_target(new_tab) -> None:
             self.dismiss()
             if not target or self.owner.closed:
                 return
@@ -254,7 +256,7 @@ class ReferencePreview:
                 self.owner.report_session_error(tr("Translation unavailable."), ValueError(name))
                 return
 
-            def navigate():
+            def navigate() -> None:
                 tab = self.owner.new_tab() if new_tab else self.owner.active_tab
                 if tab:
                     tab.navigate(name, reference)

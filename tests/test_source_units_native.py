@@ -1,5 +1,7 @@
 """Compile/read neutral structures through the actual native source pipeline."""
 
+from __future__ import annotations
+
 from contextlib import redirect_stdout
 from pathlib import Path
 import io
@@ -24,7 +26,7 @@ def compiler_available():
 @unittest.skipUnless(compiler_available(), "Requires packaged source-index compiler and SWORD")
 class NativeUnitTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.youversion_worker import build
         from bible.sword_provider import Reader
 
@@ -92,10 +94,10 @@ class NativeUnitTests(unittest.TestCase):
         cls.edition = read_edition(data, cls.identifier)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         cls.temporary.cleanup()
 
-    def test_distinct_sections_keep_labels_roles_and_native_coordinates_private(self):
+    def test_distinct_sections_keep_labels_roles_and_native_coordinates_private(self) -> None:
         r = self.reader
         self.assertIn("FIRST DISTINCT SECTION", r.chapter("Sir.1.1").text_by_reference["Sir.1.1"])
         self.assertIn(
@@ -117,7 +119,7 @@ class NativeUnitTests(unittest.TestCase):
         with self.assertRaises(VersificationMismatch):
             resolve("Sir.1_1.1", r.versification, Canon("KJV"))
 
-    def test_public_alias_of_partial_bridge_and_search_do_not_collide(self):
+    def test_public_alias_of_partial_bridge_and_search_do_not_collide(self) -> None:
         r = self.reader
         a = r.key("Sir.44.22")
         b = r.key("Sir.44.23")
@@ -133,7 +135,7 @@ class NativeUnitTests(unittest.TestCase):
         result = query_index(index(self.root.parent, "synthetic-source", r), "tail content")
         self.assertEqual(result["references"], ["Sir.44.23"])
 
-    def test_display_copy_and_every_body_anchor_keep_interleaved_fragments(self):
+    def test_display_copy_and_every_body_anchor_keep_interleaved_fragments(self) -> None:
         from bible.paged_sources import BiblePages
         from bible.preferences import ReadingPreferences
         from bible.sword_provider import passage_verses
@@ -173,7 +175,7 @@ class NativeUnitTests(unittest.TestCase):
             "TAIL CONTENT", local_excerpt(r, "Sir.44.23", source_system=r.versification).text
         )
 
-    def test_existing_numeric_annotations_and_new_section_annotations_roundtrip(self):
+    def test_existing_numeric_annotations_and_new_section_annotations_roundtrip(self) -> None:
         from bible.notes import NoteStore, parts
         from bible.passage_annotations import PassageAnnotations
 
@@ -213,7 +215,7 @@ class NativeUnitTests(unittest.TestCase):
             self.assertEqual(other.get(note.id).start, note.start)
             self.assertEqual(other.get(ordinary.id), ordinary)
 
-    def test_independent_source_dom_confirms_every_unit_and_editorial_content(self):
+    def test_independent_source_dom_confirms_every_unit_and_editorial_content(self) -> None:
         from tools.research.check_source_units import audit
 
         result = audit(self.archive, self.edition, self.reader)
@@ -228,7 +230,9 @@ class NativeUnitTests(unittest.TestCase):
         )
         self.assertEqual(result["notes"], 2)
 
-    def test_comparison_rows_keep_shared_continuation_once_and_refuse_fragment_reordering(self):
+    def test_comparison_rows_keep_shared_continuation_once_and_refuse_fragment_reordering(
+        self,
+    ) -> None:
         from bible.paged_sources import BiblePages
         from bible.preferences import ReadingPreferences
         from bible.comparison_layout import Correspondence, row_document
@@ -249,7 +253,7 @@ class NativeUnitTests(unittest.TestCase):
             )
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
-    def test_native_reader_keeps_fragment_highlights_markers_and_appearance_anchors(self):
+    def test_native_reader_keeps_fragment_highlights_markers_and_appearance_anchors(self) -> None:
         import shutil
         from bible.ui import Application, Window, Library
         from tests.test_ui import spin, close_test_dialogs

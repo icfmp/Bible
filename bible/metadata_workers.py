@@ -6,6 +6,8 @@ Only atomic catalogue-cache writers and pure metadata tasks use this executor;
 resource installations retain their existing completion/atomicity policy.
 """
 
+from __future__ import annotations
+
 from concurrent.futures import Future
 from queue import Queue, Empty
 from threading import Thread, Lock, current_thread
@@ -19,7 +21,7 @@ class MetadataExecutor:
     non-waiting shutdown and must tolerate their consumer being closed.
     """
 
-    def __init__(self, max_workers=1, thread_name_prefix="bible-metadata"):
+    def __init__(self, max_workers=1, thread_name_prefix="bible-metadata") -> None:
         self.maximum = max_workers
         self.prefix = thread_name_prefix
         self.queue = Queue()
@@ -42,7 +44,7 @@ class MetadataExecutor:
                 thread.start()
         return future
 
-    def work(self):
+    def work(self) -> None:
         """Resolve queued futures, honor cancellation before execution and release retained task objects."""
         while True:
             item = self.queue.get()
@@ -64,7 +66,7 @@ class MetadataExecutor:
                 # on this idle thread's stack until another job arrives.
                 item = future = function = args = kwargs = result = None
 
-    def shutdown(self, wait=True, cancel_futures=False):
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
         """Stop submissions, optionally cancel queued work and join workers only when explicitly requested."""
         with self.lock:
             if not self.closed:
@@ -87,5 +89,5 @@ class MetadataExecutor:
     def __enter__(self):
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         self.shutdown()

@@ -4,6 +4,8 @@ Uses a marked disposable profile, never a client's profile. Outputs counts and
 hashes only; source archives and modules stay in the private working directory.
 """
 
+from __future__ import annotations
+
 import argparse
 from functools import partial
 import hashlib
@@ -21,7 +23,7 @@ def snapshot(root):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("report", type=Path)

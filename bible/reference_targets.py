@@ -1,5 +1,7 @@
 """Verified dataset convention and bounded exact local passage excerpts."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from .reference_data import reference_key, reference_span
 from .reference_resolution import resolve, VersificationMismatch
@@ -8,7 +10,7 @@ from .reference_resolution import resolve, VersificationMismatch
 class Canon:
     """SWORD's canonical key space only, never a claimed installed translation."""
 
-    def __init__(self, system):
+    def __init__(self, system) -> None:
         self.versification = system
 
     def key(self, reference):
@@ -74,7 +76,7 @@ def source_references(reader, start, end):
     return sorted(result, key=reference_key)
 
 
-def destination(reference, reader, *, require_entry=True):
+def destination(reference, reader, *, require_entry: bool = True):
     """Map an OpenBible-convention address and verify edition-specific target capability."""
     reference_key(reference)
     if reference.startswith("3John."):

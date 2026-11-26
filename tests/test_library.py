@@ -1,5 +1,7 @@
 """Resource validation, safe downloads and installed-resource discovery."""
 
+from __future__ import annotations
+
 import io
 from pathlib import Path
 import tarfile
@@ -21,7 +23,7 @@ SourceType=Plaintext
 """
 
 
-def fixture(root):
+def fixture(root) -> None:
     """Create real SWORD files with sentinel test data, never application content."""
     import Sword
 
@@ -51,7 +53,7 @@ def archive_bytes(files):
 
 
 class LibraryTests(unittest.TestCase):
-    def test_generated_notice_revision_dates_keep_original_package_and_catalogue(self):
+    def test_generated_notice_revision_dates_keep_original_package_and_catalogue(self) -> None:
         from dataclasses import replace
         from bible.library import compatible_notices, resource_from_section
 
@@ -110,13 +112,13 @@ class LibraryTests(unittest.TestCase):
                 )
             )
 
-    def test_sword_configuration_continuation(self):
+    def test_sword_configuration_continuation(self) -> None:
         data = CONF + b"About=First line \\\nCopyright and address \\\nLast line\nBareKey\n"
         parsed = config(data)
         self.assertEqual(parsed["Test"]["About"], "First line Copyright and address Last line")
         self.assertEqual(parsed["Test"]["DistributionLicense"], "Public Domain")
 
-    def test_bare_optional_metadata_remains_readable(self):
+    def test_bare_optional_metadata_remains_readable(self) -> None:
         from bible.library import resource_from_section
         from bible.resource_details import details
 
@@ -129,18 +131,18 @@ class LibraryTests(unittest.TestCase):
         self.assertIn("Unknown", details(resource))
         self.assertTrue(resource.installable)
 
-    def test_fresh_profile(self):
+    def test_fresh_profile(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             library = Library(d)
             (Path(d) / ".install-interrupted").mkdir()
             self.assertEqual(library.installed(), [])
 
-    def test_archive_paths(self):
+    def test_archive_paths(self) -> None:
         for value in ["../escape", "/absolute", "modules/../../escape", "modules\\escape"]:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 safe_path(value)
 
-    def test_catalogue_keeps_licenses_and_blocks_locked_resources(self):
+    def test_catalogue_keeps_licenses_and_blocks_locked_resources(self) -> None:
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w:gz") as archive:
             for name, license in [
@@ -170,7 +172,7 @@ class LibraryTests(unittest.TestCase):
             self.assertFalse(resources[2].installable)
             self.assertTrue(resources[3].installable)
 
-    def test_failed_download_leaves_no_installation(self):
+    def test_failed_download_leaves_no_installation(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             library = Library(d)
             with patch("bible.library.download", side_effect=OSError("network failed")):
@@ -178,7 +180,7 @@ class LibraryTests(unittest.TestCase):
                     library.install(RESOURCE)
             self.assertEqual(list(Path(d).iterdir()), [])
 
-    def test_malicious_archive_not_installed(self):
+    def test_malicious_archive_not_installed(self) -> None:
         for files in [
             {"../escape": b"x"},
             {"modules/../escape": b"x"},
@@ -187,7 +189,7 @@ class LibraryTests(unittest.TestCase):
         ]:
             with self.subTest(files=list(files)), tempfile.TemporaryDirectory() as d:
 
-                def fetch(url, output, progress):
+                def fetch(url: object, output, progress: object) -> None:
                     output.write(archive_bytes(files))
 
                 with patch("bible.library.download", side_effect=fetch):
@@ -195,7 +197,7 @@ class LibraryTests(unittest.TestCase):
                         Library(d).install(RESOURCE)
                 self.assertEqual(list(Path(d).iterdir()), [])
 
-    def test_install_preserves_non_whitelisted_conditions_offline(self):
+    def test_install_preserves_non_whitelisted_conditions_offline(self) -> None:
         from bible.library import config, resource_from_section
 
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as directory:
@@ -225,7 +227,7 @@ class LibraryTests(unittest.TestCase):
                 self.assertIn("Fixture Author", installed.conditions)
                 self.assertIn("First statement\nSecond statement", installed.conditions)
 
-    def test_locked_and_unsupported_source_are_refused_before_network(self):
+    def test_locked_and_unsupported_source_are_refused_before_network(self) -> None:
         from dataclasses import replace
 
         for resource in [
@@ -240,7 +242,7 @@ class LibraryTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         Library(directory).install(resource)
 
-    def test_changed_conditions_or_encrypted_package_are_not_installed(self):
+    def test_changed_conditions_or_encrypted_package_are_not_installed(self) -> None:
         from dataclasses import replace
 
         for extra, resource in [
@@ -270,7 +272,7 @@ class LibraryTests(unittest.TestCase):
                         Library(directory).install(resource)
                 self.assertEqual(list(Path(directory).iterdir()), [])
 
-    def test_download_limit_and_truncation(self):
+    def test_download_limit_and_truncation(self) -> None:
         class Response(io.BytesIO):
             url = "https://example.test/resource"
             headers = {"Content-Length": "20"}
@@ -283,7 +285,7 @@ class LibraryTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     download("https://example.test", io.BytesIO(), limit=limit)
 
-    def test_install_and_restart_offline_fidelity(self):
+    def test_install_and_restart_offline_fidelity(self) -> None:
         from bible.sword_provider import Reader
 
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as d:
@@ -295,7 +297,7 @@ class LibraryTests(unittest.TestCase):
             }
             payload = archive_bytes(files)
 
-            def fetch(url, out, progress):
+            def fetch(url: object, out, progress) -> None:
                 out.write(payload)
                 progress(len(payload), len(payload))
 

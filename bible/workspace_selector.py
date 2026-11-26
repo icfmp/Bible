@@ -1,5 +1,7 @@
 """The same real Bible/Notes space switch in each native application header."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 from .i18n import tr
 from .segmented_choice import SegmentedChoice
@@ -8,7 +10,7 @@ from .segmented_choice import SegmentedChoice
 class WorkspaceSelector(SegmentedChoice):
     """Share the real Bible/Notes workspace switch between native application headers."""
 
-    def __init__(self, owner, notes=False):
+    def __init__(self, owner, notes: bool = False) -> None:
         super().__init__([tr("Bible"), tr("Notes")], 1 if notes else 0)
         self.add_css_class("workspace-selector")
         self.set_homogeneous(True)
@@ -22,7 +24,7 @@ class WorkspaceSelector(SegmentedChoice):
         if hasattr(owner, "main_pages"):
             owner.main_pages.connect("notify::visible-child-name", lambda *_: self.sync())
 
-    def set_compact(self, compact):
+    def set_compact(self, compact) -> None:
         """Replace captions with accessible icons while preserving selection and workspace actions."""
         if compact == self.compact:
             return
@@ -38,14 +40,14 @@ class WorkspaceSelector(SegmentedChoice):
             button.set_tooltip_text(tr(label))
             button.update_property([Gtk.AccessibleProperty.LABEL], [tr(label)])
 
-    def sync(self):
+    def sync(self) -> None:
         if not hasattr(self.owner, "main_pages"):
             return
         self.syncing = True
         self.set_selected(1 if self.owner.main_pages.get_visible_child_name() == "notes" else 0)
         self.syncing = False
 
-    def changed(self, *_):
+    def changed(self, *_: object) -> None:
         if self.syncing:
             return
         if self.get_selected() == 1:

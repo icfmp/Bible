@@ -1,5 +1,7 @@
 """Additional native bidirectional Study gestures; marked developer profile only."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -12,7 +14,7 @@ from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -42,7 +44,7 @@ def main():
     )
     success = False
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not w.active_tab._restoring_scroll
             and not w.study._positioning

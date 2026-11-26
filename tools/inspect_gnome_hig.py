@@ -1,29 +1,31 @@
 """Read current official GNOME guidance from a runner with documentation access."""
 
+from __future__ import annotations
+
 from html.parser import HTMLParser
 import urllib.request
 
 
 class Article(HTMLParser):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.depth = 0
         self.parts = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs: object) -> None:
         if tag in {"main", "article"}:
             self.depth += 1
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if tag in {"main", "article"}:
             self.depth -= 1
 
-    def handle_data(self, data):
+    def handle_data(self, data) -> None:
         if self.depth > 0 and data.strip():
             self.parts.append(data.strip())
 
 
-def main():
+def main() -> None:
     for title, url in [
         ("Header Bars", "https://developer.gnome.org/hig/patterns/containers/header-bars.html"),
         ("Adaptive Design", "https://developer.gnome.org/hig/guidelines/adaptive.html"),

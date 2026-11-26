@@ -1,5 +1,7 @@
 """User-driven passage synchronization; programmatic/layout scrolling never leads."""
 
+from __future__ import annotations
+
 import time
 import gi
 
@@ -15,7 +17,7 @@ class ReadingSync:
     become drivers, and hidden study content does not trigger synchronization.
     """
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         self.owner = owner
         self.driver = None
         self.pending = False
@@ -27,7 +29,7 @@ class ReadingSync:
         self._after_selection = False
         self.bind(owner.study.scroll, owner.study.text, "commentary")
 
-    def bind(self, scroll, view, side, tab=None):
+    def bind(self, scroll, view, side, tab=None) -> None:
         """Observe native wheel/key/scrollbar intent without consuming the default scrolling gesture."""
         if tab:
             tab.sync_coordinator = self
@@ -38,7 +40,7 @@ class ReadingSync:
         keys = Gtk.EventControllerKey()
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def key(_, value, code, state):
+        def key(_: object, value, code: object, state):
             if (
                 value
                 in (
@@ -70,7 +72,7 @@ class ReadingSync:
         motion = Gtk.EventControllerMotion()
         motion.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def dragged(controller, *_):
+        def dragged(controller, *_: object) -> None:
             if controller.get_current_event_state() & Gdk.ModifierType.BUTTON1_MASK:
                 self.intent(side, tab)
 
@@ -110,15 +112,15 @@ class ReadingSync:
         self.schedule()
         return False
 
-    def begin_drag(self, side, tab):
+    def begin_drag(self, side, tab) -> None:
         self.intent(side, tab)
         self.dragging = side
 
-    def end_drag(self):
+    def end_drag(self) -> None:
         self.dragging = None
         self.armed_until = time.monotonic() + 0.15
 
-    def explicit_bible(self):
+    def explicit_bible(self) -> None:
         if self.owner.study.tool == "notes":
             self.owner.study.notes.resume_following()
         self.driver = "bible"
@@ -127,12 +129,12 @@ class ReadingSync:
         self.needs_sync = False
         self._after_selection = False
 
-    def explicit_commentary(self, position):
+    def explicit_commentary(self, position) -> None:
         self.driver = "commentary"
         self.forced_position = position
         self.schedule()
 
-    def moved(self, side, view, bar, tab):
+    def moved(self, side, view, bar, tab) -> None:
         """Schedule following only for armed user motion, ignoring reflow, restoration and programmatic scrolling."""
         if self.running or (tab is not None and tab is not self.owner.active_tab):
             return
@@ -159,7 +161,7 @@ class ReadingSync:
             self.needs_sync = True
             self.schedule()
 
-    def schedule(self):
+    def schedule(self) -> None:
         """Queue at most one short main-loop callback for pending user intent."""
         if not self.pending:
             self.pending = True

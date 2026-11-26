@@ -1,5 +1,7 @@
 """Native raster HTTP/cache/lifetime checks against a local synthetic tile server."""
 
+from __future__ import annotations
+
 import os
 import struct
 import threading
@@ -29,7 +31,7 @@ def tile_png():
     )
 
 
-def require_native_map():
+def require_native_map() -> None:
     try:
         from bible.place_map import Shumate as Shumate
     except (ImportError, ValueError) as error:
@@ -40,7 +42,7 @@ def require_native_map():
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native Shumate/GTK")
 class PlaceMapTests(unittest.TestCase):
-    def test_identified_cached_view_and_no_requests_after_close(self):
+    def test_identified_cached_view_and_no_requests_after_close(self) -> None:
         require_native_map()
         from bible.place_map import PlaceMap, USER_AGENT
         from gi.repository import Gtk
@@ -49,10 +51,10 @@ class PlaceMapTests(unittest.TestCase):
         payload = tile_png()
 
         class Handler(BaseHTTPRequestHandler):
-            def log_message(self, *_):
+            def log_message(self, *_: object) -> None:
                 pass
 
-            def do_GET(self):
+            def do_GET(self) -> None:
                 body = b"invalid synthetic image" if self.path.startswith("/invalid/") else payload
                 requests.append(
                     (self.path, self.headers.get("User-Agent"), self.headers.get("Cache-Control"))

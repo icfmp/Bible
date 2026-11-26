@@ -1,9 +1,11 @@
 """Native expandable details with focus-local keyboard activation."""
 
+from __future__ import annotations
+
 from gi.repository import Gdk, Gtk
 
 
-def activate_focused(widget, arguments):
+def activate_focused(widget, arguments: object):
     # Do not consume Enter/Space from links or controls inside expanded content.
     return widget.activate() if widget.has_focus() else False
 

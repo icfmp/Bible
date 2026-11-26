@@ -4,6 +4,8 @@ No resource content is authored here. JSON supplies edition/package identity;
 the publisher's SWORD configuration supplies driver, attribution and rights.
 """
 
+from __future__ import annotations
+
 from dataclasses import replace
 import hashlib
 import io
@@ -152,7 +154,7 @@ def package_record(resource):
     return entry
 
 
-def verify_package(path, entry):
+def verify_package(path, entry) -> None:
     if path.stat().st_size != entry["download"]["size_bytes"]:
         raise ValueError("Curated package size does not match its catalogue")
     with path.open("rb") as stream:

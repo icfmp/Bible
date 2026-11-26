@@ -4,6 +4,8 @@ Can also run against the pre-change source via PYTHONPATH, for matched captures.
 No user profile must be supplied: reading preferences are reset here.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 from pathlib import Path
@@ -12,7 +14,7 @@ from bible.ui import Application, Window, Library, Gtk
 from tests.test_ui import spin
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("output")
@@ -29,14 +31,14 @@ def main():
     w.present()
     report = []
 
-    def settle():
+    def settle() -> None:
         spin(
             lambda: not w.active_tab._restoring_scroll
             and not getattr(w.active_tab, "_comparison_positioning", False),
             duration=0.35,
         )
 
-    def capture(name):
+    def capture(name) -> None:
         settle()
         scale = w.get_scale_factor()
         path = out / f"{args.phase}-{LANGUAGE}-{theme}-{name}.png"

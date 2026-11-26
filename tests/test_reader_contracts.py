@@ -1,5 +1,7 @@
 """Shared reader contracts: numbering, annotation identity and safe UI actions."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 
 class ReferenceInputTests(unittest.TestCase):
-    def test_book_completion_is_localized_canon_bound_and_preserves_reference_suffix(self):
+    def test_book_completion_is_localized_canon_bound_and_preserves_reference_suffix(self) -> None:
         from types import SimpleNamespace
         from bible.book_names import book_suggestions
 
@@ -40,7 +42,7 @@ class ReferenceInputTests(unittest.TestCase):
         for value in ("Jean 3:16", "Jean ", "123", ":3", "unknown", "a" * 257):
             self.assertEqual(book_suggestions(value, books, "fr"), ())
 
-    def test_explicit_singular_plural_and_attached_chapter_preserve_distinct_books(self):
+    def test_explicit_singular_plural_and_attached_chapter_preserve_distinct_books(self) -> None:
         for value in ("psaume100", "Psaumes 100", "PSALM 100", "Ps100"):
             self.assertEqual(canonical_input(value), "Ps.100")
         self.assertEqual(canonical_input("Psaume 151"), "Ps151.1")
@@ -49,7 +51,9 @@ class ReferenceInputTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class ReaderContracts(unittest.TestCase):
-    def test_book_completion_keeps_the_caret_after_the_completed_book_without_navigating(self):
+    def test_book_completion_keeps_the_caret_after_the_completed_book_without_navigating(
+        self,
+    ) -> None:
         self.w.choose_passage()
         spin()
         nav = self.w.navigation
@@ -65,7 +69,7 @@ class ReaderContracts(unittest.TestCase):
             (self.w.active_tab.state.resource, self.w.active_tab.state.reference), before
         )
 
-    def test_embedded_editor_owns_quiet_open_and_confirmed_bottom_delete(self):
+    def test_embedded_editor_owns_quiet_open_and_confirmed_bottom_delete(self) -> None:
         from bible.ui import Gtk
 
         note = self.w.notes_store.save(
@@ -120,7 +124,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertFalse(space.editor.open_button.get_sensitive())
         self.assertEqual(space.editor.note.id, missing.id)
 
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -134,12 +138,14 @@ class ReaderContracts(unittest.TestCase):
         self.w.active_tab.navigate("First", "Gen.1.1")
         spin()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if not self.w.closed:
             self.w.close()
 
-    def test_highlight_card_keeps_actual_origin_words_and_cache_separate_between_editions(self):
+    def test_highlight_card_keeps_actual_origin_words_and_cache_separate_between_editions(
+        self,
+    ) -> None:
         import shutil
 
         installed_fixture(self.root, "Third", entries=[("Gen.1.1", "THIRD SOURCE WORDING")])
@@ -177,7 +183,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(content.source_caption.get_text(), tr("Original translation unavailable."))
         self.assertEqual(w.highlights.entries, original)
 
-    def test_shared_cards_related_links_and_unselected_color_action_keep_editor(self):
+    def test_shared_cards_related_links_and_unselected_color_action_keep_editor(self) -> None:
         from bible.annotation_collection import records as records
         from bible.notes import PassageLink
         from bible.ui import Gtk
@@ -239,7 +245,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(w.notes_store.get(note.id), note)
         self.assertEqual(w.notes_store.get(other.id), other)
 
-    def test_card_title_inherits_gtk_font_independently_of_study_content(self):
+    def test_card_title_inherits_gtk_font_independently_of_study_content(self) -> None:
         from bible.passage_card import passage_card
         from gi.repository import Pango
 
@@ -292,7 +298,7 @@ class ReaderContracts(unittest.TestCase):
                 self.assertIsNone(label.get_attributes())
         self.assertEqual(self.w.preferences.value.study_size, 19)
 
-    def test_short_popup_stays_natural_across_reopens_and_unlink_is_full_width(self):
+    def test_short_popup_stays_natural_across_reopens_and_unlink_is_full_width(self) -> None:
         from bible.notes import PassageLink
 
         note = self.w.notes_store.save(
@@ -331,7 +337,7 @@ class ReaderContracts(unittest.TestCase):
             spin()
         self.assertEqual(self.w.notes_store.get(note.id), note)
 
-    def test_long_popup_uses_outer_scroll_without_clipping_editor_content(self):
+    def test_long_popup_uses_outer_scroll_without_clipping_editor_content(self) -> None:
         note = self.w.notes_store.save(
             "Long personal note line.\n" * 80,
             [],
@@ -352,7 +358,9 @@ class ReaderContracts(unittest.TestCase):
         spin()
         self.assertEqual(self.w.notes_store.get(note.id), note)
 
-    def test_annotations_share_projection_and_exact_edition_color_wins_without_migration(self):
+    def test_annotations_share_projection_and_exact_edition_color_wins_without_migration(
+        self,
+    ) -> None:
         from bible.passage_annotations import PassageAnnotations
 
         w = self.w
@@ -399,7 +407,7 @@ class ReaderContracts(unittest.TestCase):
             )
         self.assertEqual(len(w.highlights.entries), 2)
 
-    def test_label_candidates_are_real_nonblank_case_accent_search_and_reopen(self):
+    def test_label_candidates_are_real_nonblank_case_accent_search_and_reopen(self) -> None:
         from bible.notes_window import Labels
 
         labels = Labels(["test", "toto", "Éclair", ""], lambda: None)
@@ -425,7 +433,7 @@ class ReaderContracts(unittest.TestCase):
         labels.set_suggestions(["test", "toto", "Other"])
         self.assertEqual(candidates(), ["toto"])
 
-    def test_annotation_range_keeps_verified_body_past_unmapped_numbered_titles(self):
+    def test_annotation_range_keeps_verified_body_past_unmapped_numbered_titles(self) -> None:
         from bible.passage_annotations import PassageAnnotations
         from bible.sword_provider import Reader
 
@@ -464,7 +472,7 @@ class ReaderContracts(unittest.TestCase):
         )
         self.assertEqual(self.w.notes_store.get(note.id), note)
 
-    def test_link_cards_use_saved_origin_and_unlink_keeps_note_body(self):
+    def test_link_cards_use_saved_origin_and_unlink_keeps_note_body(self) -> None:
         from bible.notes_window import NoteEditor as NoteEditor
         from bible.notes import PassageLink
 
@@ -496,7 +504,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(saved.body, "Keep exactly")
         self.assertEqual(saved.links, ())
 
-    def test_ctrl_q_flushes_draft_through_the_normal_close_guard(self):
+    def test_ctrl_q_flushes_draft_through_the_normal_close_guard(self) -> None:
         from bible.notes import NoteStore
 
         editor = self.w.edit_note(

@@ -1,5 +1,7 @@
 """Immersive reading, canonical position restoration and annotation preservation."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -13,7 +15,7 @@ from tests.test_reading_sync import linked_commentary
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK/Pango under Xvfb")
 class ImmersionTests(unittest.TestCase):
-    def test_worker_pagination_matches_the_native_font_context(self):
+    def test_worker_pagination_matches_the_native_font_context(self) -> None:
         from bible.ui import Gtk
         from bible.book_stream import BookStream
         from bible.pagination import Document, StyleSpan, paginate
@@ -28,7 +30,7 @@ class ImmersionTests(unittest.TestCase):
             def clone(self):
                 return self
 
-            def document(self, *args, **kwargs):
+            def document(self, *args: object, **kwargs: object):
                 return document
 
         window = Gtk.Window(default_width=500, default_height=700)
@@ -67,7 +69,7 @@ class ImmersionTests(unittest.TestCase):
             window.destroy()
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
@@ -90,7 +92,7 @@ class ImmersionTests(unittest.TestCase):
                             editor.close()
                         window.close()
 
-    def window(self, directory, rtl=False, entries=None):
+    def window(self, directory, rtl: bool = False, entries=None):
         from bible.ui import Window, Library
 
         root = installed_fixture(
@@ -123,7 +125,7 @@ class ImmersionTests(unittest.TestCase):
         spin(lambda: w.immersion and w.immersion.layout_ready, duration=0.1)
         return w.immersion
 
-    def test_real_pages_fit_and_partition_and_roundtrip_restores_panels(self):
+    def test_real_pages_fit_and_partition_and_roundtrip_restores_panels(self) -> None:
         with self.profile() as directory:
             w = self.window(directory)
             tab = w.active_tab
@@ -173,7 +175,7 @@ class ImmersionTests(unittest.TestCase):
             self.assertIsNone(w.immersion)
             w.close()
 
-    def test_reflow_preserves_inside_verse_and_selection_escape_precedence(self):
+    def test_reflow_preserves_inside_verse_and_selection_escape_precedence(self) -> None:
         from gi.repository import Gdk
 
         with self.profile() as directory:
@@ -221,7 +223,7 @@ class ImmersionTests(unittest.TestCase):
             self.assertIsNone(w.immersion)
             w.close()
 
-    def test_commentary_continuous_entries_resume_and_bible_unchanged(self):
+    def test_commentary_continuous_entries_resume_and_bible_unchanged(self) -> None:
         with self.profile() as directory:
             w = self.window(directory)
             tab = w.active_tab
@@ -252,7 +254,7 @@ class ImmersionTests(unittest.TestCase):
             w.leave_immersion()
             w.close()
 
-    def test_narrow_rtl_and_suspension(self):
+    def test_narrow_rtl_and_suspension(self) -> None:
         from bible.ui import Gtk
 
         with self.profile() as directory:
@@ -282,7 +284,7 @@ class ImmersionTests(unittest.TestCase):
             w.leave_immersion()
             w.close()
 
-    def test_retired_hint_profile_restarts_without_changing_resources_or_annotations(self):
+    def test_retired_hint_profile_restarts_without_changing_resources_or_annotations(self) -> None:
         from bible.ui import Window, Library, Adw
         import hashlib
 
@@ -350,7 +352,7 @@ class ImmersionTests(unittest.TestCase):
             self.entered(reopened)
             reopened.leave_immersion()
 
-    def test_native_click_targets_notes_and_context_copy_on_each_page(self):
+    def test_native_click_targets_notes_and_context_copy_on_each_page(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             # Native pointer events require an isolated display: other tests
             # intentionally create modal dialogs and may retain GTK grabs.
@@ -438,7 +440,7 @@ class ImmersionTests(unittest.TestCase):
             finally:
                 native.close()
 
-    def test_passage_navigation_keeps_the_continuous_book_source(self):
+    def test_passage_navigation_keeps_the_continuous_book_source(self) -> None:
         with self.profile() as directory:
             w = self.window(
                 directory,
@@ -454,7 +456,7 @@ class ImmersionTests(unittest.TestCase):
             self.assertEqual(reading.stream.cursor.key, "Gen")
             self.assertEqual(reading.stream.anchor().reference, "Gen.2.1")
 
-    def test_multiverse_selection_overrides_click_and_navigation_clears_click(self):
+    def test_multiverse_selection_overrides_click_and_navigation_clears_click(self) -> None:
         with self.profile() as directory:
             entries = [(f"Gen.1.{i}", f"VERSE {i} SOURCE TEST. " * 6) for i in range(1, 30)]
             w = self.window(directory, entries=entries)
@@ -497,7 +499,7 @@ class ImmersionTests(unittest.TestCase):
             r.go_to_reference("Gen.1.1")
             self.assertIsNone(r.clicked_reference)
 
-    def test_deferred_native_selection_clear_is_restored_after_reflow(self):
+    def test_deferred_native_selection_clear_is_restored_after_reflow(self) -> None:
         with self.profile() as directory:
             w = self.window(directory)
             r = self.entered(w)
@@ -508,7 +510,7 @@ class ImmersionTests(unittest.TestCase):
             expected = buffer.get_text(*buffer.get_selection_bounds(), False)
             cleared = []
 
-            def deferred_clear(*_):
+            def deferred_clear(*_: object):
                 if r.stream.cursor is None:
                     return True
                 # Simulate GTK moving the native marks during font allocation,
@@ -530,7 +532,7 @@ class ImmersionTests(unittest.TestCase):
             spin(lambda: bool(copied))
             self.assertEqual(copied[0], expected)
 
-    def test_profile_closes_window_before_resources_even_after_failure(self):
+    def test_profile_closes_window_before_resources_even_after_failure(self) -> None:
         with self.assertRaisesRegex(RuntimeError, "test interruption"):
             with self.profile() as directory:
                 w = self.window(directory)
@@ -539,7 +541,7 @@ class ImmersionTests(unittest.TestCase):
         self.assertTrue(w.closed)
         self.assertFalse(Path(directory).exists())
 
-    def test_exit_during_preparation_cancels_worker_and_keeps_reading_state(self):
+    def test_exit_during_preparation_cancels_worker_and_keeps_reading_state(self) -> None:
         from concurrent.futures import CancelledError
         from threading import Event
         import time
@@ -586,7 +588,7 @@ class ImmersionTests(unittest.TestCase):
             finally:
                 release.set()
 
-    def test_commentary_inline_formatting_survives_highlight_integration(self):
+    def test_commentary_inline_formatting_survives_highlight_integration(self) -> None:
         with self.profile() as directory:
             w = self.window(directory)
             tab = w.active_tab

@@ -1,5 +1,7 @@
 """Every production glyph resolves without a desktop theme or Adwaita install."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import os
@@ -12,7 +14,7 @@ MANIFEST = json.loads((ROOT / "bible/icons/manifest.json").read_text())
 
 
 class IconAssetsTests(unittest.TestCase):
-    def test_all_referenced_names_have_verified_assets_or_explicit_gtk_resources(self):
+    def test_all_referenced_names_have_verified_assets_or_explicit_gtk_resources(self) -> None:
         used, computed = references(ROOT)
         self.assertEqual(computed, [], "Register the exact possible names of a computed icon")
         entries = {row["name"]: row for row in MANIFEST["icons"]}
@@ -33,7 +35,9 @@ class IconAssetsTests(unittest.TestCase):
                     )
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
-    def test_minimal_theme_resolves_every_real_glyph_in_both_directions_without_adwaita(self):
+    def test_minimal_theme_resolves_every_real_glyph_in_both_directions_without_adwaita(
+        self,
+    ) -> None:
         import gi
 
         gi.require_version("Gtk", "4.0")

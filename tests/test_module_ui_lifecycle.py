@@ -1,5 +1,7 @@
 """Native consumer quiescence before module replacement, not stale-handle reuse."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -13,7 +15,7 @@ from tests.test_ui import spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires actual GTK/SWORD")
 class ModuleUILifecycleTests(unittest.TestCase):
-    def test_source_links_deduplicate_only_identical_destinations(self):
+    def test_source_links_deduplicate_only_identical_destinations(self) -> None:
         from bible.i18n import tr
 
         actual = self.library.resource(self.old.id)
@@ -39,7 +41,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
             else:
                 self.assertEqual(dialog._text_source_link.get_uri(), text_url)
 
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
         from bible.providers import CROSSWIRE
 
@@ -90,7 +92,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.dialog = self.w.open_library()
         spin(lambda: not self.dialog.preparing)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.w.note_editor:
             self.w.note_editor._discard = True
             self.w.note_editor.close()
@@ -98,7 +100,9 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.dialog.close()
         self.w.close()
 
-    def test_update_releases_primary_comparison_and_hidden_caches_without_losing_draft(self):
+    def test_update_releases_primary_comparison_and_hidden_caches_without_losing_draft(
+        self,
+    ) -> None:
         from bible.module_lifecycle import ModuleLifecycle
         from bible.module_ui_lifecycle import ModuleViewChange
 
@@ -148,7 +152,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual([asdict(n) for n in w.notes_store.all()], before)
         self.assertEqual(w.highlights.entries[("KJV", "Gen.1.1")]["color"], "yellow")
 
-    def test_failed_download_leaves_existing_native_reader_and_text_usable(self):
+    def test_failed_download_leaves_existing_native_reader_and_text_usable(self) -> None:
         from bible.module_lifecycle import ModuleLifecycle
         from bible.module_ui_lifecycle import ModuleViewChange
 
@@ -174,7 +178,9 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIn("ORIGINAL MODULE WORDING", tab.text.get_buffer().props.text)
         self.assertEqual(self.library.resource(self.old.id).version, "1.0")
 
-    def test_workspace_note_keeps_unsaved_text_and_labels_while_its_source_excerpt_updates(self):
+    def test_workspace_note_keeps_unsaved_text_and_labels_while_its_source_excerpt_updates(
+        self,
+    ) -> None:
         w = self.w
         self.dialog.close()
         w.open_notes()
@@ -211,7 +217,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIn("UPDATED MODULE WORDING", editor.excerpt.get_text())
         self.assertEqual([asdict(n) for n in w.notes_store.all()], notes)
 
-    def test_closed_immersion_releases_its_sources_before_active_module_removal(self):
+    def test_closed_immersion_releases_its_sources_before_active_module_removal(self) -> None:
         w = self.w
         self.dialog.close()
         self.assertTrue(w.enter_immersion())
@@ -235,7 +241,9 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertIsNone(w.active_tab.reader)
         self.assertEqual(w.active_tab.state.resource, self.old.id)
 
-    def test_long_source_version_notes_stay_scrollable_with_actions_visible_in_small_window(self):
+    def test_long_source_version_notes_stay_scrollable_with_actions_visible_in_small_window(
+        self,
+    ) -> None:
         from gi.repository import Gtk
 
         d = self.dialog
@@ -273,7 +281,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         spin(duration=0.4)
         self.assertFalse(d.metadata.get_mapped())
 
-    def test_library_controls_update_then_restore_the_previous_verified_package(self):
+    def test_library_controls_update_then_restore_the_previous_verified_package(self) -> None:
         d = self.dialog
         tab = self.w.active_tab
         d.modules.reports[self.old.id] = dict(state="available", available=self.new, error="")
@@ -298,7 +306,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self.assertEqual(self.library.resource(self.old.id).version, "1.0")
         self.assertIn("ORIGINAL MODULE WORDING", tab.text.get_buffer().props.text)
 
-    def test_removal_is_independent_of_the_verified_update_provider_list(self):
+    def test_removal_is_independent_of_the_verified_update_provider_list(self) -> None:
         d = self.dialog
         for provider in ("youversion", "step", "andbible"):
             with self.subTest(provider=provider):
@@ -315,7 +323,9 @@ class ModuleUILifecycleTests(unittest.TestCase):
                 d.modules.refresh(resource)
                 self.assertFalse(d.modules.remove_button.get_visible())
 
-    def test_active_removal_keeps_passage_and_annotations_and_does_not_replace_on_restart(self):
+    def test_active_removal_keeps_passage_and_annotations_and_does_not_replace_on_restart(
+        self,
+    ) -> None:
         from bible.ui import Window
 
         d = self.dialog
@@ -373,7 +383,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         finally:
             reopened.close()
 
-    def test_update_all_continues_after_one_rejected_package_and_can_retry_it(self):
+    def test_update_all_continues_after_one_rejected_package_and_can_retry_it(self) -> None:
         from bible.providers import CROSSWIRE
         from gi.repository import Adw, Gtk
 

@@ -3,6 +3,8 @@
 Original PNGs and fixed aggregate receipts only; never export a profile or corpus.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -21,7 +23,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def prepare(root, topics):
+def prepare(root, topics) -> None:
     from bible.library import Library, catalogue
     from bible.youversion_install import fetch_resource, acknowledgement
     from bible.step_data import StepData
@@ -69,7 +71,7 @@ def prepare(root, topics):
             path.write_bytes(payload)
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -98,7 +100,7 @@ def main():
         assert inspect.getfile(Window).startswith("/app/")
     exceptions = []
 
-    def exception(kind, value, tb):
+    def exception(kind, value, tb) -> None:
         exceptions.append(
             dict(type=kind.__name__, functions=[f.name for f in traceback.extract_tb(tb)])
         )
@@ -131,20 +133,20 @@ def main():
     if args.require_packaged:
         assert "GL" in report["renderer"]
 
-    def save():
+    def save() -> None:
         (args.output / "verification.json").write_text(json.dumps(report, indent=2) + "\n")
 
-    def shot(name):
+    def shot(name) -> None:
         n.move_at(w, 1, 1)
         spin(duration=0.12)
         screen.grab(args.output / (name + ".png"))
         report["captures"].append(name + ".png")
         save()
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not t._restoring_scroll, duration=0.15, timeout=90)
 
-    def pointer_selection(multiple=False):
+    def pointer_selection(multiple: bool = False):
         actions.dismiss()
         spin(duration=0.4)
         b = t.text.get_buffer()
@@ -187,7 +189,7 @@ def main():
         assert actions.target and actions.target.native_selection
         return tuple(i.get_offset() for i in b.get_selection_bounds())
 
-    def download(identifier):
+    def download(identifier) -> None:
         from bible.youversion_catalogue import editions
 
         resource = next(r for r in editions("fra") if r.name == "YV" + str(identifier))

@@ -1,9 +1,11 @@
 """Keep round navigation targets in the viewport's safe text margins."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 
 
-def position(button, left, right, top, height, width):
+def position(button, left, right, top, height, width) -> None:
     """Place a native navigation target within the current safe viewport margins."""
     button_width = max(40, button.get_width())
     button_height = max(40, button.get_height())

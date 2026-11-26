@@ -1,5 +1,7 @@
 """Native child-anchor slots excluded from Scripture copy and canonical offsets."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 from .pagination import StyleSpan
 
@@ -22,7 +24,7 @@ def decorate(document, markers):
     if not slots:
         return document
 
-    def shifted(offset, after=False):
+    def shifted(offset, after: bool = False):
         return offset + sum(
             position < offset or (after and position == offset) for position, *_ in slots
         )

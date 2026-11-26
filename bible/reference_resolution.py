@@ -1,5 +1,7 @@
 """Resolve verified native/table capabilities without guessing verse identities."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -23,7 +25,7 @@ class ResolvedPassage:
     introductions: tuple[str, ...] = ()
 
 
-def resolve_readers(reference, source_reader, target_reader, require_entry=True):
+def resolve_readers(reference, source_reader, target_reader, require_entry: bool = True):
     """A registry transform alone cannot attest an edition's source numbering."""
     same = source_reader.root == target_reader.root and source_reader.name == target_reader.name
     if not same and not source_reader.can_align_reference(reference):
@@ -38,7 +40,12 @@ def resolve_readers(reference, source_reader, target_reader, require_entry=True)
 
 
 def resolve(
-    reference, source_system, target_reader, require_entry=True, *, include_introductions=False
+    reference,
+    source_system,
+    target_reader,
+    require_entry: bool = True,
+    *,
+    include_introductions: bool = False,
 ):
     """Resolve one source reference using verified native or packaged capabilities.
 

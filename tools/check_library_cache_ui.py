@@ -1,11 +1,13 @@
 """Verify a warmed real catalogue and installed detail without any network."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--screenshot-prefix")

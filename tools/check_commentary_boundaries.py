@@ -4,6 +4,8 @@ Run against the published /app code (or explicitly identify a source candidate).
 No module downloads, source edits or channel configuration changes are made.
 """
 
+from __future__ import annotations
+
 import argparse
 import faulthandler
 import signal
@@ -17,7 +19,7 @@ from tools.check_alpha_ui import X11Input
 from tools.check_scroll_sync import drag_scrollbar
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--steps", type=int, default=45)

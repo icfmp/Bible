@@ -1,5 +1,7 @@
 """Local SWORD access. No network operations or UI dependencies."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -140,7 +142,7 @@ def passage_verses(reader, references, chapter_cache=None):
 class NativeToolReader:
     """Native handles for installed non-verse tools; no invented resource data."""
 
-    def __init__(self, root, name):
+    def __init__(self, root, name) -> None:
         import Sword
         from .module_lifecycle import reader_lease
         from .providers import module_name
@@ -159,13 +161,13 @@ class DictionaryReader(NativeToolReader):
 
     drivers = {"RawLD", "RawLD4", "zLD"}
 
-    def __init__(self, root, name):
+    def __init__(self, root, name) -> None:
         super().__init__(root, name)
         self.dictionary = self.sword.SWLD.castTo(self.module)
         if self.dictionary is None:
             raise ValueError("Native dictionary access is unavailable")
 
-    def verify_readable(self):
+    def verify_readable(self) -> None:
         # The packaged SWIG setPosition(SW_POSITION(...)) call stopped native
         # verification. Use the proven dictionary index API instead.
         """Find a nonempty indexed entry within32 positions, or reject native readability."""
@@ -185,7 +187,7 @@ class GeneralBookReader(NativeToolReader):
 
     drivers = {"RawGenBook"}
 
-    def verify_readable(self):
+    def verify_readable(self) -> None:
         """Probe at most256 tree positions without inventing a verse-address interface."""
         key = self.sword.TreeKey.castTo(self.module.getKey())
         if key is None:
@@ -212,7 +214,7 @@ class Reader:
 
     drivers = {"zText", "RawText", "RawText4", "zText4"}
 
-    def __init__(self, root: Path, name: str):
+    def __init__(self, root: Path, name: str) -> None:
         self.root, self.name = Path(root), name
         from .module_lifecycle import reader_lease
 

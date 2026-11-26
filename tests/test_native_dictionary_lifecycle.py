@@ -1,5 +1,7 @@
 """Native SWORD dictionary fixtures exercise lifecycle, never shipped content."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 import tempfile
 import unittest
@@ -55,7 +57,7 @@ def package(driver, version):
 
 
 class NativeDictionaryLifecycleTests(unittest.TestCase):
-    def test_native_decoder_failure_is_confined_and_never_marks_the_module_installed(self):
+    def test_native_decoder_failure_is_confined_and_never_marks_the_module_installed(self) -> None:
         import io
         import zipfile
 
@@ -80,7 +82,7 @@ class NativeDictionaryLifecycleTests(unittest.TestCase):
             self.assertEqual(library.installed(), [])
             self.assertEqual(personal.read_bytes(), b"KEEP PERSONAL NOTE")
 
-    def test_native_dictionary_install_update_rollback_remove_and_classification(self):
+    def test_native_dictionary_install_update_rollback_remove_and_classification(self) -> None:
         for driver in ("RawLD", "RawLD4", "zLD", "RawGenBook"):
             with self.subTest(driver=driver), tempfile.TemporaryDirectory() as temporary:
                 print("Native dictionary format:", driver, flush=True)
@@ -112,7 +114,7 @@ class NativeDictionaryLifecycleTests(unittest.TestCase):
                 self.assertTrue(lifecycle.was_removed(old.id))
                 self.assertEqual(library.installed(), [])
 
-    def test_general_book_and_unknown_formats_are_not_mislabelled_or_invented(self):
+    def test_general_book_and_unknown_formats_are_not_mislabelled_or_invented(self) -> None:
         from bible.library import Resource
 
         resource = Resource("General", "Provider book", "en", "Unknown", driver="RawGenBook")

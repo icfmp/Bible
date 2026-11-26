@@ -1,5 +1,7 @@
 """Native keys whose public reference retains an explicit source section ID."""
 
+from __future__ import annotations
+
 import re
 from .source_sections import SECTION
 
@@ -12,7 +14,7 @@ def key_type(sword, index, system):
     """
 
     class SourceKey(sword.VerseKey):
-        def __init__(self, value=None):
+        def __init__(self, value=None) -> None:
             if value is None or isinstance(value, str):
                 super().__init__()
                 self.setVersificationSystem(system)
@@ -27,7 +29,7 @@ def key_type(sword, index, system):
                     raise ValueError("Source key context differs")
                 self._public_alias = value.getOSISRef() if isinstance(value, SourceKey) else None
 
-        def setText(self, value):
+        def setText(self, value) -> None:
             match = (
                 re.fullmatch(rf"(.+?)[ .]+({SECTION})(?:[.:](0|[1-9][0-9]{{0,3}}))?", value.strip())
                 if isinstance(value, str)
@@ -79,7 +81,7 @@ def key_type(sword, index, system):
                 else super().getVerseMax()
             )
 
-        def setVerse(self, number):
+        def setVerse(self, number) -> None:
             self.setText(self.getOSISRef().rsplit(".", 1)[0] + "." + str(number))
 
         def setChapter(self, number):

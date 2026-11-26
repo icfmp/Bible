@@ -1,5 +1,7 @@
 """Native references/preview state, async invalidation and the Library data flow."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -12,7 +14,7 @@ from bible import reference_data
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class StudyReferenceTests(unittest.TestCase):
-    def test_rapid_follow_updates_coalesce_but_explicit_navigation_is_immediate(self):
+    def test_rapid_follow_updates_coalesce_but_explicit_navigation_is_immediate(self) -> None:
         import time
 
         self.install()
@@ -49,7 +51,9 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(refs.metrics["requests"], requests + 3)
         spin(lambda: not refs.pending)
 
-    def test_pending_passage_keeps_old_context_inert_and_only_latest_response_can_replace_it(self):
+    def test_pending_passage_keeps_old_context_inert_and_only_latest_response_can_replace_it(
+        self,
+    ) -> None:
         from concurrent.futures import Future
 
         self.install()
@@ -98,7 +102,9 @@ class StudyReferenceTests(unittest.TestCase):
             self.assertEqual(refs.rows, expected)
             self.assertEqual(refs.context[2:], ("John.1.5", "John.1.5"))
 
-    def test_first_load_skeleton_error_and_empty_states_are_truthful_with_reduced_motion(self):
+    def test_first_load_skeleton_error_and_empty_states_are_truthful_with_reduced_motion(
+        self,
+    ) -> None:
         from concurrent.futures import Future
         from bible.ui import Gtk
 
@@ -145,7 +151,7 @@ class StudyReferenceTests(unittest.TestCase):
         finally:
             settings.props.gtk_enable_animations = animations
 
-    def test_centered_empty_is_only_a_successful_zero_lookup_and_keeps_credit(self):
+    def test_centered_empty_is_only_a_successful_zero_lookup_and_keeps_credit(self) -> None:
         self.install()
         refs = self.show("John.3.16")
         self.assertFalse(refs.rows)
@@ -164,7 +170,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertTrue(refs.download.get_visible())
         self.assertTrue(refs.status.get_visible())
 
-    def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self):
+    def test_large_type_preview_stays_inside_small_window_with_actions_and_credit(self) -> None:
         from dataclasses import replace
         from bible.ui import Gtk
         from tools.check_alpha_ui import X11Input
@@ -214,7 +220,7 @@ class StudyReferenceTests(unittest.TestCase):
             settings.props.gtk_font_name = font
             native.close()
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(self.directory)
         installed_fixture(
@@ -241,13 +247,13 @@ class StudyReferenceTests(unittest.TestCase):
         self.window.set_default_size(1100, 850)
         self.window.present()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if self.window.note_editor:
             self.window.note_editor._discard = True
         self.window.close()
 
-    def install(self):
+    def install(self) -> None:
         with patch.object(reference_data, "ARCHIVE_SHA256", self.digest):
             self.window.study.references.data.install_archive(self.source)
 
@@ -260,7 +266,7 @@ class StudyReferenceTests(unittest.TestCase):
         spin(lambda: not w.study.references.pending, duration=0.2)
         return w.study.references
 
-    def test_internal_viewport_marks_do_not_refresh_study_but_real_selection_does(self):
+    def test_internal_viewport_marks_do_not_refresh_study_but_real_selection_does(self) -> None:
         self.install()
         refs = self.show()
         w = self.window
@@ -291,7 +297,9 @@ class StudyReferenceTests(unittest.TestCase):
                 if tool == "notes":
                     self.assertGreater(notes.call_count, 0)
 
-    def test_followed_verses_reuse_excerpts_but_another_reader_cannot_reuse_their_text(self):
+    def test_followed_verses_reuse_excerpts_but_another_reader_cannot_reuse_their_text(
+        self,
+    ) -> None:
         self.install()
         refs = self.show()
         w = self.window
@@ -319,7 +327,9 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(button._reference_labels[1].get_text(), "OTHER DESTINATION WORDING")
         self.assertEqual(refs.context[0], "Other")
 
-    def test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs(self):
+    def test_preview_does_not_navigate_and_explicit_actions_keep_translation_and_other_tabs(
+        self,
+    ) -> None:
         self.install()
         refs = self.show()
         w = self.window
@@ -349,7 +359,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(tab.state.reference, "John.3.17")
         self.assertEqual(len(tab.state.history), len(before[1]) + 1)
 
-    def test_range_aggregation_rapid_navigation_and_preview_dismissal(self):
+    def test_range_aggregation_rapid_navigation_and_preview_dismissal(self) -> None:
         self.install()
         refs = self.show()
         w = self.window
@@ -374,7 +384,9 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertIsNone(w.reference_preview.popover)
         self.assertEqual([(r.start, r.score) for r in refs.rows], [("John.3.16", 19)])
 
-    def test_missing_data_library_flow_and_offline_browse_do_not_change_bible_resources(self):
+    def test_missing_data_library_flow_and_offline_browse_do_not_change_bible_resources(
+        self,
+    ) -> None:
         from bible.study_resources import REFERENCE_RESOURCE_ID
 
         refs = self.show()
@@ -401,7 +413,7 @@ class StudyReferenceTests(unittest.TestCase):
             self.assertNotIn(REFERENCE_RESOURCE_ID, self.window.library.installed("bible"))
             self.assertTrue(refs.rows)
 
-    def test_missing_local_text_keeps_preview_non_navigating_and_data_available(self):
+    def test_missing_local_text_keeps_preview_non_navigating_and_data_available(self) -> None:
         self.install()
         refs = self.show()
         w = self.window
@@ -421,7 +433,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(refs.model.get_n_items(), 0)
         self.assertIsNone(refs.context)
 
-    def test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records(self):
+    def test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records(self) -> None:
         from bible.study_references import ReferenceItem
         from bible.reference_data import Relationship
         from bible.reference_preview import passage_title
@@ -443,7 +455,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(len(refs.rows), 2)
         self.assertFalse(refs.view_all.get_visible())
 
-    def test_all_references_and_inline_credit_preserve_source_order_and_reader(self):
+    def test_all_references_and_inline_credit_preserve_source_order_and_reader(self) -> None:
         from bible.reference_data import Relationship
 
         self.install()
@@ -471,7 +483,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertFalse(refs.return_results.get_visible())
         self.assertEqual((tab.state.reference, tab.state.history), before)
 
-    def test_new_context_starts_at_first_card_but_manual_scroll_survives_refresh(self):
+    def test_new_context_starts_at_first_card_but_manual_scroll_survives_refresh(self) -> None:
         from bible.reference_data import Relationship
 
         self.install()
@@ -498,7 +510,7 @@ class StudyReferenceTests(unittest.TestCase):
         spin(lambda: not refs.pending, duration=0.3)
         self.assertEqual(adjustment.get_value(), 0)
 
-    def test_async_data_refresh_keeps_the_manually_scrolled_list_in_place(self):
+    def test_async_data_refresh_keeps_the_manually_scrolled_list_in_place(self) -> None:
         from threading import Event
         from bible.reference_data import Relationship
 
@@ -517,7 +529,7 @@ class StudyReferenceTests(unittest.TestCase):
         release = Event()
         updated = [Relationship(row.start, row.end, 100 + i, 1) for i, row in enumerate(rows)]
 
-        def query(*_):
+        def query(*_: object):
             release.wait(3)
             return updated
 
@@ -536,7 +548,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertEqual(refs.rows, updated)
         self.assertAlmostEqual(adjustment.get_value(), position, delta=4)
 
-    def test_recovered_query_starts_at_first_card_after_an_empty_error_state(self):
+    def test_recovered_query_starts_at_first_card_after_an_empty_error_state(self) -> None:
         from bible.reference_data import Relationship
 
         self.install()

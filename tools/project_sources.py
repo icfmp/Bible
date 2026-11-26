@@ -5,6 +5,8 @@ scripts remain in their original paths. Published historical source archives are
 never rewritten. Full historical visual evidence remains in the Git repository.
 """
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 import re
@@ -34,7 +36,7 @@ def create_project_archive(destination, source):
     return destination
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source")
     parser.add_argument("destination", type=Path)

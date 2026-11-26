@@ -1,5 +1,7 @@
 """Passage selection, canonical navigation and bounded native popover behavior."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -19,7 +21,7 @@ NT_ENTRIES = [
 
 
 class CapabilityTests(unittest.TestCase):
-    def test_nt_only_uses_actual_entries_not_the_default_canon(self):
+    def test_nt_only_uses_actual_entries_not_the_default_canon(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             module_fixture(directory, "NTTest", NT_ENTRIES, nt_only=True)
             reader = Reader(directory, "NTTest")
@@ -32,7 +34,7 @@ class CapabilityTests(unittest.TestCase):
             self.assertEqual(reader.neighbours("John.3.16"), ("Matt.1.1", "Rev.22.21"))
             self.assertEqual(reader.key("Jean 3:16").getOSISRef(), "John.3.16")
 
-    def test_catholic_versification_exposes_tobit_and_its_own_limits(self):
+    def test_catholic_versification_exposes_tobit_and_its_own_limits(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             module_fixture(
                 directory,
@@ -49,7 +51,7 @@ class CapabilityTests(unittest.TestCase):
                 reader.key("Tob.3.18")
             self.assertIn("TOBIT TEST DATA", reader.chapter(reader.first_reference()).verses[0][1])
 
-    def test_unknown_versification_is_not_silently_replaced(self):
+    def test_unknown_versification_is_not_silently_replaced(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             module_fixture(directory, "Test", [("Gen.1.1", "TEST DATA")])
             path = Path(directory) / "mods.d/test.conf"
@@ -59,7 +61,7 @@ class CapabilityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unsupported versification"):
                 Reader(directory, "Test")
 
-    def test_install_nt_translation_validates_its_first_real_chapter(self):
+    def test_install_nt_translation_validates_its_first_real_chapter(self) -> None:
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as directory:
             module_fixture(source, "NTTest", NT_ENTRIES, nt_only=True)
             payload = archive_bytes(
@@ -70,7 +72,7 @@ class CapabilityTests(unittest.TestCase):
                 }
             )
 
-            def fetch(url, output, progress):
+            def fetch(url: object, output, progress: object) -> None:
                 output.write(payload)
 
             with patch("bible.library.download", side_effect=fetch):

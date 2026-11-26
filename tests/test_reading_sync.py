@@ -1,5 +1,7 @@
 """User-driven Bible/commentary following without layout feedback loops."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -51,7 +53,7 @@ def disjoint_commentary(directory):
 
 
 class CommentaryIndexTests(unittest.TestCase):
-    def test_module_and_testament_introductions_do_not_look_up_a_nonexistent_book(self):
+    def test_module_and_testament_introductions_do_not_look_up_a_nonexistent_book(self) -> None:
         import Sword
 
         with tempfile.TemporaryDirectory() as directory:
@@ -76,7 +78,7 @@ class CommentaryIndexTests(unittest.TestCase):
             )
             self.assertIsNotNone(index.locate("Gen.1.2"))
 
-    def test_native_links_introductions_and_distinct_identical_texts(self):
+    def test_native_links_introductions_and_distinct_identical_texts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = linked_commentary(directory)
             reader = CommentaryReader(root, "Notes")
@@ -91,7 +93,7 @@ class CommentaryIndexTests(unittest.TestCase):
             self.assertIn("INTRODUCTION", index.text(0))
             self.assertIsNone(index.locate("John.1.1"))
 
-    def test_native_disjoint_link_resumes_without_absorbing_middle_sections(self):
+    def test_native_disjoint_link_resumes_without_absorbing_middle_sections(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = disjoint_commentary(directory)
             reader = CommentaryReader(root, "Notes")
@@ -124,7 +126,7 @@ class ReadingSyncTests(unittest.TestCase):
     @unittest.skipUnless(
         os.environ.get("BIBLE_TEST_ISOLATED_CLICK") == "1", "Requires isolated native X11 input"
     )
-    def test_commentary_wheel_reaches_the_next_sparse_chapter_and_returns(self):
+    def test_commentary_wheel_reaches_the_next_sparse_chapter_and_returns(self) -> None:
         from tools.check_alpha_ui import X11Input
 
         with tempfile.TemporaryDirectory() as directory:
@@ -180,14 +182,14 @@ class ReadingSyncTests(unittest.TestCase):
                 spin()
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
 
-    def setup_window(self, directory, disjoint=False):
+    def setup_window(self, directory, disjoint: bool = False):
         from bible.ui import Window, Library
 
         entries = [(f"Gen.1.{i}", (f"VERSE {i} TEST " * 90)) for i in range(1, 9)] + [
@@ -207,7 +209,7 @@ class ReadingSyncTests(unittest.TestCase):
         )
         return window
 
-    def scroll_reference(self, w, reference):
+    def scroll_reference(self, w, reference) -> None:
         tab = w.active_tab
         view = tab.text
         w.reading_sync.intent("bible", tab)
@@ -218,7 +220,7 @@ class ReadingSyncTests(unittest.TestCase):
         adjustment.set_value(adjustment.get_value() + target.y - rect.y)
         spin(lambda: tab.state.reference == reference and not w.study._positioning, duration=0.25)
 
-    def test_disjoint_section_renders_once_and_study_indicator_skips_middle(self):
+    def test_disjoint_section_renders_once_and_study_indicator_skips_middle(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             w = self.setup_window(directory, disjoint=True)
             try:
@@ -247,7 +249,7 @@ class ReadingSyncTests(unittest.TestCase):
                 w.close()
                 spin()
 
-    def test_references_follow_visible_anchor_and_reopen_without_history(self):
+    def test_references_follow_visible_anchor_and_reopen_without_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             w = self.setup_window(directory)
             tab = w.active_tab
@@ -281,7 +283,7 @@ class ReadingSyncTests(unittest.TestCase):
             self.assertEqual(w.study.references.context[2:], (visible, visible))
             self.assertEqual(tab.state.history, history)
 
-    def test_both_directions_ranges_missing_history_focus_and_long_entry(self):
+    def test_both_directions_ranges_missing_history_focus_and_long_entry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             w = self.setup_window(directory)
             tab = w.active_tab
@@ -331,7 +333,7 @@ class ReadingSyncTests(unittest.TestCase):
             restored = SessionStore(Path(directory) / "session.json").load()
             self.assertIn("Notes", restored.tabs[0].commentary_positions)
 
-    def test_partial_copy_stays_partial_and_selection_does_not_sync(self):
+    def test_partial_copy_stays_partial_and_selection_does_not_sync(self) -> None:
         from gi.repository import GLib as GLib
 
         with tempfile.TemporaryDirectory() as directory:
@@ -366,7 +368,7 @@ class ReadingSyncTests(unittest.TestCase):
             self.assertEqual(tab.state.reference, "Gen.1.1")
             w.close()
 
-    def test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end(self):
+    def test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end(self) -> None:
         from unittest.mock import patch
         from bible.ui import GLib
 

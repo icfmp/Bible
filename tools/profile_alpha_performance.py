@@ -5,6 +5,8 @@ Consumption runs and instrumented Python/native-allocation runs are separate.
 Diagnostic blur removal affects this process only, never product preferences.
 """
 
+from __future__ import annotations
+
 import argparse
 import cProfile
 import ctypes
@@ -19,7 +21,7 @@ import sys
 import time
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -89,7 +91,7 @@ def main():
     if args.backdrop == "disabled":
 
         class NoBackdrop(actions.Backdrop):
-            def do_snapshot(self, snapshot):
+            def do_snapshot(self, snapshot: object) -> None:
                 pass
 
         actions.Backdrop = NoBackdrop

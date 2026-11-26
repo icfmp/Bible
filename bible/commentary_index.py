@@ -1,5 +1,7 @@
 """Source-faithful SWORD commentary entries, including disjoint native links."""
 
+from __future__ import annotations
+
 from bisect import bisect_left
 from dataclasses import dataclass, replace
 from functools import lru_cache
@@ -54,7 +56,7 @@ class CommentaryIndex:
     ranges even when one physical entry supplies their common content.
     """
 
-    def __init__(self, reader):
+    def __init__(self, reader) -> None:
         self.reader = reader
         self.sections = []
         self._section_by_native_index = {}

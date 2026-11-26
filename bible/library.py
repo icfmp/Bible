@@ -1,5 +1,7 @@
 """Real CrossWire catalogue and bounded, atomic resource installation."""
 
+from __future__ import annotations
+
 import configparser
 import hashlib
 import io
@@ -247,8 +249,8 @@ def download(
     limit=MAX_ARCHIVE,
     headers=None,
     response_headers=None,
-    same_origin=False,
-):
+    same_origin: bool = False,
+) -> None:
     """Stream a bounded HTTPS response into a caller-owned writable destination.
 
     Progress reports received bytes and the declared total, or0 when unknown.
@@ -383,7 +385,7 @@ class CatalogueResult:
     errors: dict
 
 
-def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=True):
+def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force: bool = True):
     """One unavailable provider must not discard successful catalogues."""
 
     def load(provider):
@@ -465,7 +467,7 @@ class Library:
     not replaced by the initial-install path.
     """
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         from .module_lifecycle import ModuleLifecycle
@@ -513,7 +515,7 @@ class Library:
 
     @staticmethod
     @lru_cache(maxsize=128)
-    def _read_resource(name, configuration, metadata_path, revision):
+    def _read_resource(name, configuration, metadata_path, revision: object):
         # Cache immutable attribution only, never Readers or library instances.
         # Native file revisions invalidate both configuration and provenance;
         # installation checks above still reject missing/removed resources.
@@ -612,7 +614,7 @@ class Library:
             if cancelled():
                 raise InterruptedError("Download cancelled")
 
-            def transferred(done, total):
+            def transferred(done, total) -> None:
                 if cancelled():
                     raise InterruptedError("Download cancelled")
                 progress(done, total)

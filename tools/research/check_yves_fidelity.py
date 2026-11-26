@@ -5,6 +5,8 @@ Source markup is trusted only as data. Prints counts/hashes, never scripture tex
 Run this optional research tool with lxml and SWORD Python bindings installed.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from copy import deepcopy
 import argparse
@@ -54,7 +56,7 @@ HEADING_ROLES = (
 )
 
 
-def remove(el):
+def remove(el) -> None:
     """Discard a subtree while retaining its following text."""
     parent = el.getparent()
     if el.tail:
@@ -95,7 +97,7 @@ def xml_verses(xml):
     active = None
     active_sid = None
 
-    def walk(el):
+    def walk(el) -> None:
         nonlocal active, active_sid
         tag = E.QName(el).localname
         if tag == "verse":
@@ -150,7 +152,7 @@ def canonical_unit(source_reference):
     )
 
 
-def heading_text(node, source=False):
+def heading_text(node, source: bool = False):
     clean = deepcopy(node)
     for child in list(clean.iterdescendants()):
         if (
@@ -178,7 +180,7 @@ def compiled_chapter(entries):
     titles = []
     active = None
 
-    def visit(node):
+    def visit(node) -> None:
         nonlocal active
         if isinstance(node, E._ProcessingInstruction):
             if node.target == "source-unit":
@@ -290,7 +292,7 @@ def check(source: Path, xml: Path, root: Path, module_name: str, reference: str,
     )
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--source", type=Path, required=True)
     p.add_argument("--osis", type=Path, required=True)

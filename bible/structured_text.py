@@ -1,5 +1,7 @@
 """Conservative SWORD markup extraction; no HTML execution or invented headings."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from html.parser import HTMLParser
 import re
@@ -22,7 +24,7 @@ class SourceParser(HTMLParser):
     CDATA_CONTENT_ELEMENTS = ("script", "style")
     RCDATA_CONTENT_ELEMENTS = ()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.segments = []
         self.hidden = 0
@@ -32,7 +34,7 @@ class SourceParser(HTMLParser):
         self.paragraph_ids = set()
         self.inline = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         """Track supported inline/block milestones while excluding script/style/note bodies from prose."""
         attrs = dict(attrs)
         # HTMLParser normalizes attribute names, including OSIS sID/eID.
@@ -95,7 +97,7 @@ class SourceParser(HTMLParser):
         elif tag == "l":
             self.segments.append(Segment("\n", "poetry", ("poetry",)))
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         """Close supported source roles and retain actual paragraph/poetry boundaries."""
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
@@ -116,7 +118,7 @@ class SourceParser(HTMLParser):
         if paragraph:
             self.segments.append(Segment("\n\n", "break"))
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag, attrs) -> None:
         # Empty ThML p and OSIS start/end milestones each mark a boundary.
         # Do not synthesize a second end event, or retain an empty title/note.
         """Apply empty source milestones without incorrectly closing paired start/end markers."""
@@ -128,7 +130,7 @@ class SourceParser(HTMLParser):
         ):
             self.handle_endtag(tag)
 
-    def handle_data(self, text):
+    def handle_data(self, text) -> None:
         """Retain visible source text with current heading/inline roles."""
         if not self.hidden:
             self.segments.append(
@@ -192,7 +194,7 @@ def native_emphasis(segments, raw, plain):
             continue
         run = []
 
-        def decoration():
+        def decoration() -> None:
             if run:
                 result.append(Segment("".join(run), "text", segment.styles))
                 run.clear()

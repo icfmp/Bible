@@ -1,5 +1,7 @@
 """Viewport movement persists without rediscovering resources or rebuilding UI."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,9 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ScrollPositionTests(unittest.TestCase):
-    def test_followed_verses_do_not_rebuild_hidden_passage_menu_and_opening_refreshes_it(self):
+    def test_followed_verses_do_not_rebuild_hidden_passage_menu_and_opening_refreshes_it(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -38,7 +42,9 @@ class ScrollPositionTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_native_adjustment_only_persists_position_but_passage_change_still_updates(self):
+    def test_native_adjustment_only_persists_position_but_passage_change_still_updates(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.session import SessionStore
         from tests.test_ui import installed_fixture, spin

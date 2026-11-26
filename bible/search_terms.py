@@ -1,5 +1,7 @@
 """Word/phrase normalization and exact source-offset highlighting."""
 
+from __future__ import annotations
+
 import re
 import unicodedata
 from .languages import canonical_language
@@ -8,7 +10,7 @@ LATIN_LANGUAGES = {"en", "fr", "de", "es", "pt", "it", "la", "nl", "ro", "ca"}
 UNSEGMENTED_LANGUAGES = {"zh", "ja", "th", "lo", "km", "my"}
 
 
-def normalized(value, language="und", offsets=False):
+def normalized(value, language="und", offsets: bool = False):
     """Normalize language-aware search characters, optionally retaining original combining-cluster offsets.
 
     Fold accents only for supported Latin languages; keep combining marks

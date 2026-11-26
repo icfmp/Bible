@@ -1,5 +1,7 @@
 """Native temporary word study, structured occurrences and draft protection."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,9 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class WordStudyTests(unittest.TestCase):
-    def test_real_provider_boundary_temporary_back_and_occurrence_search_preserve_draft(self):
+    def test_real_provider_boundary_temporary_back_and_occurrence_search_preserve_draft(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible import step_data
         from bible.step_data import StepData
@@ -116,7 +120,7 @@ class WordStudyTests(unittest.TestCase):
                 close_test_dialogs()
                 window.close()
 
-    def test_replacing_focused_dynamic_content_moves_focus_before_unparenting(self):
+    def test_replacing_focused_dynamic_content_moves_focus_before_unparenting(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
         from bible.passage_actions import target
         from tests.test_ui import installed_fixture, spin
@@ -165,7 +169,7 @@ class WordStudyTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_numbered_source_heading_is_unavailable_without_changing_reader(self):
+    def test_numbered_source_heading_is_unavailable_without_changing_reader(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
         from bible.passage_actions import target
         from bible.i18n import tr
@@ -215,7 +219,9 @@ class WordStudyTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture(self):
+    def test_missing_data_is_optional_and_does_not_launch_download_or_replace_scripture(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
         from bible.passage_actions import target

@@ -1,5 +1,7 @@
 """Native regression coverage for the October desktop finishing batch."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -11,7 +13,7 @@ from bible.i18n import tr as tr
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class PersonalBackupUITests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -22,10 +24,10 @@ class PersonalBackupUITests(unittest.TestCase):
         self.window.present()
         spin()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.window.close()
 
-    def test_backup_native_cancel_and_declined_merge_leave_annotations_unchanged(self):
+    def test_backup_native_cancel_and_declined_merge_leave_annotations_unchanged(self) -> None:
         from bible.application_surfaces import choose_personal_backup
         from bible import personal_backup
         from bible.ui import Gtk, Gio
@@ -48,7 +50,9 @@ class PersonalBackupUITests(unittest.TestCase):
         path = self.root / "incoming.json"
         personal_backup.export(w.notes_store, w.highlights, path)
 
-        def decline(owner, heading, body, accepted, *args):
+        def decline(
+            owner: object, heading: object, body: object, accepted: object, *args: object
+        ) -> None:
             return None
 
         with patch("bible.notes_window.message", side_effect=decline) as confirm:

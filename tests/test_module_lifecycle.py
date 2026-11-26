@@ -1,5 +1,7 @@
 """Actual SWORD staging, atomic directory exchange, rollback and restart safety."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 import json
 import tempfile
@@ -14,7 +16,7 @@ from tests.test_library import fixture, archive_bytes, CONF
 from tests.test_curated_catalogue import record
 
 
-def package(version, text, *, omit_second_chapter=False):
+def package(version, text, *, omit_second_chapter: bool = False):
     import Sword
 
     with tempfile.TemporaryDirectory() as source:
@@ -47,11 +49,11 @@ def package(version, text, *, omit_second_chapter=False):
 
 class ModuleLifecycleTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.old, cls.old_zip = package("1.0", "OLD EXACT SOURCE FIXTURE")
         cls.new, cls.new_zip = package("1.1", "NEW EXACT SOURCE FIXTURE")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.library = Library(self.root / "translations")
         self.lifecycle = ModuleLifecycle(self.library)
@@ -72,7 +74,7 @@ class ModuleLifecycleTests(unittest.TestCase):
             Reader(self.library.root / self.old.id, self.old.name).chapter("Gen.1.1").verses[0][1]
         )
 
-    def test_verified_update_then_rollback_keeps_exact_source_and_personal_data(self):
+    def test_verified_update_then_rollback_keeps_exact_source_and_personal_data(self) -> None:
         before = tree_manifest(self.library.root / self.old.id)
         with self.download(self.new_zip):
             result = self.lifecycle.update(self.new)
@@ -84,7 +86,9 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertIn("OLD EXACT SOURCE", self.text())
         self.assertEqual(self.personal.read_bytes(), b"PERSONAL DATA IS OUTSIDE MODULE ROOTS")
 
-    def test_cancel_corrupt_package_and_atomic_exchange_failure_retain_usable_old_version(self):
+    def test_cancel_corrupt_package_and_atomic_exchange_failure_retain_usable_old_version(
+        self,
+    ) -> None:
         before = tree_manifest(self.library.root / self.old.id)
         for payload, cancelled in ((self.new_zip + b"bad", False), (self.new_zip, True)):
             with (
@@ -107,7 +111,7 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertIn("OLD EXACT SOURCE", self.text())
         self.assertFalse(self.lifecycle.rollback_candidate(self.old.id))
 
-    def test_restart_recovers_exchange_interrupted_before_commit_record(self):
+    def test_restart_recovers_exchange_interrupted_before_commit_record(self) -> None:
         before = tree_manifest(self.library.root / self.old.id)
         stage = Library(self.root / "candidate")
         with self.download(self.new_zip):
@@ -123,7 +127,7 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertEqual(tree_manifest(reopened.root / self.old.id), before)
         self.assertIn("OLD EXACT SOURCE", self.text())
 
-    def test_local_changes_and_lost_reference_coverage_are_never_overwritten(self):
+    def test_local_changes_and_lost_reference_coverage_are_never_overwritten(self) -> None:
         missing, payload = package("1.1", "NEW SOURCE", omit_second_chapter=True)
         before = tree_manifest(self.library.root / self.old.id)
         with self.download(payload), self.assertRaisesRegex(ValueError, "reference coverage"):
@@ -139,7 +143,9 @@ class ModuleLifecycleTests(unittest.TestCase):
             self.lifecycle.update(self.new)
         self.assertEqual(tree_manifest(self.library.root / self.old.id), changed)
 
-    def test_shared_root_links_extra_local_files_and_concurrent_operations_are_refused(self):
+    def test_shared_root_links_extra_local_files_and_concurrent_operations_are_refused(
+        self,
+    ) -> None:
         folder = self.library.root / self.old.id
         with (
             operation_lock(self.library.root),
@@ -159,7 +165,7 @@ class ModuleLifecycleTests(unittest.TestCase):
             self.lifecycle.remove(self.old.id)
         self.assertTrue((original / ".complete").exists())
 
-    def test_a_retained_native_reader_prevents_removal_instead_of_becoming_stale(self):
+    def test_a_retained_native_reader_prevents_removal_instead_of_becoming_stale(self) -> None:
         from bible.sword_provider import Reader
 
         reader = Reader(self.library.root / self.old.id, self.old.name)
@@ -172,7 +178,7 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertEqual(tree_manifest(self.library.root / self.old.id), before)
         self.assertIn("OLD EXACT SOURCE", reader.chapter("Gen.1.1").verses[0][1])
 
-    def test_removal_affects_only_the_selected_owned_module_and_keeps_annotations(self):
+    def test_removal_affects_only_the_selected_owned_module_and_keeps_annotations(self) -> None:
         from bible.providers import CROSSWIRE
         from bible.sword_provider import Reader
 
@@ -203,7 +209,7 @@ class ModuleLifecycleTests(unittest.TestCase):
             Reader(self.library.root / self.old.id, self.old.name)
         self.assertEqual(self.personal.read_bytes(), b"PERSONAL DATA IS OUTSIDE MODULE ROOTS")
 
-    def test_same_version_repacked_or_different_curated_edition_is_not_an_update(self):
+    def test_same_version_repacked_or_different_curated_edition_is_not_an_update(self) -> None:
         record = json.loads(self.new.acquisition)
         self.assertEqual(applicable_update(self.old, self.new), "available")
         record["entry"]["canonical_edition_id"] = "another-edition"
@@ -229,11 +235,13 @@ class ModuleLifecycleTests(unittest.TestCase):
             "edition-changed",
         )
 
-    def test_failed_removal_commit_restores_source_immediately_and_cleans_cancelled_intent(self):
+    def test_failed_removal_commit_restores_source_immediately_and_cleans_cancelled_intent(
+        self,
+    ) -> None:
         before = tree_manifest(self.library.root / self.old.id)
         write = self.lifecycle.journal
 
-        def journal(folder, record):
+        def journal(folder, record) -> None:
             if record["state"] == "committed":
                 raise OSError("Synthetic commit write failure")
             write(folder, record)
@@ -247,7 +255,7 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertFalse(self.lifecycle.was_removed(self.old.id))
         self.assertFalse(list(self.lifecycle.records() or ()))
 
-        def cancel(_):
+        def cancel(_: object) -> None:
             raise InterruptedError("Synthetic cancellation before switch")
 
         with self.assertRaises(InterruptedError):
@@ -255,12 +263,14 @@ class ModuleLifecycleTests(unittest.TestCase):
         self.assertEqual(tree_manifest(self.library.root / self.old.id), before)
         self.assertFalse(list(self.lifecycle.records() or ()))
 
-    def test_failed_and_interrupted_rollback_preserve_the_current_version_until_commit(self):
+    def test_failed_and_interrupted_rollback_preserve_the_current_version_until_commit(
+        self,
+    ) -> None:
         with self.download(self.new_zip):
             self.lifecycle.update(self.new)
         current = tree_manifest(self.library.root / self.old.id)
 
-        def stop(_):
+        def stop(_: object) -> None:
             raise InterruptedError("Synthetic rollback cancellation")
 
         with self.assertRaises(InterruptedError):
@@ -278,7 +288,9 @@ class ModuleLifecycleTests(unittest.TestCase):
                 self.assertEqual(tree_manifest(self.library.root / self.old.id), current)
                 self.assertIsNotNone(ModuleLifecycle(reopened).rollback_candidate(self.old.id))
 
-    def test_direct_provider_staging_uses_each_source_and_restores_exact_previous_files(self):
+    def test_direct_provider_staging_uses_each_source_and_restores_exact_previous_files(
+        self,
+    ) -> None:
         from bible.providers import CROSSWIRE, EBIBLE, EXTRA
 
         for provider in (CROSSWIRE, EBIBLE, EXTRA):
@@ -315,7 +327,9 @@ class ModuleLifecycleTests(unittest.TestCase):
                 lifecycle.rollback(old.id)
                 self.assertEqual(tree_manifest(library.root / old.id), before)
 
-    def test_missing_crash_journal_preserves_reading_and_blocks_mutation_without_guessing(self):
+    def test_missing_crash_journal_preserves_reading_and_blocks_mutation_without_guessing(
+        self,
+    ) -> None:
         before = tree_manifest(self.library.root / self.old.id)
         folder = self.library.root / ".transactions" / ("a" * 32)
         folder.mkdir(parents=True)

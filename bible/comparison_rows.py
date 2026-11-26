@@ -1,5 +1,7 @@
 """Native two-text-view layout with one adjustment and shared wrapped rows."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 from .comparison_layout import correspondences, row_document
 from .paged_sources import BiblePages
@@ -13,7 +15,7 @@ from dataclasses import replace
 class ComparisonRows:
     """Align verified source units with native paragraph padding and one shared adjustment."""
 
-    def __init__(self, tab):
+    def __init__(self, tab) -> None:
         self.tab = tab
         self.signature = None
         self.tags = [[], []]
@@ -24,7 +26,7 @@ class ComparisonRows:
         self.settling = 0
         self.padding = [[], []]
 
-    def build(self, chapter):
+    def build(self, chapter) -> None:
         """Build shared rows from actual bidirectional correspondences and preserve copy/selection anchors.
 
         Missing target verses remain explicit display gaps; padding and generated
@@ -175,7 +177,7 @@ class ComparisonRows:
         tab._shared_comparison = True
         tab.update_highlights()
 
-    def layout(self):
+    def layout(self) -> None:
         """Measure native row bodies after bounded settling and apply cumulative padding without changing text."""
         tab = self.tab
         if not getattr(tab, "_shared_comparison", False):
@@ -229,7 +231,7 @@ class ComparisonRows:
                 tag.props.pixels_above_lines = padding
             self.bottom_tags[side].props.pixels_below_lines = end - ends[side] - added[side]
 
-    def leave(self):
+    def leave(self) -> None:
         """Restore independent adjustments and the primary source rendering while retaining its selection."""
         tab = self.tab
         if not getattr(tab, "_shared_comparison", False):

@@ -1,5 +1,7 @@
 """Direct, mutually exclusive native choices without a popup or hidden options."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, GObject
 
 
@@ -8,7 +10,7 @@ class SegmentedChoice(Gtk.Box):
 
     __gsignals__ = {"changed": (GObject.SignalFlags.RUN_LAST, None, ())}
 
-    def __init__(self, labels, selected=0):
+    def __init__(self, labels, selected=0) -> None:
         super().__init__(spacing=0)
         self.add_css_class("linked")
         self.buttons = []
@@ -26,7 +28,7 @@ class SegmentedChoice(Gtk.Box):
     def get_selected(self):
         return self._selected
 
-    def set_selected(self, index):
+    def set_selected(self, index) -> None:
         if index == self._selected:
             return
         self._syncing = True
@@ -35,7 +37,7 @@ class SegmentedChoice(Gtk.Box):
         self._syncing = False
         self.emit("changed")
 
-    def _toggled(self, button, index):
+    def _toggled(self, button, index) -> None:
         if self._syncing or not button.get_active():
             return
         if self._selected != index:

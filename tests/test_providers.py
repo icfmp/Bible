@@ -1,5 +1,7 @@
 """Provider identities, catalogue metadata and resource-download boundaries."""
 
+from __future__ import annotations
+
 import io
 import tarfile
 from dataclasses import replace
@@ -22,12 +24,12 @@ from tests.test_library import RESOURCE, fixture, archive_bytes
 
 
 class ProviderTests(unittest.TestCase):
-    def test_ebible_identity_does_not_collide_with_historical_crosswire_ids(self):
+    def test_ebible_identity_does_not_collide_with_historical_crosswire_ids(self) -> None:
         self.assertEqual(identity(EBIBLE.id, "fraLSG1910eb"), "ebible~fraLSG1910eb")
         self.assertEqual(identity(CROSSWIRE.id, "fraLSG1910eb"), "fraLSG1910eb")
 
-    def test_one_failed_source_keeps_others_and_retry_is_fresh(self):
-        def load(provider, timings=None):
+    def test_one_failed_source_keeps_others_and_retry_is_fresh(self) -> None:
+        def load(provider, timings: object = None):
             if provider == EXTRA:
                 raise OSError("source offline")
             return [
@@ -43,7 +45,7 @@ class ProviderTests(unittest.TestCase):
         with patch("bible.library.catalogue", return_value=[RESOURCE]):
             self.assertFalse(catalogues((EXTRA,)).errors)
 
-    def test_colliding_names_keep_separate_content_provenance_and_session(self):
+    def test_colliding_names_keep_separate_content_provenance_and_session(self) -> None:
         from bible.sword_provider import Reader
 
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as directory:
@@ -64,7 +66,7 @@ class ProviderTests(unittest.TestCase):
             notes.write_bytes(b"Existing notes: untouched by installation")
             urls = []
 
-            def fetch(url, output, progress):
+            def fetch(url, output, progress: object) -> None:
                 urls.append(url)
                 output.write(payload)
 
@@ -100,7 +102,7 @@ class ProviderTests(unittest.TestCase):
             self.assertEqual(store.load().tabs[0].commentary, extra.id)
             self.assertEqual(notes.read_bytes(), b"Existing notes: untouched by installation")
 
-    def test_legacy_attribution_without_source_file_and_namespace_validation(self):
+    def test_legacy_attribution_without_source_file_and_namespace_validation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "Test"
             fixture(root)
@@ -110,7 +112,7 @@ class ProviderTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 identity(EXTRA.id, value)
 
-    def test_no_hidden_license_or_missing_language_filter(self):
+    def test_no_hidden_license_or_missing_language_filter(self) -> None:
         content = b"[Demo]\nModDrv=RawCom\nDistributionLicense=Copyright\n"
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w:gz") as archive:

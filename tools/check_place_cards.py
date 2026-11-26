@@ -1,5 +1,7 @@
 """Actual downloaded geography and native inputs; disposable profile only."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -15,7 +17,7 @@ from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 
 
-def wait(predicate, timeout=150):
+def wait(predicate, timeout=150) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         GLib.MainContext.default().iteration(False)
@@ -34,7 +36,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -64,7 +66,7 @@ def main():
     original_resources = w.library.installed()
     original_notes = w.notes_store.all()
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 
@@ -73,7 +75,7 @@ def main():
             spin()
             ImageGrab.grab().save(args.captures / (name + ".png"))
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not w.active_tab._restoring_scroll, duration=0.3)
 
     def open_dialog(resource, reference):
@@ -111,7 +113,7 @@ def main():
             assert set(place["references"]) == set(proof["references"])
         return place
 
-    def reveal(dialog, widget):
+    def reveal(dialog, widget) -> None:
         for _ in range(30):
             found, bounds = widget.compute_bounds(dialog.card_scroll)
             if (
@@ -136,7 +138,7 @@ def main():
             if isinstance(b, Gtk.Button) and getattr(b, "_reference", None) == reference
         )
 
-    def close(dialog):
+    def close(dialog) -> None:
         button = next(
             b
             for b in walk(dialog.host)

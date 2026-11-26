@@ -1,5 +1,7 @@
 """Additive note relationships, verified migration and portable recovery."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 import json
 from pathlib import Path
@@ -28,7 +30,9 @@ class LinkedNoteTests(unittest.TestCase):
             db.execute("PRAGMA user_version=1")
         return note
 
-    def test_verified_v1_migration_keeps_identity_dates_body_labels_and_private_backup(self):
+    def test_verified_v1_migration_keeps_identity_dates_body_labels_and_private_backup(
+        self,
+    ) -> None:
         import stat
 
         with tempfile.TemporaryDirectory() as directory:
@@ -54,7 +58,7 @@ class LinkedNoteTests(unittest.TestCase):
                 )
             self.assertEqual(store.db.execute("PRAGMA user_version").fetchone()[0], 2)
 
-    def test_failed_migration_rolls_back_and_keeps_original_and_verified_backup(self):
+    def test_failed_migration_rolls_back_and_keeps_original_and_verified_backup(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             original = self.legacy(root)
@@ -70,7 +74,7 @@ class LinkedNoteTests(unittest.TestCase):
 
     def test_multiple_passages_deduplicate_keep_uuid_and_survive_reopen_export_and_legacy_import(
         self,
-    ):
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             store = self.open(root)
@@ -103,7 +107,7 @@ class LinkedNoteTests(unittest.TestCase):
             self.assertEqual(removed.id, note.id)
             self.assertEqual(store.passage("KJV", "Gen.1.2"), [])
 
-    def test_combined_conflict_merge_preserves_all_relationships_and_is_repeatable(self):
+    def test_combined_conflict_merge_preserves_all_relationships_and_is_repeatable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             store = self.open(root)

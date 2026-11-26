@@ -1,5 +1,7 @@
 """Check the two exact, reference-only publisher indexes in the native patch."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from bible.youversion_osis import BOOKS as ALL_BOOKS, BOOK_CODES
@@ -32,7 +34,7 @@ def header():
     return "\n".join([*lines, "SWORD_NAMESPACE_END", "#endif"]) + "\n"
 
 
-def check():
+def check() -> None:
     patch = (ROOT / "packaging/sword-osis-fidelity.patch").read_text()
     section = patch.split("+++ b/include/canon_youversion.h\n", 1)[1]
     actual = "\n".join(line[1:] for line in section.splitlines()[1:] if line.startswith("+")) + "\n"

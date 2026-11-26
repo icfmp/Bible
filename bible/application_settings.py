@@ -1,5 +1,7 @@
 """General application choices; never infer a new profile from a missing key."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -10,7 +12,7 @@ from .i18n import LANGUAGE
 class ApplicationSettings:
     """Keep general application choices separate from reading, notes and resource data."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         root = Path(root)
         self.path = root / "application-preferences.json"
         self.error = ""
@@ -67,7 +69,7 @@ class ApplicationSettings:
     def language(self):
         return self.value["library_language"]
 
-    def set(self, key, value):
+    def set(self, key, value) -> None:
         previous = self.value.get(key)
         self.value[key] = value
         try:
@@ -76,7 +78,7 @@ class ApplicationSettings:
             self.value[key] = previous
             raise
 
-    def save(self):
+    def save(self) -> None:
         """Flush and atomically replace preferences, refusing to overwrite an originally unreadable file."""
         if self.error:
             raise ValueError("Original application preferences preserved")

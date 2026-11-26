@@ -1,5 +1,7 @@
 """Exercise native frame-clock motion, retargeting and interruption."""
 
+from __future__ import annotations
+
 import os
 import unittest
 
@@ -9,7 +11,7 @@ class ScrollMotionTests(unittest.TestCase):
     @unittest.skipUnless(
         os.environ.get("BIBLE_TEST_ISOLATED_CLICK") == "1", "Requires isolated native X11 input"
     )
-    def test_native_edge_rebound_cannot_replace_a_new_programmatic_target(self):
+    def test_native_edge_rebound_cannot_replace_a_new_programmatic_target(self) -> None:
         from bible.ui import Gtk
         from bible.scroll_motion import ScrollMotion
         from tests.test_ui import spin
@@ -45,7 +47,7 @@ class ScrollMotionTests(unittest.TestCase):
             window.destroy()
             native.close()
 
-    def test_frames_latest_target_input_reflow_and_disabled_animations(self):
+    def test_frames_latest_target_input_reflow_and_disabled_animations(self) -> None:
         from bible.ui import Gtk
         from bible.scroll_motion import ScrollMotion
         from tests.test_ui import spin

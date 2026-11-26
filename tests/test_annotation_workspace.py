@@ -1,5 +1,7 @@
 """Unified identities, actual mapping, autosave and failure/deletion boundaries."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -11,7 +13,7 @@ from bible.i18n import tr
 
 
 class CollectionTests(unittest.TestCase):
-    def test_distinct_records_counts_search_and_stable_keys(self):
+    def test_distinct_records_counts_search_and_stable_keys(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = NoteStore(Path(directory) / "notes.sqlite3")
             try:
@@ -56,7 +58,7 @@ class CollectionTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires actual GTK")
 class AnnotationWorkspaceTests(unittest.TestCase):
-    def test_legacy_notes_window_still_lists_and_filters_saved_notes(self):
+    def test_legacy_notes_window_still_lists_and_filters_saved_notes(self) -> None:
         from bible.notes_window import NotesWindow
 
         legacy = NotesWindow(self.window)
@@ -68,7 +70,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         finally:
             legacy.close()
 
-    def test_editor_fills_available_workspace_and_secondary_actions_remain_reachable(self):
+    def test_editor_fills_available_workspace_and_secondary_actions_remain_reachable(self) -> None:
         from tests.test_ui import spin
         from bible.ui import Gtk as Gtk
 
@@ -92,7 +94,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertGreater(bounds.get_y() + bounds.get_height(), 0)
         self.assertEqual(editor.body.get_buffer().props.text, before)
 
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -133,7 +135,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
             origin_language="en",
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         from tests.test_ui import close_test_dialogs
 
         if self.window.note_editor:
@@ -142,7 +144,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         close_test_dialogs()
         self.window.close()
 
-    def test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft(self):
+    def test_passage_reveal_selects_displayed_record_and_keeps_cancelled_draft(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -196,7 +198,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
             before,
         )
 
-    def test_coalesced_autosave_flush_on_record_switch_and_restart(self):
+    def test_coalesced_autosave_flush_on_record_switch_and_restart(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -231,7 +233,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(w.notes_store.get(self.second.id).body, "Flushed at normal shutdown")
         self.assertEqual(w.notes_store.get(self.first.id).body, "Flushed before another record")
 
-    def test_global_workspace_only_edits_existing_notes_and_keeps_reader_creation(self):
+    def test_global_workspace_only_edits_existing_notes_and_keeps_reader_creation(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -260,7 +262,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         reader_editor._discard = True
         reader_editor.close()
 
-    def test_write_failure_and_optimistic_conflict_preserve_draft(self):
+    def test_write_failure_and_optimistic_conflict_preserve_draft(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -294,7 +296,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(editor.body.get_buffer().props.text, "Keep this conflicting draft")
         self.assertTrue(editor.dirty)
 
-    def test_pending_delete_cannot_autosave_recreate_note_and_keeps_highlight(self):
+    def test_pending_delete_cannot_autosave_recreate_note_and_keeps_highlight(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -312,7 +314,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertIn(("Luther", "Gen.32.1"), w.highlights.entries)
         self.assertEqual(len(s.all_records), 2)
 
-    def test_original_translation_is_static_and_opening_keeps_the_note_context(self):
+    def test_original_translation_is_static_and_opening_keeps_the_note_context(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -355,7 +357,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(s.selected_key, selected)
         self.assertEqual(s.editor.note.id, self.first.id)
 
-    def test_highlight_recolor_remove_and_full_text_filters_do_not_merge_notes(self):
+    def test_highlight_recolor_remove_and_full_text_filters_do_not_merge_notes(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -384,7 +386,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(w.notes_store.all()), 2)
         self.assertFalse(w.highlights.entries)
 
-    def test_missing_resources_keep_annotations_editable_and_backups_compatible(self):
+    def test_missing_resources_keep_annotations_editable_and_backups_compatible(self) -> None:
         import shutil
         from tests.test_ui import spin
 
@@ -420,7 +422,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         w.highlights.restore(self.root / "legacy-highlights.json")
         self.assertEqual(len(w.highlights.entries), 1)
 
-    def test_232_main_notes_route_keeps_existing_filters_and_no_redundant_footer(self):
+    def test_232_main_notes_route_keeps_existing_filters_and_no_redundant_footer(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -448,7 +450,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
             before,
         )
 
-    def test_unavailable_imported_reference_keeps_note_without_guessing_passage(self):
+    def test_unavailable_imported_reference_keeps_note_without_guessing_passage(self) -> None:
         from tests.test_ui import spin
 
         w = self.window
@@ -479,7 +481,7 @@ class AnnotationWorkspaceTests(unittest.TestCase):
         self.assertIn(tr("Passage unavailable or no verified alignment."), s.excerpt.get_text())
         self.assertEqual(s.editor.context["start"], note.start)
 
-    def test_workspace_selector_routes_and_unfinished_label_guard(self):
+    def test_workspace_selector_routes_and_unfinished_label_guard(self) -> None:
         from tests.test_ui import spin
 
         w = self.window

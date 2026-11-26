@@ -1,5 +1,7 @@
 """Verified correspondence groups; display padding never becomes Scripture."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 from .reference_resolution import resolve_readers as resolve, _span
 from .pagination import Document, StyleSpan
@@ -24,7 +26,7 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
     nodes = {(0, r): {(0, r)} for r in left}
     nodes.update({(1, r): {(1, r)} for r in right})
 
-    def merge(first, second):
+    def merge(first, second) -> None:
         own = nodes[first]
         other = nodes.get(second)
         if other is not None and other is not own:
@@ -32,7 +34,7 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
             for n in other:
                 nodes[n] = own
 
-    def connect(side, reference, mapped):
+    def connect(side, reference, mapped) -> None:
         for ref in mapped:
             merge((side, reference), (1 - side, ref))
 

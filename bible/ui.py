@@ -1,5 +1,7 @@
 """Native tabbed GNOME reader; downloads live in a dedicated window."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import os
 import sys
@@ -43,7 +45,7 @@ class Window(Adw.ApplicationWindow):
     preserved and reported. Shared highlight state is scoped to application/profile.
     """
 
-    def __init__(self, app, library, session_path=None):
+    def __init__(self, app, library, session_path=None) -> None:
         super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
         self.library = library
@@ -107,7 +109,7 @@ class Window(Adw.ApplicationWindow):
         self.heading = Adw.WindowTitle(title=tr("Choose a passage"))
 
         # Bound both title and version even with long affiliated module IDs.
-        def constrain_labels(widget, maximum=18):
+        def constrain_labels(widget, maximum=18) -> None:
             if isinstance(widget, Gtk.Label):
                 widget.set_max_width_chars(maximum)
                 widget.set_width_chars(1)
@@ -262,7 +264,7 @@ class Window(Adw.ApplicationWindow):
         header.pack_end(self.header_tools)
         header.pack_end(self.resource_updates_button)
 
-        def move_tools(*_):
+        def move_tools(*_: object) -> None:
             target = (
                 self.reader_overflow_box
                 if self.reader_overflow.get_visible()
@@ -293,7 +295,7 @@ class Window(Adw.ApplicationWindow):
         self.header_bin.set_child(header)
         self.header_bin.set_size_request(300, 46)
 
-        def study_in_overflow(enabled):
+        def study_in_overflow(enabled) -> None:
             if enabled:
                 for button in (self.study_button,):
                     if button.get_parent() is not self.reader_overflow_box:
@@ -314,7 +316,7 @@ class Window(Adw.ApplicationWindow):
                 self.reader_overflow_box.remove(self.new_tab_button)
                 header.pack_start(self.new_tab_button)
 
-        def tools_in_main_menu(tiny):
+        def tools_in_main_menu(tiny) -> None:
             parent = self.reader_overflow_box.get_parent()
             menu_box = self.menu.get_popover().get_child().get_child()
             if tiny and parent is not menu_box:
@@ -327,14 +329,14 @@ class Window(Adw.ApplicationWindow):
             self.header_tools.set_visible(not tiny)
             self.menu.get_popover().set_autohide(not tiny)
 
-        def compact_applied(breakpoint, tiny):
+        def compact_applied(breakpoint: object, tiny) -> None:
             self.space_selector.add_css_class("compact-space")
             study_in_overflow(tiny)
             self.space_selector.set_compact(tiny)
             tools_in_main_menu(tiny)
             self.queue_controls()
 
-        def compact_removed(*_):
+        def compact_removed(*_: object) -> None:
             self.space_selector.remove_css_class("compact-space")
             study_in_overflow(False)
             self.space_selector.set_compact(False)
@@ -611,7 +613,7 @@ class Window(Adw.ApplicationWindow):
                 self.application_settings.error,
             )
 
-    def watch_layout_surface(self, *_):
+    def watch_layout_surface(self, *_: object) -> None:
         """Observe the current native surface's geometry/scale and queue bounded layout adaptation."""
         surface = self.get_surface()
         if surface is not self._layout_surface:
@@ -623,7 +625,7 @@ class Window(Adw.ApplicationWindow):
             ]
         self.queue_layout()
 
-    def unwatch_layout_surface(self, *_):
+    def unwatch_layout_surface(self, *_: object) -> None:
         """Disconnect the old native surface and cancel dependent control/sidebar adaptation."""
         if self._layout_surface:
             for handler in self._layout_surface_handlers:
@@ -636,7 +638,7 @@ class Window(Adw.ApplicationWindow):
         if hasattr(self, "study"):
             self.study.cancel_adapt()
 
-    def refresh_header_conditions(self):
+    def refresh_header_conditions(self) -> None:
         # SP follows GNOME text scaling; a custom UI font size is independent.
         """Scale responsive header thresholds with the native interface font without overriding its family."""
         settings = Gtk.Settings.get_default()
@@ -652,7 +654,7 @@ class Window(Adw.ApplicationWindow):
                 Adw.BreakpointCondition.parse(f"max-width: {width * ratio:g}sp")
             )
 
-    def queue_layout(self, *_):
+    def queue_layout(self, *_: object) -> None:
         """Queue visible-window control, sidebar and tab adaptation after geometry/style changes."""
         if not self.get_mapped() or self.closed:
             return
@@ -666,20 +668,20 @@ class Window(Adw.ApplicationWindow):
             for tab in self.tabs():
                 tab.queue_adapt()
 
-    def queue_controls(self, *_):
+    def queue_controls(self, *_: object) -> None:
         if self.closed or not self.get_mapped():
             return
         self._controls_frames = 3
         if not self._controls_tick:
             self._controls_tick = self.add_tick_callback(self._settle_controls)
 
-    def cancel_controls(self, *_):
+    def cancel_controls(self, *_: object) -> None:
         if self._controls_tick:
             self.remove_tick_callback(self._controls_tick)
         self._controls_tick = 0
         self._controls_frames = 0
 
-    def _settle_controls(self, *_):
+    def _settle_controls(self, *_: object):
         self.fit_reader_controls()
         self._controls_frames -= 1
         if self._controls_frames > 0:
@@ -687,7 +689,7 @@ class Window(Adw.ApplicationWindow):
         self._controls_tick = 0
         return False
 
-    def fit_reader_controls(self, *_):
+    def fit_reader_controls(self, *_: object) -> None:
         """Adapt selector/popup widths to actual text and available native geometry."""
         from .version_chooser import fit_wrapped_button
 
@@ -699,12 +701,12 @@ class Window(Adw.ApplicationWindow):
         self.fit_comparison_popup()
         self.search_popover.adapt()
 
-    def fit_comparison_popup(self):
+    def fit_comparison_popup(self) -> None:
         from .version_chooser import fit_translation_choices
 
         fit_translation_choices(self.comparison_popover, self.comparison_choices, self)
 
-    def position_primary_version(self, force=False):
+    def position_primary_version(self, force: bool = False) -> None:
         """Reparent the shared primary selector between the header and parallel panel as required."""
         if not force and self.immersion and self.immersion.kind == "bible":
             return
@@ -717,7 +719,7 @@ class Window(Adw.ApplicationWindow):
             target.append(self.primary_version)
         self.primary_version.set_hexpand(bool(tab and tab.state.comparison))
 
-    def open_reading_popup(self, button):
+    def open_reading_popup(self, button) -> None:
         """Open an overflow-hosted control only after its containing popover is mapped."""
         if button.get_parent() is self.reader_overflow_box:
             self.reading_tools_menu.popup()
@@ -731,7 +733,7 @@ class Window(Adw.ApplicationWindow):
         else:
             button.popup()
 
-    def copy_passage(self, with_reference=False, reference_only=False):
+    def copy_passage(self, with_reference: bool = False, reference_only: bool = False) -> None:
         """Copy selected actual source units or their reference, keeping linked entries deduplicated."""
         from .notes_window import passage_label
 
@@ -768,14 +770,14 @@ class Window(Adw.ApplicationWindow):
                 value = label + "\n" + value
         self.get_clipboard().set(value)
 
-    def show_appearance(self):
+    def show_appearance(self) -> None:
         if self.immersion:
             self.immersion.reveal_controls()
             self.immersion.aa.popup()
         else:
             self.open_reading_popup(self.appearance_button)
 
-    def show_comparison(self):
+    def show_comparison(self) -> None:
         if self.immersion:
             self.leave_immersion()
         if self.active_tab and self.active_tab.state.comparison:
@@ -783,7 +785,7 @@ class Window(Adw.ApplicationWindow):
         else:
             self.open_reading_popup(self.comparison_button)
 
-    def toggle_immersion(self):
+    def toggle_immersion(self) -> None:
         if self.immersion:
             self.leave_immersion()
         else:
@@ -860,7 +862,7 @@ class Window(Adw.ApplicationWindow):
         self.fullscreen()
         return True
 
-    def leave_immersion(self):
+    def leave_immersion(self) -> None:
         """Release immersive consumers and restore the original tab/source position and window state."""
         if hasattr(self, "passage_actions"):
             self.passage_actions.dismiss()
@@ -919,7 +921,7 @@ class Window(Adw.ApplicationWindow):
         self.update_navigation() if immersion.kind == "bible" else None
         self.schedule_save()
 
-    def add_action_callback(self, name, callback):
+    def add_action_callback(self, name, callback) -> None:
         action = Gio.SimpleAction.new(name, None)
         action.connect("activate", callback)
         self.add_action(action)
@@ -942,7 +944,7 @@ class Window(Adw.ApplicationWindow):
             self.view.get_nth_page(index).get_child() for index in range(self.view.get_n_pages())
         ]
 
-    def append_tab(self, state, jump_to_reference=False):
+    def append_tab(self, state, jump_to_reference: bool = False):
         """Create a tab, bind its input/annotation consumers and preserve its independent session palette."""
         if not state.reading_palette:
             state.reading_palette = dict(
@@ -997,7 +999,7 @@ class Window(Adw.ApplicationWindow):
         tab.insert_child_after(tab.download_bible, tab.status)
         page = self.view.append(tab)
 
-        def selection_changed(buffer, location, mark):
+        def selection_changed(buffer, location: object, mark) -> None:
             # GTK also moves private viewport/paragraph marks while scrolling.
             # Those are not user selections and must not bypass ReadingSync.
             if mark not in (buffer.get_insert(), buffer.get_selection_bound()):
@@ -1019,7 +1021,7 @@ class Window(Adw.ApplicationWindow):
         page.set_title(tab.title())
         return page
 
-    def return_to_reading(self):
+    def return_to_reading(self) -> None:
         readable = self.ensure_readable_tab()
         self.main_pages.set_visible_child_name("reading" if readable else "welcome")
 
@@ -1080,7 +1082,7 @@ class Window(Adw.ApplicationWindow):
         page.get_child().text.grab_focus()
         return page.get_child()
 
-    def navigate_selection(self, resource, reference, new_tab=False):
+    def navigate_selection(self, resource, reference, new_tab: bool = False):
         """Navigate to a verified locally available address, optionally opening an independent tab."""
         if hasattr(self, "passage_actions"):
             self.passage_actions.dismiss()
@@ -1109,7 +1111,7 @@ class Window(Adw.ApplicationWindow):
                 self.active_tab.status.set_visible(True)
             return False
 
-    def choose_passage(self, direct=False):
+    def choose_passage(self, direct: bool = False) -> None:
         """Reveal the shared passage chooser in its current reading host and focus direct input."""
         if self.immersion and self.immersion.kind == "commentary":
             self.leave_immersion()
@@ -1120,7 +1122,7 @@ class Window(Adw.ApplicationWindow):
         self.navigation.sync(force=True)
         self.navigation.direct.grab_focus()
 
-    def show_search(self, mode=None):
+    def show_search(self, mode=None) -> None:
         """Open the dedicated search surface and synchronize it with the active translation."""
         if self.immersion:
             self.leave_immersion()
@@ -1152,7 +1154,7 @@ class Window(Adw.ApplicationWindow):
             return False
         return True
 
-    def step_chapter(self, direction):
+    def step_chapter(self, direction) -> None:
         tab = self.active_tab
         if tab and tab.reader:
             previous, following = tab.reader.neighbours(tab.state.reference)
@@ -1160,7 +1162,7 @@ class Window(Adw.ApplicationWindow):
             if reference:
                 tab.show(reference)
 
-    def update_navigation(self):
+    def update_navigation(self) -> None:
         """Update active source/passage actions while leaving hidden expensive chooser models untouched."""
         self.queue_layout()
         tab = self.active_tab
@@ -1228,7 +1230,7 @@ class Window(Adw.ApplicationWindow):
         self.study.refresh()
         tab.update_notes()
 
-    def apply_appearance(self, reflow=True):
+    def apply_appearance(self, reflow: bool = True) -> None:
         """Apply saved reading/content choices and optionally reflow tabs/immersion with retained anchors."""
         self.reading_style.apply_mode()
         self.appearance.sync()
@@ -1247,7 +1249,7 @@ class Window(Adw.ApplicationWindow):
         if self.immersion:
             self.immersion.reflow()
 
-    def sync_comparison(self):
+    def sync_comparison(self) -> None:
         """Synchronize comparison choices and native controls without emitting a redundant source selection."""
         tab = self.active_tab
         self._comparison_syncing = True
@@ -1288,14 +1290,14 @@ class Window(Adw.ApplicationWindow):
         self.compared_version.sync()
         self.immersive_button.set_visible(not bool(tab.state.comparison))
 
-    def end_comparison(self):
+    def end_comparison(self) -> None:
         self.active_tab.state.comparison = None
         self.active_tab.state.comparison_position = {}
         self.sync_comparison()
         self.schedule_save()
         self.comparison_popover.popdown()
 
-    def comparison_selected(self, widget, *_):
+    def comparison_selected(self, widget, *_: object) -> None:
         """Apply an explicit secondary source choice and defer popover dismissal until activation completes."""
         if self._comparison_syncing or not self.active_tab:
             return
@@ -1308,21 +1310,21 @@ class Window(Adw.ApplicationWindow):
         # Finish native row activation before dismissing its parent.
         GLib.idle_add(lambda: self.comparison_popover.popdown() or False)
 
-    def close_tab(self):
+    def close_tab(self) -> None:
         if self.immersion:
             self.leave_immersion()
         page = self.view.get_selected_page()
         if page:
             self.view.close_page(page)
 
-    def page_detached(self, *_):
+    def page_detached(self, *_: object) -> None:
         if self.closed:
             return
         if self.view.get_n_pages() == 0:
             self.append_tab(TabState())
         self.schedule_save()
 
-    def tab_changed(self, tab):
+    def tab_changed(self, tab) -> None:
         """Refresh dependent active-tab context and persist session state after a real tab/source change."""
         if hasattr(tab, "download_bible"):
             tab.download_bible.set_visible(tab.reader is None)
@@ -1356,7 +1358,7 @@ class Window(Adw.ApplicationWindow):
             self.update_navigation()
         self.schedule_save()
 
-    def selected_changed(self, *_):
+    def selected_changed(self, *_: object) -> None:
         """Restore the selected tab's palette/study visibility and reset obsolete synchronization intent."""
         if self.immersion:
             self.leave_immersion()
@@ -1373,13 +1375,13 @@ class Window(Adw.ApplicationWindow):
         self.update_navigation()
         self.schedule_save()
 
-    def toggle_study(self, *_):
+    def toggle_study(self, *_: object) -> None:
         if not self._syncing_study:
             if self.study_button.get_parent() is self.reader_overflow_box:
                 self.reading_tools_menu.popdown()
             self.split.set_show_sidebar(self.study_button.get_active())
 
-    def sync_header_controls(self):
+    def sync_header_controls(self) -> None:
         """Keep exactly one native end-control group across the reader and visible study drawer."""
         decoration = self.header.get_decoration_layout()
         visible = self.split.get_show_sidebar()
@@ -1391,7 +1393,7 @@ class Window(Adw.ApplicationWindow):
             self.header.set_decoration_layout(None)
             self.header.set_decoration_layout(decoration)
 
-    def sidebar_changed(self, *_):
+    def sidebar_changed(self, *_: object) -> None:
         """Persist sidebar visibility and cancel hidden study work, reconciling context once on reopening."""
         if not self.split.get_show_sidebar():
             self.study.cancel_scroll()
@@ -1452,7 +1454,7 @@ class Window(Adw.ApplicationWindow):
         self.dismiss_popovers()
         return self.open_library(kind, context=self.library_context(self.active_tab, destination))
 
-    def dismiss_popovers(self):
+    def dismiss_popovers(self) -> None:
         for popover in self._reading_popovers:
             popover.popdown()
 
@@ -1483,7 +1485,7 @@ class Window(Adw.ApplicationWindow):
         GLib.idle_add(self.catalogue_window.review_downloads)
         return self.catalogue_window
 
-    def resource_installed(self, name):
+    def resource_installed(self, name) -> None:
         """Invalidate affected resource consumers across matching windows without replacing usable unrelated readers."""
         if self.closed:
             return
@@ -1560,7 +1562,7 @@ class Window(Adw.ApplicationWindow):
             return False
         resource = self.library.resource(name)
 
-        def open_now():
+        def open_now() -> None:
             if self.closed or tab not in self.tabs():
                 return
             if self.immersion:
@@ -1585,7 +1587,7 @@ class Window(Adw.ApplicationWindow):
 
         if self.main_pages.get_visible_child_name() == "notes":
 
-            def guarded_open():
+            def guarded_open() -> None:
                 try:
                     open_now()
                 except (OSError, ValueError) as error:
@@ -1596,7 +1598,7 @@ class Window(Adw.ApplicationWindow):
             open_now()
         return True
 
-    def notes_changed(self):
+    def notes_changed(self) -> None:
         """Invalidate note projections in all matching windows after persistence succeeds."""
         for window in self.get_application().get_windows():
             if (
@@ -1616,7 +1618,7 @@ class Window(Adw.ApplicationWindow):
             if window.study.tool == "notes":
                 window.study.notes.refresh()
 
-    def refresh_highlights(self):
+    def refresh_highlights(self) -> None:
         """Repaint all windows sharing this highlight store without changing independent annotation identities."""
         for window in self.get_application().get_windows():
             if (
@@ -1627,7 +1629,7 @@ class Window(Adw.ApplicationWindow):
             ):
                 window.paint_highlights()
 
-    def paint_highlights(self):
+    def paint_highlights(self) -> None:
         """Refresh current highlight/annotation surfaces and preserve immersive selection."""
         for tab in self.tabs():
             tab.update_highlights(
@@ -1643,7 +1645,7 @@ class Window(Adw.ApplicationWindow):
         if self.study.tool == "notes":
             self.study.notes.refresh()
 
-    def mark_highlight(self, color):
+    def mark_highlight(self, color) -> None:
         """Apply/remove whole-verse marks for a bounded actual selection and report storage failures."""
         tab = self.active_tab
         if not tab or not tab.reader or (self.immersion and self.immersion.kind != "bible"):
@@ -1671,13 +1673,13 @@ class Window(Adw.ApplicationWindow):
             tab.status.set_visible(True)
 
     def open_highlights(self):
-        def shown(space):
+        def shown(space) -> None:
             space.set_category("highlights")
             space.split.set_show_sidebar(True)
 
         return self.open_notes(on_open=shown)
 
-    def workspace_changed(self, *_):
+    def workspace_changed(self, *_: object) -> None:
         """Synchronize workspace actions and dismiss reading selection controls outside reading contexts."""
         self.space_selector.sync()
         page = self.main_pages.get_visible_child_name()
@@ -1712,7 +1714,7 @@ class Window(Adw.ApplicationWindow):
             on_open(self.notes_space)
         return self.notes_space
 
-    def new_note(self, force_new=False):
+    def new_note(self, force_new: bool = False):
         """Create explicit source-qualified note context or reveal existing notes for that passage."""
         if self.main_pages.get_visible_child_name() == "notes":
             return
@@ -1741,7 +1743,7 @@ class Window(Adw.ApplicationWindow):
         )
         return self.edit_note(context=context)
 
-    def reveal_passage_annotations(self):
+    def reveal_passage_annotations(self) -> None:
         # Intentional inline markers reveal the chapter list, never enter edit.
         if self.study.tool == "word":
             self.study.words.leave()
@@ -1771,7 +1773,7 @@ class Window(Adw.ApplicationWindow):
             )
             return self.edit_note(context=context)
 
-        def shown(window):
+        def shown(window) -> None:
             window.search.set_text("")
             window.labels.set_values([])
             window.passage_filter = (reader.versification, start, end)
@@ -1794,7 +1796,7 @@ class Window(Adw.ApplicationWindow):
         self.note_editor.present()
         return self.note_editor
 
-    def open_saved_note(self, note, edit=True):
+    def open_saved_note(self, note, edit: bool = True):
         """Retain an unavailable note and open only a compatible installed source for its saved anchor."""
         note = self.notes_store.get(note.id)
         if note is None:
@@ -1837,7 +1839,7 @@ class Window(Adw.ApplicationWindow):
             explanation += f" [{note.versification}]"
         return self.edit_note(note=note, explanation=explanation) if edit else not explanation
 
-    def schedule_save(self):
+    def schedule_save(self) -> None:
         """Coalesce session persistence after initialization without touching annotation content."""
         if self._initializing or self.closed or not self._session_writable:
             return
@@ -1861,11 +1863,11 @@ class Window(Adw.ApplicationWindow):
             self.report_session_error(tr("Unable to save the session."), error)
         return False
 
-    def report_session_error(self, message, error):
+    def report_session_error(self, message, error) -> None:
         self.session_status.set_text(f"{message}\n{error}")
         self.session_status.set_visible(True)
 
-    def on_close(self, *_):
+    def on_close(self, *_: object):
         """Honor unsaved-note guards, save the session and release native/background consumers.
 
         Returns:
@@ -1954,14 +1956,14 @@ class Window(Adw.ApplicationWindow):
 class Application(Adw.Application):
     """Native single-application entry point with profile-scoped window/shared-store state."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(application_id="io.github.icfmp.Bible")
         action = Gio.SimpleAction.new("quit", None)
         action.connect("activate", lambda *_: self.request_quit())
         self.add_action(action)
         self.set_accels_for_action("app.quit", ["<Control>q"])
 
-    def request_quit(self):
+    def request_quit(self) -> None:
         # Application.quit() bypasses close-request and pending note writes.
         # The last safely closed application window ends the normal lifecycle;
         # a failed save leaves its window/editor alive for the user's decision.
@@ -1969,7 +1971,7 @@ class Application(Adw.Application):
             if isinstance(window, Window) and not window.closed:
                 window.close()
 
-    def do_activate(self):
+    def do_activate(self) -> None:
         if not self.get_active_window():
             root = Path(GLib.get_user_data_dir()) / "bible" / "translations"
             Window(self, Library(root)).present()

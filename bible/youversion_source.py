@@ -156,20 +156,20 @@ def decode_bytes(data):
 class TreeParser(HTMLParser):
     """Retain an ordered bounded local source tree while rejecting ambiguous attributes/invalid characters."""
 
-    def __init__(self, *, max_nodes=100000, max_depth=128):
+    def __init__(self, *, max_nodes=100000, max_depth=128) -> None:
         super().__init__(convert_charrefs=False)
         self.root = {"tag": "#document", "attrs": [], "children": []}
         self.stack = [self.root]
         self.remaining = max_nodes
         self.max_depth = max_depth
 
-    def append(self, node):
+    def append(self, node) -> None:
         self.remaining -= 1
         if self.remaining < 0:
             raise Unsupported("Chapter node limit exceeded")
         self.stack[-1]["children"].append(node)
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         """Append a real source node and enforce duplicate-attribute and nesting-depth limits."""
         if len({k for k, v in attrs}) != len(attrs):
             raise Unsupported("Duplicate HTML attributes")
@@ -195,35 +195,35 @@ class TreeParser(HTMLParser):
                 raise Unsupported("Chapter nesting limit exceeded")
             self.stack.append(node)
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag, attrs) -> None:
         before = len(self.stack)
         self.handle_starttag(tag, attrs)
         if len(self.stack) != before:
             self.handle_endtag(tag)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if len(self.stack) == 1 or self.stack[-1]["tag"] != tag:
             raise Unsupported("Unbalanced chapter markup")
         self.stack.pop()
 
-    def handle_data(self, value):
+    def handle_data(self, value) -> None:
         self.append(value)
 
-    def handle_comment(self, text):
+    def handle_comment(self, text) -> None:
         self.append({"tag": "#comment", "text": text})
 
-    def handle_decl(self, text):
+    def handle_decl(self, text) -> None:
         self.append({"tag": "#declaration", "text": text})
 
-    def handle_pi(self, text):
+    def handle_pi(self, text) -> None:
         self.append({"tag": "#pi", "text": text})
 
-    def handle_entityref(self, name):
+    def handle_entityref(self, name) -> None:
         if name + ";" not in entities.html5:
             raise Unsupported("Unknown HTML entity")
         self.handle_data(entities.html5[name + ";"])
 
-    def handle_charref(self, name):
+    def handle_charref(self, name) -> None:
         """Decode a source character reference only when it is valid XML text."""
         try:
             value = int(name[1:], 16) if name.lower().startswith("x") else int(name)
@@ -351,7 +351,7 @@ def archive_chapters(
     path,
     edition,
     *,
-    complete=False,
+    complete: bool = False,
     max_member=8 * 1024 * 1024,
     max_total=256 * 1024 * 1024,
     max_entries=10000,
@@ -479,7 +479,7 @@ def to_osis(chapter, edition):
     return convert(source_document(chapter, edition))
 
 
-def main():
+def main() -> None:
     """Run the explicit local-source research CLI and report its actual validated inputs/results."""
     import argparse
 

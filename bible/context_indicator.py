@@ -1,5 +1,7 @@
 """Paint-only dotted study coverage; never selection, tags or saved highlights."""
 
+from __future__ import annotations
+
 import gi
 
 gi.require_version("Graphene", "1.0")
@@ -11,7 +13,7 @@ from .reading_style import PALETTES
 class ContextTextView(Gtk.TextView):
     """Paint transient study coverage without changing selection, text tags or saved highlights."""
 
-    def set_study_ranges(self, ranges):
+    def set_study_ranges(self, ranges) -> None:
         value = tuple(ranges)
         if value != getattr(self, "study_ranges", ()):
             self.study_ranges = value
@@ -72,7 +74,7 @@ class ContextTextView(Gtk.TextView):
                 segments.append((left, right, y, color))
         return segments
 
-    def do_snapshot(self, snapshot):
+    def do_snapshot(self, snapshot) -> None:
         """Append clipped GSK coverage dots after the native text snapshot; retain no periodic worker."""
         Gtk.TextView.do_snapshot(self, snapshot)
         segments = self.indicator_segments()

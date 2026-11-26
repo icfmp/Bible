@@ -1,5 +1,7 @@
 """CI gates and data-branch persistence for the alpha channel."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -94,7 +96,7 @@ def verify():
     return {"source": source, "ci_run": run_id}
 
 
-def restore():
+def restore() -> None:
     """Restore the existing data branch into a symlink-free staging site while retaining its parent identity."""
     site = Path("public")
     site.mkdir()
@@ -121,7 +123,7 @@ def restore():
             subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], check=True)
 
 
-def persist():
+def persist() -> None:
     """Commit only the staged public site, never a signing key or runner files."""
     site = Path("public").resolve()
     assert (site / "alpha/provenance.json").is_file()
@@ -179,7 +181,7 @@ def persist():
         parent_state().write_text(commit)
 
 
-def import_signing_key():
+def import_signing_key() -> None:
     """Import the configured secret into a private runner directory and require the exact expected fingerprint.
 
     Remove the secret from this process environment; never print its value.
@@ -200,7 +202,7 @@ def import_signing_key():
     ], "Signing secret/fingerprint mismatch"
 
 
-def main():
+def main() -> None:
     """Dispatch the explicit existing channel verification/staging/persistence operation selected by CI."""
     parser = argparse.ArgumentParser()
     parser.add_argument(

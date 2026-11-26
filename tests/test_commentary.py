@@ -1,5 +1,7 @@
 """Commentary indexes, native reference handling and offline reopening."""
 
+from __future__ import annotations
+
 import io
 from pathlib import Path
 import tarfile
@@ -32,7 +34,7 @@ def commentary_fixture(directory, name="Notes", versification="KJV", entries=Non
 
 
 class CommentaryTests(unittest.TestCase):
-    def test_cached_entry_text_does_not_keep_disposed_native_readers_alive(self):
+    def test_cached_entry_text_does_not_keep_disposed_native_readers_alive(self) -> None:
         import gc
         import weakref
 
@@ -46,7 +48,7 @@ class CommentaryTests(unittest.TestCase):
             gc.collect()
             self.assertIsNone(disposed())
 
-    def test_exact_lookup_missing_blank_and_versification(self):
+    def test_exact_lookup_missing_blank_and_versification(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = commentary_fixture(
                 directory,
@@ -68,7 +70,7 @@ class CommentaryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 Reader(root, "Notes")
 
-    def test_linked_entries_follow_sword_indices(self):
+    def test_linked_entries_follow_sword_indices(self) -> None:
         import Sword
 
         with tempfile.TemporaryDirectory() as directory:
@@ -85,7 +87,7 @@ class CommentaryTests(unittest.TestCase):
             self.assertEqual(reader.entry("John.3.17", "KJV"), reader.entry("John.3.16", "KJV"))
             self.assertIsNone(reader.entry("John.3.18", "KJV"))
 
-    def test_catalogue_types_authors_and_unavailable_formats(self):
+    def test_catalogue_types_authors_and_unavailable_formats(self) -> None:
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w:gz") as archive:
             for name, driver, extra in [
@@ -115,7 +117,7 @@ class CommentaryTests(unittest.TestCase):
         self.assertFalse(resources["LockedNotes"].installable)
         self.assertFalse(resources["OtherNotes"].installable)
 
-    def test_commentary_install_and_attribution_offline(self):
+    def test_commentary_install_and_attribution_offline(self) -> None:
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as directory:
             root = commentary_fixture(source)
             path = root / "mods.d/test.conf"
@@ -142,7 +144,7 @@ class CommentaryTests(unittest.TestCase):
                 reader = CommentaryReader(Path(directory) / "Notes", "Notes")
                 self.assertIn("COMMENTARY TEST DATA", reader.entry(reader.first_reference(), "KJV"))
 
-    def test_type_change_cannot_install_a_commentary_as_a_bible(self):
+    def test_type_change_cannot_install_a_commentary_as_a_bible(self) -> None:
         from dataclasses import replace
 
         with tempfile.TemporaryDirectory() as source, tempfile.TemporaryDirectory() as directory:

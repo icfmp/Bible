@@ -1,5 +1,7 @@
 """Retained-client verification must distinguish live metadata and preserved data."""
 
+from __future__ import annotations
+
 from contextlib import redirect_stdout
 import hashlib
 import io
@@ -15,13 +17,13 @@ from tools import check_flatpak_channel as client
 
 
 class PublicUpdateTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         previous = Path.cwd()
         os.chdir(self.directory)
         self.addCleanup(os.chdir, previous)
 
-    def test_snapshot_uses_live_public_revision_before_staging_is_published(self):
+    def test_snapshot_uses_live_public_revision_before_staging_is_published(self) -> None:
         previous = dict(flatpak_commit="old", source_commit="published-source")
         Path("public/alpha").mkdir(parents=True)
         Path("public/alpha/provenance.json").write_text(
@@ -41,7 +43,7 @@ class PublicUpdateTests(unittest.TestCase):
         self.assertEqual(check.call_args.args[1], previous)
         self.assertEqual(json.loads(Path("public-before-provenance.json").read_text()), previous)
 
-    def update(self, *, damaged=False, unchanged=False):
+    def update(self, *, damaged: bool = False, unchanged: bool = False) -> None:
         Path("public/alpha").mkdir(parents=True)
         expected = dict(flatpak_commit="next")
         Path("public/alpha/provenance.json").write_text(json.dumps(expected))
@@ -58,7 +60,7 @@ class PublicUpdateTests(unittest.TestCase):
         requests = []
         responses = iter([dict(flatpak_commit="stale"), expected])
 
-        def receive(request, **_):
+        def receive(request, **_: object):
             requests.append(request.full_url)
             return io.BytesIO(json.dumps(next(responses)).encode())
 
@@ -96,13 +98,13 @@ class PublicUpdateTests(unittest.TestCase):
         self.assertEqual(len(requests), 2)
         self.assertNotEqual(requests[0], requests[1])
 
-    def test_actual_update_waits_for_fresh_metadata_and_preserves_existing_note(self):
+    def test_actual_update_waits_for_fresh_metadata_and_preserves_existing_note(self) -> None:
         self.update()
 
-    def test_changed_user_data_cannot_produce_a_success_receipt(self):
+    def test_changed_user_data_cannot_produce_a_success_receipt(self) -> None:
         self.update(damaged=True)
 
-    def test_same_installed_commit_is_not_reported_as_an_update(self):
+    def test_same_installed_commit_is_not_reported_as_an_update(self) -> None:
         self.update(unchanged=True)
 
 
@@ -130,17 +132,17 @@ class SignedAcquisitionTests(unittest.TestCase):
             self.assertEqual(call.args[0], tuple(command))
         return sleep
 
-    def test_transient_gateway_errors_retry_then_require_success(self):
+    def test_transient_gateway_errors_retry_then_require_success(self) -> None:
         sleep = self.acquire(
             [(1, "Server returned HTTP 503"), (1, "Server returned HTTP 502"), (0, "Installed")]
         )
         self.assertEqual([call.args[0] for call in sleep.call_args_list], [2, 4])
 
-    def test_persistent_gateway_error_still_fails(self):
+    def test_persistent_gateway_error_still_fails(self) -> None:
         self.acquire([(1, "Server returned HTTP 504")] * 3)
 
-    def test_signature_failure_is_not_retried(self):
+    def test_signature_failure_is_not_retried(self) -> None:
         self.acquire([(1, "GPG verification failed")]).assert_not_called()
 
-    def test_other_http_errors_are_not_retried(self):
+    def test_other_http_errors_are_not_retried(self) -> None:
         self.acquire([(1, "Server returned HTTP 404")]).assert_not_called()

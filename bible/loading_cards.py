@@ -1,9 +1,11 @@
 """The Library's neutral placeholder shapes, without pretend resource content."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 
 
-def placeholder(area, cr, width, height):
+def placeholder(area: object, cr, width, height) -> None:
     cr.set_source_rgba(0.5, 0.5, 0.5, 0.25)
     cr.rectangle(0, 0, width, height)
     cr.fill()
@@ -12,7 +14,7 @@ def placeholder(area, cr, width, height):
 class LoadingCards(Gtk.Box):
     """Show neutral accessible loading shapes, animating only while mapped and animations are enabled."""
 
-    def __init__(self, label, count=3):
+    def __init__(self, label, count=3) -> None:
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=14,
@@ -59,7 +61,7 @@ class LoadingCards(Gtk.Box):
         self._settings = None
         self._settings_handler = 0
 
-    def root_changed(self, *_):
+    def root_changed(self, *_: object) -> None:
         """Reconnect animation settings to the current root without retaining the old settings handler."""
         if self._settings_handler:
             self._settings.disconnect(self._settings_handler)
@@ -70,7 +72,7 @@ class LoadingCards(Gtk.Box):
                 "notify::gtk-enable-animations", self.animate
             )
 
-    def animate(self, *_):
+    def animate(self, *_: object) -> None:
         """Replace the pulse callback only when mapped and native animation settings permit it."""
         self.stop()
         if not self.get_mapped() or not self.get_settings().get_property("gtk-enable-animations"):
@@ -84,7 +86,7 @@ class LoadingCards(Gtk.Box):
 
         self._tick = self.add_tick_callback(pulse)
 
-    def stop(self, *_):
+    def stop(self, *_: object) -> None:
         """Remove the frame callback and restore full opacity when loading is hidden or animations stop."""
         if self._tick:
             self.remove_tick_callback(self._tick)

@@ -4,6 +4,8 @@ Only presentation tags change while typing. Hidden delimiters stay in the
 buffer for exact persistence, undo and old backups; no HTML or URL is executed.
 """
 
+from __future__ import annotations
+
 import re
 from bisect import bisect_left
 from dataclasses import replace
@@ -16,7 +18,7 @@ from .i18n import tr
 class NoteTextView(NotePreview):
     """Edit the actual Markdown buffer with native presentation tags and inert source text."""
 
-    def __init__(self, owner, system, navigation_guard):
+    def __init__(self, owner, system, navigation_guard) -> None:
         super().__init__(owner=owner, system=system, navigation_guard=navigation_guard)
         self.set_editable(True)
         self.set_cursor_visible(True)
@@ -31,7 +33,7 @@ class NoteTextView(NotePreview):
         buffer.connect("changed", self.decorate)
         keys = Gtk.EventControllerKey()
 
-        def shortcut(_, key, code, state):
+        def shortcut(_: object, key, code: object, state):
             if state & Gdk.ModifierType.CONTROL_MASK and key in (
                 Gdk.KEY_b,
                 Gdk.KEY_B,
@@ -48,19 +50,19 @@ class NoteTextView(NotePreview):
     def do_focus(self, direction):
         return Gtk.TextView.do_focus(self, direction)
 
-    def pressed(self, gesture, count, x, y):
+    def pressed(self, gesture, count, x, y) -> None:
         if gesture.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK:
             NotePreview.pressed(self, gesture, count, x, y)
         else:
             self._pressed = None
 
-    def motion(self, controller, x, y):
+    def motion(self, controller, x, y) -> None:
         active = controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK
         self.set_cursor_from_name(
             "pointer" if active and self.at_point(x, y) is not None else "text"
         )
 
-    def key_pressed(self, controller, key, code, state):
+    def key_pressed(self, controller: object, key, code: object, state):
         """Preview an actual citation on Ctrl+Enter while preserving ordinary editing/Enter semantics."""
         if key in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and state & Gdk.ModifierType.CONTROL_MASK:
             index = self.at_offset(
@@ -76,12 +78,12 @@ class NoteTextView(NotePreview):
         value = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
         return self._original_source if value == self._original_display else value
 
-    def set_source(self, source):
+    def set_source(self, source) -> None:
         self._original_source = source
         self._original_display = re.sub(r"(?m)^([ \t]*)[-*] ", r"\1• ", source)
         self.get_buffer().set_text(self._original_display)
 
-    def decorate(self, *_):
+    def decorate(self, *_: object) -> None:
         """Reapply formatting/citation tags over retained Markdown offsets without rewriting saved text."""
         preview = self.owner.reference_preview.popover
         if preview and getattr(preview, "_note_preview", None) is self:
@@ -129,7 +131,7 @@ class NoteTextView(NotePreview):
             tr("Ctrl+click or Ctrl+Enter to preview a Bible reference.") if self.citations else None
         )
 
-    def format(self, kind):
+    def format(self, kind) -> None:
         """Apply explicit bold/italic/list edits as one undoable native buffer action."""
         buffer = self.get_buffer()
         selection = buffer.get_selection_bounds()

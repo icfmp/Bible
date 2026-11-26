@@ -1,5 +1,7 @@
 """Native highlight selection, recoloring, visibility and shared-window state."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,14 +12,14 @@ from tests.test_ui import installed_fixture, spin
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class HighlightUITests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
 
-    def test_comparison_rebuild_does_not_retag_unchanged_primary_layout(self):
+    def test_comparison_rebuild_does_not_retag_unchanged_primary_layout(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -61,7 +63,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks(self):
+    def test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks(self) -> None:
         from bible.ui import Window, Library
         from tests.test_appearance import SystemStyleOverride
         from gi.repository import Pango
@@ -115,7 +117,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_missing_system_does_not_open_a_different_passage_or_delete_mark(self):
+    def test_missing_system_does_not_open_a_different_passage_or_delete_mark(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -135,7 +137,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self):
+    def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self) -> None:
         from bible.ui import Window, Library
         from bible.highlights import HighlightStore
 

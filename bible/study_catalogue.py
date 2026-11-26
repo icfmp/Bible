@@ -1,5 +1,7 @@
 """Small checked study-resource metadata; network refresh belongs to a worker."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import date
 import hashlib
@@ -32,7 +34,7 @@ class ResourceRevision:
     format: str
     url: str
 
-    def verify(self, path):
+    def verify(self, path) -> None:
         """Reject symbolic links or bytes that do not match this published archive size and SHA-256."""
         path = Path(path)
         if (
@@ -106,7 +108,7 @@ def parse(data):
     return result
 
 
-def atomic_write(path, data):
+def atomic_write(path, data) -> None:
     """Flush bytes to a sibling temporary file and replace the destination after a complete write."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -128,7 +130,7 @@ def atomic_write(path, data):
 class StudyCatalogue:
     """Read checked local/bundled archive metadata and explicitly refresh it from the existing origin."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.path = self.root / "resource-catalogue.json"
 

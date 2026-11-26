@@ -1,5 +1,7 @@
 """Verify eBible's actual French identities, package and offline SWORD fidelity."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -10,7 +12,7 @@ from bible.providers import EBIBLE
 from bible.sword_provider import Reader
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--offline", action="store_true")
@@ -48,7 +50,7 @@ def main():
         if name not in library.installed():
             if args.package:
 
-                def downloaded(url, out, progress):
+                def downloaded(url, out, progress: object) -> None:
                     assert url == EBIBLE.packages_url + args.module + ".zip"
                     out.write(Path(args.package).read_bytes())
 

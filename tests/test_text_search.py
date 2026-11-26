@@ -1,5 +1,7 @@
 """Source-backed words/phrases, scopes, paging and normalization boundaries."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from contextlib import closing
 import tempfile
@@ -8,7 +10,7 @@ from bible.search_terms import normalized, terms, match_ranges
 
 
 class SearchTermsTests(unittest.TestCase):
-    def test_french_accents_apostrophes_phrases_and_source_highlighting(self):
+    def test_french_accents_apostrophes_phrases_and_source_highlighting(self) -> None:
         self.assertEqual(terms('"grâce de Dieu" amour', "fr"), ("grace de dieu", "amour"))
         self.assertEqual(terms("l'homme", "fr"), ("l homme",))
         self.assertEqual(normalized("AIMÉ", "fra"), "aime")
@@ -23,7 +25,7 @@ class SearchTermsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             terms('"unfinished', "fr")
 
-    def test_actual_sword_index_scope_count_pages_and_phrase_order(self):
+    def test_actual_sword_index_scope_count_pages_and_phrase_order(self) -> None:
         from bible.text_search import search
         from tests.test_ui import installed_fixture
 
@@ -80,7 +82,7 @@ class CloseMatchTests(unittest.TestCase):
                     )
             return query_index(path, query, **options)
 
-    def test_strict_terms_precede_close_wording_and_paging_preserves_order(self):
+    def test_strict_terms_precede_close_wording_and_paging_preserves_order(self) -> None:
         rows = [
             ("Gen.1.1", "brave traveler crossed the river"),
             ("John.1.1", "brave traveler crosses river"),
@@ -103,13 +105,13 @@ class CloseMatchTests(unittest.TestCase):
             ["Gen.1.1"],
         )
 
-    def test_quotes_remain_strict_and_common_words_do_not_create_close_results(self):
+    def test_quotes_remain_strict_and_common_words_do_not_create_close_results(self) -> None:
         rows = [("Gen.1.1", "brave traveler crossed the river")]
         self.assertEqual(self.query(rows, '"brave traveler crosses river"')["total"], 0)
         self.assertEqual(self.query(rows, "the and of")["close_total"], 0)
         self.assertEqual(self.query(rows, "brave river")["close_total"], 0)
 
-    def test_negation_is_not_dropped_and_distant_overlap_is_not_a_close_phrase(self):
+    def test_negation_is_not_dropped_and_distant_overlap_is_not_a_close_phrase(self) -> None:
         rows = [
             ("Gen.1.1", "marcheur courageux ne traverse pas la rivière"),
             ("Gen.1.2", "marcheur courageux traverse la rivière"),
@@ -124,7 +126,7 @@ class CloseMatchTests(unittest.TestCase):
         far = [("Gen.1.1", "brave " + ("sideways " * 25) + " traveler crossed river")]
         self.assertEqual(self.query(far, "brave traveler crosses river")["total"], 0)
 
-    def test_accents_punctuation_limits_and_unsupported_segmentation(self):
+    def test_accents_punctuation_limits_and_unsupported_segmentation(self) -> None:
         rows = [
             (f"Gen.1.{i + 1}", "Marcheur courageux : traversée de la rivière !") for i in range(40)
         ]

@@ -4,6 +4,8 @@ Run --prepare before baseline/candidate checks, then --offline after restart.
 Resource IDs and expected vectors here are test data, never application policy.
 """
 
+from __future__ import annotations
+
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -23,7 +25,7 @@ BIBLES = (
 REPORTED = tuple(f"youversion~YV{n}" for n in (133, 152, 2367))
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -130,7 +132,7 @@ def main():
         complete=False,
     )
 
-    def save():
+    def save() -> None:
         (a.output / "alignment.json").write_text(json.dumps(report, indent=2) + "\n")
 
     for name, r in readers.items():
@@ -236,7 +238,7 @@ def main():
         gtk=[Gtk.get_major_version(), Gtk.get_minor_version(), Gtk.get_micro_version()],
     )
 
-    def settled():
+    def settled() -> None:
         t = w.active_tab
         spin(
             lambda: not t._restoring_scroll and not getattr(t, "_comparison_positioning", False),
@@ -245,7 +247,7 @@ def main():
         )
         assert not t._restoring_scroll and not getattr(t, "_comparison_positioning", False)
 
-    def shot(name):
+    def shot(name) -> None:
         native.move_at(w, 2, 2)
         spin(duration=0.1)
         screen.grab(a.output / (name + ".png"))

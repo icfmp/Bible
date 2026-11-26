@@ -1,5 +1,7 @@
 """Reference-driven Bible comparison, independent of the study coordinator."""
 
+from __future__ import annotations
+
 import time
 from .reading_sync import ReadingSync
 from .reference_resolution import resolve_readers as resolve
@@ -9,7 +11,7 @@ from .scroll_motion import stop_native_scroll
 class ComparisonSync(ReadingSync):
     """Coordinate user-led parallel following independently of the study-panel coordinator."""
 
-    def __init__(self, owner, tab):
+    def __init__(self, owner, tab) -> None:
         self.owner = owner
         self.tab = tab
         self.driver = None
@@ -23,7 +25,7 @@ class ComparisonSync(ReadingSync):
         self.bind(tab.scroll, tab.text, "primary")
         self.bind(tab.comparison_scroll, tab.comparison_text, "comparison")
 
-    def intent(self, side, tab=None):
+    def intent(self, side, tab: object = None):
         """Arm the explicitly used pane, cancelling obsolete motion and secondary restore work."""
         if self.tab is not self.owner.active_tab or self.running:
             return False
@@ -44,7 +46,7 @@ class ComparisonSync(ReadingSync):
         self.schedule()
         return False
 
-    def moved(self, side, view, bar, tab=None):
+    def moved(self, side, view, bar, tab: object = None) -> None:
         """Observe user-led adjustments while excluding reflow, restoration and programmatic movement."""
         if self.running or self.tab is not self.owner.active_tab:
             return

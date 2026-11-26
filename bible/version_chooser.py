@@ -1,11 +1,13 @@
 """Pane-local installed Bible choices over the existing tab/session state."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango, GObject
 from .i18n import tr
 from .providers import module_name
 
 
-def fit_wrapped_button(button, text):
+def fit_wrapped_button(button, text) -> None:
     """MenuButton is constant-size: request its native wrapped content height."""
     if not button.get_mapped():
         return
@@ -28,13 +30,13 @@ def fit_wrapped_button(button, text):
     button.props.height_request = base + max(0, wrapped - natural)
 
 
-def bounded_choices(dropdown):
+def bounded_choices(dropdown) -> None:
     """Keep long installed resource names usable inside constrained native popups."""
 
     def factory(popup):
         value = Gtk.SignalListItemFactory()
 
-        def setup(_, item):
+        def setup(_: object, item) -> None:
             label = Gtk.Label(xalign=0, max_width_chars=28, width_chars=1)
             if popup:
                 label.set_wrap(True)
@@ -43,7 +45,7 @@ def bounded_choices(dropdown):
                 label.set_ellipsize(Pango.EllipsizeMode.END)
             item.set_child(label)
 
-        def bind(_, item):
+        def bind(_: object, item) -> None:
             item.get_child().set_text(item.get_item().get_string())
 
         value.connect("setup", setup)
@@ -55,7 +57,7 @@ def bounded_choices(dropdown):
     dropdown.set_enable_search(False)
 
 
-def fit_translation_choices(popover, choices, owner):
+def fit_translation_choices(popover, choices, owner) -> None:
     """Constrain a visible translation list to the current native window bounds."""
     if not popover.get_visible():
         return
@@ -107,7 +109,7 @@ class DirectChoices(Gtk.ScrolledWindow):
     __gsignals__ = {"reselected": (GObject.SignalFlags.RUN_LAST, None, ())}
     selected = GObject.Property(type=GObject.TYPE_UINT, default=Gtk.INVALID_LIST_POSITION)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
             max_content_height=360,
@@ -120,18 +122,18 @@ class DirectChoices(Gtk.ScrolledWindow):
         self.list.connect("row-activated", self.activate)
         self.connect("map", self.focus_selection)
 
-    def focus_selection(self, *_):
+    def focus_selection(self, *_: object) -> None:
         row = self.list.get_selected_row()
         if row:
             row.grab_focus()
 
-    def activate(self, _, row):
+    def activate(self, _: object, row) -> None:
         if row.get_index() == self.get_selected():
             self.emit("reselected")
         else:
             self.set_selected(row.get_index())
 
-    def set_model(self, model, details=None):
+    def set_model(self, model, details=None) -> None:
         """Rebuild native translation rows with source identity, optional code and accessible labels."""
         while self.list.get_first_child():
             self.list.remove(self.list.get_first_child())
@@ -191,7 +193,7 @@ class DirectChoices(Gtk.ScrolledWindow):
     def get_selected(self):
         return self.selected
 
-    def set_selected(self, index):
+    def set_selected(self, index) -> None:
         for i, check in enumerate(self.rows):
             check.set_opacity(1 if i == index else 0)
         self.list.select_row(self.list.get_row_at_index(index) if index < len(self.rows) else None)
@@ -202,7 +204,7 @@ class DirectChoices(Gtk.ScrolledWindow):
 class VersionChooser(Gtk.MenuButton):
     """Choose installed translations for one reading pane through the existing tab/session state."""
 
-    def __init__(self, owner, comparison=False):
+    def __init__(self, owner, comparison: bool = False) -> None:
         super().__init__(tooltip_text=tr("Version"))
         self.set_can_shrink(True)
         self.owner = owner
@@ -248,7 +250,7 @@ class VersionChooser(Gtk.MenuButton):
         owner._reading_popovers.append(self.popover)
         self.connect("notify::active", lambda *_: self.sync())
 
-    def fit_popup(self):
+    def fit_popup(self) -> None:
         fit_translation_choices(self.popover, self.choices, self.owner)
 
     def sync(self):
@@ -314,7 +316,7 @@ class VersionChooser(Gtk.MenuButton):
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr("Version") + ": " + full])
         self.choices.update_property([Gtk.AccessibleProperty.LABEL], [tr("Version")])
 
-    def selected(self, widget, *_):
+    def selected(self, widget, *_: object) -> None:
         """Apply an explicit pane choice and restore selector state when switching fails."""
         if self._syncing or widget.get_selected() >= len(self.names):
             return

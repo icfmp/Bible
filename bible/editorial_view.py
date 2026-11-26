@@ -1,5 +1,7 @@
 """Lazy, read-only source notes and introductions; no timers or personal data."""
 
+from __future__ import annotations
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -30,7 +32,7 @@ def introduction_text(root):
     """Retain block breaks, without inserting spaces inside inline words."""
     parts = []
 
-    def visit(node):
+    def visit(node) -> None:
         name = tag(node)
         block = name in ("div", "p", "title", "l", "item", "table", "row")
         if block and parts and not parts[-1].endswith("\n"):
@@ -54,7 +56,7 @@ def introduction_text(root):
     return re.sub(r"\n(?:[ \t\r]*\n)+", "\n\n", "".join(parts)).strip()
 
 
-def fill_introduction(view, root):
+def fill_introduction(view, root) -> None:
     """Apply native source styles; GTK marks preserve offsets during whitespace cleanup."""
     buffer = view.get_buffer()
     buffer.set_text("")
@@ -71,11 +73,11 @@ def fill_introduction(view, root):
         if not buffer.get_tag_table().lookup(name):
             buffer.create_tag(name, **properties)
 
-    def append(text):
+    def append(text) -> None:
         if text:
             buffer.insert(buffer.get_end_iter(), text)
 
-    def visit(node):
+    def visit(node) -> None:
         name = tag(node)
         block = name in ("div", "p", "title", "l", "item", "table", "row")
         end = buffer.get_end_iter()

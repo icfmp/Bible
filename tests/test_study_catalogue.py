@@ -1,5 +1,7 @@
 """Checked resource revisions, atomic updates and independent vocabulary delivery."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 from pathlib import Path
 import hashlib
@@ -64,7 +66,7 @@ def archive(path, kind, generation, rows):
 
 
 class StudyCatalogueTests(unittest.TestCase):
-    def test_queued_study_revision_change_is_rejected_before_resource_transfer(self):
+    def test_queued_study_revision_change_is_rejected_before_resource_transfer(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             old = archive(root / "old.zip", "references", "2026-10-19", "John.1.5\tGen.1.3\t1\n")
@@ -84,7 +86,7 @@ class StudyCatalogueTests(unittest.TestCase):
             self.assertEqual(store.path.read_bytes(), original)
 
     def transport(self, payloads, called):
-        def receive(url, output, progress=lambda *_: None, limit=None, **_):
+        def receive(url, output, progress=lambda *_: None, limit=None, **_: object) -> None:
             called.append(url)
             data = payloads[url]
             if isinstance(data, BaseException):
@@ -95,7 +97,7 @@ class StudyCatalogueTests(unittest.TestCase):
 
         return patch("bible.library.download", side_effect=receive)
 
-    def test_malformed_catalogue_is_rejected_without_replacing_known_metadata(self):
+    def test_malformed_catalogue_is_rejected_without_replacing_known_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = StudyCatalogue(directory)
             good = BUNDLED.read_bytes()
@@ -121,7 +123,9 @@ class StudyCatalogueTests(unittest.TestCase):
                 self.assertEqual(store.path.read_bytes(), good)
             self.assertTrue(store.load())
 
-    def test_compatible_new_generation_updates_data_and_bad_payload_keeps_working_index(self):
+    def test_compatible_new_generation_updates_data_and_bad_payload_keeps_working_index(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             old = archive(root / "old.zip", "references", "2026-10-19", "John.1.5\tGen.1.3\t1\n")
@@ -160,7 +164,9 @@ class StudyCatalogueTests(unittest.TestCase):
             self.assertEqual(sentinel.read_bytes(), b"UNCHANGED PERSONAL DATA")
             self.assertEqual(ReferenceData(store.root).query(["John.1.5"])[0].start, "Isa.9.2")
 
-    def test_vocabulary_update_keeps_index_bytes_and_rejects_malformed_names_atomically(self):
+    def test_vocabulary_update_keeps_index_bytes_and_rejects_malformed_names_atomically(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             data = archive(
@@ -211,7 +217,7 @@ class StudyCatalogueTests(unittest.TestCase):
             self.assertEqual(store.path.read_bytes(), original)
             self.assertEqual(TopicData(store.root).query("forgiveness")[0].start, "John.3.16")
 
-    def test_vocabulary_only_publication_retains_both_index_revisions(self):
+    def test_vocabulary_only_publication_retains_both_index_revisions(self) -> None:
         from tools.study_resource_updates import prepare
 
         with tempfile.TemporaryDirectory() as directory:

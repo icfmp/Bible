@@ -1,9 +1,11 @@
 """Shared native passage card for reference and theme results."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango
 
 
-def passage_card(*, compound=False):
+def passage_card(*, compound: bool = False):
     # Cards with embedded links need a native composite instead of nesting
     # competing interactive descendants inside a GtkButton.
     """Build the shared native reference/excerpt card, optionally leaving actions to a compound container."""
@@ -41,7 +43,7 @@ def passage_card(*, compound=False):
     return button
 
 
-def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()):
+def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()) -> None:
     """Independent native controls on one shared, full-width card surface."""
     content = card._card_content
     header = content.get_first_child()
@@ -68,7 +70,7 @@ def bind_card_actions(card, activate, *, secondary=None, label="", ignore=()):
         row.append(arrow)
     click = Gtk.GestureClick(button=1)
 
-    def clicked(_, count, x, y):
+    def clicked(_: object, count, x, y) -> None:
         if count != 1:
             return
         target = card.pick(x, y, Gtk.PickFlags.DEFAULT)

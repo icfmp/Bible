@@ -5,6 +5,8 @@ only verification.json (hashes/statistics), never the generated source corpus.
 Uses the independent DOM/readback oracle from PR #59; requires research lxml.
 """
 
+from __future__ import annotations
+
 import argparse
 from copy import deepcopy
 import hashlib
@@ -21,7 +23,7 @@ from .semantic_osis import NS
 from .yves_source import archive_chapters, read_edition, to_osis
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path)
     parser.add_argument("--metadata", type=Path, required=True)

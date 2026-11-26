@@ -1,5 +1,7 @@
 """Repeated UI metadata reads reuse immutable attribution without stale sources."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import tempfile
@@ -10,7 +12,9 @@ from bible.library import Library, config, resource_from_section
 
 
 class LibraryMetadataTests(unittest.TestCase):
-    def test_only_history_for_the_exact_declared_version_is_presented_without_translation(self):
+    def test_only_history_for_the_exact_declared_version_is_presented_without_translation(
+        self,
+    ) -> None:
         from bible.resource_details import details
 
         value = resource_from_section(
@@ -31,7 +35,7 @@ class LibraryMetadataTests(unittest.TestCase):
         )
         self.assertEqual(missing.release_notes, "")
 
-    def test_public_codes_come_from_provider_metadata_and_not_module_ids(self):
+    def test_public_codes_come_from_provider_metadata_and_not_module_ids(self) -> None:
         from dataclasses import replace
         from bible.providers import PROVIDERS
 
@@ -50,7 +54,7 @@ class LibraryMetadataTests(unittest.TestCase):
         for invalid in ("a\nb", "x" * 41):
             self.assertEqual(replace(resource, abbreviation=invalid).public_code, "")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.module = self.root / "Test"
         self.module.mkdir()
@@ -62,7 +66,9 @@ class LibraryMetadataTests(unittest.TestCase):
         )
         self.library = Library(self.root)
 
-    def test_repeated_reads_reuse_parsing_but_changed_terms_and_source_are_revalidated(self):
+    def test_repeated_reads_reuse_parsing_but_changed_terms_and_source_are_revalidated(
+        self,
+    ) -> None:
         with patch("bible.library.config", wraps=config) as parse:
             for _ in range(20):
                 self.assertEqual(self.library.installed("bible"), ["Test"])
@@ -87,7 +93,9 @@ class LibraryMetadataTests(unittest.TestCase):
         provenance.unlink()
         self.assertEqual(self.library.resource("Test").source, "CrossWire")
 
-    def test_replacement_with_same_size_and_mtime_and_removal_do_not_return_stale_attribution(self):
+    def test_replacement_with_same_size_and_mtime_and_removal_do_not_return_stale_attribution(
+        self,
+    ) -> None:
         self.library.resource("Test")
         before = self.configuration.stat()
         replacement = self.configuration.with_suffix(".new")

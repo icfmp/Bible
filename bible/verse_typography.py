@@ -1,5 +1,7 @@
 """Shared verse-marker geometry; display-only tags never alter source words."""
 
+from __future__ import annotations
+
 import re
 import unicodedata
 from gi.repository import Pango, GLib
@@ -56,7 +58,7 @@ def number_rise(context, preferences):
     return int(context.get_metrics(font, context.get_language()).get_ascent() * 0.22)
 
 
-def configure(tag, view, preferences, palette="white"):
+def configure(tag, view, preferences, palette="white") -> None:
     tag.props.scale = NUMBER_SCALE
     tag.props.rise = number_rise(view.get_pango_context(), preferences)
     tag.props.foreground = NUMBER_COLORS[palette]

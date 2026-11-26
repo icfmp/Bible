@@ -1,5 +1,7 @@
 """Rendering is read-only; the shared editor retains record identity and drafts."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class PassageNoteCardTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         directory = self.enterContext(tempfile.TemporaryDirectory())
@@ -50,14 +52,14 @@ class PassageNoteCardTests(unittest.TestCase):
         self.w.study.notes.refresh(force=True)
         spin()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if self.w.note_editor and not self.w.note_editor.closed:
             self.w.note_editor._discard = True
             self.w.note_editor.close()
         self.w.close()
 
-    def test_unified_independent_cards_bounded_preview_and_no_render_writes(self):
+    def test_unified_independent_cards_bounded_preview_and_no_render_writes(self) -> None:
         panel = self.w.study.notes
         before = self.w.notes_store.all()
         marks = dict(self.w.highlights.entries)
@@ -125,7 +127,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(self.w.notes_store.all(), before)
         self.assertEqual(self.w.highlights.entries, marks)
 
-    def test_shared_popup_keeps_document_context_and_failed_close_retains_the_draft(self):
+    def test_shared_popup_keeps_document_context_and_failed_close_retains_the_draft(self) -> None:
         from bible.notes_window import buffer_text
 
         panel = self.w.study.notes
@@ -172,7 +174,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(saved.labels, ("Draft", "Keep"))
         self.assertEqual(self.w.highlights.entries[("KJV", "Acts.1.22")]["color"], "green")
 
-    def test_switch_note_prompt_cancel_and_discard_do_not_lose_current_draft(self):
+    def test_switch_note_prompt_cancel_and_discard_do_not_lose_current_draft(self) -> None:
         panel = self.w.study.notes
         first = panel.open_note(self.note)
         first.body.get_buffer().set_text("Keep me until a deliberate decision")
@@ -195,7 +197,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(panel.editor.note.id, self.other.id)
         self.assertEqual(self.w.notes_store.get(self.note.id).body, self.note.body)
 
-    def test_unavailable_original_resource_keeps_note_visible_and_editable(self):
+    def test_unavailable_original_resource_keeps_note_visible_and_editable(self) -> None:
         tab = self.w.active_tab
         tab.reader = None
         panel = self.w.study.notes
@@ -209,7 +211,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(editor.note.id, self.note.id)
         self.assertEqual(editor.context["origin_translation"], "Test")
 
-    def test_empty_draft_save_failure_and_empty_preview_do_not_change_storage(self):
+    def test_empty_draft_save_failure_and_empty_preview_do_not_change_storage(self) -> None:
         from dataclasses import replace
         from bible.annotation_card import AnnotationPreview
 
@@ -225,7 +227,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertTrue(preview.get_text())
         self.assertEqual(self.w.notes_store.all(), before)
 
-    def test_popup_coalesces_text_labels_links_and_flushes_immediate_close(self):
+    def test_popup_coalesces_text_labels_links_and_flushes_immediate_close(self) -> None:
         from bible.notes import NoteStore
         from bible.notes_window import buffer_text
         from bible.ui import Gtk
@@ -262,7 +264,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(buffer_text(reopened.body), saved.body)
         self.assertEqual(reopened.note.id, self.note.id)
 
-    def test_confirmed_delete_cancels_pending_autosave_without_resurrection(self):
+    def test_confirmed_delete_cancels_pending_autosave_without_resurrection(self) -> None:
         editor = self.w.study.notes.open_note(self.note)
         spin()
         marks = dict(self.w.highlights.entries)

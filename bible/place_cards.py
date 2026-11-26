@@ -1,5 +1,7 @@
 """On-demand native place window, shared previews and contextual map."""
 
+from __future__ import annotations
+
 from .metadata_workers import MetadataExecutor
 from gi.repository import Adw, Gtk, GLib, Gio, GObject, Pango
 from .i18n import tr
@@ -22,7 +24,7 @@ STATUS = {
 class PlaceItem(GObject.Object):
     """A native list-model wrapper retaining one actual place or reference payload."""
 
-    def __init__(self, payload):
+    def __init__(self, payload) -> None:
         super().__init__()
         self.payload = payload
 
@@ -30,7 +32,7 @@ class PlaceItem(GObject.Object):
 class PlaceView(Adw.Bin):
     """Present recorded place evidence and local reference previews with generation-guarded worker results."""
 
-    def __init__(self, owner, context=None, host=None):
+    def __init__(self, owner, context=None, host=None) -> None:
         super().__init__()
         self.host = host
         self.add_css_class(owner.reading_style.scope + "-window")
@@ -113,18 +115,18 @@ class PlaceView(Adw.Bin):
         self.set_child(box)
         self.refresh()
 
-    def close(self):
+    def close(self) -> None:
         if self.host:
             self.host.close()
         else:
             self.on_closed()
 
-    def stop_map(self):
+    def stop_map(self) -> None:
         if self.map_widget:
             self.map_widget.stop()
             self.map_widget = None
 
-    def on_closed(self, *_):
+    def on_closed(self, *_: object):
         if self.closed:
             return False
         self.stop_map()
@@ -133,7 +135,7 @@ class PlaceView(Adw.Bin):
         self.executor.shutdown(wait=False, cancel_futures=True)
         return False
 
-    def show_list(self):
+    def show_list(self) -> None:
         """Stop the detail map and invalidate pending details before restoring the passage place list."""
         self.stop_map()
         self.generation += 1
@@ -156,12 +158,12 @@ class PlaceView(Adw.Bin):
             )
         self.passage_context.set_visible(self.host is None)
 
-    def message(self, value, download=False):
+    def message(self, value, download: bool = False) -> None:
         self.status.set_text(value)
         self.status.set_tooltip_text(None)
         self.download.set_visible(download)
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Query places for verified source references off GTK and discard stale or closed-view completions."""
         self.show_list()
         self.model.remove_all()
@@ -206,7 +208,7 @@ class PlaceView(Adw.Bin):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def row_setup(self, _, item):
+    def row_setup(self, _: object, item) -> None:
         button = Gtk.Button()
         button.add_css_class("flat")
         content = Gtk.Box(
@@ -222,7 +224,7 @@ class PlaceView(Adw.Bin):
         button.connect("clicked", lambda b: self.open_place(b._place))
         item.set_child(button)
 
-    def row_bind(self, _, item):
+    def row_bind(self, _: object, item) -> None:
         button = item.get_child()
         place = item.get_item().payload
         button._place = place
@@ -233,14 +235,14 @@ class PlaceView(Adw.Bin):
             tr("Related to {count} selected verses.").format(count=place["source_verse_count"])
         )
 
-    def open_library(self, *_):
+    def open_library(self, *_: object) -> None:
         from .study_resources import PLACE_RESOURCE_ID
 
         self.close()
         library = self.owner.open_library("study")
         library.reveal_study_resource(PLACE_RESOURCE_ID)
 
-    def label(self, text, *, caption=False):
+    def label(self, text, *, caption: bool = False):
         label = Gtk.Label(
             label=text,
             xalign=0,
@@ -254,7 +256,7 @@ class PlaceView(Adw.Bin):
             label.add_css_class("dim-label")
         return label
 
-    def open_place(self, place):
+    def open_place(self, place) -> None:
         """Present supplied candidate locations, evidence and references without inferring missing coordinates."""
         self.stop_map()
         self.generation += 1
@@ -427,7 +429,7 @@ class PlaceView(Adw.Bin):
         )
         header = Adw.Clamp(maximum_size=700, child=card)
 
-        def bind(_, item):
+        def bind(_: object, item) -> None:
             ref = item.get_item().payload
             if ref is None:
                 item.set_child(header)
@@ -488,7 +490,7 @@ class PlaceView(Adw.Bin):
             }.get(candidate.get("modifier"), "")
         )
 
-    def reference_setup(self, _, item):
+    def reference_setup(self, _: object, item) -> None:
         item.set_child(self.reference_button())
 
     def reference_button(self):
@@ -499,10 +501,10 @@ class PlaceView(Adw.Bin):
         button.connect("clicked", self.preview_reference)
         return button
 
-    def reference_bind(self, _, item):
+    def reference_bind(self, _: object, item) -> None:
         self.bind_reference(item.get_child(), item.get_item().payload)
 
-    def bind_reference(self, button, ref):
+    def bind_reference(self, button, ref) -> None:
         """Reuse local excerpt caches while keeping unavailable or unverified alignment explicit."""
         button._reference = ref
         resource, reader, _, _ = self.context
@@ -526,7 +528,7 @@ class PlaceView(Adw.Bin):
         heading.set_text(title)
         excerpt.set_text(body)
 
-    def preview_reference(self, button):
+    def preview_reference(self, button) -> None:
         """Open the shared non-navigating local excerpt preview with source attribution and draft guard."""
         resource, reader, _, _ = self.context
         self.owner.reference_preview.show(
@@ -538,10 +540,10 @@ class PlaceView(Adw.Bin):
             navigation_guard=self.navigate,
         )
 
-    def navigate(self, action):
+    def navigate(self, action) -> None:
         """Close through the active note editor guard before performing explicit navigation."""
 
-        def run():
+        def run() -> None:
             self.close()
             action()
 

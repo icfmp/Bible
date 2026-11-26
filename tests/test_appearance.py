@@ -1,5 +1,7 @@
 """Reader settings and live native libadwaita style changes, without a portal."""
 
+from __future__ import annotations
+
 import ctypes
 import os
 from pathlib import Path
@@ -43,16 +45,16 @@ class SystemStyleOverride:
         self.set(dark=False, high=False)
         return self
 
-    def set(self, *, dark, high):
+    def set(self, *, dark, high) -> None:
         self.lib.adw_settings_override_color_scheme(self.settings, 1 if dark else 2)
         self.lib.adw_settings_override_high_contrast(self.settings, int(high))
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         self.lib.adw_settings_end_override(self.settings)
 
 
 class PaletteTests(unittest.TestCase):
-    def test_approved_defaults_missing_fields_and_saved_choices(self):
+    def test_approved_defaults_missing_fields_and_saved_choices(self) -> None:
         from bible.reading_style import SPACING
 
         with tempfile.TemporaryDirectory() as directory:
@@ -72,7 +74,7 @@ class PaletteTests(unittest.TestCase):
             self.assertEqual(Preferences(path).value.line_spacing, "very-airy")
             self.assertGreater(SPACING["very-airy"], SPACING["airy"])
 
-    def test_contrast_text_links_numbers_selection_all_palettes(self):
+    def test_contrast_text_links_numbers_selection_all_palettes(self) -> None:
         for name, (bg, fg, link, selection, selected) in PALETTES.items():
             with self.subTest(name=name):
                 self.assertGreaterEqual(contrast(bg, fg), 7)
@@ -81,7 +83,7 @@ class PaletteTests(unittest.TestCase):
                     contrast(selection, selected), 7 if name.startswith("contrast") else 4.5
                 )
 
-    def test_preferences_legacy_and_new_fields_survive(self):
+    def test_preferences_legacy_and_new_fields_survive(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "appearance.json"
             path.write_text('{"font":"Serif","size":24}')
@@ -104,7 +106,7 @@ class PaletteTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires real GTK under Xvfb")
 class AppearanceTests(unittest.TestCase):
-    def test_editorial_roles_follow_palette_without_replacing_the_buffer(self):
+    def test_editorial_roles_follow_palette_without_replacing_the_buffer(self) -> None:
         from bible.ui import Window, Library, Gtk
         from gi.repository import Gdk
         from bible.bible_render import render
@@ -166,7 +168,7 @@ class AppearanceTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_controls_stay_in_header_and_reference_field_is_visible(self):
+    def test_controls_stay_in_header_and_reference_field_is_visible(self) -> None:
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -198,13 +200,13 @@ class AppearanceTests(unittest.TestCase):
                 window.close()
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
 
-    def test_live_modes_contrast_and_restore_do_not_change_passage(self):
+    def test_live_modes_contrast_and_restore_do_not_change_passage(self) -> None:
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin
         from tests.fixtures import module_fixture
@@ -283,7 +285,7 @@ class AppearanceTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_controls_selection_big_text_shared_tabs_and_restart(self):
+    def test_controls_selection_big_text_shared_tabs_and_restart(self) -> None:
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -348,7 +350,7 @@ class AppearanceTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_reflow_preserves_visible_body_anchor_and_non_latin_glyphs(self):
+    def test_reflow_preserves_visible_body_anchor_and_non_latin_glyphs(self) -> None:
         from bible.ui import Window, Library
         from gi.repository import Pango
         from tests.test_ui import installed_fixture, spin

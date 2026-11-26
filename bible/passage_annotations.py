@@ -1,5 +1,7 @@
 """Map annotation identity to the current reader, without migrating annotations."""
 
+from __future__ import annotations
+
 from collections import OrderedDict
 import weakref
 from .reference_resolution import resolve
@@ -9,7 +11,7 @@ from .notes import parts as parts
 class PassageAnnotations:
     """Cache verified display projections separately from persisted annotation identity."""
 
-    def __init__(self, library=None):
+    def __init__(self, library=None) -> None:
         self.cache = OrderedDict()
         self._reader_caches = weakref.WeakKeyDictionary()
         self._reader = None
@@ -17,7 +19,7 @@ class PassageAnnotations:
         self._notes_token = None
         self._notes_snapshot = ()
 
-    def clear(self):
+    def clear(self) -> None:
         """Release cached readers, projections and note snapshots without deleting annotations."""
         self.cache.clear()
         self._reader_caches.clear()

@@ -1,5 +1,7 @@
 """Plain-data Library preparation shared across close/reopen, without GTK/SWORD."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, replace
 from threading import RLock
 import time
@@ -41,7 +43,7 @@ class CatalogueSession:
     the session prevents later worker results from becoming current snapshots.
     """
 
-    def __init__(self, library):
+    def __init__(self, library) -> None:
         self.library = library
         self.cache = CatalogueCache(library.root.parent / "catalogue-cache")
         self.study = StudyResources(library.root.parent / "study-data")
@@ -78,7 +80,7 @@ class CatalogueSession:
         future.add_done_callback(self.preparation_failed)
         return future
 
-    def preparation_failed(self, future):
+    def preparation_failed(self, future) -> None:
         """Publish a recoverable preparation error to live subscribers without discarding known state."""
         if future.cancelled():
             return
@@ -102,7 +104,7 @@ class CatalogueSession:
         for callback in listeners:
             callback(snapshot)
 
-    def subscribe(self, callback):
+    def subscribe(self, callback) -> None:
         reference = WeakMethod(callback)
         with self.lock:
             self.listeners.append(reference)
@@ -110,11 +112,11 @@ class CatalogueSession:
         if snapshot:
             callback(snapshot)
 
-    def unsubscribe(self, callback):
+    def unsubscribe(self, callback) -> None:
         with self.lock:
             self.listeners = [r for r in self.listeners if r() is not None and r() != callback]
 
-    def scan_installed(self):
+    def scan_installed(self) -> None:
         """Refresh resource/study inventories and record per-resource validation failures."""
         start = time.monotonic()
         installed = {}
@@ -140,7 +142,7 @@ class CatalogueSession:
             if errors:
                 self.metrics["installed_metadata_errors"] = errors
 
-    def bootstrap(self):
+    def bootstrap(self) -> None:
         """Load saved metadata/languages and installed inventory without a provider network refresh."""
         start = time.monotonic()
         providers = {}
@@ -159,7 +161,7 @@ class CatalogueSession:
         self.scan_installed()
         self.publish()
 
-    def load_youversion_language(self, choice, force=False):
+    def load_youversion_language(self, choice, force: bool = False):
         """One language at a time; retain cached results, never acquire a Bible."""
         from .languages import canonical_language
         from .providers import YOUVERSION
@@ -185,7 +187,7 @@ class CatalogueSession:
             self._youversion_choice = key
             self.youversion_loading = True
 
-        def work():
+        def work() -> None:
             from .youversion_catalogue import languages, editions, tags_for_language
 
             root = self.cache.root / "youversion-languages"
@@ -239,7 +241,7 @@ class CatalogueSession:
             if self.closed or self.language_future:
                 return self.language_future
 
-            def prepare():
+            def prepare() -> None:
                 self.publish()
 
             self.language_future = self.schedule(prepare)
@@ -248,7 +250,7 @@ class CatalogueSession:
     def reload_installed(self):
         """Coalesce an asynchronous inventory scan on the shared preparation worker."""
 
-        def work():
+        def work() -> None:
             self.scan_installed()
             self.publish()
 
@@ -263,11 +265,11 @@ class CatalogueSession:
     def refresh_study(self):
         """Refresh only checked resource metadata; never fetch a dataset here."""
 
-        def finish():
+        def finish() -> None:
             self.scan_installed()
             self.publish()
 
-        def work():
+        def work() -> None:
             try:
                 self.bootstrap_future.result()
                 self.study.catalogue.refresh()
@@ -308,10 +310,10 @@ class CatalogueSession:
             self.refresh_future = self.network.submit(self.fetch, fetch, force, tuple(providers))
             return self.refresh_future
 
-    def fetch(self, fetch, force, providers):
+    def fetch(self, fetch, force, providers) -> None:
         """Merge incremental provider results without replacing unloaded YouVersion language inventories."""
 
-        def provider_ready(provider, items, error, timings):
+        def provider_ready(provider, items, error, timings) -> None:
             records = timings.get("source_languages", {}) if provider.id == "youversion" else {}
             if records:
                 from .youversion_catalogue import remember
@@ -402,7 +404,7 @@ class CatalogueSession:
                 if not self.closed:
                     self.schedule(self.publish)
 
-    def publish(self, revision=None):
+    def publish(self, revision=None) -> None:
         """Build a current plain-data snapshot, rejecting stale revisions and retaining offline source context."""
         with self.lock:
             if self.closed or revision is not None and revision != self.revision:
@@ -496,7 +498,7 @@ class CatalogueSession:
         for callback in listeners:
             callback(snapshot)
 
-    def close(self):
+    def close(self) -> None:
         with self.lock:
             self.closed = True
             self.listeners = []

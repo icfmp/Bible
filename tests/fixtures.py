@@ -1,10 +1,14 @@
 """Tiny real SWORD modules with sentinel text, never bundled application resources."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from tests.test_library import CONF
 
 
-def module_fixture(root, name, entries, versification="KJV", nt_only=False, commentary=False):
+def module_fixture(
+    root, name, entries, versification="KJV", nt_only: bool = False, commentary: bool = False
+) -> None:
     import Sword
 
     root = Path(root)

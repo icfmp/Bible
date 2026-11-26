@@ -1,5 +1,7 @@
 """Neutral reproductions of actual section inventories and introduction styles."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,7 +13,9 @@ from bible.youversion_worker import converted_chapters, NS
 
 
 class SectionTests(unittest.TestCase):
-    def test_explicit_reference_attribute_alias_preserves_target_and_rejects_conflicts(self):
+    def test_explicit_reference_attribute_alias_preserves_target_and_rejects_conflicts(
+        self,
+    ) -> None:
         ref = "GEN.1"
         edition = read_edition(metadata([ref]), VERSION)
         raw = decode_bytes(
@@ -30,7 +34,9 @@ class SectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Conflicting explicit source reference"):
             to_osis(parse_chapter(encode(invalid.encode()), ref, edition), edition)
 
-    def test_declared_introduction_with_chapter_wrapper_keeps_raw_content_and_semantics(self):
+    def test_declared_introduction_with_chapter_wrapper_keeps_raw_content_and_semantics(
+        self,
+    ) -> None:
         ref = "GEN.INTRO1"
         edition = read_edition(metadata([ref]), VERSION)
         original = chapter(
@@ -46,7 +52,7 @@ class SectionTests(unittest.TestCase):
         actual, _ = to_osis(parsed, edition)
         self.assertEqual(E.tostring(E.fromstring(actual)), E.tostring(E.fromstring(expected)))
 
-    def test_introduction_wrapper_still_requires_exact_identity_and_one_container(self):
+    def test_introduction_wrapper_still_requires_exact_identity_and_one_container(self) -> None:
         ref = "GEN.INTRO1"
         edition = read_edition(metadata([ref]), VERSION)
         raw = (
@@ -99,7 +105,7 @@ class SectionTests(unittest.TestCase):
                 )
         return archive, edition
 
-    def test_consecutive_sections_keep_all_explicit_verses_and_physical_receipts(self):
+    def test_consecutive_sections_keep_all_explicit_verses_and_physical_receipts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             archive, edition = self.sections(
                 Path(directory), ["ESG.1_1", "ESG.1_2", "ESG.2"], [1, 18, 1]
@@ -117,7 +123,7 @@ class SectionTests(unittest.TestCase):
                 ["EsthGr.1.1", "EsthGr.1.18"],
             )
 
-    def test_overlapping_sections_are_not_dropped_renumbered_or_installed(self):
+    def test_overlapping_sections_are_not_dropped_renumbered_or_installed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             archive, edition = self.sections(Path(directory), ["SIR.1", "SIR.1_1"], [1, 1])
             with self.assertRaisesRegex(
@@ -125,7 +131,7 @@ class SectionTests(unittest.TestCase):
             ):
                 list(converted_chapters(archive, edition))
 
-    def test_introduction_styles_and_deuterocanonical_note_text_survive(self):
+    def test_introduction_styles_and_deuterocanonical_note_text_survive(self) -> None:
         ref = "GEN.INTRO1"
         edition = read_edition(metadata([ref]), VERSION)
         raw = chapter(

@@ -4,6 +4,8 @@ Run only with a disposable profile. PNGs are unedited root-window captures,
 including real native popups. Works inside the installed Flatpak without PIL.
 """
 
+from __future__ import annotations
+
 import argparse
 import ctypes
 import inspect
@@ -23,7 +25,7 @@ from tools.check_alpha_ui import X11Input
 
 
 class Screen:
-    def __init__(self, native):
+    def __init__(self, native) -> None:
         self.n = native
         x = native.x11
         p = ctypes.c_void_p
@@ -117,7 +119,7 @@ class Screen:
             x.XDestroyImage(ptr)
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -160,10 +162,10 @@ def main():
         report["captures"].append(path.name)
         return result
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not w.active_tab._restoring_scroll, duration=0.3)
 
-    def menu(button, name):
+    def menu(button, name) -> None:
         button.popup()
         spin(duration=0.25)
         shot(name)
@@ -416,7 +418,7 @@ def main():
             geometry = v._geometry
             start_time = time.monotonic()
 
-            def sample(widget, clock):
+            def sample(widget: object, clock: object):
                 report["geometry"].append(
                     [
                         round(time.monotonic() - start_time, 3),

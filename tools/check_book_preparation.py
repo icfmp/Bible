@@ -5,6 +5,8 @@ Run from /tmp with /app/lib/bible-python before the checkout on PYTHONPATH for
 writes are performed. Output distinguishes source from installed-package code.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -15,7 +17,7 @@ import time
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--resource", default="FreSegond1910")

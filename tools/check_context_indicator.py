@@ -1,5 +1,7 @@
 """Real offline dotted commentary coverage; TEST profile only, no personal data."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +10,7 @@ from bible.ui import Application, Window, Library, Gtk
 from bible.reference_resolution import resolve
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("prefix")

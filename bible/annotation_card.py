@@ -1,5 +1,7 @@
 """Bounded native annotation previews using the existing inert Markdown renderer."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, Pango, GLib
 from .markdown import render
 from .citations import citations
@@ -20,7 +22,7 @@ def original_caption(owner, annotation):
         return resource.description if resource else tr("Original translation unavailable.")
 
 
-def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove=False):
+def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: bool = False) -> None:
     """One compact menu; context callbacks retain their navigation policy."""
     from .highlights import COLORS
 
@@ -39,7 +41,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove=Fals
         margin_bottom=8,
     )
 
-    def apply(color):
+    def apply(color) -> None:
         try:
             if (
                 owner.highlights.entries.get((snapshot["system"], snapshot["reference"]))
@@ -53,7 +55,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove=Fals
     for color in [*COLORS, None]:
         button = Gtk.Button(label=tr(COLORS[color][1] if color else "Remove highlight"))
 
-        def choose(_, value=color):
+        def choose(_: object, value=color) -> None:
             popover.popdown()
             if value is None and confirm_remove:
                 from .notes_window import message
@@ -73,7 +75,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove=Fals
     menu.set_popover(popover)
 
 
-def color_dot(menu, color):
+def color_dot(menu, color) -> None:
     dot = Gtk.Box(
         width_request=16, height_request=16, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER
     )
@@ -168,7 +170,7 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
     return card
 
 
-def release_card(card):
+def release_card(card) -> None:
     menu = getattr(card, "actions", None)
     if menu and menu.get_popover():
         menu.get_popover().popdown()
@@ -178,7 +180,7 @@ def release_card(card):
 class AnnotationPreview(Gtk.Label):
     """Present a bounded inert note excerpt and its original-offset citations without altering the saved body."""
 
-    def __init__(self, owner, note, open_note):
+    def __init__(self, owner, note, open_note) -> None:
         super().__init__(
             xalign=0,
             yalign=0,
@@ -230,7 +232,7 @@ class AnnotationPreview(Gtk.Label):
         click = Gtk.GestureClick(button=1)
         click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def pressed(gesture, count, x, y):
+        def pressed(gesture, count, x, y) -> None:
             self._link_activated = False
             if count == 1 and not self.over_citation(x, y):
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
@@ -258,7 +260,7 @@ class AnnotationPreview(Gtk.Label):
         offset = len(self.get_text().encode()[:index].decode())
         return any(c.begin <= offset < c.finish for c in self.citations)
 
-    def preview_citation(self, _, uri):
+    def preview_citation(self, _: object, uri):
         if not uri.startswith("bible-preview:"):
             return True
         try:

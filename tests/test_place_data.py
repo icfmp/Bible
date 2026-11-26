@@ -1,5 +1,7 @@
 """Place evidence, bounded/atomic indexing and map failure are independent of notes."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -71,7 +73,9 @@ def pins(paths):
 
 
 class PlaceDataTests(unittest.TestCase):
-    def test_supplied_relationships_candidate_identity_and_reopen_without_image_payloads(self):
+    def test_supplied_relationships_candidate_identity_and_reopen_without_image_payloads(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             files = inputs(root)
@@ -91,7 +95,7 @@ class PlaceDataTests(unittest.TestCase):
                 reopened.coastlines((28, 25, 40, 40)), [[[30.0, 30.0], [32.0, 32.0], [36.0, 34.0]]]
             )
 
-    def test_unknown_high_score_and_competing_modern_locations_are_not_falsely_known(self):
+    def test_unknown_high_score_and_competing_modern_locations_are_not_falsely_known(self) -> None:
         known = dict(
             longitude=35.2, modern_id="m123456", path_score=500, vote_total=500, vote_tags={}
         )
@@ -109,7 +113,7 @@ class PlaceDataTests(unittest.TestCase):
 
     def test_failed_corrupt_and_interrupted_updates_retain_the_working_index_and_personal_file(
         self,
-    ):
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             files = inputs(root)
@@ -136,7 +140,7 @@ class PlaceDataTests(unittest.TestCase):
 
     def test_unsafe_address_coordinates_duplicate_records_and_geometry_cannot_replace_an_index(
         self,
-    ):
+    ) -> None:
         for corruption in ("coordinates", "reference", "duplicate", "geometry"):
             with self.subTest(corruption=corruption), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -164,7 +168,7 @@ class PlaceDataTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ReferenceDataError):
                 coordinates(value)
 
-    def test_unavailable_map_retains_place_metadata_and_is_repairable(self):
+    def test_unavailable_map_retains_place_metadata_and_is_repairable(self) -> None:
         from bible.study_resources import StudyResources, PLACE_RESOURCE_ID
 
         with tempfile.TemporaryDirectory() as directory:
@@ -181,7 +185,7 @@ class PlaceDataTests(unittest.TestCase):
             self.assertIn(PLACE_RESOURCE_ID, resources.installed())
             self.assertFalse(resources.current(PLACE_RESOURCE_ID))
 
-    def test_unsupported_personal_or_future_database_remains_untouched(self):
+    def test_unsupported_personal_or_future_database_remains_untouched(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = PlaceData(directory)
             store.path.write_bytes(b"NOT A PLACE DATABASE")

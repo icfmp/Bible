@@ -1,5 +1,7 @@
 """Synthetic acquisition failures/resume and source identity; no publisher text."""
 
+from __future__ import annotations
+
 import io
 import json
 from pathlib import Path
@@ -35,7 +37,7 @@ def edition_metadata(identifier=21):
 
 
 class Response(io.BytesIO):
-    def __init__(self, body, url, status=200, headers=None):
+    def __init__(self, body, url, status=200, headers=None) -> None:
         super().__init__(body)
         self.url = url
         self.status = status
@@ -43,7 +45,7 @@ class Response(io.BytesIO):
 
 
 class AcquisitionTests(unittest.TestCase):
-    def test_transfer_completion_is_reported_before_preparing_the_cached_package(self):
+    def test_transfer_completion_is_reported_before_preparing_the_cached_package(self) -> None:
         import hashlib
 
         body = b"COMPLETE ARCHIVE TEST BYTES"
@@ -72,11 +74,11 @@ class AcquisitionTests(unittest.TestCase):
         self.assertLess(events.index("progress-complete"), events.index("downloaded"))
         self.assertLess(events.index("downloaded"), events.index("verified-cache"))
 
-    def test_cancellation_after_transfer_does_not_claim_a_complete_package(self):
+    def test_cancellation_after_transfer_does_not_claim_a_complete_package(self) -> None:
         cancel = [False]
         events = []
 
-        def downloaded():
+        def downloaded() -> None:
             events.append("preparing")
             cancel[0] = True
 
@@ -97,7 +99,7 @@ class AcquisitionTests(unittest.TestCase):
             self.assertTrue(receipts)
             self.assertFalse(any(r.get("complete") for r in receipts))
 
-    def test_public_code_uses_local_metadata_without_an_internal_fallback(self):
+    def test_public_code_uses_local_metadata_without_an_internal_fallback(self) -> None:
         data = edition_metadata()
         data.pop("abbreviation", None)
         data.pop("local_abbreviation", None)
@@ -109,7 +111,7 @@ class AcquisitionTests(unittest.TestCase):
         data["local_abbreviation"] = "YV21"
         self.assertEqual(resource_from_metadata(data).public_code, "")
 
-    def test_one_metadata_refusal_keeps_other_editions_and_the_cached_record(self):
+    def test_one_metadata_refusal_keeps_other_editions_and_the_cached_record(self) -> None:
         from bible.catalogue_cache import CatalogueCache
         from bible.library import catalogues
 
@@ -118,7 +120,7 @@ class AcquisitionTests(unittest.TestCase):
             cache = CatalogueCache(directory)
             cache.write(YOUVERSION, [old])
 
-            def fetch(url, out, **options):
+            def fetch(url, out: object, **options: object) -> None:
                 raise urllib.error.HTTPError(url, 403, "Refused", {}, None)
 
             with patch("bible.library.download", side_effect=fetch):
@@ -128,7 +130,7 @@ class AcquisitionTests(unittest.TestCase):
             self.assertIn(YOUVERSION.name, result.errors)
             self.assertEqual(len(cache.read(YOUVERSION)[0]), 1)
 
-    def test_cancellation_terminates_the_isolated_conversion_process(self):
+    def test_cancellation_terminates_the_isolated_conversion_process(self) -> None:
         import subprocess
         import sys
         import time
@@ -137,7 +139,7 @@ class AcquisitionTests(unittest.TestCase):
         processes = []
         cancel = [False]
 
-        def spawn(command, **options):
+        def spawn(command: object, **options):
             self.assertTrue(options["start_new_session"])
             child = actual_popen(
                 [
@@ -151,7 +153,7 @@ class AcquisitionTests(unittest.TestCase):
             processes.append(child)
             return child
 
-        def phase(*args):
+        def phase(*args: object) -> None:
             cancel[0] = True
 
         start = time.monotonic()
@@ -167,7 +169,7 @@ class AcquisitionTests(unittest.TestCase):
         self.assertLess(time.monotonic() - start, 3)
         self.assertLess(processes[0].returncode, 0)
 
-    def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
+    def test_catalogue_is_metadata_only_and_exact_conditions_survive(self) -> None:
         from bible.youversion_editions import CONFIGURATION_URL, VERSIONS_URL
         from bible.youversion_catalogue import resource_from_listing as resource_from_listing
 
@@ -187,7 +189,7 @@ class AcquisitionTests(unittest.TestCase):
             "url": "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/900007-7.zip",
         }
 
-        def fetch(url, out, **options):
+        def fetch(url, out, **options: object) -> None:
             requests.append(url)
             value = (
                 {"default_versions": [language]}
@@ -213,7 +215,7 @@ class AcquisitionTests(unittest.TestCase):
             acknowledgement(resource), acknowledgement(resource_from_metadata(changed))
         )
 
-    def test_unknown_numbering_and_no_returned_package(self):
+    def test_unknown_numbering_and_no_returned_package(self) -> None:
         data = edition_metadata()
         data["vrs"] = "unknown"
         with self.assertRaises(ValueError):
@@ -222,12 +224,12 @@ class AcquisitionTests(unittest.TestCase):
         data["offline"] = None
         self.assertFalse(resource_from_metadata(data).installable)
 
-    def test_retained_complete_download_never_requests_redownload(self):
+    def test_retained_complete_download_never_requests_redownload(self) -> None:
         url = "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip"
         with tempfile.TemporaryDirectory() as directory:
             calls = []
 
-            def opener(request, **kw):
+            def opener(request, **kw: object):
                 calls.append(request)
                 return Response(b"SYNTHETIC ZIP BYTES", url)
 
@@ -246,7 +248,7 @@ class AcquisitionTests(unittest.TestCase):
             )
             self.assertEqual(len(calls), 1)
 
-    def test_damaged_completed_cache_restarts_without_an_invalid_eof_range(self):
+    def test_damaged_completed_cache_restarts_without_an_invalid_eof_range(self) -> None:
         url = "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip"
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory)
@@ -259,7 +261,7 @@ class AcquisitionTests(unittest.TestCase):
             )
             path.write_bytes(b"DAMAGED!")
 
-            def restarted(request, **options):
+            def restarted(request, **options: object):
                 self.assertIsNone(request.get_header("Range"))
                 return Response(b"ORIGINAL", url)
 
@@ -270,13 +272,13 @@ class AcquisitionTests(unittest.TestCase):
                 b"ORIGINAL",
             )
 
-    def test_interrupted_transfer_resumes_with_validator_and_exact_range(self):
+    def test_interrupted_transfer_resumes_with_validator_and_exact_range(self) -> None:
         url = "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip"
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory)
 
             class Interrupted(Response):
-                def read1(self, size):
+                def read1(self, size: object):
                     if self.tell():
                         raise OSError("Interrupted connection")
                     return self.read(3)
@@ -290,7 +292,7 @@ class AcquisitionTests(unittest.TestCase):
                     opener=lambda *a, **k: Interrupted(b"abcdef", url),
                 )
 
-            def resumed(request, **kw):
+            def resumed(request, **kw: object):
                 self.assertEqual(request.get_header("Range"), "bytes=3-")
                 self.assertEqual(request.get_header("If-range"), '"test-1"')
                 return Response(
@@ -307,7 +309,7 @@ class AcquisitionTests(unittest.TestCase):
                 b"abcdef",
             )
 
-    def test_cancel_and_oversize_never_mark_download_complete(self):
+    def test_cancel_and_oversize_never_mark_download_complete(self) -> None:
         url = "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip"
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(OSError):
@@ -324,7 +326,7 @@ class AcquisitionTests(unittest.TestCase):
                 )
             self.assertFalse(list(Path(directory).glob("*.json")))
 
-    def test_redirect_cannot_move_to_http_or_another_host(self):
+    def test_redirect_cannot_move_to_http_or_another_host(self) -> None:
         request = urllib.request.Request("https://offline-bibles-cdn.youversionapi.com/source")
         for url in [
             "http://offline-bibles-cdn.youversionapi.com/source",
@@ -333,7 +335,7 @@ class AcquisitionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 SourceRedirect().redirect_request(request, None, 302, "", {}, url)
 
-    def test_authentication_refusal_is_not_retried_or_bypassed(self):
+    def test_authentication_refusal_is_not_retried_or_bypassed(self) -> None:
         url = "https://offline-bibles-cdn.youversionapi.com/bible/text/offline/21-7.zip"
         for code in (401, 403):
             with tempfile.TemporaryDirectory() as directory:
@@ -345,7 +347,7 @@ class AcquisitionTests(unittest.TestCase):
                         cached_download(url, Path(directory), lambda *x: None, lambda: False)
                     self.assertEqual(opened.call_count, 1)
 
-    def test_rate_limit_honours_retry_after_and_long_wait_is_reported(self):
+    def test_rate_limit_honours_retry_after_and_long_wait_is_reported(self) -> None:
         from bible.youversion_install import open_response
 
         request = urllib.request.Request("https://example.invalid/source")
@@ -361,7 +363,7 @@ class AcquisitionTests(unittest.TestCase):
                 open_response(opened, request, lambda: False)
             self.assertEqual(opened.call_count, 1)
 
-    def test_failed_conversion_does_not_register_or_modify_existing_data(self):
+    def test_failed_conversion_does_not_register_or_modify_existing_data(self) -> None:
         resource = resource_from_metadata(edition_metadata())
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -371,7 +373,7 @@ class AcquisitionTests(unittest.TestCase):
             original = root / "preferences.json"
             original.write_bytes(b"ORIGINAL SETTINGS")
 
-            def fetch(url, out, **kw):
+            def fetch(url: object, out, **kw: object) -> None:
                 out.write(resource.acquisition.encode())
 
             archive = root / "source.zip"
@@ -389,7 +391,7 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(original.read_bytes(), b"ORIGINAL SETTINGS")
             self.assertTrue(archive.exists())
 
-    def test_permission_and_changed_metadata_stop_before_acquisition(self):
+    def test_permission_and_changed_metadata_stop_before_acquisition(self) -> None:
         resource = resource_from_metadata(edition_metadata())
         with tempfile.TemporaryDirectory() as directory:
             library = Library(directory)
@@ -410,13 +412,15 @@ class AcquisitionTests(unittest.TestCase):
                     library.install(resource, permission=acknowledgement(resource))
                 acquired.assert_not_called()
 
-    def test_commit_is_atomic_provenance_is_offline_and_repeat_is_noop(self):
+    def test_commit_is_atomic_provenance_is_offline_and_repeat_is_noop(self) -> None:
         resource = resource_from_metadata(edition_metadata())
         with tempfile.TemporaryDirectory() as directory:
             library = Library(Path(directory) / "translations")
             events = []
 
-            def converted(archive, metadata, target, *args, **options):
+            def converted(
+                archive: object, metadata: object, target, *args: object, **options: object
+            ) -> None:
                 self.assertEqual(library.installed(), [])
                 (target / "mods.d").mkdir(parents=True)
                 (target / "mods.d/yv21.conf").write_text(
@@ -451,7 +455,7 @@ class AcquisitionTests(unittest.TestCase):
 
 
 class EditorialTests(unittest.TestCase):
-    def test_empty_declared_verse_and_unindexed_poetry_keep_distinct_identities(self):
+    def test_empty_declared_verse_and_unindexed_poetry_keep_distinct_identities(self) -> None:
         source = parse(
             '<root><l type="x-centered">HEADING</l><verse osisID="Ps.119.1" sID="Ps.119.1"/><note n="1">NOTE</note><verse eID="Ps.119.1"/></root>'
         )
@@ -462,14 +466,14 @@ class EditorialTests(unittest.TestCase):
         self.assertEqual(expected, project(native))
         self.assertEqual(expected[0], {"Ps.119.0": "HEADING", "Ps.119.1": ""})
 
-    def test_native_poetry_end_milestones_do_not_duplicate_source_roles(self):
+    def test_native_poetry_end_milestones_do_not_duplicate_source_roles(self) -> None:
         from bible.youversion_content import semantic_roles
 
         source = parse('<root><l level="1">SOURCE</l></root>')
         native = parse('<root><l level="1" sID="line1"/>SOURCE<l eID="line1" level="1"/></root>')
         self.assertEqual(semantic_roles(source), semantic_roles(native))
 
-    def test_native_fragments_notes_headings_and_inline_words(self):
+    def test_native_fragments_notes_headings_and_inline_words(self) -> None:
         root = parse(
             '<root><?source-unit John.1.1?><list><item>Premier <hi type="italic">mot</hi><?source-unit John.1.2?>suite<note n="1.2" osisRef="John.1.2" type="study">Note &amp; fin</note></item></list><title>Titre<note n="1.3">Note du titre</note></title></root>'
         )
@@ -481,7 +485,7 @@ class EditorialTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse('<!DOCTYPE root [<!ENTITY x "bad">]><root>&x;</root>')
 
-    def test_original_reference_data_is_reproducible_and_boundaries_are_explicit(self):
+    def test_original_reference_data_is_reproducible_and_boundaries_are_explicit(self) -> None:
         from tools.versification.original import build, ROOT
 
         data = build()
@@ -497,7 +501,9 @@ class EditorialTests(unittest.TestCase):
 
 
 class SourceReaderTests(unittest.TestCase):
-    def test_source_body_preserves_case_and_characters_without_native_display_transforms(self):
+    def test_source_body_preserves_case_and_characters_without_native_display_transforms(
+        self,
+    ) -> None:
         try:
             import Sword as Sword
         except ImportError:
@@ -544,7 +550,7 @@ def original_available():
 
 @unittest.skipUnless(original_available(), "Requires the packaged Original native system")
 class OriginalNativeTests(unittest.TestCase):
-    def test_publisher_indexes_preserve_source_bounds_without_guessing_alignment(self):
+    def test_publisher_indexes_preserve_source_bounds_without_guessing_alignment(self) -> None:
         import Sword
         from bible.versification_mapping import table, to_base
         from tools.versification.youversion import check
@@ -565,7 +571,7 @@ class OriginalNativeTests(unittest.TestCase):
         self.assertEqual(key.getOSISRef(), "Mark.10.53")
         self.assertEqual(key.popError(), "\x00")
 
-    def test_exact_native_bounds_verified_mapping_and_original_note_roundtrip(self):
+    def test_exact_native_bounds_verified_mapping_and_original_note_roundtrip(self) -> None:
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
         from bible.reference_resolution import resolve, VersificationMismatch

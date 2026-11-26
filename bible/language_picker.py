@@ -1,5 +1,7 @@
 """Searchable language picker: CLDR/ISO names, native names and exact source codes."""
 
+from __future__ import annotations
+
 from gi.repository import Gtk, GLib, Pango
 from .book_names import normalized
 from .languages import language_name, language_info, search_terms
@@ -9,7 +11,7 @@ from .i18n import tr
 class LanguagePicker(Gtk.MenuButton):
     """Present exact provider language codes with searchable localized/native labels."""
 
-    def __init__(self, changed):
+    def __init__(self, changed) -> None:
         super().__init__(label=tr("All languages"))
         self.changed = changed
         self.prepare_languages = None
@@ -65,7 +67,7 @@ class LanguagePicker(Gtk.MenuButton):
         )
         self.filter()
 
-    def setup_row(self, _, item):
+    def setup_row(self, _: object, item) -> None:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         item.divider = Gtk.Separator(margin_top=4, margin_bottom=4, visible=False)
         item.label = Gtk.Label(xalign=0, wrap=True, margin_top=8, margin_bottom=8)
@@ -73,7 +75,7 @@ class LanguagePicker(Gtk.MenuButton):
         box.append(item.label)
         item.set_child(box)
 
-    def bind_row(self, _, item):
+    def bind_row(self, _: object, item) -> None:
         self._bound_rows.add(item)
         text = item.get_item().get_string()
         item.label.set_text(text)
@@ -90,7 +92,7 @@ class LanguagePicker(Gtk.MenuButton):
         )
         item.label.update_property([Gtk.AccessibleProperty.DESCRIPTION], [group])
 
-    def set_codes(self, codes, prepared=None, *, priority=()):
+    def set_codes(self, codes, prepared=None, *, priority=()) -> None:
         """Replace available codes/prepared labels while retaining the selected code when possible."""
         if (
             codes == self.codes
@@ -109,16 +111,16 @@ class LanguagePicker(Gtk.MenuButton):
         self.set_label(self.name(self.codes[self.selected]))
         self.filter()
 
-    def cancel_pending(self):
+    def cancel_pending(self) -> None:
         self._model_generation += 1
 
-    def set_label(self, value):
+    def set_label(self, value) -> None:
         """Update the visible/accessibility caption while constraining nested native labels."""
         Gtk.MenuButton.set_label(self, value)
         self.set_tooltip_text(value)
         self.update_property([Gtk.AccessibleProperty.LABEL], [tr("Language") + ": " + value])
 
-        def bound(widget):
+        def bound(widget) -> None:
             if isinstance(widget, Gtk.Label):
                 widget.set_ellipsize(Pango.EllipsizeMode.END)
                 widget.set_max_width_chars(18)
@@ -135,13 +137,13 @@ class LanguagePicker(Gtk.MenuButton):
     def get_selected(self):
         return self.selected
 
-    def set_selected(self, index):
+    def set_selected(self, index) -> None:
         self.selected = index if 0 <= index < len(self.codes) else 0
         code = self.codes[self.selected]
         self.set_label(self.name(code))
         self.changed()
 
-    def filter(self, *_, force=False):
+    def filter(self, *_: object, force: bool = False) -> None:
         """Patch the filtered model in bounded GTK idle batches, invalidating superseded updates.
 
         Delay unqueried hidden-list population; preserve exact source codes even
@@ -232,7 +234,7 @@ class LanguagePicker(Gtk.MenuButton):
             + f" ({code})"
         )
 
-    def activate(self, _, index):
+    def activate(self, _: object, index) -> None:
         # During a bounded update, retained suffix rows may have old indexes.
         # Resolve the actual displayed row, never a future model position.
         code = self._label_codes.get(self.strings.get_string(index))

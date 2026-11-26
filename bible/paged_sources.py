@@ -1,5 +1,7 @@
 """Bounded, on-demand chapter/entry sources for the native paginated reader."""
 
+from __future__ import annotations
+
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from itertools import groupby
@@ -22,7 +24,7 @@ class BiblePages:
 
     kind = "bible"
 
-    def __init__(self, reader, resource):
+    def __init__(self, reader, resource) -> None:
         self.reader = reader
         self.resource = resource
 
@@ -245,14 +247,14 @@ class CommentaryPages:
 
     kind = "commentary"
 
-    def __init__(self, reader, resource):
+    def __init__(self, reader, resource) -> None:
         self.reader = reader
         self.resource = resource
 
     def key(self, reference):
         return self.reader.index.locate(reference)
 
-    def document(self, key, preferences):
+    def document(self, key, preferences: object):
         """Build one actual commentary section with separate UI-context and source style roles."""
         section = self.reader.index.sections[key]
         text = self.reader.index.text(key)
@@ -316,7 +318,7 @@ class PageAddress:
 class PagedStream:
     """Navigate a bounded on-demand cache of native page plans and canonical anchors."""
 
-    def __init__(self, widget, source, preferences):
+    def __init__(self, widget, source, preferences) -> None:
         self.widget = widget
         self.source = source
         self.preferences = preferences
@@ -343,7 +345,7 @@ class PagedStream:
         self.cache.move_to_end(key)
         return self.cache[key]
 
-    def configure(self, width, height, anchor, key):
+    def configure(self, width, height, anchor, key) -> None:
         self.width = max(20, width)
         self.height = max(20, height)
         self.cache.clear()

@@ -1,5 +1,7 @@
 """Capture #42/#43/#12 on an explicitly disposable real-resource TEST profile."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
@@ -8,7 +10,7 @@ from tools.check_alpha_ui import X11Input
 from bible.ui import Application, Window, Library, Gtk
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("prefix")

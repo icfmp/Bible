@@ -1,5 +1,7 @@
 """Compact EPUB-style reader settings; immediate, local and shared by tabs."""
 
+from __future__ import annotations
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -11,7 +13,7 @@ from .preferences import ReadingPreferences
 class AppearancePopover(Gtk.Popover):
     """Edit saved reading appearance through shared preferences without forcing interface font families."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__()
         self.owner = owner
         self._syncing = False
@@ -189,7 +191,7 @@ class AppearancePopover(Gtk.Popover):
         advanced_content.append(Gtk.Image(icon_name="go-next-symbolic"))
         advanced = Gtk.Button(child=advanced_content)
 
-        def open_settings(*_):
+        def open_settings(*_: object) -> None:
             self.popdown()
             from .application_surfaces import show_preferences
 
@@ -207,7 +209,7 @@ class AppearancePopover(Gtk.Popover):
             box.set_sensitive(False)
         self.set_child(scroll)
 
-        def shown(*_):
+        def shown(*_: object) -> None:
             anchor = self.get_parent()
             found, bounds = anchor.compute_bounds(owner)
             below = (
@@ -260,10 +262,10 @@ class AppearancePopover(Gtk.Popover):
         parent.append(row)
         return button
 
-    def step_size(self, delta):
+    def step_size(self, delta) -> None:
         self.update("size", max(12, min(64, self.owner.preferences.value.size + delta)))
 
-    def sync(self):
+    def sync(self) -> None:
         """Reflect current saved reading values while suppressing synthetic control-change writes."""
         self._syncing = True
         p = self.owner.preferences.value
@@ -293,7 +295,7 @@ class AppearancePopover(Gtk.Popover):
         if dialog and dialog.get_visible() and hasattr(dialog, "reading_settings"):
             dialog.reading_settings.sync()
 
-    def sync_system(self):
+    def sync_system(self) -> None:
         """Show effective high-contrast state and disable conflicting palette controls."""
         high = self.owner.reading_style.manager.get_high_contrast()
         self.system_status.set_text(
@@ -306,7 +308,7 @@ class AppearancePopover(Gtk.Popover):
         self.palette_rows["day_palette"].set_visible(not dark)
         self.palette_rows["night_palette"].set_visible(dark)
 
-    def reset(self):
+    def reset(self) -> None:
         """Explicitly restore reading defaults while preserving independent saved tab palettes."""
         if self._syncing:
             return
@@ -320,7 +322,7 @@ class AppearancePopover(Gtk.Popover):
             )
         self.persist()
 
-    def update(self, key, value, *, defer=False):
+    def update(self, key, value, *, defer: bool = False) -> None:
         """Update the requested reading field and its active family/palette dependencies before persistence."""
         if self._syncing:
             return
@@ -374,7 +376,7 @@ class AppearancePopover(Gtk.Popover):
             self.owner.apply_appearance(reflow=reflow)
         return False
 
-    def persist(self, reflow=True, *, defer=False):
+    def persist(self, reflow: bool = True, *, defer: bool = False) -> None:
         """Save reading preferences and coalesce optional reflow, retaining a visible persistence error."""
         try:
             self.owner.preferences.save()
