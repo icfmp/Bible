@@ -117,8 +117,9 @@ class DownloadQueue:
                         STEP_RESOURCE_ID,
                     ):
                         raise ValueError("Unknown study resource")
-                request.resource.id
-                request.key
+                # Both properties validate identities; their values need not be retained.
+                _ = request.resource.id
+                _ = request.key
                 if request.state != "failed":
                     request.state = "paused"
                 if self.find(request.resource.id):

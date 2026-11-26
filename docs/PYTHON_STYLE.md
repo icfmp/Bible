@@ -26,7 +26,11 @@ The configured scope is first-party Python in `bible`, `tools` and `tests`.
 Third-party/vendored sources, resource corpora, generated build outputs and
 virtual environments are excluded. Non-Python resource files are never formatted.
 The initial lint set checks syntax, useful Pyflakes errors, imports and module
-purpose docstrings. It deliberately omits blanket style rules, import sorting
+purpose docstrings. It also rejects mutable argument defaults, control flow that
+suppresses exceptions in `finally`, discarded expressions and unretained asyncio
+tasks. Property access that deliberately triggers identity validation should be
+explicit (`_ = resource.id`), rather than removed as supposedly unused work.
+It deliberately omits blanket style rules, import sorting
 and mandatory docstrings for every callback/test/trivial helper. Existing public
 exports must remain available; make genuine reexports explicit with `as` aliases.
 Imports used to probe native dependency availability need explained narrow

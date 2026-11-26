@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from bible.library import Library
+from bible.library import Library, Resource
 from bible.module_management import checked_modules
 from tests.test_module_lifecycle import package
 
@@ -24,8 +25,10 @@ class ModuleManagementTests(unittest.TestCase):
             ):
                 library.install(old)
 
-            def state(resources, errors={}):
-                return checked_modules(library, resources, errors)[old.id]["state"]
+            def state(resources: Sequence[Resource], errors: dict[str, str] | None = None) -> str:
+                return checked_modules(library, resources, errors if errors is not None else {})[
+                    old.id
+                ]["state"]
 
             self.assertEqual(state([new]), "available")
             self.assertEqual(state([old]), "current")

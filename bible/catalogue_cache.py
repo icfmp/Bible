@@ -65,7 +65,7 @@ class CatalogueCache:
                     )
                 ):
                     return None
-                resource.id  # Validate the provider-specific identity.
+                _ = resource.id  # Evaluate the provider-specific identity validator.
                 if resource.provider_id == "bible-resources":
                     from .curated_catalogue import package_record
 
