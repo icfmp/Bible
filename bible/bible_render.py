@@ -1,7 +1,7 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 
 from .paged_sources import BiblePages
-from .reading_style import SPACING, apply_direction
+from .reading_style import SPACING as SPACING, apply_direction
 from .reading_metrics import line_spacing, paragraph_space_size, EDITORIAL_GAP, HEADING_LINE_HEIGHT
 from .verse_typography import configure, NUMBER_COLORS
 from gi.repository import Gtk, Pango

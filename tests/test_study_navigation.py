@@ -142,9 +142,9 @@ class CommentaryRestoreTests(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class CommentaryRemovalTests(unittest.TestCase):
     def setUp(self):
-        from bible.ui import Application, Window, Library
+        from bible.ui import Application, Window as Window, Library
         from bible.application_settings import ApplicationSettings
-        from tests.test_ui import installed_fixture, spin
+        from tests.test_ui import installed_fixture, spin as spin
         from tests.test_commentary import commentary_fixture
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))

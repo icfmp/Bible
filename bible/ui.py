@@ -31,7 +31,7 @@ from .immersion import Immersion
 from .pagination import Anchor
 from .paged_sources import BibleBookPages, CommentaryPages
 from .highlights import HighlightStore, COLORS
-from .notes_window import NoteEditor, NotesWindow, NotesSpace
+from .notes_window import NoteEditor, NotesWindow as NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
 

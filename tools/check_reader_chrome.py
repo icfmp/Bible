@@ -1,6 +1,8 @@
 """Native reading/header evidence; requires a marked disposable research profile."""
 
-import argparse, inspect, json
+import argparse
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 

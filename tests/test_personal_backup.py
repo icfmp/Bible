@@ -1,6 +1,5 @@
 """Two-store annotation safety: whole-input validation and interrupted recovery."""
 
-from dataclasses import replace
 import json
 from pathlib import Path
 import tempfile

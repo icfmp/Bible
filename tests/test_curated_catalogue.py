@@ -1,6 +1,11 @@
 """Existing-provider consumption: metadata identity, native staging and cache safety."""
 
-import hashlib, io, json, tarfile, tempfile, unittest
+import hashlib
+import io
+import json
+import tarfile
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError

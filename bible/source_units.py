@@ -285,7 +285,8 @@ class AddressIndex:
 
     @classmethod
     def load(cls, root):
-        import hashlib, json
+        import hashlib
+        import json
         from pathlib import Path
 
         root = Path(root)

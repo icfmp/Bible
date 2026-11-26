@@ -216,7 +216,7 @@ class WindowTests(unittest.TestCase):
             window.close()
 
     def test_note_insets_and_search_placeholder_content_are_separate(self):
-        from bible.ui import Gtk
+        from bible.ui import Gtk as Gtk
         from bible.i18n import tr
         from bible.loading_cards import LoadingCards
 

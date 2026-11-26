@@ -13,7 +13,7 @@ import gi
 
 gi.require_version("Pango", "1.0")
 from gi.repository import Pango
-from .reading_metrics import SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
+from .reading_metrics import SPACING as SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
 from .preparation import checkpoint
 
 

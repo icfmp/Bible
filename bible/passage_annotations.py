@@ -3,7 +3,7 @@
 from collections import OrderedDict
 import weakref
 from .reference_resolution import resolve
-from .notes import parts
+from .notes import parts as parts
 
 
 class PassageAnnotations:

@@ -1,12 +1,12 @@
 """Read-only passage annotation cards opening the shared note popup."""
 
-from gi.repository import Gtk, Pango, GLib, Gdk
+from gi.repository import Gtk, Pango as Pango, GLib, Gdk
 from .i18n import tr
 from .highlights import COLORS
 from .notes import parts
-from .notes_window import passage_label, readable_date
+from .notes_window import passage_label, readable_date as readable_date
 from .passage_annotations import PassageAnnotations
-from .annotation_card import AnnotationPreview
+from .annotation_card import AnnotationPreview as AnnotationPreview
 
 
 class PassageNotes(Gtk.Box):

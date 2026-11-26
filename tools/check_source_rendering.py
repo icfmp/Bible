@@ -1,6 +1,9 @@
 """Real source/rendering evidence on an explicitly disposable research profile."""
 
-import argparse, hashlib, inspect, json, os
+import argparse
+import hashlib
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 

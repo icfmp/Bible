@@ -8,7 +8,6 @@ Diagnostic blur removal affects this process only, never product preferences.
 import argparse
 import cProfile
 import ctypes
-import gc
 import hashlib
 import inspect
 import json
@@ -54,7 +53,7 @@ def main():
     args = p.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
-    import_started = time.monotonic()
+    _import_started = time.monotonic()
     from bible.ui import Application, Window, Library, GLib, Gtk
     from tests.test_ui import spin
     from tools.check_alpha_ui import X11Input
@@ -222,7 +221,7 @@ def main():
         allocation_before = tracemalloc.take_snapshot()
         prof.enable()
     loop = GLib.MainLoop()
-    sid = GLib.timeout_add(50, beat)
+    _sid = GLib.timeout_add(50, beat)
     inputfile = args.output.with_suffix(".input.json")
     child = subprocess.Popen(
         [
@@ -397,7 +396,7 @@ def main():
         libc = ctypes.CDLL(None)
         libc.mallinfo2.restype = MallInfo
         report["native_malloc_end"] = {
-            name: getattr(value := libc.mallinfo2(), name) for name, _ in MallInfo._fields_
+            name: getattr(_value := libc.mallinfo2(), name) for name, _ in MallInfo._fields_
         }
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     print(

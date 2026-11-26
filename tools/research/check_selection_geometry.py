@@ -1,6 +1,9 @@
 """Native selection-bar bounds and dismissal, including physical HiDPI input."""
 
-import argparse, ctypes, inspect, json
+import argparse
+import ctypes
+import inspect
+import json
 from pathlib import Path
 import gi
 

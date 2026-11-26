@@ -8,8 +8,8 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 from .i18n import tr
 from .pagination import Anchor
-from .paged_sources import PagedStream, PageAddress
-from .reading_metrics import SPACING, WIDTHS, line_spacing, text_width
+from .paged_sources import PagedStream, PageAddress as PageAddress
+from .reading_metrics import SPACING as SPACING, WIDTHS as WIDTHS, line_spacing, text_width
 from .notes_window import passage_label
 
 

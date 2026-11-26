@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 from gi.repository import Gtk, GLib
 from bible.ui import Application, Window, Library
-from bible.place_data import FILES, SOURCE_COMMIT, ReferenceDataError
+from bible.place_data import FILES as FILES, SOURCE_COMMIT, ReferenceDataError
 from bible.reference_targets import local_excerpt, source_references
 from bible.i18n import tr
 from tests.test_ui import spin

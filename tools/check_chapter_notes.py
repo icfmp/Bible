@@ -1,8 +1,10 @@
 """Actual X11 chapter following and manual browsing; disposable SWORD fixtures."""
 
-import inspect, json, tempfile
+import inspect
+import json
+import tempfile
 from pathlib import Path
-from bible.ui import Application, Window, Library, Gtk
+from bible.ui import Application, Window, Library, Gtk as Gtk
 from tests.test_ui import installed_fixture, spin
 from tools.check_alpha_ui import X11Input
 from tools.check_passage_actions import point

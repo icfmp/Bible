@@ -52,8 +52,8 @@ def main():
             if data.revision is None:
                 data.install()
     from bible.ui import Application, Window, Gtk
-    from bible.i18n import tr, LANGUAGE
-    from bible.paged_sources import BiblePages
+    from bible.i18n import tr as tr, LANGUAGE
+    from bible.paged_sources import BiblePages as BiblePages
     from tests.test_ui import spin
     from tools.check_alpha_ui import X11Input
     from tools.check_client_feedback import Screen

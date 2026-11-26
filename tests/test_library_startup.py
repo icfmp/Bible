@@ -19,7 +19,8 @@ from bible.providers import CROSSWIRE
 
 class MetadataExitTests(unittest.TestCase):
     def test_idle_worker_does_not_retain_completed_arguments_and_result(self):
-        import gc, weakref
+        import gc
+        import weakref
         from bible.metadata_workers import MetadataExecutor
 
         class Payload:

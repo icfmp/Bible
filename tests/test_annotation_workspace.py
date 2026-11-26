@@ -58,7 +58,7 @@ class CollectionTests(unittest.TestCase):
 class AnnotationWorkspaceTests(unittest.TestCase):
     def test_editor_fills_available_workspace_and_secondary_actions_remain_reachable(self):
         from tests.test_ui import spin
-        from bible.ui import Gtk
+        from bible.ui import Gtk as Gtk
 
         w = self.window
         s = self.space

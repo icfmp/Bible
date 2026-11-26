@@ -356,7 +356,8 @@ class CommentaryLayoutTests(unittest.TestCase):
 
     @unittest.skipUnless(__import__("os").environ.get("DISPLAY"), "Requires GTK")
     def test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules(self):
-        import hashlib, tempfile
+        import hashlib
+        import tempfile
         from pathlib import Path
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin

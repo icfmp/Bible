@@ -179,7 +179,7 @@ class PassageLinks(Gtk.Box):
             except (ValueError, OSError, RuntimeError):
                 return False
             from .reference_targets import local_target_ranges
-            from .notes_window import passage_label
+            from .notes_window import passage_label as passage_label
 
             choices = []
             for result in rows:

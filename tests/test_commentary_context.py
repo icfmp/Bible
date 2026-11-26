@@ -1,6 +1,8 @@
 """Mapped Psalm titles remain source contexts, never ordinary verse zero."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from bible.reference_resolution import resolve, VersificationMismatch
 from bible.sword_provider import CommentaryReader

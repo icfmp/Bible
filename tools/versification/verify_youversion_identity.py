@@ -5,7 +5,11 @@ then independently installed CrossWire FreSegond1910 root. All unmatched verses
 remain unmapped; equal numbering or an equal chapter size is never sufficient.
 """
 
-import argparse, hashlib, json, re, unicodedata
+import argparse
+import hashlib
+import json
+import re
+import unicodedata
 from pathlib import Path
 from bible.sword_provider import Reader
 from bible.versification_mapping import to_base, verified_identity

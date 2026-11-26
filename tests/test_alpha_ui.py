@@ -268,7 +268,7 @@ class AlphaTests(unittest.TestCase):
 
     def test_book_search_grid_and_explicit_chapter_or_verse_open_keep_other_tabs(self):
         from bible.ui import Gtk
-        from bible.i18n import tr
+        from bible.i18n import tr as tr
 
         with tempfile.TemporaryDirectory() as directory:
             entries = (

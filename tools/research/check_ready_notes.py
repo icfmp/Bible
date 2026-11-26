@@ -1,6 +1,11 @@
 """Actual note hosts with real installed excerpts; isolated synthetic personal notes."""
 
-import argparse, hashlib, inspect, json, os, tempfile
+import argparse
+import hashlib
+import inspect
+import json
+import os
+import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk

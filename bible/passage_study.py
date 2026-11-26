@@ -1,7 +1,7 @@
 """One native contextual host for the existing word and place components."""
 
 from dataclasses import replace
-from gi.repository import Adw, Gdk, Gtk, Pango
+from gi.repository import Adw, Gdk, Gtk, Pango as Pango
 from .i18n import tr
 from .reference_preview import passage_title
 

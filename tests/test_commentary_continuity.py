@@ -1,6 +1,8 @@
 """Incremental commentary extension preserves native selection and source styling."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from tests.test_ui import installed_fixture, spin
 from tests.test_commentary import commentary_fixture

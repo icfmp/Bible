@@ -1,6 +1,10 @@
 """Startup discovery stays asynchronous and uses the existing safe queue."""
 
-import json, os, tempfile, threading, unittest
+import json
+import os
+import tempfile
+import threading
+import unittest
 from pathlib import Path
 from dataclasses import replace, asdict
 from unittest.mock import patch

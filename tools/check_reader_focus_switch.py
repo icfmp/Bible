@@ -5,13 +5,18 @@ input. Both GDK Wayland and XTest are intentional: Mutter owns inner activation.
 This is distinct from the client's GNOME Shell session and deferred accessibility.
 """
 
-import argparse, ctypes, json, os, time, inspect
+import argparse
+import ctypes
+import json
+import os
+import time
+import inspect
 from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk as Gdk
 from bible.ui import Application, Window, Library
 from tools.check_alpha_ui import X11Input
 

@@ -5,7 +5,7 @@ import unittest
 from bible.source_units import AddressIndex, ChapterUnits, SourceUnit
 from bible.source_sections import SectionIndex, SourceChapter
 from bible.youversion_source import read_edition, parse_chapter, source_document
-from bible.youversion_osis import convert, NS
+from bible.youversion_osis import convert, NS as NS
 from bible.youversion_content import parse, project
 from tools.research.test_yves_source import metadata, chapter, VERSION
 

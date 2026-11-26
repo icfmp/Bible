@@ -1,6 +1,8 @@
 """Every production glyph resolves without a desktop theme or Adwaita install."""
 
-import hashlib, json, os
+import hashlib
+import json
+import os
 from pathlib import Path
 import unittest
 from tools.icon_inventory import references

@@ -1,10 +1,13 @@
 """Real short/long result geometry, native Aa and preference-palette checks."""
 
-import argparse, json, inspect, threading
+import argparse
+import json
+import inspect
+import threading
 from unittest.mock import patch
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk
-from bible.topic_vocabulary import suggestions
+from bible.topic_vocabulary import suggestions as suggestions
 from tests.test_ui import spin
 from tests.test_appearance import SystemStyleOverride
 from tools.check_alpha_ui import X11Input

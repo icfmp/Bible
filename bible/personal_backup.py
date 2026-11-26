@@ -4,7 +4,11 @@ The recovery record is scoped to a deliberate restore, independently of storage 
 """
 
 from dataclasses import asdict, replace
-import hashlib, json, os, tempfile, uuid
+import hashlib
+import json
+import os
+import tempfile
+import uuid
 from pathlib import Path
 from .notes import Note, validate, BACKUP_VERSION
 from .highlights import (

@@ -1,6 +1,8 @@
 """Clean first-run, real index/install and native selectors without restart."""
 
-import argparse, inspect, json, sys
+import argparse
+import inspect
+import json
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk
 from bible.providers import PROVIDERS, YOUVERSION

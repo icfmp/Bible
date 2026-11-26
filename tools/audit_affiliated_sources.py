@@ -13,7 +13,7 @@ import tarfile
 import urllib.parse
 import urllib.request
 
-from bible.library import BASE, BIBLE_DRIVERS, COMMENTARY_DRIVERS, config, download
+from bible.library import BASE, BIBLE_DRIVERS, COMMENTARY_DRIVERS, config, download as download
 
 DOCUMENTS = {
     "xiphos_manual": "https://xiphos.org/manual/module-manager.html",

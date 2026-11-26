@@ -1,8 +1,10 @@
 """Real native original-word walkthrough; use only disposable validation profiles."""
 
-import argparse, inspect, json
+import argparse
+import inspect
+import json
 from pathlib import Path
-from gi.repository import Gtk, Graphene
+from gi.repository import Gtk, Graphene as Graphene
 from bible.ui import Application, Window, Library
 from bible.i18n import tr
 from tests.test_ui import spin

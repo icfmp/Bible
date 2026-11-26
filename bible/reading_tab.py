@@ -3,16 +3,16 @@
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, Adw, Pango, Gio, GLib
+from gi.repository import Gtk, Adw as Adw, Pango as Pango, Gio, GLib as GLib
 
-from .providers import module_name
+from .providers import module_name as module_name
 from .i18n import tr
 from .sword_provider import Reader
 from .book_names import display_name
 from .i18n import LANGUAGE
 from . import history
 from .preferences import ReadingPreferences
-from .reading_style import WIDTHS, SPACING, apply_direction
+from .reading_style import WIDTHS as WIDTHS, SPACING as SPACING, apply_direction as apply_direction
 from .reading_metrics import text_width, side_margin
 from .context_indicator import ContextTextView
 
@@ -492,7 +492,7 @@ class ReadingTab(Gtk.Box):
         try:
             if name not in self.library.installed("bible"):
                 raise ValueError(tr("Comparison translation unavailable."))
-            resource = self.library.resource(name)
+            _resource = self.library.resource(name)
             if self._comparison_name != name:
                 self._comparison_reader = Reader(self.library.root / name, name)
                 self._comparison_name = name

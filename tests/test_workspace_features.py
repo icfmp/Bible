@@ -117,7 +117,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
     def test_library_autoload_language_search_and_detail_back(self):
         from unittest.mock import patch
         from bible.ui import Window, Library, Gtk
-        from bible.library import Resource
+        from bible.library import Resource as Resource
         from bible.language_picker import LanguagePicker
 
         # This local picker test does not own dynamic-provider HTTP, which is

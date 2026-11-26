@@ -2,7 +2,12 @@
 
 from contextlib import redirect_stdout
 from pathlib import Path
-import io, json, os, tempfile, unittest, zipfile
+import io
+import json
+import os
+import tempfile
+import unittest
+import zipfile
 from tools.research.test_yves_source import metadata, chapter
 
 
@@ -246,7 +251,6 @@ class NativeUnitTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
     def test_native_reader_keeps_fragment_highlights_markers_and_appearance_anchors(self):
         import shutil
-        from unittest.mock import patch
         from bible.ui import Application, Window, Library
         from tests.test_ui import spin, close_test_dialogs
         from bible.pagination import Anchor

@@ -1,6 +1,10 @@
 """Retained real study data and native reader follow-up evidence, no client profile."""
 
-import argparse, gzip, hashlib, inspect, json, time
+import argparse
+import gzip
+import hashlib
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -296,7 +300,7 @@ def main():
                 spin()
                 from bible.place_data import PlaceData
 
-                store = PlaceData(data_root)
+                _store = PlaceData(data_root)
                 for reference, name in [
                     ("Gen.11.2", "Shinar"),
                     ("Josh.10.1", "Jerusalem"),

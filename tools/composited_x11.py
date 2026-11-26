@@ -1,6 +1,10 @@
 """Run GUI evidence under a real X11 compositor (test environment only)."""
 
-import ctypes, os, subprocess, sys, time
+import ctypes
+import os
+import subprocess
+import sys
+import time
 
 
 def main():

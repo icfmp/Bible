@@ -18,7 +18,7 @@ from .providers import PROVIDERS, DEFAULT_PROVIDERS
 from .book_names import normalized
 from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
-from .catalogue_session import CatalogueSession
+from .catalogue_session import CatalogueSession as CatalogueSession
 from .languages import canonical_language, language_order
 
 
@@ -1899,7 +1899,7 @@ class CatalogueWindow(Adw.Window):
             self.session.refresh_study()
             self._refresh_generation = self.session.generation
             return
-        index = self.source_filter.get_selected()
+        _index = self.source_filter.get_selected()
         providers = self.selected_providers()
         self.session.refresh(catalogue, force, providers)
         self._refresh_generation = self.session.generation

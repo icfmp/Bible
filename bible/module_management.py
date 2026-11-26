@@ -2,7 +2,7 @@
 
 from gi.repository import Adw, Gtk
 from .i18n import tr
-from .providers import BY_ID
+from .providers import BY_ID as BY_ID
 from .resource_details import plain
 from .module_lifecycle import ModuleLifecycle
 from .module_updates import applicable_update

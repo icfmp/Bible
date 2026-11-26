@@ -31,7 +31,8 @@ def commentary_fixture(directory, name="Notes", versification="KJV", entries=Non
 
 class CommentaryTests(unittest.TestCase):
     def test_cached_entry_text_does_not_keep_disposed_native_readers_alive(self):
-        import gc, weakref
+        import gc
+        import weakref
 
         with tempfile.TemporaryDirectory() as directory:
             reader = CommentaryReader(commentary_fixture(directory), "Notes")

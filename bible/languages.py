@@ -8,7 +8,7 @@ import re
 from babel import Locale, UnknownLocaleError
 from babel.core import get_global
 from babel.localedata import locale_identifiers
-from .i18n import LANGUAGE, tr, collation_key
+from .i18n import LANGUAGE, tr as tr, collation_key
 
 
 def language_order(codes, available, label=None):

@@ -1,6 +1,11 @@
 """Actual offline Semeur/KJV quotations and native search latency; research only."""
 
-import argparse, hashlib, inspect, io, json, time
+import argparse
+import hashlib
+import inspect
+import io
+import json
+import time
 from pathlib import Path
 from unittest.mock import patch
 

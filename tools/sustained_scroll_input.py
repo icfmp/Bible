@@ -1,6 +1,10 @@
 """Independent XTest wheel input with repeated reversals and exact event timing."""
 
-import ctypes, os, time, json, sys
+import ctypes
+import os
+import time
+import json
+import sys
 from pathlib import Path
 
 x = ctypes.CDLL("libX11.so.6")

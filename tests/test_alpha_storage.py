@@ -273,7 +273,8 @@ class AlphaStorageTests(unittest.TestCase):
             storage.verify_asset(asset, "archive", "0" * 64, len(b"original"))
 
     def test_unrecorded_upload_reuses_original_bytes_only_for_identical_payload(self):
-        import io, tarfile
+        import io
+        import tarfile
 
         def archive(
             payload,

@@ -273,7 +273,6 @@ FR = {
     "Some installed Bibles could not be read. They are preserved. Retry from Library.": "Certaines Bibles installées sont illisibles. Elles sont conservées. Réessayez depuis la Bibliothèque.",
     "Clear filters": "Effacer les filtres",
     "Refreshing sources…": "Actualisation des sources…",
-    "Loading catalogue…": "Chargement du catalogue…",
     "Catalogue unavailable": "Catalogue indisponible",
     "No Bible found": "Aucune Bible trouvée",
     "Catalogue not loaded": "Catalogue non chargé",

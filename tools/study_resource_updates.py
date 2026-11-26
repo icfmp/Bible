@@ -1,6 +1,11 @@
 """Validate and publish independently versioned study resources on existing GitHub hosting."""
 
-import argparse, base64, hashlib, json, subprocess, tempfile
+import argparse
+import base64
+import hashlib
+import json
+import subprocess
+import tempfile
 from pathlib import Path
 from bible.study_catalogue import BUNDLED, parse as parse_catalogue
 from bible.reference_data import (

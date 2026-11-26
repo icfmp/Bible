@@ -1,6 +1,8 @@
 """Responsive edition rows keep native selection and truthful source metadata."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from dataclasses import replace

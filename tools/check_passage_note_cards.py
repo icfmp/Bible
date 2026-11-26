@@ -13,7 +13,7 @@ from tests.test_ui import installed_fixture, spin
 from tools.check_alpha_ui import X11Input
 from bible.ui import Application, Window, Library, Gtk
 from bible.notes_window import buffer_text
-from bible.i18n import tr
+from bible.i18n import tr as tr
 
 
 def main():

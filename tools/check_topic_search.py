@@ -9,7 +9,7 @@ import time
 from gi.repository import Gtk, GLib
 from bible.ui import Application, Window, Library
 from bible.topic_data import TopicData
-from bible.topic_vocabulary import suggestions
+from bible.topic_vocabulary import suggestions as suggestions
 from bible.reference_targets import local_excerpt
 from bible.i18n import tr
 from tests.test_ui import spin

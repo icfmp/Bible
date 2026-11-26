@@ -129,7 +129,7 @@ def main():
             import gi
 
             gi.require_version("GdkX11", "4.0")
-            from gi.repository import GdkX11  # registers surface.get_xid
+            from gi.repository import GdkX11 as GdkX11  # registers surface.get_xid
 
             immersion.top.set_reveal_child(False)
             spin(duration=0.3)

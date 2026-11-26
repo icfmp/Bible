@@ -4,7 +4,8 @@ Never exports profile data, Scripture dumps or traces. Use --require-packaged
 to prove application imports come from the installed Flatpak, not this checkout.
 """
 
-import argparse, inspect
+import argparse
+import inspect
 from pathlib import Path
 from unittest.mock import patch
 

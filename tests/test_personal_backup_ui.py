@@ -1,10 +1,12 @@
 """Native regression coverage for the October desktop finishing batch."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from tests.test_ui import spin, installed_fixture
-from bible.i18n import tr
+from bible.i18n import tr as tr
 
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")

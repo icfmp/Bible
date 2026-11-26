@@ -1,6 +1,8 @@
 """Full native selectors remain usable without duplicating reader commands."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from dataclasses import replace
 from unittest.mock import patch

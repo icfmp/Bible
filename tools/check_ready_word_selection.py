@@ -1,6 +1,13 @@
 """Native input regression probes for #151/#168; no app mutation or corpus export."""
 
-import argparse, faulthandler, hashlib, inspect, json, subprocess, sys, traceback
+import argparse
+import faulthandler
+import hashlib
+import inspect
+import json
+import subprocess
+import sys
+import traceback
 from pathlib import Path
 from unittest.mock import patch
 

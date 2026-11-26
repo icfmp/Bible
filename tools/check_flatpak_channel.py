@@ -186,7 +186,7 @@ def main():
         )
         bundle = root / "Bible.flatpak"
         with urllib.request.urlopen(
-            f"https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/Bible-0.1.0-alpha.2-linux-x86_64.flatpak",
+            "https://github.com/icfmp/Bible/releases/download/0.1.0-alpha.2/Bible-0.1.0-alpha.2-linux-x86_64.flatpak",
             timeout=60,
         ) as response:
             bundle.write_bytes(response.read())

@@ -4,7 +4,7 @@ import gi
 
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk
-from .reading_metrics import SPACING, WIDTHS, line_spacing
+from .reading_metrics import SPACING as SPACING, WIDTHS as WIDTHS, line_spacing
 
 # background, text, link, selection background, selection text; opaque colors.
 PALETTES = {

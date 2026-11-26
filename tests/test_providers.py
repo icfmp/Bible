@@ -6,8 +6,15 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from bible.library import Library, Resource, catalogue, catalogues, resource_from_section, config
-from bible.providers import CROSSWIRE, EXTRA, ANDBIBLE, STEP, EBIBLE, identity
+from bible.library import (
+    Library,
+    Resource as Resource,
+    catalogue,
+    catalogues,
+    resource_from_section as resource_from_section,
+    config as config,
+)
+from bible.providers import CROSSWIRE, EXTRA, ANDBIBLE as ANDBIBLE, STEP, EBIBLE, identity
 from bible.session import Session, SessionStore, TabState
 from tests.test_library import RESOURCE, fixture, archive_bytes
 

@@ -87,7 +87,7 @@ class ContextualStudyTests(unittest.TestCase):
         return target(tab.text, source, lambda: self.w.passage_actions.ordinary(tab))
 
     def test_verse_excerpts_follow_only_dialog_version_without_fabricated_missing_verse(self):
-        from bible.ui import Gtk
+        from bible.ui import Gtk as Gtk
 
         words = self.w.study.words
         words.open(self.target())

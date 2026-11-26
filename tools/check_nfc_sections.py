@@ -4,7 +4,12 @@ Only a marked disposable developer profile is accepted. Screenshots remain
 private artifacts; JSON reports contain aggregate checks, never a profile dump.
 """
 
-import argparse, hashlib, inspect, json, time, traceback
+import argparse
+import hashlib
+import inspect
+import json
+import time
+import traceback
 from pathlib import Path
 from unittest.mock import patch
 

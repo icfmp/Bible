@@ -1,6 +1,8 @@
 """Additional native bidirectional Study gestures; marked developer profile only."""
 
-import argparse, hashlib, inspect, json
+import argparse
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 from bible.ui import Application, Window, Library, Gtk

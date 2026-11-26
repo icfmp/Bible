@@ -4,7 +4,10 @@ Use a marked disposable profile only. Captures remain private; JSON contains
 references, metadata and measurements, never a Scripture dump or user notes.
 """
 
-import argparse, hashlib, inspect, json, time
+import argparse
+import hashlib
+import inspect
+import json
 from pathlib import Path
 
 

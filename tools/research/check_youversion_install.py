@@ -280,7 +280,7 @@ def main():
                     if any(book.code == "John" for book in reader.books)
                     else reader.first_reference()
                 )
-                display_chapter = display.rsplit(".", 1)[0]
+                _display_chapter = display.rsplit(".", 1)[0]
                 tab = window.active_tab
                 tab.navigate(item.id, display)
                 spin()

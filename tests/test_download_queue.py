@@ -2,7 +2,8 @@
 
 from dataclasses import replace
 from pathlib import Path
-import tempfile, unittest
+import tempfile
+import unittest
 from unittest.mock import patch
 from bible.download_queue import DownloadQueue
 from bible.providers import EXTRA

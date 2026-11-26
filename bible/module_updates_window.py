@@ -3,7 +3,7 @@
 from gi.repository import Adw, Gtk, GLib
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
-from .module_updates import ModuleCatalogue, installed_modules, assessment
+from .module_updates import ModuleCatalogue as ModuleCatalogue, installed_modules, assessment
 
 
 class ModuleUpdatesWindow(Adw.Window):

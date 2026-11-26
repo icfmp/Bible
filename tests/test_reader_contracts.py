@@ -178,7 +178,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(w.highlights.entries, original)
 
     def test_shared_cards_related_links_and_unselected_color_action_keep_editor(self):
-        from bible.annotation_collection import records
+        from bible.annotation_collection import records as records
         from bible.notes import PassageLink
         from bible.ui import Gtk
 
@@ -465,7 +465,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(self.w.notes_store.get(note.id), note)
 
     def test_link_cards_use_saved_origin_and_unlink_keeps_note_body(self):
-        from bible.notes_window import NoteEditor
+        from bible.notes_window import NoteEditor as NoteEditor
         from bible.notes import PassageLink
 
         note = self.w.notes_store.save(

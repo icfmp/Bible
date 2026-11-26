@@ -158,7 +158,7 @@ class ReferenceNumberingTests(unittest.TestCase):
         )
 
     def test_verified_psalm_and_split_john_boundaries_in_both_directions(self):
-        from bible.reference_targets import Canon, destination, source_references
+        from bible.reference_targets import Canon, destination as destination, source_references
         from bible.reference_resolution import resolve
 
         kjv, segond = Canon("KJV"), Canon("Segond")

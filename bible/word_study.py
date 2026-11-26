@@ -216,7 +216,7 @@ class WordStudy(Gtk.Box):
         self.target = target
         self.lexical_metadata = metadata
         self.context = (target, self.owner.active_tab, self.owner.active_tab.state.reference)
-        resource = self.owner.library.resource(target.source.resource)
+        _resource = self.owner.library.resource(target.source.resource)
         self.context_label.set_text(
             passage_title(
                 target.references[0], target.references[-1], target.source.reader.versification
@@ -729,7 +729,7 @@ class WordStudy(Gtk.Box):
         self.content.append(details)
 
     def preview(self, reference):
-        source = self.target.source
+        _source = self.target.source
         button = next(
             (c for c in self.children() if getattr(c, "_word_reference", None) == reference), None
         )

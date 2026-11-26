@@ -1,6 +1,13 @@
 """Exercise the real, live reader backdrop with sharp controls; disposable profile."""
 
-import argparse, inspect, json, os, signal, subprocess, time, cProfile
+import argparse
+import inspect
+import json
+import os
+import signal
+import subprocess
+import time
+import cProfile
 from pathlib import Path
 from bible.ui import Application, Window, Library, GLib
 from tests.test_ui import spin

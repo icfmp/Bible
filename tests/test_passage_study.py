@@ -1,6 +1,5 @@
 """Study typography, adaptive width, canonical context and draft identity."""
 
-import json
 import os
 from pathlib import Path
 import tempfile

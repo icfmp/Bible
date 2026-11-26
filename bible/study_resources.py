@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from .i18n import tr
 from .reference_data import (
     ReferenceData,
-    ReferenceDataError,
+    ReferenceDataError as ReferenceDataError,
     SOURCE_URL,
     LICENSE_URL,
     SOURCE_DATE,

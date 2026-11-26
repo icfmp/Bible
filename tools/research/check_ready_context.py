@@ -1,6 +1,8 @@
 """Real resource/context study walkthrough; disposable profiles, native GTK input."""
 
-import argparse, hashlib, inspect, json
+import argparse
+import inspect
+import json
 from pathlib import Path
 import gi
 

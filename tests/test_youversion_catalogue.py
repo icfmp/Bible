@@ -1,6 +1,5 @@
 """Language discovery, lazy catalogue metadata and atomic source-cache failures."""
 
-import copy
 import json
 from pathlib import Path
 import tempfile

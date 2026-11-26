@@ -1,7 +1,9 @@
 """Actual SWORD staging, atomic directory exchange, rollback and restart safety."""
 
 from dataclasses import replace
-import hashlib, json, tempfile, unittest
+import json
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.library import Library, config, resource_from_section

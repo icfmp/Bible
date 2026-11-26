@@ -3,7 +3,12 @@
 Original PNGs and fixed aggregate receipts only; never export a profile or corpus.
 """
 
-import argparse, hashlib, inspect, json, sys, traceback
+import argparse
+import hashlib
+import inspect
+import json
+import sys
+import traceback
 from pathlib import Path
 from unittest.mock import patch
 
@@ -81,7 +86,7 @@ def main():
     assert (args.profile / ".selection-batch-profile").is_file(), (
         "Disposable marked profile required"
     )
-    from bible.ui import Application, Window, Library, Gtk, GLib
+    from bible.ui import Application, Window, Library, Gtk, GLib as GLib
     from bible.i18n import tr
     from tests.test_ui import spin, close_test_dialogs
     from tests.test_appearance import SystemStyleOverride

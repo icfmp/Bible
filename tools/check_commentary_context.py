@@ -1,6 +1,9 @@
 """Actual Psalm title/verse mapping in a marked disposable resource profile."""
 
-import argparse, hashlib, inspect, json
+import argparse
+import hashlib
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 

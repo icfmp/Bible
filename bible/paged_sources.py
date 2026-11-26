@@ -3,7 +3,14 @@
 from collections import OrderedDict
 from dataclasses import dataclass, replace
 from itertools import groupby
-from .pagination import Anchor, Document, PassageSpan, StyleSpan, paginate, paragraph_spaces
+from .pagination import (
+    Anchor as Anchor,
+    Document,
+    PassageSpan,
+    StyleSpan,
+    paginate,
+    paragraph_spaces,
+)
 from .book_names import display_name
 from .i18n import LANGUAGE
 from .verse_typography import first_word_length
@@ -45,7 +52,7 @@ class BiblePages:
         offset = len(prefix)
         bases = {}
         for unit in chapter.display_units:
-            reference, plain = unit.reference, unit.text
+            reference, _plain = unit.reference, unit.text
             checkpoint(cancelled)
             start = offset if spans else 0
             segments = structured[unit.native_reference or reference]

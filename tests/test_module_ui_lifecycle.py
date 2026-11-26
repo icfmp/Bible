@@ -1,6 +1,9 @@
 """Native consumer quiescence before module replacement, not stale-handle reuse."""
 
-import os, tempfile, unittest, weakref
+import os
+import tempfile
+import unittest
+import weakref
 from pathlib import Path
 from dataclasses import replace, asdict
 from unittest.mock import patch

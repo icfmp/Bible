@@ -1,7 +1,8 @@
 """Native SWORD dictionary fixtures exercise lifecycle, never shipped content."""
 
 from dataclasses import replace
-import tempfile, unittest
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.library import Library, config, resource_from_section
@@ -55,7 +56,8 @@ def package(driver, version):
 
 class NativeDictionaryLifecycleTests(unittest.TestCase):
     def test_native_decoder_failure_is_confined_and_never_marks_the_module_installed(self):
-        import io, zipfile
+        import io
+        import zipfile
 
         old, payload = package("zLD", "1.0")
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:

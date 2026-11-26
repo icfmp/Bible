@@ -1,7 +1,13 @@
 """Retained-client verification must distinguish live metadata and preserved data."""
 
 from contextlib import redirect_stdout
-import hashlib, io, json, os, subprocess, tempfile, unittest
+import hashlib
+import io
+import json
+import os
+import subprocess
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from tools import validate_public_channel as channel

@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 import uuid
 
-from bible.highlights import HighlightStore, payload, merge, decode
+from bible.highlights import HighlightStore, payload, merge, decode as decode
 from bible.notes import NoteStore
 from bible import personal_backup
 from tests.test_notes import create

@@ -71,7 +71,7 @@ class ResourceAlignmentTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             for name in ("ActualSource", "OtherSource"):
-                path = installed_fixture(
+                _path = installed_fixture(
                     directory,
                     name,
                     versification="NRSV",

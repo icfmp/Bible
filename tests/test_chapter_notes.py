@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from dataclasses import replace
 from tests.test_ui import installed_fixture, spin, close_test_dialogs
 from bible.i18n import tr
 

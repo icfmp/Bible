@@ -1,11 +1,9 @@
 """Approved Library/onboarding/global-menu contracts, including upgrade safety."""
 
-import json
 import os
 from pathlib import Path
 import tempfile
 import threading
-import time
 import unittest
 from unittest.mock import patch
 from dataclasses import replace
@@ -51,7 +49,8 @@ class ApplicationSettingsTests(unittest.TestCase):
             self.assertEqual(settings.path.read_bytes(), b"{corrupt original")
 
     def test_saved_ui_language_is_loaded_at_next_process_start(self):
-        import subprocess, sys
+        import subprocess
+        import sys
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "bible"

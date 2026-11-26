@@ -159,7 +159,7 @@ class EditorialUITests(unittest.TestCase):
     def test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive(self):
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
-        import Sword
+        import Sword as Sword
 
         with tempfile.TemporaryDirectory() as directory:
             root = installed_fixture(

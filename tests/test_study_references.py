@@ -1,6 +1,5 @@
 """Native references/preview state, async invalidation and the Library data flow."""
 
-import hashlib
 import os
 from pathlib import Path
 import tempfile
@@ -172,7 +171,7 @@ class StudyReferenceTests(unittest.TestCase):
         from tools.check_client_feedback import Screen
 
         self.install()
-        refs = self.show()
+        _refs = self.show()
         w = self.window
         settings = Gtk.Settings.get_default()
         font = settings.props.gtk_font_name
@@ -327,7 +326,7 @@ class StudyReferenceTests(unittest.TestCase):
         tab = w.active_tab
         self.assertEqual(len(refs.rows), 2)
         before = (tab.state.reference, list(tab.state.history), w.view.get_n_pages())
-        anchor = refs.teaser_rows.get_first_child()
+        _anchor = refs.teaser_rows.get_first_child()
         # A mapped anchor is needed; use the References header in this test.
         popover = w.reference_preview.show(w.study.tools_switcher, "Test", tab.reader, "John.3.16")
         spin()
@@ -429,7 +428,7 @@ class StudyReferenceTests(unittest.TestCase):
 
         self.install()
         refs = self.show()
-        w = self.window
+        _w = self.window
         item = ReferenceItem(
             Relationship("John.3.16", "John.3.18", 20, 1), refs.context, refs.generation
         )

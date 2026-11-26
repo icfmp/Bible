@@ -532,8 +532,8 @@ class PassagePopover(Gtk.Popover):
             show_introduction(self.owner, reader, book)
 
     def mark_chapter(self):
-        tab = self.owner.active_tab
-        code = self.books[self.book_index].code if self.books else ""
+        _tab = self.owner.active_tab
+        _code = self.books[self.book_index].code if self.books else ""
         for chapter, button in self.chapter_buttons.items():
             selected = chapter == self.chapter_number
             button.set_active(selected)

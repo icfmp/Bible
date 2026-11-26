@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 from gi.repository import GLib, Gtk
 from bible.ui import Application, Window, Library
-from bible.reference_data import ReferenceData, MAX_ROWS, ReferenceDataError
+from bible.reference_data import ReferenceData as ReferenceData, MAX_ROWS, ReferenceDataError
 from bible.reference_targets import local_excerpt, source_references
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input

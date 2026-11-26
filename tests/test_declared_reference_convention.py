@@ -1,11 +1,14 @@
 """A declared, verified reference convention is separate from storage identity."""
 
-import hashlib, json, tempfile, unittest
+import hashlib
+import json
+import tempfile
+import unittest
 from pathlib import Path
 from bible.source_versification import write_index, register_index, reference_convention
 from bible.reference_resolution import resolve, VersificationMismatch
 from bible.reference_targets import Canon
-from bible.versification_mapping import table, to_base, from_base
+from bible.versification_mapping import table, to_base as to_base, from_base as from_base
 from tests.test_source_versification import native_available
 
 

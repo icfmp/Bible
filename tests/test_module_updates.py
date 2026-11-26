@@ -6,7 +6,6 @@ from pathlib import Path
 import tempfile
 import unittest
 from urllib.error import HTTPError
-from unittest.mock import patch
 from bible.module_updates import (
     ModuleCatalogue,
     installed_modules,

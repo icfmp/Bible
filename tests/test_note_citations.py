@@ -182,7 +182,8 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
-            import subprocess, sys
+            import subprocess
+            import sys
 
             result = subprocess.run(
                 [
@@ -206,7 +207,7 @@ class NoteCitationTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return
-        from bible.ui import Gtk
+        from bible.ui import Gtk as Gtk
 
         w = self.window
         editor = self.editor()

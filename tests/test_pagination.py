@@ -291,7 +291,7 @@ class PaginationTests(unittest.TestCase):
             )
             stream = PagedStream(self.widget, source, ReadingPreferences())
             stream.configure(300, 320, Anchor("Gen.1.1"), source.key("Gen.1.1"))
-            initial = stream.cursor
+            _initial = stream.cursor
             seen = []
             while True:
                 for address in stream.spread(2):

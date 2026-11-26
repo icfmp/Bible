@@ -1,6 +1,10 @@
 """Real ordinary/comparison/immersion and RTL rendering in a marked test profile."""
 
-import argparse, hashlib, inspect, io, json
+import argparse
+import hashlib
+import inspect
+import io
+import json
 from pathlib import Path
 from unittest.mock import patch
 

@@ -53,7 +53,7 @@ def main():
             if f"youversion~YV{n}" not in lib.installed():
                 resource = fetch_resource(n)
                 lib.install(resource, permission=acknowledgement(resource))
-    from bible.sword_provider import Reader, CommentaryReader
+    from bible.sword_provider import Reader, CommentaryReader as CommentaryReader
     from bible.reference_resolution import resolve, VersificationMismatch
     import bible.source_versification as source_metadata
 

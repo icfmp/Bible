@@ -75,7 +75,7 @@ class LinkedLayoutTests(unittest.TestCase):
             try:
                 tab = window.active_tab
                 tab.navigate("Linked", "Gen.1.2")
-                note = window.notes_store.save(
+                _note = window.notes_store.save(
                     "Alias-specific personal note",
                     [],
                     versification="KJV",

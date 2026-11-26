@@ -1,6 +1,5 @@
 """Repeated page generation must preserve channel objects and current provenance."""
 
-import json
 from pathlib import Path
 import tempfile
 import unittest

@@ -13,7 +13,7 @@ class IndependentOpeningTests(unittest.TestCase):
         from bible.ui import Application, Window, Library
         from bible.reference_resolution import resolve, VersificationMismatch
         from bible.sword_provider import Reader
-        from bible.i18n import tr
+        from bible.i18n import tr as tr
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
         with (

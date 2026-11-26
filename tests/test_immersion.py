@@ -135,7 +135,7 @@ class ImmersionTests(unittest.TestCase):
             r = self.entered(w)
             self.assertEqual(r.count, 2)
             self.assertFalse(w.split.get_mapped())
-            initial = r.stream.cursor
+            _initial = r.stream.cursor
             seen = []
             while True:
                 spin(lambda: r.layout_ready, duration=0.05)

@@ -1,7 +1,6 @@
 """Synthetic-only #26 fixtures; no downloaded Scripture or publisher content."""
 
 import copy
-import io
 from pathlib import Path
 import tempfile
 import unittest

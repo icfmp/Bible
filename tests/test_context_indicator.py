@@ -44,7 +44,7 @@ class ContextIndicatorTests(unittest.TestCase):
                 spin()
                 self.assertEqual(tab._study_coverage, ("KJV", "Gen.1.2", "Gen.1.3"))
                 self.assertFalse(w.study.context_heading.get_visible())
-                text = tab.text.get_buffer().props.text
+                _text = tab.text.get_buffer().props.text
                 tab.select_verse("Gen.1.7")
                 spin()
                 self.assertIsNone(tab._study_coverage)

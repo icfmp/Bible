@@ -562,7 +562,8 @@ class Reader:
         """Sparse, verified reference-only exceptions to numeric verse order."""
         if not self._source_osis:
             return {}
-        import hashlib, json
+        import hashlib
+        import json
 
         path = self.root / ".source-verse-order.json"
         receipt = self.root / ".verified.json"

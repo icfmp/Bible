@@ -9,7 +9,7 @@ import faulthandler
 import signal
 from pathlib import Path
 from unittest.mock import patch
-from bible.ui import Application, Window, Library, Gtk, GLib
+from bible.ui import Application, Window, Library, Gtk, GLib as GLib
 from bible.notes import NoteStore
 from bible.session import SessionStore
 from tests.test_ui import spin

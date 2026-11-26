@@ -1,8 +1,9 @@
 """First successful install and deterministic recovery of unusable sessions."""
 
-import os, tempfile, unittest
+import os
+import tempfile
+import unittest
 from pathlib import Path
-from unittest.mock import patch
 from tests.test_ui import installed_fixture, spin
 
 

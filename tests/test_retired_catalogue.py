@@ -1,7 +1,10 @@
 """Removal history is not a live provider catalogue or an availability proof."""
 
 from dataclasses import asdict, replace
-import json, os, tempfile, unittest
+import json
+import os
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.catalogue_cache import CatalogueCache

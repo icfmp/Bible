@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from tests.test_ui import installed_fixture, spin
+from tests.test_ui import installed_fixture, spin as spin
 from tests.test_commentary import commentary_fixture
 from bible.sword_provider import Reader
 

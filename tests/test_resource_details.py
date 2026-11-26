@@ -137,7 +137,8 @@ class MetadataTests(unittest.TestCase):
             self.assertIn("PUBLIC DOMAIN", resource.conditions)
 
     def test_approved_profile_uses_exact_cached_edition_independently_from_installed_version(self):
-        import json, tempfile
+        import json
+        import tempfile
         from dataclasses import replace
         from bible.resource_profile import approved_profile, profile_text
         from bible.curated_catalogue import catalogue

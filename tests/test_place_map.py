@@ -31,7 +31,7 @@ def tile_png():
 
 def require_native_map():
     try:
-        from bible.place_map import Shumate
+        from bible.place_map import Shumate as Shumate
     except (ImportError, ValueError) as error:
         if os.environ.get("BIBLE_REQUIRE_NATIVE_MAP") == "1":
             raise AssertionError("Packaged native map is missing") from error

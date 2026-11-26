@@ -1,7 +1,9 @@
 """Update offers require fresh source identity and original-file evidence."""
 
 from dataclasses import replace
-import json, tempfile, unittest
+import json
+import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.library import Library

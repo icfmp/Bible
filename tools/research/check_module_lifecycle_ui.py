@@ -1,12 +1,15 @@
 """Actual Library lifecycle controls over existing public resource packages."""
 
-import argparse, hashlib, inspect, json, os
+import argparse
+import inspect
+import json
+import os
 from dataclasses import asdict
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk
 from gi.repository import Adw
 from bible.library import source_fingerprints
-from bible.i18n import tr
+from bible.i18n import tr as tr
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen

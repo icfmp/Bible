@@ -9,7 +9,15 @@ import re
 import sqlite3
 import tempfile
 from urllib.parse import quote
-from .step_sources import COMMIT, FILES, SOURCE_URL, NOTICE, BOOKS, OSIS_BOOKS, CORPORA
+from .step_sources import (
+    COMMIT,
+    FILES,
+    SOURCE_URL as SOURCE_URL,
+    NOTICE,
+    BOOKS,
+    OSIS_BOOKS,
+    CORPORA,
+)
 
 ROW = re.compile(r"^([1-4]?[A-Za-z]{2,4})\.(\d+)\.(\d+)([^#]*)#([0-9]{1,6})=(\S+)$")
 STRONG = re.compile(r"[GH]\d{4,5}[A-Z]?")

@@ -260,7 +260,7 @@ class AnnotationPreview(Gtk.Label):
             return True
         try:
             index = int(uri.split(":", 1)[1])
-            citation = self.citations[index]
+            _citation = self.citations[index]
         except (ValueError, IndexError):
             return True
         self._link_activated = True

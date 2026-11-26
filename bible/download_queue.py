@@ -1,7 +1,8 @@
 """Small durable request list; existing installers own transfer and validation."""
 
 from dataclasses import asdict, dataclass
-import hashlib, json
+import hashlib
+import json
 from pathlib import Path
 from .library import Resource
 from .study_resources import StudyResource

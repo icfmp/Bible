@@ -130,7 +130,7 @@ def main():
             resource.id,
             str(Path(directory) / "offline-result.json"),
         ]
-        actual = subprocess.run(command, check=True, capture_output=True, text=True)
+        _actual = subprocess.run(command, check=True, capture_output=True, text=True)
         assert json.loads((Path(directory) / "offline-result.json").read_text()) == expected, (
             "Offline reopen changed text or provenance"
         )

@@ -1,6 +1,8 @@
 """Real Library categories and optional actual download in a disposable profile."""
 
-import argparse, inspect, json
+import argparse
+import inspect
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,7 +24,7 @@ def main():
     from tests.test_appearance import SystemStyleOverride
     from tools.check_alpha_ui import X11Input
     from tools.check_client_feedback import Screen
-    from bible.study_resources import REFERENCE_RESOURCE_ID
+    from bible.study_resources import REFERENCE_RESOURCE_ID as REFERENCE_RESOURCE_ID
 
     if a.require_packaged:
         assert inspect.getfile(Window).startswith("/app/")

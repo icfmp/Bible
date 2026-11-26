@@ -1,7 +1,10 @@
 """Real native installs and reference indexing through the shared GTK queue."""
 
 from dataclasses import asdict
-import os, tempfile, threading, unittest
+import os
+import tempfile
+import threading
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.library import Library, config, resource_from_section
@@ -26,7 +29,7 @@ def package(name, commentary=False):
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class DownloadQueueUITests(unittest.TestCase):
     def setUp(self):
-        from bible.ui import Application, Window
+        from bible.ui import Application, Window as Window
         from bible.application_settings import ApplicationSettings
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))

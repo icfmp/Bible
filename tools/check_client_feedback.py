@@ -4,7 +4,16 @@ Run only with a disposable profile. PNGs are unedited root-window captures,
 including real native popups. Works inside the installed Flatpak without PIL.
 """
 
-import argparse, ctypes, inspect, json, os, struct, time, zlib, subprocess, signal
+import argparse
+import ctypes
+import inspect
+import json
+import os
+import struct
+import time
+import zlib
+import subprocess
+import signal
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk
 from gi.repository import Graphene

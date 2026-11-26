@@ -1,9 +1,12 @@
 """Checked resource revisions, atomic updates and independent vocabulary delivery."""
 
-from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
-import hashlib, json, tempfile, unittest, zipfile
+import hashlib
+import json
+import tempfile
+import unittest
+import zipfile
 from unittest.mock import patch
 from bible.study_catalogue import (
     BUNDLED,

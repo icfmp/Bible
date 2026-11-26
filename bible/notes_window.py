@@ -824,7 +824,7 @@ class NotesWindow(Adw.Window):
                 ["recent", "oldest", "bible"][min(self.sort.get_selected(), 2)],
             )
             if self._related_filter_keys is not None:
-                items = [a for a in items if a.key in self._related_filter_keys]
+                notes = [n for n in notes if ("note", n.id) in self._related_filter_keys]
             if self.passage_filter:
                 allowed = {n.id for n in self.owner.notes_store.passage(*self.passage_filter)}
                 notes = [note for note in notes if note.id in allowed]

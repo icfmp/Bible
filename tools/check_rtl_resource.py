@@ -25,7 +25,7 @@ def main():
     import gi
 
     gi.require_version("GdkX11", "4.0")
-    from gi.repository import GdkX11  # register X11 surface methods
+    from gi.repository import GdkX11 as GdkX11  # register X11 surface methods
 
     app = Application()
     app.register()

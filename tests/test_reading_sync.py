@@ -330,7 +330,7 @@ class ReadingSyncTests(unittest.TestCase):
             self.assertIn("Notes", restored.tabs[0].commentary_positions)
 
     def test_partial_copy_stays_partial_and_selection_does_not_sync(self):
-        from gi.repository import GLib
+        from gi.repository import GLib as GLib
 
         with tempfile.TemporaryDirectory() as directory:
             w = self.setup_window(directory)

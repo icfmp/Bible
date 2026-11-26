@@ -1,6 +1,5 @@
 """State and fidelity checks for reading appearance/history/language names."""
 
-import json
 from pathlib import Path
 import tempfile
 import unittest

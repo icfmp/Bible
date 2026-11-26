@@ -5,7 +5,15 @@ Frames, adjustment samples, input timestamps and main-loop gaps are retained.
 """
 
 from pathlib import Path
-import time, json, sys, subprocess, cProfile, pstats, io, argparse, inspect
+import time
+import json
+import sys
+import subprocess
+import cProfile
+import pstats
+import io
+import argparse
+import inspect
 from bible.ui import Application, Window, Library, GLib, Gtk
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
@@ -121,7 +129,7 @@ def main():
         frames.append(time.monotonic())
         return True
 
-    sid = GLib.timeout_add(10, beat)
+    _sid = GLib.timeout_add(10, beat)
     fid = t.text.add_tick_callback(frame)
     child = subprocess.Popen([sys.executable, "-m", "tools.sustained_scroll_input", str(inputfile)])
     if args.cpu:

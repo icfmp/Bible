@@ -1,6 +1,5 @@
 """Synthetic acquisition failures/resume and source identity; no publisher text."""
 
-from dataclasses import replace
 import io
 import json
 from pathlib import Path
@@ -130,7 +129,9 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(len(cache.read(YOUVERSION)[0]), 1)
 
     def test_cancellation_terminates_the_isolated_conversion_process(self):
-        import subprocess, sys, time
+        import subprocess
+        import sys
+        import time
 
         actual_popen = subprocess.Popen
         processes = []
@@ -168,7 +169,7 @@ class AcquisitionTests(unittest.TestCase):
 
     def test_catalogue_is_metadata_only_and_exact_conditions_survive(self):
         from bible.youversion_editions import CONFIGURATION_URL, VERSIONS_URL
-        from bible.youversion_catalogue import resource_from_listing
+        from bible.youversion_catalogue import resource_from_listing as resource_from_listing
 
         data = edition_metadata()
         requests = []
@@ -498,7 +499,7 @@ class EditorialTests(unittest.TestCase):
 class SourceReaderTests(unittest.TestCase):
     def test_source_body_preserves_case_and_characters_without_native_display_transforms(self):
         try:
-            import Sword
+            import Sword as Sword
         except ImportError:
             self.skipTest("Requires SWORD")
         from tests.fixtures import module_fixture
