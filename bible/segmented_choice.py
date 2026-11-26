@@ -31,6 +31,7 @@ class SegmentedChoice(Gtk.Box):
         return self._selected
 
     def set_selected(self, index: int) -> None:
+        """Select an existing choice and emit one logical change only if it differs."""
         if index == self._selected:
             return
         self._syncing = True

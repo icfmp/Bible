@@ -42,6 +42,7 @@ class ScrollMotion:
         return bool(self.tick)
 
     def cancel(self) -> None:
+        """Remove the frame callback without moving the adjustment to the old target."""
         if self.tick:
             self.scroll.remove_tick_callback(self.tick)
             self.tick = 0

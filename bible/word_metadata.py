@@ -2,8 +2,24 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Protocol, TypedDict
 from html.parser import HTMLParser
+
+if TYPE_CHECKING:
+    from .passage_actions import Target
 import re
+
+
+class _NumberedSource(Protocol):
+    versification: str
+
+
+class LexicalEvidence(TypedDict):
+    """Explicit identifiers and source attributes for one verified word span."""
+
+    identifiers: tuple[str, ...]
+    source_lemma: str
+    source_morphology: str | None
 
 
 class WordParser(HTMLParser):
@@ -11,18 +27,18 @@ class WordParser(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.characters = []
-        self.words = []
-        self.current = []
+        self.characters: list[str] = []
+        self.words: list[tuple[int, int, dict[str, str | None]]] = []
+        self.current: list[tuple[int, dict[str, str | None]]] = []
         self.hidden = 0
 
-    def handle_starttag(self, tag, attrs) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in ("note", "title", "script", "style"):
             self.hidden += 1
         if not self.hidden and tag == "w":
             self.current.append((len(self.characters), dict(attrs)))
 
-    def handle_endtag(self, tag) -> None:
+    def handle_endtag(self, tag: str) -> None:
         if tag in ("note", "title", "script", "style"):
             self.hidden = max(0, self.hidden - 1)
             return
@@ -30,16 +46,18 @@ class WordParser(HTMLParser):
             start, attrs = self.current.pop()
             self.words.append((start, len(self.characters), attrs))
 
-    def handle_startendtag(self, tag, attrs) -> None:
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.handle_starttag(tag, attrs)
         self.handle_endtag(tag)
 
-    def handle_data(self, text) -> None:
+    def handle_data(self, text: str) -> None:
         if not self.hidden:
             self.characters.extend(c for c in text if not c.isspace())
 
 
-def aligned_identifiers(raw, source_body, prefix, selected):
+def aligned_identifiers(
+    raw: str, source_body: str, prefix: str, selected: str
+) -> LexicalEvidence | None:
     """Return recorded Strong identifiers only for one exact word span in a verified source text.
 
     Compare non-whitespace source characters first. Missing, ambiguous or
@@ -60,10 +78,9 @@ def aligned_identifiers(raw, source_body, prefix, selected):
     if len(matches) != 1:
         return None
     attrs = matches[0]
-    ids = []
-    for language, number, suffix in re.findall(
-        r"\bstrong:([GH])(\d{1,5})([A-Z]?)(?!\w)", attrs.get("lemma", "")
-    ):
+    ids: list[str] = []
+    lemma = attrs.get("lemma") or ""
+    for language, number, suffix in re.findall(r"\bstrong:([GH])(\d{1,5})([A-Z]?)(?!\w)", lemma):
         value = language + f"{int(number):04d}" + suffix
         if value not in ids:
             ids.append(value)
@@ -71,12 +88,12 @@ def aligned_identifiers(raw, source_body, prefix, selected):
         return None
     return dict(
         identifiers=tuple(ids),
-        source_lemma=attrs.get("lemma", ""),
+        source_lemma=lemma,
         source_morphology=attrs.get("morph", ""),
     )
 
 
-def selected_metadata(target):
+def selected_metadata(target: Target) -> LexicalEvidence | None:
     """Read explicit OSIS lexical evidence for a native selection contained in one source verse.
 
     This accesses the mutable native reader position; callers must respect
@@ -108,7 +125,7 @@ def selected_metadata(target):
     )
 
 
-def source_verse_references(reference, reader):
+def source_verse_references(reference: str, reader: _NumberedSource) -> tuple[str, ...]:
     """Keep Psalm superscriptions separate from a source verse's body words.
 
     Prefer existing pinned verse-part mappings. Native SWORD can collapse a
@@ -124,7 +141,7 @@ def source_verse_references(reference, reader):
     source.key(reference)
     parts = to_base(reference, reader.versification)
     if parts is not None:
-        refs = set()
+        projected: set[str] = set()
         for part in parts:
             # JSword's !pv is a Psalm title; !v denotes the verse body.
             # A whole-verse fallback must never erase that distinction.
@@ -133,10 +150,10 @@ def source_verse_references(reference, reader):
             mapped = from_base(part, "NRSV")
             if not mapped:
                 raise VersificationMismatch("No source-verse alignment: " + reference)
-            refs.update(mapped)
-        if not refs:
+            projected.update(mapped)
+        if not projected:
             raise VersificationMismatch("No source-verse alignment: " + reference)
-        ordered = sorted(refs, key=lambda ref: target.key(ref).getIndex())
+        ordered = sorted(projected, key=lambda ref: target.key(ref).getIndex())
         if _span(ordered[0], ordered[-1], "NRSV") != ordered:
             raise VersificationMismatch("Non-contiguous source-verse alignment: " + reference)
         return tuple(ordered)

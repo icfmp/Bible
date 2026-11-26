@@ -18,6 +18,11 @@ class WordMetadataTests(unittest.TestCase):
             aligned_identifiers(raw, "Au commencement, Dieu.", "Au commencement, ", "Die")
         )
 
+    def test_missing_or_valueless_lemma_remains_unavailable(self) -> None:
+        for raw in ("<w>Alpha</w>", "<w lemma>Alpha</w>", '<w lemma="">Alpha</w>'):
+            with self.subTest(raw=raw):
+                self.assertIsNone(aligned_identifiers(raw, "Alpha", "", "Alpha"))
+
     def test_grouped_multiple_strongs_and_hidden_markup_never_pick_an_arbitrary_lemma(self) -> None:
         raw = '<w lemma="strong:G3588 strong:G3056 lemma.TR:ο lemma.TR:λογος" morph="robinson:N-NSM">the Word</w><note>not Scripture</note>.'
         value = aligned_identifiers(raw, "the Word.", "", "the Word")

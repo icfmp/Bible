@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 from dataclasses import dataclass, replace
+
+if TYPE_CHECKING:
+    from .pagination import Document
+    from .reading_tab import ReadingTab
+    from .sword_provider import Reader
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
 from .notes_window import passage_label
@@ -15,12 +22,12 @@ BACKDROP_BLUR = 16
 class Source:
     """A concrete reading source/document/overlay and its source-relative offset context."""
 
-    tab: object
+    tab: ReadingTab
     resource: str
-    reader: object
-    document: object
+    reader: Reader
+    document: Document
     base: int
-    parent: object
+    parent: Gtk.Overlay
     side: str
 
 
@@ -29,18 +36,18 @@ class Target:
     """A frozen selection/copy target retaining source identity, canonical members and actual text."""
 
     source: Source
-    view: object
-    factory: object
-    references: tuple
+    view: Gtk.TextView
+    factory: Callable[[], Source | None]
+    references: tuple[str, ...]
     text: str
-    verses: tuple
+    verses: tuple[str, ...]
     native_selection: bool
     anchor: int
-    selection: tuple | None = None
+    selection: tuple[int, int] | None = None
     edition: str = ""
 
 
-def copy_text(value, mode="selected"):
+def copy_text(value: Target, mode: str = "selected") -> str:
     """Use the frozen selection for every text format, including partial words."""
     label = passage_label(
         value.references[0], value.references[-1], value.source.reader.versification
@@ -51,7 +58,7 @@ def copy_text(value, mode="selected"):
     return (label + "\n" if mode == "reference" else "") + value.text
 
 
-def references(source, first, last):
+def references(source: Source, first: int, last: int) -> tuple[str, ...]:
     """Resolve selected document fragments to actual canonical members, preserving source order."""
     numbers = source.tab.preferences.verse_numbers
     refs = tuple(
