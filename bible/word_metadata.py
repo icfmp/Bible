@@ -157,8 +157,8 @@ def source_verse_references(reference: str, reader: _NumberedSource) -> tuple[st
         if _span(ordered[0], ordered[-1], "NRSV") != ordered:
             raise VersificationMismatch("Non-contiguous source-verse alignment: " + reference)
         return tuple(ordered)
-    mapped = resolve(reference, reader.versification, target, require_entry=False)
-    refs = _span(mapped.start, mapped.end, "NRSV")
+    resolved = resolve(reference, reader.versification, target, require_entry=False)
+    refs = _span(resolved.start, resolved.end, "NRSV")
     key = source.key(reference)
     index = key.getIndex()
     verse = key.getVerse()
