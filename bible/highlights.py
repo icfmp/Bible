@@ -14,7 +14,7 @@ import re
 import tempfile
 import uuid
 
-from .notes import now, parts
+from .notes import annotation_json, now, parts
 from .providers import RESOURCE_ID
 
 COLORS = {
@@ -113,7 +113,7 @@ def read_bytes(path):
 
 def payload(path):
     """Return validated current records from a supported standalone format."""
-    return decode(json.loads(read_bytes(path)))
+    return decode(annotation_json(read_bytes(path)))
 
 
 def encoded(marks):
@@ -237,7 +237,7 @@ class HighlightStore:
             with self.locked():
                 self._disk = self.disk_bytes()
                 if self._disk is not None:
-                    value = json.loads(self._disk)
+                    value = annotation_json(self._disk)
                     self.entries = decode(value)
                     if value["version"] == 1 and not self.pending.exists():
                         digest = hashlib.sha256(self._disk).hexdigest()
@@ -295,7 +295,9 @@ class HighlightStore:
         if self.error:
             raise ValueError("Original highlights file preserved; repair it before saving")
         data = self.disk_bytes()
-        if data != self._disk or (data is not None and decode(json.loads(data)) != self.entries):
+        if data != self._disk or (
+            data is not None and decode(annotation_json(data)) != self.entries
+        ):
             raise ValueError("Highlights changed elsewhere. Reopen Bible before continuing.")
 
     def ensure_recovered(self):

@@ -10,7 +10,7 @@ import os
 import tempfile
 import uuid
 from pathlib import Path
-from .notes import Note, validate, BACKUP_VERSION
+from .notes import Note, validate, BACKUP_VERSION, annotation_json
 from .highlights import (
     decode as decode_marks,
     write as write_marks,
@@ -67,7 +67,7 @@ def decode(data):
     """
     if len(data) > LIMIT:
         raise ValueError("Personal backup exceeds the size limit")
-    value = json.loads(data)
+    value = annotation_json(data)
     if (
         isinstance(value, dict)
         and set(value) == {"format", "version", "notes"}

@@ -46,6 +46,20 @@ class NoteConflict(NotesError):
     pass
 
 
+def annotation_json(data):
+    """Decode annotation JSON, refusing ambiguous duplicate object fields."""
+
+    def unique_fields(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("Duplicate annotation JSON field: " + key)
+            result[key] = value
+        return result
+
+    return json.loads(data, object_pairs_hook=unique_fields)
+
+
 def parts(reference):
     """Validate a canonical passage address without requiring an installed module.
 
@@ -591,7 +605,7 @@ class NoteStore:
         if len(data) > MAX_BACKUP:
             raise NotesError("Notes backup exceeds the 32 MiB limit")
         try:
-            value = json.loads(data)
+            value = annotation_json(data)
             if (
                 not isinstance(value, dict)
                 or set(value) != {"format", "version", "notes"}

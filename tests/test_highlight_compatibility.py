@@ -390,3 +390,26 @@ class CompatibilityTests(unittest.TestCase):
             self.assertEqual(edited["created"], original["created"])
             self.assertEqual(edited["modified"], "2000-01-01T00:00:00+00:00")
             self.assertEqual(edited["revision"], original["revision"] + 1)
+
+    def test_duplicate_json_fields_cannot_silently_discard_annotation_values(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            path = root / "highlights.json"
+            duplicate = b'{"version":1,"marks":[],"marks":[]}'
+            path.write_bytes(duplicate)
+            high = HighlightStore(path)
+            self.assertTrue(high.error)
+            self.assertEqual(path.read_bytes(), duplicate)
+            self.assertFalse((root / "backups").exists())
+            notes = NoteStore(root / "notes.sqlite3")
+            self.addCleanup(notes.close)
+            note = create(notes)
+            incoming = root / "duplicate-fields.json"
+            incoming.write_text('{"format":"bible-notes","version":1,"version":2,"notes":[]}')
+            for action in (
+                lambda: notes.restore(incoming),
+                lambda: personal_backup.decode(incoming.read_bytes()),
+            ):
+                with self.assertRaises(ValueError):
+                    action()
+            self.assertEqual(notes.get(note.id), note)

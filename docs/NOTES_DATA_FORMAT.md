@@ -117,7 +117,8 @@ native Windows acceptance. Notes continue using their existing SQLite contract.
 
 Current combined exports use **version3**. This does not increase notes-only
 backup version2 or SQLite schema2. Unsupported versions and unknown fields are
-rejected before mutation; duplicate UUIDs or passage keys within a highlight
+rejected before mutation; duplicate JSON object fields are ambiguous and rejected
+in all annotation inputs. Duplicate UUIDs or passage keys within a highlight
 payload are invalid. This conservative policy preserves the unreadable input
 rather than pretending to preserve future fields through an older writer.
 Strict note/link validation remains. Highlight files are bounded at32MiB
