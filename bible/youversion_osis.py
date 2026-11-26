@@ -1,4 +1,4 @@
-"""Local semantic document → OSIS, shared with the #26 YVES research adapter.
+"""Strict semantic document → OSIS conversion for the existing local import.
 
 Writer and explicit book map adapted from our draft PR #59, commit
 3a535332f59fd5b4f45dc8f59ccd0f9e7de8d331. Uses only the standard library;

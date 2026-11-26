@@ -1,4 +1,4 @@
-"""Bounded, local ZIP/YVES source adapter for #26 research.
+"""Bounded local ZIP/YVES adapter for the existing YouVersion import.
 
 No network, installer, HTML execution or permission inference. The byte transform
 and ordered-tree contract follow the independently verified prototype in #26.

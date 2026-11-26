@@ -67,6 +67,7 @@ class Chapter:
         return dict(self.verses)
 
     def primary(self, reference: str) -> str:
+        """Resolve declared native links while retaining unrelated reference identities."""
         return self.primary_references.get(reference, reference) if self.links else reference
 
     def members(self, reference: str) -> tuple[str, ...]:
@@ -190,7 +191,7 @@ class DictionaryReader(NativeToolReader):
     def verify_readable(self) -> None:
         # The packaged SWIG setPosition(SW_POSITION(...)) call stopped native
         # verification. Use the proven dictionary index API instead.
-        """Find a nonempty indexed entry within32 positions, or reject native readability."""
+        """Find a nonempty indexed entry within 32 positions, or reject native readability."""
         for position in range(min(self.dictionary.getEntryCount(), 32)):
             text = self.dictionary.getKeyForEntry(position)
             if not text:
@@ -208,7 +209,7 @@ class GeneralBookReader(NativeToolReader):
     drivers = {"RawGenBook"}
 
     def verify_readable(self) -> None:
-        """Probe at most256 tree positions without inventing a verse-address interface."""
+        """Probe at most 256 tree positions without inventing a verse-address interface."""
         key = self.sword.TreeKey.castTo(self.module.getKey())
         if key is None:
             raise ValueError("This general-book key format is unsupported")
@@ -556,12 +557,14 @@ class Reader:
         return tuple(result)
 
     def has_reference(self, reference: str) -> bool:
+        """Check an actual native entry; invalid source references return False."""
         try:
             return bool(self.module.hasEntry(self.key(reference)))
         except ValueError:
             return False
 
     def first_reference(self) -> str:
+        """Return the first indexed source address, respecting retained verse order."""
         if not self.books:
             raise ValueError("No readable indexed passage in resource")
         book = self.books[0]
@@ -570,6 +573,7 @@ class Reader:
         return f"{book.code}.{chapter}.{verse}"
 
     def chapter_label(self, reference: str) -> str:
+        """Keep supplied section labels, otherwise expose the canonical chapter token."""
         reference = reference if reference.count(".") == 1 else reference.rsplit(".", 1)[0]
         if self.addresses and self.addresses.sections:
             label = self.addresses.sections.labels.get(reference)
@@ -602,6 +606,7 @@ class Reader:
         raise ValueError("Invalid source reference range")
 
     def reference_sort_key(self, reference: str) -> tuple[int, int]:
+        """Order public verses by native chapter slot and original verse number."""
         key = self.key(reference)
         verse = key.getVerse()
         native = self.sword.VerseKey(key)
