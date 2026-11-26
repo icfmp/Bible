@@ -78,7 +78,7 @@ class IndependentOpeningTests(unittest.TestCase):
                 self.assertEqual(tab.state.reference, "Gen.19.1")
                 self.assertIn("SYNTHETIC TARGET NINETEEN", tab.text.get_buffer().props.text)
                 self.assertFalse(tab.status.get_visible())
-                self.assertTrue(tab.show("Gen.19.1"))
+                self.assertTrue(tab.show_reference("Gen.19.1"))
                 spin()
                 self.assertIn("SYNTHETIC TARGET NINETEEN", tab.text.get_buffer().props.text)
                 window.primary_version.sync()

@@ -316,7 +316,7 @@ class ReadingSyncTests(unittest.TestCase):
             self.assertIn("Gen.2.1", str(tab.state.commentary_positions))
             tab._travelling = True
             try:
-                tab.show("Gen.1.6")
+                tab.show_reference("Gen.1.6")
             finally:
                 tab._travelling = False
             spin(lambda: not tab._restoring_scroll)

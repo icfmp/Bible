@@ -352,7 +352,7 @@ class WindowTests(unittest.TestCase):
             adjustment.set_value(maximum * 0.55)
             first_fraction = first.state.scroll
             second = window.new_tab()
-            second.show("Gen.2.1")
+            second.show_reference("Gen.2.1")
             spin(lambda: not second._restoring_scroll)
             adjustment = second.scroll.get_vadjustment()
             adjustment.set_value((adjustment.get_upper() - adjustment.get_page_size()) * 0.35)
@@ -377,7 +377,7 @@ class WindowTests(unittest.TestCase):
             window = self.window(directory)
             tab = window.active_tab
             window.navigate_selection("Test", "Gen.1.1")
-            tab.show("Gen.2.1")
+            tab.show_reference("Gen.2.1")
             window.new_tab()
             window.navigate_selection("Other", "Gen.2.1")
             window.close()
@@ -469,7 +469,7 @@ class WindowTests(unittest.TestCase):
             installed_fixture(directory)
             window = self.window(directory)
             second = window.new_tab()
-            second.show("Gen.2.1")
+            second.show_reference("Gen.2.1")
             window.view.reorder_page(window.view.get_selected_page(), 0)
             window.close()
             restored = self.window(directory)
@@ -484,7 +484,7 @@ class WindowTests(unittest.TestCase):
             installed_fixture(directory, long_text=True)
             window = self.window(directory)
             first = window.active_tab
-            first.show("Gen.1.2")
+            first.show_reference("Gen.1.2")
             spin(lambda: not first._restoring_scroll)
             self.assertGreater(first.scroll.get_vadjustment().get_value(), 100)
             first.scroll.get_vadjustment().set_value(0)

@@ -885,7 +885,7 @@ class Window(Adw.ApplicationWindow):
         if immersion.kind == "bible" and tab.reader:
             tab._travelling = True
             try:
-                tab.show(anchor.reference)
+                tab.show_reference(anchor.reference)
             finally:
                 tab._travelling = False
             if anchor.reference in tab._verse_ranges:
@@ -1163,7 +1163,7 @@ class Window(Adw.ApplicationWindow):
             previous, following = tab.reader.neighbours(tab.state.reference)
             reference = previous if direction < 0 else following
             if reference:
-                tab.show(reference)
+                tab.show_reference(reference)
 
     def update_navigation(self) -> None:
         """Update active source/passage actions while leaving hidden expensive chooser models untouched."""

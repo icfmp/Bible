@@ -215,7 +215,7 @@ class EditorialUITests(unittest.TestCase):
                 tab.select_verse("John.1.2")
                 spin()
                 self.assertTrue(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
-                tab.show("John.2.1")
+                tab.show_reference("John.2.1")
                 spin(lambda: any("SECOND EDITORIAL" in b.get_tooltip_text() for b in markers()))
                 self.assertFalse(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
                 self.assertNotIn("EDITORIAL ONLY", tab.text.get_buffer().props.text)

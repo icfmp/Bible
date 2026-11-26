@@ -299,7 +299,7 @@ def main() -> None:
                 assert not tab._comparison_aligned, "No NFC/NBS alignment has been verified"
                 comparison = tab.comparison_visible_reference()
                 assert comparison and comparison.startswith("Gen.11.")
-                tab.show("Sir.43.17")
+                tab.show_reference("Sir.43.17")
                 spin()
                 assert tab._comparison_reader and tab.comparison_visible_reference().startswith(
                     "Gen.11."

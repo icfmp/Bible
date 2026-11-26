@@ -61,7 +61,7 @@ class Resource:
     text_source: str = ""
 
     @property
-    def public_code(self):
+    def public_code(self) -> str:
         """Return a bounded source abbreviation, suppressing generated/private-looking identifiers."""
         value = self.abbreviation
         if not isinstance(value, str) or len(value) > 40 or any(ord(c) < 32 for c in value):
@@ -73,7 +73,7 @@ class Resource:
         return value
 
     @property
-    def short_label(self):
+    def short_label(self) -> str:
         """One public label for tabs and choosers; internal IDs stay internal."""
         return self.public_code or self.description or self.source
 
@@ -501,7 +501,7 @@ class Library:
                 self.discovery_errors[name] = str(error)
         return matching
 
-    def resource(self, name):
+    def resource(self, name: str) -> Resource:
         """Read installed attribution offline, also for pre-existing installations."""
         if name not in self.installed():
             raise ValueError("Translation is not installed")
@@ -510,7 +510,7 @@ class Library:
             raise ValueError("Expected one resource configuration")
         metadata_path = self.root / name / ".source.json"
 
-        def revision(path):
+        def revision(path: Path) -> tuple[int, int, int, int, int] | None:
             try:
                 info = path.stat()
             except FileNotFoundError:
@@ -523,7 +523,9 @@ class Library:
 
     @staticmethod
     @lru_cache(maxsize=128)
-    def _read_resource(name, configuration, metadata_path, revision: object):
+    def _read_resource(
+        name: str, configuration: Path, metadata_path: Path, revision: object
+    ) -> Resource:
         # Cache immutable attribution only, never Readers or library instances.
         # Native file revisions invalidate both configuration and provenance;
         # installation checks above still reject missing/removed resources.

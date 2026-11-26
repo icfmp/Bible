@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import cast
 
@@ -28,6 +28,9 @@ class _IndicatorRow:
 
 class ContextTextView(Gtk.TextView):
     """Paint transient study coverage without changing selection, text tags or saved highlights."""
+
+    _verse_fragments: Sequence[tuple[str, int, int]]
+    _verse_labels: dict[str, str]
 
     def set_study_ranges(self, ranges: Iterable[tuple[int, int]]) -> None:
         """Replace half-open buffer offsets and redraw only when coverage changes.

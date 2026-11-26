@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING, Protocol, cast
 if TYPE_CHECKING:
     from .ui import Window
     from .library import Library
-    from .reading_tab import ReadingTab
+    from .reading_tab import ReadingTab, PositionAnchor
     from .sword_provider import Reader
-    from .pagination import Anchor
     from .catalogue_session import CatalogueSession
 
 import gc
@@ -50,7 +49,7 @@ class ModuleViewChange:
         self.root = (dialog.library.root / identifier).resolve()
         self.windows: list[Window] = []
         self.paused = False
-        self.tabs: list[tuple[Window, ReadingTab, bool, bool, Anchor | None]] = []
+        self.tabs: list[tuple[Window, ReadingTab, bool, bool, PositionAnchor | None]] = []
 
     def matches(self, reader: Reader | None) -> bool:
         """Match the resolved module root rather than a title or translation label."""
