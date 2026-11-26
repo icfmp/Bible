@@ -7,6 +7,11 @@ chapters, with processing instructions retaining physical entry identities.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import Sword
 from dataclasses import dataclass
 import re
 import unicodedata
@@ -41,18 +46,24 @@ class EditorialNote:
 
 
 def project(
-    root, *, milestones: bool = False, preverse=None, normalize: bool = True, editorial: bool = True
-):
+    root: E.Element,
+    *,
+    milestones: bool = False,
+    preverse: str | None = None,
+    normalize: bool = True,
+    editorial: bool = True,
+) -> tuple[dict[str, str], tuple[EditorialNote, ...], tuple[str, ...]]:
     """Project actual OSIS verse bodies, notes and titles with explicit milestone/storage boundaries.
 
     Normalization and editorial inclusion are caller-controlled; no content
     is synthesized for missing source references.
     """
-    bodies = defaultdict(list)
-    notes, titles = [], []
+    bodies: defaultdict[str, list[str]] = defaultdict(list)
+    notes: list[EditorialNote] = []
+    titles: list[str] = []
     active = preverse
 
-    def visit(node) -> None:
+    def visit(node: E.Element) -> None:
         nonlocal active
         if node.tag is E.ProcessingInstruction:
             target, _, reference = (node.text or "").partition(" ")
@@ -89,7 +100,7 @@ def project(
             # the heading or the biblical body.
             parts = []
 
-            def heading(el) -> None:
+            def heading(el: E.Element) -> None:
                 if tag(el) == "note":
                     visit(el)
                     return
@@ -119,7 +130,7 @@ def project(
     return projected, tuple(notes), tuple(titles)
 
 
-def semantic_roles(root):
+def semantic_roles(root: E.Element) -> list[tuple[str, tuple[tuple[str, str], ...]]]:
     """Preserve explicit inline styling, quotation/reference and list levels."""
     accepted = {
         "hi",
@@ -159,10 +170,16 @@ def semantic_roles(root):
     return result
 
 
-def native_chapter(module, key, chapter, references):
-    """Parse complete native entries plus their physical identities so cross-entry markup stays intact."""
+def native_chapter(
+    module: Sword.SWModule, key: Sword.VerseKey, chapter: str, references: Iterable[str]
+) -> E.Element:
+    """Parse native entries with physical identities so cross-entry markup stays intact.
 
-    def entry(ref):
+    Mutates the supplied key and module; serialize access on their owning path.
+    Supply native storage references, not public source section aliases.
+    """
+
+    def entry(ref: str) -> str:
         key.setText(ref)
         module.setKey(key)
         value = module.getRawEntry()
