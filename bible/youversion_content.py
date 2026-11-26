@@ -13,15 +13,16 @@ import unicodedata
 from xml.etree import ElementTree as E
 
 
-def normalized(value):
+def normalized(value: str) -> str:
     return re.sub(r"\s+", " ", unicodedata.normalize("NFC", value)).strip()
 
 
-def tag(node):
+def tag(node: E.Element) -> str:
     return node.tag.rsplit("}", 1)[-1] if isinstance(node.tag, str) else ""
 
 
-def parse(raw):
+def parse(raw: str) -> E.Element:
+    """Parse the supported OSIS subset without accepting DTD or entity declarations."""
     # No entities, external references or DTDs in the accepted OSIS subset.
     if "<!DOCTYPE" in raw or "<!ENTITY" in raw:
         raise ValueError("Unsupported OSIS declaration")

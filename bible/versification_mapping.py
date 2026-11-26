@@ -5,13 +5,38 @@ canon must match the pinned data before its implicit identities can be used.
 Existing native-to-native resolution remains in reference_resolution.
 """
 
+from __future__ import annotations
+
+from typing import NotRequired, TypedDict, cast
 from functools import lru_cache
 import json
 from pathlib import Path
 
 
+class _Convention(TypedDict):
+    system: str
+    books: list[str]
+
+
+class _Identity(TypedDict):
+    system: str
+    chapters: dict[str, list[list[int]]]
+
+
+class MappingTable(TypedDict):
+    """Consumed fields of existing pinned/reference-only versification metadata."""
+
+    canon: dict[str, list[int]]
+    forward: NotRequired[dict[str, list[str]]]
+    reverse: NotRequired[dict[str, list[str]]]
+    declared_convention: NotRequired[_Convention]
+    verified_identity: NotRequired[_Identity]
+    explicit_only: NotRequired[bool]
+    absent: NotRequired[list[str]]
+
+
 @lru_cache(maxsize=None)
-def table(system):
+def table(system: str) -> MappingTable | None:
     """Load a registered mapping only when its complete canon matches native SWORD.
 
     Returns:
@@ -32,11 +57,12 @@ def table(system):
     if path is None:
         from .source_versification import reference_mapping
 
-        data = reference_mapping(system)
-        if data is None:
+        indexed = reference_mapping(system)
+        if indexed is None:
             return None
+        data = cast(MappingTable, indexed)
     else:
-        data = json.loads(path.read_text())
+        data = cast(MappingTable, json.loads(path.read_text()))
     key = Sword.VerseKey()
     key.setVersificationSystem(system)
     # Inspect the declared index, not normalized positions in the next
@@ -44,7 +70,7 @@ def table(system):
     key.setAutoNormalize(False)
     if key.getVersificationSystem() != system:
         return None
-    canon = {}
+    canon: dict[str, list[int]] = {}
     for testament in (1, 2):
         key.setTestament(testament)
         for book in range(1, key.getBookMax() + 1):
@@ -60,23 +86,23 @@ def table(system):
     return data
 
 
-def valid(reference, data):
+def valid(reference: str, data: MappingTable) -> bool:
     """Check a numeric reference against a supplied verified canon, including verse0."""
     try:
-        book, chapter, verse = reference.split(".")
-        chapter, verse = int(chapter), int(verse)
+        book, chapter_text, verse_text = reference.split(".")
+        chapter, verse = int(chapter_text), int(verse_text)
         sizes = data["canon"][book]
         return 1 <= chapter <= len(sizes) and 0 <= verse <= sizes[chapter - 1]
     except (ValueError, KeyError):
         return False
 
 
-def verified_identity(reference, data):
+def verified_identity(reference: str, data: MappingTable) -> bool:
     """Explicit text-audited verse intervals, never equal-size canon inference."""
     bridge = data.get("verified_identity", {})
     try:
-        chapter, verse = reference.rsplit(".", 1)
-        verse = int(verse)
+        chapter, verse_text = reference.rsplit(".", 1)
+        verse = int(verse_text)
         return any(
             first <= verse <= last for first, last in bridge.get("chapters", {}).get(chapter, ())
         )
@@ -84,7 +110,7 @@ def verified_identity(reference, data):
         return False
 
 
-def to_base(reference, system):
+def to_base(reference: str, system: str) -> list[str] | None:
     """Return qualified KJVA references, or None if capability is unavailable."""
     data = table(system)
     base = table("KJVA")
@@ -110,7 +136,7 @@ def to_base(reference, system):
     return [reference] if not data.get("explicit_only") and valid(reference, base) else []
 
 
-def from_base(qualified, system):
+def from_base(qualified: str, system: str) -> list[str] | None:
     """Map one qualified KJVA address through verified reverse tables.
 
     Returns:
