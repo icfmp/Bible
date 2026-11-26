@@ -439,6 +439,8 @@ class NoteStore:
             note = replace(note, links=links)
         note = validate(note)
         with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            self.ensure_recovered()
             if existing:
                 count = self.db.execute(
                     "DELETE FROM notes WHERE id=? AND revision=?", (existing.id, existing.revision)
@@ -461,6 +463,8 @@ class NoteStore:
         """
         self.ensure_recovered()
         with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            self.ensure_recovered()
             if (
                 self.db.execute(
                     "DELETE FROM notes WHERE id=? AND revision=?", (note.id, note.revision)
@@ -544,14 +548,17 @@ class NoteStore:
             destination.exists() and os.path.samefile(destination, self.path)
         ):
             raise NotesError("Choose a backup file different from the notes database")
-        content = json.dumps(
-            {
-                "format": "bible-notes",
-                "version": BACKUP_VERSION,
-                "notes": [asdict(note) for note in self.all()],
-            },
-            ensure_ascii=False,
-        ).encode("utf-8")
+        with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            self.ensure_recovered()
+            content = json.dumps(
+                {
+                    "format": "bible-notes",
+                    "version": BACKUP_VERSION,
+                    "notes": [asdict(note) for note in self.all()],
+                },
+                ensure_ascii=False,
+            ).encode("utf-8")
         if len(content) > MAX_BACKUP:
             raise NotesError("Notes backup exceeds the 32 MiB limit")
         temporary = None
@@ -587,6 +594,7 @@ class NoteStore:
             value = json.loads(data)
             if (
                 not isinstance(value, dict)
+                or set(value) != {"format", "version", "notes"}
                 or value.get("format") != "bible-notes"
                 or type(value.get("version")) is not int
                 or value["version"] not in (1, BACKUP_VERSION)
@@ -611,6 +619,7 @@ class NoteStore:
         added = skipped = conflicts = 0
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
+            self.ensure_recovered()
             existing = self.all()
             identifiers = {note.id for note in existing}
             signatures = {signature(note) for note in existing}

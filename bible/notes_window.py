@@ -764,6 +764,7 @@ class NotesWindow(Adw.Window):
         self.owner = owner
         self.closed = False
         self.passage_filter = None
+        self._related_filter_keys = None
         self.rows = []
         self._choosers = []
         self.connect("close-request", self.on_close)
@@ -1186,7 +1187,7 @@ class NotesSpace(Gtk.Box):
         self.side.append(tools)
         self.sort.set_tooltip_text(
             tr(
-                "Date sorting uses note modification dates. Highlights without dates follow in Bible order."
+                "Date sorting uses annotation modification dates. Highlights without dates follow in Bible order."
             )
         )
         self.status = Gtk.Label(xalign=0, wrap=True, margin_start=12, margin_end=12)

@@ -24,7 +24,9 @@ COLORS = {
 }
 SCHEMA_VERSION = 2
 BACKUP_VERSION = 2
-MAX_BYTES = 8 * 1024 * 1024
+MAX_BYTES = 32 * 1024 * 1024
+# Identity/origin/date fields expand a valid historical8MiB store.
+# Keep space for that migration while retaining a bounded reader.
 LEGACY_NAMESPACE = uuid.UUID("993f333f-8054-4d1a-87b2-d26fe52206fa")
 LEGACY_FIELDS = {"system", "reference", "color", "resource"}
 FIELDS = LEGACY_FIELDS | {"id", "created", "modified", "revision", "origin_resource"}
@@ -330,36 +332,40 @@ class HighlightStore:
             or not re.fullmatch(RESOURCE_ID, resource)
         ):
             raise ValueError("Invalid highlight")
-        marks = dict(self.entries)
-        for reference in references:
-            parts(reference)
-            key = (system, reference)
-            if color is None:
-                marks.pop(key, None)
-            elif key in marks:
-                old = marks[key]
-                if old["color"] != color or old["resource"] != resource:
+        with self.locked():
+            self.check_current()
+            marks = dict(self.entries)
+            for reference in references:
+                parts(reference)
+                key = (system, reference)
+                if color is None:
+                    marks.pop(key, None)
+                elif key in marks:
+                    old = marks[key]
+                    if old["color"] != color or old["resource"] != resource:
+                        marks[key] = dict(
+                            old,
+                            color=color,
+                            resource=resource,
+                            modified=now(),
+                            revision=old["revision"] + 1,
+                        )
+                else:
+                    stamp = now()
                     marks[key] = dict(
-                        old,
+                        system=system,
+                        reference=reference,
                         color=color,
                         resource=resource,
-                        modified=now(),
-                        revision=old["revision"] + 1,
+                        origin_resource=resource,
+                        id=str(uuid.uuid4()),
+                        created=stamp,
+                        modified=stamp,
+                        revision=1,
                     )
-            else:
-                stamp = now()
-                marks[key] = dict(
-                    system=system,
-                    reference=reference,
-                    color=color,
-                    resource=resource,
-                    origin_resource=resource,
-                    id=str(uuid.uuid4()),
-                    created=stamp,
-                    modified=stamp,
-                    revision=1,
-                )
-        self.commit(marks)
+            write(self.path, marks)
+            self.entries = marks
+            self.accept_disk()
 
     def backup(self, path):
         """Export current highlights to a separate, private v2 backup."""

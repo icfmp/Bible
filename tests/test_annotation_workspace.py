@@ -56,6 +56,18 @@ class CollectionTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires actual GTK")
 class AnnotationWorkspaceTests(unittest.TestCase):
+    def test_legacy_notes_window_still_lists_and_filters_saved_notes(self):
+        from bible.notes_window import NotesWindow
+
+        legacy = NotesWindow(self.window)
+        try:
+            self.assertEqual({n.id for n in legacy.rows}, {self.first.id, self.second.id})
+            legacy._related_filter_keys = {("note", self.first.id)}
+            legacy.refresh()
+            self.assertEqual([n.id for n in legacy.rows], [self.first.id])
+        finally:
+            legacy.close()
+
     def test_editor_fills_available_workspace_and_secondary_actions_remain_reachable(self):
         from tests.test_ui import spin
         from bible.ui import Gtk as Gtk

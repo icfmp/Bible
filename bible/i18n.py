@@ -970,7 +970,7 @@ FR.update(
 FR.update({"Highlight annotation": "Surlignage"})
 FR.update(
     {
-        "Date sorting uses note modification dates. Highlights without dates follow in Bible order.": "Le tri par date utilise la modification des notes. Les surlignages sans date suivent dans l’ordre biblique."
+        "Date sorting uses annotation modification dates. Highlights without dates follow in Bible order.": "Le tri par date utilise la modification des annotations. Les surlignages sans date suivent dans l’ordre biblique."
     }
 )
 FR.update(

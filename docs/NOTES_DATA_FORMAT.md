@@ -99,7 +99,9 @@ merely to downgrade the application.
 Every live mutation/export checks the exact prior disk bytes under the same lock.
 A stale app instance must reopen instead of overwriting a newer file. Combined
 operations acquire the notes SQLite write transaction before the highlight lock;
-ordinary autosave cannot interleave the protected snapshot/restore. Locks do not
+ordinary autosave cannot interleave the protected snapshot/restore. Note mutations
+and notes-only export/restore recheck the pending marker after obtaining the
+SQLite write lock, including when they waited behind a restore transaction. Locks do not
 run periodic work or block the main loop waiting for another app. POSIX flock is
 exercised by a separate-process test; the Windows msvcrt counterpart still needs
 native Windows acceptance. Notes continue using their existing SQLite contract.
@@ -117,7 +119,9 @@ backup version2 or SQLite schema2. Unsupported versions and unknown fields are
 rejected before mutation; duplicate UUIDs or passage keys within a highlight
 payload are invalid. This conservative policy preserves the unreadable input
 rather than pretending to preserve future fields through an older writer.
-The existing size limits and strict note/link validation remain. No preferences,
+Strict note/link validation remains. Highlight files are bounded at32MiB
+(the historical8MiB payload gains identity/date/origin fields on migration);
+combined backups remain bounded at48MiB and notes-only backups at32MiB. No preferences,
 resource contents, caches or credentials are added to an annotation backup.
 
 Note merge semantics remain: identical content is skipped, divergent content

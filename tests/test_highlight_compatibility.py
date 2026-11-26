@@ -252,3 +252,92 @@ class CompatibilityTests(unittest.TestCase):
             self.assertEqual(personal_backup.snapshot(notes, reopened), original)
             self.assertEqual(notes.get(note.id), note)
             self.assertFalse(high.pending.exists())
+
+    def test_valid_large_legacy_store_has_room_for_new_identity_fields(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "highlights.json"
+            value = dict(
+                version=1,
+                marks=[
+                    dict(
+                        system="S" * 64,
+                        reference=f"Gen.{i // 1000 + 1}.{i % 1000 + 1}",
+                        color="yellow",
+                        resource="R" * 256,
+                    )
+                    for i in range(19000)
+                ],
+            )
+            data = json.dumps(value).encode()
+            self.assertLess(len(data), 8 * 1024 * 1024)
+            path.write_bytes(data)
+            store = HighlightStore(path)
+            self.assertFalse(store.error)
+            self.assertEqual(len(store.entries), 19000)
+            self.assertGreater(path.stat().st_size, 8 * 1024 * 1024)
+            self.assertEqual(payload(path), store.entries)
+
+    def test_note_autosave_rechecks_recovery_after_obtaining_sqlite_write_lock(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            notes = NoteStore(root / "notes.sqlite3")
+            self.addCleanup(notes.close)
+            note = create(notes)
+            source = root / "notes-backup.json"
+            notes.export(source)
+            original = [asdict(n) for n in notes.all()]
+            marker = root / "annotation-restore.pending.json"
+            actual = notes.ensure_recovered
+            for action in (
+                lambda: notes.save("Keep existing draft", (), existing=note),
+                lambda: notes.save(
+                    "Keep new draft",
+                    (),
+                    versification="KJV",
+                    start="Gen.1.1",
+                    origin_translation="Absent",
+                    origin_language="en",
+                ),
+                lambda: notes.delete(note),
+                lambda: notes.restore(source),
+                lambda: notes.export(root / "blocked-export.json"),
+            ):
+                calls = []
+
+                def restore_starts_after_early_check():
+                    actual()
+                    calls.append(1)
+                    if len(calls) == 1:
+                        marker.write_text(
+                            "Pending restore sentinel; never execute this as recovery"
+                        )
+
+                with patch.object(
+                    notes, "ensure_recovered", side_effect=restore_starts_after_early_check
+                ):
+                    with self.assertRaises(ValueError):
+                        action()
+                self.assertEqual([asdict(n) for n in notes.all()], original)
+                marker.unlink()
+            self.assertFalse((root / "blocked-export.json").exists())
+
+    def test_unknown_note_only_backup_fields_are_preserved_without_partial_import(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            notes = NoteStore(root / "notes.sqlite3")
+            self.addCleanup(notes.close)
+            note = create(notes)
+            path = root / "newer-fields.json"
+            value = dict(
+                format="bible-notes",
+                version=2,
+                notes=[asdict(note)],
+                future_metadata={"keep": "unchanged"},
+            )
+            path.write_text(json.dumps(value))
+            before = path.read_bytes()
+            for action in (lambda: notes.restore(path), lambda: personal_backup.decode(before)):
+                with self.assertRaises(ValueError):
+                    action()
+                self.assertEqual(notes.get(note.id), note)
+                self.assertEqual(path.read_bytes(), before)
