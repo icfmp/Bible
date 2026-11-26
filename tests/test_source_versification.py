@@ -14,7 +14,8 @@ import zipfile
 from bible.source_versification import write_index, register_index, native_loader
 
 
-def native_available():
+def native_available() -> bool:
+    """Probe the packaged registrar without registering an index or fetching content."""
     try:
         native_loader()
         return True

@@ -2,20 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 from dataclasses import dataclass, replace
+
+if TYPE_CHECKING:
+    from .sword_provider import Reader
 from .reference_resolution import resolve_readers as resolve, _span
-from .pagination import Document, StyleSpan
+from .pagination import Document, StyleSpan, PassageSpan
 
 
 @dataclass(frozen=True)
 class Correspondence:
     """One verified correspondence group with actual primary/secondary source members."""
 
-    primary: tuple
-    secondary: tuple
+    primary: tuple[str, ...]
+    secondary: tuple[str, ...]
 
 
-def correspondences(primary, secondary, left, right, linked=((), ())):
+def correspondences(
+    primary: Reader,
+    secondary: Reader,
+    left: Iterable[str],
+    right: Iterable[str],
+    linked: tuple[Iterable[Sequence[str]], Iterable[Sequence[str]]] = ((), ()),
+) -> tuple[Correspondence, ...]:
     """Connected mappings preserve merged/split source blocks exactly once.
 
     Both directions are checked. Unavailable mapping raises, rather than being
@@ -26,7 +37,7 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
     nodes = {(0, r): {(0, r)} for r in left}
     nodes.update({(1, r): {(1, r)} for r in right})
 
-    def merge(first, second) -> None:
+    def merge(first: tuple[int, str], second: tuple[int, str]) -> None:
         own = nodes[first]
         other = nodes.get(second)
         if other is not None and other is not own:
@@ -34,12 +45,12 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
             for n in other:
                 nodes[n] = own
 
-    def connect(side, reference, mapped) -> None:
+    def connect(side: int, reference: str, mapped: Iterable[str]) -> None:
         for ref in mapped:
             merge((side, reference), (1 - side, ref))
 
-    for side, groups in enumerate(linked):
-        for members in groups:
+    for side, linked_groups in enumerate(linked):
+        for members in linked_groups:
             for reference in members[1:]:
                 merge((side, members[0]), (side, reference))
     for side, reader, target, refs in (
@@ -51,7 +62,7 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
             connect(side, ref, _span(mapped.start, mapped.end, target.versification, target))
     unique = {id(group): group for group in nodes.values()}
 
-    def order(group):
+    def order(group: set[tuple[int, str]]) -> int:
         own = [primary.key(ref).getIndex() for side, ref in group if side == 0]
         if own:
             return min(own)
@@ -77,7 +88,12 @@ def correspondences(primary, secondary, left, right, linked=((), ())):
     return tuple(result)
 
 
-def row_document(document, rows, side, gap):
+def row_document(
+    document: Document,
+    rows: Iterable[Correspondence],
+    side: int,
+    gap: str,
+) -> tuple[Document, tuple[tuple[int, int], ...]]:
     """Reuse source words/styles, add paragraph boundaries only in comparison."""
     pieces = []
     copies = []
@@ -85,7 +101,7 @@ def row_document(document, rows, side, gap):
     styles = []
     bounds = []
     offset = 0
-    source = {}
+    source: dict[str, list[tuple[int, PassageSpan]]] = {}
     for i, s in enumerate(document.spans):
         for ref in s.members:
             source.setdefault(ref, []).append((i, s))

@@ -60,7 +60,7 @@ def table(system: str) -> MappingTable | None:
         indexed = reference_mapping(system)
         if indexed is None:
             return None
-        data = cast(MappingTable, indexed)
+        data = indexed
     else:
         data = cast(MappingTable, json.loads(path.read_text()))
     key = Sword.VerseKey()
