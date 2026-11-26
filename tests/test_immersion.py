@@ -1,3 +1,4 @@
+"""Immersive reading, canonical position restoration and annotation preservation."""
 import os
 from pathlib import Path
 import tempfile

@@ -36,6 +36,12 @@ class LayoutContext:
 
 
 class BookStream(PagedStream):
+    """Prepare book documents/page plans with one worker and bounded per-stream caches.
+
+    GTK objects stay on their owner thread. Worker layout uses its own font
+    map and immutable configuration snapshot; close cancels and joins before
+    backing resource files can be removed.
+    """
     def __init__(self, widget, source, preferences):
         super().__init__(widget, source, preferences)
         context = widget.get_pango_context()
@@ -77,6 +83,7 @@ class BookStream(PagedStream):
                 cache.popitem(last=False)
 
     def build(self, key, preferences, width, height, anchor, cancelled=None):
+        """Build or reuse a plan keyed by source visibility, typography, geometry and anchor."""
         checkpoint(cancelled)
         signature = self.document_signature(key, preferences)
         plan_key = (
@@ -301,6 +308,7 @@ class BookStream(PagedStream):
         return self.requested_anchor or super().anchor()
 
     def close(self):
+        """Cancel outstanding work, join the worker and release resource-dependent caches."""
         self.closed = True
         self.cancel_pending()
         # Cooperative cancellation stops at the next native-operation boundary;

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 
 class VersificationMismatch(ValueError):
+    """A source/target correspondence could not be established with verified data."""
     pass
 
 
@@ -14,6 +15,7 @@ MAPPED_SYSTEMS = frozenset(
 
 @dataclass(frozen=True)
 class ResolvedPassage:
+    """A contiguous verified target range plus separately identified introductions."""
     start: str | None
     end: str | None
     introductions: tuple[str, ...] = ()
@@ -36,6 +38,25 @@ def resolve_readers(reference, source_reader, target_reader, require_entry=True)
 def resolve(
     reference, source_system, target_reader, require_entry=True, *, include_introductions=False
 ):
+    """Resolve one source reference using verified native or packaged capabilities.
+
+    Never equate numbering by label alone or truncate a noncontiguous result.
+    When requested, introductions are returned separately from numbered verses.
+
+    Args:
+        reference: Canonical or supported book/chapter/verse input.
+        source_system: Declared numbering system of the input.
+        target_reader: Reader supplying the target canon and entry availability.
+        require_entry: Require each mapped target entry to exist locally.
+        include_introductions: Retain explicitly mapped introduction contexts.
+
+    Returns:
+        A ResolvedPassage in the target numbering system.
+
+    Raises:
+        VersificationMismatch: Verified correspondence is unavailable or incomplete.
+        ValueError: The input is invalid or a required target entry is absent.
+    """
     import re
     import Sword
     from .book_names import canonical_input

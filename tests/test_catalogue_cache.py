@@ -1,3 +1,4 @@
+"""Bounded validated catalogue caching and offline failure behavior."""
 from dataclasses import replace
 from pathlib import Path
 import tempfile

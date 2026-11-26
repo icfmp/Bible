@@ -19,6 +19,7 @@ from .preparation import checkpoint
 
 @dataclass(frozen=True)
 class Anchor:
+    """A canonical reference plus body-character and presentation-spacing position."""
     reference: str
     offset: int = 0
     at_body: bool = False
@@ -28,6 +29,7 @@ class Anchor:
 
 @dataclass(frozen=True)
 class PassageSpan:
+    """One source passage span with body offsets, aliases and optional fragment bases."""
     reference: str
     start: int
     body: int
@@ -50,6 +52,7 @@ class PassageSpan:
 
 @dataclass(frozen=True)
 class StyleSpan:
+    """A presentation role over Python-character offsets; it does not rewrite source text."""
     kind: str
     start: int
     end: int
@@ -65,6 +68,7 @@ def paragraph_spaces(text):
 
 @dataclass
 class Document:
+    """Display text, canonical spans and optional copy text sharing the same offset space."""
     key: object
     text: str
     spans: tuple[PassageSpan, ...]
@@ -72,6 +76,7 @@ class Document:
     copy_text: str | None = None
 
     def copy(self, start, end):
+        """Copy the requested range while omitting only explicitly hidden/native UI decoration."""
         text = self.copy_text if self.copy_text is not None else self.text
         hidden = sorted(
             (max(start, s.start), min(end, s.end))
@@ -92,6 +97,7 @@ class Document:
         return "".join(pieces)
 
     def anchor(self, offset):
+        """Convert a display offset to a source reference and non-whitespace character anchor."""
         source = getattr(self, "source_document", None)
         if source is not None:
             return source.anchor(offset - sum(position < offset for position in self.inline))
@@ -121,6 +127,7 @@ class Document:
         return anchor
 
     def locate(self, anchor):
+        """Locate a canonical anchor in the current presentation, preserving fragment and spacing."""
         source = getattr(self, "source_document", None)
         if source is not None:
             return self.source_shift(source.locate(anchor))
@@ -142,6 +149,7 @@ class Document:
         return max(span.body, min(span.end, span.end + anchor.spacing))
 
     def selected_passage(self, start, end):
+        """Return the selected canonical endpoint references, or None outside passage bodies."""
         spans = [s for s in self.spans if s.body < end and s.end > start]
         if not spans:
             return None
@@ -157,24 +165,28 @@ class Document:
 
 @dataclass(frozen=True)
 class Page:
+    """A half-open character interval partitioning a display document."""
     start: int
     end: int
 
 
 @dataclass
 class PagePlan:
+    """Measured document pages and body-grid capacity for the current reading geometry."""
     document: Document
     pages: tuple[Page, ...]
     capacity: float = 0
     reading_height: float = 0
 
     def containing(self, offset):
+        """Find the page containing an offset, falling back to the final page."""
         return next(
             (i for i, p in enumerate(self.pages) if p.start <= offset < p.end),
             max(0, len(self.pages) - 1),
         )
 
     def page_for_anchor(self, anchor):
+        """Find an anchor's page, skipping invisible chapter-prefix whitespace."""
         offset = self.document.locate(anchor) if anchor and self.document.spans else 0
         if anchor and not anchor.at_body:
             # A chapter's canonical prefix includes its leading separators.
@@ -187,6 +199,7 @@ class PagePlan:
 
 
 def attributes(document, start=0, end=None, *, context=None, preferences=None, cancelled=None):
+    """Build Pango byte-range attributes from character spans without changing source offsets."""
     end = len(document.text) if end is None else end
     values = Pango.AttrList()
     # Encode each intervening slice once, rather than the entire prefix twice

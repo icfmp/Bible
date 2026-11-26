@@ -9,6 +9,11 @@ from .scroll_motion import stop_native_scroll
 
 
 class ReadingSync:
+    """Coordinate user-led Bible/study following on the GTK owner thread.
+
+    One pending callback coalesces input. Layout/programmatic movements do not
+    become drivers, and hidden study content does not trigger synchronization.
+    """
     def __init__(self, owner):
         self.owner = owner
         self.driver = None
@@ -22,6 +27,7 @@ class ReadingSync:
         self.bind(owner.study.scroll, owner.study.text, "commentary")
 
     def bind(self, scroll, view, side, tab=None):
+        """Observe native wheel/key/scrollbar intent without consuming the default scrolling gesture."""
         if tab:
             tab.sync_coordinator = self
         wheel = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
@@ -76,6 +82,7 @@ class ReadingSync:
         )
 
     def intent(self, side, tab=None):
+        """Arm a user-selected driver and cancel obsolete automatic viewport restoration."""
         if tab is not None and tab is not self.owner.active_tab:
             return False
         if self.driver != side and self.owner.active_tab:
@@ -151,11 +158,18 @@ class ReadingSync:
             self.schedule()
 
     def schedule(self):
+        """Queue at most one short main-loop callback for pending user intent."""
         if not self.pending:
             self.pending = True
             GLib.timeout_add(35, self.synchronize)
 
     def synchronize(self):
+        """Apply eligible user intent once, using verified passage correspondence.
+
+        The callback exits for hidden/closed/immersive or unstable layouts. A
+        bounded follow-up handles selection-induced reflow; it never starts
+        permanent polling or invents cross-versification alignments.
+        """
         self.pending = False
         owner = self.owner
         tab = owner.active_tab

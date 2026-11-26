@@ -7,6 +7,7 @@ from .notes import parts as parts
 
 
 class PassageAnnotations:
+    """Cache verified display projections separately from persisted annotation identity."""
     def __init__(self, library=None):
         self.cache = OrderedDict()
         self._reader_caches = weakref.WeakKeyDictionary()
@@ -16,6 +17,7 @@ class PassageAnnotations:
         self._notes_snapshot = ()
 
     def clear(self):
+        """Release cached readers, projections and note snapshots without deleting annotations."""
         self.cache.clear()
         self._reader_caches.clear()
         self._reader = None
@@ -23,6 +25,7 @@ class PassageAnnotations:
         self._notes_snapshot = ()
 
     def source_reader(self, reader, origin):
+        """Reuse a bounded pool of validated installed origin readers, or raise if unavailable."""
         if reader is not None and origin == reader.name:
             return reader
         if not self.library:
@@ -49,6 +52,7 @@ class PassageAnnotations:
         return pool[origin][1]
 
     def stored_notes(self, store):
+        """Refresh the cached validated notes only when store identity or SQLite data changes."""
         version = (
             store.db.execute("PRAGMA data_version").fetchone()[0] if hasattr(store, "db") else 0
         )
@@ -62,6 +66,12 @@ class PassageAnnotations:
         # Providers can share a numbering-system name but use distinct native
         # address maps. Never reuse another reader's native positions or keep
         # its SWORD handles alive through this metadata cache.
+        """Return independently verified target intervals without rewriting saved anchors.
+
+        Unmappable gaps are omitted locally rather than filled by guessed endpoint
+        correspondence. Cache entries belong to reader instances and do not keep
+        replaced native resource handles alive.
+        """
         if self._reader is None or self._reader() is not reader:
             self.cache = self._reader_caches.setdefault(reader, OrderedDict())
             self._reader = weakref.ref(reader)

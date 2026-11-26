@@ -1,3 +1,4 @@
+"""Background book preparation, cancellation and bounded document/page caches."""
 import os
 from pathlib import Path
 import tempfile

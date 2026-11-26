@@ -1,3 +1,4 @@
+"""Visible-passage context indicators and independent reading controls."""
 import os
 from pathlib import Path
 import tempfile

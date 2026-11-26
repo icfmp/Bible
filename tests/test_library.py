@@ -1,3 +1,4 @@
+"""Resource validation, safe downloads and installed-resource discovery."""
 import io
 from pathlib import Path
 import tarfile

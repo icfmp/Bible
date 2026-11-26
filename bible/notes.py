@@ -35,14 +35,24 @@ BOOK_ORDER = {
 
 
 class NotesError(ValueError):
+    """A local annotation contract or persistence operation could not be completed."""
     pass
 
 
 class NoteConflict(NotesError):
+    """The saved revision changed; the caller must keep the unsaved draft."""
     pass
 
 
 def parts(reference):
+    """Validate a canonical passage address without requiring an installed module.
+
+    Returns:
+        Book code, chapter (integer or subchapter string), and verse integer.
+
+    Raises:
+        NotesError: The address syntax or supported verse bound is invalid.
+    """
     if not isinstance(reference, str) or not re.fullmatch(
         r"[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}(?:_[1-9][0-9]{0,2})?\.[1-9][0-9]{0,3}",
         reference,
@@ -55,12 +65,14 @@ def parts(reference):
 
 
 def passage_order(reference):
+    """Return the book and numeric chapter/subchapter/verse tuple for local ordering."""
     book, chapter, verse = parts(reference)
     values = str(chapter).split("_")
     return book, (int(values[0]), int(values[1]) if len(values) > 1 else 0), verse
 
 
 def label_key(value):
+    """Normalize and validate a label before case-insensitive identity comparison."""
     if not isinstance(value, str):
         raise NotesError("Invalid label")
     value = unicodedata.normalize("NFC", value.strip())
@@ -70,6 +82,7 @@ def label_key(value):
 
 
 def clean_labels(values):
+    """Validate, normalize and deduplicate labels without changing note content."""
     if not isinstance(values, (list, tuple)) or len(values) > 32:
         raise NotesError("Invalid labels")
     found = {}
@@ -81,12 +94,14 @@ def clean_labels(values):
 
 @dataclass(frozen=True)
 class PassageLink:
+    """An explicit numbering-system-qualified range, independent of resource availability."""
     versification: str
     start: str
     end: str
 
 
 def validate_link(link):
+    """Validate an ordered single-book range without guessing a versification equivalence."""
     if isinstance(link, dict):
         link = PassageLink(**link)
     if not isinstance(link, PassageLink):
@@ -103,6 +118,7 @@ def validate_link(link):
 
 @dataclass(frozen=True)
 class Note:
+    """An immutable note UUID with primary passage, source context and explicit secondary links."""
     id: str
     versification: str
     start: str
@@ -118,9 +134,11 @@ class Note:
 
     @property
     def passages(self):
+        """Return the primary passage followed by saved secondary links."""
         return (PassageLink(self.versification, self.start, self.end), *self.links)
 
     def covers(self, reference):
+        """Check same-system overlap for a single canonical address without mapping systems."""
         book, chapter, verse = passage_order(reference)
         return any(
             link.versification == self.versification
@@ -131,6 +149,11 @@ class Note:
 
 
 def validate(note):
+    """Validate and normalize a note while retaining its UUID, body and recorded dates.
+
+    Raises:
+        NotesError: A field, range, timestamp, revision or linked passage is invalid.
+    """
     try:
         if str(uuid.UUID(note.id)) != note.id:
             raise ValueError("Invalid note identifier")
@@ -171,10 +194,17 @@ def validate(note):
 
 
 def now():
+    """Return a timezone-aware UTC timestamp for an actual local edit."""
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
 class NoteStore:
+    """Own one local SQLite connection and preserve validated note revisions and links.
+
+    Use on the connection-owning thread. Schema1 migration requires a verified
+    private snapshot before the additive schema2 transaction. Unreadable or
+    unsupported databases are rejected rather than replaced.
+    """
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -253,6 +283,7 @@ class NoteStore:
             UNIQUE(note_id,versification,start,end))""")
 
     def _backup_before_migration(self):
+        """Durably snapshot schema1 under the caller's write lock, then verify logical contents."""
         directory = self.path.parent / "backups"
         directory.mkdir(parents=True, exist_ok=True)
         descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=".notes-schema-")
@@ -285,6 +316,7 @@ class NoteStore:
             temporary.unlink(missing_ok=True)
 
     def all(self):
+        """Read and validate all persisted notes, including labels and ordered linked passages."""
         result = []
         for row in self.db.execute("SELECT * FROM notes"):
             labels = tuple(
@@ -311,12 +343,15 @@ class NoteStore:
         return result
 
     def get(self, identifier):
+        """Return the validated note with this UUID, or None if it no longer exists."""
         return next((note for note in self.all() if note.id == identifier), None)
 
     def labels(self):
+        """Return retained label display names ordered by normalized label identity."""
         return [r[0] for r in self.db.execute("SELECT name FROM labels ORDER BY key")]
 
     def _write(self, note):
+        """Insert a validated note and its associations inside the caller's transaction."""
         record = asdict(note)
         record.pop("labels")
         record.pop("links")
@@ -336,6 +371,7 @@ class NoteStore:
             )
 
     def ensure_recovered(self):
+        """Refuse ordinary writes/exports while a combined restore requires recovery."""
         if (self.path.parent / "annotation-restore.pending.json").exists():
             raise NotesError(
                 "Annotation restore recovery is pending. Reopen Bible before editing or exporting annotations."
@@ -354,6 +390,22 @@ class NoteStore:
         origin_language=None,
         links=None,
     ):
+        """Create or replace a note atomically using optimistic revision detection.
+
+        Existing UUID, primary passage, original context and creation date survive
+        edits. The caller retains its draft when validation or persistence fails.
+
+        Args:
+            existing: Prior immutable note revision, or None for a new note.
+            links: Explicit secondary passages; None preserves existing links.
+
+        Returns:
+            The validated persisted note with its new local revision.
+
+        Raises:
+            NoteConflict: Another edit or deletion invalidated the supplied revision.
+            NotesError: Fields are invalid or combined recovery is pending.
+        """
         self.ensure_recovered()
         stamp = now()
         note = (
@@ -397,6 +449,11 @@ class NoteStore:
         return written
 
     def delete(self, note):
+        """Delete only the matching note revision and its label/passage links.
+
+        Highlights are independent and untouched. A stale revision raises
+        NoteConflict rather than deleting a more recent edit.
+        """
         self.ensure_recovered()
         with self.db:
             if (
@@ -413,6 +470,7 @@ class NoteStore:
         self.db.execute("DELETE FROM labels WHERE key NOT IN (SELECT label_key FROM note_labels)")
 
     def passage(self, versification, start, end=None):
+        """Return notes whose explicit same-system passages overlap the requested range."""
         first, last = passage_order(start), passage_order(end or start)
         return [
             note
@@ -427,6 +485,7 @@ class NoteStore:
         ]
 
     def search(self, query="", labels=(), order="recent"):
+        """Filter normalized text/labels and sort by modification date or canonical order."""
         keys = {label_key(value) for value in labels}
         words = [normalized(word) for word in query.split() if normalized(word)]
         result = []
@@ -473,6 +532,7 @@ class NoteStore:
         return result
 
     def export(self, destination):
+        """Atomically export notes-only backupv2, preserving links and excluding resources."""
         self.ensure_recovered()
         destination = Path(destination)
         if destination.resolve() == self.path.resolve() or (
@@ -504,6 +564,15 @@ class NoteStore:
                 temporary.unlink(missing_ok=True)
 
     def restore(self, source):
+        """Validate an entire notes-only backup and merge it in one SQLite transaction.
+
+        Identical content is skipped. Divergent duplicate UUIDs become independent
+        conflict copies retaining their dates and links; repeat imports find that
+        content and do not multiply copies. No highlight store is touched.
+
+        Returns:
+            Counts of added notes, skipped content and remapped UUID conflicts.
+        """
         self.ensure_recovered()
         with Path(source).open("rb") as stream:
             data = stream.read(MAX_BACKUP + 1)
@@ -556,4 +625,5 @@ class NoteStore:
         return added, skipped, conflicts
 
     def close(self):
+        """Close the connection on its owning thread; no annotation data is removed."""
         self.db.close()

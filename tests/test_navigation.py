@@ -1,3 +1,4 @@
+"""Passage selection, canonical navigation and bounded native popover behavior."""
 from pathlib import Path
 import tempfile
 import unittest

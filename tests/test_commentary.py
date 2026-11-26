@@ -1,3 +1,4 @@
+"""Commentary indexes, native reference handling and offline reopening."""
 import io
 from pathlib import Path
 import tarfile

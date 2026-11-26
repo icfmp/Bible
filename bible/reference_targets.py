@@ -12,6 +12,7 @@ class Canon:
         self.versification = system
 
     def key(self, reference):
+        """Validate a native canonical key without normalizing invalid input into another verse."""
         import Sword
 
         key = Sword.VerseKey()
@@ -74,6 +75,7 @@ def source_references(reader, start, end):
 
 
 def destination(reference, reader, *, require_entry=True):
+    """Map an OpenBible-convention address and verify edition-specific target capability."""
     reference_key(reference)
     if reference.startswith("3John."):
         from .versification_mapping import table
@@ -128,6 +130,7 @@ def local_target_ranges(reader, start, end):
 
 @dataclass(frozen=True)
 class LocalExcerpt:
+    """A bounded local excerpt whose actual displayed range may be shorter than its target."""
     start: str
     end: str
     verses: tuple

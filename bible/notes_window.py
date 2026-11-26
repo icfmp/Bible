@@ -78,6 +78,7 @@ def metadata_row(title, icon):
 
 
 class Labels(Gtk.Box):
+    """Native label entry with explicit add/remove and normalized duplicate handling."""
     def __init__(self, existing, changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.values = []
@@ -195,6 +196,11 @@ class Labels(Gtk.Box):
 
 
 class NoteEditor(Adw.Window):
+    """Share the live Markdown editor between the popup and embedded Notes workspace.
+
+    Widget access and autosave run on GTK's owner thread. Failed saves retain
+    the draft; popup close/navigation remains guarded until save or discard.
+    """
     def __init__(
         self,
         owner,
@@ -572,6 +578,7 @@ class NoteEditor(Adw.Window):
             self._saved_status_id = 0
 
     def queue_autosave(self):
+        """Queue one bounded600ms write window; continuous typing does not postpone it forever."""
         if self.closed or self._discard or self._saving:
             return
         # A continuous typing burst must not postpone every write forever.
@@ -585,6 +592,7 @@ class NoteEditor(Adw.Window):
         self._autosave_id = GLib.timeout_add(600, self.autosave_pending)
 
     def autosave_pending(self):
+        """Save a dirty draft unless an uncommitted label/passage still requires explicit Add."""
         self._autosave_id = 0
         if self.closed or self._discard:
             return False
@@ -603,6 +611,12 @@ class NoteEditor(Adw.Window):
         return False
 
     def save(self, close=True):
+        """Validate and save the draft, retaining it on revision conflicts or storage failure.
+
+        Returns:
+            True after persistence succeeds; False while the draft still needs
+            correction/retry. Successful saves update the editor's revision token.
+        """
         if self.closed or self._discard:
             return False
         self.cancel_autosave()
@@ -696,6 +710,7 @@ class NoteEditor(Adw.Window):
             self.destroy()
 
     def on_close(self, *_):
+        """Flush autosave and keep the editor open if unsaved changes need an explicit decision."""
         if self.autosave and self.dirty and not self._discard:
             self.save(close=False)
         if self.dirty and not self._discard:
@@ -736,6 +751,7 @@ class NoteEditor(Adw.Window):
 
 
 class NotesWindow(Adw.Window):
+    """Legacy notes-only window retaining shared note-backup actions for existing callers."""
     def __init__(self, owner):
         super().__init__(
             transient_for=owner, title=tr("My notes"), default_width=720, default_height=700
@@ -1033,6 +1049,7 @@ class NoteItem(GObject.Object):
 
 
 def readable_date(value):
+    """Format a stored timestamp for display, retaining unparseable input as text."""
     from datetime import datetime, timedelta
     from babel.dates import format_date, format_datetime
 
@@ -1885,6 +1902,7 @@ class NotesSpace(Gtk.Box):
         self.owner.set_default_size(width, height)
 
     def flush_for_backup(self):
+        """Persist a pending editor draft before backup, returning False to block an unsafe export."""
         if (
             self.editor
             and not self.editor.closed

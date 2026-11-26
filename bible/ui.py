@@ -36,6 +36,12 @@ from .session import Session, SessionError, SessionStore, TabState
 
 
 class Window(Adw.ApplicationWindow):
+    """Own native reading tabs, study tools and per-profile annotation/session stores.
+
+    GTK lifecycle and persistence entry points run on the main thread. Startup
+    validates stores and runs pending annotation recovery; unreadable state is
+    preserved and reported. Shared highlight state is scoped to application/profile.
+    """
     def __init__(self, app, library, session_path=None):
         super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
@@ -1794,6 +1800,7 @@ class Window(Adw.ApplicationWindow):
         return self.edit_note(note=note, explanation=explanation) if edit else not explanation
 
     def schedule_save(self):
+        """Coalesce session persistence after initialization without touching annotation content."""
         if self._initializing or self.closed or not self._session_writable:
             return
         if self._save_id:
@@ -1801,6 +1808,7 @@ class Window(Adw.ApplicationWindow):
         self._save_id = GLib.timeout_add(300, self.save_session)
 
     def save_session(self):
+        """Persist current tab/session state and report failures without resetting the profile."""
         self._save_id = 0
         if not self._session_writable:
             return False
@@ -1820,6 +1828,11 @@ class Window(Adw.ApplicationWindow):
         self.session_status.set_visible(True)
 
     def on_close(self, *_):
+        """Honor unsaved-note guards, save the session and release native/background consumers.
+
+        Returns:
+            True while a note editor blocks closure; False after cleanup can proceed.
+        """
         if self.immersion:
             self.leave_immersion()
         if self.note_editor and not self.note_editor.closed:
@@ -1901,6 +1914,7 @@ class Window(Adw.ApplicationWindow):
 
 
 class Application(Adw.Application):
+    """Native single-application entry point with profile-scoped window/shared-store state."""
     def __init__(self):
         super().__init__(application_id="io.github.icfmp.Bible")
         action = Gio.SimpleAction.new("quit", None)
@@ -1925,4 +1939,5 @@ class Application(Adw.Application):
 
 
 def main():
+    """Run the native application using the current process command-line arguments."""
     return Application().run()

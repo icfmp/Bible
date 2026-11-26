@@ -8,6 +8,7 @@ from .markdown import render
 
 @dataclass(frozen=True)
 class Annotation:
+    """A read-only note/highlight projection; overlap never creates persisted associations."""
     key: tuple
     system: str
     start: str
@@ -52,6 +53,7 @@ def records(notes, marks):
 
 
 def bible_order(item):
+    """Build a deterministic display sort key without conflating numbering systems."""
     book, chapter, verse = passage_order(item.start)
     return BOOK_ORDER.get(book, 10000), book, chapter, verse, passage_order(item.end), item.key
 
@@ -66,6 +68,11 @@ def filter_records(
     order="recent",
     reference_names=None,
 ):
+    """Filter annotation projections without mutating their underlying stored records.
+
+    Date sorting retains unknown-date legacy highlights after dated records in
+    canonical order. Labels match notes only; missing resources remain searchable.
+    """
     words = [normalized(word) for word in query.split() if normalized(word)]
     wanted = {label_key(label) for label in labels}
     result = []

@@ -1,3 +1,4 @@
+"""Native Pango pagination, exact text partitions and canonical reflow anchors."""
 import os
 from pathlib import Path
 import tempfile

@@ -1,3 +1,4 @@
+"""Provider identities, catalogue metadata and resource-download boundaries."""
 import io
 import tarfile
 from dataclasses import replace

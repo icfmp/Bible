@@ -12,6 +12,12 @@ from pathlib import Path
 
 @lru_cache(maxsize=None)
 def table(system):
+    """Load a registered mapping only when its complete canon matches native SWORD.
+
+    Returns:
+        Cached packaged mapping data, or None when capability is unavailable.
+        A resource name or equal chapter size is never evidence of equivalence.
+    """
     import Sword
 
     # Registry comes from packaged tables, never resource/provider names.
@@ -55,6 +61,7 @@ def table(system):
 
 
 def valid(reference, data):
+    """Check a numeric reference against a supplied verified canon, including verse0."""
     try:
         book, chapter, verse = reference.split(".")
         chapter, verse = int(chapter), int(verse)
@@ -104,6 +111,13 @@ def to_base(reference, system):
 
 
 def from_base(qualified, system):
+    """Map one qualified KJVA address through verified reverse tables.
+
+    Returns:
+        Target addresses, an empty list for an unmapped/absent address, or None
+        when the target mapping capability is unavailable. Psalm-title parts
+        require an explicit mapping and never fall back to a verse body.
+    """
     data = table(system)
     if data is None:
         return None
