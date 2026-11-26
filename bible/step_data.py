@@ -173,7 +173,7 @@ class StepData:
         return connection
 
     def metadata(self):
-        """Return validated installed corpus metadata or None, caching it by database revision."""
+        """Read installed corpus metadata and reject an unavailable or unsupported source database."""
         try:
             with closing(self.connect()) as db:
                 value = json.loads(db.execute("SELECT value FROM metadata").fetchone()[0])
@@ -299,7 +299,7 @@ class StepData:
         return metadata
 
     def verse(self, corpus, reference):
-        """Return actual corpus tokens for at most 1,000 explicit source verse addresses."""
+        """Return at most 1,000 recorded tokens for one explicit source-corpus verse; reject oversized entries."""
         if corpus not in CORPORA:
             raise ValueError("Unsupported source corpus")
         with closing(self.connect()) as db:

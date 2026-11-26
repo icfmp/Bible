@@ -243,7 +243,7 @@ class PlaceData:
         return connection
 
     def metadata(self):
-        """Return checked installed index metadata, cached by file revision, or None when unusable."""
+        """Return revision-cached checked metadata; raise ReferenceDataError for an unusable index."""
         try:
             revision = self.revision
             if revision and revision == self._metadata_revision:

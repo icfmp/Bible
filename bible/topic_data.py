@@ -106,7 +106,7 @@ class TopicData(ReferenceData):
         self.path = self.root / "openbible-topics.sqlite3"
 
     def metadata(self):
-        """Return checked installed topic metadata, cached by file revision, or None when unusable."""
+        """Return revision-cached checked topic metadata; raise ReferenceDataError for an unusable index."""
         try:
             revision = self.revision
             if revision and revision == self._metadata_revision:
