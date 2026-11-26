@@ -10,6 +10,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/ruff format
 .venv/bin/ruff check
+.venv/bin/mypy
 ```
 
 CI runs the same pinned `ruff format --check` and `ruff check`. The formatter
@@ -69,3 +70,28 @@ results and let normal CI run the broad regression suite once, as described in
 [VALIDATION.md](VALIDATION.md). No implementation-mirroring tests are needed for
 formatting or prose. Coordinate repository-wide formatting with active PRs before
 editing their files; do not overwrite concurrent work.
+
+## Progressive static typing
+
+Run `.venv/bin/mypy` with the same pinned development dependency as CI. The
+initial checked boundary is `providers`, `source_sections`, `notes`, `highlights`
+and `personal_backup`; imported modules are read silently, not presented as
+fully checked. Every function in this boundary needs parameter/return annotations.
+Expand this explicit list when an additional component has actually been typed.
+No application dependency or native GTK/SWORD stub package is required.
+
+Annotate public contracts, optional results and ambiguous/empty collections.
+Prefer inferred local types when assignments are clear; Python needs no separate
+variable declaration or redundant annotation for each literal. Use `PathLike`,
+`Iterable`, immutable dataclasses and `TypedDict` according to real caller needs.
+A `TypedDict` documents existing dictionary fields without changing serialized
+keys, schemas or object representation. Keep external JSON dynamically typed at
+the parsing boundary until existing validation proves a stronger contract.
+
+Annotations never replace runtime validation, coerce imported data, create
+missing values or justify changing persisted formats. Keep casts narrow and
+explain their evidence; never add blanket ignores or annotate uncertain code as
+`Any` merely to obtain a green check. Use platform guards understood by the checker for OS-specific bindings.
+Preserve GI initialization and avoid importing GTK
+solely for a type hint. Callbacks and the wider UI will be typed progressively,
+not through a speculative application-wide rewrite.

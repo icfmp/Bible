@@ -25,7 +25,9 @@ jobs:
           cache-dependency-path: requirements-dev.txt
       - name: Install pinned development tooling
         run: python -m pip install -r requirements-dev.txt
-      - name: Check formatting and lint
+      - name: Check formatting, lint and typed contracts
         run: |
           ruff format --check
           ruff check
+          mypy
+          mypy --platform win32

@@ -38,3 +38,15 @@ convention = "google"
 "tools/research/check_ready_context.py" = ["E402"]
 "tools/research/check_ready_words.py" = ["E402"]
 "tools/research/check_selection_geometry.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["bible/providers.py", "bible/source_sections.py", "bible/notes.py", "bible/highlights.py", "bible/personal_backup.py"]
+follow_imports = "silent"
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+warn_return_any = true

@@ -6,8 +6,27 @@ private implementation details, never a substitute for the source reference.
 This module does not interpret headings, infer verse equivalence, or store text.
 """
 
+from collections.abc import Iterable
+from typing import Any, Literal, Self, TypedDict, cast
+
 from dataclasses import dataclass
 import re
+
+
+class SourceChapterRecord(TypedDict):
+    """Serialized section metadata; storage is absent for introductions."""
+
+    reference: str
+    human: str
+    canonical: bool
+    storage: str | None
+
+
+class SectionData(TypedDict):
+    """Existing version-one section sidecar, without resource text."""
+
+    schema: Literal[1]
+    chapters: list[SourceChapterRecord]
 
 
 BOOK = r"[1-5]?[A-Za-z][A-Za-z0-9]{0,15}"
@@ -25,7 +44,7 @@ class SourceChapter:
     human: str
     canonical: bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         match = CHAPTER.fullmatch(self.reference) if isinstance(self.reference, str) else None
         if not match or type(self.canonical) is not bool:
             raise ValueError("Invalid source chapter identity")
@@ -40,22 +59,22 @@ class SourceChapter:
             raise ValueError("Invalid source chapter label")
 
     @property
-    def book(self):
+    def book(self) -> str:
         return self.reference.split(".")[0]
 
 
 class SectionIndex:
     """One-to-one canonical sections; introduction metadata stays explicit."""
 
-    def __init__(self, chapters, storage):
+    def __init__(self, chapters: Iterable[SourceChapter], storage: Iterable[str | None]) -> None:
         self.chapters = tuple(chapters)
         self.storage = tuple(storage)
         if not 1 <= len(self.chapters) <= 10000 or len(self.storage) != len(self.chapters):
             raise ValueError("Invalid source section inventory")
-        self.forward = {}
-        self.reverse = {}
-        self.labels = {}
-        self.order = {}
+        self.forward: dict[str, str] = {}
+        self.reverse: dict[str, str] = {}
+        self.labels: dict[str, str] = {}
+        self.order: dict[str, list[str]] = {}
         seen = set()
         for chapter, native in zip(self.chapters, self.storage):
             if not isinstance(chapter, SourceChapter) or chapter.reference in seen:
@@ -73,6 +92,7 @@ class SectionIndex:
                 or native in self.reverse
             ):
                 raise ValueError("Invalid or overlapping source storage coordinate")
+            native = cast(str, native)  # The full-match guard above proved a string.
             self.forward[chapter.reference] = native
             self.reverse[native] = chapter.reference
             self.labels[chapter.reference] = chapter.human
@@ -81,11 +101,11 @@ class SectionIndex:
             raise ValueError("Invalid canonical source inventory")
 
     @classmethod
-    def allocate(cls, chapters):
+    def allocate(cls, chapters: Iterable[SourceChapter]) -> Self:
         """Assign private per-book slots in the explicit metadata order."""
         chapters = tuple(chapters)
-        counts = {}
-        storage = []
+        counts: dict[str, int] = {}
+        storage: list[str | None] = []
         for chapter in chapters:
             if not isinstance(chapter, SourceChapter):
                 raise ValueError("Invalid source chapter")
@@ -96,7 +116,7 @@ class SectionIndex:
             storage.append(f"{chapter.book}.{counts[chapter.book]}")
         return cls(chapters, storage)
 
-    def transform(self, reference, *, inverse=False, allow_zero=False):
+    def transform(self, reference: str, *, inverse: bool = False, allow_zero: bool = False) -> str:
         """Map checked source/storage chapter identities while preserving the explicit verse number.
 
         Indexed books reject unknown sections; this storage transform establishes
@@ -118,13 +138,13 @@ class SectionIndex:
             raise ValueError("Unindexed source chapter section")
         return chapter + ("." + verse if verse is not None else "")
 
-    def to_native(self, reference, *, allow_zero=False):
+    def to_native(self, reference: str, *, allow_zero: bool = False) -> str:
         return self.transform(reference, allow_zero=allow_zero)
 
-    def to_source(self, reference, *, allow_zero=False):
+    def to_source(self, reference: str, *, allow_zero: bool = False) -> str:
         return self.transform(reference, inverse=True, allow_zero=allow_zero)
 
-    def data(self):
+    def data(self) -> SectionData:
         return dict(
             schema=1,
             chapters=[
@@ -134,7 +154,7 @@ class SectionIndex:
         )
 
     @classmethod
-    def from_data(cls, value):
+    def from_data(cls, value: Any) -> Self:
         """Validate the versioned source-section inventory and construct its checked bidirectional index."""
         if (
             not isinstance(value, dict)
@@ -147,7 +167,7 @@ class SectionIndex:
         if not isinstance(rows, list) or not 1 <= len(rows) <= 10000:
             raise ValueError("Invalid source section inventory")
         chapters = []
-        storage = []
+        storage: list[str | None] = []
         for row in rows:
             if not isinstance(row, dict) or set(row) != {
                 "reference",
