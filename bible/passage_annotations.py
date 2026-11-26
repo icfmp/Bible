@@ -8,6 +8,7 @@ from .notes import parts as parts
 
 class PassageAnnotations:
     """Cache verified display projections separately from persisted annotation identity."""
+
     def __init__(self, library=None):
         self.cache = OrderedDict()
         self._reader_caches = weakref.WeakKeyDictionary()

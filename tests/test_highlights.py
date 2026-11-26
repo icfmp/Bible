@@ -1,4 +1,5 @@
 """Whole-verse highlight edits, merge behavior and atomic-write failures."""
+
 from pathlib import Path
 import tempfile
 import unittest

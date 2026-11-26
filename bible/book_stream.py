@@ -42,6 +42,7 @@ class BookStream(PagedStream):
     map and immutable configuration snapshot; close cancels and joins before
     backing resource files can be removed.
     """
+
     def __init__(self, widget, source, preferences):
         super().__init__(widget, source, preferences)
         context = widget.get_pango_context()

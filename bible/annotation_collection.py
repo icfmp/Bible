@@ -9,6 +9,7 @@ from .markdown import render
 @dataclass(frozen=True)
 class Annotation:
     """A read-only note/highlight projection; overlap never creates persisted associations."""
+
     key: tuple
     system: str
     start: str

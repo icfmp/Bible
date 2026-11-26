@@ -42,6 +42,7 @@ class Window(Adw.ApplicationWindow):
     validates stores and runs pending annotation recovery; unreadable state is
     preserved and reported. Shared highlight state is scoped to application/profile.
     """
+
     def __init__(self, app, library, session_path=None):
         super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
@@ -1915,6 +1916,7 @@ class Window(Adw.ApplicationWindow):
 
 class Application(Adw.Application):
     """Native single-application entry point with profile-scoped window/shared-store state."""
+
     def __init__(self):
         super().__init__(application_id="io.github.icfmp.Bible")
         action = Gio.SimpleAction.new("quit", None)

@@ -36,11 +36,13 @@ BOOK_ORDER = {
 
 class NotesError(ValueError):
     """A local annotation contract or persistence operation could not be completed."""
+
     pass
 
 
 class NoteConflict(NotesError):
     """The saved revision changed; the caller must keep the unsaved draft."""
+
     pass
 
 
@@ -95,6 +97,7 @@ def clean_labels(values):
 @dataclass(frozen=True)
 class PassageLink:
     """An explicit numbering-system-qualified range, independent of resource availability."""
+
     versification: str
     start: str
     end: str
@@ -119,6 +122,7 @@ def validate_link(link):
 @dataclass(frozen=True)
 class Note:
     """An immutable note UUID with primary passage, source context and explicit secondary links."""
+
     id: str
     versification: str
     start: str
@@ -205,6 +209,7 @@ class NoteStore:
     private snapshot before the additive schema2 transaction. Unreadable or
     unsupported databases are rejected rather than replaced.
     """
+
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)

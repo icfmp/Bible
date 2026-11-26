@@ -1,4 +1,5 @@
 """Verse-number typography, source offsets and safe visible selection boundaries."""
+
 import os
 from pathlib import Path
 import tempfile

@@ -20,6 +20,7 @@ from .preparation import checkpoint
 @dataclass(frozen=True)
 class Anchor:
     """A canonical reference plus body-character and presentation-spacing position."""
+
     reference: str
     offset: int = 0
     at_body: bool = False
@@ -30,6 +31,7 @@ class Anchor:
 @dataclass(frozen=True)
 class PassageSpan:
     """One source passage span with body offsets, aliases and optional fragment bases."""
+
     reference: str
     start: int
     body: int
@@ -53,6 +55,7 @@ class PassageSpan:
 @dataclass(frozen=True)
 class StyleSpan:
     """A presentation role over Python-character offsets; it does not rewrite source text."""
+
     kind: str
     start: int
     end: int
@@ -69,6 +72,7 @@ def paragraph_spaces(text):
 @dataclass
 class Document:
     """Display text, canonical spans and optional copy text sharing the same offset space."""
+
     key: object
     text: str
     spans: tuple[PassageSpan, ...]
@@ -166,6 +170,7 @@ class Document:
 @dataclass(frozen=True)
 class Page:
     """A half-open character interval partitioning a display document."""
+
     start: int
     end: int
 
@@ -173,6 +178,7 @@ class Page:
 @dataclass
 class PagePlan:
     """Measured document pages and body-grid capacity for the current reading geometry."""
+
     document: Document
     pages: tuple[Page, ...]
     capacity: float = 0

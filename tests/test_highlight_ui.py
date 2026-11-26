@@ -1,4 +1,5 @@
 """Native highlight selection, recoloring, visibility and shared-window state."""
+
 import os
 from pathlib import Path
 import tempfile

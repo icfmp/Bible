@@ -131,6 +131,7 @@ def local_target_ranges(reader, start, end):
 @dataclass(frozen=True)
 class LocalExcerpt:
     """A bounded local excerpt whose actual displayed range may be shorter than its target."""
+
     start: str
     end: str
     verses: tuple

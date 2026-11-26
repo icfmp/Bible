@@ -1,4 +1,5 @@
 """Shared synthetic installed-resource fixtures and native reader smoke tests."""
+
 import os
 from pathlib import Path
 import shutil

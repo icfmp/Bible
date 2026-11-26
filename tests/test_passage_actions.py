@@ -1,4 +1,5 @@
 """Native selection actions, source-aware copying and annotation commands."""
+
 import os
 from pathlib import Path
 import tempfile

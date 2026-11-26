@@ -1,4 +1,5 @@
 """Parallel reading, direction changes and exact cross-versification mapping."""
+
 import os
 from pathlib import Path
 import tempfile

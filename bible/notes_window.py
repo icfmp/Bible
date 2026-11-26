@@ -79,6 +79,7 @@ def metadata_row(title, icon):
 
 class Labels(Gtk.Box):
     """Native label entry with explicit add/remove and normalized duplicate handling."""
+
     def __init__(self, existing, changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.values = []
@@ -201,6 +202,7 @@ class NoteEditor(Adw.Window):
     Widget access and autosave run on GTK's owner thread. Failed saves retain
     the draft; popup close/navigation remains guarded until save or discard.
     """
+
     def __init__(
         self,
         owner,
@@ -752,6 +754,7 @@ class NoteEditor(Adw.Window):
 
 class NotesWindow(Adw.Window):
     """Legacy notes-only window retaining shared note-backup actions for existing callers."""
+
     def __init__(self, owner):
         super().__init__(
             transient_for=owner, title=tr("My notes"), default_width=720, default_height=700

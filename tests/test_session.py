@@ -1,4 +1,5 @@
 """Versioned reading-session validation and atomic persistence."""
+
 import json
 from pathlib import Path
 import stat

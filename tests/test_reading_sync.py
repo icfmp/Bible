@@ -1,4 +1,5 @@
 """User-driven Bible/commentary following without layout feedback loops."""
+
 import os
 from pathlib import Path
 import tempfile

@@ -1,4 +1,5 @@
 """Existing topic-index validation, source attribution and local lookup."""
+
 import hashlib
 import tempfile
 import unittest

@@ -14,6 +14,7 @@ class ReadingSync:
     One pending callback coalesces input. Layout/programmatic movements do not
     become drivers, and hidden study content does not trigger synchronization.
     """
+
     def __init__(self, owner):
         self.owner = owner
         self.driver = None

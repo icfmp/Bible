@@ -1,4 +1,5 @@
 """Local note validation, optimistic edits, Unicode and portable backup safety."""
+
 from dataclasses import asdict
 import json
 from pathlib import Path

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 class VersificationMismatch(ValueError):
     """A source/target correspondence could not be established with verified data."""
+
     pass
 
 
@@ -16,6 +17,7 @@ MAPPED_SYSTEMS = frozenset(
 @dataclass(frozen=True)
 class ResolvedPassage:
     """A contiguous verified target range plus separately identified introductions."""
+
     start: str | None
     end: str | None
     introductions: tuple[str, ...] = ()

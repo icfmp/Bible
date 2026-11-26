@@ -1,4 +1,5 @@
 """Native resource metadata, source attribution and detail actions."""
+
 import unittest
 from bible.resource_details import plain
 

@@ -1,4 +1,5 @@
 """Commentary source structure, verse ranges and safe presentation markup."""
+
 import unittest
 from bible.commentary_format import format_entry
 
