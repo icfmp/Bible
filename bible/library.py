@@ -19,6 +19,11 @@ import zipfile
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from concurrent.futures import as_completed
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import OrderedDict
+    from .sword_provider import Reader
 from .providers import CROSSWIRE, PROVIDERS, DEFAULT_PROVIDERS, BY_ID, identity, module_name
 
 BASE = "https://www.crosswire.org/ftpmirror/pub/sword/"
@@ -466,6 +471,9 @@ class Library:
     staged and verified before publication; existing complete installs are
     not replaced by the initial-install path.
     """
+
+    # Optional, lazily created origin-reader pool; no native handles at startup.
+    _annotation_readers: OrderedDict[str, tuple[tuple[int, int], Reader]]
 
     def __init__(self, root) -> None:
         self.root = Path(root)

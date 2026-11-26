@@ -188,7 +188,7 @@ class NativeUnitTests(unittest.TestCase):
                 [],
                 versification=r.versification,
                 start="Sir.1_1.1",
-                origin_translation="synthetic",
+                origin_translation=r.name,
                 origin_language="fr",
             )
             ordinary = store.save(
@@ -207,6 +207,26 @@ class NativeUnitTests(unittest.TestCase):
                 [n.id for n in projection.notes(r, note.start, note.end, store)], [note.id]
             )
             self.assertEqual(projection.notes(r, "Sir.1.1", "Sir.1.1", store), [])
+            shared = store.save(
+                "Shared-unit note",
+                [],
+                versification=r.versification,
+                start="Sir.44.22",
+                origin_translation=r.name,
+                origin_language="fr",
+            )
+            self.assertEqual(projection.notes(r, "Sir.44.22", "Sir.44.23", store), [shared])
+            self.assertEqual(projection.notes(r, "Sir.44.23", "Sir.44.23", store), [])
+            self.assertEqual(
+                projection.note_map(r, ["Sir.44.22", "Sir.44.23"], store),
+                {"Sir.44.22": [shared]},
+            )
+            from bible.highlights import HighlightStore
+
+            highlights = HighlightStore(Path(directory) / "highlights.json")
+            highlights.set(r.versification, ["Sir.44.22"], "yellow", r.name)
+            projected = projection.colors(r, ["Sir.44.22", "Sir.44.23"], highlights)
+            self.assertEqual(set(projected), {"Sir.44.22"})
             backup = Path(directory) / "backup.json"
             store.export(backup)
             other = NoteStore(Path(directory) / "restored.sqlite3")
@@ -347,6 +367,20 @@ class NativeUnitTests(unittest.TestCase):
                         stamp=window.study.notes._stamp,
                         notes=[(n.versification, n.start, n.end) for n in window.notes_store.all()],
                     ),
+                )
+                window.notes_store.save(
+                    "INTERLEAVED VERSE NOTE",
+                    [],
+                    versification=tab.reader.versification,
+                    start="Sir.43.16",
+                    origin_translation=name,
+                    origin_language="fr",
+                )
+                window.study.notes.refresh(force=True)
+                spin()
+                self.assertEqual(
+                    [note.start for note in window.study.notes.rows],
+                    ["Sir.43.16", "Sir.43.17"],
                 )
                 window.study_button.set_active(False)
                 tab.navigate(name, "Sir.1_1.1")

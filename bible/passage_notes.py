@@ -328,9 +328,22 @@ class PassageNotes(Gtk.Box):
             return self.annotations.positions(reader, a.system, a.start, a.end, a.origin)
 
         mapped = {a.key: targets(a) for a in entries}
+        source_references = None
+        if reader and getattr(reader, "addresses", None) and entries:
+            try:
+                source_references = set(reader.reference_range(first, last))
+            except ValueError:
+                source_references = set()
 
         def order(a):
             spans = mapped[a.key]
+            if reader and source_references is not None:
+                # Public verse ordering can differ from interleaved storage.
+                covered = self.annotations.source_members(reader, spans) & source_references
+                return (
+                    min((reader.reference_sort_key(ref) for ref in covered), default=(0, 0)),
+                    bible_order(a),
+                )
             return (
                 min(
                     (

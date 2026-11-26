@@ -3,21 +3,38 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .highlights import Highlight, HighlightStore
+    from .library import Library
+    from .notes import Note, NoteStore
+    from .sword_provider import Reader
 import weakref
 from .reference_resolution import resolve
 from .notes import parts as parts
 
 
+type ProjectionSpan = tuple[int, int, str, str]
+type Projection = tuple[ProjectionSpan, ...]
+type ProjectionKey = tuple[str, str, str, str, str | None, weakref.ReferenceType[Reader] | None]
+type ProjectionCache = OrderedDict[ProjectionKey, Projection]
+type OriginReaders = OrderedDict[str, tuple[tuple[int, int], Reader]]
+
+
 class PassageAnnotations:
     """Cache verified display projections separately from persisted annotation identity."""
 
-    def __init__(self, library=None) -> None:
-        self.cache = OrderedDict()
-        self._reader_caches = weakref.WeakKeyDictionary()
-        self._reader = None
+    def __init__(self, library: Library | None = None) -> None:
+        self.cache: ProjectionCache = OrderedDict()
+        self._reader_caches: weakref.WeakKeyDictionary[Reader, ProjectionCache] = (
+            weakref.WeakKeyDictionary()
+        )
+        self._reader: weakref.ReferenceType[Reader] | None = None
         self.library = library
-        self._notes_token = None
-        self._notes_snapshot = ()
+        self._notes_token: tuple[int, int, int] | None = None
+        self._notes_snapshot: tuple[Note, ...] = ()
 
     def clear(self) -> None:
         """Release cached readers, projections and note snapshots without deleting annotations."""
@@ -27,7 +44,7 @@ class PassageAnnotations:
         self._notes_token = None
         self._notes_snapshot = ()
 
-    def source_reader(self, reader, origin):
+    def source_reader(self, reader: Reader | None, origin: str) -> Reader:
         """Reuse a bounded pool of validated installed origin readers, or raise if unavailable."""
         if reader is not None and origin == reader.name:
             return reader
@@ -41,7 +58,7 @@ class PassageAnnotations:
         root = self.library.root / origin
         info = (root / ".complete").stat()
         token = (root.stat().st_ino, info.st_mtime_ns)
-        pool = getattr(self.library, "_annotation_readers", None)
+        pool: OriginReaders | None = getattr(self.library, "_annotation_readers", None)
         if pool is None:
             self.library._annotation_readers = pool = OrderedDict()
         if origin not in pool or pool[origin][0] != token:
@@ -54,9 +71,9 @@ class PassageAnnotations:
         pool.move_to_end(origin)
         return pool[origin][1]
 
-    def stored_notes(self, store):
+    def stored_notes(self, store: NoteStore) -> tuple[Note, ...]:
         """Refresh the cached validated notes only when store identity or SQLite data changes."""
-        version = (
+        version: int = (
             store.db.execute("PRAGMA data_version").fetchone()[0] if hasattr(store, "db") else 0
         )
         token = (id(store), store.generation, version)
@@ -65,7 +82,14 @@ class PassageAnnotations:
             self._notes_token = token
         return self._notes_snapshot
 
-    def positions(self, reader, system, start, end, origin=None):
+    def positions(
+        self,
+        reader: Reader,
+        system: str,
+        start: str,
+        end: str,
+        origin: str | None = None,
+    ) -> Projection:
         # Providers can share a numbering-system name but use distinct native
         # address maps. Never reuse another reader's native positions or keep
         # its SWORD handles alive through this metadata cache.
@@ -99,7 +123,7 @@ class PassageAnnotations:
         # Enumerate the source range before mapping: a source chapter can
         # overlap two target chapters, and legacy ranges must not be reduced
         # to their printed endpoints. This never changes stored ranges.
-        intervals = []
+        intervals: list[ProjectionSpan] = []
         try:
             from .reference_resolution import _span
             from .reference_targets import Canon
@@ -109,14 +133,15 @@ class PassageAnnotations:
                 if system == reader.versification and getattr(reader, "addresses", None)
                 else Canon(system)
             )
-            if context.key(start).getIndex() > context.key(end).getIndex():
-                raise ValueError("Reversed annotation range")
-            references = (
-                (source or reader).reference_range(start, end)
-                if system == (source or reader).versification
-                and getattr(source or reader, "addresses", None)
-                else _span(start, end, system)
-            )
+            references: Iterable[str]
+            if getattr(context, "addresses", None):
+                # Fragment slots can interleave: physical indices cannot prove
+                # public verse ordering. The source index validates this range.
+                references = cast("Reader", context).reference_range(start, end)
+            else:
+                if context.key(start).getIndex() > context.key(end).getIndex():
+                    raise ValueError("Reversed annotation range")
+                references = _span(start, end, system)
             for reference in dict.fromkeys(references):
                 # SWORD traversal includes native chapter introductions.
                 if reference.rsplit(".", 1)[-1] == "0":
@@ -156,9 +181,22 @@ class PassageAnnotations:
             self.cache.popitem(last=False)
         return result
 
-    def matches(self, reader, start, end, system, first, last, origin=None):
+    def matches(
+        self,
+        reader: Reader,
+        start: str,
+        end: str,
+        system: str,
+        first: str,
+        last: str,
+        origin: str | None = None,
+    ) -> bool:
         """Test overlap through explicit source units or verified annotation projection, retaining unavailable mappings."""
-        if not origin and system == reader.versification and getattr(reader, "addresses", None):
+        if (
+            (not origin or origin == reader.name)
+            and system == reader.versification
+            and getattr(reader, "addresses", None)
+        ):
             try:
                 return bool(
                     set(reader.reference_range(start, end))
@@ -166,13 +204,37 @@ class PassageAnnotations:
                 )
             except ValueError:
                 return False
+        if getattr(reader, "addresses", None):
+            try:
+                requested = set(reader.reference_range(start, end))
+            except ValueError:
+                return False
+            spans = self.positions(reader, system, first, last, origin)
+            return bool(requested & self.source_members(reader, spans))
         low, high = reader.key(start).getIndex(), reader.key(end).getIndex()
         return any(
             left <= high and right >= low
             for left, right, _, _ in self.positions(reader, system, first, last, origin)
         )
 
-    def notes(self, reader, start, end, store):
+    @staticmethod
+    def source_members(reader: Reader, spans: Iterable[ProjectionSpan]) -> set[str]:
+        """Expand verified target spans through public IDs, never shared storage slots."""
+        members: set[str] = set()
+        for _, _, first, last in spans:
+            if first == last:
+                # positions() already validated this public identity. Avoid a
+                # complete canon scan for every point in a long annotation.
+                members.add(first)
+                continue
+            try:
+                members.update(reader.reference_range(first, last))
+            except ValueError:
+                # One unavailable span must not erase other verified mappings.
+                continue
+        return members
+
+    def notes(self, reader: Reader, start: str, end: str, store: NoteStore) -> list[Note]:
         """Select independent notes whose explicit links overlap the current source passage."""
         return [
             note
@@ -191,7 +253,9 @@ class PassageAnnotations:
             )
         ]
 
-    def highlights(self, reader, start, end, store):
+    def highlights(
+        self, reader: Reader, start: str, end: str, store: HighlightStore
+    ) -> list[Highlight]:
         """Select saved marks with verified overlap, keeping their original identities unchanged."""
         return [
             mark
@@ -208,7 +272,7 @@ class PassageAnnotations:
         ]
 
     @staticmethod
-    def mark_priority(reader, mark):
+    def mark_priority(reader: Reader, mark: Highlight) -> tuple[int, str, str, str, str]:
         """Prefer current-resource then same-system paint projections with a stable deterministic tie-breaker."""
         return (
             0
@@ -222,10 +286,28 @@ class PassageAnnotations:
             mark["color"],
         )
 
-    def colors(self, reader, references, store):
-        """Project marks onto requested native positions and keep one deterministic display color per reference."""
+    def colors(
+        self, reader: Reader, references: Iterable[str], store: HighlightStore
+    ) -> dict[str, Highlight]:
+        """Project deterministic colors without conflating public references and storage.
+
+        Addressed sources may share/interleave slots. Native index intervals
+        remain the fast path only for ordinary modules without source maps.
+        """
         from bisect import bisect_left, bisect_right
 
+        if getattr(reader, "addresses", None):
+            requested = set(references)
+            for ref in requested:
+                _ = reader.key(ref)  # Preserve validation without comparing storage slots.
+            result: dict[str, Highlight] = {}
+            for mark in sorted(store.entries.values(), key=lambda m: self.mark_priority(reader, m)):
+                spans = self.positions(
+                    reader, mark["system"], mark["reference"], mark["reference"], mark["resource"]
+                )
+                for ref in requested & self.source_members(reader, spans):
+                    result.setdefault(ref, mark)
+            return result
         indexed = sorted((reader.key(ref).getIndex(), ref) for ref in references)
         indices = [index for index, ref in indexed]
         result = {}
@@ -251,10 +333,12 @@ class PassageAnnotations:
                     result.setdefault(ref, mark)
         return result
 
-    def note_map(self, reader, references, store):
+    def note_map(
+        self, reader: Reader, references: Iterable[str], store: NoteStore
+    ) -> dict[str, list[Note]]:
         """Associate each requested reader reference with independently stored notes through verified link projections."""
         indices = {ref: reader.key(ref).getIndex() for ref in references}
-        result = {}
+        result: dict[str, list[Note]] = {}
         for note in self.stored_notes(store):
             for link in note.passages:
                 spans = self.positions(
@@ -264,9 +348,17 @@ class PassageAnnotations:
                     link.end,
                     note.origin_translation if link.versification == note.versification else None,
                 )
+                members = (
+                    self.source_members(reader, spans)
+                    if getattr(reader, "addresses", None)
+                    else None
+                )
                 for ref, index in indices.items():
-                    if any(a <= index <= b for a, b, _, _ in spans) and note not in result.get(
-                        ref, ()
-                    ):
+                    covered = (
+                        ref in members
+                        if members is not None
+                        else any(a <= index <= b for a, b, _, _ in spans)
+                    )
+                    if covered and note not in result.get(ref, ()):
                         result.setdefault(ref, []).append(note)
         return result
