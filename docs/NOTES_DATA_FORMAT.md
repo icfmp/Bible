@@ -121,7 +121,9 @@ payload are invalid. This conservative policy preserves the unreadable input
 rather than pretending to preserve future fields through an older writer.
 Strict note/link validation remains. Highlight files are bounded at32MiB
 (the historical8MiB payload gains identity/date/origin fields on migration);
-combined backups remain bounded at48MiB and notes-only backups at32MiB. No preferences,
+combined backups are bounded at72MiB so both complete32MiB stores fit,
+and notes-only backups remain bounded at32MiB. Expanded highlight size is
+validated before any restore mutation or recovery marker is created. No preferences,
 resource contents, caches or credentials are added to an annotation backup.
 
 Note merge semantics remain: identical content is skipped, divergent content

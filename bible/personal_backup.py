@@ -20,7 +20,8 @@ from .highlights import (
 )
 
 BACKUP_VERSION_COMBINED = 3
-LIMIT = 48 * 1024 * 1024
+# A complete32MiB notes store plus32MiB highlights and envelope must fit.
+LIMIT = 72 * 1024 * 1024
 
 
 def atomic(path, data):
@@ -79,6 +80,7 @@ def decode(data):
         value = {**value, "format": "bible-personal-annotations", "highlights": []}
     elif isinstance(value, dict) and set(value) == {"version", "marks"}:
         marks = decode_marks(value)
+        encode_marks(marks)
         return [], marks
     if (
         not isinstance(value, dict)
@@ -99,6 +101,7 @@ def decode(data):
     if value["version"] == 1 and any(n.links for n in notes):
         raise ValueError("Linked passages require backup version 2")
     marks = decode_marks(dict(version=2 if value["version"] == 3 else 1, marks=value["highlights"]))
+    encode_marks(marks)
     return notes, marks
 
 

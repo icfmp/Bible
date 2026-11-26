@@ -341,3 +341,22 @@ class CompatibilityTests(unittest.TestCase):
                     action()
                 self.assertEqual(notes.get(note.id), note)
                 self.assertEqual(path.read_bytes(), before)
+
+    def test_expanded_import_capacity_is_validated_before_restore_mutation(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            notes = NoteStore(root / "notes.sqlite3")
+            self.addCleanup(notes.close)
+            note = create(notes)
+            high = HighlightStore(root / "highlights.json")
+            path = root / "oversized-expanded.json"
+            value = legacy()
+            value["marks"] = [dict(value["marks"][0], reference=f"Gen.1.{i}") for i in range(1, 20)]
+            path.write_text(json.dumps(value))
+            with patch("bible.highlights.MAX_BYTES", 1000):
+                with self.assertRaises(ValueError):
+                    personal_backup.restore(notes, high, path)
+            self.assertEqual(notes.get(note.id), note)
+            self.assertFalse(high.pending.exists())
+            self.assertFalse(high.path.exists())
+            self.assertFalse((root / "backups").exists())
