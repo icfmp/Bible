@@ -1,4 +1,5 @@
 """Synthetic-only GTK place flow; real geography is checked separately."""
+
 import json
 import os
 from pathlib import Path
@@ -6,128 +7,227 @@ import tempfile
 import threading
 import unittest
 import uuid
-from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
-from tests.test_ui import installed_fixture,spin,close_test_dialogs
-from tests.test_place_data import inputs,pins
+from tests.test_ui import installed_fixture, spin, close_test_dialogs
+from tests.test_place_data import inputs, pins
 from bible import place_data
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class PlaceCardTests(unittest.TestCase):
     def setUp(self):
         from tests.test_place_map import require_native_map
+
         require_native_map()
-        from bible.ui import Application,Window,Library
-        self.tile_requests=[]
-        requests=self.tile_requests
+        from bible.ui import Application, Window, Library
+
+        self.tile_requests = []
+        requests = self.tile_requests
+
         class UnavailableTiles(BaseHTTPRequestHandler):
-            def log_message(self,*_):pass
+            def log_message(self, *_):
+                pass
+
             def do_GET(self):
                 requests.append(self.path)
-                self.send_response(404);self.send_header('Content-Length','0');self.end_headers()
-        server=ThreadingHTTPServer(('127.0.0.1',0),UnavailableTiles)
-        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+                self.send_response(404)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), UnavailableTiles)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
         def close_server():
-            server.shutdown();server.server_close();thread.join(timeout=2)
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
         self.addCleanup(close_server)
         # A real, controlled native HTTP failure, rather than timing an unknown
         # connection-refusal/retry policy on a guessed unavailable port.
-        self.enterContext(patch('bible.place_map.TILE_URL',f'http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png'))
-        self.enterContext(patch('bible.place_map.TILE_SOURCE_ID','unavailable-'+uuid.uuid4().hex))
-        self.directory=self.enterContext(tempfile.TemporaryDirectory());self.root=Path(self.directory)
-        installed_fixture(self.directory,'French',versification='Segond',entries=[('Ps.3.2','EXACT FRENCH PSALM TEST'),('John.1.5','SOURCE TEST')])
-        self.files=inputs(self.root)
-        record=json.loads(self.files['ancient'].read_text());record['verses']=[{'osis':'Ps.3.1'}]
-        self.files['ancient'].write_text(json.dumps(record)+'\n')
-        self.app=Application.get_default() or Application();self.app.register()
-        self.window=Window(self.app,Library(self.root/'translations'));self.window.set_default_size(1200,900);self.window.present()
-        self.window.active_tab.navigate('French','Ps.3.2');spin(lambda:not self.window.active_tab._restoring_scroll,duration=.2)
+        self.enterContext(
+            patch(
+                "bible.place_map.TILE_URL",
+                f"http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png",
+            )
+        )
+        self.enterContext(
+            patch("bible.place_map.TILE_SOURCE_ID", "unavailable-" + uuid.uuid4().hex)
+        )
+        self.directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.root = Path(self.directory)
+        installed_fixture(
+            self.directory,
+            "French",
+            versification="Segond",
+            entries=[("Ps.3.2", "EXACT FRENCH PSALM TEST"), ("John.1.5", "SOURCE TEST")],
+        )
+        self.files = inputs(self.root)
+        record = json.loads(self.files["ancient"].read_text())
+        record["verses"] = [{"osis": "Ps.3.1"}]
+        self.files["ancient"].write_text(json.dumps(record) + "\n")
+        self.app = Application.get_default() or Application()
+        self.app.register()
+        self.window = Window(self.app, Library(self.root / "translations"))
+        self.window.set_default_size(1200, 900)
+        self.window.present()
+        self.window.active_tab.navigate("French", "Ps.3.2")
+        spin(lambda: not self.window.active_tab._restoring_scroll, duration=0.2)
 
     def tearDown(self):
         close_test_dialogs()
-        if self.window.catalogue_window and not self.window.catalogue_window.closed:self.window.catalogue_window.close()
-        if getattr(self.window,'place_dialog',None):self.window.place_dialog.close();spin()
+        if self.window.catalogue_window and not self.window.catalogue_window.closed:
+            self.window.catalogue_window.close()
+        if getattr(self.window, "place_dialog", None):
+            self.window.place_dialog.close()
+            spin()
         self.window.close()
 
     def install(self):
-        store=place_data.PlaceData(self.root/'study-data')
-        with patch.object(place_data,'FILES',pins(self.files)):store.install_files(self.files)
+        store = place_data.PlaceData(self.root / "study-data")
+        with patch.object(place_data, "FILES", pins(self.files)):
+            store.install_files(self.files)
         return store
 
     def test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab(self):
-        w=self.window;self.install();before=(w.active_tab.state.reference,list(w.active_tab.state.history),w.view.get_n_pages())
-        host=w.open_places();dialog=host.places;spin(lambda:not dialog.pending,duration=.2)
-        self.assertEqual([p['name'] for p in dialog.rows],['Jerusalem'])
-        dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
-        self.assertIs(host.get_transient_for(),w);self.assertTrue(w.get_mapped())
-        self.assertNotIn('French',dialog.passage_context.get_text())
-        self.assertFalse(any(getattr(x,'get_label',lambda:None)()=='Sources and technical details' for x in self.walk(dialog)))
-        self.assertEqual(dialog.current_place['status'],'known')
-        button=next(x for x in self.walk(dialog.references) if hasattr(x,'_reference'))
-        adjustment=dialog.card_scroll.get_vadjustment()
-        adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());spin(duration=.3)
+        w = self.window
+        self.install()
+        before = (
+            w.active_tab.state.reference,
+            list(w.active_tab.state.history),
+            w.view.get_n_pages(),
+        )
+        host = w.open_places()
+        dialog = host.places
+        spin(lambda: not dialog.pending, duration=0.2)
+        self.assertEqual([p["name"] for p in dialog.rows], ["Jerusalem"])
+        dialog.open_place(dialog.rows[0])
+        spin(lambda: dialog.map_widget.retry.get_visible(), duration=0.2)
+        self.assertIs(host.get_transient_for(), w)
+        self.assertTrue(w.get_mapped())
+        self.assertNotIn("French", dialog.passage_context.get_text())
+        self.assertFalse(
+            any(
+                getattr(x, "get_label", lambda: None)() == "Sources and technical details"
+                for x in self.walk(dialog)
+            )
+        )
+        self.assertEqual(dialog.current_place["status"], "known")
+        button = next(x for x in self.walk(dialog.references) if hasattr(x, "_reference"))
+        adjustment = dialog.card_scroll.get_vadjustment()
+        adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
+        spin(duration=0.3)
         self.assertTrue(button.get_mapped())
-        button.emit('clicked');spin()
-        self.assertEqual(w.reference_preview.target,('French','Ps.3.2'))
-        self.assertEqual(w.reference_preview.body.get_buffer().props.text,'EXACT FRENCH PSALM TEST')
-        self.assertEqual((w.active_tab.state.reference,w.active_tab.state.history,w.view.get_n_pages()),before)
-        w.reference_preview.open_new.emit('clicked');spin()
-        self.assertEqual(w.view.get_n_pages(),before[2]+1)
-        self.assertEqual(w.active_tab.state.resource,'French');self.assertEqual(w.active_tab.state.reference,'Ps.3.2')
-        self.assertEqual((w.tabs()[0].state.reference,w.tabs()[0].state.history),before[:2])
+        button.emit("clicked")
+        spin()
+        self.assertEqual(w.reference_preview.target, ("French", "Ps.3.2"))
+        self.assertEqual(
+            w.reference_preview.body.get_buffer().props.text, "EXACT FRENCH PSALM TEST"
+        )
+        self.assertEqual(
+            (w.active_tab.state.reference, w.active_tab.state.history, w.view.get_n_pages()), before
+        )
+        w.reference_preview.open_new.emit("clicked")
+        spin()
+        self.assertEqual(w.view.get_n_pages(), before[2] + 1)
+        self.assertEqual(w.active_tab.state.resource, "French")
+        self.assertEqual(w.active_tab.state.reference, "Ps.3.2")
+        self.assertEqual((w.tabs()[0].state.reference, w.tabs()[0].state.history), before[:2])
 
-    def walk(self,widget):
+    def walk(self, widget):
         yield widget
-        child=widget.get_first_child()
-        while child:yield from self.walk(child);child=child.get_next_sibling()
+        child = widget.get_first_child()
+        while child:
+            yield from self.walk(child)
+            child = child.get_next_sibling()
 
     def test_removed_enrichment_files_are_ignored_without_touching_profile_data(self):
-        self.install();root=self.root/'study-data';root.mkdir(exist_ok=True)
-        legacy=root/'place-context.json';legacy.write_bytes(b'LEGACY DATA MUST NOT BE READ OR REPLACED')
-        cache=root/'place-images';cache.mkdir();photo=cache/'existing.jpg';photo.write_bytes(b'PRESERVE EXISTING CACHE')
-        notes=self.window.notes_store.all()
-        with patch('bible.library.download',side_effect=AssertionError('Opening a place must not acquire enrichment')):
-            host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending)
-            dialog.open_place(dialog.rows[0]);spin()
-        self.assertFalse(hasattr(dialog,'contexts'))
-        self.assertFalse(any(hasattr(x,'photo_path') for x in self.walk(dialog)))
-        self.assertEqual(legacy.read_bytes(),b'LEGACY DATA MUST NOT BE READ OR REPLACED')
-        self.assertEqual(photo.read_bytes(),b'PRESERVE EXISTING CACHE')
-        self.assertEqual(self.window.notes_store.all(),notes)
-        self.assertTrue(dialog.current_place['candidates'])
-        self.assertEqual(dialog.reference_model.get_n_items(),1)
+        self.install()
+        root = self.root / "study-data"
+        root.mkdir(exist_ok=True)
+        legacy = root / "place-context.json"
+        legacy.write_bytes(b"LEGACY DATA MUST NOT BE READ OR REPLACED")
+        cache = root / "place-images"
+        cache.mkdir()
+        photo = cache / "existing.jpg"
+        photo.write_bytes(b"PRESERVE EXISTING CACHE")
+        notes = self.window.notes_store.all()
+        with patch(
+            "bible.library.download",
+            side_effect=AssertionError("Opening a place must not acquire enrichment"),
+        ):
+            host = self.window.open_places()
+            dialog = host.places
+            spin(lambda: not dialog.pending)
+            dialog.open_place(dialog.rows[0])
+            spin()
+        self.assertFalse(hasattr(dialog, "contexts"))
+        self.assertFalse(any(hasattr(x, "photo_path") for x in self.walk(dialog)))
+        self.assertEqual(legacy.read_bytes(), b"LEGACY DATA MUST NOT BE READ OR REPLACED")
+        self.assertEqual(photo.read_bytes(), b"PRESERVE EXISTING CACHE")
+        self.assertEqual(self.window.notes_store.all(), notes)
+        self.assertTrue(dialog.current_place["candidates"])
+        self.assertEqual(dialog.reference_model.get_n_items(), 1)
 
     def test_map_failure_keeps_place_metadata_and_related_references(self):
         self.install()
-        host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending,duration=.2)
-        dialog.open_place(dialog.rows[0]);spin(lambda:dialog.map_widget.retry.get_visible(),duration=.2)
-        self.assertTrue(self.tile_requests,'The actual native map must receive the controlled HTTP failure')
+        host = self.window.open_places()
+        dialog = host.places
+        spin(lambda: not dialog.pending, duration=0.2)
+        dialog.open_place(dialog.rows[0])
+        spin(lambda: dialog.map_widget.retry.get_visible(), duration=0.2)
+        self.assertTrue(
+            self.tile_requests, "The actual native map must receive the controlled HTTP failure"
+        )
         self.assertFalse(dialog.map_widget.ready)
         self.assertTrue(dialog.map_widget.status.get_text())
-        self.assertTrue(dialog.current_place['candidates']);self.assertEqual(dialog.reference_model.get_n_items(),1)
-        self.assertEqual(self.window.active_tab.state.reference,'Ps.3.2')
+        self.assertTrue(dialog.current_place["candidates"])
+        self.assertEqual(dialog.reference_model.get_n_items(), 1)
+        self.assertEqual(self.window.active_tab.state.reference, "Ps.3.2")
 
     def test_region_reference_point_keeps_its_historical_uncertainty_visible(self):
         from bible.i18n import tr
-        self.install();host=self.window.open_places();dialog=host.places;spin(lambda:not dialog.pending)
-        place=dialog.rows[0];place['candidates'][0]['role']='representative point'
-        dialog.open_place(place);spin()
-        labels=[x.get_text() for x in self.walk(dialog) if hasattr(x,'get_text')]
-        self.assertTrue(any(tr('Approximate location') in label for label in labels))
-        self.assertEqual(len(dialog.map_widget.candidates),1)
+
+        self.install()
+        host = self.window.open_places()
+        dialog = host.places
+        spin(lambda: not dialog.pending)
+        place = dialog.rows[0]
+        place["candidates"][0]["role"] = "representative point"
+        dialog.open_place(place)
+        spin()
+        labels = [x.get_text() for x in self.walk(dialog) if hasattr(x, "get_text")]
+        self.assertTrue(any(tr("Approximate location") in label for label in labels))
+        self.assertEqual(len(dialog.map_widget.candidates), 1)
 
     def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):
         from bible.study_resources import PLACE_RESOURCE_ID
-        w=self.window;before=w.library.installed();host=w.open_places();dialog=host.places;spin()
+
+        w = self.window
+        before = w.library.installed()
+        host = w.open_places()
+        dialog = host.places
+        spin()
         self.assertTrue(dialog.download.get_visible())
-        with patch('bible.catalogue_window.catalogue',side_effect=AssertionError('No SWORD refresh for place data')):
-            dialog.open_library();library=w.catalogue_window;spin()
-            self.assertEqual(library.selected_resource().id,PLACE_RESOURCE_ID)
+        with patch(
+            "bible.catalogue_window.catalogue",
+            side_effect=AssertionError("No SWORD refresh for place data"),
+        ):
+            dialog.open_library()
+            library = w.catalogue_window
+            spin()
+            self.assertEqual(library.selected_resource().id, PLACE_RESOURCE_ID)
             self.assertFalse(library._catalogue_requested)
-            self.assertIn('opendatacommons.org',library.metadata.get_text())
-            self.install();w.resource_installed(PLACE_RESOURCE_ID);library.filter_resources()
-            library.close();host=w.open_places();dialog=host.places
-            spin(lambda:not dialog.pending,duration=.2)
-            self.assertTrue(dialog.rows);self.assertEqual(w.library.installed(),before)
-            self.assertNotIn(PLACE_RESOURCE_ID,w.library.installed('bible'))
+            self.assertIn("opendatacommons.org", library.metadata.get_text())
+            self.install()
+            w.resource_installed(PLACE_RESOURCE_ID)
+            library.filter_resources()
+            library.close()
+            host = w.open_places()
+            dialog = host.places
+            spin(lambda: not dialog.pending, duration=0.2)
+            self.assertTrue(dialog.rows)
+            self.assertEqual(w.library.installed(), before)
+            self.assertNotIn(PLACE_RESOURCE_ID, w.library.installed("bible"))

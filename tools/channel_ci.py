@@ -1,4 +1,5 @@
 """CI gates and data-branch persistence for the alpha channel."""
+
 import argparse
 import json
 import os
@@ -11,137 +12,209 @@ import tempfile
 import time
 from tools.flatpak_channel import digest, run, restore_repository_layout
 
-REPO = 'icfmp/Bible'
-DATA_BRANCH = 'flatpak-alpha-data'
-BASELINE = 'c2792c14ec86b28767cd5bc9ec8509a576e9a52d'
+REPO = "icfmp/Bible"
+DATA_BRANCH = "flatpak-alpha-data"
+BASELINE = "c2792c14ec86b28767cd5bc9ec8509a576e9a52d"
+
 
 def parent_state():
-    return Path(os.environ['RUNNER_TEMP']) / 'bible-alpha-parent'
+    return Path(os.environ["RUNNER_TEMP"]) / "bible-alpha-parent"
 
 
 def api(endpoint):
-    return json.loads(run('gh','api',endpoint))
+    return json.loads(run("gh", "api", endpoint))
 
 
 def wait_pages_artifact():
     """Require stable artifact visibility before Pages' separate backend lookup."""
-    execution=os.environ['GITHUB_RUN_ID'];attempt=os.environ['GITHUB_RUN_ATTEMPT']
+    execution = os.environ["GITHUB_RUN_ID"]
+    attempt = os.environ["GITHUB_RUN_ATTEMPT"]
     assert execution.isdigit() and attempt.isdigit()
-    name='github-pages-first-'+attempt;seen=None;visible=False
+    name = "github-pages-first-" + attempt
+    seen = None
+    visible = False
     for observation in range(12):
-        assets=api(f'repos/{REPO}/actions/runs/{execution}/artifacts')['artifacts']
-        matches=[asset for asset in assets if asset['name']==name]
-        assert len(matches)<=1, 'Ambiguous Pages artifact'
+        assets = api(f"repos/{REPO}/actions/runs/{execution}/artifacts")["artifacts"]
+        matches = [asset for asset in assets if asset["name"] == name]
+        assert len(matches) <= 1, "Ambiguous Pages artifact"
         if matches:
-            asset=matches[0]
-            assert not asset['expired'] and asset['size_in_bytes']>0, 'Unavailable Pages artifact'
-            assert seen is None or seen==asset['id'], 'Pages artifact identity changed'
-            if visible:return asset
-            seen=asset['id'];visible=True
-        else:visible=False
-        if observation<11:time.sleep(5)
-    raise RuntimeError('Pages artifact did not become stably visible within 55 seconds')
+            asset = matches[0]
+            assert not asset["expired"] and asset["size_in_bytes"] > 0, "Unavailable Pages artifact"
+            assert seen is None or seen == asset["id"], "Pages artifact identity changed"
+            if visible:
+                return asset
+            seen = asset["id"]
+            visible = True
+        else:
+            visible = False
+        if observation < 11:
+            time.sleep(5)
+    raise RuntimeError("Pages artifact did not become stably visible within 55 seconds")
 
 
 def verify():
-    event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
-    run_id = str(event.get('workflow_run',{}).get('id') or os.environ['INPUT_VERIFIED_RUN'])
+    """Accept only a successful main prerequisite build with matching source ancestry, artifact identity and digest."""
+    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+    run_id = str(event.get("workflow_run", {}).get("id") or os.environ["INPUT_VERIFIED_RUN"])
     assert run_id.isdigit()
-    execution = api(f'repos/{REPO}/actions/runs/{run_id}')
-    assert execution['status'] == 'completed' and execution['conclusion'] == 'success', 'CI must be green'
-    assert execution['head_branch'] == 'main' and execution['head_repository']['full_name'] == REPO
-    assert execution['path'] == '.github/workflows/prerequisites.yml'
-    source = execution['head_sha']
-    assert re.fullmatch(r'[0-9a-f]{40}',source)
-    subprocess.run(['git','merge-base','--is-ancestor',BASELINE,source],check=True)
-    subprocess.run(['git','merge-base','--is-ancestor',source,'origin/main'],check=True)
-    subprocess.run(['gh','run','download',run_id,'--repo',REPO,'--name','Bible-alpha-linux-x86_64','--dir','incoming'],check=True)
-    info = json.loads(Path('incoming/build-info.json').read_text())
-    assert info['commit'] == source and info['architecture'] == 'x86_64'
-    assert info['prerequisites'] == 'success'
-    assert info['ci'] == f'https://github.com/{REPO}/actions/runs/{run_id}'
-    assert info['flatpak_ref'] == 'app/io.github.icfmp.Bible/x86_64/master'
-    assert digest('incoming/Bible-alpha.flatpak') == info['sha256']
-    Path('incoming/verified.json').write_text(json.dumps({'source':source,'ci_run':run_id},indent=2))
-    return {'source':source,'ci_run':run_id}
+    execution = api(f"repos/{REPO}/actions/runs/{run_id}")
+    assert execution["status"] == "completed" and execution["conclusion"] == "success", (
+        "CI must be green"
+    )
+    assert execution["head_branch"] == "main" and execution["head_repository"]["full_name"] == REPO
+    assert execution["path"] == ".github/workflows/prerequisites.yml"
+    source = execution["head_sha"]
+    assert re.fullmatch(r"[0-9a-f]{40}", source)
+    subprocess.run(["git", "merge-base", "--is-ancestor", BASELINE, source], check=True)
+    subprocess.run(["git", "merge-base", "--is-ancestor", source, "origin/main"], check=True)
+    subprocess.run(
+        [
+            "gh",
+            "run",
+            "download",
+            run_id,
+            "--repo",
+            REPO,
+            "--name",
+            "Bible-alpha-linux-x86_64",
+            "--dir",
+            "incoming",
+        ],
+        check=True,
+    )
+    info = json.loads(Path("incoming/build-info.json").read_text())
+    assert info["commit"] == source and info["architecture"] == "x86_64"
+    assert info["prerequisites"] == "success"
+    assert info["ci"] == f"https://github.com/{REPO}/actions/runs/{run_id}"
+    assert info["flatpak_ref"] == "app/io.github.icfmp.Bible/x86_64/master"
+    assert digest("incoming/Bible-alpha.flatpak") == info["sha256"]
+    Path("incoming/verified.json").write_text(
+        json.dumps({"source": source, "ci_run": run_id}, indent=2)
+    )
+    return {"source": source, "ci_run": run_id}
 
 
 def restore():
-    site = Path('public')
+    """Restore the existing data branch into a symlink-free staging site while retaining its parent identity."""
+    site = Path("public")
     site.mkdir()
-    heads = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
-    parent_state().write_text(heads.split()[0] if heads else '')
+    heads = run("git", "ls-remote", "--heads", "origin", f"refs/heads/{DATA_BRANCH}")
+    parent_state().write_text(heads.split()[0] if heads else "")
     if not heads:
         return
-    subprocess.run(['git','fetch','origin',f'refs/heads/{DATA_BRANCH}'],check=True)
+    subprocess.run(["git", "fetch", "origin", f"refs/heads/{DATA_BRANCH}"], check=True)
     with tempfile.TemporaryDirectory() as temporary:
-        worktree = Path(temporary) / 'data'
-        subprocess.run(['git','worktree','add','--detach',str(worktree),'FETCH_HEAD'],check=True)
+        worktree = Path(temporary) / "data"
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", str(worktree), "FETCH_HEAD"], check=True
+        )
         try:
-            for path in worktree.rglob('*'):
-                assert not path.is_symlink(), 'Unexpected link in channel data'
-            shutil.copytree(worktree,site,ignore=shutil.ignore_patterns('.git'),dirs_exist_ok=True)
-            repo = site / 'alpha/repo'
+            for path in worktree.rglob("*"):
+                assert not path.is_symlink(), "Unexpected link in channel data"
+            shutil.copytree(
+                worktree, site, ignore=shutil.ignore_patterns(".git"), dirs_exist_ok=True
+            )
+            repo = site / "alpha/repo"
             if repo.exists():
                 restore_repository_layout(repo)
         finally:
-            subprocess.run(['git','worktree','remove','--force',str(worktree)],check=True)
+            subprocess.run(["git", "worktree", "remove", "--force", str(worktree)], check=True)
 
 
 def persist():
     """Commit only the staged public site, never a signing key or runner files."""
-    site = Path('public').resolve()
-    assert (site / 'alpha/provenance.json').is_file()
-    repository = Path(run('git','rev-parse','--absolute-git-dir'))
-    heads = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
+    site = Path("public").resolve()
+    assert (site / "alpha/provenance.json").is_file()
+    repository = Path(run("git", "rev-parse", "--absolute-git-dir"))
+    heads = run("git", "ls-remote", "--heads", "origin", f"refs/heads/{DATA_BRANCH}")
     parent = heads.split()[0] if heads else None
-    assert parent_state().read_text() == (parent or ''), 'Channel changed while preparing; refusing to overwrite its objects'
+    assert parent_state().read_text() == (parent or ""), (
+        "Channel changed while preparing; refusing to overwrite its objects"
+    )
     if parent:
-        subprocess.run(['git','fetch','origin',f'refs/heads/{DATA_BRANCH}'],check=True)
+        subprocess.run(["git", "fetch", "origin", f"refs/heads/{DATA_BRANCH}"], check=True)
     with tempfile.TemporaryDirectory() as temporary:
-        env = dict(os.environ, GIT_DIR=str(repository), GIT_WORK_TREE=str(site),
-                   GIT_INDEX_FILE=str(Path(temporary)/'index'),
-                   GIT_AUTHOR_NAME='github-actions[bot]',GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com',
-                   GIT_COMMITTER_NAME='github-actions[bot]',GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com')
-        subprocess.run(['git','read-tree','--empty'],env=env,check=True)
-        subprocess.run(['git','add','--all','.'],env=env,cwd=site,check=True)
-        tree = subprocess.check_output(['git','write-tree'],env=env,text=True).strip()
-        arguments = ['git','commit-tree',tree,'-m','Publish signed Flatpak alpha repository']
-        if parent: arguments += ['-p',parent]
-        commit = subprocess.check_output(arguments,env=env,text=True).strip()
+        env = dict(
+            os.environ,
+            GIT_DIR=str(repository),
+            GIT_WORK_TREE=str(site),
+            GIT_INDEX_FILE=str(Path(temporary) / "index"),
+            GIT_AUTHOR_NAME="github-actions[bot]",
+            GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com",
+            GIT_COMMITTER_NAME="github-actions[bot]",
+            GIT_COMMITTER_EMAIL="41898282+github-actions[bot]@users.noreply.github.com",
+        )
+        subprocess.run(["git", "read-tree", "--empty"], env=env, check=True)
+        subprocess.run(["git", "add", "--all", "."], env=env, cwd=site, check=True)
+        tree = subprocess.check_output(["git", "write-tree"], env=env, text=True).strip()
+        arguments = ["git", "commit-tree", tree, "-m", "Publish signed Flatpak alpha repository"]
+        if parent:
+            arguments += ["-p", parent]
+        commit = subprocess.check_output(arguments, env=env, text=True).strip()
         for attempt in range(3):
-            current = run('git','ls-remote','--heads','origin',f'refs/heads/{DATA_BRANCH}')
+            current = run("git", "ls-remote", "--heads", "origin", f"refs/heads/{DATA_BRANCH}")
             current = current.split()[0] if current else None
-            if current == commit:break  # A lost response after a successful push.
-            assert current == parent, 'Channel changed while publishing; refusing to overwrite its objects'
-            command = ['git','push'] + (['--no-thin'] if attempt else []) + ['origin',f'{commit}:refs/heads/{DATA_BRANCH}']
-            result = subprocess.run(command,capture_output=True,text=True)
-            sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
-            if result.returncode == 0:break
-            if attempt == 2 or not any(message in result.stderr for message in ('Internal Server Error','HTTP 500')):
-                raise subprocess.CalledProcessError(result.returncode,command,output=result.stdout,stderr=result.stderr)
-            time.sleep(5*(attempt+1))
+            if current == commit:
+                break  # A lost response after a successful push.
+            assert current == parent, (
+                "Channel changed while publishing; refusing to overwrite its objects"
+            )
+            command = (
+                ["git", "push"]
+                + (["--no-thin"] if attempt else [])
+                + ["origin", f"{commit}:refs/heads/{DATA_BRANCH}"]
+            )
+            result = subprocess.run(command, capture_output=True, text=True)
+            sys.stdout.write(result.stdout)
+            sys.stderr.write(result.stderr)
+            if result.returncode == 0:
+                break
+            if attempt == 2 or not any(
+                message in result.stderr for message in ("Internal Server Error", "HTTP 500")
+            ):
+                raise subprocess.CalledProcessError(
+                    result.returncode, command, output=result.stdout, stderr=result.stderr
+                )
+            time.sleep(5 * (attempt + 1))
         parent_state().write_text(commit)
 
 
 def import_signing_key():
-    home = Path(os.environ['RUNNER_TEMP']) / 'alpha-signing-key'
+    """Import the configured secret into a private runner directory and require the exact expected fingerprint.
+
+    Remove the secret from this process environment; never print its value.
+    This prepares signing credentials and does not publish the channel.
+    """
+    home = Path(os.environ["RUNNER_TEMP"]) / "alpha-signing-key"
     home.mkdir(mode=0o700)
-    secret = os.environ.pop('BIBLE_FLATPAK_GPG_KEY')
-    assert secret, 'Missing BIBLE_FLATPAK_GPG_KEY repository secret'
-    fingerprint = os.environ['BIBLE_FLATPAK_GPG_FINGERPRINT']
-    assert re.fullmatch(r'[0-9A-F]{40,64}',fingerprint), 'Missing signing fingerprint variable'
-    subprocess.run(['gpg','--homedir',str(home),'--batch','--import'],input=secret.encode(),check=True)
-    keys = run('gpg','--homedir',home,'--with-colons','--list-secret-keys')
-    assert [line.split(':')[9] for line in keys.splitlines() if line.startswith('fpr:')] == [fingerprint], 'Signing secret/fingerprint mismatch'
+    secret = os.environ.pop("BIBLE_FLATPAK_GPG_KEY")
+    assert secret, "Missing BIBLE_FLATPAK_GPG_KEY repository secret"
+    fingerprint = os.environ["BIBLE_FLATPAK_GPG_FINGERPRINT"]
+    assert re.fullmatch(r"[0-9A-F]{40,64}", fingerprint), "Missing signing fingerprint variable"
+    subprocess.run(
+        ["gpg", "--homedir", str(home), "--batch", "--import"], input=secret.encode(), check=True
+    )
+    keys = run("gpg", "--homedir", home, "--with-colons", "--list-secret-keys")
+    assert [line.split(":")[9] for line in keys.splitlines() if line.startswith("fpr:")] == [
+        fingerprint
+    ], "Signing secret/fingerprint mismatch"
 
 
 def main():
+    """Dispatch the explicit existing channel verification/staging/persistence operation selected by CI."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('action',choices=['verify','restore','persist','import-key','wait-pages-artifact'])
+    parser.add_argument(
+        "action", choices=["verify", "restore", "persist", "import-key", "wait-pages-artifact"]
+    )
     action = parser.parse_args().action
-    {'verify':verify,'restore':restore,'persist':persist,'import-key':import_signing_key,
-     'wait-pages-artifact':wait_pages_artifact}[action]()
+    {
+        "verify": verify,
+        "restore": restore,
+        "persist": persist,
+        "import-key": import_signing_key,
+        "wait-pages-artifact": wait_pages_artifact,
+    }[action]()
 
 
-if __name__ == '__main__': main()
+if __name__ == "__main__":
+    main()

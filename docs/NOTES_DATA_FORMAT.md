@@ -1,6 +1,6 @@
-# Local notes and linked passages
+# Local annotations: notes, highlights and linked passages
 
-Related to #202 and the compatibility requirements in #126. This increment does not implement synchronization, a relationship graph, highlight identifiers or the broader pre-beta migration work in #126.
+Maintained local annotation contract for #202 and #126. This describes persisted records and portable backups, not synchronization or a relationship graph.
 
 ## Identity and references
 
@@ -16,7 +16,7 @@ An older alpha that only understands schema 1 cannot edit schema 2. The pre-migr
 
 ## Portable backups
 
-`bible-notes` and `bible-personal-annotations` version 2 add a `links` array to each note. Version-1 note and combined backups remain readable with no secondary relationships. Version-1 standalone highlight backups retain their established validator and do not change format. Unsupported versions, malformed relationships or duplicate UUIDs are rejected before mutation.
+`bible-notes` and `bible-personal-annotations` version 2 add a `links` array to each note. Version-1 note and combined backups remain readable with no secondary relationships. Standalone highlight versions 1 and 2 remain readable. Combined version 3, described below, adds highlight identity/date metadata without changing notes-only version 2 or SQLite schema 2. Unsupported versions, malformed relationships or duplicate UUIDs are rejected before mutation.
 
 Combined exports still contain notes, labels and highlights only. They exclude Bible translations, preferences, account credentials and migration snapshots. The existing verified pre-restore backup, durable recovery journal, all-input validation and repeatable two-store restore apply to linked passages too. Conflict copies retain all relationships under their new note UUID; repeated imports are idempotent.
 
@@ -27,3 +27,128 @@ Both note editors use native GTK text tags over the existing Markdown source. Fo
 Legacy Markdown list prefixes are presented as bullets. An unchanged editing buffer retains its exact original source, including after a full undo; editing the body may normalize list markers to visible Unicode bullets, which remain readable in older alpha previews. The clipboard uses native plain text rather than an HTML/rich-text exchange engine. Bible citations remain available with Ctrl+click or Ctrl+Enter while ordinary clicks and Enter keep their editing roles; they reuse the existing verified reference preview and unsaved-navigation guard.
 
 Workspace autosave commits within a 600 ms write window while ordinary typing continues; it does not wait indefinitely for a pause. Leaving or closing flushes the draft. Abrupt process termination can still lose the pending window, and manual label/reference entries remain uncommitted until explicitly added. Failed writes keep the draft and navigation/close protection; there is no background retry loop when content is unchanged.
+
+## Highlight identity and common annotation fields
+
+Both annotation types have a canonical lowercase UUID (`id`), independent of
+body/color and source module availability. They remain independent records:
+multiple note UUIDs may share a passage, but only one active whole-verse mark
+exists per exact `(system, reference)` pair. The UI's passage-based highlight
+row key is a derived presentation index, not persisted identity. Overlapping
+notes, highlights, inline indicators and collection filters do not create
+stored relationships. Deleting a note never deletes its highlight, or vice
+versa. Note links remain explicit relationships to passages, not to highlights.
+
+| Field | Notes | Highlights |
+| --- | --- | --- |
+| Canonical passage | `versification`, ordered `start`/`end`, plus explicit `links` | `system`, one `reference` |
+| Original context | `origin_translation`, `origin_language` | `origin_resource`; `resource` tracks the latest edit context |
+| Content | Verbatim Markdown `body`, normalized `labels` | `color`: `yellow`, `green`, `blue` |
+| Identity | Existing note UUID | New UUID4; legacy UUID5 described below |
+| Dates | Existing timezone-aware ISO8601 `created`, `modified` | Timezone-aware ISO8601 or JSON `null` for unknown dates |
+| Revision | Existing optimistic note revision | Positive integer, initially 1; increment on an actual color/context change |
+
+References use canonical OSIS-style book/chapter/verse syntax, including supported
+subchapter suffixes, and retain their numbering-system identity. Equal printed
+references in different systems are not equivalent. The existing verified mapper
+remains responsible for display/navigation; unknown systems and unavailable
+modules remain stored, without guessed mappings or substituted passages.
+No reference normalization/mapping is performed during persistence or import.
+
+Recoloring retains the highlight UUID, creation date and original resource.
+An unchanged color/context is a no-op for metadata. Deletion removes the active
+record; a subsequent new mark gets a fresh UUID and recorded creation date.
+Revision is local edit detection, not a distributed clock. Wall-clock corrections
+may move modification dates backwards; dates never decide conflict precedence. No tombstones,
+partial-text offsets, sync journal or grouped marks are introduced. A future
+finer granularity requires an explicit new schema/backup migration; it must not
+reinterpret existing whole-verse marks or conflate independent note identities.
+
+## Highlight storage and migration
+
+`highlights.json` uses storage schema **2**, currently also standalone portable
+highlight version **2**. The versions are separate named constants even though
+both currently equal 2. Its exact object keys are `version` and `marks`.
+Each mark has the nine keys shown in this valid synthetic example:
+
+```json
+{"version":2,"marks":[{"id":"551fb15e-8b8c-44ed-8bb4-49f66947ad98","system":"KJV","reference":"Gen.1.1","color":"blue","resource":"ExampleModule","origin_resource":"ExampleModule","created":"2026-11-26T10:00:00+00:00","modified":"2026-11-26T10:01:00+00:00","revision":2}]}
+```
+
+Legacy schema 1 has only `system`, `reference`, `color`, `resource`. Migration
+assigns UUID5 using the fixed namespace in `bible.highlights.LEGACY_NAMESPACE`
+and the JSON-encoded exact `(system, reference)` pair. It does not depend on the
+color, module, filesystem path or migration time. This assignment is deterministic
+across restarts and repeated legacy imports; new marks use UUID4 instead.
+Legacy `created`/`modified` are **null**, not migration time; revision starts at 1
+without inventing an edit history. An actual subsequent recolor records only
+`modified`, while `created` remains unknown. `origin_resource` initially equals
+the original legacy resource.
+
+Startup validates the entire bounded legacy payload, takes an exclusive
+nonblocking advisory file lock and durably writes a private, byte-verified
+`backups/highlights-before-schema-2-<sha256>.json` snapshot before replacing the
+original atomically. The snapshot is immutable, mode0600 on POSIX, and retained
+for recovery. A partial temporary write cannot replace the live file or the
+verified snapshot. A failed backup/validation/migration blocks edits and export
+instead of silently overwriting the original. On restart, a valid v2 file keeps
+its IDs; a retained v1 file derives the same IDs and retries only after the
+verified backup. Pending two-store recovery is handled before ordinary migration.
+Older alphas reject v2; never restore the old snapshot over newer annotations
+merely to downgrade the application.
+
+Every live mutation/export checks the exact prior disk bytes under the same lock.
+A stale app instance must reopen instead of overwriting a newer file. Combined
+operations acquire the notes SQLite write transaction before the highlight lock;
+ordinary autosave cannot interleave the protected snapshot/restore. Note mutations
+and notes-only export/restore recheck the pending marker after obtaining the
+SQLite write lock, including when they waited behind a restore transaction. Locks do not
+run periodic work or block the main loop waiting for another app. POSIX flock is
+exercised by a separate-process test; the Windows msvcrt counterpart still needs
+native Windows acceptance. Notes continue using their existing SQLite contract.
+
+## Backup compatibility and conflict policy
+
+| Input | Supported versions | Contents |
+| --- | --- | --- |
+| `bible-notes` | 1, 2 | Existing notes-only format; v2 supports links |
+| Standalone `version`/`marks` | 1, 2 | v1 four-field marks; v2 complete metadata |
+| `bible-personal-annotations` | 1, 2, 3 | v1 notes without links/legacy marks; v2 linked notes/legacy marks; v3 linked notes/v2 marks |
+
+Current combined exports use **version3**. This does not increase notes-only
+backup version2 or SQLite schema2. Unsupported versions and unknown fields are
+rejected before mutation; duplicate JSON object fields are ambiguous and rejected
+in all annotation inputs. Duplicate UUIDs or passage keys within a highlight
+payload are invalid. This conservative policy preserves the unreadable input
+rather than pretending to preserve future fields through an older writer.
+Strict note/link validation remains. Highlight files are bounded at32MiB
+(the historical8MiB payload gains identity/date/origin fields on migration);
+combined backups are bounded at72MiB so both complete32MiB stores fit,
+and notes-only backups remain bounded at32MiB. Expanded highlight size is
+validated before any restore mutation or recovery marker is created. No preferences,
+resource contents, caches or credentials are added to an annotation backup.
+
+Note merge semantics remain: identical content is skipped, divergent content
+with the same UUID becomes an independent conflict-copy UUID, preserving all
+links/dates/labels/body; repeated import finds that copy and does not multiply it.
+For highlights, exact records are skipped. Legacy records matching all four
+original fields are also skipped even if a current UUID differs. Otherwise any
+UUID or passage collision retains the local active record and saves the fully
+validated incoming highlights in private
+`backups/highlight-conflicts-<sha256>.json` **before** committing. This file is a
+valid standalone v2 backup containing the rejected values and their identities.
+No precedence is inferred from timestamps, no silent remapping is performed,
+and no second active mark is created for that passage. The restore reports the
+conflict count and recovery path to its caller. Repeated identical imports reuse
+the same conflict file and do not duplicate active annotations. A client can
+inspect/restore a recovery backup into a separate profile; no new conflict UI
+is introduced in this increment.
+
+Combined restores retain the existing private pre-restore combined snapshot and
+durable `annotation-restore.pending.json` marker. All input is validated first;
+the SQLite transaction and highlight lock cover the consistent snapshot and
+writes. The marker is retired only after both stores commit durably. An error
+replays the verified original snapshot; a crash leaves the marker so restart
+repeats recovery. Legacy version1/2 recovery snapshots remain supported and get
+deterministic highlight IDs. Edits and exports are refused while recovery is
+pending; a failed recovery never authorizes autosave over partial state.

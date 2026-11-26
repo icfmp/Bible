@@ -3,6 +3,7 @@
 Run with dbus-run-session and xvfb-run; requires libXtst. This automated check
 is distinct from manual validation on the client's GNOME desktop.
 """
+
 import ctypes
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ import tempfile
 
 import gi
 
-gi.require_version('GdkX11', '4.0')
+gi.require_version("GdkX11", "4.0")
 from gi.repository import GdkX11, Graphene  # noqa: F401 — register X11 surface methods
 
 from tests.test_ui import installed_fixture, spin
@@ -19,8 +20,8 @@ from bible.ui import Application, Gtk, Library, Window
 
 class X11Input:
     def __init__(self):
-        self.x11 = ctypes.CDLL('libX11.so.6')
-        self.xtest = ctypes.CDLL('libXtst.so.6')
+        self.x11 = ctypes.CDLL("libX11.so.6")
+        self.xtest = ctypes.CDLL("libXtst.so.6")
         pointer = ctypes.c_void_p
         ulong = ctypes.c_ulong
         integer = ctypes.c_int
@@ -30,8 +31,15 @@ class X11Input:
         self.x11.XDefaultRootWindow.argtypes = [pointer]
         self.x11.XDefaultRootWindow.restype = ulong
         self.x11.XTranslateCoordinates.argtypes = [
-            pointer, ulong, ulong, integer, integer, ctypes.POINTER(integer),
-            ctypes.POINTER(integer), ctypes.POINTER(ulong)]
+            pointer,
+            ulong,
+            ulong,
+            integer,
+            integer,
+            ctypes.POINTER(integer),
+            ctypes.POINTER(integer),
+            ctypes.POINTER(ulong),
+        ]
         self.x11.XStringToKeysym.argtypes = [ctypes.c_char_p]
         self.x11.XStringToKeysym.restype = ulong
         self.x11.XKeysymToKeycode.argtypes = [pointer, ulong]
@@ -41,9 +49,9 @@ class X11Input:
         self.xtest.XTestFakeMotionEvent.argtypes = [pointer, integer, integer, integer, ulong]
         self.xtest.XTestFakeButtonEvent.argtypes = [pointer, ctypes.c_uint, integer, ulong]
         self.xtest.XTestFakeKeyEvent.argtypes = [pointer, ctypes.c_uint, integer, ulong]
-        self.display = self.x11.XOpenDisplay(os.environ['DISPLAY'].encode())
+        self.display = self.x11.XOpenDisplay(os.environ["DISPLAY"].encode())
         if not self.display:
-            raise RuntimeError('Requires an X11 display (use xvfb-run)')
+            raise RuntimeError("Requires an X11 display (use xvfb-run)")
 
     def activate(self, window):
         """Supply the window manager's focus handoff in a bare Xvfb session."""
@@ -62,18 +70,24 @@ class X11Input:
         spin(duration=0.15)
 
     def click(self, widget):
-        self.click_at(widget,widget.get_width()/2,widget.get_height()/2)
+        self.click_at(widget, widget.get_width() / 2, widget.get_height() / 2)
 
     def move_at(self, widget, local_x, local_y):
         native = widget.get_native()
-        found, point = widget.compute_point(native, Graphene.Point().init(local_x,local_y))
+        found, point = widget.compute_point(native, Graphene.Point().init(local_x, local_y))
         assert found and widget.get_mapped()
         dx, dy = native.get_surface_transform()
         root_x, root_y, child = ctypes.c_int(), ctypes.c_int(), ctypes.c_ulong()
         assert self.x11.XTranslateCoordinates(
-            self.display, native.get_surface().get_xid(),
-            self.x11.XDefaultRootWindow(self.display), 0, 0,
-            ctypes.byref(root_x), ctypes.byref(root_y), ctypes.byref(child))
+            self.display,
+            native.get_surface().get_xid(),
+            self.x11.XDefaultRootWindow(self.display),
+            0,
+            0,
+            ctypes.byref(root_x),
+            ctypes.byref(root_y),
+            ctypes.byref(child),
+        )
         # Bounds include CSS margins; pointer coordinates belong to the
         # widget's content. GtkNative's transform is surface -> widget.
         x = int(root_x.value - dx + point.x)
@@ -82,33 +96,38 @@ class X11Input:
         self.x11.XFlush(self.display)
 
     def click_at(self, widget, local_x, local_y):
-        self.move_at(widget,local_x,local_y)
+        self.move_at(widget, local_x, local_y)
         self.xtest.XTestFakeButtonEvent(self.display, 1, True, 0)
         self.xtest.XTestFakeButtonEvent(self.display, 1, False, 0)
         self.x11.XFlush(self.display)
         spin(duration=0.2)
 
-    def wheel(self,widget,steps):
-        self.move_at(widget,widget.get_width()/2,widget.get_height()/2)
-        spin(duration=.1)
+    def wheel(self, widget, steps):
+        self.move_at(widget, widget.get_width() / 2, widget.get_height() / 2)
+        spin(duration=0.1)
         for _ in range(abs(steps)):
-            button=5 if steps>0 else 4
-            self.xtest.XTestFakeButtonEvent(self.display,button,True,0)
-            self.xtest.XTestFakeButtonEvent(self.display,button,False,0)
-        self.x11.XFlush(self.display);spin(duration=.2)
+            button = 5 if steps > 0 else 4
+            self.xtest.XTestFakeButtonEvent(self.display, button, True, 0)
+            self.xtest.XTestFakeButtonEvent(self.display, button, False, 0)
+        self.x11.XFlush(self.display)
+        spin(duration=0.2)
 
-    def drag_at(self,widget,x,start,end,observed=None):
-        self.move_at(widget,x,start);spin(duration=.15)
-        self.xtest.XTestFakeButtonEvent(self.display,1,True,0);self.x11.XFlush(self.display)
-        spin(duration=.1)
+    def drag_at(self, widget, x, start, end, observed=None):
+        self.move_at(widget, x, start)
+        spin(duration=0.15)
+        self.xtest.XTestFakeButtonEvent(self.display, 1, True, 0)
+        self.x11.XFlush(self.display)
+        spin(duration=0.1)
         try:
-            for index in range(1,11):
-                self.move_at(widget,x,start+(end-start)*index/10)
-                spin(duration=.15)
-                if observed:observed()
+            for index in range(1, 11):
+                self.move_at(widget, x, start + (end - start) * index / 10)
+                spin(duration=0.15)
+                if observed:
+                    observed()
         finally:
-            self.xtest.XTestFakeButtonEvent(self.display,1,False,0);self.x11.XFlush(self.display)
-            spin(duration=.2)
+            self.xtest.XTestFakeButtonEvent(self.display, 1, False, 0)
+            self.x11.XFlush(self.display)
+            spin(duration=0.2)
 
     def close(self):
         self.x11.XCloseDisplay(self.display)
@@ -117,14 +136,16 @@ class X11Input:
 def main():
     app = Application()
     app.register()
-    Gtk.Settings.get_default().set_property('gtk-enable-animations', False)
+    Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
     inputs = X11Input()
     try:
         with tempfile.TemporaryDirectory() as directory:
-            entries = [('Gen.1.1', 'FIRST TEST DATA'), ('Exod.1.1', 'SECOND BOOK TEST DATA')]
-            entries += [(f'1Cor.{chapter}.1', f'CHAPTER {chapter} TEST DATA') for chapter in range(1, 17)]
+            entries = [("Gen.1.1", "FIRST TEST DATA"), ("Exod.1.1", "SECOND BOOK TEST DATA")]
+            entries += [
+                (f"1Cor.{chapter}.1", f"CHAPTER {chapter} TEST DATA") for chapter in range(1, 17)
+            ]
             installed_fixture(directory, entries=entries)
-            window = Window(app, Library(Path(directory) / 'translations'))
+            window = Window(app, Library(Path(directory) / "translations"))
             try:
                 window.present()
                 spin(duration=0.3)
@@ -132,107 +153,142 @@ def main():
                 spin(duration=0.4)
                 inputs.activate(window)
                 nav = window.navigation
-                inputs.click(nav.book_rows['1Cor'])
-                assert window.active_tab.state.reference == 'Gen.1.1'
-                history_size=len(window.active_tab.state.history)
-                nav.chapter_buttons[15].grab_focus();spin()
-                inputs.move_at(nav.chapter_buttons[15],8,8);spin()
-                assert window.active_tab.state.reference=='Gen.1.1'
+                inputs.click(nav.book_rows["1Cor"])
+                assert window.active_tab.state.reference == "Gen.1.1"
+                history_size = len(window.active_tab.state.history)
+                nav.chapter_buttons[15].grab_focus()
+                spin()
+                inputs.move_at(nav.chapter_buttons[15], 8, 8)
+                spin()
+                assert window.active_tab.state.reference == "Gen.1.1"
                 inputs.click(nav.chapter_buttons[15])
-                assert window.active_tab.state.reference == '1Cor.15.1'
+                assert window.active_tab.state.reference == "1Cor.15.1"
                 assert not nav.get_visible()
-                assert len(window.active_tab.state.history)==history_size+1
-                window.choose_passage();spin()
+                assert len(window.active_tab.state.history) == history_size + 1
+                window.choose_passage()
+                spin()
                 nav.chapter_buttons[16].grab_focus()
-                inputs.key('space')
-                assert window.active_tab.state.reference == '1Cor.16.1'
+                inputs.key("space")
+                assert window.active_tab.state.reference == "1Cor.16.1"
                 assert not nav.get_visible()
-                window.choose_passage();spin()
-                nav.book_rows['Gen'].grab_focus()
-                inputs.key('Return')
-                assert window.active_tab.state.reference == '1Cor.16.1'
-                nav.chapter_buttons[1].grab_focus();inputs.key('Return')
-                assert window.active_tab.state.reference == 'Gen.1.1'
-                window.choose_passage();spin()
-                nav.book_rows['Gen'].grab_focus()
-                inputs.key('Down')
-                assert window.active_tab.state.reference == 'Gen.1.1'
-                nav.chapter_buttons[1].grab_focus();inputs.key('Return')
-                assert window.active_tab.state.reference == 'Exod.1.1'
-                window.choose_passage();spin()
+                window.choose_passage()
+                spin()
+                nav.book_rows["Gen"].grab_focus()
+                inputs.key("Return")
+                assert window.active_tab.state.reference == "1Cor.16.1"
+                nav.chapter_buttons[1].grab_focus()
+                inputs.key("Return")
+                assert window.active_tab.state.reference == "Gen.1.1"
+                window.choose_passage()
+                spin()
+                nav.book_rows["Gen"].grab_focus()
+                inputs.key("Down")
+                assert window.active_tab.state.reference == "Gen.1.1"
+                nav.chapter_buttons[1].grab_focus()
+                inputs.key("Return")
+                assert window.active_tab.state.reference == "Exod.1.1"
+                window.choose_passage()
+                spin()
                 nav.search.grab_focus()
-                for letter in 'cor':
+                for letter in "cor":
                     inputs.key(letter)
-                spin(lambda: list(nav.book_rows) == ['1Cor'])
-                assert window.active_tab.state.reference == 'Exod.1.1'
-                inputs.key('Escape')
+                spin(lambda: list(nav.book_rows) == ["1Cor"])
+                assert window.active_tab.state.reference == "Exod.1.1"
+                inputs.key("Escape")
                 assert not nav.get_visible()
-                focus=window.get_focus()
+                focus = window.get_focus()
                 assert focus is window.passage_button or focus.is_ancestor(window.passage_button)
-                window.choose_passage();spin()
+                window.choose_passage()
+                spin()
                 # A native click outside also dismisses without navigating.
-                retained=window.active_tab.state.reference
-                inputs.click_at(window.active_tab.text,10,window.active_tab.text.get_height()-10)
+                retained = window.active_tab.state.reference
+                inputs.click_at(
+                    window.active_tab.text, 10, window.active_tab.text.get_height() - 10
+                )
                 assert not nav.get_visible()
-                assert window.active_tab.state.reference==retained
+                assert window.active_tab.state.reference == retained
                 assert not nav.get_visible()
                 second = window.new_tab()
                 # A newly selected page is mapped before its overlay buttons
                 # receive their first allocation. Do not click a zero-width
                 # target at an obsolete position after the split-header layout.
-                spin(lambda:not second._restoring_scroll and second.following.get_mapped()
-                     and second.following.get_width()>0,duration=.3)
+                spin(
+                    lambda: not second._restoring_scroll
+                    and second.following.get_mapped()
+                    and second.following.get_width() > 0,
+                    duration=0.3,
+                )
                 inputs.click(second.following)
-                assert second.state.reference == '1Cor.1.1'
-                assert window.tabs()[0].state.reference == 'Exod.1.1'
+                assert second.state.reference == "1Cor.1.1"
+                assert window.tabs()[0].state.reference == "Exod.1.1"
                 # Exercise Aa with actual X11 pointer/key events as well.
                 inputs.click(window.appearance_button)
-                aa=window.appearance
+                aa = window.appearance
                 inputs.click(aa.larger)
                 assert window.preferences.value.size == 15
-                aa.smaller.grab_focus();inputs.key('space')
+                aa.smaller.grab_focus()
+                inputs.key("space")
                 assert window.preferences.value.size == 14
-                aa.fonts['simple'].grab_focus();inputs.key('space')
-                assert window.preferences.value.font_style == 'simple'
+                aa.fonts["simple"].grab_focus()
+                inputs.key("space")
+                assert window.preferences.value.font_style == "simple"
                 assert window.preferences.value.font == window.preferences.value.sans_font
-                inputs.click(aa.palettes['paper'])
-                assert window.preferences.value.day_palette == 'paper'
-                assert window.preferences.value.mode == 'system'
+                inputs.click(aa.palettes["paper"])
+                assert window.preferences.value.day_palette == "paper"
+                assert window.preferences.value.mode == "system"
                 inputs.click(aa.mode.buttons[2])
-                assert window.preferences.value.mode == 'night'
-                aa.visible_elements.grab_focus();inputs.key('Return')
+                assert window.preferences.value.mode == "night"
+                aa.visible_elements.grab_focus()
+                inputs.key("Return")
                 assert aa.visible_elements.get_expanded()
-                spin(lambda:aa.verse_numbers.get_mapped())
-                aa.verse_numbers.grab_focus();inputs.key('Return')
+                spin(lambda: aa.verse_numbers.get_mapped())
+                aa.verse_numbers.grab_focus()
+                inputs.key("Return")
                 assert not window.preferences.value.verse_numbers
-                inputs.key('Escape')
+                inputs.key("Escape")
                 assert not aa.get_visible()
-                assert second.state.reference == '1Cor.1.1'
-                settings=Gtk.Settings.get_default();original_font=settings.props.gtk_font_name
+                assert second.state.reference == "1Cor.1.1"
+                settings = Gtk.Settings.get_default()
+                original_font = settings.props.gtk_font_name
                 try:
-                    window.set_default_size(360,750);settings.props.gtk_font_name='Sans 18'
-                    spin(lambda:not window._controls_tick and not second._restoring_scroll,duration=.4)
-                    inputs.click(window.menu);spin(lambda:window.reader_overflow_box.get_mapped())
-                    inputs.click(window.appearance_button);spin(lambda:aa.get_visible())
-                    spin(duration=.3)
+                    window.set_default_size(360, 750)
+                    settings.props.gtk_font_name = "Sans 18"
+                    spin(
+                        lambda: not window._controls_tick and not second._restoring_scroll,
+                        duration=0.4,
+                    )
+                    inputs.click(window.menu)
+                    spin(lambda: window.reader_overflow_box.get_mapped())
+                    inputs.click(window.appearance_button)
+                    spin(lambda: aa.get_visible())
+                    spin(duration=0.3)
                     # Native surface widths include transparent shadows, whose
                     # extent differs between GTK versions/renderers.
-                    assert aa.get_child().get_width()+24 <= window.get_width(), (aa.get_child().get_width(),window.get_width())
-                    size=window.preferences.value.size
-                    inputs.click(aa.larger);assert window.preferences.value.size==size+1
-                    inputs.click(aa.smaller);assert window.preferences.value.size==size
-                    inputs.click_at(aa.visible_elements,12,12)
+                    assert aa.get_child().get_width() + 24 <= window.get_width(), (
+                        aa.get_child().get_width(),
+                        window.get_width(),
+                    )
+                    size = window.preferences.value.size
+                    inputs.click(aa.larger)
+                    assert window.preferences.value.size == size + 1
+                    inputs.click(aa.smaller)
+                    assert window.preferences.value.size == size
+                    inputs.click_at(aa.visible_elements, 12, 12)
                     assert aa.get_visible()
-                    inputs.click_at(window.header,4,20)
+                    inputs.click_at(window.header, 4, 20)
                     assert not aa.get_visible() and not window.menu.get_active()
-                finally:settings.props.gtk_font_name=original_font
-                print('PASS: native X11 book/chapter clicks, chapter Space, book Return/Down, '
-                      'typed search, close, overlay, independent tabs, Aa mouse/keyboard controls and narrow nested-menu dismissal', flush=True)
+                finally:
+                    settings.props.gtk_font_name = original_font
+                print(
+                    "PASS: native X11 book/chapter clicks, chapter Space, book Return/Down, "
+                    "typed search, close, overlay, independent tabs, Aa mouse/keyboard controls and narrow nested-menu dismissal",
+                    flush=True,
+                )
             finally:
                 window.close()
     finally:
         inputs.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

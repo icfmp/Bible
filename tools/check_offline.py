@@ -1,4 +1,5 @@
 """Read an installed resource in a separate process (optionally a network namespace)."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -10,7 +11,7 @@ from bible.sword_provider import Reader
 
 def main():
     root, name = sys.argv[1:]
-    with patch('urllib.request.urlopen', side_effect=AssertionError('Offline')):
+    with patch("urllib.request.urlopen", side_effect=AssertionError("Offline")):
         reader = Reader(Path(root), name)
         first = reader.first_reference()
         chapter = reader.chapter(first)
@@ -22,5 +23,5 @@ def main():
         print(digest)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

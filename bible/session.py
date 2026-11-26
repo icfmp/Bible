@@ -1,4 +1,5 @@
 """Versioned local reading session, independent from downloaded translations."""
+
 from dataclasses import asdict, dataclass, field
 import json
 import math
@@ -11,8 +12,10 @@ from .providers import RESOURCE_ID
 
 @dataclass
 class TabState:
+    """Persisted pane identities, independent positions, study state and bounded navigation history."""
+
     resource: str | None = None
-    reference: str = 'Gen.1.1'
+    reference: str = "Gen.1.1"
     scroll: float = 0.0
     study_visible: bool = False
     commentary: str | None = None
@@ -26,103 +29,186 @@ class TabState:
 
 @dataclass
 class Session:
+    """Local reading tabs and selected index, independent of installed resource content."""
+
     tabs: list[TabState] = field(default_factory=list)
     selected: int = 0
 
 
 class SessionError(ValueError):
+    """Saved reading state is oversized, malformed or uses unsupported field values."""
+
     pass
 
 
 class SessionStore:
+    """Load checked reading state and replace session JSON after a complete flushed write."""
+
     def __init__(self, path):
         self.path = Path(path)
 
     def load(self):
+        """Return an empty session only for a missing file; reject malformed or unsupported saved state."""
         try:
-            with self.path.open('rb') as source:
+            with self.path.open("rb") as source:
                 data = source.read(1024 * 1024 + 1)
         except FileNotFoundError:
             return Session()
         if len(data) > 1024 * 1024:
-            raise SessionError('Session file too large')
+            raise SessionError("Session file too large")
         try:
             value = json.loads(data)
-            if (not isinstance(value, dict) or type(value.get('version')) is not int
-                    or value['version'] != 1 or not isinstance(value['tabs'], list)):
-                raise ValueError('Unsupported session format')
+            if (
+                not isinstance(value, dict)
+                or type(value.get("version")) is not int
+                or value["version"] != 1
+                or not isinstance(value["tabs"], list)
+            ):
+                raise ValueError("Unsupported session format")
             tabs = []
-            for item in value['tabs']:
-                resource = item['resource']
-                reference = item['reference']
-                commentary = item.get('commentary')
-                if commentary is not None and (not isinstance(commentary, str)
-                        or not re.fullmatch(RESOURCE_ID, commentary)):
-                    raise ValueError('Invalid commentary name')
-                scroll = item.get('scroll', 0.0)
-                study = item.get('study_visible', False)
-                if (resource is not None and (not isinstance(resource, str)
-                        or not re.fullmatch(RESOURCE_ID, resource))):
-                    raise ValueError('Invalid translation name')
+            for item in value["tabs"]:
+                resource = item["resource"]
+                reference = item["reference"]
+                commentary = item.get("commentary")
+                if commentary is not None and (
+                    not isinstance(commentary, str) or not re.fullmatch(RESOURCE_ID, commentary)
+                ):
+                    raise ValueError("Invalid commentary name")
+                scroll = item.get("scroll", 0.0)
+                study = item.get("study_visible", False)
+                if resource is not None and (
+                    not isinstance(resource, str) or not re.fullmatch(RESOURCE_ID, resource)
+                ):
+                    raise ValueError("Invalid translation name")
                 if not isinstance(reference, str) or not reference or len(reference) > 256:
-                    raise ValueError('Invalid reference')
-                if (type(scroll) not in (int, float) or not 0 <= scroll <= 1
-                        or not math.isfinite(scroll) or type(study) is not bool):
-                    raise ValueError('Invalid reading position')
-                history = item.get('history', [])
-                cursor = item.get('history_index', len(history)-1)
-                if not isinstance(history,list) or len(history)>100:raise ValueError('Invalid history')
+                    raise ValueError("Invalid reference")
+                if (
+                    type(scroll) not in (int, float)
+                    or not 0 <= scroll <= 1
+                    or not math.isfinite(scroll)
+                    or type(study) is not bool
+                ):
+                    raise ValueError("Invalid reading position")
+                history = item.get("history", [])
+                cursor = item.get("history_index", len(history) - 1)
+                if not isinstance(history, list) or len(history) > 100:
+                    raise ValueError("Invalid history")
                 for entry in history:
-                    if (not isinstance(entry,dict) or not isinstance(entry.get('resource'),str)
-                            or not re.fullmatch(RESOURCE_ID,entry['resource'])
-                            or not isinstance(entry.get('reference'),str) or not 1<=len(entry['reference'])<=256
-                            or type(entry.get('scroll',0)) not in (int,float)
-                            or not 0<=entry.get('scroll',0)<=1):raise ValueError('Invalid history entry')
-                if type(cursor) is not int or (not 0<=cursor<len(history) if history else cursor != -1):
-                    raise ValueError('Invalid history cursor')
-                comparison = item.get('comparison')
-                if comparison is not None and (not isinstance(comparison,str) or not re.fullmatch(RESOURCE_ID,comparison)):
-                    raise ValueError('Invalid comparison')
-                comparison_position=item.get('comparison_position',{})
-                if (not isinstance(comparison_position,dict) or comparison_position and (
-                        set(comparison_position)!={'resource','reference'}
-                        or not isinstance(comparison_position['resource'],str)
-                        or not re.fullmatch(RESOURCE_ID,comparison_position['resource'])
-                        or not isinstance(comparison_position['reference'],str)
-                        or not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}(?:_[1-9][0-9]{0,2})?\.[1-9][0-9]{0,3}',comparison_position['reference']))):
-                    raise ValueError('Invalid comparison position')
-                positions=item.get('commentary_positions',{})
-                if not isinstance(positions,dict) or len(positions)>50:raise ValueError('Invalid commentary positions')
-                for name,anchor in positions.items():
-                    if (not isinstance(name,str) or not re.fullmatch(RESOURCE_ID,name)
-                            or not isinstance(anchor,dict) or not isinstance(anchor.get('reference'),str)
-                            or len(anchor['reference'])>256 or type(anchor.get('index')) is not int
-                            or not 0<=anchor['index']<=1000000 or type(anchor.get('offset')) is not int
-                            or not 0<=anchor['offset']<=10000000
-                            or any(type(anchor[flag]) is not bool for flag in ('canonical','immersive') if flag in anchor)):raise ValueError('Invalid commentary anchor')
-                palette=item.get('reading_palette',{})
-                allowed={'mode':('system','day','night'),'day_palette':('white','paper'),'night_palette':('dark','black')}
-                if not isinstance(palette,dict) or (palette and (set(palette)!=set(allowed) or any(palette[k] not in v for k,v in allowed.items()))):
-                    raise ValueError('Invalid tab palette')
-                tabs.append(TabState(resource, reference, float(scroll), study, commentary, history, cursor, comparison, positions, palette, comparison_position))
-            selected = value.get('selected', 0)
-            if type(selected) is not int or selected < 0 or (selected >= len(tabs) if tabs else selected != 0):
-                raise ValueError('Invalid selected tab')
+                    if (
+                        not isinstance(entry, dict)
+                        or not isinstance(entry.get("resource"), str)
+                        or not re.fullmatch(RESOURCE_ID, entry["resource"])
+                        or not isinstance(entry.get("reference"), str)
+                        or not 1 <= len(entry["reference"]) <= 256
+                        or type(entry.get("scroll", 0)) not in (int, float)
+                        or not 0 <= entry.get("scroll", 0) <= 1
+                    ):
+                        raise ValueError("Invalid history entry")
+                if type(cursor) is not int or (
+                    not 0 <= cursor < len(history) if history else cursor != -1
+                ):
+                    raise ValueError("Invalid history cursor")
+                comparison = item.get("comparison")
+                if comparison is not None and (
+                    not isinstance(comparison, str) or not re.fullmatch(RESOURCE_ID, comparison)
+                ):
+                    raise ValueError("Invalid comparison")
+                comparison_position = item.get("comparison_position", {})
+                if (
+                    not isinstance(comparison_position, dict)
+                    or comparison_position
+                    and (
+                        set(comparison_position) != {"resource", "reference"}
+                        or not isinstance(comparison_position["resource"], str)
+                        or not re.fullmatch(RESOURCE_ID, comparison_position["resource"])
+                        or not isinstance(comparison_position["reference"], str)
+                        or not re.fullmatch(
+                            r"[1-5]?[A-Za-z][A-Za-z0-9]{0,15}\.[1-9][0-9]{0,2}(?:_[1-9][0-9]{0,2})?\.[1-9][0-9]{0,3}",
+                            comparison_position["reference"],
+                        )
+                    )
+                ):
+                    raise ValueError("Invalid comparison position")
+                positions = item.get("commentary_positions", {})
+                if not isinstance(positions, dict) or len(positions) > 50:
+                    raise ValueError("Invalid commentary positions")
+                for name, anchor in positions.items():
+                    if (
+                        not isinstance(name, str)
+                        or not re.fullmatch(RESOURCE_ID, name)
+                        or not isinstance(anchor, dict)
+                        or not isinstance(anchor.get("reference"), str)
+                        or len(anchor["reference"]) > 256
+                        or type(anchor.get("index")) is not int
+                        or not 0 <= anchor["index"] <= 1000000
+                        or type(anchor.get("offset")) is not int
+                        or not 0 <= anchor["offset"] <= 10000000
+                        or any(
+                            type(anchor[flag]) is not bool
+                            for flag in ("canonical", "immersive")
+                            if flag in anchor
+                        )
+                    ):
+                        raise ValueError("Invalid commentary anchor")
+                palette = item.get("reading_palette", {})
+                allowed = {
+                    "mode": ("system", "day", "night"),
+                    "day_palette": ("white", "paper"),
+                    "night_palette": ("dark", "black"),
+                }
+                if not isinstance(palette, dict) or (
+                    palette
+                    and (
+                        set(palette) != set(allowed)
+                        or any(palette[k] not in v for k, v in allowed.items())
+                    )
+                ):
+                    raise ValueError("Invalid tab palette")
+                tabs.append(
+                    TabState(
+                        resource,
+                        reference,
+                        float(scroll),
+                        study,
+                        commentary,
+                        history,
+                        cursor,
+                        comparison,
+                        positions,
+                        palette,
+                        comparison_position,
+                    )
+                )
+            selected = value.get("selected", 0)
+            if (
+                type(selected) is not int
+                or selected < 0
+                or (selected >= len(tabs) if tabs else selected != 0)
+            ):
+                raise ValueError("Invalid selected tab")
             return Session(tabs, selected)
         except (ValueError, KeyError, TypeError, RecursionError) as error:
             raise SessionError(str(error)) from error
 
     def save(self, session):
+        """Serialize finite session values and atomically replace the file after flushing its temporary copy."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = None
         try:
-            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
-                                             dir=self.path.parent, prefix='.session-',
-                                             delete=False) as output:
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=self.path.parent, prefix=".session-", delete=False
+            ) as output:
                 temporary = Path(output.name)
-                json.dump({'version': 1, 'tabs': [asdict(tab) for tab in session.tabs],
-                           'selected': session.selected}, output, ensure_ascii=False,
-                          allow_nan=False)
+                json.dump(
+                    {
+                        "version": 1,
+                        "tabs": [asdict(tab) for tab in session.tabs],
+                        "selected": session.selected,
+                    },
+                    output,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                )
                 output.flush()
                 os.fsync(output.fileno())
             os.replace(temporary, self.path)

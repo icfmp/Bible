@@ -4,20 +4,23 @@ Offsets count non-whitespace Unicode characters inside a source verse/entry.
 Pango byte offsets are converted before slicing Python text; pages partition the
 entire display document exactly, including paragraph separators and headings.
 """
+
 from dataclasses import dataclass
 from bisect import bisect_left, bisect_right
 import re
 import unicodedata
 import gi
 
-gi.require_version('Pango','1.0')
+gi.require_version("Pango", "1.0")
 from gi.repository import Pango
-from .reading_metrics import SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
+from .reading_metrics import SPACING as SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
 from .preparation import checkpoint
 
 
 @dataclass(frozen=True)
 class Anchor:
+    """A canonical reference plus body-character and presentation-spacing position."""
+
     reference: str
     offset: int = 0
     at_body: bool = False
@@ -27,25 +30,32 @@ class Anchor:
 
 @dataclass(frozen=True)
 class PassageSpan:
+    """One source passage span with body offsets, aliases and optional fragment bases."""
+
     reference: str
     start: int
     body: int
     end: int
-    aliases: tuple[str,...] = ()
+    aliases: tuple[str, ...] = ()
     label: str | None = None
-    bases: tuple[int,...] = ()
+    bases: tuple[int, ...] = ()
 
     @property
-    def members(self):return (self.reference,*self.aliases)
+    def members(self):
+        return (self.reference, *self.aliases)
 
     @property
-    def number(self):return self.label if self.label is not None else self.reference.rsplit('.',1)[-1]
+    def number(self):
+        return self.label if self.label is not None else self.reference.rsplit(".", 1)[-1]
 
-    def base(self,reference):return self.bases[self.members.index(reference)] if self.bases else 0
+    def base(self, reference):
+        return self.bases[self.members.index(reference)] if self.bases else 0
 
 
 @dataclass(frozen=True)
 class StyleSpan:
+    """A presentation role over Python-character offsets; it does not rewrite source text."""
+
     kind: str
     start: int
     end: int
@@ -53,150 +63,223 @@ class StyleSpan:
 
 def paragraph_spaces(text):
     """Style empty separator lines, without removing their source boundaries."""
-    return tuple(StyleSpan('paragraph-space',m.start(),m.end())
-                 for m in re.finditer(r'(?:^|(?<=\n))[^\S\n]*\n',text))
+    return tuple(
+        StyleSpan("paragraph-space", m.start(), m.end())
+        for m in re.finditer(r"(?:^|(?<=\n))[^\S\n]*\n", text)
+    )
 
 
 @dataclass
 class Document:
+    """Display text, canonical spans and optional copy text sharing the same offset space."""
+
     key: object
     text: str
-    spans: tuple[PassageSpan,...]
-    styles: tuple[StyleSpan,...] = ()
+    spans: tuple[PassageSpan, ...]
+    styles: tuple[StyleSpan, ...] = ()
     copy_text: str | None = None
 
     def copy(self, start, end):
-        text=self.copy_text if self.copy_text is not None else self.text
-        hidden=sorted((max(start,s.start),min(end,s.end)) for s in self.styles
-                      if s.kind in {'hidden','native-decoration','ui-context'} and s.end>start and s.start<end)
-        if not hidden:return text[start:end]
-        pieces=[];position=start
-        for first,last in hidden:
-            if first>position:pieces.append(text[position:first])
-            position=max(position,last)
-        pieces.append(text[position:end]);return ''.join(pieces)
+        """Copy the requested range while omitting only explicitly hidden/native UI decoration."""
+        text = self.copy_text if self.copy_text is not None else self.text
+        hidden = sorted(
+            (max(start, s.start), min(end, s.end))
+            for s in self.styles
+            if s.kind in {"hidden", "native-decoration", "ui-context"}
+            and s.end > start
+            and s.start < end
+        )
+        if not hidden:
+            return text[start:end]
+        pieces = []
+        position = start
+        for first, last in hidden:
+            if first > position:
+                pieces.append(text[position:first])
+            position = max(position, last)
+        pieces.append(text[position:end])
+        return "".join(pieces)
 
-    def anchor(self,offset):
-        source=getattr(self,'source_document',None)
+    def anchor(self, offset):
+        """Convert a display offset to a source reference and non-whitespace character anchor."""
+        source = getattr(self, "source_document", None)
         if source is not None:
-            return source.anchor(offset-sum(position<offset for position in self.inline))
-        if not self.spans:return Anchor('',0)
-        candidates=[span for span in self.spans if span.start<=offset]
-        span=candidates[-1] if candidates else self.spans[0]
-        body=self.text[span.body:min(span.end,max(span.body,offset))]
-        matching=[s for s in self.spans if span.reference in s.members]
-        fragment=matching.index(span) if len(matching)>1 else None
-        anchor=Anchor(span.reference,span.base(span.reference)+sum(not c.isspace() for c in body),offset>=span.body,fragment=fragment)
+            return source.anchor(offset - sum(position < offset for position in self.inline))
+        if not self.spans:
+            return Anchor("", 0)
+        candidates = [span for span in self.spans if span.start <= offset]
+        span = candidates[-1] if candidates else self.spans[0]
+        body = self.text[span.body : min(span.end, max(span.body, offset))]
+        matching = [s for s in self.spans if span.reference in s.members]
+        fragment = matching.index(span) if len(matching) > 1 else None
+        anchor = Anchor(
+            span.reference,
+            span.base(span.reference) + sum(not c.isspace() for c in body),
+            offset >= span.body,
+            fragment=fragment,
+        )
         if anchor.at_body:
             from dataclasses import replace
-            anchor=replace(anchor,spacing=min(span.end,offset)-self.locate(anchor))
+
+            anchor = replace(anchor, spacing=min(span.end, offset) - self.locate(anchor))
         else:
             # Heading/number selections have no body-character offset. Keep
             # their distinct positions in the presentation prefix as well.
             from dataclasses import replace
-            anchor=replace(anchor,spacing=max(0,offset-span.start))
+
+            anchor = replace(anchor, spacing=max(0, offset - span.start))
         return anchor
 
-    def locate(self,anchor):
-        source=getattr(self,'source_document',None)
-        if source is not None:return self.source_shift(source.locate(anchor))
-        candidates=[s for s in self.spans if anchor.reference in s.members]
-        span=next((s for s in reversed(candidates) if s.base(anchor.reference)<=anchor.offset),candidates[0] if candidates else self.spans[0])
-        if anchor.fragment is not None and 0<=anchor.fragment<len(candidates):span=candidates[anchor.fragment]
-        if anchor.offset==0 and not anchor.at_body:return min(span.body,span.start+anchor.spacing)
-        remaining=anchor.offset-span.base(anchor.reference)
-        for pos in range(span.body,span.end):
+    def locate(self, anchor):
+        """Locate a canonical anchor in the current presentation, preserving fragment and spacing."""
+        source = getattr(self, "source_document", None)
+        if source is not None:
+            return self.source_shift(source.locate(anchor))
+        candidates = [s for s in self.spans if anchor.reference in s.members]
+        span = next(
+            (s for s in reversed(candidates) if s.base(anchor.reference) <= anchor.offset),
+            candidates[0] if candidates else self.spans[0],
+        )
+        if anchor.fragment is not None and 0 <= anchor.fragment < len(candidates):
+            span = candidates[anchor.fragment]
+        if anchor.offset == 0 and not anchor.at_body:
+            return min(span.body, span.start + anchor.spacing)
+        remaining = anchor.offset - span.base(anchor.reference)
+        for pos in range(span.body, span.end):
             if not self.text[pos].isspace():
-                if remaining<=0:return max(span.body,min(span.end,pos+anchor.spacing))
-                remaining-=1
-        return max(span.body,min(span.end,span.end+anchor.spacing))
+                if remaining <= 0:
+                    return max(span.body, min(span.end, pos + anchor.spacing))
+                remaining -= 1
+        return max(span.body, min(span.end, span.end + anchor.spacing))
 
-    def selected_passage(self,start,end):
-        spans=[s for s in self.spans if s.body<end and s.end>start]
-        if not spans:return None
-        members=list(dict.fromkeys(ref for span in spans for ref in span.members))
+    def selected_passage(self, start, end):
+        """Return the selected canonical endpoint references, or None outside passage bodies."""
+        spans = [s for s in self.spans if s.body < end and s.end > start]
+        if not spans:
+            return None
+        members = list(dict.fromkeys(ref for span in spans for ref in span.members))
         try:
             from .notes import passage_order
+
             members.sort(key=passage_order)
-        except ValueError:pass  # Non-Scripture entry IDs retain their source order.
-        return members[0],members[-1]
+        except ValueError:
+            pass  # Non-Scripture entry IDs retain their source order.
+        return members[0], members[-1]
 
 
 @dataclass(frozen=True)
 class Page:
+    """A half-open character interval partitioning a display document."""
+
     start: int
     end: int
 
 
 @dataclass
 class PagePlan:
+    """Measured document pages and body-grid capacity for the current reading geometry."""
+
     document: Document
-    pages: tuple[Page,...]
+    pages: tuple[Page, ...]
     capacity: float = 0
     reading_height: float = 0
 
-    def containing(self,offset):
-        return next((i for i,p in enumerate(self.pages) if p.start<=offset<p.end),max(0,len(self.pages)-1))
+    def containing(self, offset):
+        """Find the page containing an offset, falling back to the final page."""
+        return next(
+            (i for i, p in enumerate(self.pages) if p.start <= offset < p.end),
+            max(0, len(self.pages) - 1),
+        )
 
-    def page_for_anchor(self,anchor):
-        offset=self.document.locate(anchor) if anchor and self.document.spans else 0
+    def page_for_anchor(self, anchor):
+        """Find an anchor's page, skipping invisible chapter-prefix whitespace."""
+        offset = self.document.locate(anchor) if anchor and self.document.spans else 0
         if anchor and not anchor.at_body:
             # A chapter's canonical prefix includes its leading separators.
             # Display its heading/body rather than a preceding spread whose
             # only overlap with that chapter is invisible whitespace.
-            span=next((s for s in self.document.spans if anchor.reference in s.members),None)
-            while span and offset<span.body and self.document.text[offset].isspace():offset+=1
+            span = next((s for s in self.document.spans if anchor.reference in s.members), None)
+            while span and offset < span.body and self.document.text[offset].isspace():
+                offset += 1
         return self.containing(offset)
 
 
-def attributes(document,start=0,end=None,*,context=None,preferences=None,cancelled=None):
-    end=len(document.text) if end is None else end
-    values=Pango.AttrList()
+def attributes(document, start=0, end=None, *, context=None, preferences=None, cancelled=None):
+    """Build Pango byte-range attributes from character spans without changing source offsets."""
+    end = len(document.text) if end is None else end
+    values = Pango.AttrList()
     # Encode each intervening slice once, rather than the entire prefix twice
     # for every style in a whole book (quadratic in the book's length).
-    positions={start,end}
+    positions = {start, end}
     for span in document.styles:
-        if span.end>start and span.start<end and span.kind!='verse-start':
-            positions.update((max(start,span.start),min(end,span.end)))
-    byte_offsets={};previous=start;offset=0
+        if span.end > start and span.start < end and span.kind != "verse-start":
+            positions.update((max(start, span.start), min(end, span.end)))
+    byte_offsets = {}
+    previous = start
+    offset = 0
     for position in sorted(positions):
         checkpoint(cancelled)
-        offset+=len(document.text[previous:position].encode())
-        byte_offsets[position]=offset;previous=position
-    rise=None
+        offset += len(document.text[previous:position].encode())
+        byte_offsets[position] = offset
+        previous = position
+    rise = None
     for span in document.styles:
         checkpoint(cancelled)
-        left,right=max(start,span.start),min(end,span.end)
-        if right<=left:continue
-        if span.kind in ('heading','chapter'):
-            attrs=[Pango.attr_weight_new(Pango.Weight.BOLD),Pango.attr_scale_new(1.35 if span.kind=='chapter' else 1.12),
-                   Pango.attr_line_height_new(HEADING_LINE_HEIGHT)]
-        elif span.kind=='editorial':attrs=[Pango.attr_scale_new(.9)]
-        elif span.kind=='ui-context':attrs=[Pango.attr_scale_new(.85)]
-        elif span.kind=='paragraph-space':
+        left, right = max(start, span.start), min(end, span.end)
+        if right <= left:
+            continue
+        if span.kind in ("heading", "chapter"):
+            attrs = [
+                Pango.attr_weight_new(Pango.Weight.BOLD),
+                Pango.attr_scale_new(1.35 if span.kind == "chapter" else 1.12),
+                Pango.attr_line_height_new(HEADING_LINE_HEIGHT),
+            ]
+        elif span.kind == "editorial":
+            attrs = [Pango.attr_scale_new(0.9)]
+        elif span.kind == "ui-context":
+            attrs = [Pango.attr_scale_new(0.85)]
+        elif span.kind == "paragraph-space":
             from .reading_metrics import paragraph_space_size
-            attrs=([Pango.attr_size_new(round(paragraph_space_size(preferences)*Pango.SCALE))]
-                   if preferences else [Pango.attr_scale_new(.25)])
-        elif span.kind=='number':
+
+            attrs = (
+                [Pango.attr_size_new(round(paragraph_space_size(preferences) * Pango.SCALE))]
+                if preferences
+                else [Pango.attr_scale_new(0.25)]
+            )
+        elif span.kind == "number":
             from .verse_typography import NUMBER_SCALE, number_rise
-            if rise is None:rise=number_rise(context,preferences) if context and preferences else 0
-            attrs=[Pango.attr_scale_new(NUMBER_SCALE),Pango.attr_rise_new(rise)]
+
+            if rise is None:
+                rise = number_rise(context, preferences) if context and preferences else 0
+            attrs = [Pango.attr_scale_new(NUMBER_SCALE), Pango.attr_rise_new(rise)]
         # Nonbreaking presentation spaces already bind marker and first word.
         # Thousands of ALLOW_BREAKS ranges make whole-book Pango shaping
         # disproportionately slow; retain these spans for partition boundaries.
-        elif span.kind=='verse-start':continue
-        elif span.kind=='italic':attrs=[Pango.attr_style_new(Pango.Style.ITALIC)]
-        elif span.kind=='bold':attrs=[Pango.attr_weight_new(Pango.Weight.BOLD)]
-        elif span.kind=='small-caps':attrs=[Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
-        elif span.kind=='superscript':attrs=[Pango.attr_rise_new(int((preferences.size if preferences else 16)*Pango.SCALE*.35)),Pango.attr_scale_new(.75)]
-        elif span.kind=='subscript':attrs=[Pango.attr_rise_new(-3000),Pango.attr_scale_new(.8)]
-        elif span.kind in {'hidden','native-decoration'}:
-            rectangle=Pango.Rectangle()
-            attrs=[Pango.attr_shape_new(rectangle,rectangle)]
-        else:continue
+        elif span.kind == "verse-start":
+            continue
+        elif span.kind == "italic":
+            attrs = [Pango.attr_style_new(Pango.Style.ITALIC)]
+        elif span.kind == "bold":
+            attrs = [Pango.attr_weight_new(Pango.Weight.BOLD)]
+        elif span.kind == "small-caps":
+            attrs = [Pango.attr_variant_new(Pango.Variant.SMALL_CAPS)]
+        elif span.kind == "superscript":
+            attrs = [
+                Pango.attr_rise_new(
+                    int((preferences.size if preferences else 16) * Pango.SCALE * 0.35)
+                ),
+                Pango.attr_scale_new(0.75),
+            ]
+        elif span.kind == "subscript":
+            attrs = [Pango.attr_rise_new(-3000), Pango.attr_scale_new(0.8)]
+        elif span.kind in {"hidden", "native-decoration"}:
+            rectangle = Pango.Rectangle()
+            attrs = [Pango.attr_shape_new(rectangle, rectangle)]
+        else:
+            continue
         for attr in attrs:
-            attr.start_index=byte_offsets[left]
-            attr.end_index=byte_offsets[right]
+            attr.start_index = byte_offsets[left]
+            attr.end_index = byte_offsets[right]
             values.insert(attr)
     return values
 
@@ -207,21 +290,24 @@ def heading_groups(document):
     Offsets are metadata only: source text, copy text and canonical spans stay
     untouched. Include all intervening blank lines and consecutive headings.
     """
-    groups=[]
-    for style in sorted(document.styles,key=lambda s:s.start):
-        if style.kind not in {'heading','chapter','editorial'}:continue
-        start,end=style.start,style.end
-        if groups and not document.text[groups[-1][1]:start].strip():
-            start=groups.pop()[0]
-        groups.append((start,end))
-    result=[]
-    for start,end in groups:
-        while end<len(document.text) and document.text[end].isspace():end+=1
-        if end<len(document.text):result.append((start,end+1))
+    groups = []
+    for style in sorted(document.styles, key=lambda s: s.start):
+        if style.kind not in {"heading", "chapter", "editorial"}:
+            continue
+        start, end = style.start, style.end
+        if groups and not document.text[groups[-1][1] : start].strip():
+            start = groups.pop()[0]
+        groups.append((start, end))
+    result = []
+    for start, end in groups:
+        while end < len(document.text) and document.text[end].isspace():
+            end += 1
+        if end < len(document.text):
+            result.append((start, end + 1))
     return result
 
 
-def shaped_lines(widget,document,preferences,width,first,last,*,cancelled=None):
+def shaped_lines(widget, document, preferences, width, first, last, *, cancelled=None):
     """Shape independent paragraphs in bounded layouts, retaining exact lines.
 
     Pango shapes paragraphs independently. A single book-sized AttrList makes
@@ -231,106 +317,155 @@ def shaped_lines(widget,document,preferences,width,first,last,*,cancelled=None):
     # GTK's source-editorial paragraph tag adds a small bottom inset. Include
     # it in the page plan too; do not risk an extra line below the viewport.
     # Build this set once, rather than scanning every style for every line.
-    editorial_breaks={style.start+m.start() for style in document.styles if style.kind=='editorial'
-                      for m in re.finditer('\n',document.text[style.start:style.end])}
-    position=first;y=0
-    while position<last:
+    editorial_breaks = {
+        style.start + m.start()
+        for style in document.styles
+        if style.kind == "editorial"
+        for m in re.finditer("\n", document.text[style.start : style.end])
+    }
+    position = first
+    y = 0
+    while position < last:
         checkpoint(cancelled)
-        boundary=document.text.find('\n',position+4096,last)
-        end=boundary+1 if boundary>=0 else last
-        text=document.text[position:end]
-        layout=widget.create_pango_layout(text)
-        layout.set_font_description(Pango.FontDescription(f'{preferences.font} {preferences.size}'))
-        layout.set_width(max(20,int(width))*Pango.SCALE)
+        boundary = document.text.find("\n", position + 4096, last)
+        end = boundary + 1 if boundary >= 0 else last
+        text = document.text[position:end]
+        layout = widget.create_pango_layout(text)
+        layout.set_font_description(Pango.FontDescription(f"{preferences.font} {preferences.size}"))
+        layout.set_width(max(20, int(width)) * Pango.SCALE)
         layout.set_wrap(Pango.WrapMode.WORD_CHAR)
-        layout.set_justify(preferences.alignment=='justified')
-        layout.set_spacing(line_spacing(preferences)*Pango.SCALE)
-        layout.set_attributes(attributes(document,position,end,context=widget.get_pango_context(),
-            preferences=preferences,cancelled=cancelled))
-        offsets={0:0};byte=0
-        for index,char in enumerate(text):
-            if index%2048==0:checkpoint(cancelled)
-            byte+=len(char.encode());offsets[byte]=index+1
-        iterator=layout.get_iter()
+        layout.set_justify(preferences.alignment == "justified")
+        layout.set_spacing(line_spacing(preferences) * Pango.SCALE)
+        layout.set_attributes(
+            attributes(
+                document,
+                position,
+                end,
+                context=widget.get_pango_context(),
+                preferences=preferences,
+                cancelled=cancelled,
+            )
+        )
+        offsets = {0: 0}
+        byte = 0
+        for index, char in enumerate(text):
+            if index % 2048 == 0:
+                checkpoint(cancelled)
+            byte += len(char.encode())
+            offsets[byte] = index + 1
+        iterator = layout.get_iter()
         while True:
             checkpoint(cancelled)
-            line=iterator.get_line_readonly();_,logical=iterator.get_line_extents()
-            offset=offsets[line.start_index]
-            if offset==len(text) and end<last:
+            line = iterator.get_line_readonly()
+            _, logical = iterator.get_line_extents()
+            offset = offsets[line.start_index]
+            if offset == len(text) and end < last:
                 # Its empty trailing paragraph is the next layout's first
                 # paragraph. Use its native position without counting it twice.
-                y+=logical.y/Pango.SCALE;break
-            yield position-first+offset,y+logical.y/Pango.SCALE,logical.height/Pango.SCALE
-            if position+offsets[line.start_index+line.length] in editorial_breaks:y+=EDITORIAL_GAP
-            if not iterator.next_line():break
-        position=end
+                y += logical.y / Pango.SCALE
+                break
+            yield (
+                position - first + offset,
+                y + logical.y / Pango.SCALE,
+                logical.height / Pango.SCALE,
+            )
+            if position + offsets[line.start_index + line.length] in editorial_breaks:
+                y += EDITORIAL_GAP
+            if not iterator.next_line():
+                break
+        position = end
 
 
-def paginate(widget,document,preferences,width,height,anchor=None,*,cancelled=None):
+def paginate(widget, document, preferences, width, height, anchor=None, *, cancelled=None):
     """Measure real shaped lines. No verse/chapter-length estimates or columns."""
     checkpoint(cancelled)
-    groups=heading_groups(document)
-    split=document.locate(anchor) if anchor else 0
-    for start,end in groups:
-        if start<split<end:split=start
+    groups = heading_groups(document)
+    split = document.locate(anchor) if anchor else 0
+    for start, end in groups:
+        if start < split < end:
+            split = start
     for style in document.styles:
-        if style.kind=='verse-start' and style.start<split<style.end:split=style.start
-    for start,end in groups:
-        if start<split<end:split=start
-    while split and split<len(document.text) and unicodedata.combining(document.text[split]):split-=1
-    boundaries=[(0,split),(split,len(document.text))] if split else [(0,len(document.text))]
-    metrics=widget.get_pango_context().get_metrics(Pango.FontDescription(f'{preferences.font} {preferences.size}'),None)
-    line_height=metrics.get_height()/Pango.SCALE
-    spacing=line_spacing(preferences)
-    reserve=line_height+2*spacing
-    capacity=max(1,height-reserve-2)
+        if style.kind == "verse-start" and style.start < split < style.end:
+            split = style.start
+    for start, end in groups:
+        if start < split < end:
+            split = start
+    while split and split < len(document.text) and unicodedata.combining(document.text[split]):
+        split -= 1
+    boundaries = [(0, split), (split, len(document.text))] if split else [(0, len(document.text))]
+    metrics = widget.get_pango_context().get_metrics(
+        Pango.FontDescription(f"{preferences.font} {preferences.size}"), None
+    )
+    line_height = metrics.get_height() / Pango.SCALE
+    spacing = line_spacing(preferences)
+    reserve = line_height + 2 * spacing
+    capacity = max(1, height - reserve - 2)
     # A fixed common body grid, independent of the current page's content.
     # Fractional unused capacity and trailing-newline safety are not visible
     # reading space; neither should bias the normal filled pages upward.
-    line_count=max(1,int((capacity+spacing)//(line_height+spacing)))
-    reading_height=line_count*(line_height+spacing)-spacing
-    pages=[]
-    for first,last in boundaries:
+    line_count = max(1, int((capacity + spacing) // (line_height + spacing)))
+    reading_height = line_count * (line_height + spacing) - spacing
+    pages = []
+    for first, last in boundaries:
         checkpoint(cancelled)
-        if first==last:continue
-        lines=list(shaped_lines(widget,document,preferences,width,first,last,cancelled=cancelled))
+        if first == last:
+            continue
+        lines = list(
+            shaped_lines(widget, document, preferences, width, first, last, cancelled=cancelled)
+        )
         # A trailing newline creates an additional GTK paragraph line in a page
         # buffer. Reserve a shaped font line, including paragraph spacing, so
         # separators remain copied verbatim without clipping the last glyph.
-        starts=[first+line[0] for line in lines]
+        starts = [first + line[0] for line in lines]
         # Treat a heading and the first shaped body line as one block when it
         # fits. Oversized titles still make progress one line at a time.
-        protected=list(groups)+[(s.start,s.end) for s in document.styles if s.kind=='verse-start']
-        intervals=[];beginnings=[];endings=[]
-        for start,end in protected:
-            if start<first or end>last:continue
-            begin=bisect_right(starts,start)-1;finish=bisect_right(starts,end-1)-1
-            if lines[finish][1]+lines[finish][2]-lines[begin][1]<=capacity:
+        protected = list(groups) + [
+            (s.start, s.end) for s in document.styles if s.kind == "verse-start"
+        ]
+        intervals = []
+        beginnings = []
+        endings = []
+        for start, end in protected:
+            if start < first or end > last:
+                continue
+            begin = bisect_right(starts, start) - 1
+            finish = bisect_right(starts, end - 1) - 1
+            if lines[finish][1] + lines[finish][2] - lines[begin][1] <= capacity:
                 # Ranges may share the heading's first body line. Merge them
                 # only if the combined group can still fit on an empty page.
                 # Accepted blocks are disjoint and sorted. Find overlaps
                 # directly instead of scanning every earlier verse twice.
                 # The old quadratic scan dominated long-book preparation.
-                left_index=bisect_left(endings,begin)
-                right_index=bisect_right(beginnings,finish)
-                overlaps=intervals[left_index:right_index]
-                left=min([begin]+[a for a,b in overlaps]);right=max([finish]+[b for a,b in overlaps])
-                if lines[right][1]+lines[right][2]-lines[left][1]>capacity:continue
-                intervals[left_index:right_index]=[(left,right)]
-                beginnings[left_index:right_index]=[left];endings[left_index:right_index]=[right]
-        blocks=dict(intervals)
-        page_start=first;top=lines[0][1];index=0
-        while index<len(lines):
+                left_index = bisect_left(endings, begin)
+                right_index = bisect_right(beginnings, finish)
+                overlaps = intervals[left_index:right_index]
+                left = min([begin] + [a for a, b in overlaps])
+                right = max([finish] + [b for a, b in overlaps])
+                if lines[right][1] + lines[right][2] - lines[left][1] > capacity:
+                    continue
+                intervals[left_index:right_index] = [(left, right)]
+                beginnings[left_index:right_index] = [left]
+                endings[left_index:right_index] = [right]
+        blocks = dict(intervals)
+        page_start = first
+        top = lines[0][1]
+        index = 0
+        while index < len(lines):
             checkpoint(cancelled)
-            finish=blocks.get(index,index)
-            offset,y,_=lines[index];bottom=lines[finish][1]+lines[finish][2]
-            absolute=first+offset
-            if bottom-top>capacity and absolute>page_start:
-                pages.append(Page(page_start,absolute));page_start=absolute;top=y
-            index=finish+1
-        if page_start<last:pages.append(Page(page_start,last))
-    if not pages:pages=[Page(0,0)]
+            finish = blocks.get(index, index)
+            offset, y, _ = lines[index]
+            bottom = lines[finish][1] + lines[finish][2]
+            absolute = first + offset
+            if bottom - top > capacity and absolute > page_start:
+                pages.append(Page(page_start, absolute))
+                page_start = absolute
+                top = y
+            index = finish + 1
+        if page_start < last:
+            pages.append(Page(page_start, last))
+    if not pages:
+        pages = [Page(0, 0)]
     checkpoint(cancelled)
-    assert pages[0].start==0 and pages[-1].end==len(document.text)
-    assert all(a.end==b.start for a,b in zip(pages,pages[1:]))
-    return PagePlan(document,tuple(pages),capacity,reading_height)
+    assert pages[0].start == 0 and pages[-1].end == len(document.text)
+    assert all(a.end == b.start for a, b in zip(pages, pages[1:]))
+    return PagePlan(document, tuple(pages), capacity, reading_height)

@@ -1,5 +1,6 @@
 """One native, non-navigating preview shared by study links and note citations."""
-from gi.repository import Gtk,Pango,Adw
+
+from gi.repository import Gtk, Pango, Adw
 from .i18n import tr
 from .notes_window import passage_label
 from .reference_targets import local_excerpt
@@ -7,165 +8,304 @@ from .reference_resolution import VersificationMismatch
 from .reading_style import apply_direction
 
 
-def passage_title(start,end=None,system=None):
-    end=end or start
-    if start==end and start.endswith('.0'):
+def passage_title(start, end=None, system=None):
+    """Format actual source ranges and distinguish explicit source headings from numbered verses."""
+    end = end or start
+    if start == end and start.endswith(".0"):
         import re
         from .book_names import display_name
         from .i18n import LANGUAGE
-        match=re.fullmatch(r'([1-4]?[A-Za-z][A-Za-z0-9]{0,15})\.([1-9][0-9]{0,2})\.0',start)
-        if match:return f'{display_name(match[1],match[1],LANGUAGE)} {int(match[2])} — '+tr('Source heading')
-    if start.rsplit('.',1)[0]==end.rsplit('.',1)[0]:return passage_label(start,end,system)
-    return passage_label(start,versification=system)+' – '+passage_label(end,versification=system)
+
+        match = re.fullmatch(r"([1-4]?[A-Za-z][A-Za-z0-9]{0,15})\.([1-9][0-9]{0,2})\.0", start)
+        if match:
+            return f"{display_name(match[1], match[1], LANGUAGE)} {int(match[2])} — " + tr(
+                "Source heading"
+            )
+    if start.rsplit(".", 1)[0] == end.rsplit(".", 1)[0]:
+        return passage_label(start, end, system)
+    return (
+        passage_label(start, versification=system)
+        + " – "
+        + passage_label(end, versification=system)
+    )
 
 
 class ReferencePreview:
-    def __init__(self,owner):
-        self.owner=owner;self.popover=None;self.target=None
+    """Own one native non-navigating local passage preview and its dismissal/source lifetime."""
 
-    def detach(self,popover):
-        root=getattr(popover,'_reference_root',None)
+    def __init__(self, owner):
+        self.owner = owner
+        self.popover = None
+        self.target = None
+
+    def detach(self, popover):
+        """Disconnect popup/dialog/anchor lifetime guards and release the native preview owner."""
+        root = getattr(popover, "_reference_root", None)
         if root:
-            entries=root._reading_popovers
-            if popover in entries:entries.remove(popover)
-            handler=getattr(popover,'_reference_unrealize',0)
-            if handler:root.disconnect(handler)
-            popover._reference_root=None
-        anchor=getattr(popover,'_reference_anchor',None)
-        handler=getattr(popover,'_reference_anchor_unmap',0)
-        if anchor and handler:anchor.disconnect(handler)
-        popover._reference_anchor=None;popover._reference_anchor_unmap=0
-        dialog=getattr(popover,'_reference_dialog',None)
+            entries = root._reading_popovers
+            if popover in entries:
+                entries.remove(popover)
+            handler = getattr(popover, "_reference_unrealize", 0)
+            if handler:
+                root.disconnect(handler)
+            popover._reference_root = None
+        anchor = getattr(popover, "_reference_anchor", None)
+        handler = getattr(popover, "_reference_anchor_unmap", 0)
+        if anchor and handler:
+            anchor.disconnect(handler)
+        popover._reference_anchor = None
+        popover._reference_anchor_unmap = 0
+        dialog = getattr(popover, "_reference_dialog", None)
         if dialog:
-            handler=getattr(popover,'_reference_dialog_handler',0)
-            if handler:dialog.disconnect(handler)
+            handler = getattr(popover, "_reference_dialog_handler", 0)
+            if handler:
+                dialog.disconnect(handler)
             dialog.set_can_close(popover._reference_dialog_can_close)
-            popover._reference_dialog=None;popover._reference_dialog_handler=0
-        if popover.get_parent():popover.unparent()
-        if self.popover is popover:self.popover=None;self.target=None
+            popover._reference_dialog = None
+            popover._reference_dialog_handler = 0
+        if popover.get_parent():
+            popover.unparent()
+        if self.popover is popover:
+            self.popover = None
+            self.target = None
 
     def dismiss(self):
-        popover=self.popover
+        popover = self.popover
         if popover:
-            popover.popdown();self.detach(popover)
+            popover.popdown()
+            self.detach(popover)
 
-    def show(self,anchor,resource,reader,start,end=None,*,source_system='openbible',provenance='',navigation_guard=None,pointing_to=None):
+    def show(
+        self,
+        anchor,
+        resource,
+        reader,
+        start,
+        end=None,
+        *,
+        source_system="openbible",
+        provenance="",
+        navigation_guard=None,
+        pointing_to=None,
+    ):
+        """Preview a verified local excerpt without moving reading until an explicit Open action.
+
+        Keep unmapped/unavailable content explicit, retain attribution and guard
+        unsaved-note navigation. Native dialog/anchor lifetime is restored on
+        dismissal; preview text never becomes a substitute source dataset.
+        """
         self.dismiss()
-        root=anchor.get_root()
-        if not isinstance(root,Gtk.Window) or not anchor.get_mapped():return
-        popover=Gtk.Popover(autohide=False)
-        self.popover=popover
-        if not hasattr(root,'_reading_popovers'):
+        root = anchor.get_root()
+        if not isinstance(root, Gtk.Window) or not anchor.get_mapped():
+            return
+        popover = Gtk.Popover(autohide=False)
+        self.popover = popover
+        if not hasattr(root, "_reading_popovers"):
             from .popover_dismissal import install
-            root._reading_popovers=[];root._reference_dismissal=install(root,root._reading_popovers)
+
+            root._reading_popovers = []
+            root._reference_dismissal = install(root, root._reading_popovers)
         root._reading_popovers.append(popover)
-        popover._reference_root=root
-        popover._reference_unrealize=root.connect('unrealize',lambda *_:self.dismiss())
-        dialog=anchor.get_ancestor(Adw.Dialog)
+        popover._reference_root = root
+        popover._reference_unrealize = root.connect("unrealize", lambda *_: self.dismiss())
+        dialog = anchor.get_ancestor(Adw.Dialog)
         if dialog:
             # Adwaita's modal Escape action runs before window key controllers.
             # Let the first close attempt dismiss only this nested preview.
-            popover._reference_dialog=dialog
-            popover._reference_dialog_can_close=dialog.get_can_close()
-            popover._reference_dialog_handler=dialog.connect('close-attempt',lambda *_:self.dismiss())
+            popover._reference_dialog = dialog
+            popover._reference_dialog_can_close = dialog.get_can_close()
+            popover._reference_dialog_handler = dialog.connect(
+                "close-attempt", lambda *_: self.dismiss()
+            )
             dialog.set_can_close(False)
-        popover._reference_anchor=anchor
-        popover._reference_anchor_unmap=anchor.connect('unmap',lambda *_:self.dismiss())
-        popover.connect('closed',lambda *_:self.detach(popover))
-        box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8,
-                    margin_start=12,margin_end=12,margin_top=12,margin_bottom=12)
-        width=min(440,max(240,root.get_width()-48))
-        box.set_size_request(width-24,-1)
-        found,bounds=anchor.compute_bounds(root)
-        above=bounds.origin.y if found else 0
-        below=root.get_height()-(bounds.origin.y+bounds.size.height) if found else root.get_height()
+        popover._reference_anchor = anchor
+        popover._reference_anchor_unmap = anchor.connect("unmap", lambda *_: self.dismiss())
+        popover.connect("closed", lambda *_: self.detach(popover))
+        box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=8,
+            margin_start=12,
+            margin_end=12,
+            margin_top=12,
+            margin_bottom=12,
+        )
+        width = min(440, max(240, root.get_width() - 48))
+        box.set_size_request(width - 24, -1)
+        found, bounds = anchor.compute_bounds(root)
+        above = bounds.origin.y if found else 0
+        below = (
+            root.get_height() - (bounds.origin.y + bounds.size.height)
+            if found
+            else root.get_height()
+        )
         if pointing_to is not None and found:
-            above=bounds.origin.y+pointing_to.y
-            below=root.get_height()-(bounds.origin.y+pointing_to.y+pointing_to.height)
-        popover.set_position(Gtk.PositionType.TOP if above>below else Gtk.PositionType.BOTTOM)
-        available=min(540,max(80,int(max(above,below))-24))
-        header=Gtk.Box(spacing=6)
-        title=Gtk.Label(label=tr('Passage preview'),xalign=0,hexpand=True,wrap=True)
-        title.add_css_class('heading');header.append(title)
-        close=Gtk.Button(icon_name='window-close-symbolic',tooltip_text=tr('Close'))
-        close.add_css_class('flat');close.connect('clicked',lambda *_:self.dismiss());header.append(close)
+            above = bounds.origin.y + pointing_to.y
+            below = root.get_height() - (bounds.origin.y + pointing_to.y + pointing_to.height)
+        popover.set_position(Gtk.PositionType.TOP if above > below else Gtk.PositionType.BOTTOM)
+        available = min(540, max(80, int(max(above, below)) - 24))
+        header = Gtk.Box(spacing=6)
+        title = Gtk.Label(label=tr("Passage preview"), xalign=0, hexpand=True, wrap=True)
+        title.add_css_class("heading")
+        header.append(title)
+        close = Gtk.Button(icon_name="window-close-symbolic", tooltip_text=tr("Close"))
+        close.add_css_class("flat")
+        close.connect("clicked", lambda *_: self.dismiss())
+        header.append(close)
         box.append(header)
-        try:version_title=self.owner.library.resource(resource).description if resource else tr('No active Bible translation')
-        except (OSError,ValueError):version_title=tr('Translation unavailable.')
-        version=Gtk.Label(label=version_title,xalign=0,ellipsize=Pango.EllipsizeMode.END,
-                          width_chars=1,max_width_chars=36,tooltip_text=version_title)
-        version.add_css_class('dim-label');box.append(version)
-        body=Gtk.TextView(editable=False,cursor_visible=False,wrap_mode=Gtk.WrapMode.WORD_CHAR,
-                          left_margin=4,right_margin=4,top_margin=4,bottom_margin=4)
-        body.add_css_class('study-content')
-        body.update_property([Gtk.AccessibleProperty.LABEL],[tr('Local passage text')])
-        scroll=Gtk.ScrolledWindow(min_content_width=240,max_content_height=300,
-                                  propagate_natural_height=True,hscrollbar_policy=Gtk.PolicyType.NEVER)
-        scroll.set_child(body);box.append(scroll)
-        status=Gtk.Label(xalign=0,wrap=True,max_width_chars=36);status.add_css_class('dim-label');box.append(status)
-        actions=Gtk.Box(spacing=6)
-        here=Gtk.Button(label=tr('Open'),tooltip_text=tr('Open in current tab'))
-        new=Gtk.Button(label=tr('New tab'),tooltip_text=tr('Open in new tab'))
-        for button,name in ((here,'Open in current tab'),(new,'Open in new tab')):
-            button.update_property([Gtk.AccessibleProperty.LABEL],[tr(name)])
-            button.get_child().set_wrap(True);button.set_hexpand(True);actions.append(button)
-        needed=sum(button.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for button in (here,new))+6
-        if needed>width-24:
+        try:
+            version_title = (
+                self.owner.library.resource(resource).description
+                if resource
+                else tr("No active Bible translation")
+            )
+        except (OSError, ValueError):
+            version_title = tr("Translation unavailable.")
+        version = Gtk.Label(
+            label=version_title,
+            xalign=0,
+            ellipsize=Pango.EllipsizeMode.END,
+            width_chars=1,
+            max_width_chars=36,
+            tooltip_text=version_title,
+        )
+        version.add_css_class("dim-label")
+        box.append(version)
+        body = Gtk.TextView(
+            editable=False,
+            cursor_visible=False,
+            wrap_mode=Gtk.WrapMode.WORD_CHAR,
+            left_margin=4,
+            right_margin=4,
+            top_margin=4,
+            bottom_margin=4,
+        )
+        body.add_css_class("study-content")
+        body.update_property([Gtk.AccessibleProperty.LABEL], [tr("Local passage text")])
+        scroll = Gtk.ScrolledWindow(
+            min_content_width=240,
+            max_content_height=300,
+            propagate_natural_height=True,
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+        )
+        scroll.set_child(body)
+        box.append(scroll)
+        status = Gtk.Label(xalign=0, wrap=True, max_width_chars=36)
+        status.add_css_class("dim-label")
+        box.append(status)
+        actions = Gtk.Box(spacing=6)
+        here = Gtk.Button(label=tr("Open"), tooltip_text=tr("Open in current tab"))
+        new = Gtk.Button(label=tr("New tab"), tooltip_text=tr("Open in new tab"))
+        for button, name in ((here, "Open in current tab"), (new, "Open in new tab")):
+            button.update_property([Gtk.AccessibleProperty.LABEL], [tr(name)])
+            button.get_child().set_wrap(True)
+            button.set_hexpand(True)
+            actions.append(button)
+        needed = (
+            sum(button.measure(Gtk.Orientation.HORIZONTAL, -1)[1] for button in (here, new)) + 6
+        )
+        if needed > width - 24:
             # Retain the complete accessible action/tooltip when enlarged UI
             # text leaves insufficient width for both labels.
-            here.set_icon_name('go-jump-symbolic')
-            needed=sum(button.measure(Gtk.Orientation.HORIZONTAL,-1)[1] for button in (here,new))+6
-        actions.set_orientation(Gtk.Orientation.HORIZONTAL if needed<=width-24 else Gtk.Orientation.VERTICAL)
+            here.set_icon_name("go-jump-symbolic")
+            needed = (
+                sum(button.measure(Gtk.Orientation.HORIZONTAL, -1)[1] for button in (here, new)) + 6
+            )
+        actions.set_orientation(
+            Gtk.Orientation.HORIZONTAL if needed <= width - 24 else Gtk.Orientation.VERTICAL
+        )
         box.append(actions)
         try:
-            if reader is None:raise ValueError('No active Bible translation')
-            excerpt=local_excerpt(reader,start,end,source_system=source_system)
-            title.set_text(passage_title(excerpt.start,excerpt.end,reader.versification))
-            body.get_buffer().set_text(excerpt.text);apply_direction(body,reader)
-            status.set_text(tr('Beginning of passage; open it to read more.') if excerpt.more else '')
+            if reader is None:
+                raise ValueError("No active Bible translation")
+            excerpt = local_excerpt(reader, start, end, source_system=source_system)
+            title.set_text(passage_title(excerpt.start, excerpt.end, reader.versification))
+            body.get_buffer().set_text(excerpt.text)
+            apply_direction(body, reader)
+            status.set_text(
+                tr("Beginning of passage; open it to read more.") if excerpt.more else ""
+            )
             status.set_visible(excerpt.more)
-            target=(resource,excerpt.start)
-            self.target=target
-        except (ValueError,OSError) as error:
-            body.get_buffer().set_text('');scroll.set_visible(False)
-            title.set_text(passage_title(start,end,source_system if source_system!='openbible' else None))
-            status.set_text(tr('Open an installed Bible translation to preview this reference.') if reader is None else
-                            tr('No verified alignment for this passage.') if isinstance(error,VersificationMismatch)
-                            else tr('This passage is unavailable in the selected translation.'))
-            status.set_tooltip_text(str(error));here.set_sensitive(False);new.set_sensitive(False);target=None
+            target = (resource, excerpt.start)
+            self.target = target
+        except (ValueError, OSError) as error:
+            body.get_buffer().set_text("")
+            scroll.set_visible(False)
+            title.set_text(
+                passage_title(start, end, source_system if source_system != "openbible" else None)
+            )
+            status.set_text(
+                tr("Open an installed Bible translation to preview this reference.")
+                if reader is None
+                else tr("No verified alignment for this passage.")
+                if isinstance(error, VersificationMismatch)
+                else tr("This passage is unavailable in the selected translation.")
+            )
+            status.set_tooltip_text(str(error))
+            here.set_sensitive(False)
+            new.set_sensitive(False)
+            target = None
+
         def open_target(new_tab):
             self.dismiss()
-            if not target or self.owner.closed:return
-            name,reference=target
-            if name not in self.owner.library.installed('bible'):
-                self.owner.report_session_error(tr('Translation unavailable.'),ValueError(name));return
+            if not target or self.owner.closed:
+                return
+            name, reference = target
+            if name not in self.owner.library.installed("bible"):
+                self.owner.report_session_error(tr("Translation unavailable."), ValueError(name))
+                return
+
             def navigate():
-                tab=self.owner.new_tab() if new_tab else self.owner.active_tab
-                if tab:tab.navigate(name,reference)
-                self.owner.main_pages.set_visible_child_name('reading')
-            if navigation_guard:navigation_guard(navigate)
-            elif self.owner.main_pages.get_visible_child_name()=='notes':self.owner.notes_space.guard(navigate)
-            else:navigate()
-        here.connect('clicked',lambda *_:open_target(False));new.connect('clicked',lambda *_:open_target(True))
+                tab = self.owner.new_tab() if new_tab else self.owner.active_tab
+                if tab:
+                    tab.navigate(name, reference)
+                self.owner.main_pages.set_visible_child_name("reading")
+
+            if navigation_guard:
+                navigation_guard(navigate)
+            elif self.owner.main_pages.get_visible_child_name() == "notes":
+                self.owner.notes_space.guard(navigate)
+            else:
+                navigate()
+
+        here.connect("clicked", lambda *_: open_target(False))
+        new.connect("clicked", lambda *_: open_target(True))
         if provenance:
             from .source_credit import source_credit
+
             box.append(source_credit(provenance))
         # Reserve controls/credit before giving the remaining height to the
         # text viewport. Long passages scroll there; actions remain reachable.
-        children=[];child=box.get_first_child()
-        while child:children.append(child);child=child.get_next_sibling()
-        fixed=24+8*(len(children)-1)+sum(child.measure(Gtk.Orientation.VERTICAL,width-40)[1]
-            for child in children if child is not scroll and child.get_visible())
-        scroll.set_max_content_height(max(24,min(300,available-fixed)))
+        children = []
+        child = box.get_first_child()
+        while child:
+            children.append(child)
+            child = child.get_next_sibling()
+        fixed = (
+            24
+            + 8 * (len(children) - 1)
+            + sum(
+                child.measure(Gtk.Orientation.VERTICAL, width - 40)[1]
+                for child in children
+                if child is not scroll and child.get_visible()
+            )
+        )
+        scroll.set_max_content_height(max(24, min(300, available - fixed)))
         # Let GTK constrain the entire preview when large UI text leaves too
         # little space above/below a result. A fixed minimum for all controls
         # could otherwise make the native popup close immediately on allocation.
-        content=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
-            propagate_natural_width=False,min_content_width=width,
+        content = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_width=False,
+            min_content_width=width,
             max_content_width=width,
-            propagate_natural_height=True,max_content_height=available)
-        content.set_child(box);popover.set_child(content);popover.set_parent(anchor)
-        if pointing_to is not None:popover.set_pointing_to(pointing_to)
+            propagate_natural_height=True,
+            max_content_height=available,
+        )
+        content.set_child(box)
+        popover.set_child(content)
+        popover.set_parent(anchor)
+        if pointing_to is not None:
+            popover.set_pointing_to(pointing_to)
         popover.popup()
-        self.body,self.status,self.open_here,self.open_new=body,status,here,new
+        self.body, self.status, self.open_here, self.open_new = body, status, here, new
         return popover

@@ -1,4 +1,5 @@
 """Small source-specific native indexes; no Scripture cache or inferred mapping."""
+
 import ctypes
 from functools import lru_cache
 import hashlib
@@ -10,98 +11,141 @@ import re
 # language or the shape of a canon. A verified source index must independently
 # match the declared convention for each enabled book. Other books must not
 # revoke an independently verified capability or acquire an inferred mapping.
-SOURCE_CONVENTIONS={'org':'Original','eng':'KJV'}
-_reference_conventions={}
+SOURCE_CONVENTIONS = {"org": "Original", "eng": "KJV"}
+_reference_conventions = {}
 
 
 def reference_convention(system):
-    data=reference_mapping(system)
-    return data['declared_convention']['system'] if data else None
+    data = reference_mapping(system)
+    return data["declared_convention"]["system"] if data else None
 
 
 def reference_mapping(system):
     return _reference_conventions.get(system)
 
 
-def declared_mapping(path,receipt):
-    convention=SOURCE_CONVENTIONS.get(receipt.get('source_numbering'))
-    if not convention or receipt.get('all_text_notes_headings_verified') is not True:return
-    lines=path.read_text('ascii').splitlines();system=lines[0].removeprefix('BIBLE-VRS-1 ')
-    if receipt.get('storage_numbering')!=system:return
-    canon={}
+def declared_mapping(path, receipt):
+    """Expose only declared verified convention books with unchanged native/source addressing."""
+    convention = SOURCE_CONVENTIONS.get(receipt.get("source_numbering"))
+    if not convention or receipt.get("all_text_notes_headings_verified") is not True:
+        return
+    lines = path.read_text("ascii").splitlines()
+    system = lines[0].removeprefix("BIBLE-VRS-1 ")
+    if receipt.get("storage_numbering") != system:
+        return
+    canon = {}
     for line in lines[1:]:
-        _,book,count,*maxima=line.split();canon[book]=list(map(int,maxima))
-        if int(count)!=len(maxima):return
+        _, book, count, *maxima = line.split()
+        canon[book] = list(map(int, maxima))
+        if int(count) != len(maxima):
+            return
     from .versification_mapping import table
-    declared=table(convention)
-    if declared is None:return
+
+    declared = table(convention)
+    if declared is None:
+        return
     # Address remapping is a storage detail, not proof of verse equivalence.
     # Its presence elsewhere must not disable unchanged public books. Keep
     # every transformed book unavailable until its correspondence is verified.
-    transformed=set()
-    if receipt.get('source_addresses_sha256'):
+    transformed = set()
+    if receipt.get("source_addresses_sha256"):
         from .source_units import AddressIndex
-        try:addresses=AddressIndex.load(path.parent)
-        except (OSError,ValueError):return
-        if addresses is None:return
-        transformed.update(ref.split('.')[0] for ref in addresses.chapters)
-        if addresses.sections:transformed.update(addresses.sections.order)
-    books=sorted(book for book,sizes in canon.items()
-                 if book not in transformed and sizes==declared['canon'].get(book))
-    if not books:return
-    return dict(canon=canon,declared_convention=dict(system=convention,books=books))
+
+        try:
+            addresses = AddressIndex.load(path.parent)
+        except (OSError, ValueError):
+            return
+        if addresses is None:
+            return
+        transformed.update(ref.split(".")[0] for ref in addresses.chapters)
+        if addresses.sections:
+            transformed.update(addresses.sections.order)
+    books = sorted(
+        book
+        for book, sizes in canon.items()
+        if book not in transformed and sizes == declared["canon"].get(book)
+    )
+    if not books:
+        return
+    return dict(canon=canon, declared_convention=dict(system=convention, books=books))
 
 
-def register_convention(path,receipt):
-    system=path.read_text('ascii').splitlines()[0].removeprefix('BIBLE-VRS-1 ')
-    data=declared_mapping(path,receipt)
-    if _reference_conventions.get(system)==data:return
-    if data:_reference_conventions[system]=data
-    else:_reference_conventions.pop(system,None)
+def register_convention(path, receipt):
+    """Refresh cached convention capability from the current verified source index/receipt."""
+    system = path.read_text("ascii").splitlines()[0].removeprefix("BIBLE-VRS-1 ")
+    data = declared_mapping(path, receipt)
+    if _reference_conventions.get(system) == data:
+        return
+    if data:
+        _reference_conventions[system] = data
+    else:
+        _reference_conventions.pop(system, None)
     from .versification_mapping import table
+
     table.cache_clear()
 
 
-def write_index(path,system,canon,testaments):
-    if not re.fullmatch(r'YouVersion[1-9][0-9]{0,8}',system):raise ValueError('Invalid source index identity')
-    rows=['BIBLE-VRS-1 '+system]
-    if not 1<=len(canon)<=100:raise ValueError('Invalid source book count')
-    for book,maxima in canon.items():
-        if not re.fullmatch(r'[1-5]?[A-Za-z][A-Za-z0-9]{1,15}',book) or not 1<=len(maxima)<=255:
-            raise ValueError('Invalid source book index')
-        if any(type(n) is not int or not 0<=n<=2000 for n in maxima):raise ValueError('Invalid source verse count')
-        rows.append(f'{testaments[book]} {book} {len(maxima)} '+' '.join(map(str,maxima)))
-    data=('\n'.join(rows)+'\n').encode('ascii')
-    if len(data)>262144:raise ValueError('Source reference index too large')
+def write_index(path, system, canon, testaments):
+    """Serialize a bounded actual source canon for native storage without inventing verse correspondence."""
+    if not re.fullmatch(r"YouVersion[1-9][0-9]{0,8}", system):
+        raise ValueError("Invalid source index identity")
+    rows = ["BIBLE-VRS-1 " + system]
+    if not 1 <= len(canon) <= 100:
+        raise ValueError("Invalid source book count")
+    for book, maxima in canon.items():
+        if (
+            not re.fullmatch(r"[1-5]?[A-Za-z][A-Za-z0-9]{1,15}", book)
+            or not 1 <= len(maxima) <= 255
+        ):
+            raise ValueError("Invalid source book index")
+        if any(type(n) is not int or not 0 <= n <= 2000 for n in maxima):
+            raise ValueError("Invalid source verse count")
+        rows.append(f"{testaments[book]} {book} {len(maxima)} " + " ".join(map(str, maxima)))
+    data = ("\n".join(rows) + "\n").encode("ascii")
+    if len(data) > 262144:
+        raise ValueError("Source reference index too large")
     Path(path).write_bytes(data)
     return hashlib.sha256(data).hexdigest()
 
 
 @lru_cache(maxsize=1)
 def native_loader():
+    """Find the packaged native source-index registrar or fail explicitly when unavailable."""
     import Sword
-    candidates=[str(Path(Sword.__file__).parent.parent/'libsword.so'),'libsword.so','libsword.so.1.9.0']
+
+    candidates = [
+        str(Path(Sword.__file__).parent.parent / "libsword.so"),
+        "libsword.so",
+        "libsword.so.1.9.0",
+    ]
     for candidate in candidates:
         try:
             # Retain the Python GIL while mutating the shared SWORD registry.
-            library=ctypes.PyDLL(candidate)
-            function=library.bible_register_source_index
-            function.argtypes=[ctypes.c_char_p];function.restype=ctypes.c_int
-            return library,function
-        except (OSError,AttributeError):continue
-    raise ValueError('Packaged source reference-index support is required')
+            library = ctypes.PyDLL(candidate)
+            function = library.bible_register_source_index
+            function.argtypes = [ctypes.c_char_p]
+            function.restype = ctypes.c_int
+            return library, function
+        except (OSError, AttributeError):
+            continue
+    raise ValueError("Packaged source reference-index support is required")
 
 
-def register_index(path,*,verified=True):
-    path=Path(path)
-    if path.is_symlink() or not path.is_file() or path.stat().st_size>262144:raise ValueError('Invalid source reference index')
-    data=path.read_bytes()
+def register_index(path, *, verified=True):
+    """Register a bounded source index, checking its receipt hash before exposing verified mapping capability."""
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 262144:
+        raise ValueError("Invalid source reference index")
+    data = path.read_bytes()
     if verified:
-        receipt=path.parent/'.verified.json'
-        if receipt.stat().st_size>16384:raise ValueError('Invalid source verification receipt')
-        expected=json.loads(receipt.read_text()).get('reference_index_sha256')
-        if hashlib.sha256(data).hexdigest()!=expected:raise ValueError('Source reference index changed')
-    _,function=native_loader()
-    if function(str(path).encode())!=0:raise ValueError('Source reference index is invalid or conflicts with an open edition')
+        receipt = path.parent / ".verified.json"
+        if receipt.stat().st_size > 16384:
+            raise ValueError("Invalid source verification receipt")
+        expected = json.loads(receipt.read_text()).get("reference_index_sha256")
+        if hashlib.sha256(data).hexdigest() != expected:
+            raise ValueError("Source reference index changed")
+    _, function = native_loader()
+    if function(str(path).encode()) != 0:
+        raise ValueError("Source reference index is invalid or conflicts with an open edition")
     if verified:
-        register_convention(path,json.loads(receipt.read_text()))
+        register_convention(path, json.loads(receipt.read_text()))

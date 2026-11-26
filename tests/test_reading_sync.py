@@ -1,32 +1,51 @@
+"""User-driven Bible/commentary following without layout feedback loops."""
+
 import os
 from pathlib import Path
 import tempfile
 import unittest
 from tests.fixtures import module_fixture
-from tests.test_ui import installed_fixture,spin
+from tests.test_ui import installed_fixture, spin
 from bible.sword_provider import CommentaryReader
 
 
 def linked_commentary(directory):
     import Sword
-    root=Path(directory)/'translations'/'Notes'
-    module_fixture(root,'Notes',[('Gen.1.1','FIRST COMMENT TEST'),('Gen.1.2','LONG COMMENT TEST '*900),
-                               ('Gen.1.4','UNLINKED IDENTICAL'),('Gen.1.5','UNLINKED IDENTICAL'),
-                               ('Gen.2.1','NEXT CHAPTER COMMENT TEST')],commentary=True)
-    module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
-    module.setKey(Sword.VerseKey('Gen.1.3'));module.linkEntry(Sword.VerseKey('Gen.1.2'))
-    key=Sword.VerseKey();key.setIntros(True);key.setIndex(2)
-    module.setKey(key);module.setEntry('BOOK INTRODUCTION TEST');del module
-    (root/'.complete').write_text('Notes');return root
+
+    root = Path(directory) / "translations" / "Notes"
+    module_fixture(
+        root,
+        "Notes",
+        [
+            ("Gen.1.1", "FIRST COMMENT TEST"),
+            ("Gen.1.2", "LONG COMMENT TEST " * 900),
+            ("Gen.1.4", "UNLINKED IDENTICAL"),
+            ("Gen.1.5", "UNLINKED IDENTICAL"),
+            ("Gen.2.1", "NEXT CHAPTER COMMENT TEST"),
+        ],
+        commentary=True,
+    )
+    module = Sword.RawCom(str(root / "modules/texts/rawtext/test"), "Notes", "Test data only")
+    module.setKey(Sword.VerseKey("Gen.1.3"))
+    module.linkEntry(Sword.VerseKey("Gen.1.2"))
+    key = Sword.VerseKey()
+    key.setIntros(True)
+    key.setIndex(2)
+    module.setKey(key)
+    module.setEntry("BOOK INTRODUCTION TEST")
+    del module
+    (root / ".complete").write_text("Notes")
+    return root
 
 
 def disjoint_commentary(directory):
     """Extend a real disposable native SWORD commentary with a disjoint link."""
     import Sword
-    root=linked_commentary(directory)
-    module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
-    module.setKey(Sword.VerseKey('Gen.1.6'))
-    module.linkEntry(Sword.VerseKey('Gen.1.2'))
+
+    root = linked_commentary(directory)
+    module = Sword.RawCom(str(root / "modules/texts/rawtext/test"), "Notes", "Test data only")
+    module.setKey(Sword.VerseKey("Gen.1.6"))
+    module.linkEntry(Sword.VerseKey("Gen.1.2"))
     del module
     return root
 
@@ -34,243 +53,356 @@ def disjoint_commentary(directory):
 class CommentaryIndexTests(unittest.TestCase):
     def test_module_and_testament_introductions_do_not_look_up_a_nonexistent_book(self):
         import Sword
+
         with tempfile.TemporaryDirectory() as directory:
-            root=linked_commentary(directory)
-            module=Sword.RawCom(str(root/'modules/texts/rawtext/test'),'Notes','Test data only')
-            for index in (0,1):
-                key=Sword.VerseKey();key.setIntros(True);key.setIndex(index)
-                self.assertIn(key.getBook(),(0,'\x00'))
-                module.setKey(key);module.setEntry(f'GENERAL INTRODUCTION {index}')
+            root = linked_commentary(directory)
+            module = Sword.RawCom(
+                str(root / "modules/texts/rawtext/test"), "Notes", "Test data only"
+            )
+            for index in (0, 1):
+                key = Sword.VerseKey()
+                key.setIntros(True)
+                key.setIndex(index)
+                self.assertIn(key.getBook(), (0, "\x00"))
+                module.setKey(key)
+                module.setEntry(f"GENERAL INTRODUCTION {index}")
             del module
-            reader=CommentaryReader(root,'Notes');index=reader.index
-            self.assertTrue(all(index.sections[pos].introduction for pos in (0,1)))
-            self.assertEqual([index.text(pos) for pos in (0,1)],['GENERAL INTRODUCTION 0','GENERAL INTRODUCTION 1'])
-            self.assertIsNotNone(index.locate('Gen.1.2'))
+            reader = CommentaryReader(root, "Notes")
+            index = reader.index
+            self.assertTrue(all(index.sections[pos].introduction for pos in (0, 1)))
+            self.assertEqual(
+                [index.text(pos) for pos in (0, 1)],
+                ["GENERAL INTRODUCTION 0", "GENERAL INTRODUCTION 1"],
+            )
+            self.assertIsNotNone(index.locate("Gen.1.2"))
 
     def test_native_links_introductions_and_distinct_identical_texts(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=linked_commentary(directory);reader=CommentaryReader(root,'Notes');index=reader.index
-            two=index.locate('Gen.1.2');self.assertEqual(index.locate('Gen.1.3'),two)
-            self.assertEqual((index.sections[two].start,index.sections[two].end),('Gen.1.2','Gen.1.3'))
-            self.assertNotEqual(index.locate('Gen.1.4'),index.locate('Gen.1.5'))
+            root = linked_commentary(directory)
+            reader = CommentaryReader(root, "Notes")
+            index = reader.index
+            two = index.locate("Gen.1.2")
+            self.assertEqual(index.locate("Gen.1.3"), two)
+            self.assertEqual(
+                (index.sections[two].start, index.sections[two].end), ("Gen.1.2", "Gen.1.3")
+            )
+            self.assertNotEqual(index.locate("Gen.1.4"), index.locate("Gen.1.5"))
             self.assertTrue(index.sections[0].introduction)
-            self.assertIn('INTRODUCTION',index.text(0))
-            self.assertIsNone(index.locate('John.1.1'))
+            self.assertIn("INTRODUCTION", index.text(0))
+            self.assertIsNone(index.locate("John.1.1"))
 
     def test_native_disjoint_link_resumes_without_absorbing_middle_sections(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=disjoint_commentary(directory)
-            reader=CommentaryReader(root,'Notes')
-            index=reader.index
-            primary=index.locate('Gen.1.2')
-            self.assertEqual(index.locate('Gen.1.3'),primary)
-            self.assertEqual(index.locate('Gen.1.6'),primary)
-            self.assertNotEqual(index.locate('Gen.1.4'),primary)
-            self.assertNotEqual(index.locate('Gen.1.5'),primary)
-            self.assertNotEqual(index.locate('Gen.1.4'),index.locate('Gen.1.5'))
-            section=index.sections[primary]
-            self.assertEqual(section.passages,(
-                ('Gen.1.2','Gen.1.3'),
-                ('Gen.1.6','Gen.1.6')
-            ))
-            self.assertFalse(section.contains_index(reader.key('Gen.1.5').getIndex()))
-            self.assertTrue(section.contains_index(reader.key('Gen.1.6').getIndex()))
-            self.assertEqual(sum(
-                'LONG COMMENT TEST' in index.text(pos)
-                for pos in range(len(index.sections))
-            ),1)
-            self.assertIn('LONG COMMENT TEST',index.text(primary))
-            self.assertEqual(sum(
-                section.contains_index(reader.key('Gen.1.6').getIndex())
-                for section in index.sections
-            ),1)
+            root = disjoint_commentary(directory)
+            reader = CommentaryReader(root, "Notes")
+            index = reader.index
+            primary = index.locate("Gen.1.2")
+            self.assertEqual(index.locate("Gen.1.3"), primary)
+            self.assertEqual(index.locate("Gen.1.6"), primary)
+            self.assertNotEqual(index.locate("Gen.1.4"), primary)
+            self.assertNotEqual(index.locate("Gen.1.5"), primary)
+            self.assertNotEqual(index.locate("Gen.1.4"), index.locate("Gen.1.5"))
+            section = index.sections[primary]
+            self.assertEqual(section.passages, (("Gen.1.2", "Gen.1.3"), ("Gen.1.6", "Gen.1.6")))
+            self.assertFalse(section.contains_index(reader.key("Gen.1.5").getIndex()))
+            self.assertTrue(section.contains_index(reader.key("Gen.1.6").getIndex()))
+            self.assertEqual(
+                sum("LONG COMMENT TEST" in index.text(pos) for pos in range(len(index.sections))), 1
+            )
+            self.assertIn("LONG COMMENT TEST", index.text(primary))
+            self.assertEqual(
+                sum(
+                    section.contains_index(reader.key("Gen.1.6").getIndex())
+                    for section in index.sections
+                ),
+                1,
+            )
 
 
-@unittest.skipUnless(os.environ.get('DISPLAY'),'Requires GTK')
+@unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ReadingSyncTests(unittest.TestCase):
-    @unittest.skipUnless(os.environ.get('BIBLE_TEST_ISOLATED_CLICK')=='1','Requires isolated native X11 input')
+    @unittest.skipUnless(
+        os.environ.get("BIBLE_TEST_ISOLATED_CLICK") == "1", "Requires isolated native X11 input"
+    )
     def test_commentary_wheel_reaches_the_next_sparse_chapter_and_returns(self):
         from tools.check_alpha_ui import X11Input
+
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory);s=w.study;t=w.active_tab;n=X11Input();n.activate(w)
+            w = self.setup_window(directory)
+            s = w.study
+            t = w.active_tab
+            n = X11Input()
+            n.activate(w)
             try:
-                last=s.reader.index.locate('Gen.1.5');following=s.reader.index.locate('Gen.2.1')
-                self.assertNotIn(following,s.loaded)
-                s.current_position=last;s.reveal(last,force=True);spin(lambda:not s._positioning)
-                n.wheel(s.text,12);spin(lambda:following in s.loaded,timeout=5)
+                last = s.reader.index.locate("Gen.1.5")
+                following = s.reader.index.locate("Gen.2.1")
+                self.assertNotIn(following, s.loaded)
+                s.current_position = last
+                s.reveal(last, force=True)
+                spin(lambda: not s._positioning)
+                n.wheel(s.text, 12)
+                spin(lambda: following in s.loaded, timeout=5)
                 for _ in range(4):
-                    if s.current_position==following:break
-                    n.wheel(s.text,12);spin(duration=.3)
-                self.assertEqual(s.current_position,following)
-                self.assertEqual(t.state.reference,'Gen.2.1')
-                self.assertLessEqual(len(s.loaded),20)
-                n.wheel(s.text,-12)
-                try:spin(lambda:t.state.reference.startswith('Gen.1.'),duration=.2,timeout=3)
+                    if s.current_position == following:
+                        break
+                    n.wheel(s.text, 12)
+                    spin(duration=0.3)
+                self.assertEqual(s.current_position, following)
+                self.assertEqual(t.state.reference, "Gen.2.1")
+                self.assertLessEqual(len(s.loaded), 20)
+                n.wheel(s.text, -12)
+                try:
+                    spin(lambda: t.state.reference.startswith("Gen.1."), duration=0.2, timeout=3)
                 except AssertionError:
-                    a=s.scroll.get_vadjustment();print('BOUNDARY FAILURE',a.get_value(),a.get_upper(),a.get_page_size(),t.state.reference,s.current_position,s.visible_section(),s.loaded,s._positioning,s._chapter_context,w.reading_sync.driver,w.reading_sync.pending,t._restoring_scroll,flush=True)
+                    a = s.scroll.get_vadjustment()
+                    print(
+                        "BOUNDARY FAILURE",
+                        a.get_value(),
+                        a.get_upper(),
+                        a.get_page_size(),
+                        t.state.reference,
+                        s.current_position,
+                        s.visible_section(),
+                        s.loaded,
+                        s._positioning,
+                        s._chapter_context,
+                        w.reading_sync.driver,
+                        w.reading_sync.pending,
+                        t._restoring_scroll,
+                        flush=True,
+                    )
                     raise
-                self.assertTrue(t.state.reference.startswith('Gen.1.'))
+                self.assertTrue(t.state.reference.startswith("Gen.1."))
                 self.assertFalse(s._positioning)
-            finally:n.close();w.close();spin()
+            finally:
+                n.close()
+                w.close()
+                spin()
 
     @classmethod
     def setUpClass(cls):
-        from bible.ui import Application,Gtk
-        cls.app=Application.get_default() or Application();cls.app.register()
-        Gtk.Settings.get_default().set_property('gtk-enable-animations',False)
+        from bible.ui import Application, Gtk
 
-    def setup_window(self,directory,disjoint=False):
-        from bible.ui import Window,Library
-        entries=[(f'Gen.1.{i}',(f'VERSE {i} TEST '*90)) for i in range(1,9)]+[('Gen.2.1','SECOND CHAPTER BIBLE TEST')]
-        installed_fixture(directory,entries=entries)
+        cls.app = Application.get_default() or Application()
+        cls.app.register()
+        Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
+
+    def setup_window(self, directory, disjoint=False):
+        from bible.ui import Window, Library
+
+        entries = [(f"Gen.1.{i}", (f"VERSE {i} TEST " * 90)) for i in range(1, 9)] + [
+            ("Gen.2.1", "SECOND CHAPTER BIBLE TEST")
+        ]
+        installed_fixture(directory, entries=entries)
         (disjoint_commentary if disjoint else linked_commentary)(directory)
-        window=Window(self.app,Library(Path(directory)/'translations'));window.present()
-        window.active_tab.state.commentary='Notes';window.study_button.set_active(True);window.study.refresh()
-        self.addCleanup(lambda:window.close() if not window.closed else None)
-        spin(lambda:not window.active_tab._restoring_scroll and not window.study._positioning,duration=.3)
+        window = Window(self.app, Library(Path(directory) / "translations"))
+        window.present()
+        window.active_tab.state.commentary = "Notes"
+        window.study_button.set_active(True)
+        window.study.refresh()
+        self.addCleanup(lambda: window.close() if not window.closed else None)
+        spin(
+            lambda: not window.active_tab._restoring_scroll and not window.study._positioning,
+            duration=0.3,
+        )
         return window
 
-    def scroll_reference(self,w,reference):
-        tab=w.active_tab;view=tab.text
-        w.reading_sync.intent('bible',tab)
-        iterator=view.get_buffer().get_iter_at_offset(tab._verse_offsets[reference])
-        target=view.get_iter_location(iterator);rect=view.get_visible_rect()
-        adjustment=tab.scroll.get_vadjustment();adjustment.set_value(adjustment.get_value()+target.y-rect.y)
-        spin(lambda:tab.state.reference==reference and not w.study._positioning,duration=.25)
+    def scroll_reference(self, w, reference):
+        tab = w.active_tab
+        view = tab.text
+        w.reading_sync.intent("bible", tab)
+        iterator = view.get_buffer().get_iter_at_offset(tab._verse_offsets[reference])
+        target = view.get_iter_location(iterator)
+        rect = view.get_visible_rect()
+        adjustment = tab.scroll.get_vadjustment()
+        adjustment.set_value(adjustment.get_value() + target.y - rect.y)
+        spin(lambda: tab.state.reference == reference and not w.study._positioning, duration=0.25)
 
     def test_disjoint_section_renders_once_and_study_indicator_skips_middle(self):
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory,disjoint=True)
+            w = self.setup_window(directory, disjoint=True)
             try:
-                study=w.study
-                tab=w.active_tab
-                group=study.reader.index.locate('Gen.1.6')
-                self.assertEqual(group,study.reader.index.locate('Gen.1.2'))
-                self.assertEqual(len(study.reader.index.sections[group].passages),2)
-                study.follow('Gen.1.6')
-                spin(lambda:not study._positioning,duration=.2)
-                self.assertEqual(study.current_position,group)
-                coverage=tab._study_coverage
-                self.assertEqual(len(coverage),2)
-                self.assertEqual(coverage[1],(
-                    ('Gen.1.2','Gen.1.3'),('Gen.1.6','Gen.1.6')
-                ))
-                text=study.text.get_buffer().props.text
-                self.assertEqual(text.count('LONG COMMENT TEST'),900)
-                intervals=[(ref,first,last)
-                           for ref,(first,last) in tab._verse_ranges.items()]
-                spans=tab.study_ranges(tab.reader,intervals)
-                expected=[(first,last) for ref,first,last in intervals
-                          if ref in ('Gen.1.2','Gen.1.3','Gen.1.6')]
-                self.assertEqual(spans,expected)
+                study = w.study
+                tab = w.active_tab
+                group = study.reader.index.locate("Gen.1.6")
+                self.assertEqual(group, study.reader.index.locate("Gen.1.2"))
+                self.assertEqual(len(study.reader.index.sections[group].passages), 2)
+                study.follow("Gen.1.6")
+                spin(lambda: not study._positioning, duration=0.2)
+                self.assertEqual(study.current_position, group)
+                coverage = tab._study_coverage
+                self.assertEqual(len(coverage), 2)
+                self.assertEqual(coverage[1], (("Gen.1.2", "Gen.1.3"), ("Gen.1.6", "Gen.1.6")))
+                text = study.text.get_buffer().props.text
+                self.assertEqual(text.count("LONG COMMENT TEST"), 900)
+                intervals = [(ref, first, last) for ref, (first, last) in tab._verse_ranges.items()]
+                spans = tab.study_ranges(tab.reader, intervals)
+                expected = [
+                    (first, last)
+                    for ref, first, last in intervals
+                    if ref in ("Gen.1.2", "Gen.1.3", "Gen.1.6")
+                ]
+                self.assertEqual(spans, expected)
             finally:
                 w.close()
                 spin()
 
     def test_references_follow_visible_anchor_and_reopen_without_history(self):
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory);tab=w.active_tab
-            w.study.tools.set_visible_child_name('references');spin()
-            history=list(tab.state.history)
-            self.scroll_reference(w,'Gen.1.2')
-            self.assertEqual(w.study.references.context[2:],('Gen.1.2','Gen.1.2'))
-            self.scroll_reference(w,'Gen.1.1')
-            self.assertEqual(w.study.references.context[2:],('Gen.1.1','Gen.1.1'))
-            w.study_button.set_active(False);spin()
-            w.reading_sync.intent('bible',tab)
-            view=tab.text;iterator=view.get_buffer().get_iter_at_offset(tab._verse_offsets['Gen.1.2'])
-            y=view.get_iter_location(iterator).y;rect=view.get_visible_rect();a=tab.scroll.get_vadjustment()
-            a.set_value(a.get_value()+y-rect.y);spin(duration=.3)
-            visible=tab.visible_reference()
+            w = self.setup_window(directory)
+            tab = w.active_tab
+            w.study.tools.set_visible_child_name("references")
+            spin()
+            history = list(tab.state.history)
+            self.scroll_reference(w, "Gen.1.2")
+            self.assertEqual(w.study.references.context[2:], ("Gen.1.2", "Gen.1.2"))
+            self.scroll_reference(w, "Gen.1.1")
+            self.assertEqual(w.study.references.context[2:], ("Gen.1.1", "Gen.1.1"))
+            w.study_button.set_active(False)
+            spin()
+            w.reading_sync.intent("bible", tab)
+            view = tab.text
+            iterator = view.get_buffer().get_iter_at_offset(tab._verse_offsets["Gen.1.2"])
+            y = view.get_iter_location(iterator).y
+            rect = view.get_visible_rect()
+            a = tab.scroll.get_vadjustment()
+            a.set_value(a.get_value() + y - rect.y)
+            spin(duration=0.3)
+            visible = tab.visible_reference()
             w.study_button.set_active(True)
-            spin(lambda:not tab._restoring_scroll and not tab._adapt_id
-                 and not w.reading_sync.pending and not w.study.references.pending,duration=.3)
-            self.assertEqual(tab.visible_reference(),visible)
-            self.assertEqual(w.study.references.context[2:],(visible,visible))
-            self.assertEqual(tab.state.history,history)
+            spin(
+                lambda: not tab._restoring_scroll
+                and not tab._adapt_id
+                and not w.reading_sync.pending
+                and not w.study.references.pending,
+                duration=0.3,
+            )
+            self.assertEqual(tab.visible_reference(), visible)
+            self.assertEqual(w.study.references.context[2:], (visible, visible))
+            self.assertEqual(tab.state.history, history)
 
     def test_both_directions_ranges_missing_history_focus_and_long_entry(self):
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory);tab=w.active_tab;study=w.study
-            history_count=len(tab.state.history)
-            self.scroll_reference(w,'Gen.1.2')
-            self.assertIn('LONG COMMENT',study.entry_text)
-            long_position=study.reader.index.locate('Gen.1.2')
+            w = self.setup_window(directory)
+            tab = w.active_tab
+            study = w.study
+            history_count = len(tab.state.history)
+            self.scroll_reference(w, "Gen.1.2")
+            self.assertIn("LONG COMMENT", study.entry_text)
+            long_position = study.reader.index.locate("Gen.1.2")
             # Real user driver, then a scroll inside the long entry.
-            w.reading_sync.intent('commentary');study.text.grab_focus()
-            start,body,end=study.ranges[long_position]
-            target=study.text.get_iter_location(study.text.get_buffer().get_iter_at_offset(body+1200))
-            rect=study.text.get_visible_rect();adj=study.scroll.get_vadjustment()
-            adj.set_value(adj.get_value()+target.y-rect.y);spin(duration=.3)
-            before=adj.get_value();focus=w.get_focus()
-            self.scroll_reference(w,'Gen.1.3')
-            self.assertAlmostEqual(adj.get_value(),before,delta=4)
-            self.assertIs(w.get_focus(),focus)
+            w.reading_sync.intent("commentary")
+            study.text.grab_focus()
+            start, body, end = study.ranges[long_position]
+            target = study.text.get_iter_location(
+                study.text.get_buffer().get_iter_at_offset(body + 1200)
+            )
+            rect = study.text.get_visible_rect()
+            adj = study.scroll.get_vadjustment()
+            adj.set_value(adj.get_value() + target.y - rect.y)
+            spin(duration=0.3)
+            before = adj.get_value()
+            focus = w.get_focus()
+            self.scroll_reference(w, "Gen.1.3")
+            self.assertAlmostEqual(adj.get_value(), before, delta=4)
+            self.assertIs(w.get_focus(), focus)
             # An explicit entry action advances the commentary and leads the Bible.
-            study.current_position=study.reader.index.locate('Gen.1.5');study.step_entry(1)
-            spin(lambda:tab.state.reference=='Gen.2.1',duration=.3)
-            self.assertEqual(len(tab.state.history),history_count)
-            self.assertIn('Gen.2.1',str(tab.state.commentary_positions))
-            tab._travelling=True
-            try:tab.show('Gen.1.6')
-            finally:tab._travelling=False
-            spin(lambda:not tab._restoring_scroll)
-            self.assertEqual(study.entry_text,'')
+            study.current_position = study.reader.index.locate("Gen.1.5")
+            study.step_entry(1)
+            spin(lambda: tab.state.reference == "Gen.2.1", duration=0.3)
+            self.assertEqual(len(tab.state.history), history_count)
+            self.assertIn("Gen.2.1", str(tab.state.commentary_positions))
+            tab._travelling = True
+            try:
+                tab.show("Gen.1.6")
+            finally:
+                tab._travelling = False
+            spin(lambda: not tab._restoring_scroll)
+            self.assertEqual(study.entry_text, "")
             # Missing coverage no longer destroys the continuous chapter stream.
-            self.assertIn('FIRST COMMENT TEST',study.text.get_buffer().props.text)
+            self.assertIn("FIRST COMMENT TEST", study.text.get_buffer().props.text)
             self.assertIsNone(study.current_position)
             from bible.i18n import tr
-            self.assertEqual(tr('No commentary for this passage.'),study.status.get_text())
+
+            self.assertEqual(tr("No commentary for this passage."), study.status.get_text())
             w.close()
             from bible.session import SessionStore
-            restored=SessionStore(Path(directory)/'session.json').load()
-            self.assertIn('Notes',restored.tabs[0].commentary_positions)
+
+            restored = SessionStore(Path(directory) / "session.json").load()
+            self.assertIn("Notes", restored.tabs[0].commentary_positions)
 
     def test_partial_copy_stays_partial_and_selection_does_not_sync(self):
-        from gi.repository import GLib
+        from gi.repository import GLib as GLib
+
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory);tab=w.active_tab;buffer=tab.text.get_buffer()
-            start=tab._marker_ends['Gen.1.1']
-            buffer.select_range(buffer.get_iter_at_offset(start+3),buffer.get_iter_at_offset(start+13))
-            expected=buffer.get_text(*buffer.get_selection_bounds(),False)
-            tab.text.emit('copy-clipboard');result=[]
-            tab.get_clipboard().read_text_async(None,lambda clipboard,r:result.append(clipboard.read_text_finish(r)))
-            spin(lambda:bool(result));self.assertEqual(result[0],expected)
-            w.lookup_action('copy-with-reference').activate(None);result=[]
-            tab.get_clipboard().read_text_async(None,lambda clipboard,r:result.append(clipboard.read_text_finish(r)))
-            spin(lambda:bool(result))
-            self.assertIn('Test',result[0]);self.assertIn('VERSE 1 TEST '*3,result[0])
-            self.assertNotEqual(result[0],expected)
-            w.reading_sync.intent('bible',tab)
-            adj=tab.scroll.get_vadjustment();adj.set_value(adj.get_upper()*.4);spin(duration=.2)
-            self.assertEqual(tab.state.reference,'Gen.1.1')
+            w = self.setup_window(directory)
+            tab = w.active_tab
+            buffer = tab.text.get_buffer()
+            start = tab._marker_ends["Gen.1.1"]
+            buffer.select_range(
+                buffer.get_iter_at_offset(start + 3), buffer.get_iter_at_offset(start + 13)
+            )
+            expected = buffer.get_text(*buffer.get_selection_bounds(), False)
+            tab.text.emit("copy-clipboard")
+            result = []
+            tab.get_clipboard().read_text_async(
+                None, lambda clipboard, r: result.append(clipboard.read_text_finish(r))
+            )
+            spin(lambda: bool(result))
+            self.assertEqual(result[0], expected)
+            w.lookup_action("copy-with-reference").activate(None)
+            result = []
+            tab.get_clipboard().read_text_async(
+                None, lambda clipboard, r: result.append(clipboard.read_text_finish(r))
+            )
+            spin(lambda: bool(result))
+            self.assertIn("Test", result[0])
+            self.assertIn("VERSE 1 TEST " * 3, result[0])
+            self.assertNotEqual(result[0], expected)
+            w.reading_sync.intent("bible", tab)
+            adj = tab.scroll.get_vadjustment()
+            adj.set_value(adj.get_upper() * 0.4)
+            spin(duration=0.2)
+            self.assertEqual(tab.state.reference, "Gen.1.1")
             w.close()
 
     def test_scroll_work_is_coalesced_cancelled_and_stops_at_resource_end(self):
         from unittest.mock import patch
         from bible.ui import GLib
+
         with tempfile.TemporaryDirectory() as directory:
-            w=self.setup_window(directory);study=w.study
+            w = self.setup_window(directory)
+            study = w.study
             try:
-                with patch.object(study,'remember_position') as remember:
-                    study.scrolled();study.scrolled()
+                with patch.object(study, "remember_position") as remember:
+                    study.scrolled()
+                    study.scrolled()
                     self.assertTrue(study._scroll_idle)
                     remember.assert_not_called()
-                    spin(lambda:not study._scroll_idle)
+                    spin(lambda: not study._scroll_idle)
                     remember.assert_called_once()
-                study.scrolled();self.assertTrue(study._scroll_idle)
+                study.scrolled()
+                self.assertTrue(study._scroll_idle)
                 w.study_button.set_active(False)
-                self.assertEqual(study._scroll_idle,0)
-                w.study_button.set_active(True);spin(lambda:not study._positioning)
+                self.assertEqual(study._scroll_idle, 0)
+                w.study_button.set_active(True)
+                spin(lambda: not study._positioning)
                 # A queued load must not act on a replaced source/tab buffer.
-                study._loading=True;study._load_idle=GLib.idle_add(study.load_more,1)
+                study._loading = True
+                study._load_idle = GLib.idle_add(study.load_more, 1)
                 study.clear_content()
-                self.assertEqual(study._load_idle,0);self.assertFalse(study._loading)
-                study.follow('Gen.2.1');spin(lambda:not study._positioning)
-                self.assertEqual(study.loaded[-1],len(study.reader.index.sections)-1)
-                with patch.object(study,'rebuild') as rebuild:
-                    study.load_more(1);rebuild.assert_not_called()
-                study.scrolled();w.close()
-                self.assertEqual(study._scroll_idle,0);self.assertEqual(study._load_idle,0)
+                self.assertEqual(study._load_idle, 0)
+                self.assertFalse(study._loading)
+                study.follow("Gen.2.1")
+                spin(lambda: not study._positioning)
+                self.assertEqual(study.loaded[-1], len(study.reader.index.sections) - 1)
+                with patch.object(study, "rebuild") as rebuild:
+                    study.load_more(1)
+                    rebuild.assert_not_called()
+                study.scrolled()
+                w.close()
+                self.assertEqual(study._scroll_idle, 0)
+                self.assertEqual(study._load_idle, 0)
             finally:
-                if not w.closed:w.close()
+                if not w.closed:
+                    w.close()
