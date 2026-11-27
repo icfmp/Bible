@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from functools import lru_cache
+from threading import current_thread, main_thread
 from typing import TYPE_CHECKING
 import re
 
@@ -165,9 +167,74 @@ def canonical_input(reference: str) -> str:
     return reference.strip()
 
 
+@lru_cache(maxsize=128)
+def _native_french_name(code: str) -> str | None:
+    """Read a native label with a dedicated, short-lived main-thread key."""
+    from .reference_resolution import checked_verse_key
+
+    try:
+        key = checked_verse_key(code + ".1.1", "KJVA", locale="fr")
+        if key.getOSISBookName() == code:
+            return key.getBookName()
+    except (ImportError, ValueError):
+        pass
+    return None
+
+
 def display_name(code: str, fallback: str, language: str = "en") -> str:
-    """Localize known book names while retaining provider names as the fallback."""
-    return FRENCH.get(code, fallback) if language.startswith("fr") else fallback
+    """Use matching native French names and preserve Bible's established wording."""
+    if not language.startswith("fr"):
+        return fallback
+    preferred = FRENCH.get(code, fallback)
+    # SWORD 1.9 also has a shared locale cache. Localized calls stay on the
+    # main thread, with the GIL held by the packaged SWIG wrapper. Standalone
+    # tools and worker-rendered documents retain the same offline label.
+    if current_thread() is main_thread() and code in FRENCH:
+        native = _native_french_name(code)
+        if native == preferred:
+            return native
+    return preferred
+
+
+def localized_input(reference: str, system: str, language: str) -> str:
+    """Resolve a bounded French book alias while keeping the original numeric suffix."""
+    fallback = canonical_input(reference)
+    if not language.startswith("fr") or current_thread() is not main_thread():
+        return fallback
+    match = re.fullmatch(
+        r"((?:[1-5]\s*)?[^\d.:]+?)[ .]+([1-9][0-9]*(?:_[1-9][0-9]*)?(?:[.:][1-9][0-9]*)?)",
+        reference.strip(),
+    )
+    if not match or len(reference) > 256:
+        return fallback
+    from .reference_resolution import checked_verse_key
+
+    name, numbers = match.groups()
+    try:
+        # Parse the book only. The selected reader retains authority over
+        # chapter bounds, source subchapters and actual installed entries.
+        key = checked_verse_key(name + " 1:1", system, locale="fr")
+    except (ImportError, ValueError):
+        return fallback
+    code = key.getOSISBookName()
+    if fallback != reference.strip():
+        if fallback.split(".", 1)[0] != code:
+            return fallback
+    else:
+        # Preserve accepted spellings even when they mean something different
+        # in the French alias table. Native partial matches are not new aliases.
+        try:
+            previous = checked_verse_key(name + " 1:1", system)
+        except ValueError:
+            if normalized(name) not in {
+                normalized(key.getBookName()),
+                normalized(key.getBookAbbrev()),
+            }:
+                return fallback
+        else:
+            if previous.getOSISBookName() != code:
+                return fallback
+    return f"{code}.{numbers}"
 
 
 def book_suggestions(

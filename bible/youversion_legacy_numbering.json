@@ -1,0 +1,13 @@
+{
+  "provenance": "Historical storage assignments retained for existing module indexes and annotation coordinates. See issue 137 findings F03/F04 and the per-system provenance in versification_data. These records do not assert cross-edition alignment.",
+  "columns": ["source convention", "storage versification", "source language"],
+  "editions": {
+    "21": ["org", "Original", "fra"],
+    "93": ["org", "YouVersion93", "fra"],
+    "64": ["org", "Original", "fra"],
+    "131": ["org", "YouVersion131", "fra"],
+    "1": ["eng", "KJV", "eng"],
+    "12": ["eng", "KJV", "eng"],
+    "3034": ["eng", "KJV", "eng"]
+  }
+}

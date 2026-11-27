@@ -1,0 +1,5 @@
+{
+  "default": "KJV",
+  "books": {"3John": "NRSV"},
+  "provenance": "OpenBible cross-reference and topic address convention verified in Bible's source audit. Three John uses the ESV-style 15-verse ending, represented by the existing NRSV mapping. This declares reference coordinates only."
+}

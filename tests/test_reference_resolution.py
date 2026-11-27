@@ -24,6 +24,18 @@ class ResolutionTests(unittest.TestCase):
         mapped = resolve("Ps.51.1", "KJV", segond, require_entry=False)
         self.assertEqual((mapped.start, mapped.end), ("Ps.51.3", "Ps.51.3"))
 
+    def test_native_only_target_cannot_discard_a_verified_title_or_body_part(self) -> None:
+        from bible.reference_targets import Canon
+
+        # DarbyFr here names a SWORD reference space, not a specific module.
+        target = Canon("DarbyFr")
+        for reference in ("Ps.51.2", "Ps.51.3"):
+            with self.assertRaises(VersificationMismatch):
+                resolve(reference, "Segond", target, require_entry=False)
+        self.assertEqual(
+            resolve("Gen.11.1", "Segond", target, require_entry=False).start, "Gen.11.1"
+        )
+
     def test_segond_psalm_mapping_and_native_commentary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

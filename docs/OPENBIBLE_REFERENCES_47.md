@@ -26,8 +26,10 @@ No account, AI service, developer key or additional runtime is required.
 
 Real SWORD checks found a native split-verse error for 3 John (including a false
 NRSV 14 → Segond 15 correspondence). The resolver uses the application's already
-pinned JSword verse-part tables where both canons match those verified tables.
-OpenBible 3 John 14/15 is projected through that verified split convention;
+pinned JSword verse-part tables for matching canons. When only one system
+has a table, an unqualified native mapping cannot replace a known verse part.
+The packaged `bible/openbible_numbering.json` records the source convention.
+OpenBible 3 John 14/15 is projected through the shared split-verse resolver;
 whole KJV 14 correctly covers both. A genuinely unsupported system reports
 unavailable alignment rather than guessing. Other books use the verified resolver,
 including actual Psalm numbering differences. Each source verse in a selected

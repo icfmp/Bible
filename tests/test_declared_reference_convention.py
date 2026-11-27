@@ -94,6 +94,48 @@ class DeclaredConventionTests(unittest.TestCase):
             resolve("Num.25.18", system, Canon("KJV"), require_entry=False).start, "Num.25.18"
         )
 
+    def test_new_imported_module_uses_receipt_and_preserves_missing_entries(self) -> None:
+        from bible.reference_resolution import resolve_readers
+        from bible.sword_provider import Reader
+        from tests.fixtures import module_fixture
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            imported_root = root / "Imported"
+            index = imported_root / ".source-versification"
+            imported_root.mkdir()
+            original = table("Original")
+            assert original is not None
+            system = "YouVersion900219"
+            digest = write_index(index, system, {"Ps": original["canon"]["Ps"]}, {"Ps": 1})
+            receipt = imported_root / ".verified.json"
+            receipt.write_text(
+                json.dumps(
+                    dict(
+                        reference_index_sha256=digest,
+                        source_numbering="org",
+                        storage_numbering=system,
+                        all_text_notes_headings_verified=True,
+                    )
+                )
+            )
+            register_index(index)
+            module_fixture(
+                imported_root, "YV900219", [("Ps.51.3", "IMPORTED BODY")], versification=system
+            )
+            config = imported_root / "mods.d/test.conf"
+            config.write_text(config.read_text() + "BibleSource=YouVersion\n")
+            native_root = root / "Standard"
+            module_fixture(
+                native_root, "Standard", [("Ps.51.1", "NATIVE BODY"), ("Ps.51.2", "GAP")]
+            )
+            imported = Reader(imported_root, "youversion~YV900219")
+            standard = Reader(native_root, "Standard")
+            self.assertEqual(resolve_readers("Ps.51.3", imported, standard).start, "Ps.51.1")
+            self.assertEqual(resolve_readers("Ps.51.1", standard, imported).start, "Ps.51.3")
+            with self.assertRaisesRegex(ValueError, "Passage unavailable"):
+                resolve_readers("Ps.51.2", standard, imported)
+
     def test_matching_shape_alone_never_creates_a_mapping(self) -> None:
         for number, options in (
             (900185, dict(code="unknown")),

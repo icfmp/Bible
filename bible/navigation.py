@@ -205,13 +205,15 @@ class PassagePopover(Gtk.Popover):
         if self._updating or self._completion_preedit or not self.get_visible() or not self.reader:
             self.hide_completions()
             return
-        from .book_names import book_suggestions
+        from .book_names import book_suggestions, localized_input
 
         choices = book_suggestions(
             self.direct.get_text(),
             self.books,
             LANGUAGE,
-            lambda prefix: self.reader.key(prefix + " 1:1").getOSISBookName(),
+            lambda prefix: self.reader.key(
+                localized_input(prefix + " 1:1", self.reader.versification, LANGUAGE)
+            ).getOSISBookName(),
         )
         while self.completions.get_first_child():
             self.completions.remove(self.completions.get_first_child())
@@ -604,14 +606,14 @@ class PassagePopover(Gtk.Popover):
         """Validate exact source availability before navigation and retain selection state on failure."""
         if not self.reader:
             raise ValueError(tr("This passage is not available in this translation."))
-        from .book_names import canonical_input, FRENCH
+        from .book_names import localized_input, FRENCH
 
-        normalized_reference = canonical_input(reference)
+        normalized_reference = localized_input(reference, self.reader.versification, LANGUAGE)
         book = normalized_reference.split(".")[0]
         if book in FRENCH and book not in {b.code for b in self.reader.books}:
             raise ValueError(tr("This passage is not available in this translation."))
         try:
-            key = self.reader.key(reference)
+            key = self.reader.key(normalized_reference)
         except ValueError:
             raise ValueError(tr("Unrecognized or out-of-range reference.")) from None
         reference = key.getOSISRef()
