@@ -165,7 +165,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                     lambda: picker.strings.get_n_items() == 2
                     and "azb" in picker.strings.get_string(1)
                 )
-                picker.activate(None, 1)
+                picker.row_activated(None, 1)
                 self.assertEqual(picker.codes[picker.get_selected()], "azb")
                 self.assertIn("français", LanguagePicker.display_language("fr").lower())
                 theme = Gtk.IconTheme.get_for_display(w.get_display())

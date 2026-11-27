@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .notes import Note
+    from .annotation_collection import Annotation, _Mark
+    from .catalogue_session import CatalogueSnapshot
+    from .passage_card import CompoundCard
+
 from gi.repository import Gtk, Pango, GLib
 from .markdown import render
 from .citations import citations
 from .i18n import tr
 
 
-def original_caption(owner, annotation):
+def original_caption(owner: Window, annotation: Annotation) -> str:
     """Human original-edition metadata only; never a substitute Bible name."""
     try:
         return owner.library.resource(annotation.origin).description
     except (OSError, ValueError):
-        snapshot = getattr(getattr(owner, "catalogue_session", None), "snapshot", None)
+        snapshot = cast(
+            "CatalogueSnapshot | None",
+            getattr(getattr(owner, "catalogue_session", None), "snapshot", None),
+        )
         resource = (
             next((r for r in snapshot.resources if r.id == annotation.origin), None)
             if snapshot
@@ -22,7 +35,15 @@ def original_caption(owner, annotation):
         return resource.description if resource else tr("Original translation unavailable.")
 
 
-def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: bool = False) -> None:
+def highlight_actions(
+    menu: Gtk.MenuButton,
+    owner: Window,
+    mark: _Mark,
+    changed: Callable[[_Mark, str | None], object],
+    failed: Callable[[str], object],
+    *,
+    confirm_remove: bool = False,
+) -> None:
     """One compact menu; context callbacks retain their navigation policy."""
     from .highlights import COLORS
 
@@ -30,7 +51,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: boo
     if old:
         old.popdown()
         menu.set_popover(None)
-    snapshot = dict(mark)
+    snapshot = cast("_Mark", dict(mark))
     popover = Gtk.Popover()
     box = Gtk.Box(
         orientation=Gtk.Orientation.VERTICAL,
@@ -41,7 +62,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: boo
         margin_bottom=8,
     )
 
-    def apply(color) -> None:
+    def apply(color: str | None) -> None:
         try:
             if (
                 owner.highlights.entries.get((snapshot["system"], snapshot["reference"]))
@@ -55,7 +76,7 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: boo
     for color in [*COLORS, None]:
         button = Gtk.Button(label=tr(COLORS[color][1] if color else "Remove highlight"))
 
-        def choose(_: object, value=color) -> None:
+        def choose(_: object, value: str | None = color) -> None:
             popover.popdown()
             if value is None and confirm_remove:
                 from .notes_window import message
@@ -75,7 +96,8 @@ def highlight_actions(menu, owner, mark, changed, failed, *, confirm_remove: boo
     menu.set_popover(popover)
 
 
-def color_dot(menu, color) -> None:
+def color_dot(menu: Gtk.MenuButton, color: str) -> None:
+    """Show the stored highlight color using the shared content-color CSS."""
     dot = Gtk.Box(
         width_request=16, height_request=16, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER
     )
@@ -84,7 +106,14 @@ def color_dot(menu, color) -> None:
     menu.set_child(dot)
 
 
-def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
+def annotation_card(
+    owner: Window,
+    annotation: Annotation,
+    activate: Callable[[], object],
+    *,
+    excerpt: str = "",
+    colors: Callable[[Gtk.MenuButton, _Mark], object] | None = None,
+) -> CompoundCard:
     """The same card in Study, the virtualized collection and related results."""
     from .passage_card import passage_card, bind_card_actions
     from .notes_window import passage_label, readable_date
@@ -97,8 +126,10 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
     title.set_text(passage_label(a.start, a.end, a.system))
     content = card._card_content
     content.remove(empty)
-    header = content.get_first_child()
-    kind = tr("Open note") if a.note else tr("Highlight") + " · " + tr(COLORS[a.color][1])
+    header = cast(Gtk.Box, content.get_first_child())
+    kind = (
+        tr("Open note") if a.note else tr("Highlight") + " · " + tr(COLORS[cast(str, a.color)][1])
+    )
     indicator = Gtk.Image(
         icon_name="notebook-symbolic" if a.note else "edit-select-all-symbolic",
         pixel_size=16,
@@ -106,11 +137,11 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
     )
     indicator.update_property([Gtk.AccessibleProperty.LABEL], [kind])
     header.prepend(indicator)
-    card.type_icon = indicator
+    setattr(card, "type_icon", indicator)
     menu = None
     if a.mark:
-        card.highlight_key = (a.system, a.start)
-        card.add_css_class("highlight-" + a.color)
+        setattr(card, "highlight_key", (a.system, a.start))
+        card.add_css_class("highlight-" + cast(str, a.color))
         menu = Gtk.MenuButton(
             tooltip_text=kind + " — " + tr("Highlight actions"), valign=Gtk.Align.CENTER
         )
@@ -119,8 +150,8 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
         menu.update_property(
             [Gtk.AccessibleProperty.LABEL], [kind + " — " + tr("Highlight actions")]
         )
-        color_dot(menu, a.color)
-        card.actions = menu
+        color_dot(menu, cast(str, a.color))
+        setattr(card, "actions", menu)
         if colors:
             colors(menu, a.mark)
     bind_card_actions(
@@ -131,19 +162,19 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
         ignore=(AnnotationPreview,),
     )
     card.update_property([Gtk.AccessibleProperty.LABEL], [kind + ": " + title.get_text()])
-    card.annotation = a
+    setattr(card, "annotation", a)
     if a.note:
         preview = AnnotationPreview(owner, a.note, activate)
         preview.set_tooltip_text(None)
         content.append(preview)
-        card.preview = preview
-        card.note_id = a.note.id
+        setattr(card, "preview", preview)
+        setattr(card, "note_id", a.note.id)
         date, _ = readable_date(a.modified)
         linked = tr("+{count} passages").format(count=len(a.note.links)) if a.note.links else ""
         metadata = " · ".join(value for value in (date, " · ".join(a.labels), linked) if value)
         label = Gtk.Label(label=metadata, xalign=0, wrap=True)
     else:
-        preview = Gtk.Label(
+        excerpt_preview = Gtk.Label(
             label=" ".join(excerpt.split()),
             xalign=0,
             yalign=0,
@@ -153,9 +184,9 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
             ellipsize=Pango.EllipsizeMode.END,
             width_chars=1,
         )
-        preview.add_css_class("study-content")
-        content.append(preview)
-        content.excerpt = preview
+        excerpt_preview.add_css_class("study-content")
+        content.append(excerpt_preview)
+        setattr(content, "excerpt", excerpt_preview)
         label = Gtk.Label(
             label=original_caption(owner, a),
             xalign=0,
@@ -163,14 +194,15 @@ def annotation_card(owner, annotation, activate, *, excerpt="", colors=None):
             width_chars=1,
         )
         label.set_tooltip_text(a.origin + " · " + a.system)
-        content.source_caption = label
+        setattr(content, "source_caption", label)
     label.add_css_class("caption")
     label.add_css_class("dim-label")
     content.append(label)
     return card
 
 
-def release_card(card) -> None:
+def release_card(card: Gtk.Widget) -> None:
+    """Close transient highlight actions before discarding a recycled card."""
     menu = getattr(card, "actions", None)
     if menu and menu.get_popover():
         menu.get_popover().popdown()
@@ -180,7 +212,7 @@ def release_card(card) -> None:
 class AnnotationPreview(Gtk.Label):
     """Present a bounded inert note excerpt and its original-offset citations without altering the saved body."""
 
-    def __init__(self, owner, note, open_note) -> None:
+    def __init__(self, owner: Window, note: Note, open_note: Callable[[], object]) -> None:
         super().__init__(
             xalign=0,
             yalign=0,
@@ -232,7 +264,7 @@ class AnnotationPreview(Gtk.Label):
         click = Gtk.GestureClick(button=1)
         click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
 
-        def pressed(gesture, count, x, y) -> None:
+        def pressed(gesture: Gtk.GestureClick, count: int, x: float, y: float) -> None:
             self._link_activated = False
             if count == 1 and not self.over_citation(x, y):
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
@@ -247,7 +279,7 @@ class AnnotationPreview(Gtk.Label):
         self.add_controller(click)
         self.set_tooltip_text(tr("Open note"))
 
-    def over_citation(self, x, y):
+    def over_citation(self, x: float, y: float) -> bool:
         # get_current_uri() can retain the keyboard-focused link after the
         # pointer leaves it. Hit-test the actual click instead.
         """Hit-test the actual pointer position instead of a possibly retained keyboard-focused link URI."""
@@ -260,7 +292,7 @@ class AnnotationPreview(Gtk.Label):
         offset = len(self.get_text().encode()[:index].decode())
         return any(c.begin <= offset < c.finish for c in self.citations)
 
-    def preview_citation(self, _: object, uri):
+    def preview_citation(self, _: object, uri: str) -> bool:
         if not uri.startswith("bible-preview:"):
             return True
         try:
@@ -269,9 +301,9 @@ class AnnotationPreview(Gtk.Label):
         except (ValueError, IndexError):
             return True
         self._link_activated = True
-        return self.activate(index)
+        return self.activate_citation(index)
 
-    def activate(self, index) -> bool:
+    def activate_citation(self, index: int) -> bool:
         """Open a recognized citation through the shared source-aware preview without navigating immediately."""
         if not 0 <= index < len(self.citations):
             return True

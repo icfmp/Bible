@@ -99,7 +99,7 @@ class NoteCitationTests(unittest.TestCase):
             list(w.active_tab.state.history),
             w.view.get_n_pages(),
         )
-        preview.activate(0)
+        preview.activate_citation(0)
         spin()
         self.assertEqual(w.reference_preview.body.get_buffer().props.text, "EXACT PSALM English")
         self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))

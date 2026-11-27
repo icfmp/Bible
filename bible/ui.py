@@ -48,7 +48,9 @@ class Window(Adw.ApplicationWindow):
     # Written by the popup controller; callers use a default before the first dismissal.
     _popup_dismissed_event_time: int
 
-    def __init__(self, app, library, session_path=None) -> None:
+    def __init__(
+        self, app, library: Library, session_path: str | os.PathLike[str] | None = None
+    ) -> None:
         super().__init__(application=app, title="Bible", default_width=960, default_height=700)
         self.set_size_request(360, 320)
         self.library = library

@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .library import Resource
+
 from dataclasses import dataclass, replace
 from threading import RLock
 import time
@@ -18,7 +23,7 @@ from .study_resources import StudyResources
 class CatalogueSnapshot:
     """Plain-data Library inventory/search metadata snapshot for subscribed views."""
 
-    resources: tuple
+    resources: tuple[Resource, ...]
     installed: dict
     study_installed: frozenset
     study_current: frozenset

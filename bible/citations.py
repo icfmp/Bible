@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import cast
 from dataclasses import dataclass
 from functools import lru_cache
 from html.parser import HTMLParser
@@ -150,7 +152,7 @@ class Citation:
     system: str
 
 
-def fold(text):
+def fold(text: str) -> tuple[str, list[int]]:
     """Fold case/accents while retaining an index from normalized characters to original note offsets."""
     result = []
     positions = []
@@ -163,7 +165,7 @@ def fold(text):
 
 
 @lru_cache(maxsize=1)
-def grammar():
+def grammar() -> tuple[re.Pattern[str], dict[str, str]]:
     """Cache the bounded FR/EN book-name and reference grammar without requiring a native reader."""
     names = {}
     for code, label in [*FRENCH.items(), *ENGLISH.items()]:
@@ -188,7 +190,10 @@ def grammar():
     return re.compile(pattern), names
 
 
-def excluded_ranges(text, style_spans=()):
+def excluded_ranges(
+    text: str,
+    style_spans: Iterable[tuple[str, int, int]] = (),
+) -> list[tuple[int, int]]:
     """Conservatively exclude code, existing links, URLs and raw HTML."""
     ranges = [(a, b) for kind, a, b in style_spans if kind == "link"]
     fence = None
@@ -241,22 +246,27 @@ def excluded_ranges(text, style_spans=()):
 
 
 class InertHTML(HTMLParser):
-    """Locate inert HTML regions only; never render tags, URLs or scripts."""
+    """Locate inert HTML regions only; never render tags, URLs or scripts.
 
-    def __init__(self, text) -> None:
+    Feed source through HTMLParser so raw opening-tag text is available during
+    start-tag callbacks; their casts retain that parser dispatch invariant.
+    """
+
+    def __init__(self, text: str) -> None:
         super().__init__(convert_charrefs=False)
-        self.stack = []
-        self.ranges = []
+        self.stack: list[tuple[str, int]] = []
+        self.ranges: list[tuple[int, int]] = []
         self.lines = [0]
         self.lines.extend(match.end() for match in re.finditer("\n", text))
 
-    def position(self):
+    def position(self) -> int:
+        """Translate the parser’s line/column cursor into a note-buffer offset."""
         line, column = self.getpos()
         return self.lines[line - 1] + column
 
-    def handle_starttag(self, tag, attrs: object) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         start = self.position()
-        end = start + len(self.get_starttag_text())
+        end = start + len(cast(str, self.get_starttag_text()))
         self.ranges.append((start, end))
         if tag not in {
             "area",
@@ -276,10 +286,12 @@ class InertHTML(HTMLParser):
         }:
             self.stack.append((tag, start))
 
-    def handle_startendtag(self, tag: object, attrs: object) -> None:
-        self.ranges.append((self.position(), self.position() + len(self.get_starttag_text())))
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.ranges.append(
+            (self.position(), self.position() + len(cast(str, self.get_starttag_text())))
+        )
 
-    def handle_endtag(self, tag) -> None:
+    def handle_endtag(self, tag: str) -> None:
         index = next(
             (i for i in range(len(self.stack) - 1, -1, -1) if self.stack[i][0] == tag), None
         )
@@ -287,11 +299,15 @@ class InertHTML(HTMLParser):
             self.ranges.append((self.stack[index][1], self.position() + len(tag) + 3))
             del self.stack[index:]
 
-    def handle_comment(self, data) -> None:
+    def handle_comment(self, data: str) -> None:
         self.ranges.append((self.position(), self.position() + len(data) + 7))
 
 
-def citations(text, system, style_spans=()):
+def citations(
+    text: str,
+    system: str,
+    style_spans: Iterable[tuple[str, int, int]] = (),
+) -> list[Citation]:
     """Recognize explicit citations in their note's recorded numbering system.
 
     Installed-module existence/mapping are deliberately checked by the shared

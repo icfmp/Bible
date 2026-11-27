@@ -8,7 +8,7 @@ from bible.markdown import render
 
 
 class CitationTests(unittest.TestCase):
-    def parse(self, text, system="Segond"):
+    def parse(self, text: str, system: str = "Segond") -> list[tuple[str, str, str]]:
         plain, spans = render(text)
         return [
             (plain[c.begin : c.finish], c.start, c.end) for c in citations(plain, system, spans)

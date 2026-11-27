@@ -107,7 +107,7 @@ class HighlightUITests(unittest.TestCase):
                 panel.search.set_text("Gen")
                 panel.refresh()
                 self.assertEqual(len(panel.rows), 2)
-                panel.activate(
+                panel.row_activated(
                     None, next(i for i, a in enumerate(panel.rows) if a.start == "Gen.1.2")
                 )
                 self.assertEqual(window.active_tab.state.reference, "Gen.1.1")
@@ -128,7 +128,7 @@ class HighlightUITests(unittest.TestCase):
                 window.highlights.set("Segond", ["Ps.3.2"], "blue", "Missing")
                 panel = window.open_highlights()
                 reference = window.active_tab.state.reference
-                panel.activate(None, 0)
+                panel.row_activated(None, 0)
                 self.assertEqual(window.active_tab.state.reference, reference)
                 self.assertIn(("Segond", "Ps.3.2"), window.highlights.entries)
                 self.assertFalse(panel.open_button.get_sensitive())
@@ -169,3 +169,48 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 second.close()
                 first.close()
+
+    def test_backup_chooser_without_local_path_preserves_marks_and_releases_dialog(self) -> None:
+        from unittest.mock import Mock, patch
+        from bible.ui import Window, Library, Gtk
+        from bible.highlight_ui import HighlightsWindow
+        from bible.i18n import tr
+        from gi.repository import Gio
+
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.highlights.set("KJV", ["Gen.1.1"], "yellow", "Test")
+            before = window.highlights.path.read_bytes()
+            panel = HighlightsWindow(window)
+            try:
+                remote = Gio.File.new_for_uri("sftp://example.invalid/highlights.json")
+                for selected_file in (None, remote):
+                    for restore in (False, True):
+                        with self.subTest(selected=selected_file, restore=restore):
+                            chooser = Mock()
+                            chooser.get_file.return_value = selected_file
+                            with (
+                                patch(
+                                    "bible.highlight_ui.Gtk.FileChooserNative.new",
+                                    return_value=chooser,
+                                ),
+                                patch(
+                                    "bible.highlight_ui.message",
+                                    side_effect=lambda *args: args[-1](),
+                                ),
+                                patch.object(window.highlights, "backup") as backup,
+                                patch.object(window.highlights, "restore") as merge,
+                            ):
+                                panel.choose_file(restore)
+                                response = chooser.connect.call_args.args[1]
+                                response(chooser, Gtk.ResponseType.ACCEPT)
+                                backup.assert_not_called()
+                                merge.assert_not_called()
+                            self.assertEqual(panel.status.get_text(), tr("Choose a local file."))
+                            chooser.destroy.assert_called_once()
+                            self.assertFalse(panel.choosers)
+                            self.assertEqual(window.highlights.path.read_bytes(), before)
+            finally:
+                panel.close()
+                window.close()

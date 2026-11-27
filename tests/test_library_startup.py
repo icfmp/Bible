@@ -260,7 +260,7 @@ class LibraryStartupTests(unittest.TestCase):
         records["fr"] = ("French", "French (fr)", "fr")
         picker.set_codes(codes, records)
         self.assertLessEqual(picker.strings.get_n_items(), 18)
-        picker.activate(None, picker.strings.get_n_items() - 1)
+        picker.row_activated(None, picker.strings.get_n_items() - 1)
         self.assertEqual(picker.codes[picker.get_selected()], "fr")
         picker.search.set_text("fixture1999")
         picker.filter()

@@ -832,7 +832,7 @@ class NotesWindow(Adw.Window):
         )
         layout.append(self.status)
         self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
-        self.list.connect("row-activated", self.activate)
+        self.list.connect("row-activated", self.row_activated)
         scroll = Gtk.ScrolledWindow(vexpand=True)
         scroll.set_child(self.list)
         layout.append(scroll)
@@ -898,7 +898,8 @@ class NotesWindow(Adw.Window):
         except Exception as error:
             self.status.set_text(tr(str(error)))
 
-    def activate(self, _: object, row) -> None:
+    def row_activated(self, _: object, row: Gtk.ListBoxRow) -> None:
+        """Open the saved note represented by the activated native list row."""
         if 0 <= row.get_index() < len(self.rows):
             self.owner.open_saved_note(self.rows[row.get_index()])
 
@@ -1216,7 +1217,7 @@ class NotesSpace(Gtk.Box):
         factory.connect("bind", self.row_bind)
         factory.connect("unbind", self.row_unbind)
         self.list = Gtk.ListView(model=self.selection, factory=factory, single_click_activate=True)
-        self.list.connect("activate", self.activate)
+        self.list.connect("activate", self.row_activated)
         self.list.add_css_class("annotation-list")
         self.list.add_css_class("study-card-list")
         self.side.add_css_class("annotation-sidebar")
@@ -1228,7 +1229,7 @@ class NotesSpace(Gtk.Box):
             index = self.selection.get_selected()
             if index == Gtk.INVALID_LIST_POSITION:
                 return False
-            self.activate(self.list, index)
+            self.row_activated(self.list, index)
             return True
 
         keys.connect("key-pressed", activate_space)
@@ -1783,7 +1784,8 @@ class NotesSpace(Gtk.Box):
         else:
             action()
 
-    def activate(self, _: object, index) -> None:
+    def row_activated(self, _: object, index: int) -> None:
+        """Open the indexed annotation through the existing unsaved-draft guard."""
         if 0 <= index < len(self.rows):
             self.open_annotation(self.rows[index])
 

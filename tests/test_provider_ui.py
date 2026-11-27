@@ -123,7 +123,7 @@ class ProviderUITests(unittest.TestCase):
                         dialog.language.filter()
                         self.assertIn("cop", dialog.language.visible_codes)
                     spin(lambda: dialog.language.strings.get_n_items() == 2)
-                    dialog.language.activate(None, 1)
+                    dialog.language.row_activated(None, 1)
                     self.assertEqual(dialog.filtered_resources, [coptic])
                     self.assertEqual(dialog.selected_resource(), coptic)
                     self.assertTrue(dialog.download_button.get_sensitive())
