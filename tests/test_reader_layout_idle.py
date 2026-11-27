@@ -1,5 +1,7 @@
 """Native layout invalidations settle; an idle reader must not keep polling."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -11,7 +13,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ReaderLayoutIdleTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -23,10 +25,10 @@ class ReaderLayoutIdleTests(unittest.TestCase):
         self.tab = self.window.active_tab
         spin(self.settled, duration=0.4)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.window.close()
 
-    def settled(self):
+    def settled(self) -> bool:
         w = self.window
         t = self.tab
         return not (
@@ -37,7 +39,9 @@ class ReaderLayoutIdleTests(unittest.TestCase):
             or w._controls_tick
         )
 
-    def test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries(self):
+    def test_open_commentary_scroll_and_resize_settle_without_continuing_layout_queries(
+        self,
+    ) -> None:
         from tests.test_commentary import commentary_fixture
 
         commentary_fixture(
@@ -73,7 +77,7 @@ class ReaderLayoutIdleTests(unittest.TestCase):
             spin(duration=0.3)
             anchor.assert_not_called()
 
-    def test_idle_has_no_geometry_or_caption_polling(self):
+    def test_idle_has_no_geometry_or_caption_polling(self) -> None:
         w = self.window
         t = self.tab
         with (
@@ -86,7 +90,7 @@ class ReaderLayoutIdleTests(unittest.TestCase):
             controls.assert_not_called()
             divider.assert_not_called()
 
-    def test_resize_scroll_and_font_changes_settle_with_reading_anchor(self):
+    def test_resize_scroll_and_font_changes_settle_with_reading_anchor(self) -> None:
         w = self.window
         t = self.tab
         adjustment = t.scroll.get_vadjustment()
@@ -109,7 +113,7 @@ class ReaderLayoutIdleTests(unittest.TestCase):
         spin(self.settled, duration=0.4)
         self.assertEqual(t._layout_anchor[0], anchor[0])
 
-    def test_hidden_actions_cancel_pending_capture_without_native_popup_work(self):
+    def test_hidden_actions_cancel_pending_capture_without_native_popup_work(self) -> None:
         w = self.window
         t = self.tab
         a = w.passage_actions

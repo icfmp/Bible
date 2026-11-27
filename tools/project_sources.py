@@ -5,6 +5,10 @@ scripts remain in their original paths. Published historical source archives are
 never rewritten. Full historical visual evidence remains in the Git repository.
 """
 
+from __future__ import annotations
+
+from os import PathLike
+
 import argparse
 from pathlib import Path
 import re
@@ -13,7 +17,7 @@ import subprocess
 EVIDENCE_PATHS = ("docs/captures", "docs/evidence", "wiki/images")
 
 
-def create_project_archive(destination, source):
+def create_project_archive(destination: str | PathLike[str], source: str) -> Path:
     """Archive the exact full source commit while excluding only declared historical GUI evidence paths."""
     if not re.fullmatch(r"[0-9a-f]{40}", source):
         raise ValueError("Expected a full source commit")
@@ -34,7 +38,7 @@ def create_project_archive(destination, source):
     return destination
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source")
     parser.add_argument("destination", type=Path)

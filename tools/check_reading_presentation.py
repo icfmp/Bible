@@ -4,11 +4,13 @@ This intentionally resets reading settings in the supplied TEST profile.
 Never point it at a user's profile. No downloaded scripture is committed.
 """
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--screenshots")
@@ -24,7 +26,7 @@ def main():
     window.set_default_size(1200, 900)
     window.present()
 
-    def capture(name):
+    def capture(name) -> None:
         spin(lambda: not window.active_tab._restoring_scroll, duration=0.3)
         if args.screenshots:
             from PIL import ImageGrab

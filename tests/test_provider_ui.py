@@ -1,5 +1,7 @@
 """Native provider choices, localization and catalogue-state controls."""
 
+from __future__ import annotations
+
 import os
 from dataclasses import replace
 from pathlib import Path
@@ -17,7 +19,7 @@ from tests.fixtures import module_fixture
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK display")
 class ProviderUITests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         # These unit cases explicitly supply provider results; do not race an
         # unrelated live auto-refresh while arranging their resource fixtures.
         self.enterContext(
@@ -31,14 +33,16 @@ class ProviderUITests(unittest.TestCase):
         return dialog
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
 
-    def test_failed_install_keeps_resource_error_and_retry_after_selection_and_refresh(self):
+    def test_failed_install_keeps_resource_error_and_retry_after_selection_and_refresh(
+        self,
+    ) -> None:
         from bible.ui import Window
         from bible.i18n import tr
 
@@ -59,7 +63,7 @@ class ProviderUITests(unittest.TestCase):
                 )
                 dialog.open_details(None, target)
 
-                def failed(*args, **kwargs):
+                def failed(*args: object, **kwargs: object) -> None:
                     release.wait(3)
                     raise ValueError("Conditions really changed")
 
@@ -90,7 +94,7 @@ class ProviderUITests(unittest.TestCase):
                 release.set()
                 window.close()
 
-    def test_coptic_catalogue_load_search_and_select(self):
+    def test_coptic_catalogue_load_search_and_select(self) -> None:
         from bible.ui import Window
         from bible.languages import language_info
 
@@ -119,7 +123,7 @@ class ProviderUITests(unittest.TestCase):
                         dialog.language.filter()
                         self.assertIn("cop", dialog.language.visible_codes)
                     spin(lambda: dialog.language.strings.get_n_items() == 2)
-                    dialog.language.activate(None, 1)
+                    dialog.language.row_activated(None, 1)
                     self.assertEqual(dialog.filtered_resources, [coptic])
                     self.assertEqual(dialog.selected_resource(), coptic)
                     self.assertTrue(dialog.download_button.get_sensitive())
@@ -130,7 +134,7 @@ class ProviderUITests(unittest.TestCase):
                     dialog.close()
                 window.close()
 
-    def test_cached_results_load_without_network_and_survive_failed_refresh(self):
+    def test_cached_results_load_without_network_and_survive_failed_refresh(self) -> None:
         from bible.ui import Window
         from bible.catalogue_cache import CatalogueCache
         from bible.providers import CROSSWIRE
@@ -155,7 +159,7 @@ class ProviderUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_progressive_results_are_interactive_during_refresh(self):
+    def test_progressive_results_are_interactive_during_refresh(self) -> None:
         from bible.ui import Window
         from bible.providers import CROSSWIRE
 
@@ -186,7 +190,7 @@ class ProviderUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_selection_and_installed_state_survive_list_refresh(self):
+    def test_selection_and_installed_state_survive_list_refresh(self) -> None:
         from bible.ui import Window
 
         with tempfile.TemporaryDirectory() as directory:
@@ -220,7 +224,7 @@ class ProviderUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_partial_catalogue_source_filter_and_retry(self):
+    def test_partial_catalogue_source_filter_and_retry(self) -> None:
         from bible.ui import Window
 
         with tempfile.TemporaryDirectory() as directory:
@@ -255,7 +259,7 @@ class ProviderUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_additional_commentary_install_callback_following_and_session_restore(self):
+    def test_additional_commentary_install_callback_following_and_session_restore(self) -> None:
         from bible.ui import Window
         from bible.session import SessionStore
 

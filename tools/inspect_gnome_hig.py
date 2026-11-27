@@ -1,29 +1,33 @@
 """Read current official GNOME guidance from a runner with documentation access."""
 
+from __future__ import annotations
+
 from html.parser import HTMLParser
 import urllib.request
 
 
 class Article(HTMLParser):
-    def __init__(self):
+    """Collect text inside the official documentation article containers."""
+
+    def __init__(self) -> None:
         super().__init__()
         self.depth = 0
-        self.parts = []
+        self.parts: list[str] = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in {"main", "article"}:
             self.depth += 1
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         if tag in {"main", "article"}:
             self.depth -= 1
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         if self.depth > 0 and data.strip():
             self.parts.append(data.strip())
 
 
-def main():
+def main() -> None:
     for title, url in [
         ("Header Bars", "https://developer.gnome.org/hig/patterns/containers/header-bars.html"),
         ("Adaptive Design", "https://developer.gnome.org/hig/guidelines/adaptive.html"),

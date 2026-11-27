@@ -1,5 +1,9 @@
 """CLDR names (Babel) with maintained ISO 639-3 coverage, never merge source codes."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable
+from typing import NotRequired, TypedDict
 from functools import lru_cache
 import gettext
 import json
@@ -11,7 +15,11 @@ from babel.localedata import locale_identifiers
 from .i18n import LANGUAGE, tr as tr, collation_key
 
 
-def language_order(codes, available, label=None):
+def language_order(
+    codes: Iterable[str],
+    available: Iterable[str],
+    label: Callable[[str], str] | None = None,
+) -> tuple[list[str], list[str]]:
     """A small shortcut policy, never an inventory or source-code merger."""
     names = label or language_name
     codes = set(codes) - {""}
@@ -27,7 +35,7 @@ def language_order(codes, available, label=None):
 
 
 @lru_cache(maxsize=4096)
-def canonical_language(code):
+def canonical_language(code: str) -> str:
     """Validated aliases only; retain script/region qualifiers exactly."""
     parts = code.replace("_", "-").split("-")
     base = parts[0].lower()
@@ -36,12 +44,21 @@ def canonical_language(code):
 
 
 @lru_cache(maxsize=1)
-def available_languages():
+def available_languages() -> frozenset[str]:
+    """Return installed ISO identities plus the supported interface languages."""
     return frozenset(canonical_language(code) for code in iso_languages()) | {"en", "fr"}
 
 
+class _IsoLanguage(TypedDict):
+    """Fields consumed from the installed iso-codes 639-3 metadata."""
+
+    name: str
+    alpha_3: str
+    alpha_2: NotRequired[str]
+
+
 @lru_cache(maxsize=1)
-def iso_languages():
+def iso_languages() -> dict[str, _IsoLanguage]:
     """Cache installed ISO 639-3 metadata from the application or system share directory."""
     for root in [Path("/app/share"), Path("/usr/share")]:
         path = root / "iso-codes/json/iso_639-3.json"
@@ -57,7 +74,8 @@ def iso_languages():
 
 
 @lru_cache(maxsize=8)
-def iso_translation(interface):
+def iso_translation(interface: str) -> gettext.NullTranslations:
+    """Load installed language-name translations, falling back to source labels."""
     for root in ["/app/share/locale", "/usr/share/locale"]:
         try:
             return gettext.translation("iso_639-3", localedir=root, languages=[interface])
@@ -67,7 +85,7 @@ def iso_translation(interface):
 
 
 @lru_cache(maxsize=4096)
-def language_info(code, interface=None):
+def language_info(code: object, interface: str | None = None) -> tuple[str, str]:
     """Return localized and available native names while preserving unknown source codes explicitly.
 
     CLDR aliases affect presentation only; callers must retain the original
@@ -121,24 +139,28 @@ def language_info(code, interface=None):
     return name, native
 
 
-def language_name(code):
+def language_name(code: str) -> str:
+    """Return the interface-language label without changing the provider identity."""
     return language_info(code)[0]
 
 
 @lru_cache(maxsize=1)
-def native_language_codes():
+def native_language_codes() -> frozenset[str]:
+    """Cache CLDR locale availability to avoid repeated failed native-name lookups."""
     return frozenset(identifier.split("_")[0] for identifier in locale_identifiers())
 
 
 @lru_cache(maxsize=1)
-def language_aliases():
-    result = {}
+def language_aliases() -> dict[str, list[str]]:
+    """Index CLDR spelling aliases for search, never for merging source resources."""
+    result: dict[str, list[str]] = {}
     for alias in get_global("language_aliases"):
         result.setdefault(canonical_language(alias), []).append(alias)
     return result
 
 
-def search_terms(code):
+def search_terms(code: str) -> str:
+    """Combine provider code, aliases and available localized names for filtering."""
     names = language_info(code)
     aliases = " ".join(language_aliases().get(canonical_language(code), ()))
     return " ".join(

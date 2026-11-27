@@ -1,5 +1,7 @@
 """Main-loop responsiveness, shared work and close/exit with slow metadata."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 import os
 from pathlib import Path
@@ -18,7 +20,7 @@ from bible.providers import CROSSWIRE
 
 
 class MetadataExitTests(unittest.TestCase):
-    def test_idle_worker_does_not_retain_completed_arguments_and_result(self):
+    def test_idle_worker_does_not_retain_completed_arguments_and_result(self) -> None:
         import gc
         import weakref
         from bible.metadata_workers import MetadataExecutor
@@ -38,7 +40,7 @@ class MetadataExitTests(unittest.TestCase):
                 time.sleep(0.01)
             self.assertIsNone(released())
 
-    def test_process_exit_never_joins_blocked_catalogue_workers(self):
+    def test_process_exit_never_joins_blocked_catalogue_workers(self) -> None:
         code = """from bible.metadata_workers import MetadataExecutor
 from bible.library import catalogues
 from bible.providers import CROSSWIRE
@@ -61,7 +63,7 @@ with patch('bible.library.catalogue',side_effect=stalled):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class LibraryStartupTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         from bible.ui import Application, Window
 
@@ -74,17 +76,17 @@ class LibraryStartupTests(unittest.TestCase):
             patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False)
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         self.window.close()
 
-    def test_slow_cache_opens_shell_and_close_reopen_share_one_preparation(self):
+    def test_slow_cache_opens_shell_and_close_reopen_share_one_preparation(self) -> None:
         entered = threading.Event()
         release = threading.Event()
         calls = []
         self.addCleanup(release.set)
 
-        def read(_, provider):
+        def read(_: object, provider):
             calls.append((provider.id, threading.get_ident()))
             entered.set()
             release.wait(3)
@@ -121,7 +123,7 @@ class LibraryStartupTests(unittest.TestCase):
             self.assertEqual(len(calls), len(PROVIDERS))
             self.assertEqual(first.choice_model.get_n_items(), 0)
 
-    def test_reopen_during_slow_refresh_deduplicates_and_keeps_progressive_results(self):
+    def test_reopen_during_slow_refresh_deduplicates_and_keeps_progressive_results(self) -> None:
         entered = threading.Event()
         release = threading.Event()
         calls = []
@@ -159,7 +161,7 @@ class LibraryStartupTests(unittest.TestCase):
             spin(lambda: not second.busy)
             self.assertEqual(second.selected_resource().id, RESOURCE.id)
 
-    def test_large_valid_cache_uses_owner_thread_bounded_models_and_keeps_heartbeat(self):
+    def test_large_valid_cache_uses_owner_thread_bounded_models_and_keeps_heartbeat(self) -> None:
         from bible.catalogue_window import ResourceItem
         from gi.repository import GLib
 
@@ -169,7 +171,7 @@ class LibraryStartupTests(unittest.TestCase):
         owner = threading.get_ident()
         threads = []
 
-        def construct(item, resource):
+        def construct(item, resource) -> None:
             threads.append(threading.get_ident())
             original(item, resource)
 
@@ -183,7 +185,7 @@ class LibraryStartupTests(unittest.TestCase):
                 loop = GLib.MainLoop()
                 deadline = time.monotonic() + 8
 
-                def settled():
+                def settled() -> bool:
                     if dialog.busy and time.monotonic() < deadline:
                         return True
                     loop.quit()
@@ -205,7 +207,7 @@ class LibraryStartupTests(unittest.TestCase):
         finally:
             GLib.source_remove(timer)
 
-    def test_metadata_failure_is_visible_and_retry_does_not_remain_busy(self):
+    def test_metadata_failure_is_visible_and_retry_does_not_remain_busy(self) -> None:
         with patch.object(CatalogueCache, "read", side_effect=OSError("metadata failure fixture")):
             dialog = self.window.open_library()
             spin(lambda: not dialog.preparing)
@@ -225,7 +227,7 @@ class LibraryStartupTests(unittest.TestCase):
             spin(lambda: not dialog.busy)
         self.assertEqual(dialog.selected_resource().id, RESOURCE.id)
 
-    def test_refresh_status_keeps_unchanged_native_models_and_selection(self):
+    def test_refresh_status_keeps_unchanged_native_models_and_selection(self) -> None:
         cache = CatalogueCache(self.root / "catalogue-cache")
         cache.write(CROSSWIRE, [RESOURCE])
         dialog = self.window.open_library()
@@ -241,7 +243,9 @@ class LibraryStartupTests(unittest.TestCase):
         self.assertEqual(language_changes, [])
         self.assertEqual(dialog.selected_resource().id, RESOURCE.id)
 
-    def test_large_language_changes_use_bounded_native_updates_and_discard_stale_search(self):
+    def test_large_language_changes_use_bounded_native_updates_and_discard_stale_search(
+        self,
+    ) -> None:
         from bible.language_picker import LanguagePicker
 
         picker = LanguagePicker(lambda: None)
@@ -256,7 +260,7 @@ class LibraryStartupTests(unittest.TestCase):
         records["fr"] = ("French", "French (fr)", "fr")
         picker.set_codes(codes, records)
         self.assertLessEqual(picker.strings.get_n_items(), 18)
-        picker.activate(None, picker.strings.get_n_items() - 1)
+        picker.row_activated(None, picker.strings.get_n_items() - 1)
         self.assertEqual(picker.codes[picker.get_selected()], "fr")
         picker.search.set_text("fixture1999")
         picker.filter()
@@ -267,7 +271,7 @@ class LibraryStartupTests(unittest.TestCase):
         self.assertEqual(picker.strings.get_string(1), "fixture1999")
         self.assertTrue(all(max(change) <= 16 for change in changes))
 
-    def test_reopen_rechecks_resources_installed_by_another_window(self):
+    def test_reopen_rechecks_resources_installed_by_another_window(self) -> None:
         from tests.test_ui import installed_fixture
 
         first = self.window.open_library()

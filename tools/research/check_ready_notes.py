@@ -1,5 +1,7 @@
 """Actual note hosts with real installed excerpts; isolated synthetic personal notes."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -17,7 +19,7 @@ from tools.check_alpha_ui import X11Input
 from tools.check_client_feedback import Screen
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("resources", type=Path)
     p.add_argument("output", type=Path)
@@ -75,7 +77,7 @@ def main():
                     )
                     before = [asdict(n) for n in w.notes_store.all()]
 
-                    def shot(name):
+                    def shot(name) -> None:
                         native.move_at(w, 2, 2)
                         spin(duration=0.2)
                         filename = ("linked-" if linked else "unlinked-") + name + ".png"

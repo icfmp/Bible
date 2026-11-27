@@ -1,5 +1,11 @@
 """Paint-only dotted study coverage; never selection, tags or saved highlights."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from typing import cast
+
 import gi
 
 gi.require_version("Graphene", "1.0")
@@ -8,16 +14,36 @@ from .verse_typography import NUMBER_COLORS
 from .reading_style import PALETTES
 
 
+type IndicatorSegment = tuple[float, float, float, str]
+
+
+@dataclass(slots=True)
+class _IndicatorRow:
+    """Mutable bounds and glyph intervals belonging to one visible display row."""
+
+    top: int
+    bottom: int
+    intervals: list[tuple[int, int, str]]
+
+
 class ContextTextView(Gtk.TextView):
     """Paint transient study coverage without changing selection, text tags or saved highlights."""
 
-    def set_study_ranges(self, ranges):
+    _verse_fragments: Sequence[tuple[str, int, int]]
+    _verse_labels: dict[str, str]
+
+    def set_study_ranges(self, ranges: Iterable[tuple[int, int]]) -> None:
+        """Replace half-open buffer offsets and redraw only when coverage changes.
+
+        Call on the GTK owner thread after projecting references into this view.
+        The immutable snapshot prevents later caller mutations affecting paint.
+        """
         value = tuple(ranges)
         if value != getattr(self, "study_ranges", ()):
             self.study_ranges = value
             self.queue_draw()
 
-    def indicator_segments(self):
+    def indicator_segments(self) -> list[IndicatorSegment]:
         """Measure only visible covered glyphs and merge underline intervals with selection/highlight colors."""
         ranges = getattr(self, "study_ranges", ())
         if not ranges or not self.get_mapped():
@@ -33,7 +59,7 @@ class ContextTextView(Gtk.TextView):
         selected = tuple(i.get_offset() for i in selection)
         palette = getattr(self, "_reading_palette", "white")
         neutral = NUMBER_COLORS[palette]
-        rows = []
+        rows: list[_IndicatorRow] = []
         for start, end in ranges:
             iterator = buffer.get_iter_at_offset(max(start, low))
             while iterator.get_offset() < min(end, high):
@@ -51,28 +77,37 @@ class ContextTextView(Gtk.TextView):
                                 if (tag.props.name or "").startswith(
                                     "highlight-"
                                 ) and tag.props.foreground_set:
-                                    color = tag.props.foreground_rgba.to_string()
-                        row = next((r for r in rows if max(y, r[0]) < min(bottom, r[1])), None)
+                                    # A set foreground is exposed by GTK as an RGBA value.
+                                    color = cast("Gdk.RGBA", tag.props.foreground_rgba).to_string()
+                        row = next((r for r in rows if max(y, r.top) < min(bottom, r.bottom)), None)
                         if row is None:
-                            row = [y, bottom, []]
+                            row = _IndicatorRow(y, bottom, [])
                             rows.append(row)
-                        row[0] = min(row[0], y)
-                        row[1] = max(row[1], bottom)
-                        row[2].append((left, right, color))
+                        row.top = min(row.top, y)
+                        row.bottom = max(row.bottom, bottom)
+                        row.intervals.append((left, right, color))
                 if not iterator.forward_char():
                     break
-        segments = []
-        for _, bottom, intervals in rows:
-            for left, right, color in sorted(intervals):
-                y = bottom - 0.5 + min(2, max(0, (self.get_pixels_inside_wrap() - 1) / 2))
-                if segments and segments[-1][2:] == (y, color) and left <= segments[-1][1] + 1:
+        segments: list[IndicatorSegment] = []
+        for row in rows:
+            for segment_left, segment_right, color in sorted(row.intervals):
+                underline_y = (
+                    row.bottom - 0.5 + min(2, max(0, (self.get_pixels_inside_wrap() - 1) / 2))
+                )
+                if (
+                    segments
+                    and segments[-1][2:] == (underline_y, color)
+                    and segment_left <= segments[-1][1] + 1
+                ):
                     previous = segments.pop()
-                    left = previous[0]
-                    right = max(right, previous[1])
-                segments.append((left, right, y, color))
+                    segments.append(
+                        (previous[0], max(segment_right, previous[1]), underline_y, color)
+                    )
+                else:
+                    segments.append((segment_left, segment_right, underline_y, color))
         return segments
 
-    def do_snapshot(self, snapshot):
+    def do_snapshot(self, snapshot: Gtk.Snapshot) -> None:
         """Append clipped GSK coverage dots after the native text snapshot; retain no periodic worker."""
         Gtk.TextView.do_snapshot(self, snapshot)
         segments = self.indicator_segments()

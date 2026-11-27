@@ -1,5 +1,7 @@
 """Native reading/header evidence; requires a marked disposable research profile."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -7,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)

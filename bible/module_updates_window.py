@@ -1,15 +1,31 @@
 """Read-only information for copied/external modules; no competing updater."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TypedDict
+
+if TYPE_CHECKING:
+    from .library import Library
+    from .module_updates import InstalledModule, ModuleCatalogueData
+
 from gi.repository import Adw, Gtk, GLib
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
 from .module_updates import ModuleCatalogue as ModuleCatalogue, installed_modules, assessment
 
 
+class _CheckReport(TypedDict):
+    """Read-only check state; no update catalogue is downloaded by this window."""
+
+    error: str
+    catalogue: ModuleCatalogueData | None
+    cached: bool
+
+
 class ModuleUpdatesWindow(Adw.Window):
     """Explain copied/external module ownership without exposing a competing update operation."""
 
-    def __init__(self, owner, library):
+    def __init__(self, owner: Gtk.Window, library: Library) -> None:
         super().__init__(
             transient_for=owner,
             modal=True,
@@ -59,14 +75,16 @@ class ModuleUpdatesWindow(Adw.Window):
         self.connect("close-request", self.on_close)
         self.connect("unrealize", self.on_close)
 
-        def check():
+        def check() -> tuple[
+            tuple[InstalledModule, ...], tuple[tuple[str, str], ...], _CheckReport
+        ]:
             installed, errors = installed_modules(library.root)
-            report = dict(error="", catalogue=None, cached=False)
+            report: _CheckReport = dict(error="", catalogue=None, cached=False)
             return installed, errors, report
 
         future = self.worker.submit(check)
 
-        def complete():
+        def complete() -> bool:
             if self.closed:
                 return False
             self.spinner.set_spinning(False)
@@ -113,7 +131,8 @@ class ModuleUpdatesWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def on_close(self, *_):
+    def on_close(self, *_: object) -> bool:
+        """Reject late results and cancel disposable work without blocking GTK."""
         self.closed = True
         self.worker.shutdown(wait=False, cancel_futures=True)
         return False

@@ -4,6 +4,8 @@ Use a marked disposable profile only. Captures remain private; JSON contains
 references, metadata and measurements, never a Scripture dump or user notes.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -11,7 +13,7 @@ import json
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -87,12 +89,12 @@ def main():
     before = hashes()
     notes_before = w.notes_store.all()
 
-    def save():
+    def save() -> None:
         (a.output / ("followups-offline.json" if a.offline else "followups.json")).write_text(
             json.dumps(report, indent=2) + "\n"
         )
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not w.active_tab._restoring_scroll
             and not getattr(w.active_tab, "_comparison_positioning", False),
@@ -100,12 +102,12 @@ def main():
             timeout=60,
         )
 
-    def capture(name):
+    def capture(name) -> None:
         native.move_at(w, 2, 2)
         spin(duration=0.2)
         screen.grab(a.output / (("offline-" if a.offline else "") + name + ".png"))
 
-    def wait(predicate, seconds=180):
+    def wait(predicate, seconds=180) -> None:
         spin(predicate, duration=0.1, timeout=seconds)
 
     def walk(widget):

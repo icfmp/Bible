@@ -6,6 +6,8 @@ After export.py WORK --check:
 The verify phase needs SWORD; Java is used only by the generate phase.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -15,7 +17,7 @@ import time
 from .export import ROOT, REVISION
 
 
-def generate(work, output):
+def generate(work, output) -> None:
     output.mkdir(parents=True, exist_ok=True)
     systems = {
         p.stem: json.loads(p.read_text())
@@ -70,7 +72,7 @@ def generate(work, output):
         )
 
 
-def verify(path, output):
+def verify(path, output) -> None:
     from bible.versification_mapping import table, to_base, from_base
 
     start = time.monotonic()
@@ -107,7 +109,7 @@ def verify(path, output):
     print(json.dumps(report, indent=2))
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["generate", "verify"])
     parser.add_argument("input", type=Path)

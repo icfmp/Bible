@@ -1,5 +1,7 @@
 """Real GTK pixels for all comparison palettes; disposable TEST profile only."""
 
+from __future__ import annotations
+
 import argparse
 import ctypes
 from pathlib import Path
@@ -31,7 +33,7 @@ def point(native, widget, x, y):
     return int(rx.value + dx + bounds.origin.x + x), int(ry.value + dy + bounds.origin.y + y)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("prefix")
@@ -74,7 +76,7 @@ def main():
             selected = selection()
             reference = tab.state.reference
 
-            def check(label):
+            def check(label) -> None:
                 spin(
                     lambda: not tab._restoring_scroll
                     and not getattr(tab, "_comparison_positioning", False)

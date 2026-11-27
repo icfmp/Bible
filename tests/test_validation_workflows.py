@@ -1,5 +1,7 @@
 """Check declarative CI boundaries; GitHub evaluates expressions and glob rules."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import unittest
 import yaml
@@ -12,7 +14,7 @@ def workflow(name):
 
 
 class WorkflowPolicyTests(unittest.TestCase):
-    def test_all_workflows_parse_and_job_dependencies_exist(self):
+    def test_all_workflows_parse_and_job_dependencies_exist(self) -> None:
         for path in sorted((ROOT / ".github/workflows").glob("*.yml")):
             with self.subTest(workflow=path.name):
                 doc = workflow(path.name)
@@ -24,7 +26,7 @@ class WorkflowPolicyTests(unittest.TestCase):
                         needs = [needs]
                     self.assertTrue(set(needs) <= doc["jobs"].keys(), name)
 
-    def test_build_filters_only_exempt_reviewed_metadata_or_test_inputs(self):
+    def test_build_filters_only_exempt_reviewed_metadata_or_test_inputs(self) -> None:
         allowed = {
             "tools/*channel*.py",
             "tools/alpha_storage.py",
@@ -56,13 +58,13 @@ class WorkflowPolicyTests(unittest.TestCase):
             self.assertEqual(doc[event]["branches"], ["main"])
         self.assertIn("workflow_dispatch", doc)
 
-    def test_test_maintenance_keeps_pr_regressions_without_repackaging_main(self):
+    def test_test_maintenance_keeps_pr_regressions_without_repackaging_main(self) -> None:
         events = workflow("prerequisites.yml")["on"]
         self.assertIn("tests/**", events["push"]["paths-ignore"])
         self.assertNotIn("tests/**", events["pull_request"]["paths-ignore"])
         self.assertNotIn("tools/check_*.py", events["pull_request"]["paths-ignore"])
 
-    def test_host_suite_and_merged_package_boundaries_remain_present(self):
+    def test_host_suite_and_merged_package_boundaries_remain_present(self) -> None:
         jobs = workflow("prerequisites.yml")["jobs"]
         self.assertNotIn("if", jobs["prerequisites"])
         self.assertIn("if", jobs["flatpak"])
@@ -77,7 +79,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertTrue(any("unittest discover" in s.get("run", "") for s in host))
         self.assertTrue(any("FRENCH_TESTS" in s.get("env", {}) for s in host))
 
-    def test_extended_campaigns_depend_on_selection_without_gating_core_checks(self):
+    def test_extended_campaigns_depend_on_selection_without_gating_core_checks(self) -> None:
         jobs = workflow("prerequisites.yml")["jobs"]
         guarded = [
             s for s in jobs["flatpak"]["steps"] if "needs.prerequisites.outputs." in s.get("if", "")
@@ -90,7 +92,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertNotIn("needs.prerequisites.outputs.", core["if"])
         self.assertIn("tools.check_sustained_scroll", core["run"])
 
-    def test_channel_main_retains_guarded_signed_lifecycle(self):
+    def test_channel_main_retains_guarded_signed_lifecycle(self) -> None:
         doc = workflow("channel-restore-checks.yml")
         self.assertIn("pull_request", doc["on"])
         self.assertEqual(doc["on"]["push"]["branches"], ["main"])
@@ -100,7 +102,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         signed = next(s for s in steps if "tools.check_flatpak_channel" in s.get("run", ""))
         self.assertIn("if", signed)
 
-    def test_workflow_edits_have_lightweight_checks(self):
+    def test_workflow_edits_have_lightweight_checks(self) -> None:
         doc = workflow("workflow-checks.yml")
         for event in ("push", "pull_request"):
             self.assertIn(".github/workflows/**", doc["on"][event]["paths"])
@@ -109,7 +111,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertNotIn("flatpak", commands)
         self.assertIn("tests.test_ci_campaigns", commands)
 
-    def test_expensive_diagnostic_campaigns_are_manual(self):
+    def test_expensive_diagnostic_campaigns_are_manual(self) -> None:
         for name in (
             "alpha-input-profile.yml",
             "alpha-native-profile.yml",
@@ -126,7 +128,7 @@ class WorkflowPolicyTests(unittest.TestCase):
             self.assertIn("workflow_dispatch", events)
             self.assertNotIn("push", events)
 
-    def test_only_main_triggers_automatic_publication_and_manual_input_is_explicit(self):
+    def test_only_main_triggers_automatic_publication_and_manual_input_is_explicit(self) -> None:
         doc = workflow("alpha-channel.yml")
         self.assertEqual(doc["on"]["workflow_run"]["branches"], ["main"])
         self.assertIn("if", doc["jobs"]["publish"])

@@ -1,5 +1,7 @@
 """Native bounds, partial canons and exact generic conversion; synthetic text only."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -12,7 +14,8 @@ import zipfile
 from bible.source_versification import write_index, register_index, native_loader
 
 
-def native_available():
+def native_available() -> bool:
+    """Probe the packaged registrar without registering an index or fetching content."""
     try:
         native_loader()
         return True
@@ -22,7 +25,7 @@ def native_available():
 
 @unittest.skipUnless(native_available(), "Requires the packaged source-index extension")
 class NativeSourceIndexTests(unittest.TestCase):
-    def test_reference_only_index_reuse_conflict_and_receipt_integrity(self):
+    def test_reference_only_index_reuse_conflict_and_receipt_integrity(self) -> None:
         import Sword
 
         with tempfile.TemporaryDirectory() as directory:
@@ -46,7 +49,7 @@ class NativeSourceIndexTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "conflicts"):
                 register_index(path, verified=False)
 
-    def test_native_parser_rejects_invalid_testaments_and_oversized_indexes(self):
+    def test_native_parser_rejects_invalid_testaments_and_oversized_indexes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "index"
             for rows in [
@@ -61,7 +64,7 @@ class NativeSourceIndexTests(unittest.TestCase):
                 with self.subTest(rows=rows), self.assertRaises(ValueError):
                     register_index(path, verified=False)
 
-    def test_nt_only_rtl_prefix_missing_verse_and_bridge_survive_full_readback(self):
+    def test_nt_only_rtl_prefix_missing_verse_and_bridge_survive_full_readback(self) -> None:
         from tools.research.test_yves_source import metadata, chapter
         from bible.youversion_worker import build
         from bible.sword_provider import Reader

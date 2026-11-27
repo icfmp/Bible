@@ -4,6 +4,8 @@ Run: python3 tools/versification/export.py /tmp/bible-mappings --check
 Java (including its compiler) is a development tool only.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -50,7 +52,7 @@ def serialize(row):
     return "\n".join(lines) + "\n"
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("work_dir", type=Path)
     parser.add_argument("--check", action="store_true")

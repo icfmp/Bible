@@ -1,5 +1,7 @@
 """Native highlight selection, recoloring, visibility and shared-window state."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,14 +12,14 @@ from tests.test_ui import installed_fixture, spin
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class HighlightUITests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
 
-    def test_comparison_rebuild_does_not_retag_unchanged_primary_layout(self):
+    def test_comparison_rebuild_does_not_retag_unchanged_primary_layout(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -61,7 +63,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks(self):
+    def test_range_selection_hide_show_reflow_and_high_contrast_preserve_marks(self) -> None:
         from bible.ui import Window, Library
         from tests.test_appearance import SystemStyleOverride
         from gi.repository import Pango
@@ -105,7 +107,7 @@ class HighlightUITests(unittest.TestCase):
                 panel.search.set_text("Gen")
                 panel.refresh()
                 self.assertEqual(len(panel.rows), 2)
-                panel.activate(
+                panel.row_activated(
                     None, next(i for i, a in enumerate(panel.rows) if a.start == "Gen.1.2")
                 )
                 self.assertEqual(window.active_tab.state.reference, "Gen.1.1")
@@ -115,7 +117,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_missing_system_does_not_open_a_different_passage_or_delete_mark(self):
+    def test_missing_system_does_not_open_a_different_passage_or_delete_mark(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -126,7 +128,7 @@ class HighlightUITests(unittest.TestCase):
                 window.highlights.set("Segond", ["Ps.3.2"], "blue", "Missing")
                 panel = window.open_highlights()
                 reference = window.active_tab.state.reference
-                panel.activate(None, 0)
+                panel.row_activated(None, 0)
                 self.assertEqual(window.active_tab.state.reference, reference)
                 self.assertIn(("Segond", "Ps.3.2"), window.highlights.entries)
                 self.assertFalse(panel.open_button.get_sensitive())
@@ -135,7 +137,7 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self):
+    def test_windows_share_marks_and_repaint_without_overwriting_other_verses(self) -> None:
         from bible.ui import Window, Library
         from bible.highlights import HighlightStore
 
@@ -167,3 +169,48 @@ class HighlightUITests(unittest.TestCase):
             finally:
                 second.close()
                 first.close()
+
+    def test_backup_chooser_without_local_path_preserves_marks_and_releases_dialog(self) -> None:
+        from unittest.mock import Mock, patch
+        from bible.ui import Window, Library, Gtk
+        from bible.highlight_ui import HighlightsWindow
+        from bible.i18n import tr
+        from gi.repository import Gio
+
+        with tempfile.TemporaryDirectory() as directory:
+            installed_fixture(directory)
+            window = Window(self.app, Library(Path(directory) / "translations"))
+            window.highlights.set("KJV", ["Gen.1.1"], "yellow", "Test")
+            before = window.highlights.path.read_bytes()
+            panel = HighlightsWindow(window)
+            try:
+                remote = Gio.File.new_for_uri("sftp://example.invalid/highlights.json")
+                for selected_file in (None, remote):
+                    for restore in (False, True):
+                        with self.subTest(selected=selected_file, restore=restore):
+                            chooser = Mock()
+                            chooser.get_file.return_value = selected_file
+                            with (
+                                patch(
+                                    "bible.highlight_ui.Gtk.FileChooserNative.new",
+                                    return_value=chooser,
+                                ),
+                                patch(
+                                    "bible.highlight_ui.message",
+                                    side_effect=lambda *args: args[-1](),
+                                ),
+                                patch.object(window.highlights, "backup") as backup,
+                                patch.object(window.highlights, "restore") as merge,
+                            ):
+                                panel.choose_file(restore)
+                                response = chooser.connect.call_args.args[1]
+                                response(chooser, Gtk.ResponseType.ACCEPT)
+                                backup.assert_not_called()
+                                merge.assert_not_called()
+                            self.assertEqual(panel.status.get_text(), tr("Choose a local file."))
+                            chooser.destroy.assert_called_once()
+                            self.assertFalse(panel.choosers)
+                            self.assertEqual(window.highlights.path.read_bytes(), before)
+            finally:
+                panel.close()
+                window.close()

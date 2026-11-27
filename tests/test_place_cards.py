@@ -1,5 +1,7 @@
 """Synthetic-only GTK place flow; real geography is checked separately."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -16,7 +18,7 @@ from bible import place_data
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class PlaceCardTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from tests.test_place_map import require_native_map
 
         require_native_map()
@@ -26,10 +28,10 @@ class PlaceCardTests(unittest.TestCase):
         requests = self.tile_requests
 
         class UnavailableTiles(BaseHTTPRequestHandler):
-            def log_message(self, *_):
+            def log_message(self, *_: object) -> None:
                 pass
 
-            def do_GET(self):
+            def do_GET(self) -> None:
                 requests.append(self.path)
                 self.send_response(404)
                 self.send_header("Content-Length", "0")
@@ -39,7 +41,7 @@ class PlaceCardTests(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
 
-        def close_server():
+        def close_server() -> None:
             server.shutdown()
             server.server_close()
             thread.join(timeout=2)
@@ -76,7 +78,7 @@ class PlaceCardTests(unittest.TestCase):
         self.window.active_tab.navigate("French", "Ps.3.2")
         spin(lambda: not self.window.active_tab._restoring_scroll, duration=0.2)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if self.window.catalogue_window and not self.window.catalogue_window.closed:
             self.window.catalogue_window.close()
@@ -91,7 +93,7 @@ class PlaceCardTests(unittest.TestCase):
             store.install_files(self.files)
         return store
 
-    def test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab(self):
+    def test_local_card_and_mapped_preview_keep_reader_until_explicit_new_tab(self) -> None:
         w = self.window
         self.install()
         before = (
@@ -143,7 +145,7 @@ class PlaceCardTests(unittest.TestCase):
             yield from self.walk(child)
             child = child.get_next_sibling()
 
-    def test_removed_enrichment_files_are_ignored_without_touching_profile_data(self):
+    def test_removed_enrichment_files_are_ignored_without_touching_profile_data(self) -> None:
         self.install()
         root = self.root / "study-data"
         root.mkdir(exist_ok=True)
@@ -171,7 +173,7 @@ class PlaceCardTests(unittest.TestCase):
         self.assertTrue(dialog.current_place["candidates"])
         self.assertEqual(dialog.reference_model.get_n_items(), 1)
 
-    def test_map_failure_keeps_place_metadata_and_related_references(self):
+    def test_map_failure_keeps_place_metadata_and_related_references(self) -> None:
         self.install()
         host = self.window.open_places()
         dialog = host.places
@@ -187,7 +189,7 @@ class PlaceCardTests(unittest.TestCase):
         self.assertEqual(dialog.reference_model.get_n_items(), 1)
         self.assertEqual(self.window.active_tab.state.reference, "Ps.3.2")
 
-    def test_region_reference_point_keeps_its_historical_uncertainty_visible(self):
+    def test_region_reference_point_keeps_its_historical_uncertainty_visible(self) -> None:
         from bible.i18n import tr
 
         self.install()
@@ -202,7 +204,9 @@ class PlaceCardTests(unittest.TestCase):
         self.assertTrue(any(tr("Approximate location") in label for label in labels))
         self.assertEqual(len(dialog.map_widget.candidates), 1)
 
-    def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(self):
+    def test_missing_data_opens_the_same_library_resource_and_install_does_not_change_bibles(
+        self,
+    ) -> None:
         from bible.study_resources import PLACE_RESOURCE_ID
 
         w = self.window

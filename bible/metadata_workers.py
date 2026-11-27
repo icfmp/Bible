@@ -6,9 +6,16 @@ Only atomic catalogue-cache writers and pure metadata tasks use this executor;
 resource installations retain their existing completion/atomicity policy.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Self, cast
 from concurrent.futures import Future
 from queue import Queue, Empty
 from threading import Thread, Lock, current_thread
+
+
+type _Work = tuple[Future[object], Callable[..., object], tuple[object, ...], dict[str, object]]
 
 
 class MetadataExecutor:
@@ -19,21 +26,25 @@ class MetadataExecutor:
     non-waiting shutdown and must tolerate their consumer being closed.
     """
 
-    def __init__(self, max_workers=1, thread_name_prefix="bible-metadata"):
+    def __init__(self, max_workers: int = 1, thread_name_prefix: str = "bible-metadata") -> None:
         self.maximum = max_workers
         self.prefix = thread_name_prefix
-        self.queue = Queue()
+        self.queue: Queue[_Work | None] = Queue()
         self.lock = Lock()
-        self.threads = []
+        self.threads: list[Thread] = []
         self.closed = False
 
-    def submit(self, function, *args, **kwargs):
+    def submit[**P, R](
+        self, function: Callable[P, R], *args: P.args, **kwargs: P.kwargs
+    ) -> Future[R]:
         """Queue a callable as a Future and lazily start workers; reject submissions after shutdown."""
-        future = Future()
+        future: Future[R] = Future()
         with self.lock:
             if self.closed:
                 raise RuntimeError("Metadata worker is closed")
-            self.queue.put((future, function, args, kwargs))
+            # The heterogeneous queue erases R, but the callable and its future
+            # stay paired; ParamSpec verifies the submission before that boundary.
+            self.queue.put(cast("_Work", (future, function, args, kwargs)))
             if len(self.threads) < self.maximum:
                 thread = Thread(
                     target=self.work, name=f"{self.prefix}-{len(self.threads)}", daemon=True
@@ -42,8 +53,13 @@ class MetadataExecutor:
                 thread.start()
         return future
 
-    def work(self):
+    def work(self) -> None:
         """Resolve queued futures, honor cancellation before execution and release retained task objects."""
+        future: Future[object] | None
+        function: Callable[..., object] | None
+        args: tuple[object, ...] | None
+        kwargs: dict[str, object] | None
+        result: object
         while True:
             item = self.queue.get()
             if item is None:
@@ -64,7 +80,7 @@ class MetadataExecutor:
                 # on this idle thread's stack until another job arrives.
                 item = future = function = args = kwargs = result = None
 
-    def shutdown(self, wait=True, cancel_futures=False):
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
         """Stop submissions, optionally cancel queued work and join workers only when explicitly requested."""
         with self.lock:
             if not self.closed:
@@ -84,8 +100,8 @@ class MetadataExecutor:
                 if thread is not current_thread():
                     thread.join()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_: object) -> None:
         self.shutdown()

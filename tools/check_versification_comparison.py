@@ -5,6 +5,8 @@ runs must set --require-packaged and import the app from /app before this tool.
 No full resource text is written to the report.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -60,7 +62,7 @@ def fidelity(reader, document):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -96,7 +98,7 @@ def main():
         fresh_install=False,
     )
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not tab._restoring_scroll
             and not getattr(tab, "_comparison_positioning", False),

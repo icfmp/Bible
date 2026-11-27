@@ -17,13 +17,15 @@ CONFIGURATION_URL = "https://bible.youversionapi.com/3.1/configuration.json"
 VERSIONS_URL = "https://bible.youversionapi.com/3.1/versions.json?language_tag={language}&type=all"
 
 
-def module_id(edition):
+def module_id(edition: int) -> str:
+    """Validate a provider edition ID and produce its stable local module name."""
     if type(edition) is not int or not 1 <= edition <= 999999999:
         raise ValueError("Invalid edition identity")
     return "YV" + str(edition)
 
 
-def edition_id(name):
+def edition_id(name: str) -> int:
+    """Parse a canonical local module name, rejecting ambiguous numeric spellings."""
     if not isinstance(name, str) or not name.startswith("YV") or not name[2:].isdigit():
         raise ValueError("Invalid edition identity")
     number = int(name[2:])
@@ -32,7 +34,8 @@ def edition_id(name):
     return number
 
 
-def storage_system(identifier):
+def storage_system(identifier: int) -> str:
+    """Use verified numbering metadata; keep unverified editions independently indexed."""
     module_id(identifier)
     # Keep every existing module and annotation reference stable. New editions
     # receive an exact source-specific index, not an assumed cross-edition map.

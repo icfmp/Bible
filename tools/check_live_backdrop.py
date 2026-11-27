@@ -1,5 +1,7 @@
 """Exercise the real, live reader backdrop with sharp controls; disposable profile."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -47,7 +49,7 @@ def measure_scroll(window):
         last = [began]
         prof = cProfile.Profile()
 
-        def move():
+        def move() -> bool:
             elapsed = time.monotonic() - began
             if elapsed >= 6:
                 return False
@@ -60,7 +62,7 @@ def measure_scroll(window):
             last[0] = now
             return now - began < 6
 
-        def frame(widget, clock):
+        def frame(widget: object, clock: object) -> bool:
             frames.append(time.monotonic())
             return True
 
@@ -111,7 +113,7 @@ def measure_scroll(window):
     )
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -184,7 +186,7 @@ def main():
             # Drive the same adjustment used by the scrollbar. Wheel intentionally
             # dismisses floating actions; this keeps a real selection visible to
             # expose live backdrop updates while the reader moves beneath it.
-            def move():
+            def move() -> bool:
                 elapsed = time.monotonic() - began
                 if elapsed >= 6:
                     return False

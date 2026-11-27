@@ -1,5 +1,7 @@
 """Explicit offline passage relationships; body citations are never auto-linked."""
 
+from __future__ import annotations
+
 import re
 from gi.repository import Gtk, Pango, GLib
 from .i18n import tr
@@ -38,7 +40,7 @@ def parse_link(text, system):
 class PassageLinks(Gtk.Box):
     """Edit explicit secondary note anchors independently of body citations and resource availability."""
 
-    def __init__(self, owner, context, values, changed):
+    def __init__(self, owner, context, values, changed) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         self.owner = owner
         self.context = context
@@ -125,7 +127,7 @@ class PassageLinks(Gtk.Box):
         self.append(header)
         self.append(self.revealer)
 
-        def shown(*_):
+        def shown(*_: object) -> None:
             root = self.get_root() or owner
             outer.set_max_content_height(max(120, min(420, root.get_height() - 100)))
             outer.set_propagate_natural_width(True)
@@ -136,7 +138,7 @@ class PassageLinks(Gtk.Box):
 
         pop.connect("show", shown)
 
-        def hidden(*_):
+        def hidden(*_: object) -> None:
             self._suggestion_epoch += 1
             if self._suggestion_future:
                 self._suggestion_future.cancel()
@@ -145,7 +147,7 @@ class PassageLinks(Gtk.Box):
         pop.connect("unmap", hidden)
         self.refresh()
 
-    def load_suggestions(self, pop):
+    def load_suggestions(self, pop) -> None:
         """Optional existing reference data; manual entry never waits on it."""
         self._suggestion_epoch += 1
         epoch = self._suggestion_epoch
@@ -169,7 +171,7 @@ class PassageLinks(Gtk.Box):
         future = panel.executor.submit(panel.data.query, origins)
         self._suggestion_future = future
 
-        def complete():
+        def complete() -> bool:
             if self.owner.closed or epoch != self._suggestion_epoch or not pop.get_visible():
                 return False
             self._suggestion_future = None
@@ -199,7 +201,7 @@ class PassageLinks(Gtk.Box):
             for link in choices[:8]:
                 button = self.card(link, reader=reader if hasattr(reader, "root") else None)
 
-                def choose(*_, value=link):
+                def choose(*_: object, value=link) -> None:
                     self.entry.set_text(
                         value.start + ("–" + value.end if value.end != value.start else "")
                     )
@@ -233,7 +235,7 @@ class PassageLinks(Gtk.Box):
 
         return Canon(self.context["versification"])
 
-    def card(self, link, reader=None, *, compound=False):
+    def card(self, link, reader=None, *, compound: bool = False):
         """The saved origin is the only source of Scripture in this editor."""
         from .passage_card import passage_card
         from .notes_window import passage_label
@@ -295,7 +297,7 @@ class PassageLinks(Gtk.Box):
         card.update_property([Gtk.AccessibleProperty.LABEL], [title.get_text()])
         return card
 
-    def invalidate_source(self):
+    def invalidate_source(self) -> None:
         self._suggestion_epoch += 1
         if self._suggestion_future:
             self._suggestion_future.cancel()
@@ -303,7 +305,7 @@ class PassageLinks(Gtk.Box):
         self._excerpts.clear()
         self._chapter_cache.clear()
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Rebuild actual linked-passage cards and unlink actions without changing saved note identity."""
         from .notes_window import passage_label
 
@@ -361,7 +363,7 @@ class PassageLinks(Gtk.Box):
             self.error.set_text(tr(str(error)))
             return False
 
-    def remove(self, link):
+    def remove(self, link) -> None:
         self.values = tuple(value for value in self.values if value != link)
         self.refresh()
         self.changed()

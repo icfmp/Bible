@@ -1,5 +1,7 @@
 """Language discovery, lazy catalogue metadata and atomic source-cache failures."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 import tempfile
@@ -34,7 +36,7 @@ def language(tag):
     )
 
 
-def listing(identifier=900021, tag="spa", offline=True):
+def listing(identifier=900021, tag="spa", offline: bool = True):
     return dict(
         id=identifier,
         local_title="Synthetic edition",
@@ -57,7 +59,7 @@ def envelope(value):
 
 
 class LanguageCatalogueTests(unittest.TestCase):
-    def test_session_loads_only_chosen_languages_off_thread_and_retains_previous_rows(self):
+    def test_session_loads_only_chosen_languages_off_thread_and_retains_previous_rows(self) -> None:
         from bible.catalogue_session import CatalogueSession
         from bible.library import Library
         from bible.providers import YOUVERSION
@@ -67,7 +69,7 @@ class LanguageCatalogueTests(unittest.TestCase):
         main = threading.get_ident()
         records = {tag: language(tag) for tag in ("spa", "fra")}
 
-        def load(tag, *args, **kw):
+        def load(tag, *args: object, **kw: object):
             self.assertNotEqual(threading.get_ident(), main)
             calls.append(tag)
             return [
@@ -111,7 +113,7 @@ class LanguageCatalogueTests(unittest.TestCase):
                 session.close()
             self.assertIsNone(session.load_youversion_language("en"))
 
-    def test_new_ids_and_source_indexes_are_not_limited_to_the_pilots(self):
+    def test_new_ids_and_source_indexes_are_not_limited_to_the_pilots(self) -> None:
         for identifier in [8, 504, 900021, 999999999]:
             self.assertEqual(edition_id(module_id(identifier)), identifier)
             self.assertEqual(storage_system(identifier), "YouVersion" + str(identifier))
@@ -121,7 +123,7 @@ class LanguageCatalogueTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module_id(invalid)
 
-    def test_language_index_and_regional_lists_use_actual_tags(self):
+    def test_language_index_and_regional_lists_use_actual_tags(self) -> None:
         records = read_languages(
             envelope(
                 dict(
@@ -141,10 +143,10 @@ class LanguageCatalogueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             read_languages(dict(default_versions=[language("spa"), language("spa")]))
 
-    def test_browsing_downloads_metadata_only_and_unchanged_cache_keeps_its_age(self):
+    def test_browsing_downloads_metadata_only_and_unchanged_cache_keeps_its_age(self) -> None:
         requests = []
 
-        def download(url, out, **options):
+        def download(url, out, **options: object) -> None:
             requests.append(url)
             value = (
                 dict(default_versions=[language("spa")])
@@ -173,7 +175,7 @@ class LanguageCatalogueTests(unittest.TestCase):
             self.assertEqual(len(requests), 2)
             self.assertEqual(saved_languages(root), records)
 
-    def test_bad_refresh_preserves_previous_language_list(self):
+    def test_bad_refresh_preserves_previous_language_list(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             good = envelope(dict(versions=[listing()]))
@@ -196,7 +198,7 @@ class LanguageCatalogueTests(unittest.TestCase):
             with patch("bible.library.download", side_effect=AssertionError("Unexpected network")):
                 self.assertEqual(editions("spa", root), original)
 
-    def test_unavailable_or_untrusted_source_is_never_a_downloadable_placeholder(self):
+    def test_unavailable_or_untrusted_source_is_never_a_downloadable_placeholder(self) -> None:
         for change in [
             dict(id=True),
             dict(language=language("fra")),

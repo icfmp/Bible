@@ -1,5 +1,7 @@
 """Real Library categories and optional actual download in a disposable profile."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -7,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -55,7 +57,7 @@ def main():
                     samples = []
                     original = d.report_progress
 
-                    def progress(done, total):
+                    def progress(done, total) -> None:
                         samples.append([done, total])
                         original(done, total)
 

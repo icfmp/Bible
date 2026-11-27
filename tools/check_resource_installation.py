@@ -1,5 +1,7 @@
 """Real resource installation and offline restart; disposable TEST profile only."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -7,7 +9,7 @@ from pathlib import Path
 import time
 
 
-def wait(predicate, timeout=180):
+def wait(predicate, timeout=180) -> None:
     from gi.repository import GLib
 
     deadline = time.monotonic() + timeout
@@ -32,7 +34,7 @@ def direct(root, name, reference, system):
     return text if isinstance(text, str) else text.c_str()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--offline", action="store_true")

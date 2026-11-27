@@ -1,5 +1,7 @@
 """Client acceptance regressions for the visible workspace and reader corrections."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -10,7 +12,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ClientFeedbackTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -21,10 +23,10 @@ class ClientFeedbackTests(unittest.TestCase):
         self.w.present()
         spin()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.w.close()
 
-    def test_visible_workspace_group_switches_both_ways_in_one_activation(self):
+    def test_visible_workspace_group_switches_both_ways_in_one_activation(self) -> None:
         from bible.ui import Gtk
 
         w = self.w
@@ -48,7 +50,7 @@ class ClientFeedbackTests(unittest.TestCase):
         spin()
         self.assertEqual(sum(b.get_active() for b in group.buttons), 1)
 
-    def test_preferences_direct_theme_choices_and_backup_rows_use_existing_actions(self):
+    def test_preferences_direct_theme_choices_and_backup_rows_use_existing_actions(self) -> None:
         from bible.application_surfaces import show_preferences
         from bible.ui import Gtk
 
@@ -66,7 +68,7 @@ class ClientFeedbackTests(unittest.TestCase):
         d.close()
         spin()
 
-    def test_shared_immersive_reading_box_stays_centered_when_controls_fade(self):
+    def test_shared_immersive_reading_box_stays_centered_when_controls_fade(self) -> None:
         w = self.w
         w.set_default_size(1280, 900)
         spin()
@@ -89,7 +91,7 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertEqual(v.reading_box, bounds)
         self.assertEqual(v.stream.anchor(), anchor)
 
-    def test_immersive_keyboard_focus_stays_outside_the_moving_pages(self):
+    def test_immersive_keyboard_focus_stays_outside_the_moving_pages(self) -> None:
         w = self.w
         w.enter_immersion("bible")
         v = w.immersion
@@ -114,7 +116,7 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertFalse(v.focus_cue.get_visible())
         self.assertIs(w.get_focus(), v.leave_button)
 
-    def test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides(self):
+    def test_semantic_click_never_manufactures_selection_or_bar_and_collapse_hides(self) -> None:
         from gi.repository import Gtk
 
         t = self.w.active_tab
@@ -142,7 +144,7 @@ class ClientFeedbackTests(unittest.TestCase):
         self.assertFalse(a.bar.get_visible())
         self.assertIsNone(a.target)
 
-    def test_context_commands_keep_comparison_source_without_floating_selection(self):
+    def test_context_commands_keep_comparison_source_without_floating_selection(self) -> None:
         installed_fixture(self.root, "Other", versification="Segond")
         w = self.w
         t = w.active_tab
@@ -160,7 +162,7 @@ class ClientFeedbackTests(unittest.TestCase):
         w.note_editor.close()
         spin()
 
-    def test_dismiss_releases_backdrop_source_signals_and_selection_timer(self):
+    def test_dismiss_releases_backdrop_source_signals_and_selection_timer(self) -> None:
         t = self.w.active_tab
         a = self.w.passage_actions
         b = t.text.get_buffer()

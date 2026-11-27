@@ -1,9 +1,12 @@
 """Short, interruptible adjustment motion; never synthesizes user input."""
 
-from gi.repository import Gtk
+from __future__ import annotations
+
+from collections.abc import Callable
+from gi.repository import Gtk, Gdk
 
 
-def stop_native_scroll(scroll):
+def stop_native_scroll(scroll: Gtk.ScrolledWindow) -> None:
     """Cancel an old GTK deceleration without changing its kinetic setting."""
     # GtkScrolledWindow otherwise ignores external adjustment changes while
     # decelerating and can overwrite a new target with its old edge rebound.
@@ -15,10 +18,10 @@ def stop_native_scroll(scroll):
 class ScrollMotion:
     """Own one short cancellable native-adjustment movement, separate from actual user input."""
 
-    def __init__(self, scroll):
+    def __init__(self, scroll: Gtk.ScrolledWindow) -> None:
         self.scroll = scroll
         self.tick = 0
-        self.target = None
+        self.target: float | None = None
         scroll.connect("unmap", lambda *_: self.cancel())
         for controller, signal in (
             (Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES), "scroll"),
@@ -26,20 +29,28 @@ class ScrollMotion:
             (Gtk.GestureClick(button=1), "pressed"),
         ):
             controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-            controller.connect(signal, lambda *_: self.cancel() or False)
+            controller.connect(signal, self.cancel_input)
             scroll.add_controller(controller)
 
+    def cancel_input(self, *_: object) -> bool:
+        """Cancel animation without consuming the user’s scroll, key or click event."""
+        self.cancel()
+        return False
+
     @property
-    def running(self):
+    def running(self) -> bool:
         return bool(self.tick)
 
-    def cancel(self):
+    def cancel(self) -> None:
+        """Remove the frame callback without moving the adjustment to the old target."""
         if self.tick:
             self.scroll.remove_tick_callback(self.tick)
             self.tick = 0
         self.target = None
 
-    def move(self, target, *, animate=True, valid=lambda: True):
+    def move(
+        self, target: float, *, animate: bool = True, valid: Callable[[], bool] = lambda: True
+    ) -> None:
         """Move within native adjustment bounds, respecting reduced motion and context/geometry validity.
 
         Long jumps, hidden widgets or disabled animations set the position directly.
@@ -69,9 +80,9 @@ class ScrollMotion:
             return
         self.target = target
         geometry = (self.scroll.get_width(), self.scroll.get_height(), adjustment.get_upper())
-        begun = None
+        begun: int | None = None
 
-        def frame(widget, clock):
+        def frame(widget: Gtk.Widget, clock: Gdk.FrameClock) -> bool:
             nonlocal begun
             if (
                 not valid()

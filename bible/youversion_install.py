@@ -4,6 +4,8 @@ No application key, account impersonation or remote agreement submission. The
 user's acknowledgement is local and is bound to the exact displayed metadata.
 """
 
+from __future__ import annotations
+
 import hashlib
 import io
 import json
@@ -31,7 +33,7 @@ def serialized(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def write_receipt(path, value):
+def write_receipt(path, value) -> None:
     """Atomically write a flushed local metadata receipt without leaving a partial destination."""
     temporary = None
     try:
@@ -128,7 +130,7 @@ def fetch_resource(identifier):
     return resource_from_metadata(json.loads(data.getvalue()), identifier)
 
 
-def checkpoint(cancelled):
+def checkpoint(cancelled) -> None:
     if cancelled():
         raise OSError(tr("Download cancelled."))
 
@@ -285,7 +287,7 @@ def cached_download(url, cache, progress, cancelled, *, opener=None, downloaded=
 
 def run_conversion(
     archive, metadata, target, phase, cancelled, *, compiler="/app/bin/osis2mod", edition=21
-):
+) -> None:
     """A separate process owns all temporary Python/native conversion heaps."""
     module_id(edition)
     command = [
@@ -353,7 +355,7 @@ def run_conversion(
             process.stdout.close()
 
 
-def install(library, resource, progress, installing, cancelled, phase, permission):
+def install(library, resource, progress, installing, cancelled, phase, permission) -> None:
     """Install a user-acknowledged source edition through isolated conversion and verified staged publication.
 
     Re-fetch exact conditions before download; changed metadata or unavailable
@@ -367,7 +369,7 @@ def install(library, resource, progress, installing, cancelled, phase, permissio
     previous = None
     entered = time.monotonic()
 
-    def report(name, done=0, total=0):
+    def report(name, done=0, total=0) -> None:
         nonlocal previous, entered
         now = time.monotonic()
         if name != previous:

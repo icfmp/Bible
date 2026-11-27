@@ -1,13 +1,18 @@
 """Small inert Markdown preview: native text and style spans, never HTML or URLs."""
 
+from __future__ import annotations
+
+from collections.abc import Iterator
 import re
+
+type StyleSpan = tuple[str, int, int]
 
 FORMATTING = re.compile(
     r"\*\*\*(.*?)\*\*\*|\*\*(.*?)\*\*|\*([^*\n]*?)\*|\[([^\]\n]+)\]\(([^)\n]+)\)"
 )
 
 
-def markup_regions(text, offset=0, depth=0):
+def markup_regions(text: str, offset: int = 0, depth: int = 0) -> Iterator[StyleSpan]:
     """Source ranges for native editing; delimiter tags never change data."""
     if depth > 4:
         return
@@ -30,12 +35,14 @@ def markup_regions(text, offset=0, depth=0):
             yield from markup_regions(match[group], first + width, depth + 1)
 
 
-def inline(text, depth=0):
+def inline(text: str, depth: int = 0) -> tuple[str, list[StyleSpan]]:
     """Project supported bounded-depth emphasis and inert link text into native character style spans."""
     if depth > 4:
         return text, []
     output = []
-    spans = []
+    spans: list[StyleSpan] = []
+    kinds: tuple[str, ...]
+    children: list[StyleSpan]
     cursor = 0
     offset = 0
     for match in FORMATTING.finditer(text):
@@ -58,9 +65,11 @@ def inline(text, depth=0):
     return "".join(output), spans
 
 
-def render(source):
+def render(source: str) -> tuple[str, list[StyleSpan]]:
     """Render supported note Markdown as plain text and style ranges without executing HTML or opening URLs."""
-    output, spans, offset = [], [], 0
+    output: list[str] = []
+    spans: list[StyleSpan] = []
+    offset = 0
     for line in source.splitlines(keepends=True):
         line = re.sub(r"^\s*[-*] ", "• ", line)
         value, styles = inline(line)

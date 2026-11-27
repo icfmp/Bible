@@ -1,5 +1,7 @@
 """A declared, verified reference convention is separate from storage identity."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import tempfile
@@ -18,9 +20,9 @@ class DeclaredConventionTests(unittest.TestCase):
         self,
         number,
         code="org",
-        changed=False,
-        addresses=False,
-        verified=True,
+        changed: bool = False,
+        addresses: bool = False,
+        verified: bool = True,
         canon=None,
         address_index=None,
     ):
@@ -64,7 +66,7 @@ class DeclaredConventionTests(unittest.TestCase):
             register_index(path)
         return system
 
-    def test_declared_convention_reuses_mapping_in_both_directions(self):
+    def test_declared_convention_reuses_mapping_in_both_directions(self) -> None:
         system = self.register(900184)
         self.assertEqual(reference_convention(system), "Original")
         for ref in ("Gen.11.3", "Ps.33.1", "Ps.33.15"):
@@ -92,7 +94,7 @@ class DeclaredConventionTests(unittest.TestCase):
             resolve("Num.25.18", system, Canon("KJV"), require_entry=False).start, "Num.25.18"
         )
 
-    def test_matching_shape_alone_never_creates_a_mapping(self):
+    def test_matching_shape_alone_never_creates_a_mapping(self) -> None:
         for number, options in (
             (900185, dict(code="unknown")),
             (900187, dict(addresses=True)),
@@ -104,7 +106,7 @@ class DeclaredConventionTests(unittest.TestCase):
             with self.assertRaises(VersificationMismatch):
                 resolve("Gen.11.3", system, Canon("KJV"), require_entry=False)
 
-    def test_unrelated_book_difference_does_not_revoke_verified_books(self):
+    def test_unrelated_book_difference_does_not_revoke_verified_books(self) -> None:
         system = self.register(900186, changed=True)
         self.assertIsNotNone(table(system))
         # Equal dimensions elsewhere in the changed book are not independent
@@ -121,7 +123,7 @@ class DeclaredConventionTests(unittest.TestCase):
             resolve("John.3.16", "KJV", Canon(system), require_entry=False).start, "John.3.16"
         )
 
-    def test_extra_and_missing_books_are_local_capabilities(self):
+    def test_extra_and_missing_books_are_local_capabilities(self) -> None:
         original = json.loads(
             (Path(__file__).parents[1] / "bible/versification_data/Original.json").read_text()
         )["canon"]
@@ -143,7 +145,7 @@ class DeclaredConventionTests(unittest.TestCase):
                 with self.assertRaises(VersificationMismatch):
                     resolve("Tob.1.1", system, Canon("KJVA"), require_entry=False)
 
-    def test_verified_address_transform_does_not_claim_numbering_equivalence(self):
+    def test_verified_address_transform_does_not_claim_numbering_equivalence(self) -> None:
         from bible.source_units import AddressIndex, ChapterUnits, SourceUnit
         from bible.source_sections import SectionIndex, SourceChapter
 
@@ -185,7 +187,7 @@ class DeclaredConventionTests(unittest.TestCase):
             with self.assertRaises(VersificationMismatch):
                 resolve("John.1.1", "KJV", Canon(system), require_entry=False)
 
-    def test_empty_chapter_slots_do_not_change_native_canon_validation(self):
+    def test_empty_chapter_slots_do_not_change_native_canon_validation(self) -> None:
         original = json.loads(
             (Path(__file__).parents[1] / "bible/versification_data/Original.json").read_text()
         )["canon"]
@@ -200,7 +202,7 @@ class DeclaredConventionTests(unittest.TestCase):
         with self.assertRaises(VersificationMismatch):
             resolve("Tob.2.1", system, Canon("KJVA"), require_entry=False)
 
-    def test_changed_source_declaration_revokes_a_previously_cached_capability(self):
+    def test_changed_source_declaration_revokes_a_previously_cached_capability(self) -> None:
         system = self.register(900189)
         self.assertIsNotNone(table(system))
         self.assertEqual(self.register(900189, code="unknown"), system)

@@ -1,5 +1,7 @@
 """Source identities stay distinct even when their printed numbers overlap."""
 
+from __future__ import annotations
+
 import copy
 import unittest
 from bible.source_sections import SectionIndex, SourceChapter
@@ -16,7 +18,7 @@ class SectionIndexTests(unittest.TestCase):
             ]
         )
 
-    def test_overlapping_printed_chapters_keep_original_ids_and_roles(self):
+    def test_overlapping_printed_chapters_keep_original_ids_and_roles(self) -> None:
         value = self.index()
         self.assertEqual(value.to_native("Sir.1.1"), "Sir.1.1")
         self.assertEqual(value.to_native("Sir.1_1.1"), "Sir.2.1")
@@ -29,7 +31,7 @@ class SectionIndexTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             value.to_native("Sir.INTRO1.1")
 
-    def test_roundtrip_and_unaffected_books(self):
+    def test_roundtrip_and_unaffected_books(self) -> None:
         value = self.index()
         restored = SectionIndex.from_data(value.data())
         for reference in ("Sir.1.1", "Sir.1_1.30", "Sir.2.17", "Gen.11.3"):
@@ -39,7 +41,7 @@ class SectionIndexTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             restored.to_native("Sir.1_1.0")
 
-    def test_explicit_metadata_order_is_not_replaced_by_numeric_sort(self):
+    def test_explicit_metadata_order_is_not_replaced_by_numeric_sort(self) -> None:
         value = SectionIndex.allocate(
             [
                 SourceChapter("Gen.2_2", "Second section", True),
@@ -49,7 +51,7 @@ class SectionIndexTests(unittest.TestCase):
         self.assertEqual(value.order["Gen"], ["Gen.2_2", "Gen.2_1"])
         self.assertEqual(value.to_source("Gen.1.3"), "Gen.2_2.3")
 
-    def test_untrusted_maps_cannot_alias_or_reclassify_source_sections(self):
+    def test_untrusted_maps_cannot_alias_or_reclassify_source_sections(self) -> None:
         original = self.index().data()
         for mutate in (
             lambda x: x["chapters"][2].update(storage="Sir.1"),

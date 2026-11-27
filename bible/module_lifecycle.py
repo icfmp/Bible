@@ -5,6 +5,8 @@ directory exchange keeps the old complete tree available until the new complete
 tree replaces it. Unsupported filesystems/platforms refuse replacement safely.
 """
 
+from __future__ import annotations
+
 from contextlib import contextmanager
 import ctypes
 import errno
@@ -25,7 +27,7 @@ LEASE_TIMEOUT = 5
 _changing = set()
 
 
-def changing(root, value):
+def changing(root, value) -> None:
     root = Path(root).resolve()
     if value:
         _changing.add(root)
@@ -33,7 +35,7 @@ def changing(root, value):
         _changing.discard(root)
 
 
-def reader_lease(reader, root):
+def reader_lease(reader, root) -> None:
     """One lifetime lease, with no per-verse/scroll work or permanent timer."""
     if Path(root).resolve() in _changing:
         raise ValueError("This resource is being changed. Try again shortly.")
@@ -80,7 +82,7 @@ def mutation_lease(root, cancelled=lambda: False, *, timeout=None):
         os.close(fd)
 
 
-def collect_readers(*_):
+def collect_readers(*_: object) -> None:
     # Headless callers have no GTK owners. GUI callers supply a main-thread
     # quiescence callback, which also collects disposed native-reader cycles.
     import gc
@@ -88,7 +90,7 @@ def collect_readers(*_):
     gc.collect()
 
 
-def sync_directory(path):
+def sync_directory(path) -> None:
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(fd)
@@ -119,7 +121,7 @@ def operation_lock(root):
         os.close(fd)
 
 
-def exchange(left, right):
+def exchange(left, right) -> None:
     """Linux renameat2(RENAME_EXCHANGE): no missing or half-installed interval."""
     library = ctypes.CDLL(None, use_errno=True)
     function = getattr(library, "renameat2", None)
@@ -160,12 +162,12 @@ def tree_manifest(root):
 class ModuleLifecycle:
     """Journal owned module updates/removals and preserve verified rollback/recovery copies."""
 
-    def __init__(self, library):
+    def __init__(self, library) -> None:
         self.library = library
         self.root = library.root
         self.transactions = self.root / ".transactions"
 
-    def owned(self, identifier, *, unchanged=False):
+    def owned(self, identifier, *, unchanged: bool = False):
         """Verify application ownership and allowed payload layout before any managed mutation.
 
         With unchanged=True, require recorded fingerprints to match every current
@@ -255,7 +257,7 @@ class ModuleLifecycle:
                 )
         return resource, manifest
 
-    def journal(self, folder, record):
+    def journal(self, folder, record) -> None:
         atomic_write(folder / "journal.json", json.dumps(record).encode())
         sync_directory(folder)
 
@@ -277,7 +279,9 @@ class ModuleLifecycle:
         self.journal(folder, record)
         return folder, record
 
-    def switch(self, folder, record, active, backup, *, rollback=False, cancelled=lambda: False):
+    def switch(
+        self, folder, record, active, backup, *, rollback: bool = False, cancelled=lambda: False
+    ) -> None:
         """Lease both directory inodes and atomically exchange only matching manifest-verified resource copies.
 
         Commit the journal after exchange. On failure, restore the prior layout
@@ -415,7 +419,7 @@ class ModuleLifecycle:
             record["cleanup_errors"] = self.prune(resource.id, folder)
             return record
 
-    def verify_references(self, old, new, candidate):
+    def verify_references(self, old, new, candidate) -> None:
         """Reject a Bible update that removes existing source addresses; do not synthesize migrations."""
         from .sword_provider import Reader, CommentaryReader
 
@@ -454,7 +458,7 @@ class ModuleLifecycle:
                 return folder, record
         return None
 
-    def ready(self):
+    def ready(self) -> None:
         """An incomplete/unknown ledger cannot authorize another mutation."""
         try:
             records = list(self.records() or ())
@@ -604,7 +608,7 @@ class ModuleLifecycle:
             errors = self.prune(identifier, folder)
             return dict(removed=True, cleanup_error="\n".join((error, *errors)).strip())
 
-    def recover_record(self, folder, record):
+    def recover_record(self, folder, record) -> None:
         """Recover one prepared switch/removal only when both copies match recorded fingerprints."""
         active = self.root / record["resource"]
         backup = folder / "backup"

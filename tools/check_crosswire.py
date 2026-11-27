@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Explicit integration: real French and English downloads, fidelity and offline use."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import hashlib
 import json
@@ -15,7 +17,7 @@ from bible.library import Library, catalogue
 from bible.sword_provider import Reader
 
 
-def check_resource(resource, nt_only=False):
+def check_resource(resource, nt_only: bool = False) -> None:
     with tempfile.TemporaryDirectory() as directory:
         library = Library(directory)
         assert library.installed() == []
@@ -68,7 +70,7 @@ def check_resource(resource, nt_only=False):
         )
 
 
-def main():
+def main() -> int:
     resources = catalogue()
     print(
         f"Catalogue: {len(resources)} Bible resources; "

@@ -1,5 +1,8 @@
 """Direct, mutually exclusive native choices without a popup or hidden options."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 from gi.repository import Gtk, GObject
 
 
@@ -8,10 +11,10 @@ class SegmentedChoice(Gtk.Box):
 
     __gsignals__ = {"changed": (GObject.SignalFlags.RUN_LAST, None, ())}
 
-    def __init__(self, labels, selected=0):
+    def __init__(self, labels: Iterable[str], selected: int = 0) -> None:
         super().__init__(spacing=0)
         self.add_css_class("linked")
-        self.buttons = []
+        self.buttons: list[Gtk.ToggleButton] = []
         self._selected = selected
         self._syncing = False
         for index, label in enumerate(labels):
@@ -23,10 +26,12 @@ class SegmentedChoice(Gtk.Box):
             self.append(button)
             self.buttons.append(button)
 
-    def get_selected(self):
+    def get_selected(self) -> int:
+        """Return the logical choice index, independent of individual toggle signals."""
         return self._selected
 
-    def set_selected(self, index):
+    def set_selected(self, index: int) -> None:
+        """Select an existing choice and emit one logical change only if it differs."""
         if index == self._selected:
             return
         self._syncing = True
@@ -35,7 +40,7 @@ class SegmentedChoice(Gtk.Box):
         self._syncing = False
         self.emit("changed")
 
-    def _toggled(self, button, index):
+    def _toggled(self, button: Gtk.ToggleButton, index: int) -> None:
         if self._syncing or not button.get_active():
             return
         if self._selected != index:

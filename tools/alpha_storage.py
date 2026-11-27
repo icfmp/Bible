@@ -4,6 +4,8 @@ All work is staged. Persist/deploy is deliberately outside this module.
 The data branch's ordinary Git history remains the recovery copy.
 """
 
+from __future__ import annotations
+
 import argparse
 import base64
 import hashlib
@@ -68,7 +70,7 @@ def release():
     return api(f"repos/{REPOSITORY}/releases/tags/{SOURCE_TAG}")
 
 
-def verify_asset(asset, name, expected_sha, expected_size, *, download=True):
+def verify_asset(asset, name, expected_sha, expected_size, *, download: bool = True):
     """Check source-archive publication identity, size and digest, optionally verifying downloaded bytes."""
     assert asset["name"] == name and asset["state"] == "uploaded"
     assert asset["size"] == expected_size
@@ -450,7 +452,7 @@ def verify_clients(site, base_url):
     return result
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "action",

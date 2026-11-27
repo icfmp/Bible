@@ -4,6 +4,8 @@ Run once with --install, then under Xvfb with --offline. Downloads remain in
 the caller's temporary library; no scripture is committed to the repository.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 from pathlib import Path
@@ -14,7 +16,7 @@ from bible.reference_resolution import resolve
 from bible.sword_provider import Reader, CommentaryReader
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("directory")
     parser.add_argument("--install", action="store_true")

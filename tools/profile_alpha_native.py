@@ -1,6 +1,11 @@
 """Native-allocation tracing wrapper; a diagnostic dependency, not app code."""
 
 import os
+import sys
+
+if sys.platform == "win32":
+    raise SystemExit("Memray native diagnostics require Linux or macOS")
+
 import memray
 from tools.profile_alpha_performance import main
 

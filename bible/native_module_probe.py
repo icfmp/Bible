@@ -1,10 +1,13 @@
 """Bound native tool validation; a malformed archive cannot terminate GTK."""
 
+from __future__ import annotations
+
+from os import PathLike
 import subprocess
 import sys
 
 
-def verify(root, name):
+def verify(root: str | PathLike[str], name: str) -> None:
     """Verify a staged native study module in a bounded subprocess so malformed input cannot terminate GTK."""
     try:
         result = subprocess.run(
@@ -23,15 +26,16 @@ def verify(root, name):
         )
 
 
-def main():
+def main() -> None:
     # Failed third-party native decoding should not leave large core files.
     """Read and probe the supplied staged dictionary/general module inside the isolated verification process."""
-    try:
-        import resource
+    if sys.platform != "win32":
+        try:
+            import resource
 
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    except ImportError:
-        pass
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        except ImportError:
+            pass
     from .sword_provider import DictionaryReader, GeneralBookReader
     from .library import config
     from pathlib import Path

@@ -1,5 +1,7 @@
 """Annotation v2 identity, migration, import conflicts and write isolation."""
 
+from __future__ import annotations
+
 from dataclasses import asdict
 import json
 import multiprocessing
@@ -22,7 +24,7 @@ def legacy(color="yellow"):
     )
 
 
-def hold_lock(path, connection):
+def hold_lock(path, connection) -> None:
     store = HighlightStore(path)
     with store.locked():
         connection.send("locked")
@@ -30,7 +32,7 @@ def hold_lock(path, connection):
 
 
 class CompatibilityTests(unittest.TestCase):
-    def test_migration_restart_recolor_delete_and_clean_restore_preserve_contract(self):
+    def test_migration_restart_recolor_delete_and_clean_restore_preserve_contract(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             path = root / "highlights.json"
@@ -68,7 +70,7 @@ class CompatibilityTests(unittest.TestCase):
                 len(list((root / "backups").glob("highlights-before-schema-2-*.json"))), 1
             )
 
-    def test_failed_or_interrupted_migration_is_repeatable_without_unsafe_overwrite(self):
+    def test_failed_or_interrupted_migration_is_repeatable_without_unsafe_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             path = root / "highlights.json"
@@ -89,7 +91,9 @@ class CompatibilityTests(unittest.TestCase):
             self.assertTrue(HighlightStore(path).error)
             self.assertEqual(path.read_bytes(), original)
 
-    def test_legacy_and_current_conflicts_are_retained_and_repeated_imports_idempotent(self):
+    def test_legacy_and_current_conflicts_are_retained_and_repeated_imports_idempotent(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             store = HighlightStore(root / "highlights.json")
@@ -118,7 +122,7 @@ class CompatibilityTests(unittest.TestCase):
                 self.assertEqual(merged, original)
                 self.assertEqual(list(rejected.values()), [incoming])
 
-    def test_stale_writer_unknown_metadata_and_duplicate_ids_cannot_erase_data(self):
+    def test_stale_writer_unknown_metadata_and_duplicate_ids_cannot_erase_data(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "highlights.json"
             a = HighlightStore(path)
@@ -144,7 +148,7 @@ class CompatibilityTests(unittest.TestCase):
                 self.assertEqual(path.read_bytes(), saved)
 
     @unittest.skipIf(os.name == "nt", "POSIX process-lock integration")
-    def test_another_process_lock_refuses_autosave_without_waiting_or_replacing(self):
+    def test_another_process_lock_refuses_autosave_without_waiting_or_replacing(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "highlights.json"
             store = HighlightStore(path)
@@ -168,7 +172,7 @@ class CompatibilityTests(unittest.TestCase):
                 parent.close()
                 child.close()
 
-    def test_combined_versions_and_pending_legacy_recovery_preserve_notes_and_ids(self):
+    def test_combined_versions_and_pending_legacy_recovery_preserve_notes_and_ids(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes = NoteStore(root / "notes.sqlite3")
@@ -217,7 +221,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertIsNone(next(iter(reopened.entries.values()))["created"])
             self.assertEqual(HighlightStore(high.path).entries, reopened.entries)
 
-    def test_process_interruption_after_highlight_replace_recovers_original_stores(self):
+    def test_process_interruption_after_highlight_replace_recovers_original_stores(self) -> None:
         class SimulatedPowerLoss(BaseException):
             pass
 
@@ -238,7 +242,7 @@ class CompatibilityTests(unittest.TestCase):
             path.write_text(json.dumps(value))
             actual = personal_backup.write_marks
 
-            def power_loss(*args):
+            def power_loss(*args) -> None:
                 actual(*args)
                 raise SimulatedPowerLoss()
 
@@ -253,7 +257,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertEqual(notes.get(note.id), note)
             self.assertFalse(high.pending.exists())
 
-    def test_valid_large_legacy_store_has_room_for_new_identity_fields(self):
+    def test_valid_large_legacy_store_has_room_for_new_identity_fields(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "highlights.json"
             value = dict(
@@ -277,7 +281,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertGreater(path.stat().st_size, 8 * 1024 * 1024)
             self.assertEqual(payload(path), store.entries)
 
-    def test_note_autosave_rechecks_recovery_after_obtaining_sqlite_write_lock(self):
+    def test_note_autosave_rechecks_recovery_after_obtaining_sqlite_write_lock(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes = NoteStore(root / "notes.sqlite3")
@@ -304,7 +308,7 @@ class CompatibilityTests(unittest.TestCase):
             ):
                 calls = []
 
-                def restore_starts_after_early_check():
+                def restore_starts_after_early_check() -> None:
                     actual()
                     calls.append(1)
                     if len(calls) == 1:
@@ -321,7 +325,7 @@ class CompatibilityTests(unittest.TestCase):
                 marker.unlink()
             self.assertFalse((root / "blocked-export.json").exists())
 
-    def test_unknown_note_only_backup_fields_are_preserved_without_partial_import(self):
+    def test_unknown_note_only_backup_fields_are_preserved_without_partial_import(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes = NoteStore(root / "notes.sqlite3")
@@ -342,7 +346,7 @@ class CompatibilityTests(unittest.TestCase):
                 self.assertEqual(notes.get(note.id), note)
                 self.assertEqual(path.read_bytes(), before)
 
-    def test_expanded_import_capacity_is_validated_before_restore_mutation(self):
+    def test_expanded_import_capacity_is_validated_before_restore_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             notes = NoteStore(root / "notes.sqlite3")
@@ -361,7 +365,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertFalse(high.path.exists())
             self.assertFalse((root / "backups").exists())
 
-    def test_legacy_identity_does_not_hide_divergent_v2_provenance_or_revision(self):
+    def test_legacy_identity_does_not_hide_divergent_v2_provenance_or_revision(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             store = HighlightStore(root / "highlights.json")
@@ -378,7 +382,7 @@ class CompatibilityTests(unittest.TestCase):
                 self.assertEqual(merged, store.entries)
                 self.assertEqual(conflicts, {key: altered})
 
-    def test_wall_clock_correction_cannot_prevent_recoloring_or_reassign_identity(self):
+    def test_wall_clock_correction_cannot_prevent_recoloring_or_reassign_identity(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             store = HighlightStore(Path(d) / "highlights.json")
             store.set("KJV", ["Gen.1.1"], "yellow", "Absent")
@@ -391,7 +395,7 @@ class CompatibilityTests(unittest.TestCase):
             self.assertEqual(edited["modified"], "2000-01-01T00:00:00+00:00")
             self.assertEqual(edited["revision"], original["revision"] + 1)
 
-    def test_duplicate_json_fields_cannot_silently_discard_annotation_values(self):
+    def test_duplicate_json_fields_cannot_silently_discard_annotation_values(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             path = root / "highlights.json"

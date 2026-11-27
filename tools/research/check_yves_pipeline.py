@@ -4,6 +4,8 @@ Never downloads Scripture or installs into an existing profile. This is tooling
 validation, not the real-edition stage A required by #26 or a product provider.
 """
 
+from __future__ import annotations
+
 import argparse
 from copy import deepcopy
 import hashlib
@@ -53,7 +55,7 @@ def body(raw):
     return normalized(text(tree)), tree
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path, help="NEW disposable private directory")
     parser.add_argument("--compiler", type=Path, default=Path("/app/bin/osis2mod"))

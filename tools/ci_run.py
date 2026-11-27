@@ -6,15 +6,17 @@ import subprocess
 import sys
 
 
-def main():
+def main() -> int:
     """Stream a validation command and expose bounded failure evidence as an escaped Actions annotation."""
     if len(sys.argv) < 2:
         raise SystemExit("Usage: ci_run.py command [arguments...]")
-    tail = deque(maxlen=20)
-    errors = []
+    tail: deque[str] = deque(maxlen=20)
+    errors: list[str] = []
     with subprocess.Popen(
         sys.argv[1:], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     ) as process:
+        # PIPE guarantees a stream; keep the invariant explicit for static callers.
+        assert process.stdout is not None
         for line in process.stdout:
             print(line, end="", flush=True)
             tail.append(line.rstrip())

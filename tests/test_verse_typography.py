@@ -1,5 +1,7 @@
 """Verse-number typography, source offsets and safe visible selection boundaries."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK/Pango")
 class VerseTypographyTests(unittest.TestCase):
-    def test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy(self):
+    def test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy(self) -> None:
         from bible.ui import Gtk
         from bible.bible_render import render
         from bible.preferences import ReadingPreferences
@@ -51,7 +53,7 @@ class VerseTypographyTests(unittest.TestCase):
                 window.destroy()
                 spin()
 
-    def test_marker_and_first_word_stay_on_one_line_and_page(self):
+    def test_marker_and_first_word_stay_on_one_line_and_page(self) -> None:
         from bible.ui import Application, Window, Library
         from bible.paged_sources import BiblePages
         from bible.pagination import paginate
@@ -101,7 +103,7 @@ class VerseTypographyTests(unittest.TestCase):
                         values = []
                         tab.text.emit("copy-clipboard")
 
-                        def copied(clipboard, result):
+                        def copied(clipboard, result) -> None:
                             values.append(clipboard.read_text_finish(result))
 
                         tab.text.get_clipboard().read_text_async(None, copied)

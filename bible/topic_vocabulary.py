@@ -1,5 +1,14 @@
 """Reviewed, deliberately partial FR/EN topic names; identifiers are source facts."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+from os import PathLike
+from typing import TYPE_CHECKING, Literal, TypeGuard, TypedDict, cast
+
+if TYPE_CHECKING:
+    from .study_catalogue import ResourceRevision
+
 import locale
 import json
 import hashlib
@@ -13,7 +22,32 @@ BUNDLED = Path(__file__).with_name("study_data") / "topic-vocabulary.json"
 MAX_BYTES = 1024 * 1024
 
 
-def parse(data):
+type VocabularyEntry = tuple[str, str, str] | tuple[str, str, str, str]
+
+
+class _Names(TypedDict):
+    fr: str
+    en: str
+
+
+class _Entry(TypedDict):
+    id: str
+    names: _Names
+    synonyms: list[str]
+
+
+class VocabularyData(TypedDict):
+    """Validated published labels and attribution; topic relationships are separate."""
+
+    schema: Literal[1]
+    source_url: str
+    license: Literal["GPL-2.0-only"]
+    attribution: str
+    revision: str
+    entries: list[_Entry]
+
+
+def parse(data: bytes) -> tuple[VocabularyData, tuple[VocabularyEntry, ...]]:
     """Validate the bounded existing vocabulary schema, attribution, unique topic IDs and supplied FR/EN names."""
     if len(data) > MAX_BYTES:
         raise ValueError("Topic vocabulary is too large")
@@ -39,7 +73,7 @@ def parse(data):
     entries = []
     seen = set()
 
-    def text(item, empty=False):
+    def text(item: object, empty: bool = False) -> TypeGuard[str]:
         return (
             isinstance(item, str)
             and (empty or bool(item.strip()))
@@ -72,16 +106,17 @@ def parse(data):
             raise ValueError("Invalid topic names or synonyms")
         seen.add(identifier)
         entries.append((identifier, names["fr"], "; ".join(synonyms), names["en"]))
-    return value, tuple(entries)
+    # The complete per-entry validation above proves this existing JSON schema.
+    return cast("VocabularyData", value), tuple(entries)
 
 
 class TopicVocabulary:
     """Read and independently update existing topic labels without changing source topic/reference relationships."""
 
-    def __init__(self, root):
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.path = Path(root) / "topic-vocabulary.json"
 
-    def read(self):
+    def read(self) -> tuple[VocabularyData, tuple[VocabularyEntry, ...], str]:
         """Return checked saved labels and their digest, falling back to bundled labels when unusable."""
         try:
             if self.path.is_symlink() or self.path.stat().st_size > MAX_BYTES:
@@ -93,10 +128,11 @@ class TopicVocabulary:
             value, entries = parse(data)
         return value, entries, hashlib.sha256(data).hexdigest()
 
-    def current(self, revision):
+    def current(self, revision: ResourceRevision) -> bool:
+        """Compare the actual saved-or-bundled bytes with the advertised digest."""
         return self.read()[2] == revision.sha256
 
-    def install_file(self, path, revision):
+    def install_file(self, path: str | PathLike[str], revision: ResourceRevision) -> VocabularyData:
         """Require a matching published digest and internal revision before atomically replacing saved labels."""
         from .study_catalogue import atomic_write
 
@@ -114,7 +150,7 @@ class TopicVocabulary:
 VOCABULARY = parse(BUNDLED.read_bytes())[1]
 
 
-def normalized(value):
+def normalized(value: str) -> str:
     """Fold accents/case and punctuation into space-separated search words."""
     return " ".join(
         re.findall(
@@ -129,7 +165,7 @@ def normalized(value):
     )
 
 
-def title(entry, language=None):
+def title(entry: VocabularyEntry, language: str | None = None) -> str:
     """Use a supplied French name when available, otherwise the recorded English name or source identifier."""
     base = (language or LANGUAGE).split(":")[0].replace("_", "-").casefold().split("-")[0]
     return (
@@ -141,7 +177,13 @@ def title(entry, language=None):
     )
 
 
-def suggestions(query, language=None, limit=50, *, entries=None):
+def suggestions(
+    query: str,
+    language: str | None = None,
+    limit: int = 50,
+    *,
+    entries: Iterable[VocabularyEntry] | None = None,
+) -> list[VocabularyEntry]:
     """Rank actual vocabulary prefix matches, preferring exact terms without generating new topic names."""
     words = normalized(query).split()
     ranked = []

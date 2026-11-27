@@ -1,5 +1,7 @@
 """Real-resource study/navigation smoke check; disposable profiles only."""
 
+from __future__ import annotations
+
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -9,7 +11,7 @@ from pathlib import Path
 import time
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -54,7 +56,7 @@ def main():
     if args.require_packaged:
         assert inspect.getfile(Window).startswith("/app/")
 
-    def wait(predicate, timeout=90):
+    def wait(predicate, timeout=90) -> None:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             GLib.MainContext.default().iteration(False)

@@ -1,5 +1,7 @@
 """Native editorial views use synthetic text and preserve personal annotations."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,13 +12,15 @@ from unittest.mock import patch
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class EditorialUITests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
 
-    def test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive(self):
+    def test_language_catalogue_row_loads_actual_conditions_before_permission_or_archive(
+        self,
+    ) -> None:
         import threading
         from bible.ui import Window, Library, Adw, Gtk
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
@@ -108,7 +112,7 @@ class EditorialUITests(unittest.TestCase):
                 close_test_dialogs()
                 spin()
 
-    def test_library_download_requires_acknowledgement_and_keeps_failure_retryable(self):
+    def test_library_download_requires_acknowledgement_and_keeps_failure_retryable(self) -> None:
         from bible.ui import Window, Library, Adw, Gtk
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from tests.test_youversion import edition_metadata
@@ -156,7 +160,7 @@ class EditorialUITests(unittest.TestCase):
                 close_test_dialogs()
                 spin()
 
-    def test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive(self):
+    def test_notes_are_lazy_chapter_scoped_readonly_and_personal_notes_survive(self) -> None:
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
         import Sword as Sword
@@ -211,7 +215,7 @@ class EditorialUITests(unittest.TestCase):
                 tab.select_verse("John.1.2")
                 spin()
                 self.assertTrue(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
-                tab.show("John.2.1")
+                tab.show_reference("John.2.1")
                 spin(lambda: any("SECOND EDITORIAL" in b.get_tooltip_text() for b in markers()))
                 self.assertFalse(any("EDITORIAL ONLY" in b.get_tooltip_text() for b in markers()))
                 self.assertNotIn("EDITORIAL ONLY", tab.text.get_buffer().props.text)
@@ -222,7 +226,7 @@ class EditorialUITests(unittest.TestCase):
                 close_test_dialogs()
                 spin()
 
-    def test_introduction_preserves_inline_words_and_leaves_passage_unchanged(self):
+    def test_introduction_preserves_inline_words_and_leaves_passage_unchanged(self) -> None:
         from bible.ui import Window, Library
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from bible.editorial_view import show_introduction, introduction_text
@@ -291,7 +295,7 @@ class EditorialUITests(unittest.TestCase):
                 close_test_dialogs()
                 spin()
 
-    def test_rich_introduction_normalizes_nested_blocks_without_losing_source_styles(self):
+    def test_rich_introduction_normalizes_nested_blocks_without_losing_source_styles(self) -> None:
         from bible.editorial_view import fill_introduction, introduction_text, text_view
         from bible.youversion_content import parse
 

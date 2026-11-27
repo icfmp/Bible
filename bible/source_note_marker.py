@@ -1,11 +1,27 @@
 """Native, keyboard-accessible source-note actions, separate from personal data."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .inline_markers import InlineMarkers
+    from .sword_provider import Reader
+    from .youversion_content import EditorialNote
+
 from gi.repository import Gtk, Pango, Gdk, GLib
 from .i18n import tr
 from .reference_preview import passage_title
 
 
-def source_note_marker(markers, view, reader, reference, note, number):
+def source_note_marker(
+    markers: InlineMarkers,
+    view: Gtk.TextView,
+    reader: Reader,
+    reference: str,
+    note: EditorialNote,
+    number: int,
+) -> Gtk.Button:
     """Create a keyboard-accessible source-note marker with a native tooltip and anchored actual-note popover.
 
     Resolve ownership on activation, dismiss on unmap and detach closed popovers
@@ -22,14 +38,14 @@ def source_note_marker(markers, view, reader, reference, note, number):
     button.set_cursor_from_name("pointer")
     title = tr("Translation notes") + " · " + passage_title(reference, system=reader.versification)
     button.update_property([Gtk.AccessibleProperty.LABEL], [title + " · " + caption])
-    button._marker_reference = reference
-    button._marker_kind = "translation-note"
+    setattr(button, "_marker_reference", reference)
+    setattr(button, "_marker_kind", "translation-note")
     # Let GTK own tooltip text, wrapping and lifetime; replacing a custom
     # tooltip widget during repeated queries can invalidate its native surface.
     button.set_tooltip_text(note.text if len(note.text) <= 220 else note.text[:220] + "…")
-    button._source_note_popover = None
+    setattr(button, "_source_note_popover", None)
 
-    def create(*_):
+    def create(*_: object) -> None:
         # The first chapter can render before the tab is bound to its window.
         # Resolve the action owner when activated, as other marker kinds do.
         owner = markers.owner
@@ -40,7 +56,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
             or owner.active_tab is not markers.tab
         ):
             return
-        previous = button._source_note_popover
+        previous = cast("Gtk.Popover | None", getattr(button, "_source_note_popover"))
         if previous and previous.get_visible():
             previous.popdown()
             return
@@ -58,7 +74,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
         rect.width = round(bounds.size.width)
         rect.height = round(bounds.size.height)
         pop.set_pointing_to(rect)
-        button._source_note_popover = pop
+        setattr(button, "_source_note_popover", pop)
         box = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=8,
@@ -97,7 +113,7 @@ def source_note_marker(markers, view, reader, reference, note, number):
         scroll.set_child(box)
         pop.set_child(scroll)
 
-        def visibility(*_):
+        def visibility(*_: object) -> None:
             if pop.get_visible():
                 scroll.set_min_content_width(max(160, min(340, owner.get_width() - 64)))
                 scroll.set_size_request(max(160, min(340, owner.get_width() - 64)), -1)
@@ -112,20 +128,25 @@ def source_note_marker(markers, view, reader, reference, note, number):
 
         pop.connect("notify::visible", visibility)
 
-        def closed(*_):
+        def closed(*_: object) -> None:
             if pop in owner._reading_popovers:
                 owner._reading_popovers.remove(pop)
-            if button._source_note_popover is pop:
-                button._source_note_popover = None
-            GLib.idle_add(lambda: pop.unparent() or False)
+            if getattr(button, "_source_note_popover") is pop:
+                setattr(button, "_source_note_popover", None)
+
+            def detach() -> bool:
+                pop.unparent()
+                return False
+
+            GLib.idle_add(detach)
 
         pop.connect("closed", closed)
         pop.popup()
 
     button.connect("clicked", create)
 
-    def hidden(*_):
-        pop = button._source_note_popover
+    def hidden(*_: object) -> None:
+        pop = cast("Gtk.Popover | None", getattr(button, "_source_note_popover"))
         if pop:
             pop.popdown()
 

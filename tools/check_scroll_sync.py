@@ -4,6 +4,8 @@ Synthetic SWORD fixtures; run on a dedicated dbus-run-session / Xvfb display.
 A physical touchpad, Wayland and assistive technology still need manual checks.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 from bible.ui import Application, Window, Library
@@ -12,7 +14,7 @@ from tests.test_reading_sync import linked_commentary
 from tools.check_alpha_ui import X11Input
 
 
-def drag_scrollbar(native, scroll, observed):
+def drag_scrollbar(native, scroll, observed) -> None:
     bar = scroll.get_vscrollbar()
     slider = bar.get_first_child()
     first, last = slider.get_slider_range()
@@ -25,7 +27,7 @@ def drag_scrollbar(native, scroll, observed):
     )
 
 
-def main():
+def main() -> None:
     app = Application()
     app.register()
     native = X11Input()
@@ -64,7 +66,7 @@ def main():
             assert window.get_focus() is focus, "Follower changed keyboard focus"
             followed = []
 
-            def bible_moved():
+            def bible_moved() -> None:
                 reference = tab.visible_reference()
                 spin(lambda: tab.state.reference == reference and not study._positioning)
                 followed.append(reference)
@@ -83,7 +85,7 @@ def main():
             assert window.reading_sync.driver == "commentary"
             sections = []
 
-            def commentary_moved():
+            def commentary_moved() -> None:
                 def aligned():
                     if study._positioning or tab._restoring_scroll:
                         return False

@@ -1,5 +1,7 @@
 """Keep resource direction independent of French/English native controls."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,14 +11,14 @@ from tests.test_commentary import commentary_fixture
 from bible.sword_provider import Reader
 
 
-def set_rtl(root):
+def set_rtl(root) -> None:
     config = next((root / "mods.d").glob("*.conf"))
     with config.open("a") as output:
         output.write("Direction=RtoL\n")
 
 
 class DirectionTests(unittest.TestCase):
-    def test_native_sword_direction_binding(self):
+    def test_native_sword_direction_binding(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = installed_fixture(directory)
             self.assertFalse(Reader(root, "Test").rtl)
@@ -27,13 +29,13 @@ class DirectionTests(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK under Xvfb")
 class DirectionUITests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
 
-    def test_bible_comparison_and_commentary_restore_direction_per_resource(self):
+    def test_bible_comparison_and_commentary_restore_direction_per_resource(self) -> None:
         from bible.ui import Window, Library, Gtk
 
         with tempfile.TemporaryDirectory() as directory:

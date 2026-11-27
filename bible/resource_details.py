@@ -1,6 +1,13 @@
 """Plain, noninteractive presentation of untrusted provider metadata."""
 
+from __future__ import annotations
+
+from os import PathLike
+from typing import TYPE_CHECKING
 from html.parser import HTMLParser
+
+if TYPE_CHECKING:
+    from .library import Resource
 from urllib.parse import urlsplit
 import re
 from .i18n import tr
@@ -9,27 +16,27 @@ from .i18n import tr
 class PlainMetadata(HTMLParser):
     """Extract inert text from untrusted provider markup without creating interactive HTML."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.parts = []
+        self.parts: list[str] = []
         self.hidden = 0
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: object) -> None:
         if tag in ("script", "style"):
             self.hidden += 1
         if tag in ("br", "p", "div"):
             self.parts.append("\n")
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         if tag in ("script", "style"):
             self.hidden = max(0, self.hidden - 1)
 
-    def handle_data(self, data):
+    def handle_data(self, data: str) -> None:
         if not self.hidden:
             self.parts.append(data)
 
 
-def plain(value):
+def plain(value: str) -> str:
     """Strip provider markup and recognized presentation escapes for plain metadata display."""
     parser = PlainMetadata()
     parser.feed(value)
@@ -41,7 +48,7 @@ def plain(value):
     return re.sub(r"\\+(?:qc|b0?|i0?)\b\s*", "", value).strip()
 
 
-def linkable_url(value):
+def linkable_url(value: object) -> str:
     """Expose only explicit, valid HTTP(S) provider URLs as clickable links."""
     if not isinstance(value, str) or len(value) > 2048:
         return ""
@@ -62,7 +69,7 @@ def linkable_url(value):
     )
 
 
-def first_link(value):
+def first_link(value: object) -> str:
     """Find an explicitly supplied license link; never synthesize one."""
     if not isinstance(value, str):
         return ""
@@ -73,7 +80,7 @@ def first_link(value):
     return ""
 
 
-def visible_conditions(resource):
+def visible_conditions(resource: Resource) -> str:
     """Move only the parser's explicit TextSource line to its own link row.
 
     Keep the complete original conditions in the model/technical disclosure.
@@ -91,7 +98,9 @@ def visible_conditions(resource):
     return plain(resource.conditions)
 
 
-def conditions_presentation(resource, root):
+def conditions_presentation(
+    resource: Resource, root: str | PathLike[str]
+) -> tuple[str, tuple[tuple[str, str], ...]]:
     """Human labels only for fields verified against the actual SWORD conf.
 
     Mixed, conflicting or unknown source notices remain literal text. Neither
@@ -137,7 +146,7 @@ def conditions_presentation(resource, root):
 
     # Deduplicate only exact, verified short public-domain declarations.
     # Distinct authored conditions (including complete sentences) stay intact.
-    def public_domain(value):
+    def public_domain(value: str) -> bool:
         return bool(re.fullmatch(r"public[ _-]+domain", value.strip(), re.I))
 
     public_domain_seen = public_domain(resource.license)
@@ -174,7 +183,7 @@ def conditions_presentation(resource, root):
 from .languages import language_name
 
 
-def details(resource):
+def details(resource: Resource) -> str:
     """Present actual source metadata, availability and alignment limits without implying usage permission."""
     import json
 

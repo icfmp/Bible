@@ -1,5 +1,7 @@
 """Existing-provider consumption: metadata identity, native staging and cache safety."""
 
+from __future__ import annotations
+
 import hashlib
 import io
 import json
@@ -56,7 +58,9 @@ def sword_metadata(conf):
 
 
 class CuratedCatalogueTests(unittest.TestCase):
-    def test_malformed_saved_package_identity_is_not_treated_as_a_valid_offline_catalogue(self):
+    def test_malformed_saved_package_identity_is_not_treated_as_a_valid_offline_catalogue(
+        self,
+    ) -> None:
         from dataclasses import replace
 
         item = replace(
@@ -71,17 +75,17 @@ class CuratedCatalogueTests(unittest.TestCase):
             self.assertIsNone(cache.read(BIBLE_RESOURCES))
             self.assertEqual(path.read_bytes(), before)
 
-    def test_optional_provider_is_not_added_to_existing_automatic_defaults(self):
+    def test_optional_provider_is_not_added_to_existing_automatic_defaults(self) -> None:
         self.assertNotIn(BIBLE_RESOURCES, DEFAULT_PROVIDERS)
         with patch("bible.library.catalogue", return_value=[]) as fetch:
             catalogues()
         self.assertNotIn(BIBLE_RESOURCES, [call.args[0] for call in fetch.call_args_list])
 
-    def test_json_and_sword_metadata_must_agree_without_inventing_missing_fields(self):
+    def test_json_and_sword_metadata_must_agree_without_inventing_missing_fields(self) -> None:
         conf = CONF + b"Version=1.0\n"
         calls = []
 
-        def fetch(url, out, **kwargs):
+        def fetch(url, out, **kwargs: object) -> None:
             calls.append(url)
             out.write(body([record()]) if url.endswith(".json") else sword_metadata(conf))
 
@@ -107,7 +111,7 @@ class CuratedCatalogueTests(unittest.TestCase):
             self.assertEqual(catalogue(), [])
             self.assertEqual(fetch.call_count, 1)
 
-    def test_duplicates_rebranding_and_bad_package_identity_are_rejected(self):
+    def test_duplicates_rebranding_and_bad_package_identity_are_rejected(self) -> None:
         for records in (
             [record(), record()],
             [record(), dict(record(), id="renamed", sword_id="Other")],
@@ -125,7 +129,7 @@ class CuratedCatalogueTests(unittest.TestCase):
             with self.subTest(records=records), self.assertRaises(ValueError):
                 entries(body(records))
 
-    def test_dictionary_without_verse_system_does_not_block_supported_editions(self):
+    def test_dictionary_without_verse_system_does_not_block_supported_editions(self) -> None:
         bible = record()
         dictionary = dict(
             record(),
@@ -141,7 +145,7 @@ class CuratedCatalogueTests(unittest.TestCase):
         self.assertEqual(entries(body([dictionary, bible])), [bible])
         calls = []
 
-        def fetch(url, out, **kwargs):
+        def fetch(url, out, **kwargs: object) -> None:
             calls.append(url)
             out.write(
                 body([dictionary, bible])
@@ -161,7 +165,7 @@ class CuratedCatalogueTests(unittest.TestCase):
             self.assertEqual(catalogue(), [])
             self.assertEqual(fetch.call_count, 1)
 
-    def test_ignored_dictionary_still_requires_safe_identity_and_integrity(self):
+    def test_ignored_dictionary_still_requires_safe_identity_and_integrity(self) -> None:
         dictionary = dict(record(), category="dictionary", versification=None)
         for invalid in (
             dict(dictionary, canonical_edition_id=""),
@@ -190,7 +194,7 @@ class CuratedCatalogueTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unsupported curated resource type"):
             package_record(resource)
 
-    def test_hashed_initial_install_reads_native_text_and_preserves_unrelated_files(self):
+    def test_hashed_initial_install_reads_native_text_and_preserves_unrelated_files(self) -> None:
         from dataclasses import replace
         from bible.sword_provider import Reader
 
@@ -249,7 +253,7 @@ class CuratedCatalogueTests(unittest.TestCase):
                 cancelled.install(resource, cancelled=lambda: True)
             self.assertEqual(cancelled.installed(), [])
 
-    def test_bad_refresh_preserves_cached_edition_and_conditional_304(self):
+    def test_bad_refresh_preserves_cached_edition_and_conditional_304(self) -> None:
         from dataclasses import replace
 
         resource = replace(
@@ -272,7 +276,7 @@ class CuratedCatalogueTests(unittest.TestCase):
             self.assertIn(BIBLE_RESOURCES.name, result.errors)
             self.assertEqual(path.read_bytes(), old)
 
-            def unchanged(url, out, **kwargs):
+            def unchanged(url, out: object, **kwargs) -> None:
                 self.assertEqual(kwargs["headers"]["If-None-Match"], '"verified"')
                 raise HTTPError(url, 304, "Not modified", {}, None)
 

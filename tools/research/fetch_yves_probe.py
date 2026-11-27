@@ -5,6 +5,8 @@ Provider permission is not inferred from HTTP access. Raw material is private;
 only counts/hashes/requirements may be published by the validation workflow.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -34,7 +36,7 @@ def fetch(url, limit):
         return data
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("output", type=Path)
     p.add_argument("--version", type=int, default=21)

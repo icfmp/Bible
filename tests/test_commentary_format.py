@@ -1,11 +1,13 @@
 """Commentary source structure, verse ranges and safe presentation markup."""
 
+from __future__ import annotations
+
 import unittest
 from bible.commentary_format import format_entry
 
 
 class CommentaryFormatTests(unittest.TestCase):
-    def test_inline_padding_is_source_verified_without_normalizing_authored_spaces(self):
+    def test_inline_padding_is_source_verified_without_normalizing_authored_spaces(self) -> None:
         cases = [
             (
                 'Spirit <hi type="bold">while they are engaged in ordinary work</hi>.',
@@ -49,7 +51,7 @@ class CommentaryFormatTests(unittest.TestCase):
             [("italic", "c"), ("bold", "bc"), ("superscript", "2"), ("subscript", "n")],
         )
 
-    def test_realistic_osis_compacted_title_paragraphs_and_bold_markers(self):
+    def test_realistic_osis_compacted_title_paragraphs_and_bold_markers(self) -> None:
         # SWORD OSISPlain can prepend the source heading and concatenate
         # adjacent paragraph text without even one separating space.
         title = "Nimrod, a mighty hunter (verses 8–14)"
@@ -88,18 +90,18 @@ class CommentaryFormatTests(unittest.TestCase):
             ),
         )
 
-    def test_osis_title_alignment_failure_returns_original_native_body(self):
+    def test_osis_title_alignment_failure_returns_original_native_body(self) -> None:
         raw = "<title>Source heading</title><p>Actual body.</p>"
         native = "Source headingDifferent filtered content * literal."
         self.assertEqual(format_entry(raw, native, "OSIS"), (native, (), ()))
 
-    def test_no_invented_break_without_original_osis_paragraph_element(self):
+    def test_no_invented_break_without_original_osis_paragraph_element(self) -> None:
         raw = "First sentence.Second sentence."
         plain = "First sentence.Second sentence."
         text, styles, titles = format_entry(raw, plain, "OSIS")
         self.assertEqual((text, styles, titles), (plain, (), ()))
 
-    def test_native_numeric_entity_filter_keeps_provenance_and_literal_sequences(self):
+    def test_native_numeric_entity_filter_keeps_provenance_and_literal_sequences(self) -> None:
         raw = '<title>Source title</title><hi type="italic">A&amp;B; named &amp;#224; numeric &#38;#224; proper &#224;.</hi>'
         native = "Source title * A&B; named &#224; numeric #224; proper . *"
         text, styles, titles = format_entry(raw, native, "OSIS")
@@ -126,7 +128,7 @@ class CommentaryFormatTests(unittest.TestCase):
         changed = native.replace("Source title", "Another title")
         self.assertEqual(format_entry(raw, changed, "OSIS"), (changed, (), ()))
 
-    def test_real_mhc_title_kept_by_native_filter_does_not_force_raw_stars_fallback(self):
+    def test_real_mhc_title_kept_by_native_filter_does_not_force_raw_stars_fallback(self) -> None:
         # Bible Resources MHC 0.1.0, derived from public-domain CrossWire 2.2,
         # Genesis 1:9–13: bounded literal source/native excerpt, not test prose
         # inserted into a resource. Its heading filter retains the OSIS title.
@@ -160,7 +162,7 @@ class CommentaryFormatTests(unittest.TestCase):
         changed = native.replace("waters", "different words")
         self.assertEqual(format_entry(raw, changed, "OSIS"), (changed, (), ()))
 
-    def test_nested_native_markers_keep_literal_stars_and_semantic_emphasis(self):
+    def test_nested_native_markers_keep_literal_stars_and_semantic_emphasis(self) -> None:
         raw = '<hi type="italic"><hi type="small-caps">choikos</hi></hi>—<hi type="italic">dusty,</hi> *literal*'
         plain = "* choikos * * *—* dusty, * *literal*"
         text, styles, _ = format_entry(raw, plain, "OSIS")
@@ -176,7 +178,7 @@ class CommentaryFormatTests(unittest.TestCase):
         ]:
             self.assertEqual(format_entry(raw, unsafe, "OSIS"), (unsafe, (), ()))
 
-    def test_native_filter_retaining_source_preface_keeps_literal_stars(self):
+    def test_native_filter_retaining_source_preface_keeps_literal_stars(self) -> None:
         raw = (
             '<div subType="x-preverse" sID="pv1"/><title>PREFACE</title>'
             '<p>Source <hi type="italic">foreword</hi> with *literal*.</p>'
@@ -196,7 +198,7 @@ class CommentaryFormatTests(unittest.TestCase):
         legacy, _, _ = format_entry(raw, plain, "OSIS", preserve_offsets=True)
         self.assertEqual(len(legacy), len(plain))
 
-    def test_bible_marker_projection_keeps_native_offsets_before_structural_segments(self):
+    def test_bible_marker_projection_keeps_native_offsets_before_structural_segments(self) -> None:
         from bible.structured_text import extract
 
         raw = '<p>First.</p><p><hi type="bold">Second.</hi></p>'
@@ -215,7 +217,7 @@ class CommentaryFormatTests(unittest.TestCase):
             "Second.",
         )
 
-    def test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles(self):
+    def test_actual_preverse_prose_is_separate_and_keeps_source_case_and_styles(self) -> None:
         from bible.commentary_format import preverse_layout
 
         raw = (
@@ -242,7 +244,7 @@ class CommentaryFormatTests(unittest.TestCase):
             )
         )
 
-    def test_only_verified_osis_decorations_are_hidden(self):
+    def test_only_verified_osis_decorations_are_hidden(self) -> None:
         raw = '<title>Actual heading</title><div type="x-p"/>Literal * star. <hi type="italic">Real emphasis</hi><div type="x-p"/>Next paragraph.'
         plain = "  Literal * star. * Real emphasis *   Next paragraph."
         text, styles, titles = format_entry(raw, plain, "OSIS")
@@ -256,7 +258,7 @@ class CommentaryFormatTests(unittest.TestCase):
         self.assertIn("\n", visible)
         self.assertTrue(any(kind == "italic" for kind, _, _ in styles))
 
-    def test_unknown_filter_output_keeps_original_text(self):
+    def test_unknown_filter_output_keeps_original_text(self) -> None:
         self.assertEqual(
             format_entry('<hi type="italic">Different</hi>', "Original * unchanged", "OSIS"),
             ("Original * unchanged", (), ()),
@@ -266,7 +268,7 @@ class CommentaryFormatTests(unittest.TestCase):
             ("* actual plain *", (), ()),
         )
 
-    def test_thml_encodes_styles_without_guessing_structure_from_plain_prose(self):
+    def test_thml_encodes_styles_without_guessing_structure_from_plain_prose(self) -> None:
         raw = "<h3>Source title</h3><p>Keep <b>bold</b>.</p><blockquote>Quoted.</blockquote><ul><li>First</li><li>Second</li></ul><p>Original.</p>"
         plain = "Source title  Keep bold.  Quoted.  First Second  Original."
         text, styles, titles = format_entry(raw, plain, "ThML")
@@ -279,7 +281,7 @@ class CommentaryFormatTests(unittest.TestCase):
             ("Different native output", (), ()),
         )
 
-    def test_osis_line_milestones_and_stanzas_preserve_authorial_words(self):
+    def test_osis_line_milestones_and_stanzas_preserve_authorial_words(self) -> None:
         raw = '<lg><l sID="line1"/>First line.<l eID="line1"/><l>Second line.</l></lg><p>Final prose.</p>'
         plain = "  First line. Second line.  Final prose."
         text, styles, _ = format_entry(raw, plain, "OSIS")
@@ -293,7 +295,7 @@ class CommentaryFormatTests(unittest.TestCase):
 
 class CommentaryLayoutTests(unittest.TestCase):
     @unittest.skipUnless(__import__("os").environ.get("DISPLAY"), "Requires GTK")
-    def test_matching_source_title_survives_with_body_anchors_and_copy(self):
+    def test_matching_source_title_survives_with_body_anchors_and_copy(self) -> None:
         import tempfile
         from pathlib import Path
         from bible.ui import Application, Window, Library
@@ -357,7 +359,9 @@ class CommentaryLayoutTests(unittest.TestCase):
                 w.close()
 
     @unittest.skipUnless(__import__("os").environ.get("DISPLAY"), "Requires GTK")
-    def test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules(self):
+    def test_source_preface_is_readable_without_moving_the_native_body_or_changing_modules(
+        self,
+    ) -> None:
         import hashlib
         import tempfile
         from pathlib import Path
@@ -426,7 +430,7 @@ class CommentaryLayoutTests(unittest.TestCase):
                 window.close()
 
     @unittest.skipUnless(__import__("os").environ.get("DISPLAY"), "Requires GTK")
-    def test_verified_decorations_have_zero_advance_without_invisible_indices(self):
+    def test_verified_decorations_have_zero_advance_without_invisible_indices(self) -> None:
         from bible.ui import Application, Gtk
         from bible.commentary_format import apply
         from bible.preferences import ReadingPreferences

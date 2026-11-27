@@ -1,5 +1,7 @@
 """First successful install and deterministic recovery of unusable sessions."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -21,7 +23,9 @@ class ReadingLifecycleTests(unittest.TestCase):
         self.addCleanup(lambda: window.close() if not window.closed else None)
         return window
 
-    def test_first_install_opens_immediately_and_survives_workspace_switch_and_restart(self):
+    def test_first_install_opens_immediately_and_survives_workspace_switch_and_restart(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             w = self.window(root)
@@ -48,7 +52,7 @@ class ReadingLifecycleTests(unittest.TestCase):
             )
             self.assertEqual(w.main_pages.get_visible_child_name(), "reading")
 
-    def test_missing_and_unreadable_saved_resources_choose_stable_readable_fallback(self):
+    def test_missing_and_unreadable_saved_resources_choose_stable_readable_fallback(self) -> None:
         from bible.session import SessionStore, Session, TabState
 
         for previous in (None, "Removed", "AAEmpty"):
@@ -69,7 +73,7 @@ class ReadingLifecycleTests(unittest.TestCase):
                 w.close()
                 spin()
 
-    def test_subsequent_install_preserves_existing_reader_passage_and_notes_workspace(self):
+    def test_subsequent_install_preserves_existing_reader_passage_and_notes_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             installed_fixture(root, "Existing")
@@ -88,7 +92,7 @@ class ReadingLifecycleTests(unittest.TestCase):
 
     def test_first_install_keeps_an_unsavable_note_draft_until_the_existing_guard_allows_leaving(
         self,
-    ):
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             w = self.window(root)

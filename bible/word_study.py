@@ -1,5 +1,7 @@
 """Deliberate lexical offers and temporary study details; no new permanent tab."""
 
+from __future__ import annotations
+
 from gi.repository import Adw, Gtk, Gdk, GLib, Pango
 from .i18n import tr
 from .metadata_workers import MetadataExecutor
@@ -13,7 +15,7 @@ from .reference_preview import passage_title
 class WordStudy(Gtk.Box):
     """Present supplied original tokens, lexical senses and corpus occurrences in a temporary contextual view."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.owner = owner
         self.data = StepData(owner.library.root.parent / "study-data")
@@ -118,7 +120,7 @@ class WordStudy(Gtk.Box):
         credit.set_margin_bottom(12)
         self.append(credit)
 
-    def label(self, value, heading=False):
+    def label(self, value, heading: bool = False):
         """Create selectable wrapped study prose, optionally with the native heading role."""
         label = Gtk.Label(
             label=value,
@@ -139,7 +141,7 @@ class WordStudy(Gtk.Box):
             label.set_xalign(1)
         return label
 
-    def remove_content(self, child):
+    def remove_content(self, child) -> None:
         # Keep focus in a live, parented widget before replacing dynamic content.
         # GTK's label focus transfer may inspect its previous focus after the
         # root releases it; an already-unparented label can then be destroyed.
@@ -151,7 +153,7 @@ class WordStudy(Gtk.Box):
             focus_target.grab_focus()
         self.content.remove(child)
 
-    def clear(self):
+    def clear(self) -> None:
         while child := self.content.get_first_child():
             self.remove_content(child)
         self.scroll.get_vadjustment().set_value(0)
@@ -176,12 +178,12 @@ class WordStudy(Gtk.Box):
             is (tab._comparison_reader if target.source.side == "comparison" else tab.reader)
         )
 
-    def dismiss_offer(self):
+    def dismiss_offer(self) -> None:
         self.offer_generation += 1
         if self.popover:
             self.popover.popdown()
 
-    def offer(self, target, anchor=None):
+    def offer(self, target, anchor: object = None) -> None:
         """Defer contextual activation until the native selection action has finished and revalidate its source."""
         if not target or self.owner.closed:
             return
@@ -189,7 +191,7 @@ class WordStudy(Gtk.Box):
         generation = self.offer_generation
         metadata = selected_metadata(target)
 
-        def present():
+        def present() -> bool:
             if self.owner.closed or generation != self.offer_generation:
                 return False
             current = target.factory()
@@ -208,7 +210,7 @@ class WordStudy(Gtk.Box):
     def open(self, target, metadata=None):
         return self.owner.open_passage_study(target=target, metadata=metadata)
 
-    def attach(self, target, metadata=None, host=None, start=True):
+    def attach(self, target, metadata=None, host=None, start: bool = True) -> None:
         """Attach to a valid source selection or shared host, cancelling the previous contextual view."""
         if self.owner.closed or target.source.tab is not self.owner.active_tab:
             return
@@ -278,7 +280,7 @@ class WordStudy(Gtk.Box):
             self.dialog.present()
             self.back.grab_focus()
 
-    def dialog_closed(self, *_):
+    def dialog_closed(self, *_: object) -> bool:
         """Invalidate requests and release source/context before safely detaching/restoring GTK focus."""
         dialog = self.dialog
         self.dialog = None
@@ -293,7 +295,7 @@ class WordStudy(Gtk.Box):
         focus = getattr(self, "previous_focus", None)
         restore = self.restore_focus
 
-        def detached():
+        def detached() -> bool:
             if dialog and dialog.get_content() is self:
                 dialog.set_content(None)
             if (
@@ -309,7 +311,7 @@ class WordStudy(Gtk.Box):
         GLib.idle_add(detached)
         return False
 
-    def begin(self):
+    def begin(self) -> None:
         """Show an explicit missing-data/download state or actual supplied passage tokens."""
         self.clear()
         self.stage = "passage"
@@ -327,14 +329,14 @@ class WordStudy(Gtk.Box):
             return
         self.verse_choices()
 
-    def download(self):
+    def download(self) -> None:
         from .study_resources import STEP_RESOURCE_ID
 
         self.leave(restore_focus=False)
         window = self.owner.open_library("study")
         window.reveal_study_resource(STEP_RESOURCE_ID)
 
-    def request(self, operation, complete, on_error=None):
+    def request(self, operation, complete, on_error=None) -> None:
         """Run an operation on the executor and marshal only current-generation completion to GTK.
 
         Closing/changing context discards obsolete results. The operation owns its
@@ -349,7 +351,7 @@ class WordStudy(Gtk.Box):
         future = self.executor.submit(operation)
         self.futures.add(future)
 
-        def finished():
+        def finished() -> bool:
             self.futures.discard(future)
             if generation != self.generation or not self.valid():
                 return False
@@ -374,7 +376,7 @@ class WordStudy(Gtk.Box):
             else None
         )
 
-    def lexical_choices(self, entries):
+    def lexical_choices(self, entries) -> None:
         """Present supplied lexical candidates, distinguishing dictionary senses from passage-specific meaning."""
         unique = {entry["id"]: entry for entry in entries}
         if len(unique) == 1:
@@ -394,7 +396,7 @@ class WordStudy(Gtk.Box):
         if not unique:
             self.content.append(self.label(tr("No lexical entry supplied for these identifiers.")))
 
-    def verse_choices(self):
+    def verse_choices(self) -> None:
         """Return to the original selected passage/token view and reset incremental verse loading."""
         self.generation += 1
         self.clear()
@@ -411,7 +413,7 @@ class WordStudy(Gtk.Box):
         self._verse_offset = 0
         self.passage_words(references)
 
-    def translation_changed(self, *_):
+    def translation_changed(self, *_: object) -> None:
         """Change only the displayed translation reader, retaining original source-token context."""
         if self._translation_syncing or not self.context:
             return
@@ -442,7 +444,7 @@ class WordStudy(Gtk.Box):
             excerpt.start, excerpt.end, self.verse_reader.versification
         ), excerpt.text + (" …" if excerpt.more else "")
 
-    def explore(self, reference):
+    def explore(self, reference) -> None:
         self.generation += 1
         self.clear()
         self.stage = "passage"
@@ -450,7 +452,7 @@ class WordStudy(Gtk.Box):
         self._verse_offset = 0
         self.passage_words((reference,))
 
-    def passage_words(self, references):
+    def passage_words(self, references) -> None:
         """Load at most five selected verses per request and display actual mapped STEP tokens.
 
         Missing mappings/tokens remain explicit. Supplied script, transliteration
@@ -477,7 +479,7 @@ class WordStudy(Gtk.Box):
                 )
             return rows
 
-        def show(rows):
+        def show(rows) -> None:
             for reference, corpus, verses in rows:
                 try:
                     caption, excerpt = self.verse_excerpt(reference)
@@ -557,7 +559,7 @@ class WordStudy(Gtk.Box):
             if self._verse_offset < len(references):
                 more = self.button(tr("More verses"), lambda: more_clicked())
 
-                def more_clicked():
+                def more_clicked() -> None:
                     self.remove_content(more)
                     self.passage_words(references)
 
@@ -568,7 +570,7 @@ class WordStudy(Gtk.Box):
 
         self.request(operation, show)
 
-    def selected_lexemes(self):
+    def selected_lexemes(self) -> None:
         """Look up actual selected Strong identifiers without claiming exact STEP-token/sense alignment."""
         self.clear()
         self.stage = "word"
@@ -586,13 +588,13 @@ class WordStudy(Gtk.Box):
             self.lexical_choices,
         )
 
-    def previous(self, *_):
+    def previous(self, *_: object) -> None:
         if self.stage == "occurrences":
             self.detail(self.entry, self.corpus, getattr(self, "token", None))
         else:
             self.verse_choices()
 
-    def token_detail(self, corpus, token):
+    def token_detail(self, corpus, token) -> None:
         """Open supplied metadata for one exact source token and request its declared lexical tags."""
         tags = (
             [row[0] for row in token.get("lexical", [])]
@@ -614,7 +616,7 @@ class WordStudy(Gtk.Box):
             lambda entries: self.token_choices(entries, corpus, token),
         )
 
-    def token_choices(self, entries, corpus, token):
+    def token_choices(self, entries, corpus, token) -> None:
         """Show available token lexical entries or an explicit absence, without synthesizing meanings."""
         if len(entries) == 1:
             self.detail(entries[0], corpus, token)
@@ -627,7 +629,7 @@ class WordStudy(Gtk.Box):
         else:
             self.content.append(self.label(tr("No lexical entry supplied for these identifiers.")))
 
-    def detail(self, entry, corpus=None, token=None):
+    def detail(self, entry, corpus=None, token=None) -> None:
         """Present supplied lexical content and bounded occurrences with language/source limitations visible."""
         self.clear()
         self.stage = "word"
@@ -701,7 +703,7 @@ class WordStudy(Gtk.Box):
         occurrences = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.content.append(occurrences)
 
-        def show_occurrences(result):
+        def show_occurrences(result) -> None:
             count = self.label(
                 tr("{tokens} source tokens · {verses} distinct verses").format(**result)
             )
@@ -756,7 +758,7 @@ class WordStudy(Gtk.Box):
         details.set_child(self.label(text))
         self.content.append(details)
 
-    def preview(self, reference):
+    def preview(self, reference) -> None:
         """Open an actual corpus occurrence in the chosen translation through verified local reference mapping."""
         _source = self.target.source
         button = next(
@@ -787,7 +789,7 @@ class WordStudy(Gtk.Box):
 
         yield from walk(self.content)
 
-    def all_occurrences(self, corpus, entry):
+    def all_occurrences(self, corpus, entry) -> None:
         """Start paginated actual corpus occurrences while keeping token counts distinct from verse counts."""
         self.clear()
         self.stage = "occurrences"
@@ -808,10 +810,10 @@ class WordStudy(Gtk.Box):
         self.occurrence_offset = 0
         self.occurrence_rows(corpus, entry)
 
-    def occurrence_rows(self, corpus, entry):
+    def occurrence_rows(self, corpus, entry) -> None:
         """Append bounded occurrence cards, preserving unavailable translation passages as explicit states."""
 
-        def show(result):
+        def show(result) -> None:
             if not self.occurrence_offset:
                 self.content.append(
                     self.label(
@@ -841,7 +843,7 @@ class WordStudy(Gtk.Box):
             if self.occurrence_offset < result["addresses"]:
                 more = self.button(tr("More results"), lambda: more_clicked())
 
-                def more_clicked():
+                def more_clicked() -> None:
                     self.remove_content(more)
                     self.occurrence_rows(corpus, entry)
 
@@ -852,16 +854,16 @@ class WordStudy(Gtk.Box):
             show,
         )
 
-    def leave(self, restore_focus=True):
+    def leave(self, restore_focus: bool = True) -> None:
         if self.dialog:
             self.restore_focus = restore_focus
             self.dialog.close()
 
-    def refresh(self):
+    def refresh(self) -> None:
         if self.dialog and not self.valid():
             self.leave(restore_focus=False)
 
-    def close(self):
+    def close(self) -> None:
         self.leave()
         self.generation += 1
         self.dismiss_offer()

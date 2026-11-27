@@ -1,5 +1,7 @@
 """Visible-passage context indicators and independent reading controls."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from tests.test_reading_sync import linked_commentary
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ContextIndicatorTests(unittest.TestCase):
-    def test_notes_and_references_share_transient_indicator_and_adaptive_context(self):
+    def test_notes_and_references_share_transient_indicator_and_adaptive_context(self) -> None:
         from bible.ui import Application, Window, Library
         from bible.notes import PassageLink
 
@@ -67,7 +69,7 @@ class ContextIndicatorTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_true_range_is_paint_only_and_clears_without_navigation(self):
+    def test_true_range_is_paint_only_and_clears_without_navigation(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()

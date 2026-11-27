@@ -1,5 +1,13 @@
 """Native GTK divider for the existing animated/adaptive Adwaita drawer."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .study_settings import StudySettings
+
 from gi.repository import Adw, Gdk, Gtk
 from .i18n import tr
 
@@ -7,7 +15,7 @@ from .i18n import tr
 class StudyDivider(Gtk.Box):
     """Resize the existing adaptive drawer while preserving Bible/commentary source anchors."""
 
-    def __init__(self, owner, settings):
+    def __init__(self, owner: Window, settings: StudySettings) -> None:
         super().__init__(width_request=8, focusable=True, hexpand=False)
         self.owner, self.settings = owner, settings
         self.active = False
@@ -33,24 +41,24 @@ class StudyDivider(Gtk.Box):
         owner.split.set_sidebar_width_unit(Adw.LengthUnit.PX)
         owner.split.connect("notify::collapsed", lambda *_: self.apply())
         owner.split.connect("notify::show-sidebar", self.sidebar_changed)
-        self.geometry = None
+        self.geometry: tuple[int, bool] | None = None
         self._adapt_id = 0
         self._adapt_frames = 0
 
-    def queue_adapt(self, *_):
+    def queue_adapt(self, *_: object) -> None:
         if not self.owner.get_mapped():
             return
         self._adapt_frames = 3
         if not self._adapt_id:
             self._adapt_id = self.owner.add_tick_callback(self._settle_layout)
 
-    def cancel_adapt(self, *_):
+    def cancel_adapt(self, *_: object) -> None:
         if self._adapt_id:
             self.owner.remove_tick_callback(self._adapt_id)
         self._adapt_id = 0
         self._adapt_frames = 0
 
-    def _settle_layout(self, *_):
+    def _settle_layout(self, *_: object) -> bool:
         self.adapt()
         self._adapt_frames -= 1
         if self._adapt_frames > 0:
@@ -58,18 +66,19 @@ class StudyDivider(Gtk.Box):
         self._adapt_id = 0
         return False
 
-    def adapt(self, *_):
+    def adapt(self, *_: object) -> bool:
         geometry = (self.owner.get_width(), self.owner.split.get_collapsed())
         if geometry != self.geometry:
             self.geometry = geometry
             self.apply()
         return not self.owner.closed
 
-    def effective(self, requested=None):
+    def effective(self, requested: int | None = None) -> int:
+        """Clamp the preferred width while reserving space for the reading pane."""
         width = self.owner.get_width() or self.owner.get_default_size()[0]
         return max(320, min(requested or self.settings.width, max(320, width - 480)))
 
-    def apply(self):
+    def apply(self) -> None:
         """Apply effective width bounds without conflicting minimum/maximum sidebar properties."""
         split = self.owner.split
         collapsed = split.get_collapsed()
@@ -85,11 +94,11 @@ class StudyDivider(Gtk.Box):
         split.set_max_sidebar_width(maximum)
         split.set_sidebar_width_fraction(1.0 if collapsed else 0.5)
 
-    def begin(self, gesture=None, *_):
+    def begin(self, gesture: Gtk.GestureDrag | None = None, *_: object) -> None:
         """Capture reading anchors and suspend following before a user-controlled divider resize."""
         self.active = True
-        self.origin = self.owner.split.get_sidebar().get_width()
-        self.pointer_origin = None
+        self.origin = cast("Gtk.Widget", self.owner.split.get_sidebar()).get_width()
+        self.pointer_origin: tuple[Gdk.Surface | None, float] | None = None
         if gesture:
             event = gesture.get_current_event()
             if event:
@@ -107,9 +116,10 @@ class StudyDivider(Gtk.Box):
             _, iterator = tab.text.get_iter_at_location(rect.x, rect.y)
             self.bible_anchor = tab.position_anchor(iterator.get_offset())
             tab.comparison_sync.driver = None
-        self.commentary_anchor = self.owner.study.anchor()
+        # StudyPanel.anchor returns a section ordinal and a body offset.
+        self.commentary_anchor = cast("tuple[int, int] | None", self.owner.study.anchor())
 
-    def update(self, gesture, x, y):
+    def update(self, gesture: Gtk.GestureDrag | None, x: float, y: object) -> None:
         """Clamp the requested width to usable window bounds using the current native pointer surface."""
         if not self.active:
             return
@@ -124,7 +134,7 @@ class StudyDivider(Gtk.Box):
         self.settings.width = self.effective(requested)
         self.apply()
 
-    def end(self, *_):
+    def end(self, *_: object) -> None:
         """Restore captured reading anchors and persist the resulting drawer width after resizing."""
         if not self.active:
             return
@@ -139,13 +149,13 @@ class StudyDivider(Gtk.Box):
             self.owner.study.reveal(*self.commentary_anchor, force=True)
         self.save()
 
-    def sidebar_changed(self, *_):
+    def sidebar_changed(self, *_: object) -> None:
         # Adwaita may clip a closed sidebar while retaining mapped children.
         # Finish a held divider gesture even when GTK does not unmap it.
         if not self.owner.split.get_show_sidebar():
             self.end()
 
-    def key(self, _, key, code, state):
+    def key(self, _: object, key: int, code: object, state: object) -> bool:
         if key not in (Gdk.KEY_Left, Gdk.KEY_Right, Gdk.KEY_Home):
             return False
         self.begin()
@@ -154,7 +164,7 @@ class StudyDivider(Gtk.Box):
         self.end()
         return True
 
-    def save(self):
+    def save(self) -> None:
         try:
             self.settings.save()
         except (OSError, ValueError) as error:

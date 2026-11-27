@@ -1,5 +1,7 @@
 """Bounded validated catalogue caching and offline failure behavior."""
 
+from __future__ import annotations
+
 from dataclasses import replace
 from pathlib import Path
 import tempfile
@@ -13,7 +15,7 @@ from tests.test_library import RESOURCE
 
 
 class CatalogueCacheTests(unittest.TestCase):
-    def test_offline_empty_corrupt_and_unsupported_cache(self):
+    def test_offline_empty_corrupt_and_unsupported_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache = CatalogueCache(directory)
             cache.write(CROSSWIRE, [RESOURCE])
@@ -28,7 +30,7 @@ class CatalogueCacheTests(unittest.TestCase):
                 (Path(directory) / "crosswire.json").write_text(value)
                 self.assertIsNone(cache.read(CROSSWIRE))
 
-    def test_interrupted_write_preserves_valid_previous_cache(self):
+    def test_interrupted_write_preserves_valid_previous_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache = CatalogueCache(directory)
             cache.write(CROSSWIRE, [RESOURCE])
@@ -38,7 +40,7 @@ class CatalogueCacheTests(unittest.TestCase):
             self.assertEqual(cache.read(CROSSWIRE)[0], (RESOURCE,))
             self.assertEqual(len(list(Path(directory).iterdir())), 1)
 
-    def test_fresh_cache_skips_network_until_explicit_refresh(self):
+    def test_fresh_cache_skips_network_until_explicit_refresh(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             cache = CatalogueCache(directory)
             cache.write(CROSSWIRE, [RESOURCE])
@@ -49,19 +51,19 @@ class CatalogueCacheTests(unittest.TestCase):
                     catalogues((CROSSWIRE,), cache=cache, force=False).resources, (RESOURCE,)
                 )
 
-    def test_fast_provider_is_delivered_before_slow_provider(self):
+    def test_fast_provider_is_delivered_before_slow_provider(self) -> None:
         release = threading.Event()
         delivered = []
         extra = replace(RESOURCE, provider_id=EXTRA.id, source=EXTRA.name, source_url=EXTRA.url)
 
-        def load(provider, timings=None):
+        def load(provider, timings: object = None):
             if provider == CROSSWIRE:
                 if not release.wait(3):
                     raise TimeoutError("slow fixture not released")
                 return [RESOURCE]
             return [extra]
 
-        def ready(provider, items, error, timings):
+        def ready(provider, items: object, error: object, timings: object) -> None:
             delivered.append(provider.id)
             if provider == EXTRA:
                 release.set()
@@ -71,7 +73,7 @@ class CatalogueCacheTests(unittest.TestCase):
         self.assertEqual(delivered, [EXTRA.id, CROSSWIRE.id])
         self.assertEqual({r.id for r in result.resources}, {RESOURCE.id, extra.id})
 
-    def test_conditional_refresh_keeps_sources_and_records_zero_body_bytes(self):
+    def test_conditional_refresh_keeps_sources_and_records_zero_body_bytes(self) -> None:
         import urllib.error
 
         with tempfile.TemporaryDirectory() as directory:
@@ -83,11 +85,11 @@ class CatalogueCacheTests(unittest.TestCase):
             )
             observed = []
 
-            def unchanged(provider, timings=None, validators=None):
+            def unchanged(provider, timings: object = None, validators=None) -> None:
                 observed.append(validators)
                 raise urllib.error.HTTPError(provider.catalogue_url, 304, "Not Modified", {}, None)
 
-            def ready(provider, items, error, timings):
+            def ready(provider: object, items, error, timings) -> None:
                 self.assertIsNone(error)
                 self.assertEqual(tuple(items), (RESOURCE,))
                 self.assertEqual(timings["metadata_bytes"], 0)

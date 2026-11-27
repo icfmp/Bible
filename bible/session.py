@@ -1,13 +1,35 @@
 """Versioned local reading session, independent from downloaded translations."""
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass, field
 import json
 import math
 import os
 from pathlib import Path
+from os import PathLike
+from typing import NotRequired, TypedDict
 import re
 import tempfile
 from .providers import RESOURCE_ID
+
+
+class HistoryEntry(TypedDict):
+    """An explicit navigation destination; legacy entries may omit scroll."""
+
+    resource: str
+    reference: str
+    scroll: NotRequired[float]
+
+
+class CommentaryPosition(TypedDict):
+    """A saved source section and offset; old sessions may omit mode flags."""
+
+    reference: str
+    index: int
+    offset: int
+    canonical: NotRequired[bool]
+    immersive: NotRequired[bool]
 
 
 @dataclass
@@ -19,12 +41,12 @@ class TabState:
     scroll: float = 0.0
     study_visible: bool = False
     commentary: str | None = None
-    history: list = field(default_factory=list)
+    history: list[HistoryEntry] = field(default_factory=list)
     history_index: int = -1
     comparison: str | None = None
-    commentary_positions: dict = field(default_factory=dict)
-    reading_palette: dict = field(default_factory=dict)
-    comparison_position: dict = field(default_factory=dict)
+    commentary_positions: dict[str, CommentaryPosition] = field(default_factory=dict)
+    reading_palette: dict[str, str] = field(default_factory=dict)
+    comparison_position: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -44,10 +66,10 @@ class SessionError(ValueError):
 class SessionStore:
     """Load checked reading state and replace session JSON after a complete flushed write."""
 
-    def __init__(self, path):
+    def __init__(self, path: str | PathLike[str]) -> None:
         self.path = Path(path)
 
-    def load(self):
+    def load(self) -> Session:
         """Return an empty session only for a missing file; reject malformed or unsupported saved state."""
         try:
             with self.path.open("rb") as source:
@@ -190,7 +212,7 @@ class SessionStore:
         except (ValueError, KeyError, TypeError, RecursionError) as error:
             raise SessionError(str(error)) from error
 
-    def save(self, session):
+    def save(self, session: Session) -> None:
         """Serialize finite session values and atomically replace the file after flushing its temporary copy."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = None

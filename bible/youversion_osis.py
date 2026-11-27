@@ -1,4 +1,4 @@
-"""Local semantic document → OSIS, shared with the #26 YVES research adapter.
+"""Strict semantic document → OSIS conversion for the existing local import.
 
 Writer and explicit book map adapted from our draft PR #59, commit
 3a535332f59fd5b4f45dc8f59ccd0f9e7de8d331. Uses only the standard library;
@@ -153,7 +153,7 @@ class Node:
 
     kind: str
     attrs: dict[str, str]
-    parts: list  # Ordered strings and Nodes, including child tails.
+    parts: list[str | Node]  # Ordered strings and Nodes, including child tails.
 
 
 @dataclass
@@ -174,7 +174,7 @@ def element(parent, tag, **attrs):
     return E.SubElement(parent, f"{{{NS}}}{tag}", {k: str(v) for k, v in attrs.items()})
 
 
-def text(parent, value):
+def text(parent, value) -> None:
     if len(parent):
         parent[-1].tail = (parent[-1].tail or "") + value
     else:
@@ -188,7 +188,7 @@ def plain(node):
 class Writer:
     """Write supported source nodes to OSIS while retaining explicit verse, note and heading identity."""
 
-    def __init__(self, parent, chapter):
+    def __init__(self, parent, chapter) -> None:
         self.chapter = parent
         self.source_chapter = chapter
         self.active = None
@@ -201,7 +201,7 @@ class Writer:
         self.note_context = BOOKS[chapter.split(".")[0]] if ".INTRO" in chapter else None
         self.chapter_context = None if ".INTRO" in chapter else osis_ref(chapter)
 
-    def close(self, parent):
+    def close(self, parent) -> None:
         if self.active:
             element(parent, "verse", eID=self.active_sid)
             self.active = None
@@ -247,14 +247,14 @@ class Writer:
                     return found
         return None
 
-    def parts(self, parts, parent, in_note=False):
+    def parts(self, parts, parent, in_note: bool = False) -> None:
         for part in parts:
             if isinstance(part, str):
                 text(parent, part)
             else:
                 self.inline(part, parent, in_note)
 
-    def inline(self, node, parent, in_note=False):
+    def inline(self, node, parent, in_note: bool = False) -> None:
         """Write supported source inline nodes and anchored notes; reject unknown or conflicting structures."""
         k = node.kind
         if k == "label":
@@ -403,7 +403,7 @@ class Writer:
         else:
             raise Unsupported(f"Unexpected inline kind: {k}")
 
-    def blocks(self, blocks, parent):
+    def blocks(self, blocks, parent) -> None:
         """Retain supported source prose/poetry/headings/lists/tables and explicit verse/note boundaries."""
         lg = None
         source_list = None

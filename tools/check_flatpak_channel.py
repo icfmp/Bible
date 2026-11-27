@@ -4,6 +4,8 @@ The test key is ephemeral and MUST NOT be used for a public channel. Public HTTP
 validation is a separate mandatory step after deployment with the stable key.
 """
 
+from __future__ import annotations
+
 import functools
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -24,7 +26,7 @@ SOURCE = "c2792c14ec86b28767cd5bc9ec8509a576e9a52d"
 BUNDLE_SHA = "b1d0db01e1b824d6b761f3af22849f7a05fb00601d74c31ee558737962754297"
 
 
-def acquire(*command):
+def acquire(*command) -> None:
     """Retry transient HTTP gateway errors; keep all Flatpak verification enabled."""
     for attempt in range(3):
         result = subprocess.run(
@@ -56,7 +58,7 @@ def data_snapshot():
     }
 
 
-def verify_data(snapshot):
+def verify_data(snapshot) -> None:
     assert snapshot, "Missing pre-update user data snapshot"
     for name, expected in snapshot.items():
         assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, (
@@ -64,7 +66,7 @@ def verify_data(snapshot):
         )
 
 
-def verify_client():
+def verify_client() -> None:
     """Check the retained channel identity and launch the actual installed GTK app."""
     assert run("flatpak", "info", "--user", "--show-ref", APP_ID + "//alpha") == REF
     assert run("flatpak", "info", "--user", "--show-origin", APP_ID + "//alpha") == REMOTE
@@ -157,7 +159,7 @@ def check(base_url, expected, report_path, *, test_revision=None):
     return result
 
 
-def main():
+def main() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         gpg = root / "gpg"

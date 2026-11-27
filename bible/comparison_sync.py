@@ -1,5 +1,14 @@
 """Reference-driven Bible comparison, independent of the study coordinator."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .reading_tab import ReadingTab
+    from gi.repository import Gtk
+
 import time
 from .reading_sync import ReadingSync
 from .reference_resolution import resolve_readers as resolve
@@ -9,21 +18,21 @@ from .scroll_motion import stop_native_scroll
 class ComparisonSync(ReadingSync):
     """Coordinate user-led parallel following independently of the study-panel coordinator."""
 
-    def __init__(self, owner, tab):
+    def __init__(self, owner: Window, tab: ReadingTab) -> None:
         self.owner = owner
         self.tab = tab
-        self.driver = None
+        self.driver: str | None = None
         self.pending = False
         self.running = False
-        self.armed_until = 0
-        self.dragging = None
-        self.last_target = None
+        self.armed_until: float = 0
+        self.dragging: str | None = None
+        self.last_target: tuple[str, str, int] | None = None
         # Reuse input observation only. Never replace tab.sync_coordinator,
         # which belongs to the client-validated Bible/commentary following.
         self.bind(tab.scroll, tab.text, "primary")
         self.bind(tab.comparison_scroll, tab.comparison_text, "comparison")
 
-    def intent(self, side, tab=None):
+    def intent(self, side: str, tab: ReadingTab | None = None) -> bool:
         """Arm the explicitly used pane, cancelling obsolete motion and secondary restore work."""
         if self.tab is not self.owner.active_tab or self.running:
             return False
@@ -37,14 +46,16 @@ class ComparisonSync(ReadingSync):
             if side == "comparison":
                 self.owner.reading_sync.driver = None
                 self.owner.reading_sync.needs_sync = False
-        if side == "comparison" and getattr(self.tab, "_comparison_tick", 0):
+        if side == "comparison" and getattr(self.tab, "_comparison_tick", False):
             self.tab.comparison_text.remove_tick_callback(self.tab._comparison_tick)
             self.tab._comparison_tick = 0
             self.tab._comparison_positioning = False
         self.schedule()
         return False
 
-    def moved(self, side, view, bar, tab=None):
+    def moved(
+        self, side: str, view: Gtk.TextView, bar: Gtk.Widget, tab: ReadingTab | None = None
+    ) -> None:
         """Observe user-led adjustments while excluding reflow, restoration and programmatic movement."""
         if self.running or self.tab is not self.owner.active_tab:
             return
@@ -54,7 +65,7 @@ class ComparisonSync(ReadingSync):
             return
         geometry = (view.get_width(), view.get_height())
         previous = getattr(view, "_comparison_geometry", geometry)
-        view._comparison_geometry = geometry
+        setattr(view, "_comparison_geometry", geometry)
         if previous != geometry:
             return
         if bar.has_focus():
@@ -62,7 +73,7 @@ class ComparisonSync(ReadingSync):
         if self.driver == side and (self.dragging == side or time.monotonic() < self.armed_until):
             self.schedule()
 
-    def synchronize(self):
+    def synchronize(self) -> bool:
         """Apply one live user intent through verified reader-to-reader correspondence.
 
         Hidden/inactive/expired gestures do not lead. Shared adjustments already

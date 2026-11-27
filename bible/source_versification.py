@@ -1,5 +1,14 @@
 """Small source-specific native indexes; no Scripture cache or inferred mapping."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
+from os import PathLike
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .versification_mapping import MappingTable
+
 import ctypes
 from functools import lru_cache
 import hashlib
@@ -11,52 +20,54 @@ import re
 # language or the shape of a canon. A verified source index must independently
 # match the declared convention for each enabled book. Other books must not
 # revoke an independently verified capability or acquire an inferred mapping.
-SOURCE_CONVENTIONS = {"org": "Original", "eng": "KJV"}
-_reference_conventions = {}
+SOURCE_CONVENTIONS: Mapping[object, str] = {"org": "Original", "eng": "KJV"}
+_reference_conventions: dict[str, MappingTable] = {}
 
 
-def reference_convention(system):
+def reference_convention(system: str) -> str | None:
+    """Return only the convention registered for a verified source index."""
     data = reference_mapping(system)
     return data["declared_convention"]["system"] if data else None
 
 
-def reference_mapping(system):
+def reference_mapping(system: str) -> MappingTable | None:
+    """Return the verified source capability, without inferring missing mappings."""
     return _reference_conventions.get(system)
 
 
-def declared_mapping(path, receipt):
+def declared_mapping(path: Path, receipt: Mapping[str, object]) -> MappingTable | None:
     """Expose only declared verified convention books with unchanged native/source addressing."""
     convention = SOURCE_CONVENTIONS.get(receipt.get("source_numbering"))
     if not convention or receipt.get("all_text_notes_headings_verified") is not True:
-        return
+        return None
     lines = path.read_text("ascii").splitlines()
     system = lines[0].removeprefix("BIBLE-VRS-1 ")
     if receipt.get("storage_numbering") != system:
-        return
-    canon = {}
+        return None
+    canon: dict[str, list[int]] = {}
     for line in lines[1:]:
         _, book, count, *maxima = line.split()
         canon[book] = list(map(int, maxima))
         if int(count) != len(maxima):
-            return
+            return None
     from .versification_mapping import table
 
     declared = table(convention)
     if declared is None:
-        return
+        return None
     # Address remapping is a storage detail, not proof of verse equivalence.
     # Its presence elsewhere must not disable unchanged public books. Keep
     # every transformed book unavailable until its correspondence is verified.
-    transformed = set()
+    transformed: set[str] = set()
     if receipt.get("source_addresses_sha256"):
         from .source_units import AddressIndex
 
         try:
             addresses = AddressIndex.load(path.parent)
         except (OSError, ValueError):
-            return
+            return None
         if addresses is None:
-            return
+            return None
         transformed.update(ref.split(".")[0] for ref in addresses.chapters)
         if addresses.sections:
             transformed.update(addresses.sections.order)
@@ -66,11 +77,11 @@ def declared_mapping(path, receipt):
         if book not in transformed and sizes == declared["canon"].get(book)
     )
     if not books:
-        return
+        return None
     return dict(canon=canon, declared_convention=dict(system=convention, books=books))
 
 
-def register_convention(path, receipt):
+def register_convention(path: Path, receipt: Mapping[str, object]) -> None:
     """Refresh cached convention capability from the current verified source index/receipt."""
     system = path.read_text("ascii").splitlines()[0].removeprefix("BIBLE-VRS-1 ")
     data = declared_mapping(path, receipt)
@@ -85,7 +96,12 @@ def register_convention(path, receipt):
     table.cache_clear()
 
 
-def write_index(path, system, canon, testaments):
+def write_index(
+    path: str | PathLike[str],
+    system: str,
+    canon: Mapping[str, Sequence[int]],
+    testaments: Mapping[str, int],
+) -> str:
     """Serialize a bounded actual source canon for native storage without inventing verse correspondence."""
     if not re.fullmatch(r"YouVersion[1-9][0-9]{0,8}", system):
         raise ValueError("Invalid source index identity")
@@ -109,7 +125,7 @@ def write_index(path, system, canon, testaments):
 
 
 @lru_cache(maxsize=1)
-def native_loader():
+def native_loader() -> tuple[ctypes.PyDLL, Callable[[bytes], int]]:
     """Find the packaged native source-index registrar or fail explicitly when unavailable."""
     import Sword
 
@@ -125,13 +141,14 @@ def native_loader():
             function = library.bible_register_source_index
             function.argtypes = [ctypes.c_char_p]
             function.restype = ctypes.c_int
-            return library, function
+            # argtypes/restype above establish the native ABI at this boundary.
+            return library, cast("Callable[[bytes], int]", function)
         except (OSError, AttributeError):
             continue
     raise ValueError("Packaged source reference-index support is required")
 
 
-def register_index(path, *, verified=True):
+def register_index(path: str | PathLike[str], *, verified: bool = True) -> None:
     """Register a bounded source index, checking its receipt hash before exposing verified mapping capability."""
     path = Path(path)
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 262144:

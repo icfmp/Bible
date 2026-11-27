@@ -1,5 +1,7 @@
 """Audit distinctions must not mistake an unsupported/hidden entry for absence."""
 
+from __future__ import annotations
+
 import io
 import tarfile
 import unittest
@@ -7,7 +9,7 @@ from tools.audit_affiliated_sources import Document, entries
 
 
 class SourceAuditTests(unittest.TestCase):
-    def test_missing_language_lock_and_unsupported_driver_remain_visible(self):
+    def test_missing_language_lock_and_unsupported_driver_remain_visible(self) -> None:
         data = io.BytesIO()
         with tarfile.open(fileobj=data, mode="w:gz") as archive:
             fixtures = {
@@ -29,7 +31,7 @@ class SourceAuditTests(unittest.TestCase):
         self.assertFalse(found["Unsupported"]["supported_driver"])
         self.assertTrue(found["Visible"]["supported_driver"])
 
-    def test_document_links_resolve_without_inventing_https_mirrors(self):
+    def test_document_links_resolve_without_inventing_https_mirrors(self) -> None:
         document = Document("https://official.example/doc/index.html")
         document.feed(
             '<a href="../modules/">Modules</a><a href="ftp://old.example/pub/">Old</a>'

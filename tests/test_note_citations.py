@@ -1,5 +1,7 @@
 """Shared note previews preserve note identity, drafts and explicit navigation."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class NoteCitationTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
@@ -41,14 +43,14 @@ class NoteCitationTests(unittest.TestCase):
             origin_language="fr",
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
         if self.window.note_editor:
             self.window.note_editor._discard = True
             self.window.note_editor.close()
         self.window.close()
 
-    def editor(self, embedded=True):
+    def editor(self, embedded: bool = True):
         if embedded:
             notes = self.window.open_notes()
             notes.open_note(self.note)
@@ -60,7 +62,7 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(
         self,
-    ):
+    ) -> None:
         from bible.note_preview import NotePreview
         from bible.annotation_card import AnnotationPreview
 
@@ -97,7 +99,7 @@ class NoteCitationTests(unittest.TestCase):
             list(w.active_tab.state.history),
             w.view.get_n_pages(),
         )
-        preview.activate(0)
+        preview.activate_citation(0)
         spin()
         self.assertEqual(w.reference_preview.body.get_buffer().props.text, "EXACT PSALM English")
         self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))
@@ -111,7 +113,7 @@ class NoteCitationTests(unittest.TestCase):
             .get_iter_at_mark(editor.body.get_buffer().get_insert())
             .get_offset()
         )
-        editor.body.activate(0)
+        editor.body.activate_citation(0)
         spin()
         self.assertEqual(w.reference_preview.target, ("English", "Ps.3.1"))
         w.reference_preview.dismiss()
@@ -125,7 +127,7 @@ class NoteCitationTests(unittest.TestCase):
 
     def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(
         self,
-    ):
+    ) -> None:
         from bible.notes_window import buffer_text
 
         w = self.window
@@ -135,7 +137,7 @@ class NoteCitationTests(unittest.TestCase):
         from unittest.mock import patch
 
         with patch.object(w.notes_store, "save", side_effect=OSError("Test write failure")):
-            editor.body.activate(0)
+            editor.body.activate_citation(0)
             spin()
             w.reference_preview.open_new.emit("clicked")
             spin()
@@ -146,7 +148,7 @@ class NoteCitationTests(unittest.TestCase):
         spin()
         self.assertFalse(editor.closed)
         self.assertIn("unsaved", buffer_text(editor.body))
-        editor.body.activate(0)
+        editor.body.activate_citation(0)
         spin()
         w.reference_preview.open_new.emit("clicked")
         spin()
@@ -161,10 +163,12 @@ class NoteCitationTests(unittest.TestCase):
         )
         self.assertIn("unsaved", saved.body)
 
-    def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(self):
+    def test_standalone_editor_closes_on_explicit_navigation_and_unmapping_dismisses_preview(
+        self,
+    ) -> None:
         w = self.window
         editor = self.editor(embedded=False)
-        editor.body.activate(1)
+        editor.body.activate_citation(1)
         spin()
         self.assertIsNotNone(w.reference_preview.popover)
         editor.body_scroll.set_visible(False)
@@ -172,7 +176,7 @@ class NoteCitationTests(unittest.TestCase):
         self.assertIsNone(w.reference_preview.popover)
         editor.body_scroll.set_visible(True)
         spin()
-        editor.body.activate(1)
+        editor.body.activate_citation(1)
         spin()
         w.reference_preview.open_here.emit("clicked")
         spin()
@@ -180,7 +184,9 @@ class NoteCitationTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.reference, "John.3.16")
         self.assertEqual(w.notes_store.get(self.note.id), self.note)
 
-    def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(self):
+    def test_missing_translation_and_keyboard_traversal_leave_content_and_context_unchanged(
+        self,
+    ) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             import subprocess
             import sys
@@ -236,7 +242,7 @@ class NoteCitationTests(unittest.TestCase):
         w.active_tab.load_resource()
         w.tab_changed(w.active_tab)
         spin()
-        preview.activate(0)
+        preview.activate_citation(0)
         spin()
         self.assertFalse(w.reference_preview.open_here.get_sensitive())
         self.assertFalse(w.reference_preview.open_new.get_sensitive())

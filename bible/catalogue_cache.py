@@ -1,6 +1,15 @@
 """Versioned, atomic metadata caches, isolated from installed modules and notes."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from os import PathLike
+from typing import TYPE_CHECKING
 from dataclasses import asdict
+
+if TYPE_CHECKING:
+    from .providers import Provider
+    from .library import Resource
 import json
 import os
 from pathlib import Path
@@ -11,11 +20,11 @@ import time
 class CatalogueCache:
     """Persist provider-qualified metadata snapshots separately from installed resources and user content."""
 
-    def __init__(self, root):
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.root = Path(root)
-        self.validators = {}
+        self.validators: dict[str, dict[str, str]] = {}
 
-    def read(self, provider):
+    def read(self, provider: Provider) -> tuple[tuple[Resource, ...], float] | None:
         """Return a validated resource snapshot and timestamp, or None for unusable cache data.
 
         Retain only bounded HTTP validators; a snapshot does not prove current
@@ -56,7 +65,7 @@ class CatalogueCache:
                     )
                 ):
                     return None
-                resource.id  # Validate the provider-specific identity.
+                _ = resource.id  # Evaluate the provider-specific identity validator.
                 if resource.provider_id == "bible-resources":
                     from .curated_catalogue import package_record
 
@@ -78,7 +87,12 @@ class CatalogueCache:
         except (OSError, ValueError, KeyError, TypeError):
             return None
 
-    def write(self, provider, resources, validators=None):
+    def write(
+        self,
+        provider: Provider,
+        resources: Iterable[Resource],
+        validators: Mapping[str, str] | None = None,
+    ) -> None:
         """Flush and atomically replace one provider metadata snapshot without touching installed modules."""
         self.root.mkdir(parents=True, exist_ok=True)
         temporary = None

@@ -4,6 +4,8 @@ Disposable profile only. Real source resources; optional installed-import check.
 Frames, adjustment samples, input timestamps and main-loop gaps are retained.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 import time
 import json
@@ -19,7 +21,7 @@ from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -92,7 +94,7 @@ def main():
     adjustment = t.scroll.get_vadjustment()
     last_value = [adjustment.get_value()]
 
-    def adjustment_changed(adj):
+    def adjustment_changed(adj) -> None:
         value = adj.get_value()
         if abs(value - last_value[0]) > 0.5:
             adjustment_events.append([time.monotonic(), value])
@@ -114,7 +116,7 @@ def main():
     loop = GLib.MainLoop()
     inputfile = args.output.with_suffix(".input.json")
 
-    def beat():
+    def beat() -> bool:
         now = time.monotonic()
         beats.append(now - last[0])
         last[0] = now
@@ -125,7 +127,7 @@ def main():
             return False
         return True
 
-    def frame(widget, clock):
+    def frame(widget: object, clock: object) -> bool:
         frames.append(time.monotonic())
         return True
 

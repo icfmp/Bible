@@ -1,5 +1,7 @@
 """Actual local metadata, conditional requests and fail-closed edition identity."""
 
+from __future__ import annotations
+
 import io
 import json
 from pathlib import Path
@@ -31,7 +33,9 @@ class Response(io.BytesIO):
 
 
 class ModuleUpdateTests(unittest.TestCase):
-    def test_app_and_external_sword_roots_are_read_only_and_credentials_are_not_exposed(self):
+    def test_app_and_external_sword_roots_are_read_only_and_credentials_are_not_exposed(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             library = root / "translations"
@@ -54,7 +58,9 @@ class ModuleUpdateTests(unittest.TestCase):
             self.assertEqual(before, {p: p.read_bytes() for p in before})
             self.assertEqual(public_source("name:secret@host"), "")
 
-    def test_existing_large_source_receipt_is_used_and_damage_does_not_hide_installed_version(self):
+    def test_existing_large_source_receipt_is_used_and_damage_does_not_hide_installed_version(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             library = Path(directory) / "translations"
             root = library / "youversion~YV1"
@@ -87,26 +93,26 @@ class ModuleUpdateTests(unittest.TestCase):
             self.assertTrue(any(path == str(root) for path, _ in errors))
             self.assertEqual(receipt.read_bytes(), b"[]")
 
-    def test_etag_304_and_offline_cache_preserve_actual_catalogue(self):
+    def test_etag_304_and_offline_cache_preserve_actual_catalogue(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = ModuleCatalogue(directory)
             requests = []
 
-            def first(request, timeout):
+            def first(request, timeout: object):
                 requests.append(request)
                 return Response(catalogue())
 
             result = store.check(first)
             self.assertFalse(result["cached"])
 
-            def unchanged(request, timeout):
+            def unchanged(request, timeout: object) -> None:
                 self.assertEqual(request.get_header("If-none-match"), '"fixture"')
                 raise HTTPError(request.full_url, 304, "Not modified", {}, None)
 
             self.assertFalse(store.check(unchanged)["cached"])
             original = store.path.read_bytes()
 
-            def offline(*args, **kwargs):
+            def offline(*args: object, **kwargs: object) -> None:
                 raise OSError("fixture offline")
 
             saved = store.check(offline)
@@ -115,7 +121,7 @@ class ModuleUpdateTests(unittest.TestCase):
             self.assertEqual(saved["catalogue"]["modules"], [])
             self.assertEqual(store.path.read_bytes(), original)
 
-    def test_invalid_network_result_never_overwrites_valid_cache(self):
+    def test_invalid_network_result_never_overwrites_valid_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = ModuleCatalogue(directory)
             store.check(lambda *args, **kwargs: Response(catalogue()))
@@ -124,7 +130,7 @@ class ModuleUpdateTests(unittest.TestCase):
             self.assertTrue(result["cached"])
             self.assertEqual(store.path.read_bytes(), original)
 
-    def test_id_or_newer_version_never_proves_edition_identity(self):
+    def test_id_or_newer_version_never_proves_edition_identity(self) -> None:
         from bible.module_updates import InstalledModule
 
         installed = InstalledModule(
@@ -146,7 +152,7 @@ class ModuleUpdateTests(unittest.TestCase):
         )
         self.assertEqual(assessment(installed, parse_catalogue(catalogue())), "no-curated-edition")
 
-    def test_removed_snapshot_cache_is_not_consumed_or_rewritten(self):
+    def test_removed_snapshot_cache_is_not_consumed_or_rewritten(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = ModuleCatalogue(directory)
             store.path.write_text(
@@ -161,7 +167,7 @@ class ModuleUpdateTests(unittest.TestCase):
             )
             original = store.path.read_bytes()
 
-            def unavailable(request, timeout):
+            def unavailable(request, timeout: object) -> None:
                 self.assertNotIn("If-none-match", dict(request.header_items()))
                 self.assertEqual(
                     request.full_url,
@@ -173,10 +179,10 @@ class ModuleUpdateTests(unittest.TestCase):
                 store.check(unavailable)
             self.assertEqual(store.path.read_bytes(), original)
 
-    def test_no_cache_network_failure_is_not_reported_as_current(self):
+    def test_no_cache_network_failure_is_not_reported_as_current(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
 
-            def offline(*args, **kwargs):
+            def offline(*args: object, **kwargs: object) -> None:
                 raise OSError("fixture offline")
 
             with self.assertRaises(OSError):

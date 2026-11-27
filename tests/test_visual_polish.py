@@ -1,5 +1,7 @@
 """Regression contracts for the coordinated reader controls (#64/#66/#69)."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,13 +12,13 @@ from tests.test_ui import installed_fixture, spin
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class VisualPolishTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
 
-    def test_pane_choosers_keep_tabs_data_and_verified_mapping(self):
+    def test_pane_choosers_keep_tabs_data_and_verified_mapping(self) -> None:
         from unittest.mock import patch
 
         self.enterContext(
@@ -83,7 +85,7 @@ class VisualPolishTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_active_palette_pair_switches_without_losing_saved_other_pair(self):
+    def test_active_palette_pair_switches_without_losing_saved_other_pair(self) -> None:
         from bible.ui import Window, Library
         from tests.test_appearance import SystemStyleOverride
 

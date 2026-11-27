@@ -1,5 +1,7 @@
 """Real CrossWire catalogue and bounded, atomic resource installation."""
 
+from __future__ import annotations
+
 import configparser
 import hashlib
 import io
@@ -17,6 +19,16 @@ import zipfile
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from concurrent.futures import as_completed
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from http.client import HTTPResponse
+from os import PathLike
+from typing import TYPE_CHECKING, BinaryIO, TypedDict, cast
+
+if TYPE_CHECKING:
+    from collections import OrderedDict
+    from .sword_provider import Reader
+    from .providers import Provider
+    from .catalogue_cache import CatalogueCache
 from .providers import CROSSWIRE, PROVIDERS, DEFAULT_PROVIDERS, BY_ID, identity, module_name
 
 BASE = "https://www.crosswire.org/ftpmirror/pub/sword/"
@@ -54,7 +66,7 @@ class Resource:
     text_source: str = ""
 
     @property
-    def public_code(self):
+    def public_code(self) -> str:
         """Return a bounded source abbreviation, suppressing generated/private-looking identifiers."""
         value = self.abbreviation
         if not isinstance(value, str) or len(value) > 40 or any(ord(c) < 32 for c in value):
@@ -66,16 +78,16 @@ class Resource:
         return value
 
     @property
-    def short_label(self):
+    def short_label(self) -> str:
         """One public label for tabs and choosers; internal IDs stay internal."""
         return self.public_code or self.description or self.source
 
     @property
-    def id(self):
+    def id(self) -> str:
         return identity(self.provider_id, self.name)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """Classify supported module drivers without opening native resource handles."""
         if self.driver in DICTIONARY_DRIVERS:
             return "dictionary"
@@ -88,7 +100,7 @@ class Resource:
         )
 
     @property
-    def installable(self):
+    def installable(self) -> bool:
         """Report supported unencrypted content, requiring a declared offline URL for YouVersion."""
         if self.provider_id == "youversion":
             try:
@@ -104,7 +116,11 @@ class Resource:
         )
 
 
-def resource_from_section(name, section, provider=CROSSWIRE):
+def resource_from_section(
+    name: str,
+    section: Mapping[str, str | None],
+    provider: Provider = CROSSWIRE,
+) -> Resource:
     # Keep provider statements, including unknown/restrictive licenses. Listing a
     # translation does not grant redistribution rights over its contents.
     """Project SWORD metadata while retaining repeated source/legal statements verbatim."""
@@ -139,7 +155,7 @@ def resource_from_section(name, section, provider=CROSSWIRE):
     )
 
 
-def config(data):
+def config(data: bytes) -> configparser.ConfigParser:
     # SWORD FileMgr::getLine joins physical lines ending in backslash.
     # Its configuration also permits bare keys and repeated entries.
     """Parse SWORD continuations/bare keys and retain repeated legal metadata.
@@ -167,7 +183,8 @@ def config(data):
         raise ValueError("Invalid resource configuration: " + str(error)) from error
     # Preserve repeated legal statements; ConfigParser normally keeps only the
     # final occurrence, whereas SWORD permits repeated configuration keys.
-    legal, section = {}, None
+    legal: dict[tuple[str, str], list[str]] = {}
+    section: str | None = None
     for line in logical_lines:
         if line.strip().startswith("[") and line.strip().endswith("]"):
             section = line.strip()[1:-1]
@@ -187,22 +204,24 @@ def config(data):
     return parser
 
 
-def safe_path(name):
+def safe_path(name: str) -> PurePosixPath:
+    """Reject absolute/traversing archive paths before any filesystem operation."""
     path = PurePosixPath(name)
     if path.is_absolute() or ".." in path.parts or "\\" in name or "\x00" in name:
         raise ValueError("Unsafe archive path")
     return path
 
 
-def file_sha256(path):
+def file_sha256(path: str | PathLike[str]) -> str:
+    """Hash exact file bytes without loading the whole resource into memory."""
     with Path(path).open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def source_fingerprints(root):
+def source_fingerprints(root: str | PathLike[str]) -> dict[str, str]:
     """Hash owned payload files, excluding receipts/markers and refusing symbolic links."""
     root = Path(root)
-    result = {}
+    result: dict[str, str] = {}
     for path in root.rglob("*"):
         if path.is_symlink():
             raise ValueError("Symbolic links cannot be managed as owned module files")
@@ -211,7 +230,11 @@ def source_fingerprints(root):
     return result
 
 
-def compatible_notices(expected, actual, section):
+def compatible_notices(
+    expected: Resource,
+    actual: Resource,
+    section: Mapping[str, str | None],
+) -> bool:
     """Recognize Haiola's generated revision dates; keep raw legal notices."""
     fields = ("license", "conditions", "about", "author")
     if all(getattr(expected, key) == getattr(actual, key) for key in fields):
@@ -232,7 +255,7 @@ def compatible_notices(expected, actual, section):
     if bodies[0] != bodies[1]:
         return False
 
-    def conditions(value, date):
+    def conditions(value: str, date: str) -> str:
         # Only CopyrightNotes' terminal date may mirror About's revision date.
         # CopyrightDate, holders, licenses, restrictions and all prose stay exact.
         return re.sub(r"(?m)^(copyrightnotes:.*) +" + re.escape(date) + r"$", r"\1", value)
@@ -241,14 +264,14 @@ def compatible_notices(expected, actual, section):
 
 
 def download(
-    url,
-    destination,
-    progress=lambda done, total: None,
-    limit=MAX_ARCHIVE,
-    headers=None,
-    response_headers=None,
-    same_origin=False,
-):
+    url: str,
+    destination: BinaryIO,
+    progress: Callable[[int, int], object] = lambda done, total: None,
+    limit: int = MAX_ARCHIVE,
+    headers: Mapping[str, str] | None = None,
+    response_headers: dict[str, str] | None = None,
+    same_origin: bool = False,
+) -> None:
     """Stream a bounded HTTPS response into a caller-owned writable destination.
 
     Progress reports received bytes and the declared total, or0 when unknown.
@@ -259,19 +282,21 @@ def download(
     request = urllib.request.Request(
         url, headers={"User-Agent": "Bible-prototype/0.1", **(headers or {})}
     )
-    opener = urllib.request.urlopen
+    opener: Callable[..., HTTPResponse] = urllib.request.urlopen
     if same_origin:
         from .youversion_install import SourceRedirect, open_response
 
         open_source = urllib.request.build_opener(SourceRedirect()).open
-        opener = lambda request, timeout: open_response(open_source, request, lambda: False)
+        opener = lambda request, timeout: cast(
+            "HTTPResponse", open_response(open_source, request, lambda: False)
+        )
     with opener(request, timeout=30) as response:
         if not response.url.startswith("https://"):
             raise ValueError("HTTPS required")
         if response_headers is not None:
             response_headers.update(
                 {
-                    key: response.headers[key]
+                    key: cast("str", response.headers[key])
                     for key in ("ETag", "Last-Modified")
                     if response.headers.get(key)
                 }
@@ -301,7 +326,28 @@ def download(
             raise ValueError("Incomplete download")
 
 
-def catalogue(provider=CROSSWIRE, timings=None, validators=None):
+class CatalogueTimings(TypedDict, total=False):
+    """Existing optional provider diagnostics, including opaque source metadata."""
+
+    cached: bool
+    updated: float
+    requests: int
+    metadata_bytes: int
+    validators: dict[str, str]
+    http_status: int
+    network_seconds: float
+    parse_seconds: float
+    cache_error: str
+    edition_errors: dict[str, str]
+    source_languages: dict[str, dict[str, object]]
+    source_loaded_tags: list[str]
+
+
+def catalogue(
+    provider: Provider = CROSSWIRE,
+    timings: CatalogueTimings | None = None,
+    validators: Mapping[str, str] | None = None,
+) -> list[Resource]:
     """Fetch/parse one implemented provider with optional validators and timing results."""
     started = time.monotonic()
     data = io.BytesIO()
@@ -310,19 +356,19 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
     if provider.id == "youversion":
         from .youversion_install import catalogue as editions
 
-        return editions(timings)
+        return cast("list[Resource]", editions(timings))
     if provider.id == "bible-resources":
         from .curated_catalogue import catalogue as curated
 
         return curated(provider, timings, validators)
-    response_headers = {}
+    response_headers: dict[str, str] = {}
     headers = {
         name: validators[key]
         for key, name in [("ETag", "If-None-Match"), ("Last-Modified", "If-Modified-Since")]
         if validators and key in validators
     }
     if timings is not None:
-        timings.update(requests=1, metadata_bytes=0)
+        timings.update({"requests": 1, "metadata_bytes": 0})
     try:
         download(
             provider.catalogue_url,
@@ -333,21 +379,25 @@ def catalogue(provider=CROSSWIRE, timings=None, validators=None):
         )
     finally:
         if timings is not None:
-            timings.update(metadata_bytes=data.tell(), network_seconds=time.monotonic() - started)
+            timings.update(
+                {"metadata_bytes": data.tell(), "network_seconds": time.monotonic() - started}
+            )
     received = time.monotonic()
     resources = parse_sword_catalogue(data.getvalue(), provider)
     if timings is not None:
         timings.update(
-            network_seconds=received - started,
-            parse_seconds=time.monotonic() - received,
-            metadata_bytes=len(data.getvalue()),
-            http_status=200,
-            validators=response_headers,
+            {
+                "network_seconds": received - started,
+                "parse_seconds": time.monotonic() - received,
+                "metadata_bytes": len(data.getvalue()),
+                "http_status": 200,
+                "validators": response_headers,
+            }
         )
     return resources
 
 
-def parse_sword_catalogue(data, provider=CROSSWIRE):
+def parse_sword_catalogue(data: bytes, provider: Provider = CROSSWIRE) -> list[Resource]:
     """Read bounded configuration members without extracting an untrusted catalogue archive."""
     resources = []
     expanded = 0
@@ -360,7 +410,7 @@ def parse_sword_catalogue(data, provider=CROSSWIRE):
             expanded += member.size
             if expanded > MAX_UNPACKED:
                 raise ValueError("Catalogue too large")
-            parser = config(archive.extractfile(member).read())
+            parser = config(cast("BinaryIO", archive.extractfile(member)).read())
             for name in parser.sections():
                 section = parser[name]
                 if re.fullmatch(r"[A-Za-z0-9_-]+", name) and (
@@ -379,16 +429,22 @@ def parse_sword_catalogue(data, provider=CROSSWIRE):
 class CatalogueResult:
     """Aggregated provider resources together with source errors and timing metadata."""
 
-    resources: tuple
-    errors: dict
+    resources: tuple[Resource, ...]
+    errors: dict[str, str]
 
 
-def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=True):
+def catalogues(
+    providers: Iterable[Provider] = DEFAULT_PROVIDERS,
+    on_provider: Callable[[Provider, Sequence[Resource], str | None, CatalogueTimings], None]
+    | None = None,
+    cache: CatalogueCache | None = None,
+    force: bool = True,
+) -> CatalogueResult:
     """One unavailable provider must not discard successful catalogues."""
 
-    def load(provider):
+    def load(provider: Provider) -> tuple[Sequence[Resource], str | None, CatalogueTimings]:
         started = time.monotonic()
-        timings = {}
+        timings: CatalogueTimings = {}
         cached = cache.read(provider) if cache else None
         if cached and not force and time.time() - cached[1] < 15 * 60:
             return (
@@ -422,6 +478,7 @@ def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=
                 isinstance(error, urllib.error.HTTPError)
                 and error.code == 304
                 and cached
+                and cache
                 and error.geturl().startswith("https://")
             ):
                 try:
@@ -429,15 +486,18 @@ def catalogues(providers=DEFAULT_PROVIDERS, on_provider=None, cache=None, force=
                 except OSError as write_error:
                     timings["cache_error"] = str(write_error)
                 timings.update(
-                    http_status=304,
-                    requests=1,
-                    metadata_bytes=0,
-                    network_seconds=time.monotonic() - started,
+                    {
+                        "http_status": 304,
+                        "requests": 1,
+                        "metadata_bytes": 0,
+                        "network_seconds": time.monotonic() - started,
+                    }
                 )
                 return cached[0], None, timings
             return cached[0] if cached else [], str(error), timings
 
-    resources, errors = [], {}
+    resources: list[Resource] = []
+    errors: dict[str, str] = {}
     from .metadata_workers import MetadataExecutor
 
     with MetadataExecutor(max_workers=4, thread_name_prefix="bible-catalogue") as executor:
@@ -465,14 +525,17 @@ class Library:
     not replaced by the initial-install path.
     """
 
-    def __init__(self, root):
+    # Optional, lazily created origin-reader pool; no native handles at startup.
+    _annotation_readers: OrderedDict[str, tuple[tuple[int, int], Reader]]
+
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         from .module_lifecycle import ModuleLifecycle
 
         self.recovery_errors = ModuleLifecycle(self).recover()
 
-    def installed(self, kind=None):
+    def installed(self, kind: str | None = None) -> list[str]:
         """List completed installations, optionally validating kind and collecting per-item errors."""
         names = sorted(
             p.name
@@ -491,7 +554,7 @@ class Library:
                 self.discovery_errors[name] = str(error)
         return matching
 
-    def resource(self, name):
+    def resource(self, name: str) -> Resource:
         """Read installed attribution offline, also for pre-existing installations."""
         if name not in self.installed():
             raise ValueError("Translation is not installed")
@@ -500,7 +563,7 @@ class Library:
             raise ValueError("Expected one resource configuration")
         metadata_path = self.root / name / ".source.json"
 
-        def revision(path):
+        def revision(path: Path) -> tuple[int, int, int, int, int] | None:
             try:
                 info = path.stat()
             except FileNotFoundError:
@@ -513,7 +576,9 @@ class Library:
 
     @staticmethod
     @lru_cache(maxsize=128)
-    def _read_resource(name, configuration, metadata_path, revision):
+    def _read_resource(
+        name: str, configuration: Path, metadata_path: Path, revision: object
+    ) -> Resource:
         # Cache immutable attribution only, never Readers or library instances.
         # Native file revisions invalidate both configuration and provenance;
         # installation checks above still reject missing/removed resources.
@@ -555,14 +620,14 @@ class Library:
 
     def install(
         self,
-        resource,
-        progress=lambda done, total: None,
-        installing=lambda: None,
+        resource: Resource,
+        progress: Callable[[int, int], object] = lambda done, total: None,
+        installing: Callable[[], None] = lambda: None,
         *,
-        cancelled=lambda: False,
-        phase=lambda name, done, total: None,
-        permission=None,
-    ):
+        cancelled: Callable[[], bool] = lambda: False,
+        phase: Callable[[str, int, int], None] = lambda name, done, total: None,
+        permission: str | None = None,
+    ) -> None:
         """Serialize a validated initial install under the module-operation lock.
 
         Callbacks run on the calling thread. GTK callers must offload blocking
@@ -582,7 +647,16 @@ class Library:
                 permission=permission,
             )
 
-    def _install(self, resource, progress, installing, *, cancelled, phase, permission):
+    def _install(
+        self,
+        resource: Resource,
+        progress: Callable[[int, int], object],
+        installing: Callable[[], None],
+        *,
+        cancelled: Callable[[], bool],
+        phase: Callable[[str, int, int], None],
+        permission: str | None,
+    ) -> None:
         """Validate provider, archive, notices and native readability before publishing staged files."""
         provider = BY_ID.get(resource.provider_id)
         if (
@@ -612,7 +686,7 @@ class Library:
             if cancelled():
                 raise InterruptedError("Download cancelled")
 
-            def transferred(done, total):
+            def transferred(done: int, total: int) -> None:
                 if cancelled():
                     raise InterruptedError("Download cancelled")
                 progress(done, total)
@@ -707,7 +781,7 @@ class Library:
                 )
                 first = reader.first_reference()
                 if actual.kind == "commentary":
-                    if not reader.entry(first, reader.versification):
+                    if not cast("CommentaryReader", reader).entry(first, reader.versification):
                         raise ValueError("No readable commentary entry in resource")
                 elif not any(text.strip() for _, text in reader.chapter(first).verses):
                     raise ValueError("No readable chapter in resource")

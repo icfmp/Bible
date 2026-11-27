@@ -1,5 +1,10 @@
 """Pinned OpenBible relationships: bounded parsing and atomic offline indexing."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Iterator
+from os import PathLike
+from typing import cast
 from dataclasses import dataclass
 from contextlib import closing
 from datetime import date, datetime, timezone
@@ -19,7 +24,7 @@ import zipfile
 SOURCE_URL = "https://www.openbible.info/labs/cross-references/"
 DOWNLOAD_URL = "https://a.openbible.info/data/cross-references.zip"
 LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
-from .study_catalogue import StudyCatalogue, BUNDLED, parse as parse_catalogue
+from .study_catalogue import ResourceRevision, StudyCatalogue, BUNDLED, parse as parse_catalogue
 
 _DEFAULT = parse_catalogue(BUNDLED.read_bytes())["openbible-cross-references"]
 ARCHIVE_SHA256 = _DEFAULT.sha256
@@ -43,7 +48,7 @@ class ReferenceDataError(ValueError):
     pass
 
 
-def generation_date(value, prefix, suffix=""):
+def generation_date(value: str, prefix: str, suffix: str = "") -> str:
     """Validate the actual archive generation header and return its ISO date."""
     if not value.startswith(prefix) or suffix and not value.endswith(suffix):
         raise ReferenceDataError("Unsupported dataset generation header")
@@ -56,7 +61,10 @@ def generation_date(value, prefix, suffix=""):
     return text
 
 
-def archive_generation(path, filename, header_parser):
+def archive_generation(
+    path: str | PathLike[str], filename: str, header_parser: Callable[[list[str]], str]
+) -> str:
+    """Read a bounded archive header through the selected source-format validator."""
     try:
         with zipfile.ZipFile(path) as archive, archive.open(filename) as source:
             line = source.readline(1024).decode("utf-8-sig").rstrip("\r\n")
@@ -65,31 +73,33 @@ def archive_generation(path, filename, header_parser):
         raise ReferenceDataError("Unsupported dataset archive") from error
 
 
-def reference_header(header):
+def reference_header(header: list[str]) -> str:
+    """Require the existing relationship-column header and source generation date."""
     if len(header) != 4 or header[:3] != ["From Verse", "To Verse", "Votes"]:
         raise ReferenceDataError("Unsupported reference data header")
     return generation_date(header[3], "#www.openbible.info CC-BY ")
 
 
 @lru_cache(maxsize=1)
-def canon():
+def canon() -> dict[str, list[int]]:
+    """Load the bundled address-validation inventory with the documented source ending."""
     # Publisher's pinned parser default agrees with KJV chapter sizes except
     # 3 John. See source audit; these counts validate addresses, not quotations.
     result = json.loads(
         Path(__file__).with_name("versification_data").joinpath("KJV.json").read_text()
     )["canon"]
     result["3John"] = [15]
-    return result
+    return cast("dict[str, list[int]]", result)
 
 
-def reference_key(reference):
+def reference_key(reference: str) -> int:
     """Validate an explicit source-canon address and return its sortable book/chapter/verse key."""
     if not isinstance(reference, str) or not re.fullmatch(
         r"[1-3]?[A-Za-z]+\.[1-9][0-9]{0,2}\.[1-9][0-9]{0,2}", reference
     ):
         raise ReferenceDataError("Invalid relationship reference")
-    book, chapter, verse = reference.split(".")
-    chapter, verse = int(chapter), int(verse)
+    book, chapter_text, verse_text = reference.split(".")
+    chapter, verse = int(chapter_text), int(verse_text)
     books = canon()
     if book not in books or chapter > len(books[book]) or verse > books[book][chapter - 1]:
         raise ReferenceDataError(
@@ -98,7 +108,7 @@ def reference_key(reference):
     return list(books).index(book) * 1000000 + chapter * 1000 + verse
 
 
-def reference_span(start, end):
+def reference_span(start: str, end: str) -> Iterator[str]:
     """Enumerate the verified dataset canon, including its split 3 John ending."""
     if reference_key(start) > reference_key(end):
         raise ReferenceDataError("Reversed relationship range")
@@ -121,7 +131,7 @@ def reference_span(start, end):
                 yield f"{book}.{chapter}.{verse}"
 
 
-def parse_archive(path):
+def parse_archive(path: str | PathLike[str]) -> Iterator[tuple[str, str, str, int, int]]:
     """Yield strictly validated rows without extracting archive paths."""
     path = Path(path)
     if path.stat().st_size > MAX_ARCHIVE:
@@ -140,8 +150,8 @@ def parse_archive(path):
             or entry.file_size > MAX_TEXT
         ):
             raise ReferenceDataError("Unsupported reference archive layout")
-        with archive.open(entry) as source:
-            raw = source.read(MAX_TEXT + 1)
+        with archive.open(entry) as raw_source:
+            raw = raw_source.read(MAX_TEXT + 1)
         if len(raw) > MAX_TEXT:
             raise ReferenceDataError("Expanded reference data is too large")
     source = io.StringIO(raw.decode("utf-8-sig"))
@@ -184,22 +194,23 @@ class Relationship:
 class ReferenceData:
     """Validate and locally index existing OpenBible relationships without storing or creating Bible text."""
 
-    def __init__(self, root):
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.root = Path(root)
         self.catalogue = StudyCatalogue(root)
         self.path = self.root / "openbible-cross-references.sqlite3"
-        self._metadata_revision = None
-        self._metadata = None
+        self._metadata_revision: tuple[int, int, int] | None = None
+        self._metadata: dict[str, object] | None = None
 
     @property
-    def revision(self):
+    def revision(self) -> tuple[int, int, int] | None:
         try:
             info = self.path.stat()
             return info.st_ino, info.st_mtime_ns, info.st_size
         except FileNotFoundError:
             return None
 
-    def connect(self):
+    def connect(self) -> sqlite3.Connection:
+        """Open a bounded existing index read-only; ownership passes to the caller."""
         if not self.path.is_file():
             raise ReferenceDataError("Reference data is not installed")
         if self.path.stat().st_size > MAX_DATABASE:
@@ -208,7 +219,7 @@ class ReferenceData:
         connection.execute("PRAGMA query_only=ON")
         return connection
 
-    def metadata(self):
+    def metadata(self) -> dict[str, object]:
         """Check installed index integrity/provenance and cache metadata by file revision.
 
         Invalid metadata raises ReferenceDataError rather than presenting the
@@ -216,7 +227,11 @@ class ReferenceData:
         """
         try:
             revision = self.revision
-            if revision is not None and revision == self._metadata_revision:
+            if (
+                revision is not None
+                and revision == self._metadata_revision
+                and self._metadata is not None
+            ):
                 return dict(self._metadata)
             with closing(self.connect()) as connection:
                 metadata = json.loads(
@@ -242,8 +257,12 @@ class ReferenceData:
             raise ReferenceDataError(str(error)) from error
 
     def install(
-        self, progress=lambda done, total: None, installing=lambda: None, *, expected_revision=""
-    ):
+        self,
+        progress: Callable[[int, int], object] = lambda done, total: None,
+        installing: Callable[[], object] = lambda: None,
+        *,
+        expected_revision: str = "",
+    ) -> dict[str, object]:
         """Use checked catalogue metadata and a verified staged archive to replace the local relationship index.
 
         Reject changed expected revisions and stale offline metadata that would
@@ -281,7 +300,9 @@ class ReferenceData:
             installing()
             return self.install_archive(archive, revision=revision)
 
-    def install_archive(self, archive, *, revision=None):
+    def install_archive(
+        self, archive: str | PathLike[str], *, revision: ResourceRevision | None = None
+    ) -> dict[str, object]:
         """Verify even local test/integration input; never accept an unpinned update."""
         archive = Path(archive)
         expected = revision.sha256 if revision else ARCHIVE_SHA256
@@ -313,7 +334,7 @@ class ReferenceData:
                 )
                 connection.execute("CREATE INDEX relationships_origin ON relationships(origin)")
                 count = connection.execute("SELECT count(*) FROM relationships").fetchone()[0]
-                metadata = dict(
+                metadata: dict[str, object] = dict(
                     schema=1,
                     source="OpenBible.info",
                     source_url=SOURCE_URL,
@@ -340,7 +361,7 @@ class ReferenceData:
             os.replace(candidate, self.path)
         return metadata
 
-    def query(self, origins):
+    def query(self, origins: Iterable[str]) -> list[Relationship]:
         """Aggregate actual relationships for up to 1,000 validated source addresses, ordered by recorded scores."""
         origins = sorted(set(origins))
         if len(origins) > 1000:

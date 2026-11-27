@@ -1,5 +1,7 @@
 """Study typography, adaptive width, canonical context and draft identity."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -8,7 +10,7 @@ from bible.study_settings import StudySettings
 
 
 class StudySettingsTests(unittest.TestCase):
-    def test_atomic_preferences_and_preserved_unsupported_file(self):
+    def test_atomic_preferences_and_preserved_unsupported_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "study-preferences.json"
             settings = StudySettings(path)
@@ -38,7 +40,7 @@ class PassageStudyTests(unittest.TestCase):
         window.present()
         return window
 
-    def test_fixed_commentary_typography_and_saved_width_under_narrow_clamping(self):
+    def test_fixed_commentary_typography_and_saved_width_under_narrow_clamping(self) -> None:
         from tests.test_ui import installed_fixture, spin
         from tests.test_commentary import commentary_fixture
         from gi.repository import Gdk
@@ -97,7 +99,7 @@ class PassageStudyTests(unittest.TestCase):
             finally:
                 restored.close()
 
-    def test_contextual_range_notes_highlights_and_captured_draft_across_sources(self):
+    def test_contextual_range_notes_highlights_and_captured_draft_across_sources(self) -> None:
         from tests.test_ui import installed_fixture, spin
         from bible.notes_window import buffer_text
 
@@ -160,7 +162,7 @@ class PassageStudyTests(unittest.TestCase):
             finally:
                 restored.close()
 
-    def test_tool_switching_stops_hidden_commentary_following(self):
+    def test_tool_switching_stops_hidden_commentary_following(self) -> None:
         from tests.test_ui import installed_fixture, spin
         from tests.test_commentary import commentary_fixture
 

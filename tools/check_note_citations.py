@@ -1,5 +1,7 @@
 """Real offline GTK note citations; disposable profile and installed Bible only."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -21,7 +23,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -44,10 +46,10 @@ def main():
         accessibility="Deferred; not tested",
     )
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not w.active_tab._restoring_scroll, duration=0.3)
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 
@@ -56,7 +58,7 @@ def main():
             spin()
             ImageGrab.grab().save(args.captures / (name + ".png"))
 
-    def click_citation(preview, index):
+    def click_citation(preview, index) -> None:
         citation = preview.citations[index]
         rect = preview.get_iter_location(
             preview.get_buffer().get_iter_at_offset(citation.begin + 1)
@@ -111,7 +113,7 @@ def main():
         # A drag still selects native preview text; it must not open a link.
         first = preview.citations[0]
 
-        def pointer(offset):
+        def pointer(offset) -> None:
             rect = preview.get_iter_location(preview.get_buffer().get_iter_at_offset(offset))
             x, y = preview.buffer_to_window_coords(Gtk.TextWindowType.WIDGET, rect.x, rect.y)
             native.move_at(preview, x + 1, y + rect.height / 2)

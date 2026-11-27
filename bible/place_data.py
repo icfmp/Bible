@@ -1,5 +1,7 @@
 """Pinned OpenBible place evidence and real offline coastlines, never Bible text."""
 
+from __future__ import annotations
+
 from contextlib import closing
 from datetime import datetime, timezone
 import hashlib
@@ -195,7 +197,7 @@ def candidates(place, modern):
     return result
 
 
-def status(values):
+def status(values) -> str:
     """Conservative labels from supplied evidence, never invented certainty."""
     located = [v for v in values if v["longitude"] is not None]
     if not located:
@@ -221,7 +223,7 @@ def status(values):
 class PlaceData:
     """Index existing pinned place evidence and supplied coastline geometry for local queries."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.path = self.root / "openbible-places.sqlite3"
         self._metadata_revision = None

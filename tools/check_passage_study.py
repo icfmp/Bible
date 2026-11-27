@@ -1,5 +1,7 @@
 """Actual GTK input and source fidelity for #44/#60; disposable profile only."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -8,7 +10,7 @@ from pathlib import Path
 from tests.test_ui import spin
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -31,13 +33,13 @@ def main():
     window.present()
     report = dict(app_import=inspect.getfile(Window), accessibility="Deferred; not tested")
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not window.active_tab._restoring_scroll and not window.study._positioning,
             duration=0.2,
         )
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 

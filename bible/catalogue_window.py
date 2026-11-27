@@ -1,5 +1,7 @@
 """Catalogue/download UI kept separate from the reading surface."""
 
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from threading import Event
@@ -25,7 +27,7 @@ from .languages import canonical_language, language_order
 class ResourceItem(GObject.Object):
     """Native list-model wrapper for existing provider resource metadata."""
 
-    def __init__(self, resource):
+    def __init__(self, resource) -> None:
         super().__init__()
         self.resource = resource
 
@@ -42,7 +44,7 @@ class MetadataLabel(Gtk.Label):
 class CatalogueWindow(Adw.Window):
     """Present shared catalogue/inventory data and coordinate a single resumable resource-operation queue."""
 
-    def __init__(self, parent, library, on_installed):
+    def __init__(self, parent, library, on_installed) -> None:
         super().__init__(
             transient_for=parent,
             modal=True,
@@ -161,7 +163,7 @@ class CatalogueWindow(Adw.Window):
         menu.append(tr("Installed module information"), "catalogue.module-info")
         information = Gio.SimpleAction.new("module-info", None)
 
-        def module_info(*_):
+        def module_info(*_: object) -> None:
             from .module_updates_window import ModuleUpdatesWindow
 
             ModuleUpdatesWindow(self, self.library).present()
@@ -503,7 +505,7 @@ class CatalogueWindow(Adw.Window):
     def busy(self):
         return self._transfer_busy or self.refreshing or self.preparing or self._building_rows
 
-    def adopt_owner(self, parent):
+    def adopt_owner(self, parent) -> None:
         """Transfer a reusable Library window to a live same-profile owner and its shared session."""
         previous = self.owner
         if previous is parent:
@@ -523,11 +525,11 @@ class CatalogueWindow(Adw.Window):
         parent.catalogue_session = self.session
         self.set_transient_for(parent)
 
-    def snapshot_ready(self, snapshot):
+    def snapshot_ready(self, snapshot) -> None:
         # The service publishes plain immutable snapshots from metadata workers.
         GLib.idle_add(self.apply_snapshot, snapshot)
 
-    def apply_snapshot(self, snapshot):
+    def apply_snapshot(self, snapshot) -> bool:
         """Apply only current shared metadata generations and refresh affected inventory/filter state."""
         if self.closed or snapshot.generation < self._refresh_generation:
             return False
@@ -566,13 +568,13 @@ class CatalogueWindow(Adw.Window):
             GLib.idle_add(self.auto_load)
         return False
 
-    def clear_filters(self, *_):
+    def clear_filters(self, *_: object) -> None:
         self.search.set_text("")
         self.source_filter.set_selected(0)
         self.language.set_selected(0)
         self.filter_resources()
 
-    def update_result_state(self, rows=None):
+    def update_result_state(self, rows=None) -> None:
         """Distinguish saved rows, active loading, partial-source errors and genuinely complete empty results."""
         if not hasattr(self, "refresh_status"):
             return
@@ -683,7 +685,7 @@ class CatalogueWindow(Adw.Window):
             self.skeleton.set_opacity(1)
         if pending and not self._loading_tick:
 
-            def pulse(widget, clock):
+            def pulse(widget: object, clock) -> bool:
                 if self.closed or not self.catalogue_progress.get_visible():
                     self.skeleton.set_opacity(1)
                     self._loading_tick = 0
@@ -702,7 +704,7 @@ class CatalogueWindow(Adw.Window):
 
             self._loading_tick = self.catalogue_progress.add_tick_callback(pulse)
 
-    def auto_load(self, *_):
+    def auto_load(self, *_: object) -> bool:
         """Request initial metadata only when mapped, eligible and enabled by the saved refresh preference."""
         if self.kind.get_selected() == 2:
             return False
@@ -715,7 +717,7 @@ class CatalogueWindow(Adw.Window):
             self.load_catalogue(force=False)
         return False
 
-    def setup_resource_row(self, _, item):
+    def setup_resource_row(self, _: object, item) -> None:
         """Create native reusable resource-row controls; activation resolves the current bound resource."""
         box = Gtk.Box(spacing=10, margin_start=12, margin_end=12, margin_top=10, margin_bottom=10)
         labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, hexpand=True)
@@ -760,7 +762,7 @@ class CatalogueWindow(Adw.Window):
         box.append(item.state)
         item.set_child(box)
 
-    def bind_resource_row(self, _, item):
+    def bind_resource_row(self, _: object, item) -> None:
         """Bind current install/update/queue state without conflating independent Read and Update actions."""
         resource = item.get_item().resource
         self._bound_rows[item] = resource
@@ -869,12 +871,12 @@ class CatalogueWindow(Adw.Window):
             + resource.language
         )
 
-    def refresh_rows(self):
+    def refresh_rows(self) -> None:
         for item in list(self._bound_rows):
             if item.get_item():
                 self.bind_resource_row(None, item)
 
-    def row_action(self, resource):
+    def row_action(self, resource) -> None:
         """Cancel a queued request first, otherwise open an installed resource or request its installation."""
         if self.cancel_queued(resource.id):
             return
@@ -885,12 +887,12 @@ class CatalogueWindow(Adw.Window):
         else:
             self.install(resource=resource)
 
-    def download_action(self, *_):
+    def download_action(self, *_: object) -> None:
         resource = self.selected_resource()
         if resource and not self.cancel_queued(resource.id):
             self.install(resource=resource)
 
-    def cancel_queued(self, identifier):
+    def cancel_queued(self, identifier) -> bool:
         """Cancel/dismiss the actual pending metadata, review or persistent queue request for one resource."""
         if identifier in self._study_requests:
             self._study_requests.pop(identifier).cancel()
@@ -938,7 +940,7 @@ class CatalogueWindow(Adw.Window):
             and resource.id not in self._installed_metadata
         )
 
-    def queue_error(self, error):
+    def queue_error(self, error) -> None:
         self._queue_problem = str(error)
         self.status.set_text(
             tr("The download queue is unavailable. Existing resources were preserved.")
@@ -947,12 +949,12 @@ class CatalogueWindow(Adw.Window):
         )
         self.status.set_visible(True)
 
-    def queue_changed(self):
+    def queue_changed(self) -> None:
         self._queue_revision += 1
         self.filter_resources()
         self.refresh_controls()
 
-    def queue_request(self, resource, permission=None, operation="install"):
+    def queue_request(self, resource, permission=None, operation="install") -> None:
         """Persist a request in the shared queue and expose conflicts/errors without starting duplicate work."""
         from .download_queue import QueueConflict
 
@@ -968,7 +970,7 @@ class CatalogueWindow(Adw.Window):
         self._queue_problem = None
         self.queue_changed()
 
-    def resume_queue(self, *_):
+    def resume_queue(self, *_: object) -> None:
         try:
             self.downloads.resume()
         except (OSError, ValueError) as error:
@@ -977,7 +979,7 @@ class CatalogueWindow(Adw.Window):
         self._queue_problem = None
         self.queue_changed()
 
-    def start_queued(self):
+    def start_queued(self) -> bool:
         """Start one eligible queued operation and settle already-current or failed requests safely."""
         self._queue_tick = 0
         if (
@@ -1036,7 +1038,7 @@ class CatalogueWindow(Adw.Window):
             self.queue_changed()
         return False
 
-    def read_resource(self, resource):
+    def read_resource(self, resource) -> None:
         """Open an installed resource in its captured reading destination, retaining stale-tab errors."""
         if not resource or resource.id not in self.installed_ids():
             return
@@ -1052,7 +1054,7 @@ class CatalogueWindow(Adw.Window):
         self.status.set_text(message)
         self.status.set_visible(True)
 
-    def open_details(self, _, index):
+    def open_details(self, _: object, index) -> None:
         """Open current resource details and asynchronously resolve a summarized source edition when needed."""
         self.dismiss_success_toast()
         self._list_position = self.list_scroll.get_vadjustment().get_value()
@@ -1070,7 +1072,7 @@ class CatalogueWindow(Adw.Window):
         ):
             self.load_edition_details(resource)
 
-    def reveal_study_resource(self, identifier):
+    def reveal_study_resource(self, identifier) -> None:
         """Reveal a requested installed study entry after bounded context-checked row preparation."""
         self.back_to_list()
         self.kind.set_selected(2)
@@ -1098,7 +1100,7 @@ class CatalogueWindow(Adw.Window):
 
         GLib.timeout_add(16, reveal)
 
-    def back_to_list(self, *_):
+    def back_to_list(self, *_: object) -> None:
         self.dismiss_success_toast()
         self.pages.set_visible_child_name("list")
         self.back_button.set_visible(False)
@@ -1132,7 +1134,7 @@ class CatalogueWindow(Adw.Window):
             and (provider_id is None or resource.provider_id == provider_id)
         ]
 
-    def update_languages(self, *_):
+    def update_languages(self, *_: object) -> None:
         """Refresh language/source filters from real inventory and candidate metadata without losing category queries."""
         study = self.kind.get_selected() == 2
         category = self.kind.get_selected()
@@ -1196,7 +1198,7 @@ class CatalogueWindow(Adw.Window):
             self._optional_requested = True
             self.load_catalogue(force=False)
 
-    def language_changed(self):
+    def language_changed(self) -> None:
         """Persist the explicit language choice and request only its eligible source metadata."""
         if self._filtering:
             return
@@ -1209,7 +1211,7 @@ class CatalogueWindow(Adw.Window):
         self.filter_resources()
         self.request_youversion_language()
 
-    def request_youversion_language(self, force=False):
+    def request_youversion_language(self, force: bool = False) -> None:
         """Request the selected source language only when the mapped view/preferences permit it."""
         if self.closed or not self.get_mapped() or self.kind.get_selected() != 0:
             return
@@ -1223,7 +1225,7 @@ class CatalogueWindow(Adw.Window):
         choice = self.language.codes[self.language.get_selected()]
         self.session.load_youversion_language(choice, force)
 
-    def filter_resources(self, *_):
+    def filter_resources(self, *_: object):
         """Filter/sort real resources while retaining selection/scroll and batching native row creation."""
         if self.closed:
             return False
@@ -1304,7 +1306,7 @@ class CatalogueWindow(Adw.Window):
         self.choice_model.remove_all()
         offset = 0
 
-        def append_rows():
+        def append_rows() -> bool:
             nonlocal offset
             if self.closed or generation != self._rows_generation:
                 return False
@@ -1351,7 +1353,7 @@ class CatalogueWindow(Adw.Window):
                 return cached[1]
         return resource
 
-    def load_edition_details(self, resource, finished=None):
+    def load_edition_details(self, resource, finished=None) -> None:
         """Coalesce source edition metadata requests and defer download review until validated completion."""
         from .youversion_install import fetch_resource
         from .youversion_editions import edition_id
@@ -1368,7 +1370,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_rows()
         self.refresh_controls()
 
-        def complete():
+        def complete() -> bool:
             self._edition_requests.pop(resource.id, None)
             if self.closed:
                 return False
@@ -1399,7 +1401,7 @@ class CatalogueWindow(Adw.Window):
 
         future.add_done_callback(lambda _: GLib.idle_add(complete))
 
-    def review_downloads(self):
+    def review_downloads(self) -> bool | None:
         """Process one deferred download review only while the window can present its permission dialog."""
         if (
             self.closed
@@ -1413,7 +1415,7 @@ class CatalogueWindow(Adw.Window):
         callback(resource)
         return False
 
-    def prepare_study_download(self, resource):
+    def prepare_study_download(self, resource) -> None:
         # Pin the existing provider's current checked metadata before queuing.
         # The installer checks that same revision again before fetching bytes.
         """Resolve current study catalogue metadata before queuing a verified download request."""
@@ -1432,7 +1434,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_rows()
         self.refresh_controls()
 
-        def complete():
+        def complete() -> bool:
             if self._study_requests.get(resource.id) is not future:
                 return False
             self._study_requests.pop(resource.id, None)
@@ -1466,7 +1468,7 @@ class CatalogueWindow(Adw.Window):
             else self._installed_metadata[name]
         )
 
-    def selection_changed(self, *_):
+    def selection_changed(self, *_: object) -> None:
         """Render source/legal/details from the actual selection, keeping source-language fallback explicit."""
         resource = self.selected_resource()
         if resource and resource.id in self.installed_ids():
@@ -1609,7 +1611,7 @@ class CatalogueWindow(Adw.Window):
         self.description_group.set_visible(bool(about))
         self.refresh_controls()
 
-    def _detail_link(self, row, attribute, url, label):
+    def _detail_link(self, row, attribute, url, label) -> None:
         previous = getattr(self, attribute)
         if previous:
             row.remove(previous)
@@ -1625,7 +1627,7 @@ class CatalogueWindow(Adw.Window):
             row.add_suffix(link)
             setattr(self, attribute, link)
 
-    def refresh_controls(self):
+    def refresh_controls(self) -> None:
         """Derive controls/footer/action eligibility from current installation, queue and transfer state."""
         resource = self.selected_resource()
         request = self.downloads.find(resource.id) if resource else None
@@ -1719,7 +1721,7 @@ class CatalogueWindow(Adw.Window):
         )
         self.refresh_rows()
 
-    def on_close(self, *_):
+    def on_close(self, *_: object) -> bool:
         """Hide an active Library operation or fully cancel view-owned work and pause queued requests.
 
         The shared session outlives a closed view; it is unsubscribed here rather
@@ -1762,7 +1764,7 @@ class CatalogueWindow(Adw.Window):
         self.executor.shutdown(wait=False, cancel_futures=True)
         return False
 
-    def dismiss_success_toast(self):
+    def dismiss_success_toast(self) -> None:
         if self._success_toast:
             self._success_toast.dismiss()
             self._success_toast = None
@@ -1777,7 +1779,7 @@ class CatalogueWindow(Adw.Window):
         executor=None,
         settled=None,
         failed=None,
-    ):
+    ) -> None:
         """Run one blocking resource operation on a worker and settle current results on GTK's thread.
 
         Marshal callbacks via GLib, retain per-resource errors and complete/fail the
@@ -1816,7 +1818,7 @@ class CatalogueWindow(Adw.Window):
         self.refresh_controls()
         future = (executor or self.executor).submit(action)
 
-        def complete():
+        def complete() -> bool:
             if self.closed or task_id != self._task_id:
                 if settled:
                     settled()
@@ -1926,7 +1928,7 @@ class CatalogueWindow(Adw.Window):
             return (PROVIDERS[index - 1],)
         return tuple(p for p in PROVIDERS if p in DEFAULT_PROVIDERS or p.id in self._covered)
 
-    def load_catalogue(self, *_, force=True):
+    def load_catalogue(self, *_: object, force: bool = True) -> None:
         """Request the selected provider/study metadata through the shared asynchronous session."""
         if self.closed or self.refreshing:
             return
@@ -1945,20 +1947,20 @@ class CatalogueWindow(Adw.Window):
         self._refresh_generation = self.session.generation
         self.request_youversion_language(force)
 
-    def stop_animation(self):
+    def stop_animation(self) -> None:
         if self._pulse_id:
             GLib.source_remove(self._pulse_id)
             self._pulse_id = 0
         with self._progress_lock:
             self._pending_progress = None
 
-    def queue_progress(self, phase, done=0, total=0):
+    def queue_progress(self, phase, done=0, total=0) -> None:
         # Worker threads only publish data. The GTK timeout coalesces updates
         # and animates while a network read or validation is waiting.
         with self._progress_lock:
             self._pending_progress = (self._task_id, phase, done, total)
 
-    def animate_progress(self):
+    def animate_progress(self) -> bool:
         """Consume the latest worker progress on GTK, showing only measured totals/phases while active."""
         if self.closed or not self._transfer_busy:
             self._pulse_id = 0
@@ -2018,12 +2020,12 @@ class CatalogueWindow(Adw.Window):
         self.refresh_rows()
         return True
 
-    def report_progress(self, done, total):
+    def report_progress(self, done, total) -> None:
         if self._cancel.is_set():
             raise OSError(tr("Download cancelled."))
         self.queue_progress("downloading", done, total)
 
-    def cancel_download(self, *_):
+    def cancel_download(self, *_: object) -> None:
         from .study_resources import STEP_RESOURCE_ID
 
         with self._progress_lock:
@@ -2031,7 +2033,7 @@ class CatalogueWindow(Adw.Window):
                 self._cancel.set()
         self.cancel_button.set_sensitive(False)
 
-    def begin_installation(self):
+    def begin_installation(self) -> None:
         """Atomically enter the non-download phase or reject a cancellation before installation starts."""
         from .study_resources import STEP_RESOURCE_ID
 
@@ -2046,7 +2048,7 @@ class CatalogueWindow(Adw.Window):
                 0,
             )
 
-    def install(self, *_, resource=None, permission=None, queued=False):
+    def install(self, *_: object, resource=None, permission=None, queued: bool = False) -> None:
         """Resolve current resource metadata/required acknowledgement, then queue or execute one staged install.
 
         A user acknowledgement is not provider approval. Current source conditions,
@@ -2091,7 +2093,7 @@ class CatalogueWindow(Adw.Window):
         if resource.provider_id == "youversion":
             if json.loads(resource.acquisition).get("_catalogue_summary"):
 
-                def ready(actual):
+                def ready(actual) -> None:
                     if not actual.installable:
                         raise ValueError(tr("No offline package supplied by the source."))
                     self.install(resource=actual)
@@ -2155,7 +2157,7 @@ class CatalogueWindow(Adw.Window):
                 dialog.set_default_response("cancel")
                 self._permission_dialog = dialog
 
-                def response(_, choice):
+                def response(_: object, choice) -> None:
                     self._permission_dialog = None
                     if choice == "download" and not self.closed:
                         self.install(resource=resource, permission=acknowledgement(resource))
@@ -2174,7 +2176,7 @@ class CatalogueWindow(Adw.Window):
             return
         caption = plain(resource.description)
 
-        def installed(_):
+        def installed(_: object) -> None:
             self._completed_resource = resource.id
             self.preparing = True
             self.session.reload_installed()

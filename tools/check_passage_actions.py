@@ -1,5 +1,7 @@
 """Native real-resource selection actions; use a disposable TEST profile only."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
@@ -14,14 +16,14 @@ def point(view, offset):
     return x + max(1, rect.width / 3), y + rect.height / 2
 
 
-def hold(native, key, down):
+def hold(native, key, down) -> None:
     code = native.x11.XKeysymToKeycode(native.display, native.x11.XStringToKeysym(key.encode()))
     native.xtest.XTestFakeKeyEvent(native.display, code, down, 0)
     native.x11.XFlush(native.display)
     spin(duration=0.06)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("prefix")
@@ -29,7 +31,7 @@ def main():
     parser.add_argument("--no-screenshots", action="store_true")
     args = parser.parse_args()
 
-    def capture(path):
+    def capture(path) -> None:
         if not args.no_screenshots:
             from PIL import ImageGrab
 

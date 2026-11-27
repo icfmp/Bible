@@ -5,6 +5,8 @@ is created only when no channel secret exists. Existing Pages sites are refused
 unless they were explicitly marked as managed by this setup.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import shutil
@@ -22,7 +24,7 @@ def variable(name):
     return result.stdout.strip() if result.returncode == 0 else None
 
 
-def main():
+def main() -> None:
     api(f"repos/{REPO}/contents/.github/workflows/alpha-channel.yml?ref=main")
     repository = api(f"repos/{REPO}")
     assert repository["permissions"].get("admin"), (

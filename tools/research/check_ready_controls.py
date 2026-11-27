@@ -1,5 +1,7 @@
 """Real short/long result geometry, native Aa and preference-palette checks."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import inspect
@@ -45,7 +47,7 @@ def walk(widget):
         c = c.get_next_sibling()
 
 
-def shot(name):
+def shot(name) -> None:
     n.move_at(w, 2, 2)
     spin(duration=0.2)
     screen.grab(a.output / (name + ".png"))

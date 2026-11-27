@@ -1,21 +1,23 @@
 """Native expandable details with focus-local keyboard activation."""
 
+from __future__ import annotations
+
 from gi.repository import Gdk, Gtk
 
 
-def activate_focused(widget, arguments):
+def activate_focused(widget: Gtk.Widget, arguments: object) -> bool:
     # Do not consume Enter/Space from links or controls inside expanded content.
     return widget.activate() if widget.has_focus() else False
 
 
-def disclosure(**kwargs):
+def disclosure(*, label: str | None = None) -> Gtk.Expander:
     """Create a native expander with keyboard activation restricted to its own focused heading."""
-    widget = Gtk.Expander(**kwargs)
+    widget = Gtk.Expander(label=label)
     shortcuts = Gtk.ShortcutController(propagation_phase=Gtk.PropagationPhase.CAPTURE)
     for key in (Gdk.KEY_space, Gdk.KEY_Return, Gdk.KEY_KP_Enter):
         shortcuts.add_shortcut(
             Gtk.Shortcut(
-                trigger=Gtk.KeyvalTrigger.new(key, 0),
+                trigger=Gtk.KeyvalTrigger.new(key, Gdk.ModifierType(0)),
                 action=Gtk.CallbackAction.new(activate_focused),
             )
         )

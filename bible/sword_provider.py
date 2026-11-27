@@ -1,5 +1,19 @@
 """Local SWORD access. No network operations or UI dependencies."""
 
+from __future__ import annotations
+
+from collections import OrderedDict
+from collections.abc import Callable, Iterable
+from typing import TYPE_CHECKING, ClassVar, TypedDict, cast
+
+if TYPE_CHECKING:
+    import Sword
+    from xml.etree.ElementTree import Element
+    from .commentary_index import CommentaryIndex
+    from .source_section_key import PublicVerseKey
+    from .structured_text import Segment
+    from .youversion_content import EditorialNote
+from os import PathLike
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -32,7 +46,7 @@ class Chapter:
     units: tuple[ChapterUnit, ...] = ()
 
     @property
-    def display_units(self):
+    def display_units(self) -> tuple[ChapterUnit, ...]:
         """Return preserved source units, or deduplicated native linked-entry units."""
         return self.units or tuple(
             ChapterUnit(
@@ -45,24 +59,25 @@ class Chapter:
         )
 
     @cached_property
-    def primary_references(self):
+    def primary_references(self) -> dict[str, str]:
         return dict(self.links)
 
     @cached_property
-    def text_by_reference(self):
+    def text_by_reference(self) -> dict[str, str]:
         return dict(self.verses)
 
-    def primary(self, reference):
+    def primary(self, reference: str) -> str:
+        """Resolve declared native links while retaining unrelated reference identities."""
         return self.primary_references.get(reference, reference) if self.links else reference
 
-    def members(self, reference):
+    def members(self, reference: str) -> tuple[str, ...]:
         """Return the primary native reference and aliases sharing the same stored entry."""
         if not self.links:
             return (reference,)
         primary = self.primary(reference)
         return (primary, *(alias for alias, target in self.links if target == primary))
 
-    def unique_verses(self, references=None):
+    def unique_verses(self, references: Iterable[str] | None = None) -> tuple[tuple[str, str], ...]:
         """One native linked entry, preserving genuinely repeated source text."""
         if references is None and not self.links:
             return self.verses
@@ -80,7 +95,7 @@ class Chapter:
                 seen.add(primary)
         return tuple(result)
 
-    def label(self, reference):
+    def label(self, reference: str) -> str:
         """Render contiguous linked verse numbers as a range, keeping disjoint members explicit."""
         members = self.members(reference)
         values = [int(ref.rsplit(".", 1)[-1]) for ref in members]
@@ -100,7 +115,11 @@ class Book:
     chapters: dict[int | str, tuple[int, ...]]
 
 
-def passage_verses(reader, references, chapter_cache=None):
+def passage_verses(
+    reader: Reader,
+    references: Iterable[str],
+    chapter_cache: dict[tuple[str, str], Chapter] | None = None,
+) -> tuple[tuple[str, str], ...]:
     """Resolve every requested reference, emitting each native linked unit once."""
     references = tuple(references)
     chapters = {} if chapter_cache is None else chapter_cache
@@ -140,7 +159,9 @@ def passage_verses(reader, references, chapter_cache=None):
 class NativeToolReader:
     """Native handles for installed non-verse tools; no invented resource data."""
 
-    def __init__(self, root, name):
+    drivers: ClassVar[set[str]]
+
+    def __init__(self, root: str | PathLike[str], name: str) -> None:
         import Sword
         from .module_lifecycle import reader_lease
         from .providers import module_name
@@ -148,10 +169,11 @@ class NativeToolReader:
         self.root = Path(root)
         reader_lease(self, self.root)
         self.manager = Sword.SWMgr(str(root))
-        self.module = self.manager.getModule(module_name(name))
+        module = self.manager.getModule(module_name(name))
         self.sword = Sword
-        if self.module is None or self.module.getConfigEntry("ModDrv") not in self.drivers:
+        if module is None or module.getConfigEntry("ModDrv") not in self.drivers:
             raise ValueError("Unsupported native tool module")
+        self.module = module
 
 
 class DictionaryReader(NativeToolReader):
@@ -159,16 +181,17 @@ class DictionaryReader(NativeToolReader):
 
     drivers = {"RawLD", "RawLD4", "zLD"}
 
-    def __init__(self, root, name):
+    def __init__(self, root: str | PathLike[str], name: str) -> None:
         super().__init__(root, name)
-        self.dictionary = self.sword.SWLD.castTo(self.module)
-        if self.dictionary is None:
+        dictionary = self.sword.SWLD.castTo(self.module)
+        if dictionary is None:
             raise ValueError("Native dictionary access is unavailable")
+        self.dictionary = dictionary
 
-    def verify_readable(self):
+    def verify_readable(self) -> None:
         # The packaged SWIG setPosition(SW_POSITION(...)) call stopped native
         # verification. Use the proven dictionary index API instead.
-        """Find a nonempty indexed entry within32 positions, or reject native readability."""
+        """Find a nonempty indexed entry within 32 positions, or reject native readability."""
         for position in range(min(self.dictionary.getEntryCount(), 32)):
             text = self.dictionary.getKeyForEntry(position)
             if not text:
@@ -185,8 +208,8 @@ class GeneralBookReader(NativeToolReader):
 
     drivers = {"RawGenBook"}
 
-    def verify_readable(self):
-        """Probe at most256 tree positions without inventing a verse-address interface."""
+    def verify_readable(self) -> None:
+        """Probe at most 256 tree positions without inventing a verse-address interface."""
         key = self.sword.TreeKey.castTo(self.module.getKey())
         if key is None:
             raise ValueError("This general-book key format is unsupported")
@@ -202,6 +225,14 @@ class GeneralBookReader(NativeToolReader):
         raise ValueError("No readable general-book entry within the native verification limit")
 
 
+class _NumberingReceipt(TypedDict, total=False):
+    """Fields consumed from the local verification writer; flags are checked before use."""
+
+    all_text_notes_headings_verified: bool
+    storage_numbering: str
+    source_numbering: object
+
+
 class Reader:
     """Mutable local SWORD handles with source-aware canonical address projection.
 
@@ -210,9 +241,10 @@ class Reader:
     files while a native consumer still owns them.
     """
 
+    _alignment_evidence: OrderedDict[str | tuple[str, str, int | str], str | None]
     drivers = {"zText", "RawText", "RawText4", "zText4"}
 
-    def __init__(self, root: Path, name: str):
+    def __init__(self, root: str | PathLike[str], name: str) -> None:
         self.root, self.name = Path(root), name
         from .module_lifecycle import reader_lease
 
@@ -227,11 +259,12 @@ class Reader:
         self.manager = Sword.SWMgr(str(root))
         from .providers import module_name
 
-        self.module = self.manager.getModule(module_name(name))
-        if self.module is None:
+        module = self.manager.getModule(module_name(name))
+        if module is None:
             raise ValueError(f"SWORD cannot open {name}")
-        if self.module.getConfigEntry("ModDrv") not in self.drivers:
+        if module.getConfigEntry("ModDrv") not in self.drivers:
             raise ValueError("Unsupported resource type")
+        self.module = module
         self.versification = self.module.getConfigEntry("Versification") or "KJV"
         short = self.module.getConfigEntry("Abbreviation") or module_name(name)
         self.short_name = (
@@ -256,12 +289,12 @@ class Reader:
             raise ValueError(f"Unsupported versification: {self.versification}")
 
     @property
-    def rtl(self):
+    def rtl(self) -> bool:
         # SWIG exposes SWORD's char direction as a one-character Python str.
         value = self.module.getDirection()
         return value in (self.sword.DIRECTION_RTL, chr(self.sword.DIRECTION_RTL))
 
-    def can_align_reference(self, reference):
+    def can_align_reference(self, reference: str) -> bool:
         """Check edition-specific evidence before allowing a numbering-system correspondence."""
         if not self._source_osis:
             return self.native_alignment_issue(reference) is None
@@ -273,7 +306,11 @@ class Reader:
             or receipt.get("storage_numbering") != self.versification
         ):
             return False
-        if SOURCE_CONVENTIONS.get(receipt.get("source_numbering")) == self.versification:
+        source_numbering = receipt.get("source_numbering")
+        if (
+            isinstance(source_numbering, str)
+            and SOURCE_CONVENTIONS.get(source_numbering) == self.versification
+        ):
             return True
         from .versification_mapping import table, verified_identity
 
@@ -285,7 +322,7 @@ class Reader:
             return reference.split(".")[0] in convention["books"]
         return verified_identity(reference, data)
 
-    def native_alignment_issue(self, reference):
+    def native_alignment_issue(self, reference: str) -> str | None:
         """Read-only, passage-scoped evidence from ordinary SWORD indexing.
 
         Following requires an actual native entry and no contradictory source
@@ -296,7 +333,9 @@ class Reader:
         """
         from collections import OrderedDict
 
-        cache = getattr(self, "_alignment_evidence", None)
+        cache: OrderedDict[str | tuple[str, str, int | str], str | None] | None = getattr(
+            self, "_alignment_evidence", None
+        )
         if cache is None:
             self._alignment_evidence = cache = OrderedDict()
         token = reference
@@ -371,14 +410,14 @@ class Reader:
                                 )
                                 try:
                                     if not known_title:
-                                        mapped = resolve(
+                                        intro_mapping = resolve(
                                             ref,
                                             self.versification,
                                             Canon("KJV"),
                                             require_entry=False,
                                             include_introductions=True,
                                         )
-                                        if not mapped.introductions:
+                                        if not intro_mapping.introductions:
                                             raise ValueError(
                                                 "A source heading occupies a declared body-verse slot: "
                                                 + ref
@@ -397,7 +436,7 @@ class Reader:
         return issue
 
     @cached_property
-    def _approximate_numbering(self):
+    def _approximate_numbering(self) -> bool:
         from .providers import module_name
 
         for path in (self.root / "mods.d").glob("*.conf"):
@@ -412,7 +451,7 @@ class Reader:
         return False
 
     @cached_property
-    def _numbering_receipt(self):
+    def _numbering_receipt(self) -> _NumberingReceipt:
         import json
 
         path = self.root / ".verified.json"
@@ -420,11 +459,11 @@ class Reader:
             if path.is_symlink() or path.stat().st_size > 16384:
                 return {}
             value = json.loads(path.read_text())
-            return value if isinstance(value, dict) else {}
+            return cast("_NumberingReceipt", value) if isinstance(value, dict) else {}
         except (OSError, ValueError):
             return {}
 
-    def key(self, reference):
+    def key(self, reference: str) -> Sword.VerseKey | PublicVerseKey:
         """Validate a reference in the actual reader system before enabling native key normalization.
 
         Use explicit source-address indices where present; unsupported or
@@ -434,15 +473,15 @@ class Reader:
         if isinstance(reference, str):
             reference = canonical_input(reference)
         if self.addresses:
-            key = self._source_key(reference)
-            native = self.sword.VerseKey(key)
+            public_key = self._source_key(reference)
+            native = self.sword.VerseKey(public_key)
             if (
-                key.popError() != "\x00"
+                public_key.popError() != "\x00"
                 or not 1 <= native.getChapter() <= native.getChapterMax()
                 or not 1 <= native.getVerse() <= native.getVerseMax()
             ):
                 raise ValueError(f"Invalid reference: {reference}")
-            return key
+            return public_key
         if not isinstance(reference, str) or not re.fullmatch(
             r"(?:[1-4]\s*)?[A-Za-z][A-Za-z0-9]*(?: [A-Za-z]+)*[ .]+[1-9][0-9]*(?:[.:][1-9][0-9]*)?",
             reference,
@@ -462,10 +501,10 @@ class Reader:
         return key
 
     @cached_property
-    def books(self):
+    def books(self) -> tuple[Book, ...]:
         return self.discover_books()
 
-    def discover_books(self, cancelled=None):
+    def discover_books(self, cancelled: Callable[[], bool] | None = None) -> tuple[Book, ...]:
         """Discover actual indexed entries in the module's own versification.
 
         hasEntry checks the SWORD index without decoding the entire translation.
@@ -480,7 +519,7 @@ class Reader:
         key.setBook(1)
         key.setChapter(1)
         key.setVerse(1)
-        entries = {}
+        entries: dict[str, tuple[str, dict[int, list[int]]]] = {}
         while True:
             checkpoint(cancelled)
             if self.module.hasEntry(key):
@@ -493,15 +532,15 @@ class Reader:
                 break
         result = []
         for code, (name, chapters) in entries.items():
-            mapped = {}
+            mapped: dict[int | str, tuple[int, ...]] = {}
             for chapter, verses in chapters.items():
                 public = (
                     self.addresses.source_chapter(f"{code}.{chapter}")
                     if self.addresses
                     else f"{code}.{chapter}"
                 )
-                number = public.split(".")[1]
-                number = number if "_" in number else int(number)
+                number_text = public.split(".")[1]
+                number: str | int = number_text if "_" in number_text else int(number_text)
                 units = self.addresses.chapters.get(public) if self.addresses else None
                 mapped[number] = (
                     tuple(
@@ -517,13 +556,15 @@ class Reader:
             result.append(Book(code, name, mapped))
         return tuple(result)
 
-    def has_reference(self, reference):
+    def has_reference(self, reference: str) -> bool:
+        """Check an actual native entry; invalid source references return False."""
         try:
             return bool(self.module.hasEntry(self.key(reference)))
         except ValueError:
             return False
 
-    def first_reference(self):
+    def first_reference(self) -> str:
+        """Return the first indexed source address, respecting retained verse order."""
         if not self.books:
             raise ValueError("No readable indexed passage in resource")
         book = self.books[0]
@@ -531,7 +572,8 @@ class Reader:
         verse = self.source_verse_order.get(f"{book.code}.{chapter}", book.chapters[chapter])[0]
         return f"{book.code}.{chapter}.{verse}"
 
-    def chapter_label(self, reference):
+    def chapter_label(self, reference: str) -> str:
+        """Keep supplied section labels, otherwise expose the canonical chapter token."""
         reference = reference if reference.count(".") == 1 else reference.rsplit(".", 1)[0]
         if self.addresses and self.addresses.sections:
             label = self.addresses.sections.labels.get(reference)
@@ -539,7 +581,7 @@ class Reader:
                 return label
         return reference.split(".")[1]
 
-    def reference_range(self, start, end):
+    def reference_range(self, start: str, end: str) -> tuple[str, ...]:
         """Canonical source addresses, independent of fragment presentation order."""
         start = self.key(start).getOSISRef()
         end = self.key(end).getOSISRef()
@@ -563,14 +605,15 @@ class Reader:
                             return tuple(refs)
         raise ValueError("Invalid source reference range")
 
-    def reference_sort_key(self, reference):
+    def reference_sort_key(self, reference: str) -> tuple[int, int]:
+        """Order public verses by native chapter slot and original verse number."""
         key = self.key(reference)
         verse = key.getVerse()
         native = self.sword.VerseKey(key)
         native.setVerse(1)
         return native.getIndex(), verse
 
-    def neighbours(self, reference):
+    def neighbours(self, reference: str) -> tuple[str | None, str | None]:
         """Return adjacent actual source chapters, or empty endpoints for an unknown chapter."""
         chapter = self.key(reference).getOSISRef().rsplit(".", 1)[0]
         passages = [
@@ -588,7 +631,7 @@ class Reader:
         )
 
     @cached_property
-    def source_verse_order(self):
+    def source_verse_order(self) -> dict[str, list[int]]:
         """Sparse, verified reference-only exceptions to numeric verse order."""
         if not self._source_osis:
             return {}
@@ -621,9 +664,11 @@ class Reader:
                 or len(set(numbers)) != len(numbers)
             ):
                 raise ValueError("Invalid source verse order")
-        return value
+        return cast("dict[str, list[int]]", value)
 
-    def chapter(self, reference="Gen.1.1", *, cancelled=None):
+    def chapter(
+        self, reference: str = "Gen.1.1", *, cancelled: Callable[[], bool] | None = None
+    ) -> Chapter:
         """Read a chapter using preserved source units/links and cooperative cancellation.
 
         Source-address sidecars determine public references when present; native
@@ -632,7 +677,7 @@ class Reader:
         from .preparation import checkpoint
 
         checkpoint(cancelled)
-        if not getattr(self, "addresses", None):
+        if self.addresses is None:
             return self._native_chapter(reference, cancelled=cancelled)
         public = self.key(reference).getOSISRef().rsplit(".", 1)[0]
         native = self._native_chapter(
@@ -641,7 +686,7 @@ class Reader:
         description = self.addresses.chapters.get(public)
         if description:
             units = []
-            combined = {ref: [] for ref in description.inventory}
+            combined: dict[str, list[str]] = {ref: [] for ref in description.inventory}
             for position, source in enumerate(description.units, 1):
                 storage = native.reference + "." + str(position)
                 text = native.text_by_reference[storage]
@@ -651,7 +696,7 @@ class Reader:
                     ChapterUnit(source.members[0], text, source.members, source.label, storage)
                 )
             verses = tuple((ref, "".join(parts)) for ref, parts in combined.items())
-            links = ()
+            links: tuple[tuple[str, str], ...] = ()
         else:
             units = []
             verses = tuple((self.addresses.to_source(ref), text) for ref, text in native.verses)
@@ -662,7 +707,9 @@ class Reader:
         before, after = self.neighbours(public)
         return Chapter(public, verses, before, after, links, tuple(units))
 
-    def _native_chapter(self, reference="Gen.1.1", *, cancelled=None):
+    def _native_chapter(
+        self, reference: str = "Gen.1.1", *, cancelled: Callable[[], bool] | None = None
+    ) -> Chapter:
         """Read real native entries, preserve links and project verified OSIS bodies without rewriting text."""
         from .preparation import checkpoint
 
@@ -699,6 +746,8 @@ class Reader:
             self.module.setKey(key)
             reference = key.getOSISRef()
             if previous_entry is not None and self.module.isLinked(previous_entry, key):
+                # These values are captured together with previous_entry below.
+                assert primary is not None and previous_text is not None
                 links.append((reference, primary))
                 verses.append((reference, previous_text))
                 continue
@@ -752,16 +801,18 @@ class Reader:
         following = key.getOSISRef() if key.popError() == "\x00" else None
         return Chapter(first.rsplit(".", 1)[0], tuple(verses), previous, following, tuple(links))
 
-    def structured_chapter(self, chapter, *, cancelled=None):
+    def structured_chapter(
+        self, chapter: Chapter, *, cancelled: Callable[[], bool] | None = None
+    ) -> dict[str, tuple[Segment, ...]]:
         """Project markup roles against actual text, retaining source prefaces and linked aliases."""
         from .structured_text import extract
         from .preparation import checkpoint
 
         checkpoint(cancelled)
         source_type = self.module.getConfigEntry("SourceType") or "Plaintext"
-        result = {}
+        result: dict[str, tuple[Segment, ...]] = {}
         parser = None
-        prefix = ()
+        prefix: tuple[Segment, ...] = ()
         if source_type == "OSIS" and (
             self.versification == "Original"
             or self.module.getConfigEntry("BibleSource") == "YouVersion"
@@ -821,7 +872,7 @@ class Reader:
             result[alias] = result[primary]
         return result
 
-    def introduction(self, book):
+    def introduction(self, book: str) -> Element | None:
         """Actual book introduction, outside canonical passage/personal-note IDs."""
         if not re.fullmatch(r"[1-4]?[A-Za-z]+", book):
             raise ValueError("Invalid book")
@@ -839,7 +890,7 @@ class Reader:
         raw = raw if isinstance(raw, str) else raw.c_str()
         return parse("<root>" + raw + "</root>") if raw.strip() else None
 
-    def editorial_notes(self, reference):
+    def editorial_notes(self, reference: str) -> tuple[EditorialNote, ...]:
         """Only the requested chapter; no corpus scan or persistent native cache."""
         if self.module.getConfigEntry("SourceType") != "OSIS":
             return ()
@@ -859,7 +910,7 @@ class Reader:
         root = native_chapter(
             self.module, key, native.reference, [ref for ref, _ in native.unique_verses()]
         )
-        notes = project(root)[1]
+        notes: tuple[EditorialNote, ...] = project(root)[1]
         if not self.addresses:
             return notes
         return tuple(
@@ -881,14 +932,14 @@ class CommentaryReader(Reader):
     """A local commentary reader retaining exact-entry availability and numbering checks."""
 
     @cached_property
-    def index(self):
+    def index(self) -> CommentaryIndex:
         from .commentary_index import CommentaryIndex
 
         return CommentaryIndex(self)
 
     drivers = {"RawCom", "RawCom4", "zCom", "zCom4"}
 
-    def entry(self, reference, bible_versification):
+    def entry(self, reference: str, bible_versification: str) -> str | None:
         """Return an exact mapped commentary body, or None for absent/empty entries.
 
         VersificationMismatch propagates when correspondence is unverified;

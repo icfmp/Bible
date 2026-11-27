@@ -1,5 +1,7 @@
 """Resource evidence is distinct from mathematical native canon transforms."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,9 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class ResourceAlignmentTests(unittest.TestCase):
-    def test_native_identity_checks_do_not_scan_corpus_or_infer_shifts_from_omitted_verses(self):
+    def test_native_identity_checks_do_not_scan_corpus_or_infer_shifts_from_omitted_verses(
+        self,
+    ) -> None:
         from unittest.mock import PropertyMock
         from tests.test_ui import installed_fixture
         from bible.sword_provider import Reader
@@ -37,7 +41,7 @@ class ResourceAlignmentTests(unittest.TestCase):
                 self.assertFalse(reader.can_align_reference("Gen.1.2"))
                 self.assertTrue(reader.can_align_reference("Gen.2.1"))
 
-    def test_existing_verified_native_conversion_convention_remains_usable(self):
+    def test_existing_verified_native_conversion_convention_remains_usable(self) -> None:
         import json
         from bible.sword_provider import Reader
         from tests.test_ui import installed_fixture
@@ -64,7 +68,7 @@ class ResourceAlignmentTests(unittest.TestCase):
 
     def test_approximate_declaration_limits_local_mapping_without_disabling_invariant_passages(
         self,
-    ):
+    ) -> None:
         from bible.sword_provider import Reader
         from bible.reference_resolution import resolve_readers, VersificationMismatch
         from tests.test_ui import installed_fixture
@@ -93,7 +97,7 @@ class ResourceAlignmentTests(unittest.TestCase):
                     resolve_readers("Ps.12.3", source, target)
             self.assertEqual(resolve_readers("Gen.1.1", left, left).start, "Gen.1.1")
 
-    def test_capability_is_checked_on_both_sides_before_claiming_absence(self):
+    def test_capability_is_checked_on_both_sides_before_claiming_absence(self) -> None:
         from bible.sword_provider import Reader
         from bible.reference_resolution import resolve_readers, VersificationMismatch
         from tests.test_ui import installed_fixture
@@ -122,7 +126,9 @@ class ResourceAlignmentTests(unittest.TestCase):
                     self.assertEqual(resolve_readers("Eccl.12.1", a, b).start, "Eccl.12.3")
                     self.assertEqual(resolve_readers("Eccl.12.3", b, a).start, "Eccl.12.1")
 
-    def test_independent_panes_preserve_all_entries_and_do_not_follow_in_either_direction(self):
+    def test_independent_panes_preserve_all_entries_and_do_not_follow_in_either_direction(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 

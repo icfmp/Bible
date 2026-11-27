@@ -4,6 +4,8 @@ Run in an isolated Xvfb display. Uses disposable, explicitly synthetic SWORD
 content; real-resource visual evidence is recorded separately.
 """
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -16,7 +18,7 @@ from bible.notes_window import buffer_text
 from bible.i18n import tr as tr
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("--require-packaged", action="store_true")

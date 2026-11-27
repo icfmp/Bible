@@ -1,5 +1,7 @@
 """STEP parsing, edition identity, exact lemma counts and atomic replacement."""
 
+from __future__ import annotations
+
 import hashlib
 from pathlib import Path
 import tempfile
@@ -49,7 +51,9 @@ def fixtures(root):
 
 
 class StepDataTests(unittest.TestCase):
-    def test_supplied_hebrew_gloss_metadata_is_structured_without_fabricating_a_translation(self):
+    def test_supplied_hebrew_gloss_metadata_is_structured_without_fabricating_a_translation(
+        self,
+    ) -> None:
         from bible.step_data import brief_senses
 
         self.assertEqual(
@@ -58,7 +62,7 @@ class StepDataTests(unittest.TestCase):
         self.assertEqual(brief_senses("Abram»Abraham@Gen.11.26-1Pe"), ("Abram", "Abraham"))
         self.assertEqual(brief_senses("to create"), ("to create",))
 
-    def test_documentation_and_headers_do_not_become_lexical_or_token_records(self):
+    def test_documentation_and_headers_do_not_become_lexical_or_token_records(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             lexicon = root / "lexicon"
@@ -77,7 +81,7 @@ class StepDataTests(unittest.TestCase):
             )
             self.assertEqual([t["form"] for _, t in token_rows(tokens, "tagnt-na27")], ["λόγος"])
 
-    def test_filtered_corpora_lexical_lookup_counts_and_failed_update_retains_data(self):
+    def test_filtered_corpora_lexical_lookup_counts_and_failed_update_retains_data(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             files, pins = fixtures(root)
@@ -116,7 +120,7 @@ class StepDataTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 store.lookup("G3056 OR 1=1")
 
-    def test_alternate_title_addresses_remain_distinct_and_excluded_readings_stay_out(self):
+    def test_alternate_title_addresses_remain_distinct_and_excluded_readings_stay_out(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "tokens"
             lines = []

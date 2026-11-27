@@ -1,5 +1,8 @@
 """Word/phrase normalization and exact source-offset highlighting."""
 
+from __future__ import annotations
+
+from typing import Literal, overload
 import re
 import unicodedata
 from .languages import canonical_language
@@ -8,7 +11,21 @@ LATIN_LANGUAGES = {"en", "fr", "de", "es", "pt", "it", "la", "nl", "ro", "ca"}
 UNSEGMENTED_LANGUAGES = {"zh", "ja", "th", "lo", "km", "my"}
 
 
-def normalized(value, language="und", offsets=False):
+@overload
+def normalized(value: str, language: str = "und", offsets: Literal[False] = False) -> str: ...
+
+
+@overload
+def normalized(value: str, language: str, offsets: Literal[True]) -> tuple[str, list[int]]: ...
+
+
+@overload
+def normalized(value: str, language: str, offsets: bool) -> str | tuple[str, list[int]]: ...
+
+
+def normalized(
+    value: str, language: str = "und", offsets: bool = False
+) -> str | tuple[str, list[int]]:
     """Normalize language-aware search characters, optionally retaining original combining-cluster offsets.
 
     Fold accents only for supported Latin languages; keep combining marks
@@ -17,12 +34,13 @@ def normalized(value, language="und", offsets=False):
     latin = canonical_language(language).split("-")[0] in LATIN_LANGUAGES
     characters = []
     positions = []
-    clusters = []
+    clusters: list[tuple[int, str]] = []
     for index, char in enumerate(value):
         if unicodedata.combining(char) and clusters:
-            clusters[-1][1] += char
+            first, text = clusters[-1]
+            clusters[-1] = (first, text + char)
         else:
-            clusters.append([index, char])
+            clusters.append((index, char))
     for index, cluster in clusters:
         for part in unicodedata.normalize("NFD", cluster.casefold()):
             if latin and unicodedata.combining(part):
@@ -37,7 +55,7 @@ def normalized(value, language="und", offsets=False):
     return (result, positions) if offsets else result
 
 
-def terms(query, language="und"):
+def terms(query: str, language: str = "und") -> tuple[str, ...]:
     # Quoted phrases are contiguous; unquoted words are ANDed in any order.
     """Parse and deduplicate nonempty normalized words/quoted phrases, rejecting unmatched quotes."""
     if query.count('"') % 2:
@@ -50,7 +68,7 @@ def terms(query, language="und"):
     return tuple(dict.fromkeys(result))
 
 
-def match_ranges(text, query, language="und"):
+def match_ranges(text: str, query: str, language: str = "und") -> tuple[tuple[int, int], ...]:
     """Map normalized word/phrase matches back to original text including trailing combining marks."""
     value, offsets = normalized(text, language, True)
     ranges = []

@@ -1,5 +1,7 @@
 """Native correspondence layout keeps source words and one shared adjustment."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -8,7 +10,7 @@ import unittest
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ComparisonRowsTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from unittest.mock import patch
 
         # These sentinel fixtures are authored in their declared convention.
@@ -16,7 +18,7 @@ class ComparisonRowsTests(unittest.TestCase):
             patch("bible.sword_provider.Reader.can_align_reference", return_value=True)
         )
 
-    def test_actual_verse_bodies_align_with_different_source_headings(self):
+    def test_actual_verse_bodies_align_with_different_source_headings(self) -> None:
         from unittest.mock import patch
         from bible.ui import Application, Window, Library
         from bible.sword_provider import Reader
@@ -61,7 +63,7 @@ class ComparisonRowsTests(unittest.TestCase):
                 window.sync_comparison()
                 spin(duration=0.6)
 
-                def aligned():
+                def aligned() -> None:
                     # Native origins matter: equal buffer coordinates can still
                     # differ on screen when one source heading wraps.
                     origins = [
@@ -126,7 +128,7 @@ class ComparisonRowsTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_split_final_john_verses_form_one_correspondence_group(self):
+    def test_split_final_john_verses_form_one_correspondence_group(self) -> None:
         from bible.comparison_layout import correspondences
         from bible.sword_provider import Reader
         from tests.test_ui import installed_fixture
@@ -146,7 +148,7 @@ class ComparisonRowsTests(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0].secondary, ("3John.1.14", "3John.1.15"))
 
-    def test_wrapped_rows_stay_aligned_reflow_and_single_prose_restore(self):
+    def test_wrapped_rows_stay_aligned_reflow_and_single_prose_restore(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -176,7 +178,7 @@ class ComparisonRowsTests(unittest.TestCase):
                 self.assertTrue(tab._shared_comparison)
                 self.assertIs(tab.scroll.get_vadjustment(), tab.comparison_scroll.get_vadjustment())
 
-                def aligned():
+                def aligned() -> None:
                     for left, right in zip(
                         tab.comparison_rows.bounds[0], tab.comparison_rows.bounds[1]
                     ):
@@ -211,7 +213,7 @@ class ComparisonRowsTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_chapter_navigation_discards_previous_reflow_anchor(self):
+    def test_chapter_navigation_discards_previous_reflow_anchor(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
 
@@ -240,7 +242,7 @@ class ComparisonRowsTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_split_mapping_groups_and_known_absence_preserve_every_source_verse(self):
+    def test_split_mapping_groups_and_known_absence_preserve_every_source_verse(self) -> None:
         from bible.comparison_layout import correspondences
         from bible.sword_provider import Reader
         from tests.test_ui import installed_fixture

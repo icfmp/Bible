@@ -1,6 +1,13 @@
 """Isolated, cached local SWORD search; never mutate GTK's reading handle."""
 
+from __future__ import annotations
+
+from os import PathLike
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict, cast
 from contextlib import closing
+
+if TYPE_CHECKING:
+    from .sword_provider import Reader
 from dataclasses import dataclass
 import hashlib
 import json
@@ -14,7 +21,39 @@ from .search_terms import normalized, terms, UNSEGMENTED_LANGUAGES, LATIN_LANGUA
 from .languages import canonical_language
 
 
-def search(root, name, query, scope="all", book=None, offset=0, limit=100):
+class SearchMatch(TypedDict):
+    """A source reference and classification emitted by the local worker."""
+
+    reference: str
+    kind: Literal["strict", "close"]
+
+
+class SearchResult(TypedDict):
+    """Existing JSON search page; only the subprocess adds its numbering system."""
+
+    total: int
+    strict_total: int
+    close_total: int
+    references: list[str]
+    matches: list[SearchMatch]
+    language: str
+    approximate_candidates: int
+    candidate_limit: int
+    versification: NotRequired[str]
+
+
+type _SqlParameter = str | int | None
+
+
+def search(
+    root: str | PathLike[str],
+    name: str,
+    query: str,
+    scope: str = "all",
+    book: str | None = None,
+    offset: int = 0,
+    limit: int = 100,
+) -> SearchResult:
     """Run bounded local search in a subprocess with its own mutable SWORD handle.
 
     The caller must keep this blocking operation off GTK's owner thread.
@@ -37,10 +76,12 @@ def search(root, name, query, scope="all", book=None, offset=0, limit=100):
     value = json.loads(result.stdout)
     if not isinstance(value.get("references"), list) or len(value["references"]) > 500:
         raise ValueError("Invalid text search")
-    return value
+    # The same application version owns this subprocess and JSON schema.
+    # Keep the existing bounded reference validation at the process boundary.
+    return cast("SearchResult", value)
 
 
-def index(root, name, reader):
+def index(root: str | PathLike[str], name: str, reader: Reader) -> Path:
     """Reuse an integrity-checked index or atomically replace it from installed source text.
 
     The signature includes source file revisions and normalization generation.
@@ -86,8 +127,12 @@ def index(root, name, reader):
                         f"{book.code}.{chapter}.{verses[0]}"
                     ).unique_verses():
                         key = reader.key(reference)
-                        testament = key.getTestament()
-                        testament = ord(testament) if isinstance(testament, str) else int(testament)
+                        native_testament = key.getTestament()
+                        testament = (
+                            ord(native_testament)
+                            if isinstance(native_testament, str)
+                            else int(native_testament)
+                        )
                         source_position += 1
                         position = (
                             source_position
@@ -137,8 +182,14 @@ class TextMatch:
 
 
 def _close_matches(
-    db, query, language, scope_filters, scope_parameters, strict_where, strict_parameters
-):
+    db: sqlite3.Connection,
+    query: str,
+    language: str,
+    scope_filters: list[str],
+    scope_parameters: list[_SqlParameter],
+    strict_where: str,
+    strict_parameters: list[_SqlParameter],
+) -> tuple[list[str], int]:
     """Rank bounded non-strict candidates by source-word proximity and retained negations.
 
     Only supported French/English queries without quotes are eligible. Every
@@ -173,7 +224,7 @@ def _close_matches(
         if len(matched) < minimum:
             continue
         # Smallest source window containing every matched content word.
-        counts = {}
+        counts: dict[str, int] = {}
         left = 0
         best = None
         for right, (last, word) in enumerate(hits):
@@ -196,7 +247,14 @@ def _close_matches(
     return [row[-1] for row in sorted(ranked)[:CLOSE_LIMIT]], len(candidates)
 
 
-def query_index(path, query, scope="all", book=None, offset=0, limit=100):
+def query_index(
+    path: str | PathLike[str],
+    query: str,
+    scope: str = "all",
+    book: str | None = None,
+    offset: int = 0,
+    limit: int = 100,
+) -> SearchResult:
     """Search a read-only index by normalized terms and explicit scope.
 
     Returns:
@@ -217,7 +275,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
     with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)) as db:
         language = db.execute("SELECT language FROM metadata").fetchone()[0]
         filters = []
-        parameters = []
+        parameters: list[_SqlParameter] = []
         for term in terms(query, language):
             filters.append("instr(normalized,?)>0")
             parameters.append(
@@ -228,7 +286,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
         strict_where = " AND ".join(filters)
         strict_parameters = list(parameters)
         scope_filters = []
-        scope_parameters = []
+        scope_parameters: list[_SqlParameter] = []
         if scope in ("ot", "nt"):
             scope_filters.append("testament=?")
             scope_parameters.append(1 if scope == "ot" else 2)
@@ -262,7 +320,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
             if strict_total < CLOSE_LIMIT
             else ([], 0)
         )
-        matches = [dict(reference=ref, kind="strict") for ref in refs]
+        matches: list[SearchMatch] = [dict(reference=ref, kind="strict") for ref in refs]
         if len(matches) < limit:
             first = max(0, offset - strict_total)
             matches.extend(
@@ -281,7 +339,7 @@ def query_index(path, query, scope="all", book=None, offset=0, limit=100):
     )
 
 
-def main():
+def main() -> None:
     """Open an isolated reader, build/reuse its index and print the requested JSON search page."""
     from .sword_provider import Reader
 

@@ -1,5 +1,7 @@
 """Real offline GTK drawer capture/input check; use only a disposable TEST profile."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 from pathlib import Path
@@ -11,7 +13,7 @@ from bible.ui import Application, Window, Library, Gtk
 from bible.reference_resolution import resolve
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("prefix")

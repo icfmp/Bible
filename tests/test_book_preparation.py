@@ -1,5 +1,7 @@
 """Real headless Pango checks; synthetic text is never a Bible resource."""
 
+from __future__ import annotations
+
 from concurrent.futures import CancelledError
 from threading import Event
 import time
@@ -11,7 +13,7 @@ from bible.preferences import ReadingPreferences
 from bible.preparation import checkpoint
 
 
-def synthetic_document(key="Mark", chapters=True, verses=True):
+def synthetic_document(key="Mark", chapters: bool = True, verses: bool = True):
     pieces = []
     styles = []
     spans = []
@@ -47,7 +49,7 @@ def synthetic_document(key="Mark", chapters=True, verses=True):
 class SyntheticSource:
     """Controllable source with actual worker/layout execution, no SWORD mock."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.calls = []
         self.clones = 0
         self.wait_for = None
@@ -79,10 +81,10 @@ class SyntheticSource:
 
 
 class HeadlessPaginationTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.layout = LayoutContext(96, "en")
 
-    def test_titles_stay_with_body_across_font_geometry_and_number_visibility(self):
+    def test_titles_stay_with_body_across_font_geometry_and_number_visibility(self) -> None:
         for size in (12, 14, 32, 64):
             for height in (260, 400, 700):
                 for numbers in (False, True):
@@ -121,7 +123,7 @@ class HeadlessPaginationTests(unittest.TestCase):
                                         any(style.start < p.end < style.end for p in plan.pages)
                                     )
 
-    def test_anchor_in_heading_gap_keeps_chapter_and_section_with_body(self):
+    def test_anchor_in_heading_gap_keeps_chapter_and_section_with_body(self) -> None:
         doc = synthetic_document()
         title = next(s for s in doc.styles if s.kind == "heading")
         anchor = doc.anchor(title.end)
@@ -133,7 +135,7 @@ class HeadlessPaginationTests(unittest.TestCase):
         plan = paginate(self.layout, doc, ReadingPreferences(), 400, 600, anchor)
         self.assertEqual(doc.anchor(plan.pages[plan.containing(doc.locate(anchor))].start), anchor)
 
-    def test_oversized_heading_makes_progress_and_unicode_text_is_unchanged(self):
+    def test_oversized_heading_makes_progress_and_unicode_text_is_unchanged(self) -> None:
         text = ("OVERSIZED SYNTHETIC TITLE " * 100) + "\n\n" + "Body e\u0301 עברית العربية " * 40
         end = text.index("\n")
         doc = Document(
@@ -147,7 +149,7 @@ class HeadlessPaginationTests(unittest.TestCase):
         self.assertTrue(all(page.end > page.start for page in plan.pages))
         self.assertEqual("".join(text[p.start : p.end] for p in plan.pages), text)
 
-    def test_cancellation_reaches_native_layout_iteration(self):
+    def test_cancellation_reaches_native_layout_iteration(self) -> None:
         doc = synthetic_document()
         calls = 0
 
@@ -159,7 +161,7 @@ class HeadlessPaginationTests(unittest.TestCase):
         with self.assertRaises(CancelledError):
             paginate(self.layout, doc, ReadingPreferences(), 350, 400, cancelled=cancelled)
 
-    def test_cancelled_sword_operations_do_not_touch_the_reader(self):
+    def test_cancelled_sword_operations_do_not_touch_the_reader(self) -> None:
         from bible.sword_provider import Reader
 
         reader = object.__new__(Reader)  # No native manager is needed after cancellation.
@@ -171,7 +173,7 @@ class HeadlessPaginationTests(unittest.TestCase):
             with self.assertRaises(CancelledError):
                 operation(cancelled=lambda: True)
 
-    def test_book_composition_stops_before_reading_later_chapters(self):
+    def test_book_composition_stops_before_reading_later_chapters(self) -> None:
         from bible.paged_sources import BibleBookPages
         from bible.sword_provider import Book, Chapter
         from bible.structured_text import Segment
@@ -180,29 +182,29 @@ class HeadlessPaginationTests(unittest.TestCase):
         stop = Event()
 
         class Key:
-            def getOSISBookName(self):
+            def getOSISBookName(self) -> str:
                 return "Mark"
 
-            def getBookName(self):
+            def getBookName(self) -> str:
                 return "Mark"
 
             def getChapter(self):
                 return int(calls[-1].split(".")[1])
 
         class Reader:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.books = (Book("Mark", "Mark", {7: (1,), 8: (1,)}),)
 
-            def key(self, reference):
+            def key(self, reference: object):
                 return Key()
 
-            def chapter(self, reference, *, cancelled=None):
+            def chapter(self, reference, *, cancelled: object = None):
                 calls.append(reference)
                 return Chapter(
                     reference.rsplit(".", 1)[0], ((reference, "SYNTHETIC BODY"),), None, None
                 )
 
-            def structured_chapter(self, chapter, *, cancelled=None):
+            def structured_chapter(self, chapter, *, cancelled: object = None):
                 stop.set()
                 return {reference: (Segment(text),) for reference, text in chapter.verses}
 
@@ -213,12 +215,12 @@ class HeadlessPaginationTests(unittest.TestCase):
 
 
 class HeadlessBookStreamTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.source = SyntheticSource()
         self.stream = BookStream(LayoutContext(96, "en"), self.source, ReadingPreferences())
         self.addCleanup(self.stream.close)
 
-    def settle(self, predicate):
+    def settle(self, predicate) -> None:
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             self.stream.poll()
@@ -227,11 +229,11 @@ class HeadlessBookStreamTests(unittest.TestCase):
             time.sleep(0.005)
         self.fail("Background preparation did not settle")
 
-    def configure(self, key="Mark", width=350, anchor=None):
+    def configure(self, key="Mark", width=350, anchor=None) -> None:
         self.stream.configure(width, 600, anchor or Anchor(key + ".7.1"), key)
         self.settle(lambda: self.stream.cursor is not None)
 
-    def test_entry_anchor_does_not_manufacture_a_short_previous_page(self):
+    def test_entry_anchor_does_not_manufacture_a_short_previous_page(self) -> None:
         self.configure()
         doc = self.stream.plan("Mark").document
         anchor = doc.anchor(len(doc.text) // 2)
@@ -240,7 +242,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.assertEqual(tuple(self.stream.plan("Mark").pages), natural)
         self.assertEqual(self.stream.anchor(), anchor)
 
-    def test_reflow_reuses_source_document_but_number_visibility_invalidates_it(self):
+    def test_reflow_reuses_source_document_but_number_visibility_invalidates_it(self) -> None:
         self.configure()
         doc = self.stream.plan("Mark").document
         anchor = doc.anchor(doc.spans[2].body + 60)
@@ -255,7 +257,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.assertIsNot(self.stream.plan("Mark").document, doc)
         self.assertEqual(self.source.calls.count(("Mark", True, False)), 1)
 
-    def test_identical_reconfiguration_reuses_plan_and_can_restore_cleared_cursor(self):
+    def test_identical_reconfiguration_reuses_plan_and_can_restore_cleared_cursor(self) -> None:
         self.configure()
         plan = self.stream.plan("Mark")
         self.configure()
@@ -264,7 +266,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.configure()
         self.assertIs(self.stream.plan("Mark"), plan)
 
-    def test_superseded_book_stops_and_never_overwrites_the_new_request(self):
+    def test_superseded_book_stops_and_never_overwrites_the_new_request(self) -> None:
         self.source.wait_for = "Mark"
         self.stream.configure(350, 600, Anchor("Mark.7.1"), "Mark")
         self.assertTrue(self.source.entered.wait(2))
@@ -275,7 +277,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.assertNotIn("Mark", self.stream.cache)
         self.assertIsNone(self.stream.error)
 
-    def test_close_cancels_active_work_and_leaves_no_worker_or_cache(self):
+    def test_close_cancels_active_work_and_leaves_no_worker_or_cache(self) -> None:
         self.source.wait_for = "Mark"
         self.stream.configure(350, 600, Anchor("Mark.7.1"), "Mark")
         self.assertTrue(self.source.entered.wait(2))
@@ -287,7 +289,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.assertIsNone(self.stream.poll())
         self.assertTrue(all(not t.is_alive() for t in self.stream.executor._threads))
 
-    def test_reflow_cancels_before_waiting_for_geometry_to_settle(self):
+    def test_reflow_cancels_before_waiting_for_geometry_to_settle(self) -> None:
         self.source.wait_for = "Mark"
         self.stream.configure(350, 600, Anchor("Mark.7.1"), "Mark")
         self.assertTrue(self.source.entered.wait(2))
@@ -301,7 +303,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
         self.configure()
         self.assertEqual(self.stream.cursor.key, "Mark")
 
-    def test_navigation_prunes_obsolete_prefetch_and_all_caches_are_bounded(self):
+    def test_navigation_prunes_obsolete_prefetch_and_all_caches_are_bounded(self) -> None:
         self.configure()
         for key in ("Luke", "John", "Acts", "Rom"):
             self.configure(key)
@@ -314,7 +316,7 @@ class HeadlessBookStreamTests(unittest.TestCase):
             self.assertTrue({sig[0] for sig in self.stream.documents} <= retained)
             self.assertTrue({sig[0][0] for sig in self.stream.plans} <= retained)
 
-    def test_revisiting_initial_configuration_after_turn_repositions_the_cursor(self):
+    def test_revisiting_initial_configuration_after_turn_repositions_the_cursor(self) -> None:
         self.configure()
         initial = self.stream.plan("Mark")
         self.settle(lambda: "Luke" in self.stream.cache)

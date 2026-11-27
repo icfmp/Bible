@@ -2,12 +2,12 @@
 required-version = "==0.14.5"
 target-version = "py312"
 line-length = 100
-include = ["bible/**/*.py", "tools/**/*.py", "tests/**/*.py"]
+include = ["bible/**/*.py", "tools/**/*.py", "tests/**/*.py", "typings/**/*.pyi"]
 force-exclude = true
 extend-exclude = ["third_party", "build", "dist", ".flatpak-builder", ".venv", "**/__pycache__"]
 
 [tool.ruff.lint]
-select = ["E4", "E9", "F", "D100", "D104", "D205", "D209", "D300"]
+select = ["E4", "E9", "F", "B006", "B012", "B018", "RUF006", "TC006", "D100", "D104", "D205", "D209", "D300"]
 # Preserve GI version selection and renderer setup before importing GTK consumers.
 # The exception is file-scoped; import sorting is deliberately not enabled.
 
@@ -41,7 +41,122 @@ convention = "google"
 
 [tool.mypy]
 python_version = "3.12"
-files = ["bible/providers.py", "bible/source_sections.py", "bible/notes.py", "bible/highlights.py", "bible/personal_backup.py"]
+mypy_path = "typings"
+files = [
+    "bible/__init__.py",
+    "bible/__main__.py",
+    "bible/annotation_card.py",
+    "bible/annotation_collection.py",
+    "bible/appearance.py",
+    "bible/application_settings.py",
+    "bible/bible_render.py",
+    "bible/book_names.py",
+    "bible/catalogue_cache.py",
+    "bible/catalogue_session.py",
+    "bible/citations.py",
+    "bible/commentary_index.py",
+    "bible/comparison_control.py",
+    "bible/comparison_layout.py",
+    "bible/comparison_sync.py",
+    "bible/context_indicator.py",
+    "bible/curated_catalogue.py",
+    "bible/disclosure.py",
+    "bible/editorial_view.py",
+    "bible/highlight_ui.py",
+    "bible/highlights.py",
+    "bible/history.py",
+    "bible/i18n.py",
+    "bible/icons.py",
+    "bible/inline_document.py",
+    "bible/language_picker.py",
+    "bible/languages.py",
+    "bible/library.py",
+    "bible/loading_cards.py",
+    "bible/markdown.py",
+    "bible/metadata_workers.py",
+    "bible/module_ui_lifecycle.py",
+    "bible/module_updates.py",
+    "bible/module_updates_window.py",
+    "bible/native_module_probe.py",
+    "bible/navigation_overlay.py",
+    "bible/note_editing.py",
+    "bible/note_preview.py",
+    "bible/notes.py",
+    "bible/pagination.py",
+    "bible/passage_annotations.py",
+    "bible/passage_card.py",
+    "bible/personal_backup.py",
+    "bible/place_names.py",
+    "bible/popover_dismissal.py",
+    "bible/preferences.py",
+    "bible/preparation.py",
+    "bible/providers.py",
+    "bible/reading_metrics.py",
+    "bible/reading_preferences.py",
+    "bible/reading_style.py",
+    "bible/reading_sync.py",
+    "bible/reading_tab.py",
+    "bible/reference_data.py",
+    "bible/reference_resolution.py",
+    "bible/reference_targets.py",
+    "bible/resource_details.py",
+    "bible/resource_profile.py",
+    "bible/scroll_motion.py",
+    "bible/search_terms.py",
+    "bible/segmented_choice.py",
+    "bible/session.py",
+    "bible/source_credit.py",
+    "bible/source_note_marker.py",
+    "bible/source_section_key.py",
+    "bible/source_sections.py",
+    "bible/source_units.py",
+    "bible/source_versification.py",
+    "bible/step_sources.py",
+    "bible/structured_text.py",
+    "bible/study_catalogue.py",
+    "bible/study_empty.py",
+    "bible/study_resize.py",
+    "bible/study_resources.py",
+    "bible/study_settings.py",
+    "bible/sword_provider.py",
+    "bible/text_search.py",
+    "bible/topic_data.py",
+    "bible/topic_vocabulary.py",
+    "bible/verse_typography.py",
+    "bible/versification_mapping.py",
+    "bible/version_chooser.py",
+    "bible/word_metadata.py",
+    "bible/workspace_selector.py",
+    "bible/youversion_content.py",
+    "bible/youversion_editions.py",
+    "tests/test_ci_campaigns.py",
+    "tests/test_citations.py",
+    "tests/test_comparison_sync.py",
+    "tests/test_highlights.py",
+    "tests/test_independent_opening.py",
+    "tests/test_languages.py",
+    "tests/test_library_metadata.py",
+    "tests/test_reader_layout_idle.py",
+    "tests/test_reading_features.py",
+    "tests/test_reference_resolution.py",
+    "tests/test_resource_alignment.py",
+    "tests/test_scroll_position.py",
+    "tests/test_session.py",
+    "tests/test_site_render.py",
+    "tests/test_source_rendering.py",
+    "tests/test_source_section_key.py",
+    "tests/test_source_versification.py",
+    "tests/test_viewport_reference.py",
+    "tools/check_catalogue_cache.py",
+    "tools/check_environment.py",
+    "tools/ci_campaigns.py",
+    "tools/composited_x11.py",
+    "tools/icon_inventory.py",
+    "tools/inspect_gnome_hig.py",
+    "tools/project_sources.py",
+    "tools/site_render.py",
+]
+explicit_package_bases = true
 follow_imports = "silent"
 check_untyped_defs = true
 warn_unused_ignores = true

@@ -4,6 +4,8 @@ Only a marked disposable developer profile is accepted. Screenshots remain
 private artifacts; JSON reports contain aggregate checks, never a profile dump.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -22,7 +24,7 @@ def descendants(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -120,12 +122,12 @@ def main():
     if args.require_packaged:
         assert "GL" in report["renderer"]
 
-    def save():
+    def save() -> None:
         (args.output / ("nfc-offline.json" if args.offline else "nfc.json")).write_text(
             json.dumps(report, indent=2) + "\n"
         )
 
-    def shot(name):
+    def shot(name) -> None:
         native.move_at(window, 2, 2)
         spin(duration=0.1)
         screen.grab(args.output / (name + ".png"))
@@ -133,7 +135,7 @@ def main():
             dict(file=name + ".png", width=window.get_width(), height=window.get_height())
         )
 
-    def download(identifier):
+    def download(identifier) -> None:
         original_preferences = preferences.path.read_bytes()
         from bible.youversion_catalogue import editions
 
@@ -297,7 +299,7 @@ def main():
                 assert not tab._comparison_aligned, "No NFC/NBS alignment has been verified"
                 comparison = tab.comparison_visible_reference()
                 assert comparison and comparison.startswith("Gen.11.")
-                tab.show("Sir.43.17")
+                tab.show_reference("Sir.43.17")
                 spin()
                 assert tab._comparison_reader and tab.comparison_visible_reference().startswith(
                     "Gen.11."

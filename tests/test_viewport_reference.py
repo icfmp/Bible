@@ -1,5 +1,7 @@
 """Keep first-visible semantics while avoiding full offscreen GTK layout scans."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -11,7 +13,9 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class ViewportReferenceTests(unittest.TestCase):
-    def test_wrapped_and_partial_lines_match_existing_reference_semantics_in_both_directions(self):
+    def test_wrapped_and_partial_lines_match_existing_reference_semantics_in_both_directions(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library, Gtk
 
         for rtl in (False, True):

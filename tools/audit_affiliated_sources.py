@@ -4,6 +4,8 @@ Fetch official documentation and the standard repository list, and measure the
 current CrossWire catalogue. No Bible/commentary text is downloaded or bundled.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 import io
@@ -23,11 +25,11 @@ DOCUMENTS = {
 
 
 class Document(HTMLParser):
-    def __init__(self, base):
+    def __init__(self, base) -> None:
         super().__init__()
         self.base, self.parts, self.links, self.hidden = base, [], [], 0
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         if tag in {"script", "style"}:
             self.hidden += 1
         if tag == "a" and (href := dict(attrs).get("href")):
@@ -35,11 +37,11 @@ class Document(HTMLParser):
             if urllib.parse.urlsplit(url).scheme in {"https", "http", "ftp"}:
                 self.links.append(url)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if tag in {"script", "style"}:
             self.hidden = max(0, self.hidden - 1)
 
-    def handle_data(self, text):
+    def handle_data(self, text) -> None:
         if not self.hidden and text.strip():
             self.parts.append(text.strip())
 
@@ -78,7 +80,7 @@ def entries(payload):
     return sorted(result, key=lambda r: r["name"])
 
 
-def main():
+def main() -> None:
     report = {
         "issue": 11,
         "checked_at": datetime.now(timezone.utc).isoformat(),

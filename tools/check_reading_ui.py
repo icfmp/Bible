@@ -3,6 +3,8 @@
 Uses explicitly synthetic SWORD fixtures; not a manual GNOME/Flatpak test.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 from tests.test_ui import installed_fixture, spin
@@ -11,7 +13,7 @@ from tools.check_alpha_ui import X11Input
 from bible.ui import Application, Window, Library
 
 
-def main():
+def main() -> None:
     app = Application()
     app.register()
     native = X11Input()

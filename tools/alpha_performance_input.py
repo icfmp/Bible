@@ -4,6 +4,8 @@ Never waits for the GTK main thread. CPU is process-wide across native threads,
 100% means one logical CPU. PSS/RSS are host process memory, not GPU VRAM.
 """
 
+from __future__ import annotations
+
 import ctypes
 import json
 import os
@@ -27,7 +29,7 @@ def sample(pid):
     return data
 
 
-def main():
+def main() -> None:
     output = Path(sys.argv[1])
     pid = int(sys.argv[2])
     cycles = int(sys.argv[3])

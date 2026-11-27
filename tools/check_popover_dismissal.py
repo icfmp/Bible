@@ -1,5 +1,7 @@
 """Native pointer/key regression for #43; Xvfb is not manual GNOME validation."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 from tests.test_ui import installed_fixture, spin
@@ -7,7 +9,7 @@ from tools.check_alpha_ui import X11Input
 from bible.ui import Application, Window, Library, Gtk
 
 
-def main():
+def main() -> None:
     app = Application()
     app.register()
     Gtk.Settings.get_default().set_property("gtk-enable-animations", False)

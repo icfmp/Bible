@@ -1,5 +1,16 @@
 """Small native highlight list and paint-only tags; never change scripture words."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .ui import Window
+    from .highlights import Highlight, HighlightStore
+    from .sword_provider import Reader
+    from .passage_annotations import PassageAnnotations
+
 from gi.repository import Adw, Gio, GObject, Gtk, Pango
 from .highlights import COLORS
 from .i18n import tr, LANGUAGE
@@ -9,11 +20,24 @@ from .notes_window import passage_label, message
 from .reading_style import PALETTES
 
 
-def text_changed(buffer):
-    buffer._highlight_revision += 1
+def text_changed(buffer: Gtk.TextBuffer) -> None:
+    """Invalidate paint-only caches when the native buffer text changes."""
+    revision = cast("int", getattr(buffer, "_highlight_revision"))
+    setattr(buffer, "_highlight_revision", revision + 1)
 
 
-def paint(view, store, system, ranges, visible, high, palette, *, reader=None, annotations=None):
+def paint(
+    view: Gtk.TextView,
+    store: HighlightStore,
+    system: str,
+    ranges: Iterable[tuple[str, int, int]],
+    visible: bool,
+    high: bool,
+    palette: str,
+    *,
+    reader: Reader | None = None,
+    annotations: PassageAnnotations | None = None,
+) -> None:
     """Apply cached paint-only highlight tags using deterministic projected mark priority.
 
     Skip unchanged buffer/range/color/palette state. Shared source ranges
@@ -23,9 +47,10 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
     buffer = view.get_buffer()
     table = buffer.get_tag_table()
     if not hasattr(buffer, "_highlight_revision"):
-        buffer._highlight_revision = 0
+        setattr(buffer, "_highlight_revision", 0)
         buffer.connect("changed", text_changed)
     ranges = tuple(ranges)
+    marks: dict[str, Highlight]
     if not visible:
         marks = {}
     elif reader and annotations:
@@ -36,7 +61,7 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
             for ref, _, _ in ranges
             if (system, ref) in store.entries
         }
-    groups = {}
+    groups: dict[tuple[int, int], tuple[tuple[int | str, ...], Highlight]] = {}
     for reference, start, end in ranges:
         mark = marks.get(reference)
         if not mark:
@@ -51,13 +76,16 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
             groups[(start, end)] = (priority, mark)
     state = (
         buffer,
-        buffer._highlight_revision,
+        getattr(buffer, "_highlight_revision"),
         system,
         ranges,
         visible,
         high,
         palette,
-        tuple((reference, marks.get(reference, {}).get("color")) for reference, _, _ in ranges),
+        tuple(
+            (reference, marks[reference].get("color") if reference in marks else None)
+            for reference, _, _ in ranges
+        ),
     )
     # Comparison can rebuild from an adjustment notification during GTK layout.
     # Do not invalidate the unchanged primary view while GTK validates it.
@@ -74,23 +102,23 @@ def paint(view, store, system, ranges, visible, high, palette, *, reader=None, a
         )
         if getattr(tag, "_highlight_style", None) != style:
             tag.props.background, tag.props.foreground, tag.props.underline = style
-            tag._highlight_style = style
+            setattr(tag, "_highlight_style", style)
         buffer.remove_tag(tag, buffer.get_start_iter(), buffer.get_end_iter())
     if visible:
         for (start, end), (_, mark) in groups.items():
             if end > start:
                 buffer.apply_tag(
-                    table.lookup("highlight-" + mark["color"]),
+                    cast("Gtk.TextTag", table.lookup("highlight-" + mark["color"])),
                     buffer.get_iter_at_offset(start),
                     buffer.get_iter_at_offset(end),
                 )
-    view._highlight_paint_state = state
+    setattr(view, "_highlight_paint_state", state)
 
 
 class MarkItem(GObject.Object):
     """Native list-model wrapper for one retained highlight record."""
 
-    def __init__(self, mark):
+    def __init__(self, mark: Highlight) -> None:
         super().__init__()
         self.mark = mark
 
@@ -98,14 +126,14 @@ class MarkItem(GObject.Object):
 class HighlightsWindow(Adw.Window):
     """Browse retained highlights and open them only in an available compatible translation."""
 
-    def __init__(self, owner):
+    def __init__(self, owner: Window) -> None:
         super().__init__(
             transient_for=owner, title=tr("Highlights"), default_width=500, default_height=560
         )
         self.owner = owner
         self.closed = False
-        self.rows = []
-        self.choosers = []
+        self.rows: list[Highlight] = []
+        self.choosers: list[Gtk.FileChooserNative] = []
         self.set_destroy_with_parent(True)
         self.connect("close-request", self.closed_request)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -156,29 +184,30 @@ class HighlightsWindow(Adw.Window):
             ),
         )
 
-        def bind(_, item):
-            mark = item.get_item().mark
-            item.get_child().set_text(
+        def bind(_: object, item: Gtk.ListItem) -> None:
+            mark = cast("MarkItem", item.get_item()).mark
+            label = cast("Gtk.Label", item.get_child())
+            label.set_text(
                 passage_label(mark["reference"], versification=mark["system"])
                 + " — "
                 + tr(COLORS[mark["color"]][1])
             )
-            item.get_child().set_tooltip_text(mark["resource"] + " · " + mark["system"])
+            label.set_tooltip_text(mark["resource"] + " · " + mark["system"])
 
         factory.connect("bind", bind)
         self.list = Gtk.ListView(model=selection, factory=factory, single_click_activate=True)
-        self.list.connect("activate", self.activate)
+        self.list.connect("activate", self.row_activated)
         scroll = Gtk.ScrolledWindow(vexpand=True)
         scroll.set_child(self.list)
         box.append(scroll)
         self.set_content(box)
         self.refresh()
 
-    def closed_request(self, *_):
+    def closed_request(self, *_: object) -> bool:
         self.closed = True
         return False
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Filter stored marks without requiring their original resource to remain installed."""
         query = normalized(self.search.get_text())
         self.rows = []
@@ -202,7 +231,7 @@ class HighlightsWindow(Adw.Window):
             else ""
         )
 
-    def activate(self, _, index):
+    def row_activated(self, _: object, index: int) -> None:
         """Try compatible installed translations and retain the highlight when none can open its passage."""
         if index >= len(self.rows):
             return
@@ -229,7 +258,7 @@ class HighlightsWindow(Adw.Window):
             tr("No installed translation can open this highlight. The highlight is retained.")
         )
 
-    def choose_file(self, restore):
+    def choose_file(self, restore: bool) -> None:
         """Run explicit standalone backup/confirmed merge restore through the highlight store contract."""
         title = tr("Restore highlights") if restore else tr("Back up highlights")
         chooser = Gtk.FileChooserNative.new(
@@ -243,12 +272,15 @@ class HighlightsWindow(Adw.Window):
             chooser.set_current_name("Bible-highlights.json")
         self.choosers.append(chooser)
 
-        def response(dialog, result):
+        def response(dialog: Gtk.FileChooserNative, result: int) -> None:
             if result == Gtk.ResponseType.ACCEPT:
-                path = dialog.get_file().get_path()
+                selected_file = dialog.get_file()
+                path = selected_file.get_path() if selected_file else None
 
-                def apply():
+                def apply() -> None:
                     try:
+                        if path is None:
+                            raise ValueError(tr("Choose a local file."))
                         if restore:
                             self.owner.highlights.restore(path)
                             self.owner.refresh_highlights()

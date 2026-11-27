@@ -4,6 +4,8 @@ Xvfb tests focus drawing; real Mutter/Wayland Alt+Tab is verified separately.
 No compositor, Pillow or application dependency is introduced by these tests.
 """
 
+from __future__ import annotations
+
 import ctypes
 import os
 from pathlib import Path
@@ -16,7 +18,7 @@ from tools.check_alpha_ui import X11Input
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires X11 GTK")
 class ReaderFocusTests(unittest.TestCase):
-    def test_focus_mark_pixels_native_keyboard_selection_and_geometry(self):
+    def test_focus_mark_pixels_native_keyboard_selection_and_geometry(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
         from bible.reading_style import PALETTES
 

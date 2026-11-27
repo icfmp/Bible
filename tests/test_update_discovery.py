@@ -1,5 +1,7 @@
 """Startup discovery stays asynchronous and uses the existing safe queue."""
 
+from __future__ import annotations
+
 import json
 import os
 import tempfile
@@ -13,7 +15,7 @@ from tests.test_library import archive_bytes
 from tests.test_curated_catalogue import record
 
 
-def resource_package(name, version, *, commentary=False):
+def resource_package(name, version, *, commentary: bool = False):
     from tests.fixtures import module_fixture
     from bible.library import config, resource_from_section
     from bible.providers import BIBLE_RESOURCES
@@ -52,7 +54,9 @@ def resource_package(name, version, *, commentary=False):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class DiscoveryTests(unittest.TestCase):
-    def test_slow_discovery_is_shared_and_updates_use_existing_queue_with_failure_isolation(self):
+    def test_slow_discovery_is_shared_and_updates_use_existing_queue_with_failure_isolation(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.application_settings import ApplicationSettings
         from bible.catalogue_cache import CatalogueCache
@@ -177,7 +181,7 @@ class DiscoveryTests(unittest.TestCase):
         manager.session.installed[old.id] = snapshot
 
         # One rejected update must not prevent the later commentary update.
-        def download(url, out, progress=lambda *_: None, **kwargs):
+        def download(url, out, progress=lambda *_: None, **kwargs: object) -> None:
             data = (
                 study_metadata
                 if url == CATALOGUE_URL
@@ -221,7 +225,9 @@ class DiscoveryTests(unittest.TestCase):
         second.close()
         self.assertFalse(manager.session.closed)
 
-    def test_fresh_cache_avoids_network_but_expired_offline_metadata_never_claims_current(self):
+    def test_fresh_cache_avoids_network_but_expired_offline_metadata_never_claims_current(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.application_settings import ApplicationSettings
         from bible.catalogue_cache import CatalogueCache
@@ -269,7 +275,7 @@ class DiscoveryTests(unittest.TestCase):
         self.assertFalse(w.resource_updates_button.get_visible())
         self.assertEqual(library.resource(old.id).version, "1.0")
 
-    def test_study_offline_metadata_is_not_a_verified_update(self):
+    def test_study_offline_metadata_is_not_a_verified_update(self) -> None:
         from bible.update_discovery import ResourceUpdates
         from bible.library import Library
         from bible.study_resources import REFERENCE_RESOURCE_ID
@@ -294,7 +300,7 @@ class DiscoveryTests(unittest.TestCase):
             manager.session.study.references.metadata()["archive_sha256"], before.sha256
         )
 
-    def test_failed_metadata_bootstrap_is_reported_and_explicit_check_recovers(self):
+    def test_failed_metadata_bootstrap_is_reported_and_explicit_check_recovers(self) -> None:
         from bible.update_discovery import ResourceUpdates
         from bible.library import Library
         from bible.catalogue_cache import CatalogueCache

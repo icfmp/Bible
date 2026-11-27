@@ -1,12 +1,14 @@
 """Real offline book pagination and GTK responsiveness probe for #24."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 import time
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--screenshot")

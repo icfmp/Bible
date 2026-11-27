@@ -1,5 +1,7 @@
 """Existing topic-index validation, source attribution and local lookup."""
 
+from __future__ import annotations
+
 import hashlib
 import tempfile
 import unittest
@@ -21,7 +23,7 @@ def archive(path, rows=None, filename="topic-scores.txt"):
 
 
 class TopicDataTests(unittest.TestCase):
-    def test_curated_bilingual_ambiguity_accents_and_no_sentence_claim(self):
+    def test_curated_bilingual_ambiguity_accents_and_no_sentence_claim(self) -> None:
         self.assertEqual(len(VOCABULARY), 50)
         self.assertEqual(len({e[0] for e in VOCABULARY}), 50)
         self.assertEqual(
@@ -39,7 +41,7 @@ class TopicDataTests(unittest.TestCase):
         self.assertEqual(title(suggestions("anger")[0], "en_US"), "Anger")
         self.assertEqual(title(("missing label", "", ""), "fr-CA"), "Missing label")
 
-    def test_real_sqlite_exact_deduplication_rank_and_no_topic_merging(self):
+    def test_real_sqlite_exact_deduplication_rank_and_no_topic_merging(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             path = root / "data.zip"
@@ -58,7 +60,7 @@ class TopicDataTests(unittest.TestCase):
             self.assertEqual(len(store.query("reconciliation")), 1)
             self.assertEqual(store.query("unreviewed topic"), [])
 
-    def test_failed_hash_and_invalid_schema_leave_installed_resource_intact(self):
+    def test_failed_hash_and_invalid_schema_leave_installed_resource_intact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             path = root / "data.zip"
@@ -79,7 +81,7 @@ class TopicDataTests(unittest.TestCase):
             self.assertEqual(store.path.read_bytes(), before)
             self.assertTrue(store.query("forgiveness"))
 
-    def test_zip_path_score_bounds_reference_bounds_and_partial_vocabulary_coverage(self):
+    def test_zip_path_score_bounds_reference_bounds_and_partial_vocabulary_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "data.zip"
             for rows, name in [

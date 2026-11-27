@@ -1,5 +1,7 @@
 """Parallel reading, direction changes and exact cross-versification mapping."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ComparisonTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from unittest.mock import patch
 
         # Exercise follow/layout separately from resource evidence acquisition.
@@ -18,7 +20,7 @@ class ComparisonTests(unittest.TestCase):
             patch("bible.sword_provider.Reader.can_align_reference", return_value=True)
         )
 
-    def test_a_local_row_mapping_gap_does_not_disable_valid_verse_following(self):
+    def test_a_local_row_mapping_gap_does_not_disable_valid_verse_following(self) -> None:
         from unittest.mock import patch
         from bible.ui import Application, Window, Library
 
@@ -61,7 +63,7 @@ class ComparisonTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_switching_primary_clears_an_obsolete_alignment_error(self):
+    def test_switching_primary_clears_an_obsolete_alignment_error(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()
@@ -103,7 +105,7 @@ class ComparisonTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_switching_primary_recomputes_the_same_printed_psalm_reference(self):
+    def test_switching_primary_recomputes_the_same_printed_psalm_reference(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()
@@ -135,7 +137,7 @@ class ComparisonTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_shared_render_and_reference_follow_without_history(self):
+    def test_shared_render_and_reference_follow_without_history(self) -> None:
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()

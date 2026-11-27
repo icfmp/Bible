@@ -1,5 +1,7 @@
 """Data branch round trip: retain objects and keep runner/private files out."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -13,7 +15,7 @@ from tools.flatpak_channel import restore_repository_layout
 
 
 class ChannelStorageTests(unittest.TestCase):
-    def test_push_recovery_preserves_commit_identity_and_rejects_concurrent_changes(self):
+    def test_push_recovery_preserves_commit_identity_and_rejects_concurrent_changes(self) -> None:
         actual_run = subprocess.run
         for mode in ("server_error", "lost_success", "concurrent_change", "permission_denied"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
@@ -134,7 +136,7 @@ class ChannelStorageTests(unittest.TestCase):
                 finally:
                     os.chdir(original)
 
-    def test_only_public_files_are_pushed_and_history_round_trips(self):
+    def test_only_public_files_are_pushed_and_history_round_trips(self) -> None:
         original = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -217,7 +219,7 @@ class ChannelStorageTests(unittest.TestCase):
                 os.chdir(original)
 
     @unittest.skipUnless(shutil.which("ostree"), "OSTree CLI required")
-    def test_second_publication_after_git_restore(self):
+    def test_second_publication_after_git_restore(self) -> None:
         original = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -293,7 +295,7 @@ class ChannelStorageTests(unittest.TestCase):
             finally:
                 os.chdir(original)
 
-    def test_repository_restore_rejects_links_without_changing_config(self):
+    def test_repository_restore_rejects_links_without_changing_config(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory) / "repo"
             repo.mkdir()

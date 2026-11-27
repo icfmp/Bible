@@ -1,5 +1,7 @@
 """Regressions for source restoration and coordinated study/navigation work."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from bible.study_settings import StudySettings
 
 
 class RememberedSourceTests(unittest.TestCase):
-    def test_legacy_and_qualified_identity_and_invalid_file_preservation(self):
+    def test_legacy_and_qualified_identity_and_invalid_file_preservation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "study.json"
             path.write_text('{"version":1,"width":420,"tool":"notes"}')
@@ -29,7 +31,9 @@ class RememberedSourceTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class CommentaryRestoreTests(unittest.TestCase):
-    def test_chapter_stream_keeps_all_entries_and_missing_coverage_without_replacement(self):
+    def test_chapter_stream_keeps_all_entries_and_missing_coverage_without_replacement(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
         from tests.test_commentary import commentary_fixture
@@ -68,7 +72,7 @@ class CommentaryRestoreTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_last_explicit_source_defaults_only_unchosen_tabs_and_survives_absence(self):
+    def test_last_explicit_source_defaults_only_unchosen_tabs_and_survives_absence(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin
         from tests.test_commentary import commentary_fixture
@@ -141,7 +145,7 @@ class CommentaryRestoreTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK/SWORD")
 class CommentaryRemovalTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window as Window, Library
         from bible.application_settings import ApplicationSettings
         from tests.test_ui import installed_fixture, spin as spin
@@ -170,12 +174,12 @@ class CommentaryRemovalTests(unittest.TestCase):
         spin(lambda: not w.active_tab._restoring_scroll)
         return w
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for w in self.windows:
             if not w.closed:
                 w.close()
 
-    def choose(self, w, name):
+    def choose(self, w, name) -> None:
         from tests.test_ui import spin
 
         w.study.choices.set_selected(w.study.names.index(name))
@@ -183,7 +187,7 @@ class CommentaryRemovalTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.commentary, name)
         self.assertEqual(w.study.reader.name if w.study.reader else None, name)
 
-    def remove(self, name):
+    def remove(self, name) -> None:
         from tests.test_ui import spin
 
         d = self.w.open_library("commentary")
@@ -194,7 +198,9 @@ class CommentaryRemovalTests(unittest.TestCase):
         self.assertFalse((self.library.root / name).exists())
         d.close()
 
-    def test_remove_active_source_releases_handles_in_all_windows_and_keeps_other_choice(self):
+    def test_remove_active_source_releases_handles_in_all_windows_and_keeps_other_choice(
+        self,
+    ) -> None:
         import weakref
         from dataclasses import asdict
 
@@ -233,7 +239,7 @@ class CommentaryRemovalTests(unittest.TestCase):
 
     def test_missing_legacy_choice_switches_after_native_notification_and_uses_stable_identity(
         self,
-    ):
+    ) -> None:
         from tests.test_ui import spin
 
         panel = self.w.study
@@ -255,7 +261,9 @@ class CommentaryRemovalTests(unittest.TestCase):
         self.assertNotIn("MissingNotes", panel.names)
         self.assertEqual(self.w.study_settings.last_commentary, "OtherNotes")
 
-    def test_last_removal_restart_and_reinstall_keep_unavailable_context_without_auto_switch(self):
+    def test_last_removal_restart_and_reinstall_keep_unavailable_context_without_auto_switch(
+        self,
+    ) -> None:
         from tests.test_commentary import commentary_fixture
         from tests.test_ui import spin
 
@@ -276,7 +284,7 @@ class CommentaryRemovalTests(unittest.TestCase):
         self.assertEqual(self.w.active_tab.state.commentary, "Notes")
         self.choose(self.w, "OtherNotes")
 
-    def test_pending_choices_coalesce_and_close_cancels_native_work(self):
+    def test_pending_choices_coalesce_and_close_cancels_native_work(self) -> None:
         from tests.test_ui import spin
 
         panel = self.w.study
@@ -289,7 +297,7 @@ class CommentaryRemovalTests(unittest.TestCase):
         spin()
         self.assertEqual(panel._choice_idle, 0)
 
-    def test_removal_cancels_a_pending_choice_before_it_opens_a_native_source(self):
+    def test_removal_cancels_a_pending_choice_before_it_opens_a_native_source(self) -> None:
         from bible.module_lifecycle import ModuleLifecycle
         from bible.module_ui_lifecycle import ModuleViewChange
         from tests.test_ui import spin
@@ -308,7 +316,7 @@ class CommentaryRemovalTests(unittest.TestCase):
         self.choose(self.w, "OtherNotes")
         d.close()
 
-    def test_same_native_module_name_in_another_provider_root_stays_usable(self):
+    def test_same_native_module_name_in_another_provider_root_stays_usable(self) -> None:
         import shutil
         from tests.test_ui import spin
 

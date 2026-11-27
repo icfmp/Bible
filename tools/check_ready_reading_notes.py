@@ -4,6 +4,8 @@ Captures remain private. JSON records identities/checks, not Scripture or note
 bodies. --prepare installs requested real resources without resetting a profile.
 """
 
+from __future__ import annotations
+
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -12,7 +14,7 @@ import json
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -77,10 +79,10 @@ def main():
         cases=[],
     )
 
-    def save():
+    def save() -> None:
         (args.output / "ready.json").write_text(json.dumps(report, indent=2) + "\n")
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not w.active_tab._restoring_scroll
             and not getattr(w.active_tab, "_comparison_positioning", False),
@@ -88,7 +90,7 @@ def main():
             timeout=60,
         )
 
-    def capture(name, keep_pointer=False):
+    def capture(name, keep_pointer: bool = False) -> None:
         if not keep_pointer:
             native.move_at(w, 2, 2)
         spin(duration=0.2)

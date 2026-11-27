@@ -1,5 +1,9 @@
 """Conservative SWORD markup extraction; no HTML execution or invented headings."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import overload
 from dataclasses import dataclass
 from html.parser import HTMLParser
 import re
@@ -19,25 +23,28 @@ class SourceParser(HTMLParser):
     # HTML title/textarea RCDATA semantics, which would expose those tags.
     """Extract a conservative supported markup structure without executing HTML or adding headings."""
 
-    CDATA_CONTENT_ELEMENTS = ("script", "style")
-    RCDATA_CONTENT_ELEMENTS = ()
+    # typeshed marks these extension attributes Final, although HTMLParser
+    # reads subclass/instance overrides at runtime (verified with the native tests).
+    CDATA_CONTENT_ELEMENTS = ("script", "style")  # type: ignore[misc]
+    RCDATA_CONTENT_ELEMENTS = ()  # type: ignore[misc]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.segments = []
+        self.segments: list[Segment] = []
         self.hidden = 0
         self.heading = 0
-        self.heading_kinds = []
-        self.divisions = []
-        self.paragraph_ids = set()
-        self.inline = []
+        self.heading_kinds: list[str] = []
+        self.divisions: list[bool] = []
+        self.paragraph_ids: set[str] = set()
+        self.inline: list[tuple[str, tuple[str, ...]]] = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Track supported inline/block milestones while excluding script/style/note bodies from prose."""
-        attrs = dict(attrs)
+        attributes = dict(attrs)
         # HTMLParser normalizes attribute names, including OSIS sID/eID.
         # A closing milestone is a boundary, never a new enclosing block.
-        if attrs.get("eid"):
+        end_id = attributes.get("eid")
+        if end_id:
             if self.hidden:
                 return
             if tag == "l":
@@ -45,12 +52,10 @@ class SourceParser(HTMLParser):
             elif (
                 tag == "lg"
                 or tag == "div"
-                and (
-                    attrs.get("type") in {"paragraph", "x-p"} or attrs["eid"] in self.paragraph_ids
-                )
+                and (attributes.get("type") in {"paragraph", "x-p"} or end_id in self.paragraph_ids)
             ):
                 self.segments.append(Segment("\n\n", "break"))
-                self.paragraph_ids.discard(attrs["eid"])
+                self.paragraph_ids.discard(end_id)
             return
         if tag in {"script", "style", "note"}:
             self.hidden += 1
@@ -66,8 +71,8 @@ class SourceParser(HTMLParser):
                 "x-bold-italic": ["bold", "italic"],
                 "small-caps": ["small-caps"],
                 "super": ["superscript"],
-            }.get(attrs.get("type"), [])
-        elif tag == "transchange" and attrs.get("type") == "added":
+            }.get(attributes.get("type") or "", [])
+        elif tag == "transchange" and attributes.get("type") == "added":
             styles = ["italic"]
         elif tag == "divinename":
             styles = ["small-caps"]
@@ -76,26 +81,29 @@ class SourceParser(HTMLParser):
         if tag in {"title", "h1", "h2", "h3", "h4"}:
             self.heading += 1
             self.heading_kinds.append(
-                "editorial" if tag == "title" and attrs.get("type") == "parallel" else "heading"
+                "editorial"
+                if tag == "title" and attributes.get("type") == "parallel"
+                else "heading"
             )
         if tag == "div":
-            paragraph = attrs.get("type") in {"paragraph", "x-p"}
-            if paragraph and attrs.get("sid"):
-                self.paragraph_ids.add(attrs["sid"])
-            if not attrs.get("sid"):
+            paragraph = attributes.get("type") in {"paragraph", "x-p"}
+            start_id = attributes.get("sid")
+            if paragraph and start_id:
+                self.paragraph_ids.add(start_id)
+            if not attributes.get("sid"):
                 self.divisions.append(paragraph)
         else:
             paragraph = tag in {"p", "lg"}
-        if tag == "milestone" and attrs.get("type") == "x-source-blank-line":
+        if tag == "milestone" and attributes.get("type") == "x-source-blank-line":
             self.segments.append(Segment("\n\n", "blank-line"))
-        elif paragraph or (tag == "milestone" and attrs.get("type") in {"x-p", "paragraph"}):
+        elif paragraph or (tag == "milestone" and attributes.get("type") in {"x-p", "paragraph"}):
             self.segments.append(Segment("\n\n", "break"))
         elif tag in {"lb", "br"}:
             self.segments.append(Segment("\n", "line-break", ("poetry",)))
         elif tag == "l":
             self.segments.append(Segment("\n", "poetry", ("poetry",)))
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag: str) -> None:
         """Close supported source roles and retain actual paragraph/poetry boundaries."""
         if tag in {"script", "style", "note"}:
             self.hidden = max(0, self.hidden - 1)
@@ -116,7 +124,7 @@ class SourceParser(HTMLParser):
         if paragraph:
             self.segments.append(Segment("\n\n", "break"))
 
-    def handle_startendtag(self, tag, attrs):
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         # Empty ThML p and OSIS start/end milestones each mark a boundary.
         # Do not synthesize a second end event, or retain an empty title/note.
         """Apply empty source milestones without incorrectly closing paired start/end markers."""
@@ -128,7 +136,7 @@ class SourceParser(HTMLParser):
         ):
             self.handle_endtag(tag)
 
-    def handle_data(self, text):
+    def handle_data(self, text: str) -> None:
         """Retain visible source text with current heading/inline roles."""
         if not self.hidden:
             self.segments.append(
@@ -140,7 +148,7 @@ class SourceParser(HTMLParser):
             )
 
 
-def extract(raw, plain, source_type):
+def extract(raw: str, plain: str, source_type: str) -> tuple[Segment, ...]:
     """Use structure only when its body words agree with SWORD's own plain text.
 
     A mismatch falls back to exact plain text: unknown markup cannot rewrite the
@@ -154,13 +162,13 @@ def extract(raw, plain, source_type):
         parser.close()
     except Exception:
         return (Segment(plain),)
-    segments = parser.segments
+    segments: Sequence[Segment] = parser.segments
     if source_type == "OSIS":
         segments = native_emphasis(segments, raw, plain)
     return checked_segments(segments, plain)
 
 
-def native_emphasis(segments, raw, plain):
+def native_emphasis(segments: Sequence[Segment], raw: str, plain: str) -> Sequence[Segment]:
     """Reuse verified SWORD decoration detection; retain authored literal stars."""
     normalize = lambda value: re.sub(r"\s+", "", value)
     source = "".join(s.text for s in segments if s.kind == "text")
@@ -176,7 +184,7 @@ def native_emphasis(segments, raw, plain):
         "".join(c for i, c in enumerate(plain) if i not in hidden)
     ):
         return segments
-    boundaries = {}
+    boundaries: dict[int, list[str]] = {}
     position = 0
     for index, char in enumerate(plain):
         if index in hidden:
@@ -185,14 +193,14 @@ def native_emphasis(segments, raw, plain):
             position += 1
     total = position
     position = 0
-    result = []
+    result: list[Segment] = []
     for segment in segments:
         if segment.kind != "text":
             result.append(segment)
             continue
-        run = []
+        run: list[str] = []
 
-        def decoration():
+        def decoration() -> None:
             if run:
                 result.append(Segment("".join(run), "text", segment.styles))
                 run.clear()
@@ -213,7 +221,7 @@ def native_emphasis(segments, raw, plain):
     return result if not boundaries else segments
 
 
-def checked_segments(segments, plain):
+def checked_segments(segments: Sequence[Segment], plain: str) -> tuple[Segment, ...]:
     """Accept markup roles only when non-whitespace body text matches the supplied plain source.
 
     Mismatch falls back to the exact plain text. Accepted structural separators
@@ -225,10 +233,16 @@ def checked_segments(segments, plain):
         # Some StripText filters retain editorial titles. Do not guess which
         # words belong to verses; use the original plain output in that case.
         return (Segment(plain),)
-    result = []
-    pending = []
+    result: list[Segment] = []
+    pending: list[Segment] = []
 
-    def flush(next_segment=None):
+    @overload
+    def flush(next_segment: Segment) -> Segment: ...
+
+    @overload
+    def flush(next_segment: None = None) -> None: ...
+
+    def flush(next_segment: Segment | None = None) -> Segment | None:
         if not pending:
             return next_segment
         boundaries = [

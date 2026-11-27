@@ -1,5 +1,7 @@
 """Full native selectors remain usable without duplicating reader commands."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -11,7 +13,7 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ReaderChromeTests(unittest.TestCase):
-    def test_chapter_titles_full_names_narrow_controls_and_restore(self):
+    def test_chapter_titles_full_names_narrow_controls_and_restore(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
         from bible.book_names import display_name
         from bible.i18n import LANGUAGE
@@ -92,7 +94,7 @@ class ReaderChromeTests(unittest.TestCase):
                     settings.props.gtk_font_name = font
                     w.close()
 
-    def test_short_public_code_gets_its_natural_width_with_large_ui_text(self):
+    def test_short_public_code_gets_its_natural_width_with_large_ui_text(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
 
         app = Application.get_default() or Application()

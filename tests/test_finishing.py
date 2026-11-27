@@ -1,5 +1,7 @@
 """Native regression coverage for the October desktop finishing batch."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -11,7 +13,7 @@ from bible.i18n import tr
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class FinishingTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         from bible.ui import Application, Window, Library
 
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
@@ -22,10 +24,10 @@ class FinishingTests(unittest.TestCase):
         self.window.present()
         spin()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.window.close()
 
-    def test_tab_strip_allocations_and_per_tab_palette_survive_restart(self):
+    def test_tab_strip_allocations_and_per_tab_palette_survive_restart(self) -> None:
         from bible.ui import Window
 
         w = self.window
@@ -54,7 +56,7 @@ class FinishingTests(unittest.TestCase):
         self.assertFalse(w.bar.get_visible())
         self.assertEqual(w.active_tab.state.reference, first.state.reference)
 
-    def test_one_click_lists_and_canvas_tooltip(self):
+    def test_one_click_lists_and_canvas_tooltip(self) -> None:
         from bible.version_chooser import DirectChoices
 
         installed_fixture(self.root, "Other")
@@ -85,7 +87,7 @@ class FinishingTests(unittest.TestCase):
         self.assertFalse(w.comparison_popover.get_visible())
         self.assertEqual((w.active_tab.state.resource, w.active_tab.state.reference), primary)
 
-    def test_immersive_turns_cancel_on_resize_and_disabled_animations(self):
+    def test_immersive_turns_cancel_on_resize_and_disabled_animations(self) -> None:
         from bible.ui import Gtk
 
         w = self.window
@@ -112,7 +114,7 @@ class FinishingTests(unittest.TestCase):
         finally:
             settings.set_property("gtk-enable-animations", old)
 
-    def test_catalogue_loading_zero_failure_and_retained_rows_are_distinct(self):
+    def test_catalogue_loading_zero_failure_and_retained_rows_are_distinct(self) -> None:
         from dataclasses import replace
         from bible.catalogue_window import CatalogueWindow
         from bible.providers import PROVIDERS
@@ -154,7 +156,7 @@ class FinishingTests(unittest.TestCase):
             d.close()
             spin()
 
-    def test_unreadable_installed_metadata_keeps_welcome_and_original_files(self):
+    def test_unreadable_installed_metadata_keeps_welcome_and_original_files(self) -> None:
         from bible.ui import Window
 
         w = self.window
@@ -175,7 +177,7 @@ class FinishingTests(unittest.TestCase):
         self.assertEqual(w.main_pages.get_visible_child_name(), "welcome")
         conf.write_bytes(original)
 
-    def test_immersion_hides_saved_marks_without_changing_preferences_or_storage(self):
+    def test_immersion_hides_saved_marks_without_changing_preferences_or_storage(self) -> None:
         w = self.window
         tab = w.active_tab
         w.highlights.set("KJV", ["Gen.1.1"], "green", "Test")
@@ -212,7 +214,7 @@ class FinishingTests(unittest.TestCase):
             w.preferences.path.read_bytes() if w.preferences.path.exists() else None, prefs
         )
 
-    def test_action_surface_stays_dark_and_readable_after_repeated_native_redraw(self):
+    def test_action_surface_stays_dark_and_readable_after_repeated_native_redraw(self) -> None:
         import ctypes
         from tools.check_alpha_ui import X11Input
 
@@ -296,7 +298,7 @@ class FinishingTests(unittest.TestCase):
         finally:
             native.close()
 
-    def test_reference_opened_tab_keeps_inherited_palette_after_switch_and_restart(self):
+    def test_reference_opened_tab_keeps_inherited_palette_after_switch_and_restart(self) -> None:
         from bible.ui import Window
 
         w = self.window
@@ -321,7 +323,7 @@ class FinishingTests(unittest.TestCase):
         self.assertEqual(w.reading_style.palette, "black")
         self.assertEqual(w.active_tab.state.reference, "Gen.1.2")
 
-    def test_wide_immersive_arrows_hold_hover_and_mouse_focus_does_not_pin_chrome(self):
+    def test_wide_immersive_arrows_hold_hover_and_mouse_focus_does_not_pin_chrome(self) -> None:
         from bible.ui import GLib
 
         w = self.window
@@ -341,7 +343,7 @@ class FinishingTests(unittest.TestCase):
         x, y = bounds.origin.x + bounds.size.width / 2, bounds.origin.y + bounds.size.height / 2
         self.assertTrue(75 < x < v.get_width() - 75)
 
-        def hide():
+        def hide() -> None:
             if v._hide_id:
                 GLib.source_remove(v._hide_id)
                 v._hide_id = 0

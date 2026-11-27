@@ -1,5 +1,7 @@
 """Explicitly opening a Bible is distinct from cross-resource verse alignment."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -9,7 +11,7 @@ from unittest.mock import patch
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class IndependentOpeningTests(unittest.TestCase):
-    def test_library_and_selector_open_unmapped_target_without_relabeling_a_passage(self):
+    def test_library_and_selector_open_unmapped_target_without_relabeling_a_passage(self) -> None:
         from bible.ui import Application, Window, Library
         from bible.reference_resolution import resolve, VersificationMismatch
         from bible.sword_provider import Reader
@@ -76,7 +78,7 @@ class IndependentOpeningTests(unittest.TestCase):
                 self.assertEqual(tab.state.reference, "Gen.19.1")
                 self.assertIn("SYNTHETIC TARGET NINETEEN", tab.text.get_buffer().props.text)
                 self.assertFalse(tab.status.get_visible())
-                self.assertTrue(tab.show("Gen.19.1"))
+                self.assertTrue(tab.show_reference("Gen.19.1"))
                 spin()
                 self.assertIn("SYNTHETIC TARGET NINETEEN", tab.text.get_buffer().props.text)
                 window.primary_version.sync()
@@ -111,7 +113,7 @@ class IndependentOpeningTests(unittest.TestCase):
 
     def test_independent_comparison_restores_qualified_position_and_rejects_unavailable_chapter(
         self,
-    ):
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.i18n import tr
         from tests.test_ui import installed_fixture, spin, close_test_dialogs

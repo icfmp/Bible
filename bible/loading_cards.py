@@ -1,9 +1,20 @@
 """The Library's neutral placeholder shapes, without pretend resource content."""
 
-from gi.repository import Gtk
+from __future__ import annotations
+
+from typing import Protocol
+from gi.repository import Gtk, Gdk
 
 
-def placeholder(area, cr, width, height):
+class _DrawingContext(Protocol):
+    """Only the existing Cairo operations needed by the neutral loading bars."""
+
+    def set_source_rgba(self, red: float, green: float, blue: float, alpha: float) -> None: ...
+    def rectangle(self, x: float, y: float, width: float, height: float) -> None: ...
+    def fill(self) -> None: ...
+
+
+def placeholder(area: object, cr: _DrawingContext, width: int, height: int) -> None:
     cr.set_source_rgba(0.5, 0.5, 0.5, 0.25)
     cr.rectangle(0, 0, width, height)
     cr.fill()
@@ -12,7 +23,7 @@ def placeholder(area, cr, width, height):
 class LoadingCards(Gtk.Box):
     """Show neutral accessible loading shapes, animating only while mapped and animations are enabled."""
 
-    def __init__(self, label, count=3):
+    def __init__(self, label: str, count: int = 3) -> None:
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=14,
@@ -56,12 +67,12 @@ class LoadingCards(Gtk.Box):
         self.connect("map", self.animate)
         self.connect("unmap", self.stop)
         self.connect("notify::root", self.root_changed)
-        self._settings = None
+        self._settings: Gtk.Settings | None = None
         self._settings_handler = 0
 
-    def root_changed(self, *_):
+    def root_changed(self, *_: object) -> None:
         """Reconnect animation settings to the current root without retaining the old settings handler."""
-        if self._settings_handler:
+        if self._settings_handler and self._settings is not None:
             self._settings.disconnect(self._settings_handler)
         self._settings_handler = 0
         self._settings = self.get_settings() if self.get_root() else None
@@ -70,13 +81,13 @@ class LoadingCards(Gtk.Box):
                 "notify::gtk-enable-animations", self.animate
             )
 
-    def animate(self, *_):
+    def animate(self, *_: object) -> None:
         """Replace the pulse callback only when mapped and native animation settings permit it."""
         self.stop()
         if not self.get_mapped() or not self.get_settings().get_property("gtk-enable-animations"):
             return
 
-        def pulse(widget, clock):
+        def pulse(widget: Gtk.Widget, clock: Gdk.FrameClock) -> bool:
             import math
 
             widget.set_opacity(0.7 + 0.25 * math.sin(clock.get_frame_time() / 1000000 * 3))
@@ -84,7 +95,7 @@ class LoadingCards(Gtk.Box):
 
         self._tick = self.add_tick_callback(pulse)
 
-    def stop(self, *_):
+    def stop(self, *_: object) -> None:
         """Remove the frame callback and restore full opacity when loading is hidden or animations stop."""
         if self._tick:
             self.remove_tick_callback(self._tick)

@@ -1,5 +1,7 @@
 """Bounded background SWORD/Pango preparation; GTK stays on its owning thread."""
 
+from __future__ import annotations
+
 from collections import OrderedDict
 from concurrent.futures import CancelledError, ThreadPoolExecutor
 from dataclasses import replace
@@ -17,7 +19,9 @@ from .preparation import checkpoint
 class LayoutContext:
     """A private worker font map, never a Gtk widget shared across threads."""
 
-    def __init__(self, resolution, language, *, round_positions=True, font_options=None):
+    def __init__(
+        self, resolution, language, *, round_positions: bool = True, font_options=None
+    ) -> None:
         self.font_map = PangoCairo.FontMap.new()
         self.font_map.set_resolution(resolution if resolution > 0 else 96)
         self.context = self.font_map.create_context()
@@ -43,7 +47,7 @@ class BookStream(PagedStream):
     backing resource files can be removed.
     """
 
-    def __init__(self, widget, source, preferences):
+    def __init__(self, widget, source, preferences) -> None:
         super().__init__(widget, source, preferences)
         context = widget.get_pango_context()
         self.resolution = PangoCairo.context_get_resolution(context)
@@ -75,7 +79,7 @@ class BookStream(PagedStream):
     def document_signature(key, preferences):
         return key, preferences.chapter_numbers, preferences.verse_numbers
 
-    def _remember(self, cache, key, value, cancelled=None):
+    def _remember(self, cache, key, value, cancelled=None) -> None:
         with self._cache_lock:
             checkpoint(cancelled)
             cache[key] = value
@@ -129,7 +133,7 @@ class BookStream(PagedStream):
         self._remember(self.plans, plan_key, plan, cancelled)
         return plan
 
-    def request(self, key):
+    def request(self, key) -> None:
         """Submit one missing book plan to the serial worker with an immutable preference snapshot."""
         if self.closed:
             return
@@ -150,16 +154,16 @@ class BookStream(PagedStream):
         self.request(key)
         return self.cache.get(key)
 
-    def _cancel(self, key):
+    def _cancel(self, key) -> None:
         self.cancellations.pop(key).set()
         self.futures.pop(key).cancel()
 
-    def cancel_pending(self):
+    def cancel_pending(self) -> None:
         for key in list(self.futures):
             self._cancel(key)
         self.pending = None
 
-    def configure(self, width, height, anchor, key):
+    def configure(self, width, height, anchor, key) -> None:
         """Cancel obsolete preparation and request the current geometry/anchor partition only when it changes."""
         if self.closed:
             return
@@ -215,7 +219,7 @@ class BookStream(PagedStream):
                     del self.plans[old]
         return neighbours
 
-    def _prefetch(self, key):
+    def _prefetch(self, key) -> None:
         neighbours = self._retain_books(key)
         for neighbour in neighbours:
             if neighbour is not None:
@@ -292,7 +296,7 @@ class BookStream(PagedStream):
             result.append(after)
         return result
 
-    def turn(self, direction, count):
+    def turn(self, direction, count) -> bool:
         """Advance the prepared cursor by spread, preserving book boundaries and requesting neighbour prefetch."""
         if not self.cursor:
             return False
@@ -314,7 +318,7 @@ class BookStream(PagedStream):
     def anchor(self):
         return self.requested_anchor or super().anchor()
 
-    def close(self):
+    def close(self) -> None:
         """Cancel outstanding work, join the worker and release resource-dependent caches."""
         self.closed = True
         self.cancel_pending()

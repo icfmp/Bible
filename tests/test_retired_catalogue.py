@@ -1,5 +1,7 @@
 """Removal history is not a live provider catalogue or an availability proof."""
 
+from __future__ import annotations
+
 from dataclasses import asdict, replace
 import json
 import os
@@ -41,7 +43,7 @@ def commentary(name, version):
 
 
 class RetiredCatalogueTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         self.library = Library(self.root / "translations")
         self.old = commentary("BRMHCC", "0.1.0")
@@ -59,12 +61,14 @@ class RetiredCatalogueTests(unittest.TestCase):
         session.bootstrap_future.result(timeout=5)
         return session
 
-    def refresh(self, session, items, error=None):
+    def refresh(self, session, items, error=None) -> None:
         with patch("bible.library.catalogue", side_effect=error, return_value=items):
             session.refresh(catalogues, True, (BIBLE_RESOURCES,)).result(timeout=5)
             session.schedule(lambda: None).result(timeout=5)
 
-    def test_replaced_sword_id_does_not_resurrect_from_journal_after_refresh_or_reopen(self):
+    def test_replaced_sword_id_does_not_resurrect_from_journal_after_refresh_or_reopen(
+        self,
+    ) -> None:
         CatalogueCache(self.root / "catalogue-cache").write(BIBLE_RESOURCES, [self.old])
         session = self.session()
         self.assertIn(self.old.id, session.snapshot.archived_resources)
@@ -77,7 +81,7 @@ class RetiredCatalogueTests(unittest.TestCase):
         self.assertEqual([r.id for r in reopened.snapshot.resources], [self.current.id])
         self.assertEqual(ModuleLifecycle(self.library).removed_resources()[self.old.id], self.old)
 
-    def test_offline_history_is_archived_until_current_availability_is_verified(self):
+    def test_offline_history_is_archived_until_current_availability_is_verified(self) -> None:
         cache = CatalogueCache(self.root / "catalogue-cache")
         cache.write(BIBLE_RESOURCES, [self.old])
         session = self.session()
@@ -91,7 +95,9 @@ class RetiredCatalogueTests(unittest.TestCase):
         self.assertIn(self.old.id, session.snapshot.archived_resources)
         self.assertEqual(self.journal.read_bytes(), self.before)
 
-    def test_current_same_id_version_and_distinct_provider_titles_are_not_deduplicated(self):
+    def test_current_same_id_version_and_distinct_provider_titles_are_not_deduplicated(
+        self,
+    ) -> None:
         session = self.session()
         new = replace(self.old, version="0.1.2")
         foreign = replace(
@@ -109,7 +115,7 @@ class RetiredCatalogueTests(unittest.TestCase):
         )
         self.assertFalse(session.snapshot.archived_resources)
 
-    def test_installed_retired_edition_is_preserved_separately_from_new_download(self):
+    def test_installed_retired_edition_is_preserved_separately_from_new_download(self) -> None:
         session = self.session()
         session.installed = {self.old.id: self.old}
         self.refresh(session, [self.current])
@@ -117,7 +123,7 @@ class RetiredCatalogueTests(unittest.TestCase):
         self.assertEqual(session.snapshot.resources, (self.current,))
         self.assertEqual(self.journal.read_bytes(), self.before)
 
-    def test_partial_youversion_language_catalogue_does_not_retire_another_language(self):
+    def test_partial_youversion_language_catalogue_does_not_retire_another_language(self) -> None:
         session = self.session()
         historical = replace(
             RESOURCE,
@@ -134,7 +140,9 @@ class RetiredCatalogueTests(unittest.TestCase):
         self.assertIn(historical.id, session.snapshot.archived_resources)
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
-    def test_archived_row_and_detail_cannot_start_download_then_current_refresh_replaces_it(self):
+    def test_archived_row_and_detail_cannot_start_download_then_current_refresh_replaces_it(
+        self,
+    ) -> None:
         from bible.ui import Application, Window
         from bible.application_settings import ApplicationSettings
         from tests.test_ui import installed_fixture, spin
@@ -178,7 +186,7 @@ class RetiredCatalogueTests(unittest.TestCase):
             spin()
 
     @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
-    def test_recovered_retired_request_fails_without_fetching_and_can_be_dismissed(self):
+    def test_recovered_retired_request_fails_without_fetching_and_can_be_dismissed(self) -> None:
         from bible.ui import Application, Window
         from bible.application_settings import ApplicationSettings
         from tests.test_ui import installed_fixture, spin

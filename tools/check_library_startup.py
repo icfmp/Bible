@@ -1,5 +1,7 @@
 """Actual Library startup latency/heartbeat; disposable real-resource profiles."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -9,7 +11,7 @@ from gi.repository import GLib, Gtk
 from bible.ui import Application, Window, Library
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -39,7 +41,7 @@ def main():
     last = [time.monotonic()]
     dialog = [None]
 
-    def heartbeat():
+    def heartbeat() -> bool:
         now = time.monotonic()
         gaps.append(now - last[0])
         last[0] = now
@@ -59,7 +61,7 @@ def main():
 
         native = X11Input()
 
-    def capture(name):
+    def capture(name) -> None:
         if args.captures:
             from PIL import ImageGrab
 
@@ -75,7 +77,7 @@ def main():
     frames = [0]
     deadline = start + 80
 
-    def frame(*_):
+    def frame(*_: object):
         frames[0] += 1
         if frames[0] < 2:
             return True
@@ -88,7 +90,7 @@ def main():
 
     dialog[0].add_tick_callback(frame)
 
-    def finish():
+    def finish() -> bool:
         d = dialog[0]
         if time.monotonic() <= deadline:
             if "first_painted_frame_seconds" not in report:

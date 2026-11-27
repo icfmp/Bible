@@ -1,6 +1,15 @@
 """Read-only installed/curated version discovery; never replaces a SWORD root."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+from contextlib import AbstractContextManager
+from os import PathLike
+from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, cast
 from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from .library import Resource
 from datetime import datetime, timezone
 import json
 import os
@@ -29,7 +38,7 @@ class InstalledModule:
     title: str
 
 
-def public_source(value):
+def public_source(value: str) -> str:
     """Never display credentials from an InstallSource URL."""
     try:
         parts = urlsplit(value)
@@ -48,7 +57,10 @@ def public_source(value):
     return value[:128] if re.fullmatch(r"[\w .()/-]{0,128}", value) else ""
 
 
-def installed_modules(library_root, extra_roots=()):
+def installed_modules(
+    library_root: str | PathLike[str],
+    extra_roots: Iterable[str | PathLike[str]] = (),
+) -> tuple[tuple[InstalledModule, ...], tuple[tuple[str, str], ...]]:
     """Inspect app/system/user SWORD configurations without taking ownership of external roots.
 
     Returns:
@@ -95,9 +107,10 @@ def installed_modules(library_root, extra_roots=()):
                             metadata = json.loads((root / ".source.json").read_text())
                             if not isinstance(metadata, dict):
                                 raise ValueError("Invalid source receipt")
-                            source = metadata.get("url", metadata.get("source_url", ""))
-                            if not isinstance(source, str):
+                            raw_source = metadata.get("url", metadata.get("source_url", ""))
+                            if not isinstance(raw_source, str):
                                 raise ValueError("Invalid source origin")
+                            source = raw_source
                         except (OSError, ValueError, TypeError) as error:
                             errors.append((str(root), str(error)))
                             source = ""
@@ -116,7 +129,63 @@ def installed_modules(library_root, extra_roots=()):
     return tuple(result), tuple(errors)
 
 
-def parse_catalogue(data):
+class _Download(TypedDict):
+    sha256: str
+    size_bytes: int
+    url: str
+
+
+class _CatalogueModule(TypedDict):
+    id: str
+    sword_id: str
+    version: str
+    edition: str
+    download: _Download
+
+
+class ModuleCatalogueData(TypedDict):
+    """Consumed identity/integrity fields in the existing provider catalogue."""
+
+    schema_version: Literal[1]
+    repository: str
+    repository_url: str
+    modules: list[_CatalogueModule]
+
+
+class _SavedCatalogue(TypedDict):
+    source_url: str
+    body: str
+    etag: str
+    last_modified: str
+    checked: str
+
+
+class CatalogueCheck(TypedDict):
+    """Checked catalogue and explicit freshness; cached results keep their error."""
+
+    catalogue: ModuleCatalogueData
+    cached: bool
+    checked: str
+    error: str
+
+
+class _Headers(Protocol):
+    def get(self, name: str, default: str) -> str: ...
+
+
+class _Response(Protocol):
+    @property
+    def headers(self) -> _Headers: ...
+    def read(self, size: int) -> bytes: ...
+
+
+class _Opener(Protocol):
+    def __call__(
+        self, request: urllib.request.Request, *, timeout: int
+    ) -> AbstractContextManager[_Response]: ...
+
+
+def parse_catalogue(data: bytes) -> ModuleCatalogueData:
     """Validate bounded existing Bible Resources catalogue identity, download origin and integrity fields."""
     if len(data) > MAX_CATALOGUE:
         raise ValueError("Module catalogue exceeds safe limits")
@@ -152,16 +221,18 @@ def parse_catalogue(data):
             "https://icfmp.github.io/Bible-Resources/sword/packages/"
         ):
             raise ValueError("Unsupported curated module origin")
-    return value
+    # Preserve every source field; narrow only after the existing identity
+    # and package-integrity checks above. No provider data is rewritten.
+    return cast("ModuleCatalogueData", value)
 
 
 class ModuleCatalogue:
     """Conditional metadata retrieval with a validated saved catalogue for offline discovery."""
 
-    def __init__(self, root):
+    def __init__(self, root: str | PathLike[str]) -> None:
         self.path = Path(root) / "module-catalogue.json"
 
-    def saved(self):
+    def saved(self) -> _SavedCatalogue:
         """Read and validate the saved catalogue envelope/body without modifying it."""
         if self.path.is_symlink() or self.path.stat().st_size > MAX_CATALOGUE * 2:
             raise ValueError("Invalid saved module catalogue")
@@ -173,9 +244,9 @@ class ModuleCatalogue:
         ):
             raise ValueError("Invalid saved module catalogue")
         parse_catalogue(record["body"].encode())
-        return record
+        return cast("_SavedCatalogue", record)
 
-    def check(self, opener=None):
+    def check(self, opener: _Opener | None = None) -> CatalogueCheck:
         """Refresh conditional metadata and retain a validated cache when the source is unavailable.
 
         A cached result carries its previous checked time and the current error;
@@ -198,7 +269,7 @@ class ModuleCatalogue:
                 with (opener or urllib.request.urlopen)(request, timeout=20) as response:
                     data = response.read(MAX_CATALOGUE + 1)
                     parse_catalogue(data)
-                    saved = dict(
+                    saved = _SavedCatalogue(
                         source_url=CATALOGUE_URL,
                         body=data.decode(),
                         etag=response.headers.get("ETag", ""),
@@ -208,7 +279,7 @@ class ModuleCatalogue:
             except HTTPError as error:
                 if error.code != 304 or not saved:
                     raise
-                saved = dict(saved, checked=checked)
+                saved = _SavedCatalogue(**{**saved, "checked": checked})
             atomic_write(self.path, json.dumps(saved).encode())
             return dict(
                 catalogue=parse_catalogue(saved["body"].encode()),
@@ -227,13 +298,14 @@ class ModuleCatalogue:
             )
 
 
-def assessment(installed, catalogue):
+def assessment(installed: InstalledModule, catalogue: ModuleCatalogueData) -> str:
     """An ID/title/Version coincidence is never sufficient edition evidence."""
     candidates = [entry for entry in catalogue["modules"] if entry["sword_id"] == installed.name]
     return "identity-unverified" if candidates else "no-curated-edition"
 
 
-def version_key(value):
+def version_key(value: object) -> tuple[int, ...] | None:
+    """Compare bounded numeric versions, treating insignificant trailing zeros equally."""
     if not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,8}(?:\.[0-9]{1,8}){0,7}", value):
         return None
     parts = list(map(int, value.split(".")))
@@ -242,7 +314,7 @@ def version_key(value):
     return tuple(parts)
 
 
-def applicable_update(installed, available):
+def applicable_update(installed: Resource, available: Resource) -> str:
     """Same declared edition and receipt, never a coincidental SWORD ID/title."""
     if (
         installed.id,

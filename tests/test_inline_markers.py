@@ -1,5 +1,7 @@
 """Inline objects are source-aware, independent and absent from copied Scripture."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,7 +12,7 @@ from unittest.mock import patch
 
 
 class MarkerDocumentTests(unittest.TestCase):
-    def test_end_group_preserves_copy_and_canonical_positions(self):
+    def test_end_group_preserves_copy_and_canonical_positions(self) -> None:
         from bible.pagination import Document, PassageSpan
         from bible.inline_document import decorate
 
@@ -40,7 +42,7 @@ class MarkerDocumentTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class InlineMarkerTests(unittest.TestCase):
-    def test_native_multi_place_chooser_after_scrolling_the_anchor(self):
+    def test_native_multi_place_chooser_after_scrolling_the_anchor(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             result = subprocess.run(
                 [
@@ -138,7 +140,7 @@ class InlineMarkerTests(unittest.TestCase):
                 close_test_dialogs()
                 w.close()
 
-    def test_native_note_click_and_hovered_marker_rebuild_in_both_readers(self):
+    def test_native_note_click_and_hovered_marker_rebuild_in_both_readers(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             result = subprocess.run(
                 [
@@ -225,7 +227,7 @@ class InlineMarkerTests(unittest.TestCase):
                 close_test_dialogs()
                 w.close()
 
-    def test_notes_ranges_hidden_numbers_copy_and_live_edits(self):
+    def test_notes_ranges_hidden_numbers_copy_and_live_edits(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
@@ -300,7 +302,7 @@ class InlineMarkerTests(unittest.TestCase):
                 close_test_dialogs()
                 window.close()
 
-    def test_place_fallback_and_note_coexist_after_verified_mapping_without_network(self):
+    def test_place_fallback_and_note_coexist_after_verified_mapping_without_network(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import installed_fixture, spin, close_test_dialogs
         from tests.test_place_data import inputs, pins

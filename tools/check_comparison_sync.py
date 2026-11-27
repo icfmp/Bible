@@ -1,5 +1,7 @@
 """Actual offline resources and native X11 comparison input for #36."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from unittest.mock import patch
@@ -9,7 +11,7 @@ from bible.ui import Application, Window, Library, Gtk
 from bible.reference_resolution import resolve
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("profile")
     parser.add_argument("--screenshot-prefix")

@@ -5,6 +5,8 @@ that adding an edition preserves earlier resources, real notes and preferences.
 Receipts contain counts/hashes only; source and modules remain private.
 """
 
+from __future__ import annotations
+
 import argparse
 from contextlib import nullcontext
 import hashlib
@@ -51,7 +53,7 @@ def independent_check(archive, edition, root, reader):
         if ".INTRO" in ref:
             dom = html.fromstring(source["source_html"]).xpath("//div[@data-usfm=$r]", r=ref)[0]
 
-            def flow(node, source_html=False):
+            def flow(node, source_html: bool = False):
                 name = node.tag.rsplit("}", 1)[-1]
                 if source_html and suffix(node) == "label":
                     return ""
@@ -113,7 +115,7 @@ def independent_check(archive, edition, root, reader):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path, nargs="?")
     parser.add_argument("--metadata", type=Path)
@@ -207,13 +209,13 @@ def main():
     except (OSError, ValueError):
         pass
 
-    def progress(done, total):
+    def progress(done, total) -> None:
         now = time.monotonic()
         if transfer["first"] is None:
             transfer["first"] = now
         transfer.update(bytes=done, total=total, last=now)
 
-    def phase(stage, done, total):
+    def phase(stage, done, total) -> None:
         phases[stage] = (done, total)
 
     def compiler(archive, metadata, target, phase, cancelled, **options):
@@ -221,7 +223,7 @@ def main():
             archive, metadata, target, phase, cancelled, compiler=args.compiler, **options
         )
 
-    def metadata_response(request_url, out, **kwargs):
+    def metadata_response(request_url, out, **kwargs: object) -> None:
         assert request_url == url
         out.write(json.dumps(data).encode())
 

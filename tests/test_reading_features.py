@@ -1,5 +1,7 @@
 """State and fidelity checks for reading appearance/history/language names."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,7 +14,7 @@ from bible.languages import language_info, search_terms
 
 
 class ReadingFeaturesTests(unittest.TestCase):
-    def test_history_branches_and_restores_per_tab(self):
+    def test_history_branches_and_restores_per_tab(self) -> None:
         a = TabState("Test")
         b = TabState("Other")
         history.seed(a)
@@ -34,12 +36,12 @@ class ReadingFeaturesTests(unittest.TestCase):
             history.visit(a, "Test", f"Gen.{i + 1}.1")
         self.assertEqual(len(a.history), 100)
 
-    def test_first_visit_has_no_fictitious_default_passage(self):
+    def test_first_visit_has_no_fictitious_default_passage(self) -> None:
         state = TabState()
         history.visit(state, "Other", "John.1.1")
         self.assertEqual([e["reference"] for e in state.history], ["John.1.1"])
 
-    def test_preferences_roundtrip_and_invalid_original_preserved(self):
+    def test_preferences_roundtrip_and_invalid_original_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "reading.json"
             prefs = Preferences(path)
@@ -55,7 +57,7 @@ class ReadingFeaturesTests(unittest.TestCase):
                 invalid.save()
             self.assertEqual(path.read_text(), "{broken")
 
-    def test_source_structure_retains_words_and_ignores_unsafe_notes(self):
+    def test_source_structure_retains_words_and_ignores_unsafe_notes(self) -> None:
         raw = "<title>Source heading</title><p>First<note>Private note</note> words.</p><l>Second line.</l><l>Third line.</l>"
         segments = extract(raw, "First words.Second line.Third line.", "OSIS")
         self.assertEqual(
@@ -70,13 +72,13 @@ class ReadingFeaturesTests(unittest.TestCase):
         )
         self.assertEqual(extract("<literal>", "<literal>", "Plain")[0].text, "<literal>")
 
-    def test_paragraph_milestones_do_not_invent_book_divisions(self):
+    def test_paragraph_milestones_do_not_invent_book_divisions(self) -> None:
         segments = extract('Before<p eID="1"/><p sID="2"/>After</div>', "BeforeAfter", "OSIS")
         self.assertEqual([s.text for s in segments], ["Before", "\n\n", "After"])
         segments = extract('<div type="book">Text</div>', "Text", "OSIS")
         self.assertEqual([s.text for s in segments], ["Text"])
 
-    def test_localized_languages_keep_variants_and_unknown_codes(self):
+    def test_localized_languages_keep_variants_and_unknown_codes(self) -> None:
         self.assertIn("français", language_info("fra", "fr")[0].lower())
         self.assertNotEqual(language_info("az", "fr")[0], language_info("azb", "fr")[0])
         self.assertIn("méridional", language_info("azb", "fr")[0].lower())

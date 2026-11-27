@@ -1,5 +1,7 @@
 """Immediate passage selector: searchable books beside a chapter grid."""
 
+from __future__ import annotations
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -14,7 +16,7 @@ from .sword_provider import Reader
 class PassagePopover(Gtk.Popover):
     """Choose actual installed book/chapter/verse addresses independently of text/topic search."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__()
         self.owner = owner
         self.add_css_class("passage-selector")
@@ -168,7 +170,7 @@ class PassagePopover(Gtk.Popover):
         preview_keys.connect("key-pressed", self.preview_key_pressed)
         self.add_controller(preview_keys)
 
-    def preview_key_pressed(self, controller, key, code, state):
+    def preview_key_pressed(self, controller, key, code: object, state: object) -> bool:
         """Handle Escape for current native popups without interrupting IME preedit or foreign surfaces."""
         if key != Gdk.KEY_Escape:
             return False
@@ -187,18 +189,18 @@ class PassagePopover(Gtk.Popover):
         self.popdown()
         return True
 
-    def hide_completions(self):
+    def hide_completions(self) -> None:
         self.completions.set_visible(False)
         self._book_choices = ()
 
-    def completion_preedit(self, _, text):
+    def completion_preedit(self, _: object, text) -> None:
         self._completion_preedit = bool(text)
         if text:
             self.hide_completions()
         else:
             self.complete_book()
 
-    def complete_book(self, *_):
+    def complete_book(self, *_: object) -> None:
         """Offer only matching books in the selected reader's actual canon outside active IME preedit."""
         if self._updating or self._completion_preedit or not self.get_visible() or not self.reader:
             self.hide_completions()
@@ -229,7 +231,7 @@ class PassagePopover(Gtk.Popover):
         if choices:
             self.completions.select_row(self.completions.get_row_at_index(0))
 
-    def accept_book(self, index=None):
+    def accept_book(self, index=None) -> bool:
         """Commit an explicit completion into direct input without navigating an invented chapter."""
         if self._completion_preedit or not self._book_choices:
             return False
@@ -244,7 +246,7 @@ class PassagePopover(Gtk.Popover):
         self.direct.set_position(-1)
         return True
 
-    def completion_key(self, _, key, code, state):
+    def completion_key(self, _: object, key, code: object, state):
         """Navigate/accept visible completions while preserving modified-key and IME behavior."""
         if self._completion_preedit or state & (
             Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK
@@ -283,7 +285,7 @@ class PassagePopover(Gtk.Popover):
         dropdown.connect("notify::selected", callback)
         return dropdown
 
-    def refresh_history(self):
+    def refresh_history(self) -> None:
         """Present retained passage history in reverse visit order without dropping missing resources."""
         child = self.history_list.get_first_child()
         while child:
@@ -307,12 +309,12 @@ class PassagePopover(Gtk.Popover):
             button.connect("clicked", lambda *_, i=index: self.open_history(i))
             self.history_list.append(button)
 
-    def open_history(self, index):
+    def open_history(self, index) -> None:
         if self.owner.active_tab.travel(index):
             self.sync(force=True)
         self.refresh_history()
 
-    def visibility_changed(self, *_):
+    def visibility_changed(self, *_: object) -> None:
         """Refresh chooser context on opening and stop its visible-only adaptation timer on closing."""
         if self.get_visible():
             if self.owner.search_popover.get_visible():
@@ -332,7 +334,7 @@ class PassagePopover(Gtk.Popover):
             if anchor and anchor.get_mapped():
                 anchor.grab_focus()
 
-    def adapt(self):
+    def adapt(self) -> bool:
         """Adapt the visible book/chapter layout to the current window without a hidden polling loop."""
         if not self.get_visible():
             self._resize_id = 0
@@ -360,7 +362,7 @@ class PassagePopover(Gtk.Popover):
             self.chapter_scroll.set_max_content_height(-1)
         return True
 
-    def sync(self, force=False):
+    def sync(self, force: bool = False) -> None:
         """Synchronize current tab/source/passage only after a relevant context change or forced opening."""
         tab = self.owner.active_tab
         if tab is None or self._updating:
@@ -389,7 +391,7 @@ class PassagePopover(Gtk.Popover):
         self._updating = False
         self.load_version(tab.state.reference)
 
-    def message(self, text=""):
+    def message(self, text="") -> None:
         self.status.set_text(text)
         self.status.set_visible(bool(text))
 
@@ -397,7 +399,7 @@ class PassagePopover(Gtk.Popover):
         index = self.version.get_selected()
         return self.names[index] if index < len(self.names) else None
 
-    def load_version(self, reference):
+    def load_version(self, reference) -> None:
         """Open a real installed canon and populate valid current book/chapter/verse choices."""
         self._updating = True
         self.reader, self.books = None, ()
@@ -433,7 +435,7 @@ class PassagePopover(Gtk.Popover):
     def book_name(self, book):
         return display_name(book.code, book.name, LANGUAGE)
 
-    def filter_books(self, *_):
+    def filter_books(self, *_: object) -> None:
         """Filter actual canon books and keep testament headings separate from selectable rows."""
         previous, self._updating = self._updating, True
         while row := self.book_list.get_first_child():
@@ -476,13 +478,13 @@ class PassagePopover(Gtk.Popover):
         self._updating = previous
         self.reveal_book()
 
-    def reveal_book(self):
+    def reveal_book(self) -> None:
         """Reveal active book/chapter controls after bounded native allocation frames."""
         if self._reveal_id:
             return
         frames = 0
 
-        def reveal(*_):
+        def reveal(*_: object) -> bool:
             nonlocal frames
             frames += 1
             if frames < 3:
@@ -507,7 +509,7 @@ class PassagePopover(Gtk.Popover):
 
         self._reveal_id = self.add_tick_callback(reveal)
 
-    def populate_chapters(self, preferred=1, verse=1):
+    def populate_chapters(self, preferred=1, verse=1) -> None:
         """Populate actual chapters and show an introduction action only when source content exists."""
         while child := self.chapter_grid.get_first_child():
             self.chapter_grid.remove(child.get_child())
@@ -538,7 +540,7 @@ class PassagePopover(Gtk.Popover):
         self.mark_chapter()
         self.reveal_book()
 
-    def open_introduction(self, *_):
+    def open_introduction(self, *_: object) -> None:
         if self.reader and self.book_index < len(self.books):
             from .editorial_view import show_introduction
 
@@ -546,7 +548,7 @@ class PassagePopover(Gtk.Popover):
             self.popdown()
             show_introduction(self.owner, reader, book)
 
-    def mark_chapter(self):
+    def mark_chapter(self) -> None:
         """Mark only the currently chosen actual chapter button active."""
         _tab = self.owner.active_tab
         _code = self.books[self.book_index].code if self.books else ""
@@ -558,7 +560,7 @@ class PassagePopover(Gtk.Popover):
             else:
                 button.remove_css_class("suggested-action")
 
-    def populate_verses(self, preferred=1):
+    def populate_verses(self, preferred=1) -> None:
         """Choose a preferred verse only from the current source chapter's real inventory."""
         self.verses = (
             list(self.books[self.book_index].chapters[self.chapter_number]) if self.chapters else []
@@ -569,7 +571,7 @@ class PassagePopover(Gtk.Popover):
             preferred if preferred in self.verses else (self.verses[0] if self.verses else None)
         )
 
-    def selected_reference(self):
+    def selected_reference(self) -> str:
         if (
             self.book_index < len(self.books)
             and self.chapter_number
@@ -578,7 +580,7 @@ class PassagePopover(Gtk.Popover):
             return f"{self.books[self.book_index].code}.{self.chapter_number}.{self.verse_number}"
         return ""
 
-    def update_direct(self):
+    def update_direct(self) -> None:
         """Reflect the current valid canonical selection as localized direct passage input."""
         from .reference_preview import passage_title
 
@@ -589,7 +591,7 @@ class PassagePopover(Gtk.Popover):
             else ""
         )
 
-    def open_selected(self):
+    def open_selected(self) -> None:
         try:
             self.apply_reference(self.selected_reference())
             self.message()
@@ -598,7 +600,7 @@ class PassagePopover(Gtk.Popover):
         except (ValueError, IndexError) as error:
             self.message(str(error))
 
-    def apply_reference(self, reference):
+    def apply_reference(self, reference) -> None:
         """Validate exact source availability before navigation and retain selection state on failure."""
         if not self.reader:
             raise ValueError(tr("This passage is not available in this translation."))
@@ -630,7 +632,7 @@ class PassagePopover(Gtk.Popover):
             self._updating = False
             self.mark_chapter()
 
-    def apply_selected(self):
+    def apply_selected(self) -> None:
         self.update_direct()
         try:
             self.apply_reference(self.selected_reference())
@@ -638,7 +640,7 @@ class PassagePopover(Gtk.Popover):
         except Exception as error:
             self.message(f"{tr('Unable to read this passage.')} {error}")
 
-    def version_changed(self, *_):
+    def version_changed(self, *_: object) -> None:
         """Open a chosen translation without equating different numbering systems by printed address."""
         if self._updating:
             return
@@ -680,7 +682,7 @@ class PassagePopover(Gtk.Popover):
             self._updating = False
             self.message(str(error))
 
-    def book_changed(self, _, row):
+    def book_changed(self, _: object, row) -> None:
         """Populate a deliberately selected actual book, retaining direct access to single-chapter books."""
         if (
             not self._updating
@@ -701,7 +703,7 @@ class PassagePopover(Gtk.Popover):
             ):
                 self.open_selected()
 
-    def book_key_released(self, _, keyval, keycode, state):
+    def book_key_released(self, _: object, keyval, keycode: object, state: object) -> None:
         """Apply native keyboard book selection after its row movement finishes."""
         if keyval in (
             Gdk.KEY_Up,
@@ -713,7 +715,7 @@ class PassagePopover(Gtk.Popover):
         ):
             self.book_changed(self.book_list, self.book_list.get_selected_row())
 
-    def chapter_changed(self, number):
+    def chapter_changed(self, number) -> None:
         """Open an explicitly selected actual chapter after refreshing its verse choices."""
         if not self._updating:
             self._updating = True
@@ -724,7 +726,7 @@ class PassagePopover(Gtk.Popover):
             self.update_direct()
             self.open_selected()
 
-    def commit(self):
+    def commit(self) -> None:
         """Navigate validated direct input and dismiss only after success, retaining errors for correction."""
         try:
             self.apply_reference(self.direct.get_text())
@@ -735,6 +737,6 @@ class PassagePopover(Gtk.Popover):
         except Exception as error:
             self.message(f"{tr('Unable to read this passage.')} {error}")
 
-    def open_library(self, *_):
+    def open_library(self, *_: object) -> None:
         self.popdown()
         self.owner.open_library("bible")

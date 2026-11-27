@@ -1,5 +1,7 @@
 """Native input regression probes for #151/#168; no app mutation or corpus export."""
 
+from __future__ import annotations
+
 import argparse
 import faulthandler
 import hashlib
@@ -20,7 +22,7 @@ def walk(widget):
         child = child.get_next_sibling()
 
 
-def main():
+def main() -> None:
     faulthandler.enable()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
@@ -57,7 +59,7 @@ def main():
         assert inspect.getfile(Window).startswith("/app/")
     exceptions = []
 
-    def exception(kind, value, tb):
+    def exception(kind, value, tb) -> None:
         exceptions.append(
             dict(type=kind.__name__, functions=[f.name for f in traceback.extract_tb(tb)])
         )
@@ -88,10 +90,10 @@ def main():
     if args.require_packaged:
         assert "GL" in report["renderer"]
 
-    def save():
+    def save() -> None:
         (args.output / "verification.json").write_text(json.dumps(report, indent=2) + "\n")
 
-    def settled():
+    def settled() -> None:
         spin(lambda: not t._restoring_scroll, duration=0.2, timeout=60)
 
     def select(start, end):

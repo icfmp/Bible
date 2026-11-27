@@ -1,5 +1,9 @@
 """General application choices; never infer a new profile from a missing key."""
 
+from __future__ import annotations
+
+from os import PathLike
+from typing import Literal, TypedDict, cast
 import json
 import os
 from pathlib import Path
@@ -7,10 +11,33 @@ import tempfile
 from .i18n import LANGUAGE
 
 
+type SettingKey = Literal[
+    "version",
+    "welcome_seen",
+    "library_language",
+    "automatic_catalogue_refresh",
+    "ui_language",
+    "interface_appearance",
+    "restore_tabs",
+]
+
+
+class ApplicationValues(TypedDict):
+    """Existing application preferences, independent of content-reading typography."""
+
+    version: int
+    welcome_seen: bool
+    library_language: str
+    automatic_catalogue_refresh: bool
+    ui_language: str
+    interface_appearance: str
+    restore_tabs: bool
+
+
 class ApplicationSettings:
     """Keep general application choices separate from reading, notes and resource data."""
 
-    def __init__(self, root):
+    def __init__(self, root: str | PathLike[str]) -> None:
         root = Path(root)
         self.path = root / "application-preferences.json"
         self.error = ""
@@ -22,7 +49,7 @@ class ApplicationSettings:
             else False
         )
         self.first_launch = not existing
-        self.value = dict(
+        self.value: ApplicationValues = dict(
             version=1,
             welcome_seen=True,
             library_language="fr" if LANGUAGE.startswith("fr") else "en",
@@ -52,7 +79,8 @@ class ApplicationSettings:
                     raise ValueError("Invalid general preferences")
             if type(value.get("restore_tabs", True)) is not bool:
                 raise ValueError("Invalid tab preference")
-            self.value.update(value)
+            # Validation above covers known fields; retain unknown keys on disk.
+            cast("dict[str, object]", self.value).update(value)
             self.first_launch = False
         except FileNotFoundError:
             try:
@@ -64,19 +92,24 @@ class ApplicationSettings:
             self.first_launch = False
 
     @property
-    def language(self):
+    def language(self) -> str:
+        """Return the saved Library filter independently of the interface language."""
         return self.value["library_language"]
 
-    def set(self, key, value):
-        previous = self.value.get(key)
-        self.value[key] = value
+    def set(self, key: SettingKey, value: str | bool | int) -> None:
+        """Save a UI-selected setting, restoring the in-memory value if saving fails."""
+        # Keep the original dictionary (including unknown future keys) intact.
+        # The UI supplies the scalar value associated with the selected setting.
+        record = cast("dict[str, object]", self.value)
+        previous = record.get(key)
+        record[key] = value
         try:
             self.save()
         except Exception:
-            self.value[key] = previous
+            record[key] = previous
             raise
 
-    def save(self):
+    def save(self) -> None:
         """Flush and atomically replace preferences, refusing to overwrite an originally unreadable file."""
         if self.error:
             raise ValueError("Original application preferences preserved")

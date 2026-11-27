@@ -1,5 +1,7 @@
 """Real GTK interaction checks for the new main-window workspaces."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -10,16 +12,16 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires Xvfb")
 class WorkspaceFeaturesTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
 
-    def test_history_travel_does_not_append_and_preferences_keep_reference(self):
+    def test_history_travel_does_not_append_and_preferences_keep_reference(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -52,7 +54,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
             finally:
                 w.close()
 
-    def test_notes_save_discard_cancel_and_return_keep_reading(self):
+    def test_notes_save_discard_cancel_and_return_keep_reading(self) -> None:
         from bible.ui import Window, Library
 
         with tempfile.TemporaryDirectory() as directory:
@@ -114,7 +116,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                     w.note_editor._discard = True
                 w.close()
 
-    def test_library_autoload_language_search_and_detail_back(self):
+    def test_library_autoload_language_search_and_detail_back(self) -> None:
         from unittest.mock import patch
         from bible.ui import Window, Library, Gtk
         from bible.library import Resource as Resource
@@ -163,7 +165,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
                     lambda: picker.strings.get_n_items() == 2
                     and "azb" in picker.strings.get_string(1)
                 )
-                picker.activate(None, 1)
+                picker.row_activated(None, 1)
                 self.assertEqual(picker.codes[picker.get_selected()], "azb")
                 self.assertIn("français", LanguagePicker.display_language("fr").lower())
                 theme = Gtk.IconTheme.get_for_display(w.get_display())

@@ -1,5 +1,7 @@
 """Native SWORD links are shared source units, not repeated text matches."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -28,7 +30,7 @@ def linked_fixture(directory, name="Linked"):
 
 
 class LinkedReaderTests(unittest.TestCase):
-    def test_alias_lookup_keeps_all_references_and_unique_units_keep_real_repetition(self):
+    def test_alias_lookup_keeps_all_references_and_unique_units_keep_real_repetition(self) -> None:
         from bible.sword_provider import Reader, passage_verses
 
         with tempfile.TemporaryDirectory() as directory:
@@ -61,7 +63,7 @@ class LinkedReaderTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class LinkedLayoutTests(unittest.TestCase):
-    def test_note_on_alias_remains_visible_and_draft_data_is_unchanged(self):
+    def test_note_on_alias_remains_visible_and_draft_data_is_unchanged(self) -> None:
         from bible.ui import Application, Window, Library
         from tests.test_ui import spin, close_test_dialogs
 
@@ -102,7 +104,7 @@ class LinkedLayoutTests(unittest.TestCase):
                 close_test_dialogs()
                 window.close()
 
-    def test_render_alias_navigation_selection_and_copy_use_one_unit(self):
+    def test_render_alias_navigation_selection_and_copy_use_one_unit(self) -> None:
         from bible.ui import Application, Window, Library
         from bible.pagination import Anchor
         from bible.passage_actions import target
@@ -143,7 +145,7 @@ class LinkedLayoutTests(unittest.TestCase):
             finally:
                 window.close()
 
-    def test_shared_comparison_aligns_a_linked_unit_with_both_other_verses(self):
+    def test_shared_comparison_aligns_a_linked_unit_with_both_other_verses(self) -> None:
         from unittest.mock import patch
 
         self.enterContext(

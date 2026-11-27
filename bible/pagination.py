@@ -5,6 +5,13 @@ Pango byte offsets are converted before slicing Python text; pages partition the
 entire display document exactly, including paragraph separators and headings.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Iterator
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from .preferences import ReadingPreferences
 from dataclasses import dataclass
 from bisect import bisect_left, bisect_right
 import re
@@ -41,14 +48,14 @@ class PassageSpan:
     bases: tuple[int, ...] = ()
 
     @property
-    def members(self):
+    def members(self) -> tuple[str, ...]:
         return (self.reference, *self.aliases)
 
     @property
-    def number(self):
+    def number(self) -> str:
         return self.label if self.label is not None else self.reference.rsplit(".", 1)[-1]
 
-    def base(self, reference):
+    def base(self, reference: str) -> int:
         return self.bases[self.members.index(reference)] if self.bases else 0
 
 
@@ -61,7 +68,7 @@ class StyleSpan:
     end: int
 
 
-def paragraph_spaces(text):
+def paragraph_spaces(text: str) -> tuple[StyleSpan, ...]:
     """Style empty separator lines, without removing their source boundaries."""
     return tuple(
         StyleSpan("paragraph-space", m.start(), m.end())
@@ -69,8 +76,29 @@ def paragraph_spaces(text):
     )
 
 
+type InlineMarker = tuple[str, str, object]
+
+
+class _SourceShift(Protocol):
+    def __call__(self, offset: int, after: bool = False) -> int: ...
+
+
+if TYPE_CHECKING:
+
+    class _DocumentDecorations:
+        # These attributes are attached by the existing presentation adapters.
+        # Keep them out of dataclass fields, serialization and constructor order.
+        inline: dict[int, InlineMarker]
+        source_shift: _SourceShift
+        source_document: Document
+        has_preface: bool
+        context_length: int
+else:
+    _DocumentDecorations = object
+
+
 @dataclass
-class Document:
+class Document(_DocumentDecorations):
     """Display text, canonical spans and optional copy text sharing the same offset space."""
 
     key: object
@@ -79,7 +107,7 @@ class Document:
     styles: tuple[StyleSpan, ...] = ()
     copy_text: str | None = None
 
-    def copy(self, start, end):
+    def copy(self, start: int, end: int) -> str:
         """Copy the requested range while omitting only explicitly hidden/native UI decoration."""
         text = self.copy_text if self.copy_text is not None else self.text
         hidden = sorted(
@@ -100,9 +128,9 @@ class Document:
         pieces.append(text[position:end])
         return "".join(pieces)
 
-    def anchor(self, offset):
+    def anchor(self, offset: int) -> Anchor:
         """Convert a display offset to a source reference and non-whitespace character anchor."""
-        source = getattr(self, "source_document", None)
+        source: Document | None = getattr(self, "source_document", None)
         if source is not None:
             return source.anchor(offset - sum(position < offset for position in self.inline))
         if not self.spans:
@@ -130,9 +158,9 @@ class Document:
             anchor = replace(anchor, spacing=max(0, offset - span.start))
         return anchor
 
-    def locate(self, anchor):
+    def locate(self, anchor: Anchor) -> int:
         """Locate a canonical anchor in the current presentation, preserving fragment and spacing."""
-        source = getattr(self, "source_document", None)
+        source: Document | None = getattr(self, "source_document", None)
         if source is not None:
             return self.source_shift(source.locate(anchor))
         candidates = [s for s in self.spans if anchor.reference in s.members]
@@ -152,7 +180,7 @@ class Document:
                 remaining -= 1
         return max(span.body, min(span.end, span.end + anchor.spacing))
 
-    def selected_passage(self, start, end):
+    def selected_passage(self, start: int, end: int) -> tuple[str, str] | None:
         """Return the selected canonical endpoint references, or None outside passage bodies."""
         spans = [s for s in self.spans if s.body < end and s.end > start]
         if not spans:
@@ -184,14 +212,14 @@ class PagePlan:
     capacity: float = 0
     reading_height: float = 0
 
-    def containing(self, offset):
+    def containing(self, offset: int) -> int:
         """Find the page containing an offset, falling back to the final page."""
         return next(
             (i for i, p in enumerate(self.pages) if p.start <= offset < p.end),
             max(0, len(self.pages) - 1),
         )
 
-    def page_for_anchor(self, anchor):
+    def page_for_anchor(self, anchor: Anchor | None) -> int:
         """Find an anchor's page, skipping invisible chapter-prefix whitespace."""
         offset = self.document.locate(anchor) if anchor and self.document.spans else 0
         if anchor and not anchor.at_body:
@@ -204,7 +232,15 @@ class PagePlan:
         return self.containing(offset)
 
 
-def attributes(document, start=0, end=None, *, context=None, preferences=None, cancelled=None):
+def attributes(
+    document: Document,
+    start: int = 0,
+    end: int | None = None,
+    *,
+    context: Pango.Context | None = None,
+    preferences: ReadingPreferences | None = None,
+    cancelled: Callable[[], bool] | None = None,
+) -> Pango.AttrList:
     """Build Pango byte-range attributes from character spans without changing source offsets."""
     end = len(document.text) if end is None else end
     values = Pango.AttrList()
@@ -222,7 +258,8 @@ def attributes(document, start=0, end=None, *, context=None, preferences=None, c
         offset += len(document.text[previous:position].encode())
         byte_offsets[position] = offset
         previous = position
-    rise = None
+    rise: int | None = None
+    attrs: list[Pango.Attribute]
     for span in document.styles:
         checkpoint(cancelled)
         left, right = max(start, span.start), min(end, span.end)
@@ -284,13 +321,13 @@ def attributes(document, start=0, end=None, *, context=None, preferences=None, c
     return values
 
 
-def heading_groups(document):
+def heading_groups(document: Document) -> list[tuple[int, int]]:
     """Keep consecutive source/chapter headings with the next body character.
 
     Offsets are metadata only: source text, copy text and canonical spans stay
     untouched. Include all intervening blank lines and consecutive headings.
     """
-    groups = []
+    groups: list[tuple[int, int]] = []
     for style in sorted(document.styles, key=lambda s: s.start):
         if style.kind not in {"heading", "chapter", "editorial"}:
             continue
@@ -307,7 +344,23 @@ def heading_groups(document):
     return result
 
 
-def shaped_lines(widget, document, preferences, width, first, last, *, cancelled=None):
+class LayoutContext(Protocol):
+    """Common shaping surface implemented by GTK widgets and the Pango worker."""
+
+    def create_pango_layout(self, text: str) -> Pango.Layout: ...
+    def get_pango_context(self) -> Pango.Context: ...
+
+
+def shaped_lines(
+    widget: LayoutContext,
+    document: Document,
+    preferences: ReadingPreferences,
+    width: float,
+    first: int,
+    last: int,
+    *,
+    cancelled: Callable[[], bool] | None = None,
+) -> Iterator[tuple[int, float, float]]:
     """Shape independent paragraphs in bounded layouts, retaining exact lines.
 
     Pango shapes paragraphs independently. A single book-sized AttrList makes
@@ -324,7 +377,7 @@ def shaped_lines(widget, document, preferences, width, first, last, *, cancelled
         for m in re.finditer("\n", document.text[style.start : style.end])
     }
     position = first
-    y = 0
+    y: float = 0
     while position < last:
         checkpoint(cancelled)
         boundary = document.text.find("\n", position + 4096, last)
@@ -357,6 +410,8 @@ def shaped_lines(widget, document, preferences, width, first, last, *, cancelled
         while True:
             checkpoint(cancelled)
             line = iterator.get_line_readonly()
+            # The iterator starts on a line; next_line() bounds every later step.
+            assert line is not None
             _, logical = iterator.get_line_extents()
             offset = offsets[line.start_index]
             if offset == len(text) and end < last:
@@ -376,7 +431,16 @@ def shaped_lines(widget, document, preferences, width, first, last, *, cancelled
         position = end
 
 
-def paginate(widget, document, preferences, width, height, anchor=None, *, cancelled=None):
+def paginate(
+    widget: LayoutContext,
+    document: Document,
+    preferences: ReadingPreferences,
+    width: float,
+    height: float,
+    anchor: Anchor | None = None,
+    *,
+    cancelled: Callable[[], bool] | None = None,
+) -> PagePlan:
     """Measure real shaped lines. No verse/chapter-length estimates or columns."""
     checkpoint(cancelled)
     groups = heading_groups(document)
@@ -422,9 +486,9 @@ def paginate(widget, document, preferences, width, height, anchor=None, *, cance
         protected = list(groups) + [
             (s.start, s.end) for s in document.styles if s.kind == "verse-start"
         ]
-        intervals = []
-        beginnings = []
-        endings = []
+        intervals: list[tuple[int, int]] = []
+        beginnings: list[int] = []
+        endings: list[int] = []
         for start, end in protected:
             if start < first or end > last:
                 continue

@@ -1,5 +1,7 @@
 """Real Git archive retains preferred build inputs and excludes validation output."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import os
 import subprocess
@@ -10,7 +12,7 @@ from tools.project_sources import create_project_archive
 
 
 class ProjectSourcesTests(unittest.TestCase):
-    def test_build_inputs_original_assets_licenses_and_test_sources_survive(self):
+    def test_build_inputs_original_assets_licenses_and_test_sources_survive(self) -> None:
         original = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

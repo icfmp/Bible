@@ -4,6 +4,8 @@ Uses a marked disposable profile, never a client's profile. Outputs counts and
 hashes only; source archives and modules stay in the private working directory.
 """
 
+from __future__ import annotations
+
 import argparse
 from functools import partial
 import hashlib
@@ -21,7 +23,7 @@ def snapshot(root):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("report", type=Path)
@@ -104,7 +106,7 @@ def main():
         edge = expected.key("Mark.10.1").getVerseMax()
         references = ["Gen.19.1", "Gen.1.1", "Ps.119.1", f"Mark.10.{edge}", "Rev.22.21"]
         for reference in references:
-            assert tab.show(reference)
+            assert tab.show_reference(reference)
             spin()
             assert tab.current.unique_verses() == expected.chapter(reference).unique_verses()
             first = tab._document.spans[0]
@@ -112,7 +114,7 @@ def main():
             assert normalized(displayed) == normalized(
                 expected.chapter(reference).unique_verses()[0][1]
             )
-        assert tab.show("Gen.12.1")
+        assert tab.show_reference("Gen.12.1")
         spin()
         window.primary_version.sync()
         window.primary_version.choices.set_selected(window.primary_version.names.index(source))
@@ -120,7 +122,7 @@ def main():
         assert tab.state.resource == source and tab.state.reference == "Gen.12.1"
         assert not window.primary_version.status.get_visible()
         opened.append("Primary selector")
-        assert tab.show("Gen.11.3")
+        assert tab.show_reference("Gen.11.3")
         window.new_tab()
         spin()
         assert window.open_installed_resource(target)
@@ -133,7 +135,7 @@ def main():
         spin()
         assert tab._comparison_reader and tab._comparison_aligned
         assert tab.comparison_text.get_buffer().get_char_count() > 100
-        assert tab.show("Gen.12.1")
+        assert tab.show_reference("Gen.12.1")
         tab.refresh_comparison()
         spin()
         assert tab._comparison_reader and not tab._comparison_aligned
@@ -142,7 +144,7 @@ def main():
         window.study.tools.set_visible_child_name("notes")
         spin()
         assert not hasattr(window.study, "translation_notes")
-        assert tab.show("Gen.19.1")
+        assert tab.show_reference("Gen.19.1")
         spin()
         window.save_session()
     finally:

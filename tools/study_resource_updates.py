@@ -1,5 +1,7 @@
 """Validate and publish independently versioned study resources on existing GitHub hosting."""
 
+from __future__ import annotations
+
 import argparse
 import base64
 import hashlib
@@ -151,7 +153,7 @@ Offline applications keep their installed index/vocabulary and known catalogue.
     return assets, proof
 
 
-def api(path, *, method="GET", data=None, missing=False):
+def api(path, *, method="GET", data=None, missing: bool = False):
     command = ["gh", "api", "--method", method, "repos/" + REPO + "/" + path]
     if data is not None:
         command += ["--input", "-"]
@@ -262,7 +264,7 @@ def publish(output, assets, expected_parent):
     return commit["sha"]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("--vocabulary", type=Path)

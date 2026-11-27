@@ -1,5 +1,7 @@
 """Read public provider documentation and catalogue metadata, without Bible text."""
 
+from __future__ import annotations
+
 import io
 import re
 import tarfile
@@ -9,13 +11,13 @@ from bible.library import config, BASE
 
 
 class Text(HTMLParser):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.hidden = 0
         self.parts = []
         self.links = []
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs) -> None:
         if tag in ("script", "style"):
             self.hidden += 1
         if tag == "a":
@@ -23,21 +25,21 @@ class Text(HTMLParser):
             if any(word in url.lower() for word in ("api", "doc", "term", "licen", "offline")):
                 self.links.append(url)
 
-    def handle_endtag(self, tag):
+    def handle_endtag(self, tag) -> None:
         if tag in ("script", "style"):
             self.hidden = max(0, self.hidden - 1)
 
-    def handle_data(self, data):
+    def handle_data(self, data) -> None:
         if not self.hidden and data.strip():
             self.parts.append(data.strip())
 
 
-def notice(title, value):
+def notice(title, value) -> None:
     value = value.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
     print(f"::notice title={title}::{value}", flush=True)
 
 
-def main():
+def main() -> None:
     for title, url in [
         ("CrossWire repositories", BASE + "masterRepoList.conf"),
         ("SWORD configuration", "https://wiki.crosswire.org/DevTools:conf_Files"),

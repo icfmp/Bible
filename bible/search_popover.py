@@ -1,5 +1,7 @@
 """Dedicated native Text/Topics entry point over the existing search models."""
 
+from __future__ import annotations
+
 from gi.repository import Gdk, GLib, Gtk
 from .i18n import tr
 from .study_search import StudySearch
@@ -8,7 +10,7 @@ from .study_search import StudySearch
 class SearchPopover(Gtk.Popover):
     """Own the native Text/Topics search surface over the existing source-qualified search models."""
 
-    def __init__(self, owner):
+    def __init__(self, owner) -> None:
         super().__init__()
         self.owner = owner
         self.reader = None
@@ -87,7 +89,7 @@ class SearchPopover(Gtk.Popover):
             return tab.comparison_visible_reference() or tab.comparison_reference
         return tab.state.reference
 
-    def sync(self):
+    def sync(self) -> None:
         self._resource, self.reader = self.reading_context()
         self.active_panel().refresh()
 
@@ -98,7 +100,7 @@ class SearchPopover(Gtk.Popover):
             else self.text_search
         )
 
-    def mode_changed(self, *_):
+    def mode_changed(self, *_: object) -> None:
         """Pause the inactive search and refresh the selected mode without keeping stale preview context."""
         mode = self.modes.get_visible_child_name()
         for name, panel in [("text", self.text_search), ("topics", self.topic_search)]:
@@ -112,12 +114,12 @@ class SearchPopover(Gtk.Popover):
         if self.get_visible():
             self.focus_query()
 
-    def focus_query(self):
+    def focus_query(self) -> None:
         """Replace pending focus work with one visibility-checked GTK idle callback."""
         if self._focus_idle:
             GLib.source_remove(self._focus_idle)
 
-        def focus():
+        def focus() -> bool:
             self._focus_idle = 0
             if self.get_visible() and not self.owner.closed:
                 self.active_panel().entry.grab_focus()
@@ -125,7 +127,7 @@ class SearchPopover(Gtk.Popover):
 
         self._focus_idle = GLib.idle_add(focus)
 
-    def visibility_changed(self, *_):
+    def visibility_changed(self, *_: object) -> None:
         """Refresh on opening; pause both searches and cancel pending focus on dismissal."""
         if self.get_visible():
             for other in self.owner._reading_popovers:
@@ -150,7 +152,7 @@ class SearchPopover(Gtk.Popover):
             if anchor and anchor.get_mapped():
                 anchor.grab_focus()
 
-    def adapt(self):
+    def adapt(self) -> None:
         """Recompute bounded native layout only when visible and its window/content/style stamp changes."""
         if not self.get_visible():
             return
@@ -220,12 +222,12 @@ class SearchPopover(Gtk.Popover):
 
         fit_reader_popover(self, self.owner)
 
-    def results_changed(self, scroll):
+    def results_changed(self, scroll) -> None:
         # Discard the previous model's height before GTK lays out the new rows.
         scroll.set_min_content_height(0)
         self.adapt()
 
-    def fit_results(self, scroll, model):
+    def fit_results(self, scroll, model) -> None:
         """Fit currently mapped result rows within the shared adaptive height budget."""
         if self.owner.closed or not self.get_visible() or not scroll.get_mapped():
             return
@@ -264,7 +266,7 @@ class SearchPopover(Gtk.Popover):
             yield child
             child = child.get_next_sibling()
 
-    def preview_key_pressed(self, controller, key, code, state):
+    def preview_key_pressed(self, controller, key, code: object, state: object) -> bool:
         if key != Gdk.KEY_Escape:
             return False
         event = controller.get_current_event()
@@ -276,7 +278,7 @@ class SearchPopover(Gtk.Popover):
         self.popdown()
         return True
 
-    def close(self):
+    def close(self) -> None:
         if self._focus_idle:
             GLib.source_remove(self._focus_idle)
             self._focus_idle = 0

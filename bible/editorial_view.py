@@ -1,5 +1,13 @@
 """Lazy, read-only source notes and introductions; no timers or personal data."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+from xml.etree.ElementTree import Element
+
+if TYPE_CHECKING:
+    from .sword_provider import Reader
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -10,7 +18,7 @@ from xml.etree.ElementTree import ParseError
 import re
 
 
-def text_view(label):
+def text_view(label: str) -> Gtk.TextView:
     """Create a read-only native study-content view with accessible labeling."""
     view = Gtk.TextView(
         editable=False,
@@ -26,11 +34,11 @@ def text_view(label):
     return view
 
 
-def introduction_text(root):
+def introduction_text(root: Element) -> str:
     """Retain block breaks, without inserting spaces inside inline words."""
-    parts = []
+    parts: list[str] = []
 
-    def visit(node):
+    def visit(node: Element) -> None:
         name = tag(node)
         block = name in ("div", "p", "title", "l", "item", "table", "row")
         if block and parts and not parts[-1].endswith("\n"):
@@ -54,7 +62,7 @@ def introduction_text(root):
     return re.sub(r"\n(?:[ \t\r]*\n)+", "\n\n", "".join(parts)).strip()
 
 
-def fill_introduction(view, root):
+def fill_introduction(view: Gtk.TextView, root: Element) -> None:
     """Apply native source styles; GTK marks preserve offsets during whitespace cleanup."""
     buffer = view.get_buffer()
     buffer.set_text("")
@@ -71,11 +79,11 @@ def fill_introduction(view, root):
         if not buffer.get_tag_table().lookup(name):
             buffer.create_tag(name, **properties)
 
-    def append(text):
+    def append(text: str | None) -> None:
         if text:
             buffer.insert(buffer.get_end_iter(), text)
 
-    def visit(node):
+    def visit(node: Element) -> None:
         name = tag(node)
         block = name in ("div", "p", "title", "l", "item", "table", "row")
         end = buffer.get_end_iter()
@@ -101,7 +109,7 @@ def fill_introduction(view, root):
                 "italic": "intro-italic",
                 "i": "intro-italic",
                 "super": "intro-super",
-            }.get(node.attrib.get("type"))
+            }.get(node.attrib.get("type", ""))
             if name == "hi"
             else None
         )
@@ -130,7 +138,7 @@ def fill_introduction(view, root):
         )
 
 
-def show_introduction(parent, reader, book):
+def show_introduction(parent: Gtk.Window, reader: Reader, book: str) -> Adw.Window:
     """Open the edition-supplied introduction, keeping absent/unreadable content explicit."""
     from .book_names import display_name
     from .i18n import LANGUAGE
@@ -157,6 +165,7 @@ def show_introduction(parent, reader, book):
     )
     scroll.set_child(clamp)
     layout.append(scroll)
+    root: Element | None = None
     try:
         root = reader.introduction(book)
         if root is not None:
@@ -165,8 +174,8 @@ def show_introduction(parent, reader, book):
             view.get_buffer().set_text(tr("No introduction supplied by this edition."))
     except (ValueError, RuntimeError, ParseError):
         view.get_buffer().set_text(tr("Unable to read this passage."))
-    window.text = view
-    window.source_document = root if "root" in locals() else None
+    setattr(window, "text", view)
+    setattr(window, "source_document", root)
     window.set_content(layout)
     window.present()
     return window

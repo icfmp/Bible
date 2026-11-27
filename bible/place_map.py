@@ -1,5 +1,7 @@
 """On-demand native Shumate map; toolkit-owned tiles, cache and navigation."""
 
+from __future__ import annotations
+
 import math
 import gi
 
@@ -48,7 +50,7 @@ def region(candidates, width=600, height=260):
 class PlaceMap(Gtk.Box):
     """Own an on-demand Shumate map of supplied candidate coordinates with toolkit-managed tiles."""
 
-    def __init__(self, candidates):
+    def __init__(self, candidates) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6, hexpand=True)
         self.candidates = tuple(c for c in candidates if c["longitude"] is not None)
         self.canvas = None
@@ -72,7 +74,7 @@ class PlaceMap(Gtk.Box):
         self.connect("map", lambda *_: self.start() if self.canvas is None else None)
         self.connect("unmap", lambda *_: self.stop())
 
-    def start(self):
+    def start(self) -> None:
         """Replace the map with source-coordinate markers and the configured existing tile provider."""
         self.stop()
         self.ready = False
@@ -132,7 +134,7 @@ class PlaceMap(Gtk.Box):
         self._loaded_handler = self.layer.connect("map-loaded", self.loaded)
         self.prepend(self.canvas)
 
-    def loaded(self, layer, errors):
+    def loaded(self, layer, errors) -> None:
         if layer is not self.layer:
             return
         self.ready = not errors
@@ -142,7 +144,7 @@ class PlaceMap(Gtk.Box):
         self.status.set_visible(bool(errors))
         self.retry.set_visible(bool(errors))
 
-    def stop(self):
+    def stop(self) -> None:
         """Disconnect map signals and remove its active layer/widget while retaining the current camera."""
         if self.layer and self._loaded_handler:
             self.layer.disconnect(self._loaded_handler)

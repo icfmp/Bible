@@ -1,5 +1,15 @@
 """One structured renderer for ordinary and comparison Bible panes."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from .pagination import Document
+    from .sword_provider import Reader, Chapter
+    from .preferences import ReadingPreferences
+    from .inline_markers import InlineMarkers
+
 from .paged_sources import BiblePages
 from .reading_style import SPACING as SPACING, apply_direction
 from .reading_metrics import line_spacing, paragraph_space_size, EDITORIAL_GAP, HEADING_LINE_HEIGHT
@@ -8,23 +18,31 @@ from gi.repository import Gtk, Pango
 from gi.repository import GObject
 
 
-def copy_selection(view):
+def copy_selection(view: Gtk.TextView) -> None:
+    """Copy canonical source text through the projection installed by bind_copy."""
     selection = view.get_buffer().get_selection_bounds()
     if not selection:
         return
-    document, base = view._bible_copy_source
+    document, base = cast("tuple[Document, int]", getattr(view, "_bible_copy_source"))
     start, end = (base + i.get_offset() for i in selection)
     view.get_clipboard().set(document.copy(start, end))
     GObject.signal_stop_emission_by_name(view, "copy-clipboard")
 
 
-def bind_copy(view, document, base=0):
-    view._bible_copy_source = (document, base)
+def bind_copy(view: Gtk.TextView, document: Document, base: int = 0) -> None:
+    """Replace the copy projection while keeping exactly one clipboard handler."""
+    setattr(view, "_bible_copy_source", (document, base))
     if not getattr(view, "_bible_copy_handler", None):
-        view._bible_copy_handler = view.connect("copy-clipboard", copy_selection)
+        setattr(view, "_bible_copy_handler", view.connect("copy-clipboard", copy_selection))
 
 
-def render(view, reader, chapter, preferences, document=None):
+def render(
+    view: Gtk.TextView,
+    reader: Reader,
+    chapter: Chapter,
+    preferences: ReadingPreferences,
+    document: Document | None = None,
+) -> tuple[Document, dict[str, int], dict[str, tuple[int, int]], dict[str, int]]:
     """Render the structured source document into native tags/anchors and return canonical offset maps.
 
     Replace old marker children on GTK, retain source span membership and
@@ -32,7 +50,7 @@ def render(view, reader, chapter, preferences, document=None):
     comes from reading preferences, separately from system interface fonts.
     """
     document = document or BiblePages(reader, None).document(chapter.reference, preferences)
-    marker_context = getattr(view, "_marker_context", None)
+    marker_context = cast("InlineMarkers | None", getattr(view, "_marker_context", None))
     if marker_context:
         from .inline_document import decorate
 
@@ -44,25 +62,27 @@ def render(view, reader, chapter, preferences, document=None):
     # invalidation with a partially deleted tree (GTK 4.20).
     for button in getattr(view, "_inline_buttons", ()):
         view.remove(button)
-    view._inline_buttons = []
+    setattr(view, "_inline_buttons", [])
     buffer.set_text("")
     previous = 0
-    children = []
+    children: list[Gtk.Button] = []
+    # Inline child slots require the view’s existing marker owner.
+    context = cast("InlineMarkers", marker_context)
     for offset, (reference, kind, payload) in inline.items():
         buffer.insert(buffer.get_end_iter(), document.text[previous:offset])
         anchor = buffer.create_child_anchor(buffer.get_end_iter())
-        button = marker_context.button(view, reader, reference, kind, payload)
+        button = context.button(view, reader, reference, kind, payload)
         view.add_child_at_anchor(button, anchor)
         children.append(button)
         previous = offset + 1
     buffer.insert(buffer.get_end_iter(), document.text[previous:])
-    view._inline_buttons = children
+    setattr(view, "_inline_buttons", children)
     bind_copy(view, document)
     apply_direction(view, reader, preferences)
     view.set_pixels_inside_wrap(line_spacing(preferences))
     view.set_pixels_below_lines(line_spacing(preferences) + 4)
     table = buffer.get_tag_table()
-    tags = {}
+    tags: dict[str, Gtk.TextTag] = {}
     for kind in [
         "body",
         "chapter",
@@ -90,7 +110,7 @@ def render(view, reader, chapter, preferences, document=None):
         elif kind == "verse-start":
             tag.props.allow_breaks = False
         elif kind == "hidden":
-            tag.props.style = 2
+            tag.props.style = Pango.Style.ITALIC
         elif kind == "native-decoration":
             tag.props.scale = 0
         elif kind == "italic":
@@ -134,7 +154,10 @@ def render(view, reader, chapter, preferences, document=None):
             buffer.get_iter_at_offset(style.start),
             buffer.get_iter_at_offset(style.end),
         )
-    offsets, ranges, markers, labels = {}, {}, {}, {}
+    offsets: dict[str, int] = {}
+    ranges: dict[str, tuple[int, int]] = {}
+    markers: dict[str, int] = {}
+    labels: dict[str, str] = {}
     fragments = []
     for span in document.spans:
         marker = span.body - (
@@ -146,6 +169,6 @@ def render(view, reader, chapter, preferences, document=None):
             markers.setdefault(reference, span.body)
             labels.setdefault(reference, span.number)
             fragments.append((reference, marker, span.end))
-    view._verse_labels = labels
-    view._verse_fragments = tuple(fragments)
+    setattr(view, "_verse_labels", labels)
+    setattr(view, "_verse_fragments", tuple(fragments))
     return document, offsets, ranges, markers

@@ -1,13 +1,18 @@
 """Audit application icon references without importing GTK or starting Bible."""
 
+from __future__ import annotations
+
+from os import PathLike
+
 import ast
 import json
 from pathlib import Path
 import re
 
 
-def references(root):
-    result = {}
+def references(root: str | PathLike[str]) -> tuple[dict[str, list[str]], list[str]]:
+    """Return literal icon uses and locations requiring a computed-name review."""
+    result: dict[str, list[str]] = {}
     computed = []
     for path in sorted((Path(root) / "bible").rglob("*")):
         if path.suffix not in (".py", ".ui", ".css", ".xml"):
@@ -28,7 +33,7 @@ def references(root):
     return result, sorted(set(computed))
 
 
-def main():
+def main() -> None:
     root = Path(__file__).resolve().parents[1]
     used, computed = references(root)
     print(json.dumps(dict(icons=used, unreviewed_computed_names=computed), indent=2))

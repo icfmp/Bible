@@ -1,5 +1,7 @@
 """Synthetic-only #26 fixtures; no downloaded Scripture or publisher content."""
 
+from __future__ import annotations
+
 import copy
 from pathlib import Path
 import tempfile
@@ -84,25 +86,25 @@ def synthetic_archive(path):
 
 
 class BinaryTests(unittest.TestCase):
-    def test_known_vector_and_all_bytes_pairs(self):
+    def test_known_vector_and_all_bytes_pairs(self) -> None:
         self.assertEqual(decode_bytes(bytes.fromhex("010204")), bytes.fromhex("100820"))
         for value in range(256):
             self.assertEqual(decode_bytes(encode(bytes([value]))), bytes([value]))
         data = bytes(item for pair in range(65536) for item in divmod(pair, 256))
         self.assertEqual(decode_bytes(encode(data)), data)
 
-    def test_lengths_and_odd_tail(self):
+    def test_lengths_and_odd_tail(self) -> None:
         for length in range(1025):
             data = bytes(index % 256 for index in range(length))
             self.assertEqual(decode_bytes(encode(data)), data)
 
-    def test_invalid_utf8_fails(self):
+    def test_invalid_utf8_fails(self) -> None:
         with self.assertRaises(UnicodeDecodeError):
             parse_chapter(encode(b"\xff"), "JHN.1", read_edition(metadata(), VERSION))
 
 
 class MetadataTests(unittest.TestCase):
-    def test_absent_notice_is_preserved_and_not_inferred_as_public_domain(self):
+    def test_absent_notice_is_preserved_and_not_inferred_as_public_domain(self) -> None:
         data = metadata()
         data["copyright_short"] = {"text": None, "html": None}
         edition = read_edition(data, VERSION)
@@ -112,7 +114,7 @@ class MetadataTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             read_edition(data, VERSION)
 
-    def test_identity_envelope_and_unchanged_agreement(self):
+    def test_identity_envelope_and_unchanged_agreement(self) -> None:
         data = metadata()
         edition = read_edition({"response": {"data": data}}, VERSION)
         self.assertEqual(edition.chapters, ("JHN.INTRO1", "JHN.1", "PSA.3"))
@@ -122,12 +124,12 @@ class MetadataTests(unittest.TestCase):
         self.assertIn(f"{VERSION}-2.zip", edition.archive_url)
         self.assertEqual(data, metadata())
 
-    def test_unknown_offline_package_is_not_invented(self):
+    def test_unknown_offline_package_is_not_invented(self) -> None:
         data = metadata()
         data["offline"] = None
         self.assertIsNone(read_edition(data, VERSION).archive_url)
 
-    def test_untrusted_urls_and_identity(self):
+    def test_untrusted_urls_and_identity(self) -> None:
         for url in [
             "http://offline-bibles-cdn.youversionapi.com/bible/text/offline/900001-2.zip",
             "https://attacker.invalid/900001-2.zip",
@@ -148,7 +150,7 @@ class MetadataTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             read_edition(data, VERSION)
 
-    def test_invalid_inventory_is_not_silently_reduced(self):
+    def test_invalid_inventory_is_not_silently_reduced(self) -> None:
         for mutation in ["duplicate", "mismatch", "role", "missing"]:
             data = metadata()
             if mutation == "duplicate":
@@ -164,7 +166,7 @@ class MetadataTests(unittest.TestCase):
 
 
 class AdditionalEditionStructures(unittest.TestCase):
-    def test_selah_stays_in_verse_and_unindexed_centered_line_does_not(self):
+    def test_selah_stays_in_verse_and_unindexed_centered_line_does_not(self) -> None:
         edition = read_edition(metadata(("PSA.3",)), VERSION)
         encoded = chapter(
             "PSA.3",
@@ -178,7 +180,7 @@ class AdditionalEditionStructures(unittest.TestCase):
         self.assertEqual(titles, ("UNINDEXED HEADING",))
         self.assertNotIn("Ps.3.0", raw.decode())
 
-    def test_introduction_table_preserves_header_cells_and_inline_word_boundaries(self):
+    def test_introduction_table_preserves_header_cells_and_inline_word_boundaries(self) -> None:
         edition = read_edition(metadata(("JHN.INTRO1",)), VERSION)
         encoded = chapter(
             "JHN.INTRO1",
@@ -192,10 +194,10 @@ class AdditionalEditionStructures(unittest.TestCase):
 
 
 class TreeTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.edition = read_edition(metadata(), VERSION)
 
-    def test_ordered_fragments_notes_unicode_and_raw(self):
+    def test_ordered_fragments_notes_unicode_and_raw(self) -> None:
         result = parse_chapter(chapter(), "JHN.1", self.edition)
         self.assertEqual([v["reference"] for v in result["verses"]], ["JHN.1.1", "JHN.1.3"])
         self.assertEqual(len(result["verses"][0]["fragments"]), 2)
@@ -214,7 +216,7 @@ class TreeTests(unittest.TestCase):
                     node = node["children"][index]
                 self.assertIn(("data-usfm", verse["reference"]), node["attrs"])
 
-    def test_unknown_tree_preserved_conversion_refuses(self):
+    def test_unknown_tree_preserved_conversion_refuses(self) -> None:
         raw = chapter(
             content='<div class="p"><span class="verse" data-usfm="JHN.1.1"><span class="mystery" data-extra="retained">Test</span></span></div>'
         )
@@ -223,7 +225,7 @@ class TreeTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             to_osis(result, self.edition)
 
-    def test_bridges_suffixes_preserved_not_guessed(self):
+    def test_bridges_suffixes_preserved_not_guessed(self) -> None:
         for ref in ("JHN.1.2-3", "JHN.1.3a"):
             result = parse_chapter(
                 chapter(
@@ -236,7 +238,7 @@ class TreeTests(unittest.TestCase):
             with self.assertRaises(Unsupported):
                 to_osis(result, self.edition)
 
-    def test_malformed_or_wrong_identity_rejected(self):
+    def test_malformed_or_wrong_identity_rejected(self) -> None:
         for raw in [
             chapter(version=21),
             encode(b"<div>"),
@@ -252,12 +254,12 @@ class TreeTests(unittest.TestCase):
             with self.subTest(raw=raw[:8]), self.assertRaises(Unsupported):
                 parse_chapter(raw, "JHN.1", self.edition)
 
-    def test_parser_limits(self):
+    def test_parser_limits(self) -> None:
         for parser in (TreeParser(max_nodes=2), TreeParser(max_depth=2)):
             with self.assertRaises(Unsupported):
                 parser.parse("<div><span>test</span></div>")
 
-    def test_osis_semantics_and_note_isolation(self):
+    def test_osis_semantics_and_note_isolation(self) -> None:
         result = parse_chapter(chapter(), "JHN.1", self.edition)
         raw, report = to_osis(result, self.edition)
         tree = E.fromstring(raw)
@@ -272,7 +274,7 @@ class TreeTests(unittest.TestCase):
         self.assertEqual(tree.find(".//o:q", ns).get("who"), "Jesus")
         self.assertEqual(tree.find(".//o:lg/o:l", ns).get("level"), "1")
 
-    def test_noncontiguous_fragments_rejected(self):
+    def test_noncontiguous_fragments_rejected(self) -> None:
         source = chapter(
             content='<div class="p">'
             + "".join(f'<span class="verse" data-usfm="JHN.1.{v}">Test</span>' for v in (1, 3, 1))
@@ -281,7 +283,7 @@ class TreeTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             to_osis(parse_chapter(source, "JHN.1", self.edition), self.edition)
 
-    def test_explicit_bridge_preserves_members_label_and_one_text_stream(self):
+    def test_explicit_bridge_preserves_members_label_and_one_text_stream(self) -> None:
         source = chapter(
             content='<div class="p"><span class="verse" data-usfm="JHN.1.1+JHN.1.3"><span class="label">1,3</span>Texte de test regroupé.</span><span class="verse" data-usfm="JHN.1.4">Suite de test.</span></div>'
         )
@@ -303,7 +305,7 @@ class TreeTests(unittest.TestCase):
             with self.subTest(ref=ref), self.assertRaises(Unsupported):
                 to_osis(parse_chapter(plain, "JHN.1", self.edition), self.edition)
 
-    def test_fragment_continues_across_heading_without_reopening_verse(self):
+    def test_fragment_continues_across_heading_without_reopening_verse(self) -> None:
         source = chapter(
             content='<div class="p"><span class="verse" data-usfm="JHN.1.1">Début de test.</span></div><div class="s1"><span class="heading">Titre de test</span></div><div class="p"><span class="verse" data-usfm="JHN.1.1"> Suite de test.</span><span class="verse" data-usfm="JHN.1.3">Autre test.</span></div>'
         )
@@ -318,7 +320,7 @@ class TreeTests(unittest.TestCase):
             tree.find('.//o:title[@type="x-section"]', ns).text.strip(), "Titre de test"
         )
 
-    def test_heading_note_keeps_body_locator_and_following_source_anchor(self):
+    def test_heading_note_keeps_body_locator_and_following_source_anchor(self) -> None:
         source = chapter(
             content='<div class="s1"><span class="heading">Titre de test</span><span class="note"><span class="fr">1.3</span><span class="ft">Note du titre.</span></span></div><div class="p"><span class="verse" data-usfm="JHN.1.3">Texte de test.</span></div>'
         )
@@ -332,7 +334,7 @@ class TreeTests(unittest.TestCase):
         self.assertEqual(report["note_count"], 1)
         self.assertEqual(report["verse_ids"], ["John.1.3"])
 
-    def test_reviewed_usfm_inline_and_footnote_roles_remain_separate(self):
+    def test_reviewed_usfm_inline_and_footnote_roles_remain_separate(self) -> None:
         source = chapter(
             content='<div class="p"><span class="verse" data-usfm="JHN.1.1">Test<span class="ord">er</span> <span class="tl">mot étranger</span> <span class="bk">titre cité</span> <span class="em">accentué</span><span class="note"><span class="fr">1.1</span><span class="fq">citation de test</span><span class="ft"> note <span class="fv">3</span></span></span></span></div>'
         )
@@ -352,7 +354,7 @@ class TreeTests(unittest.TestCase):
             with self.subTest(role=role), self.assertRaises(Unsupported):
                 to_osis(parse_chapter(bad, "JHN.1", self.edition), self.edition)
 
-    def test_list_indentation_and_embedded_no_break_paragraphs_retained(self):
+    def test_list_indentation_and_embedded_no_break_paragraphs_retained(self) -> None:
         source = chapter(
             content='<div class="li2"><span class="verse" data-usfm="JHN.1.1">Test indenté.</span></div><div class="li1"><span class="verse" data-usfm="JHN.1.3">Test principal.</span></div><div class="pm"><span class="verse" data-usfm="JHN.1.4">Test enchâssé.</span></div><div class="nb"><span class="verse" data-usfm="JHN.1.5">Suite sans rupture.</span></div>'
         )
@@ -367,7 +369,7 @@ class TreeTests(unittest.TestCase):
         self.assertIsNotNone(tree.find('.//o:p[@type="x-no-break"]', ns))
         self.assertEqual(len(report["verse_ids"]), 4)
 
-    def test_introduction_lists_and_explicit_blank_line_do_not_create_verses(self):
+    def test_introduction_lists_and_explicit_blank_line_do_not_create_verses(self) -> None:
         source = chapter(
             "JHN.INTRO1",
             '<div class="ili1">Introduction synthétique.</div><div class="ili2">Détail synthétique.</div><div class="ib"></div>',
@@ -381,20 +383,20 @@ class TreeTests(unittest.TestCase):
 
 
 class ArchiveTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name) / "test.zip"
         self.edition = read_edition(metadata(), VERSION)
 
-    def test_metadata_order_including_introductions_and_complete_inventory(self):
+    def test_metadata_order_including_introductions_and_complete_inventory(self) -> None:
         synthetic_archive(self.path)
         records = list(archive_chapters(self.path, self.edition, complete=True))
         self.assertEqual([r["reference"] for r in records], list(self.edition.chapters))
         self.assertEqual(records[0]["verses"], [])
         self.assertEqual(len(list(Path(self.tmp.name).iterdir())), 1)
 
-    def test_missing_chapter_and_wrong_archive(self):
+    def test_missing_chapter_and_wrong_archive(self) -> None:
         with zipfile.ZipFile(self.path, "w") as z:
             z.writestr("JHN/1.yves", chapter())
         self.assertEqual(len(list(archive_chapters(self.path, self.edition))), 1)
@@ -405,7 +407,7 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             list(archive_chapters(self.path, self.edition))
 
-    def test_security_names_duplicates_and_symlinks(self):
+    def test_security_names_duplicates_and_symlinks(self) -> None:
         for bad in [
             "../escape.yves",
             "/JHN/1.yves",
@@ -430,7 +432,7 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(Unsupported):
             list(archive_chapters(self.path, self.edition))
 
-    def test_limits_and_crc(self):
+    def test_limits_and_crc(self) -> None:
         synthetic_archive(self.path)
         for limits in [dict(max_member=2), dict(max_total=3), dict(max_entries=1)]:
             with self.subTest(limits=limits), self.assertRaises(Unsupported):

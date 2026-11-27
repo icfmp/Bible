@@ -5,6 +5,8 @@ oracle groups DOM wrappers, not semantic converter nodes, and compares original
 source identities, presentation order, text, headings and complete note bodies.
 """
 
+from __future__ import annotations
+
 from copy import deepcopy
 from .check_yves_fidelity import (
     suffix,
@@ -35,7 +37,7 @@ def audit(archive, edition, reader):
     )
     pending = None
 
-    def check(value):
+    def check(value) -> None:
         reference = value["reference"]
         loaded = reader.chapter(reference)
         expected = value["units"]
@@ -81,7 +83,7 @@ def audit(archive, edition, reader):
                 canonical_chapter(original.split(".")[0] + ".1").split(".")[0]
             )
 
-            def flow(node, source_html=False):
+            def flow(node, source_html: bool = False):
                 name = node.tag.rsplit("}", 1)[-1]
                 if source_html and suffix(node) == "label":
                     return ""

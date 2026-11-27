@@ -1,5 +1,7 @@
 """Repeated page generation must preserve channel objects and current provenance."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -7,7 +9,7 @@ from tools.site_render import render
 
 
 class SiteRenderTests(unittest.TestCase):
-    def test_regeneration_preserves_channel_and_escapes_provenance(self):
+    def test_regeneration_preserves_channel_and_escapes_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory)
             alpha = site / "alpha"

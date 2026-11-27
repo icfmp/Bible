@@ -4,6 +4,8 @@ Usage: python -m tools.check_rtl_resource PROFILE RESOURCE OUTPUT.json
 Requires ImageMagick for the screenshot. Does not download or modify the profile.
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -17,7 +19,7 @@ from bible.session import Session, SessionStore, TabState
 from tests.test_ui import spin
 
 
-def main():
+def main() -> None:
     profile, name, output = sys.argv[1:]
     resource_root = Path(profile).resolve() / "translations" / name
     assert resource_root.is_dir()

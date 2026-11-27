@@ -4,6 +4,8 @@ Usage: python -m tools.check_paginated_resources PROFILE BIBLE COMMENTARY OUTPUT
 No download is performed. OUTPUT records checks actually executed under GTK.
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -20,7 +22,7 @@ from bible.sword_provider import Reader, CommentaryReader
 from tests.test_ui import spin
 
 
-def main():
+def main() -> None:
     directory, bible, commentary, output = sys.argv[1:]
     from bible.ui import Application, Window, Gtk
 

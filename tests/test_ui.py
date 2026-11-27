@@ -1,5 +1,7 @@
 """Shared synthetic installed-resource fixtures and native reader smoke tests."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import shutil
@@ -9,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 
-def spin(until=lambda: True, duration=0.1, timeout=4):
+def spin(until=lambda: True, duration=0.1, timeout=4) -> None:
     from bible.ui import GLib
 
     deadline = time.monotonic() + timeout
@@ -26,7 +28,7 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
             loop.quit()
             return False
 
-    def check_condition():
+    def check_condition() -> bool:
         nonlocal settled
         now = time.monotonic()
         if now >= minimum and until():
@@ -49,7 +51,12 @@ def spin(until=lambda: True, duration=0.1, timeout=4):
 
 
 def installed_fixture(
-    directory, name="Test", long_text=False, entries=None, versification="KJV", nt_only=False
+    directory,
+    name="Test",
+    long_text: bool = False,
+    entries=None,
+    versification="KJV",
+    nt_only: bool = False,
 ):
     from tests.fixtures import module_fixture
 
@@ -89,7 +96,7 @@ def installed_fixture(
     return root
 
 
-def close_test_dialogs():
+def close_test_dialogs() -> None:
     from bible.ui import Adw, Gtk
 
     # response() emits the signal without the native button's dismissal.
@@ -101,7 +108,7 @@ def close_test_dialogs():
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK display (use xvfb-run)")
 class WindowTests(unittest.TestCase):
-    def test_metadata_focus_does_not_select_but_explicit_selection_does(self):
+    def test_metadata_focus_does_not_select_but_explicit_selection_does(self) -> None:
         from bible.library import Resource
 
         with tempfile.TemporaryDirectory() as directory:
@@ -126,7 +133,7 @@ class WindowTests(unittest.TestCase):
                     dialog.back_to_list()
                 dialog.close()
 
-    def test_client_detail_hierarchy_preserves_source_terms_and_actions(self):
+    def test_client_detail_hierarchy_preserves_source_terms_and_actions(self) -> None:
         from bible.library import Resource
         from bible.languages import language_name
         from bible.ui import Gtk
@@ -194,7 +201,7 @@ class WindowTests(unittest.TestCase):
             dialog.close()
             window.close()
 
-    def test_study_detail_without_a_module_version_keeps_accurate_controls(self):
+    def test_study_detail_without_a_module_version_keeps_accurate_controls(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
@@ -217,7 +224,7 @@ class WindowTests(unittest.TestCase):
             dialog.close()
             window.close()
 
-    def test_note_insets_and_search_placeholder_content_are_separate(self):
+    def test_note_insets_and_search_placeholder_content_are_separate(self) -> None:
         from bible.ui import Gtk as Gtk
         from bible.i18n import tr
         from bible.loading_cards import LoadingCards
@@ -244,14 +251,14 @@ class WindowTests(unittest.TestCase):
             window.close()
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         from bible.ui import Application, Gtk
 
         cls.app = Application.get_default() or Application()
         cls.app.register()
         Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         close_test_dialogs()
 
     def window(self, directory):
@@ -283,7 +290,7 @@ class WindowTests(unittest.TestCase):
         window.present()
         return window
 
-    def test_empty_profile_and_async_failure_retry(self):
+    def test_empty_profile_and_async_failure_retry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             self.assertIsNone(window.active_tab.reader)
@@ -302,7 +309,7 @@ class WindowTests(unittest.TestCase):
             dialog.close()
             window.close()
 
-    def test_independent_passages_translations_and_closing(self):
+    def test_independent_passages_translations_and_closing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             installed_fixture(directory, "Other")
@@ -331,7 +338,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(len(window.store.load().tabs), 1)
             window.close()
 
-    def test_restore_tabs_selection_scroll_and_study(self):
+    def test_restore_tabs_selection_scroll_and_study(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory, long_text=True)
             window = self.window(directory)
@@ -345,7 +352,7 @@ class WindowTests(unittest.TestCase):
             adjustment.set_value(maximum * 0.55)
             first_fraction = first.state.scroll
             second = window.new_tab()
-            second.show("Gen.2.1")
+            second.show_reference("Gen.2.1")
             spin(lambda: not second._restoring_scroll)
             adjustment = second.scroll.get_vadjustment()
             adjustment.set_value((adjustment.get_upper() - adjustment.get_page_size()) * 0.35)
@@ -363,14 +370,14 @@ class WindowTests(unittest.TestCase):
             self.assertAlmostEqual(restored.active_tab.state.scroll, first_fraction, delta=0.04)
             restored.close()
 
-    def test_missing_translation_keeps_passage_and_other_tabs(self):
+    def test_missing_translation_keeps_passage_and_other_tabs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = installed_fixture(directory)
             installed_fixture(directory, "Other")
             window = self.window(directory)
             tab = window.active_tab
             window.navigate_selection("Test", "Gen.1.1")
-            tab.show("Gen.2.1")
+            tab.show_reference("Gen.2.1")
             window.new_tab()
             window.navigate_selection("Other", "Gen.2.1")
             window.close()
@@ -386,7 +393,7 @@ class WindowTests(unittest.TestCase):
             restored.close()
             self.assertEqual(restored.store.load().tabs[0].resource, "Test")
 
-    def test_study_releases_width_and_adapts_to_narrow_window(self):
+    def test_study_releases_width_and_adapts_to_narrow_window(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -407,7 +414,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(window.view.get_n_pages(), 1)
             window.close()
 
-    def test_corrupt_session_is_preserved(self):
+    def test_corrupt_session_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             session_file = Path(directory) / "session.json"
             session_file.write_text("{broken")
@@ -417,7 +424,7 @@ class WindowTests(unittest.TestCase):
             window.close()
             self.assertEqual(session_file.read_text(), "{broken")
 
-    def test_closed_last_tab_leaves_a_usable_empty_tab(self):
+    def test_closed_last_tab_leaves_a_usable_empty_tab(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             window.close_tab()
@@ -425,7 +432,7 @@ class WindowTests(unittest.TestCase):
             self.assertIsNone(window.active_tab.state.resource)
             window.close()
 
-    def test_first_download_finishes_into_active_reader_even_when_library_is_hidden(self):
+    def test_first_download_finishes_into_active_reader_even_when_library_is_hidden(self) -> None:
         import threading
 
         with tempfile.TemporaryDirectory() as directory:
@@ -457,12 +464,12 @@ class WindowTests(unittest.TestCase):
                 release.set()
                 window.close()
 
-    def test_reordered_tabs_restore_in_order(self):
+    def test_reordered_tabs_restore_in_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
             second = window.new_tab()
-            second.show("Gen.2.1")
+            second.show_reference("Gen.2.1")
             window.view.reorder_page(window.view.get_selected_page(), 0)
             window.close()
             restored = self.window(directory)
@@ -472,12 +479,12 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(restored.active_tab.state.reference, "Gen.2.1")
             restored.close()
 
-    def test_manual_scroll_to_top_wins_over_the_original_verse_target(self):
+    def test_manual_scroll_to_top_wins_over_the_original_verse_target(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory, long_text=True)
             window = self.window(directory)
             first = window.active_tab
-            first.show("Gen.1.2")
+            first.show_reference("Gen.1.2")
             spin(lambda: not first._restoring_scroll)
             self.assertGreater(first.scroll.get_vadjustment().get_value(), 100)
             first.scroll.get_vadjustment().set_value(0)
@@ -493,7 +500,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(restored.active_tab.scroll.get_vadjustment().get_value(), 0)
             restored.close()
 
-    def test_header_selector_reaches_john_and_changes_version_without_reference_input(self):
+    def test_header_selector_reaches_john_and_changes_version_without_reference_input(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             installed_fixture(directory, "Other")
@@ -521,7 +528,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(window.primary_version.caption.get_text(), "Other")
             window.close()
 
-    def test_header_and_selector_follow_active_tab_and_restoration(self):
+    def test_header_and_selector_follow_active_tab_and_restoration(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -549,7 +556,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(restored.navigation.selected_resource(), "Test")
             restored.close()
 
-    def test_nt_only_selector_and_direct_french_reference(self):
+    def test_nt_only_selector_and_direct_french_reference(self) -> None:
         from tests.test_navigation import NT_ENTRIES
 
         with tempfile.TemporaryDirectory() as directory:
@@ -577,7 +584,7 @@ class WindowTests(unittest.TestCase):
             self.assertIn(window.heading.get_title(), ("John 3", "Jean 3"))
             window.close()
 
-    def test_header_at_360_pixels_and_full_height_study_to_the_right(self):
+    def test_header_at_360_pixels_and_full_height_study_to_the_right(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -616,7 +623,7 @@ class WindowTests(unittest.TestCase):
             )
             window.close()
 
-    def test_selected_verse_is_visible_after_wrapped_text_layout(self):
+    def test_selected_verse_is_visible_after_wrapped_text_layout(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             entries = [(f"John.3.{verse}", f"SENTINEL {verse} " * 30) for verse in range(1, 31)]
             installed_fixture(directory, entries=entries)
@@ -631,7 +638,7 @@ class WindowTests(unittest.TestCase):
             self.assertLess(target.y, visible.y + visible.height)
             window.close()
 
-    def test_catalogue_language_search_conditions_and_locked_resource(self):
+    def test_catalogue_language_search_conditions_and_locked_resource(self) -> None:
         from bible.library import Resource
         from bible.i18n import tr
 
@@ -685,7 +692,7 @@ class WindowTests(unittest.TestCase):
             dialog.close()
             window.close()
 
-    def test_installed_attribution_is_available_without_loading_catalogue(self):
+    def test_installed_attribution_is_available_without_loading_catalogue(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -704,12 +711,12 @@ class WindowTests(unittest.TestCase):
         buffer = window.study.text.get_buffer()
         return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
 
-    def choose_commentary(self, window, name):
+    def choose_commentary(self, window, name) -> None:
         window.study.refresh(force=True)
         window.study.choices.set_selected(window.study.names.index(name))
         spin(lambda: not window.study._choice_idle)
 
-    def test_commentary_follows_clicked_verse_and_keyboard_without_stale_text(self):
+    def test_commentary_follows_clicked_verse_and_keyboard_without_stale_text(self) -> None:
         from tests.test_commentary import commentary_fixture
         from bible.i18n import tr
         from bible.ui import Gtk
@@ -753,7 +760,7 @@ class WindowTests(unittest.TestCase):
             self.assertIn("JOHN COMMENTARY", self.study_text(window))
             window.close()
 
-    def test_commentary_choice_restores_per_tab_and_missing_resource_is_kept(self):
+    def test_commentary_choice_restores_per_tab_and_missing_resource_is_kept(self) -> None:
         from tests.test_commentary import commentary_fixture
         from bible.i18n import tr
 
@@ -792,7 +799,7 @@ class WindowTests(unittest.TestCase):
             missing.close()
             self.assertEqual(missing.store.load().tabs[0].commentary, "Notes")
 
-    def test_commentary_types_mismatch_and_install_refresh(self):
+    def test_commentary_types_mismatch_and_install_refresh(self) -> None:
         from tests.test_commentary import commentary_fixture
         from bible.i18n import tr
 
@@ -838,7 +845,7 @@ class WindowTests(unittest.TestCase):
             dialog.close()
             window.close()
 
-    def test_commentary_remains_readable_in_one_narrow_overlay(self):
+    def test_commentary_remains_readable_in_one_narrow_overlay(self) -> None:
         from tests.test_commentary import commentary_fixture
 
         directory = self.enterContext(tempfile.TemporaryDirectory())
@@ -888,7 +895,7 @@ class WindowTests(unittest.TestCase):
         self.assertTrue(editor.closed)
         return note
 
-    def test_passage_notes_range_survive_translation_language_and_restart(self):
+    def test_passage_notes_range_survive_translation_language_and_restart(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             origin = installed_fixture(directory)
             other = installed_fixture(directory, "Other")
@@ -947,7 +954,7 @@ class WindowTests(unittest.TestCase):
             editor.close()
             reopened.close()
 
-    def test_incompatible_note_stays_accessible_without_false_marker(self):
+    def test_incompatible_note_stays_accessible_without_false_marker(self) -> None:
         from bible.i18n import tr
 
         with tempfile.TemporaryDirectory() as directory:
@@ -982,7 +989,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual([a.note.id for a in central.rows if a.note], [note.id])
             window.close()
 
-    def test_note_delete_and_unsaved_close_require_confirmation(self):
+    def test_note_delete_and_unsaved_close_require_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             window = self.window(directory)
@@ -1016,7 +1023,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(window.notes_store.all()[0].body, "Unsaved draft")
             window.close()
 
-    def test_notes_backup_restore_and_safe_preview_remain_local(self):
+    def test_notes_backup_restore_and_safe_preview_remain_local(self) -> None:
         from bible.notes_window import buffer_text
 
         with tempfile.TemporaryDirectory() as directory:
@@ -1048,7 +1055,7 @@ class WindowTests(unittest.TestCase):
                 self.assertEqual(window.notes_store.get(note.id), note)
             window.close()
 
-    def test_note_windows_at_360_pixels_and_commentary_independence(self):
+    def test_note_windows_at_360_pixels_and_commentary_independence(self) -> None:
         from tests.test_commentary import commentary_fixture
 
         with tempfile.TemporaryDirectory() as directory:
@@ -1071,7 +1078,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(self.study_text(window), commentary)
             window.close()
 
-    def test_invalid_notes_database_preserves_file_and_reading(self):
+    def test_invalid_notes_database_preserves_file_and_reading(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
             database = Path(directory) / "notes.sqlite3"
@@ -1085,7 +1092,7 @@ class WindowTests(unittest.TestCase):
             self.assertEqual(database.read_bytes(), original)
             window.close()
 
-    def test_note_formatting_commands_and_catholic_reference_labels(self):
+    def test_note_formatting_commands_and_catholic_reference_labels(self) -> None:
         from bible.notes_window import buffer_text, passage_label
 
         with tempfile.TemporaryDirectory() as directory:

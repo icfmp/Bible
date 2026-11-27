@@ -1,5 +1,13 @@
 """Source-faithful SWORD commentary entries, including disjoint native links."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import Sword
+    from .sword_provider import Reader
+
 from bisect import bisect_left
 from dataclasses import dataclass, replace
 from functools import lru_cache
@@ -14,7 +22,7 @@ class Segment:
     start: str
     end: str
 
-    def contains_index(self, index):
+    def contains_index(self, index: int) -> bool:
         return self.index <= index <= self.last_index
 
 
@@ -29,7 +37,7 @@ class Section:
     introduction: bool = False
     segments: tuple[Segment, ...] = ()
 
-    def contains_index(self, index):
+    def contains_index(self, index: int) -> bool:
         return (
             any(part.contains_index(index) for part in self.segments)
             if self.segments
@@ -37,7 +45,7 @@ class Section:
         )
 
     @property
-    def passages(self):
+    def passages(self) -> tuple[tuple[str, str], ...]:
         """Separate ranges, never a single fictitious range over intervening notes."""
         return (
             tuple((part.start, part.end) for part in self.segments)
@@ -54,22 +62,22 @@ class CommentaryIndex:
     ranges even when one physical entry supplies their common content.
     """
 
-    def __init__(self, reader):
+    def __init__(self, reader: Reader) -> None:
         self.reader = reader
-        self.sections = []
-        self._section_by_native_index = {}
+        self.sections: list[Section] = []
+        self._section_by_native_index: dict[int, int] = {}
         key = reader.sword.VerseKey()
         key.setVersificationSystem(reader.versification)
         key.setIntros(True)
         key.setIndex(0)
 
-        previous = None
-        previous_position = None
-        previous_chapter = None
-        chapter = None
+        previous: Sword.VerseKey | None = None
+        previous_position: int | None = None
+        previous_chapter: tuple[str, str, int] | None = None
+        chapter: tuple[str, str, int] | None = None
         # Keep only this chapter's authored section anchors. Their native
         # isLinked() identity, not the visible text, distinguishes sections.
-        chapter_origins = []
+        chapter_origins: list[tuple[int, Sword.VerseKey]] = []
 
         while True:
             if reader.module.hasEntry(key):
@@ -135,19 +143,21 @@ class CommentaryIndex:
         # Cache lifetime follows this native reader. A decorator on the class
         # method would keep old index/reader instances alive through its keys,
         # preventing safe module removal after the GTK owners release them.
-        self.text = lru_cache(maxsize=20)(self.text)
-        self.raw = lru_cache(maxsize=20)(self.raw)
+        setattr(self, "text", lru_cache(maxsize=20)(self.text))
+        setattr(self, "raw", lru_cache(maxsize=20)(self.raw))
 
-    def locate(self, reference):
+    def locate(self, reference: str) -> int | None:
+        """Find exact native membership, including later disjoint linked segments."""
         # A binary search on first-section indices cannot find a later
         # disjoint segment when an independent section occurs between them.
         index = self.reader.key(reference).getIndex()
         return self._section_by_native_index.get(index)
 
-    def near(self, reference):
+    def near(self, reference: str) -> int:
+        """Return the insertion position among actual native section starts."""
         return bisect_left(self.starts, self.reader.key(reference).getIndex())
 
-    def text(self, position):
+    def text(self, position: int) -> str:
         """Read stripped native text at the indexed entry, changing the reader module key."""
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
@@ -158,7 +168,7 @@ class CommentaryIndex:
         text = self.reader.module.stripText()
         return text if isinstance(text, str) else text.c_str()
 
-    def raw(self, position):
+    def raw(self, position: int) -> str:
         """Read actual raw markup at the indexed entry, changing the reader module key."""
         section = self.sections[position]
         key = self.reader.sword.VerseKey()
@@ -169,7 +179,7 @@ class CommentaryIndex:
         text = self.reader.module.getRawEntry()
         return text if isinstance(text, str) else text.c_str()
 
-    def label(self, position):
+    def label(self, position: int) -> str:
         """Label only the entry introduction or its explicit disjoint passage ranges."""
         section = self.sections[position]
         if section.introduction:

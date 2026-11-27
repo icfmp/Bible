@@ -1,5 +1,7 @@
 """Publication gates must reject an unverified source, changed artifact or key."""
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -11,7 +13,7 @@ from tools.flatpak_channel import prepare, digest
 
 
 class ChannelGateTests(unittest.TestCase):
-    def test_pages_artifact_waits_for_two_stable_observations(self):
+    def test_pages_artifact_waits_for_two_stable_observations(self) -> None:
         asset = dict(id=321, name="github-pages-first-2", expired=False, size_in_bytes=100)
         with (
             patch.dict(os.environ, dict(GITHUB_RUN_ID="123", GITHUB_RUN_ATTEMPT="2")),
@@ -26,7 +28,7 @@ class ChannelGateTests(unittest.TestCase):
         self.assertEqual(fetch.call_count, 3)
         self.assertEqual(sleep.call_args_list, [((5,),), ((5,),)])
 
-    def test_pages_wait_is_bounded_and_never_retries_access_or_identity_failures(self):
+    def test_pages_wait_is_bounded_and_never_retries_access_or_identity_failures(self) -> None:
         from subprocess import CalledProcessError
 
         asset = dict(id=321, name="github-pages-first-2", expired=False, size_in_bytes=100)
@@ -64,7 +66,9 @@ class ChannelGateTests(unittest.TestCase):
                     with self.assertRaisesRegex(AssertionError, "identity changed"):
                         channel_ci.wait_pages_artifact()
 
-    def verification(self, *, conclusion="success", repository="icfmp/Bible", corrupt=False):
+    def verification(
+        self, *, conclusion="success", repository="icfmp/Bible", corrupt: bool = False
+    ):
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
             os.chdir(directory)
@@ -79,7 +83,7 @@ class ChannelGateTests(unittest.TestCase):
                     "head_sha": channel_ci.BASELINE,
                 }
 
-                def command(args, **kwargs):
+                def command(args, **kwargs: object) -> None:
                     if args[:3] == ["gh", "run", "download"]:
                         incoming = Path("incoming")
                         incoming.mkdir()
@@ -108,22 +112,22 @@ class ChannelGateTests(unittest.TestCase):
             finally:
                 os.chdir(previous)
 
-    def test_green_main_artifact_is_identified(self):
+    def test_green_main_artifact_is_identified(self) -> None:
         self.assertEqual(self.verification(), {"source": channel_ci.BASELINE, "ci_run": "123"})
 
-    def test_failed_ci_cannot_publish(self):
+    def test_failed_ci_cannot_publish(self) -> None:
         with self.assertRaisesRegex(AssertionError, "CI must be green"):
             self.verification(conclusion="failure")
 
-    def test_fork_run_cannot_publish(self):
+    def test_fork_run_cannot_publish(self) -> None:
         with self.assertRaises(AssertionError):
             self.verification(repository="untrusted/Bible")
 
-    def test_changed_artifact_cannot_publish(self):
+    def test_changed_artifact_cannot_publish(self) -> None:
         with self.assertRaises(AssertionError):
             self.verification(corrupt=True)
 
-    def test_signing_key_change_preserves_previous_site(self):
+    def test_signing_key_change_preserves_previous_site(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory) / "site"
             alpha = site / "alpha"
@@ -144,7 +148,7 @@ class ChannelGateTests(unittest.TestCase):
                 )
             self.assertEqual(json.loads(metadata.read_text()), old)
 
-    def test_rollback_preserves_previous_site(self):
+    def test_rollback_preserves_previous_site(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             site = Path(directory) / "site"
             alpha = site / "alpha"
@@ -171,7 +175,7 @@ class ChannelGateTests(unittest.TestCase):
                     )
             self.assertEqual(json.loads(metadata.read_text()), old)
 
-    def test_non_https_repository_is_not_public(self):
+    def test_non_https_repository_is_not_public(self) -> None:
         with self.assertRaises(AssertionError):
             prepare(
                 "unused",

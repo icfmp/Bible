@@ -1,5 +1,7 @@
 """Actual Library lifecycle controls over existing public resource packages."""
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import json
@@ -66,14 +68,14 @@ report = dict(
 )
 
 
-def shot(name):
+def shot(name) -> None:
     native.move_at(w, 2, 2)
     spin(duration=0.2)
     screen.grab(a.output / (name + ".png"))
     report["captures"].append(name + ".png")
 
 
-def choose(dialog, identifier):
+def choose(dialog, identifier) -> None:
     dialog.back_to_list()
     dialog.source_filter.set_selected(0)
     dialog.language_choice = ""

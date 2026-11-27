@@ -5,6 +5,8 @@ not flushed. The second entry is a re-entry in that same process. No profiler
 is enabled for these measurements; JSON contains no Scripture or note bodies.
 """
 
+from __future__ import annotations
+
 import argparse
 from dataclasses import asdict
 import hashlib
@@ -15,7 +17,7 @@ import resource
 import time
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("profile", type=Path)
     parser.add_argument("output", type=Path)
@@ -49,10 +51,10 @@ def main():
         entries=[],
     )
 
-    def save():
+    def save() -> None:
         (args.output / "entry.json").write_text(json.dumps(report, indent=2) + "\n")
 
-    def settled():
+    def settled() -> None:
         spin(
             lambda: not window.active_tab._restoring_scroll
             and not getattr(window.active_tab, "_comparison_positioning", False),
@@ -96,7 +98,7 @@ def main():
             cpu_start = cpu()
             rss_start = rss()
 
-            def heartbeat():
+            def heartbeat() -> bool:
                 now = time.monotonic()
                 gaps.append(now - last[0])
                 last[0] = now
@@ -104,7 +106,7 @@ def main():
 
             timer = GLib.timeout_add(10, heartbeat)
 
-            def painted(*_):
+            def painted(*_: object) -> None:
                 view = window.immersion
                 if not view or not view.addresses:
                     return

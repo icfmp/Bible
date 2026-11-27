@@ -1,5 +1,7 @@
 """Installed metadata refresh must retain native resource-row identities."""
 
+from __future__ import annotations
+
 import os
 import tempfile
 import unittest
@@ -11,7 +13,9 @@ from tests.test_ui import installed_fixture, spin
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires native GTK")
 class LibraryPositionTests(unittest.TestCase):
-    def test_display_titles_sort_installed_first_with_accents_and_stable_source_identity(self):
+    def test_display_titles_sort_installed_first_with_accents_and_stable_source_identity(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.library import Resource
         from bible.study_resources import StudyResource
@@ -98,7 +102,9 @@ class LibraryPositionTests(unittest.TestCase):
                 w.close()
                 spin()
 
-    def test_installation_reorders_existing_rows_without_losing_visible_anchor_or_selection(self):
+    def test_installation_reorders_existing_rows_without_losing_visible_anchor_or_selection(
+        self,
+    ) -> None:
         from bible.ui import Application, Window, Library
         from bible.library import Resource
 

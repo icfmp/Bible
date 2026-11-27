@@ -1,18 +1,21 @@
 """Update offers require fresh source identity and original-file evidence."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 from dataclasses import replace
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from bible.library import Library
+from bible.library import Library, Resource
 from bible.module_management import checked_modules
 from tests.test_module_lifecycle import package
 
 
 class ModuleManagementTests(unittest.TestCase):
-    def test_fresh_identity_local_changes_and_offline_are_distinct(self):
+    def test_fresh_identity_local_changes_and_offline_are_distinct(self) -> None:
         old, payload = package("1.0", "ORIGINAL SOURCE FIXTURE")
         new, _ = package("1.1", "NEXT SOURCE FIXTURE")
         with tempfile.TemporaryDirectory() as temporary:
@@ -22,8 +25,10 @@ class ModuleManagementTests(unittest.TestCase):
             ):
                 library.install(old)
 
-            def state(resources, errors={}):
-                return checked_modules(library, resources, errors)[old.id]["state"]
+            def state(resources: Sequence[Resource], errors: dict[str, str] | None = None) -> str:
+                return checked_modules(library, resources, errors if errors is not None else {})[
+                    old.id
+                ]["state"]
 
             self.assertEqual(state([new]), "available")
             self.assertEqual(state([old]), "current")
@@ -38,7 +43,7 @@ class ModuleManagementTests(unittest.TestCase):
             # Do not adopt today's bytes as a supposed original fingerprint.
             self.assertNotIn("files_sha256", json.loads(receipt.read_text()))
 
-    def test_one_source_failure_does_not_invent_a_current_or_other_publisher_update(self):
+    def test_one_source_failure_does_not_invent_a_current_or_other_publisher_update(self) -> None:
         from bible.providers import CROSSWIRE, EBIBLE
 
         curated, payload = package("1.0", "ORIGINAL SOURCE FIXTURE")
@@ -60,7 +65,7 @@ class ModuleManagementTests(unittest.TestCase):
                 library.install(old)
             self.assertEqual(checked_modules(library, [other], {})[old.id]["state"], "missing")
 
-    def test_one_damaged_installation_receipt_does_not_block_other_verified_sources(self):
+    def test_one_damaged_installation_receipt_does_not_block_other_verified_sources(self) -> None:
         from bible.providers import CROSSWIRE
 
         old, payload = package("1.0", "ORIGINAL SOURCE FIXTURE")

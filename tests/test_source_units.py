@@ -1,5 +1,7 @@
 """Neutral overlapping/interleaved source structures, with no edition corpus."""
 
+from __future__ import annotations
+
 import copy
 import unittest
 from bible.source_units import AddressIndex, ChapterUnits, SourceUnit
@@ -26,7 +28,7 @@ class UnitTests(unittest.TestCase):
         )
         return source_document(parse_chapter(chapter(ref, html), ref, edition), edition)
 
-    def test_interleaved_fragments_are_stored_once_in_source_order(self):
+    def test_interleaved_fragments_are_stored_once_in_source_order(self) -> None:
         doc = self.document(
             ["SIR.43.17", "SIR.43.16", "SIR.43.17"],
             ["FIRST FRAGMENT", "MIDDLE VERSE", "LAST FRAGMENT"],
@@ -44,7 +46,7 @@ class UnitTests(unittest.TestCase):
             ["SIR.43.17", "SIR.43.16", "SIR.43.17"],
         )
 
-    def test_partial_bridge_retains_shared_unit_and_verse_continuation(self):
+    def test_partial_bridge_retains_shared_unit_and_verse_continuation(self) -> None:
         units = ChapterUnits(
             "Sir.44",
             [SourceUnit(("Sir.44.22", "Sir.44.23"), "22–23"), SourceUnit(("Sir.44.23",), "23")],
@@ -62,7 +64,9 @@ class UnitTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 restored.to_native(invalid)
 
-    def test_untrusted_units_cannot_invent_cross_chapter_members_or_oversized_coordinates(self):
+    def test_untrusted_units_cannot_invent_cross_chapter_members_or_oversized_coordinates(
+        self,
+    ) -> None:
         value = ChapterUnits("Sir.43", [SourceUnit(("Sir.43.17",), "17a")]).data()
         for member in ("Sir.44.17", "Sir.43.0", "Sir.43.2001", "Sir.43.017"):
             changed = copy.deepcopy(value)

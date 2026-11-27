@@ -1,5 +1,7 @@
 """Real native selection boundaries and cancellation between queued inputs."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import subprocess
@@ -11,7 +13,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK and isolated native input")
 class SelectionLifecycleTests(unittest.TestCase):
-    def test_native_text_drag_completion_cancel_and_copy_preserve_selection(self):
+    def test_native_text_drag_completion_cancel_and_copy_preserve_selection(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             result = subprocess.run(
                 [
@@ -64,7 +66,7 @@ class SelectionLifecycleTests(unittest.TestCase):
                 observed = set()
                 ended = []
 
-                def observe(controller, *_):
+                def observe(controller, *_: object) -> None:
                     drop = controller.get_drop()
                     drag = drop.get_drag() if drop else None
                     if drag is not None and drag not in observed:
@@ -81,18 +83,18 @@ class SelectionLifecycleTests(unittest.TestCase):
                 observer.connect_after("enter", observe)
                 observer.connect_after("motion", observe)
 
-                def press(offset):
+                def press(offset) -> None:
                     n.move_at(v, *point(v, offset))
                     n.xtest.XTestFakeButtonEvent(n.display, 1, True, 0)
                     n.x11.XFlush(n.display)
                     spin(duration=0.04)
 
-                def release():
+                def release() -> None:
                     n.xtest.XTestFakeButtonEvent(n.display, 1, False, 0)
                     n.x11.XFlush(n.display)
                     spin(duration=0.25)
 
-                def move(first, last):
+                def move(first, last) -> None:
                     start, end = point(v, first), point(v, last)
                     for step in range(1, 9):
                         n.move_at(
@@ -188,7 +190,7 @@ class SelectionLifecycleTests(unittest.TestCase):
                 close_test_dialogs()
                 w.close()
 
-    def test_pending_keyboard_capture_cannot_cancel_a_new_mouse_selection(self):
+    def test_pending_keyboard_capture_cannot_cancel_a_new_mouse_selection(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             result = subprocess.run(
                 [
@@ -261,7 +263,7 @@ class SelectionLifecycleTests(unittest.TestCase):
                 spin(duration=0.12)
                 self.assertFalse(a.bar.get_visible())
 
-                def finish_drag(first, last, pressed=False):
+                def finish_drag(first, last, pressed: bool = False) -> None:
                     if not pressed:
                         n.move_at(v, *first)
                         n.xtest.XTestFakeButtonEvent(n.display, 1, True, 0)

@@ -1,5 +1,7 @@
 """CI-only native CPU sampling of the actual Python process, not Flatpak init."""
 
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 import shutil
@@ -7,7 +9,7 @@ import subprocess
 import time
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("perf")
     p.add_argument("output", type=Path)

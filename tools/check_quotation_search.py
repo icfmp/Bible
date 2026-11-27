@@ -1,5 +1,7 @@
 """Actual offline Semeur/KJV quotations and native search latency; research only."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import inspect
@@ -10,7 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("profile", type=Path)
     p.add_argument("output", type=Path)
@@ -109,7 +111,7 @@ def main():
                         intervals = []
                         previous = time.monotonic()
 
-                        def heartbeat():
+                        def heartbeat() -> bool:
                             nonlocal previous
                             now = time.monotonic()
                             intervals.append((now - previous) * 1000)

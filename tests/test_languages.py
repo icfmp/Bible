@@ -1,5 +1,7 @@
 """Missing native CLDR names must not prevent catalogue searches."""
 
+from __future__ import annotations
+
 import unittest
 from unittest.mock import patch
 
@@ -7,7 +9,7 @@ from bible.languages import language_info, search_terms, language_order
 
 
 class LanguageTests(unittest.TestCase):
-    def test_shortcuts_require_known_catalogue_languages_and_preserve_variants(self):
+    def test_shortcuts_require_known_catalogue_languages_and_preserve_variants(self) -> None:
         codes = {
             "",
             "fr",
@@ -38,10 +40,10 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual(priority, [])
         self.assertEqual(set(order), {"", "fr", "cop"})
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         language_info.cache_clear()
 
-    def test_coptic_without_native_name_in_both_interfaces(self):
+    def test_coptic_without_native_name_in_both_interfaces(self) -> None:
         for interface, expected in [("fr", "copte"), ("en", "Coptic")]:
             with self.subTest(interface=interface), patch("bible.languages.LANGUAGE", interface):
                 language_info.cache_clear()
@@ -52,14 +54,14 @@ class LanguageTests(unittest.TestCase):
                     self.assertIn(term, terms)
                 self.assertNotIn("None", terms)
 
-    def test_real_cldr_names_and_exact_variants(self):
+    def test_real_cldr_names_and_exact_variants(self) -> None:
         for interface in ("fr", "en"):
             self.assertEqual(language_info("cop", interface)[1], "")
             self.assertTrue(language_info("fr", interface)[1])
         for code in ("zzz", "sr-Latn", "pt-BR", "fra"):
             self.assertIn(code, search_terms(code))
 
-    def test_iso_only_language_does_not_enter_babel_missing_locale_scan(self):
+    def test_iso_only_language_does_not_enter_babel_missing_locale_scan(self) -> None:
         with patch("bible.languages.Locale.parse", side_effect=AssertionError("full CLDR scan")):
             name, native = language_info("aaa", "fr")
         self.assertTrue(name)

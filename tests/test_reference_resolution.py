@@ -1,5 +1,7 @@
 """Exercise SWORD's real mapping tables, including changed Psalm numbering."""
 
+from __future__ import annotations
+
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,7 +11,7 @@ from bible.reference_resolution import resolve, VersificationMismatch
 
 
 class ResolutionTests(unittest.TestCase):
-    def test_numbered_psalm_titles_never_alias_the_body_and_reverse_uses_body_only(self):
+    def test_numbered_psalm_titles_never_alias_the_body_and_reverse_uses_body_only(self) -> None:
         from bible.reference_targets import Canon
 
         kjv = Canon("KJV")
@@ -22,7 +24,7 @@ class ResolutionTests(unittest.TestCase):
         mapped = resolve("Ps.51.1", "KJV", segond, require_entry=False)
         self.assertEqual((mapped.start, mapped.end), ("Ps.51.3", "Ps.51.3"))
 
-    def test_segond_psalm_mapping_and_native_commentary(self):
+    def test_segond_psalm_mapping_and_native_commentary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             module_fixture(
@@ -41,7 +43,7 @@ class ResolutionTests(unittest.TestCase):
             with self.assertRaises(VersificationMismatch):
                 resolve("Gen.1.25", "LXX", reader)
 
-    def test_reverse_mapping_and_unavailable_target(self):
+    def test_reverse_mapping_and_unavailable_target(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             module_fixture(
                 directory,

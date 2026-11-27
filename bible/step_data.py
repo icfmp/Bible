@@ -1,5 +1,7 @@
 """Optional, validated STEP lexical data; independent of notes and Bible modules."""
 
+from __future__ import annotations
+
 from contextlib import closing
 import hashlib
 import json
@@ -25,7 +27,7 @@ MAX_DATABASE = 384 * 1024 * 1024
 EXPECTED_COUNTS = {"tagnt-na27": 137992, "tahot-main": 305465}
 
 
-def checkpoint(cancelled):
+def checkpoint(cancelled) -> None:
     if cancelled and cancelled():
         raise InterruptedError("Study data operation cancelled")
 
@@ -153,7 +155,7 @@ def brief_senses(value):
 class StepData:
     """Expose locally indexed pinned STEP lexemes, tokens and recorded source occurrences."""
 
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.root = Path(root)
         self.path = self.root / "step-word-study.sqlite3"
 
@@ -197,7 +199,7 @@ class StepData:
                 checkpoint(cancelled)
                 destination = Path(temporary) / name
 
-                def report(done, total):
+                def report(done, total: object) -> None:
                     checkpoint(cancelled)
                     progress(completed + done, DOWNLOAD_BYTES)
 

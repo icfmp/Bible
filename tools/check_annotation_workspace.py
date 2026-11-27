@@ -1,5 +1,7 @@
 """Real X11 workspace editing, read-only failure, guarding and deletion checks."""
 
+from __future__ import annotations
+
 import hashlib
 import inspect
 import json
@@ -14,7 +16,7 @@ from bible.i18n import tr
 from tools.check_alpha_ui import X11Input
 
 
-def spin(until=lambda: True, duration=0.15):
+def spin(until=lambda: True, duration=0.15) -> None:
     minimum = time.monotonic() + duration
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
@@ -41,7 +43,7 @@ def digest_tree(root):
     }
 
 
-def main():
+def main() -> None:
     with tempfile.TemporaryDirectory(prefix="bible-workspace-") as directory:
         root = Path(directory)
         if os.environ.get("BIBLE_WORKSPACE_PROFILE"):
@@ -60,7 +62,7 @@ def main():
         native = X11Input()
         screens = os.environ.get("BIBLE_WORKSPACE_CAPTURE_DIR")
 
-        def shot(name):
+        def shot(name) -> None:
             if screens:
                 from PIL import ImageGrab
 
@@ -68,11 +70,11 @@ def main():
                 spin()
                 ImageGrab.grab().save(Path(screens) / ("native-workspace-" + name + ".png"))
 
-        def choose(widget, last):
+        def choose(widget, last) -> None:
             native.click(widget.buttons[1 if last else 0])
             spin()
 
-        def chord(modifier, key):
+        def chord(modifier, key) -> None:
             code = native.x11.XKeysymToKeycode(
                 native.display, native.x11.XStringToKeysym(modifier.encode())
             )
@@ -166,7 +168,7 @@ def main():
             native.click(label)
             spin(lambda: s.highlight_detail.get_visible())
 
-            def remove_highlight():
+            def remove_highlight() -> None:
                 native.click(s.highlight_menu)
                 spin(lambda: s.highlight_menu.get_popover().get_mapped())
                 delete = next(

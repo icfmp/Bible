@@ -7,7 +7,8 @@ import sys
 import time
 
 
-def main():
+def main() -> int:
+    """Run the requested command, owning a compositor only when none exists."""
     x = ctypes.CDLL("libX11.so.6")
     pointer = ctypes.c_void_p
     ulong = ctypes.c_ulong

@@ -1,5 +1,7 @@
 """Distinct native acceptance checks for the November Ready reading/notes batch."""
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 import tempfile
@@ -13,7 +15,7 @@ from tests.test_ui import installed_fixture, spin, close_test_dialogs
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK and native X11 input")
 class ReadyReadingNotesTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             return
         from bible.ui import Application, Window, Library
@@ -58,7 +60,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.native = X11Input()
         self.native.activate(self.w)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if os.environ.get("BIBLE_TEST_ISOLATED_CLICK") != "1":
             return
         if self.w.note_editor:
@@ -79,7 +81,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
             origin_language="en",
         )
 
-    def chord(self, modifier, key):
+    def chord(self, modifier, key) -> None:
         n = self.native
         code = n.x11.XKeysymToKeycode(n.display, n.x11.XStringToKeysym(modifier.encode()))
         n.xtest.XTestFakeKeyEvent(n.display, code, True, 0)
@@ -90,7 +92,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
             n.x11.XFlush(n.display)
             spin()
 
-    def test_185_source_note_mouse_and_keyboard_keep_scripture_and_other_markers(self):
+    def test_185_source_note_mouse_and_keyboard_keep_scripture_and_other_markers(self) -> None:
         w = self.w
         view = w.active_tab.text
         button = next(b for b in view._inline_buttons if b._marker_kind == "translation-note")
@@ -120,7 +122,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertEqual(w.active_tab._document.copy(0, len(w.active_tab._document.text)), original)
         self.assertEqual(w.active_tab.state.reference, "Gen.1.1")
 
-    def test_187_execution_uses_current_translation_and_enter(self):
+    def test_187_execution_uses_current_translation_and_enter(self) -> None:
         w = self.w
         w.show_search("text")
         panel = w.search_popover.text_search
@@ -140,7 +142,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         spin(duration=0.3)
         self.assertLess(w.search_popover.get_height(), 240)
 
-    def test_188_text_and_topics_keep_the_same_bounded_width(self):
+    def test_188_text_and_topics_keep_the_same_bounded_width(self) -> None:
         w = self.w
         widths = []
         for mode in ("text", "topics", "text"):
@@ -151,7 +153,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertGreaterEqual(widths[0], 450)
         self.assertLessEqual(widths[0], 500)
 
-    def test_219_three_tabs_without_standalone_translation_notes_action(self):
+    def test_219_three_tabs_without_standalone_translation_notes_action(self) -> None:
         w = self.w
         w.study_button.set_active(True)
         spin()
@@ -166,7 +168,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertFalse(hasattr(w.study, "content_pages"))
         self.assertEqual(w.study.tool, "commentaries")
 
-    def test_190_download_actions_are_secondary_and_share_the_library_route(self):
+    def test_190_download_actions_are_secondary_and_share_the_library_route(self) -> None:
         w = self.w
         for chooser, target in ((w.primary_version, "bible"), (w.compared_version, "comparison")):
             self.assertTrue(chooser.download_more.has_css_class("flat"))
@@ -175,7 +177,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
                 open_library.assert_called_once_with("bible", target)
         self.assertTrue(w.download_comparison.has_css_class("flat"))
 
-    def test_191_visible_elements_state_survives_reopening_without_layout_controls(self):
+    def test_191_visible_elements_state_survives_reopening_without_layout_controls(self) -> None:
         w = self.w
         w.appearance.visible_elements.set_expanded(False)
         self.assertFalse(w.preferences.value.visible_elements_expanded)
@@ -187,7 +189,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertFalse(hasattr(w.appearance, "line_spacing"))
         self.assertFalse(hasattr(w.appearance, "column_width"))
 
-    def test_193_header_order_matches_visible_and_keyboard_order(self):
+    def test_193_header_order_matches_visible_and_keyboard_order(self) -> None:
         w = self.w
         buttons = (
             w.search_button,
@@ -207,7 +209,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
             child = child.get_next_sibling()
         self.assertEqual(ordered, list(buttons[:4]))
 
-    def test_192_hiding_generated_heading_preserves_source_text_and_preference(self):
+    def test_192_hiding_generated_heading_preserves_source_text_and_preference(self) -> None:
         w = self.w
         tab = w.active_tab
         before = tab._document
@@ -222,7 +224,9 @@ class ReadyReadingNotesTests(unittest.TestCase):
 
         self.assertFalse(Preferences(self.root / "reading-preferences.json").value.chapter_numbers)
 
-    def test_227_swatches_match_applied_highlights_and_original_text_has_visible_label(self):
+    def test_227_swatches_match_applied_highlights_and_original_text_has_visible_label(
+        self,
+    ) -> None:
         from bible.highlights import COLORS
         from gi.repository import Gtk, Gdk
         from bible.i18n import tr
@@ -258,7 +262,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
             expected.parse(hexcolor)
             self.assertEqual(actual.to_string(), expected.to_string())
 
-    def test_194_font_slots_and_study_size_are_independent_and_persisted(self):
+    def test_194_font_slots_and_study_size_are_independent_and_persisted(self) -> None:
         w = self.w
         p = w.preferences.value
         w.appearance.update("serif_font", "DejaVu Serif")
@@ -281,7 +285,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertTrue(dialog.reading_settings.typography_heading.get_mapped())
         dialog.close()
 
-    def test_196_single_sidebar_owner_and_keyboard_resizing(self):
+    def test_196_single_sidebar_owner_and_keyboard_resizing(self) -> None:
         w = self.w
         w.study_button.set_active(True)
         spin()
@@ -294,7 +298,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertNotEqual(w.study_settings.width, before)
         self.assertEqual(w.active_tab.state.reference, "Gen.1.1")
 
-    def test_197_single_chapter_book_opens_directly(self):
+    def test_197_single_chapter_book_opens_directly(self) -> None:
         w = self.w
         w.choose_passage()
         spin()
@@ -305,7 +309,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.reference, "Jude.1.1")
         self.assertFalse(nav.get_visible())
 
-    def test_200_direct_formatting_typing_and_undo_preserve_markdown(self):
+    def test_200_direct_formatting_typing_and_undo_preserve_markdown(self) -> None:
         w = self.w
         note = self.note()
         editor = w.edit_note(note=note)
@@ -334,7 +338,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertTrue(editor.save(close=False))
         self.assertEqual(w.notes_store.get(note.id).body, note.body)
 
-    def test_201_workspace_autosaves_without_a_redundant_menu(self):
+    def test_201_workspace_autosaves_without_a_redundant_menu(self) -> None:
         w = self.w
         note = self.note()
         space = w.open_notes()
@@ -346,7 +350,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         spin(lambda: w.notes_store.get(note.id).body.endswith(" Updated"), timeout=5)
         self.assertEqual(w.notes_store.get(note.id).id, note.id)
 
-    def test_200_legacy_lists_remain_rendered_and_unchanged_when_only_labels_change(self):
+    def test_200_legacy_lists_remain_rendered_and_unchanged_when_only_labels_change(self) -> None:
         w = self.w
         note = self.note()
         original = "- Legacy **bold** item\n* Another *italic* item"
@@ -370,7 +374,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         self.assertEqual(editor.body.source(), original)
         self.assertFalse(editor.dirty)
 
-    def test_201_continuous_typing_is_committed_before_the_burst_ends(self):
+    def test_201_continuous_typing_is_committed_before_the_burst_ends(self) -> None:
         from gi.repository import GLib
         from bible.notes import NoteStore
         from bible.notes_window import buffer_text
@@ -405,7 +409,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
             if typed[0] < 20:
                 GLib.source_remove(timer)
 
-    def test_202_offline_manual_links_are_shared_and_restored_once(self):
+    def test_202_offline_manual_links_are_shared_and_restored_once(self) -> None:
         from bible.notes import NoteStore
         from bible.highlights import HighlightStore
         from bible import personal_backup
@@ -442,7 +446,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
         finally:
             notes.close()
 
-    def test_202_existing_cross_references_offer_explicit_non_blocking_suggestions(self):
+    def test_202_existing_cross_references_offer_explicit_non_blocking_suggestions(self) -> None:
         from tests.test_reference_data import archive
         from bible import reference_data
 
