@@ -97,8 +97,13 @@ class DeclaredConventionTests(unittest.TestCase):
     def test_new_imported_module_uses_receipt_and_preserves_missing_entries(self) -> None:
         from bible.reference_resolution import resolve_readers
         from bible.sword_provider import Reader
+        from bible.youversion_editions import module_id, storage_system
         from tests.fixtures import module_fixture
 
+        # SWORD keeps registered canons for the lifetime of the test process.
+        # Use an identity distinct from the sparse-canon fixture below.
+        identifier = 900220
+        module = module_id(identifier)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             imported_root = root / "Imported"
@@ -106,7 +111,7 @@ class DeclaredConventionTests(unittest.TestCase):
             imported_root.mkdir()
             original = table("Original")
             assert original is not None
-            system = "YouVersion900219"
+            system = storage_system(identifier)
             digest = write_index(index, system, {"Ps": original["canon"]["Ps"]}, {"Ps": 1})
             receipt = imported_root / ".verified.json"
             receipt.write_text(
@@ -121,7 +126,7 @@ class DeclaredConventionTests(unittest.TestCase):
             )
             register_index(index)
             module_fixture(
-                imported_root, "YV900219", [("Ps.51.3", "IMPORTED BODY")], versification=system
+                imported_root, module, [("Ps.51.3", "IMPORTED BODY")], versification=system
             )
             config = imported_root / "mods.d/test.conf"
             config.write_text(config.read_text() + "BibleSource=YouVersion\n")
@@ -129,7 +134,7 @@ class DeclaredConventionTests(unittest.TestCase):
             module_fixture(
                 native_root, "Standard", [("Ps.51.1", "NATIVE BODY"), ("Ps.51.2", "GAP")]
             )
-            imported = Reader(imported_root, "youversion~YV900219")
+            imported = Reader(imported_root, f"youversion~{module}")
             standard = Reader(native_root, "Standard")
             self.assertEqual(resolve_readers("Ps.51.3", imported, standard).start, "Ps.51.1")
             self.assertEqual(resolve_readers("Ps.51.1", standard, imported).start, "Ps.51.3")
