@@ -88,7 +88,7 @@ def bind_card_actions(
     """Independent native controls on one shared, full-width card surface."""
     content = card._card_content
     # The factory always places this header first and its arrow last.
-    header = cast(Gtk.Box, content.get_first_child())
+    header = cast("Gtk.Box", content.get_first_child())
     content.remove(header)
     title, _ = card._reference_labels
     action = Gtk.Button(child=header, hexpand=secondary is None)
@@ -100,7 +100,7 @@ def bind_card_actions(
     row.append(action)
     content.prepend(row)
     if secondary is not None:
-        arrow = cast(Gtk.Widget, header.get_last_child())
+        arrow = cast("Gtk.Widget", header.get_last_child())
         header.remove(arrow)
         title.set_hexpand(False)
         title.set_width_chars(-1)

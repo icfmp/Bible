@@ -54,8 +54,8 @@ def bounded_choices(dropdown: Gtk.DropDown) -> None:
 
         def bind(_: object, item: Gtk.ListItem) -> None:
             # setup() supplies the label; every caller uses a Gtk.StringList.
-            label = cast(Gtk.Label, item.get_child())
-            value = cast(Gtk.StringObject, item.get_item())
+            label = cast("Gtk.Label", item.get_child())
+            value = cast("Gtk.StringObject", item.get_item())
             label.set_text(value.get_string())
 
         value.connect("setup", setup)
@@ -162,7 +162,7 @@ class DirectChoices(Gtk.ScrolledWindow):
                 spacing=12, margin_top=10, margin_bottom=10, margin_start=12, margin_end=12
             )
             title, source, code = (
-                details[i] if details else (cast(str, model.get_string(i)), "", "")
+                details[i] if details else (cast("str", model.get_string(i)), "", "")
             )
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, hexpand=True)
             text = Gtk.Label(
@@ -212,7 +212,7 @@ class DirectChoices(Gtk.ScrolledWindow):
             self.rows.append(check)
 
     def get_selected(self) -> int:
-        return cast(int, self.selected)
+        return cast("int", self.selected)
 
     def set_selected(self, index: int) -> None:
         for i, check in enumerate(self.rows):

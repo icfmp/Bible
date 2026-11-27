@@ -59,7 +59,7 @@ def source_references(reader: ReferenceSpace, start: str, end: str) -> list[str]
         if count > 1000:
             raise ValueError("Select at most 1000 verses")
         if hasattr(reader, "can_align_reference") and not cast(
-            _AlignmentSource, reader
+            "_AlignmentSource", reader
         ).can_align_reference(reference):
             raise VersificationMismatch("Source numbering is not verified: " + reference)
         if key.getOSISBookName() == "3John":
@@ -111,7 +111,7 @@ def destination(
 
         # Readers advertising alignment also expose actual-entry availability;
         # bare canons deliberately do not claim either resource capability.
-        entries = cast(_AlignedEntries, reader)
+        entries = cast("_AlignedEntries", reader)
         for target in _span(mapped.start, mapped.end, reader.versification, reader):
             if entries.has_reference(target) and not entries.can_align_reference(target):
                 raise VersificationMismatch("Target numbering is not verified: " + target)

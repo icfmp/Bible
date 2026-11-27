@@ -83,9 +83,9 @@ class LanguagePicker(Gtk.MenuButton):
     def bind_row(self, _: object, item: Gtk.ListItem) -> None:
         self._bound_rows.add(item)
         # setup_row() supplies these widgets; the model supplies StringObjects.
-        text = cast(Gtk.StringObject, item.get_item()).get_string()
-        label = cast(Gtk.Label, getattr(item, "label"))
-        divider = cast(Gtk.Separator, getattr(item, "divider"))
+        text = cast("Gtk.StringObject", item.get_item()).get_string()
+        label = cast("Gtk.Label", getattr(item, "label"))
+        divider = cast("Gtk.Separator", getattr(item, "divider"))
         label.set_text(text)
         code = self._label_codes.get(text)
         grouped = not self.search.get_text() and bool(self.priority)
@@ -175,7 +175,7 @@ class LanguagePicker(Gtk.MenuButton):
         ]
         # Prepare source-backed choices without building hidden GTK rows during
         # Library's first paint. Open/search binds the native model lazily.
-        if not force and not query and not cast(Gtk.Popover, self.get_popover()).get_visible():
+        if not force and not query and not cast("Gtk.Popover", self.get_popover()).get_visible():
             return
         labels = [
             self.prepared[code][1]

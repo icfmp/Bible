@@ -62,7 +62,7 @@ def table(system: str) -> MappingTable | None:
             return None
         data = indexed
     else:
-        data = cast(MappingTable, json.loads(path.read_text()))
+        data = cast("MappingTable", json.loads(path.read_text()))
     key = Sword.VerseKey()
     key.setVersificationSystem(system)
     # Inspect the declared index, not normalized positions in the next

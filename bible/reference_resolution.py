@@ -125,7 +125,7 @@ def resolve(
     target_system = target_reader.versification
     # Entry availability is required only on the require_entry path. Bare
     # canonical spaces deliberately expose no installed-resource capability.
-    entries = cast(_EntrySpace, target_reader)
+    entries = cast("_EntrySpace", target_reader)
     if source_system == target_system and getattr(target_reader, "addresses", None):
         key = target_reader.key(reference)
         public = key.getOSISRef()
@@ -251,7 +251,7 @@ def resolve(
 def _span(start: str, end: str, system: str, reader: ReferenceSpace | None = None) -> list[str]:
     """Enumerate actual consecutive verses, excluding introductions."""
     if reader is not None and system == reader.versification and getattr(reader, "addresses", None):
-        return list(cast(_IndexedSpace, reader).reference_range(start, end))
+        return list(cast("_IndexedSpace", reader).reference_range(start, end))
     import Sword
 
     key = Sword.VerseKey()

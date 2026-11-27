@@ -56,7 +56,7 @@ def source_note_marker(
             or owner.active_tab is not markers.tab
         ):
             return
-        previous = cast(Gtk.Popover | None, getattr(button, "_source_note_popover"))
+        previous = cast("Gtk.Popover | None", getattr(button, "_source_note_popover"))
         if previous and previous.get_visible():
             previous.popdown()
             return
@@ -146,7 +146,7 @@ def source_note_marker(
     button.connect("clicked", create)
 
     def hidden(*_: object) -> None:
-        pop = cast(Gtk.Popover | None, getattr(button, "_source_note_popover"))
+        pop = cast("Gtk.Popover | None", getattr(button, "_source_note_popover"))
         if pop:
             pop.popdown()
 

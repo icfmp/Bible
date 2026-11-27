@@ -97,7 +97,7 @@ class StudyDivider(Gtk.Box):
     def begin(self, gesture: Gtk.GestureDrag | None = None, *_: object) -> None:
         """Capture reading anchors and suspend following before a user-controlled divider resize."""
         self.active = True
-        self.origin = cast(Gtk.Widget, self.owner.split.get_sidebar()).get_width()
+        self.origin = cast("Gtk.Widget", self.owner.split.get_sidebar()).get_width()
         self.pointer_origin: tuple[Gdk.Surface | None, float] | None = None
         if gesture:
             event = gesture.get_current_event()
@@ -117,7 +117,7 @@ class StudyDivider(Gtk.Box):
             self.bible_anchor = tab.position_anchor(iterator.get_offset())
             tab.comparison_sync.driver = None
         # StudyPanel.anchor returns a section ordinal and a body offset.
-        self.commentary_anchor = cast(tuple[int, int] | None, self.owner.study.anchor())
+        self.commentary_anchor = cast("tuple[int, int] | None", self.owner.study.anchor())
 
     def update(self, gesture: Gtk.GestureDrag | None, x: float, y: object) -> None:
         """Clamp the requested width to usable window bounds using the current native pointer surface."""

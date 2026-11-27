@@ -26,7 +26,7 @@ class ReadingSettings:
         self.families = {
             family.get_name().casefold(): family
             for family in cast(
-                Pango.FontMap, self.page.get_pango_context().get_font_map()
+                "Pango.FontMap", self.page.get_pango_context().get_font_map()
             ).list_families()
         }
         self.typography_heading = Adw.PreferencesGroup(title=tr("Typography"))
@@ -166,7 +166,9 @@ class ReadingSettings:
                 if family and not self.owner.closed and self.dialog.get_visible():
                     self.update(key, family.get_name())
 
-            native.choose_family(cast(Gtk.Window, self.dialog.get_native()), initial, None, chosen)
+            native.choose_family(
+                cast("Gtk.Window", self.dialog.get_native()), initial, None, chosen
+            )
 
         chooser.connect("clicked", choose)
         row.add_suffix(chooser)
@@ -263,8 +265,8 @@ class ReadingSettings:
         }.get(saved.casefold(), saved)
         family = self.families.get(alias.casefold())
         # These private widgets are attached by family() above.
-        row = cast(Adw.ActionRow, getattr(control, "_family_row"))
-        preview = cast(Gtk.Label, getattr(control, "_family_preview"))
+        row = cast("Adw.ActionRow", getattr(control, "_family_row"))
+        preview = cast("Gtk.Label", getattr(control, "_family_preview"))
         row.set_subtitle(
             ""
             if family

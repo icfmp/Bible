@@ -107,7 +107,7 @@ def parse(data: bytes) -> tuple[VocabularyData, tuple[VocabularyEntry, ...]]:
         seen.add(identifier)
         entries.append((identifier, names["fr"], "; ".join(synonyms), names["en"]))
     # The complete per-entry validation above proves this existing JSON schema.
-    return cast(VocabularyData, value), tuple(entries)
+    return cast("VocabularyData", value), tuple(entries)
 
 
 class TopicVocabulary:

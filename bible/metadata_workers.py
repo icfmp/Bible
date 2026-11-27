@@ -44,7 +44,7 @@ class MetadataExecutor:
                 raise RuntimeError("Metadata worker is closed")
             # The heterogeneous queue erases R, but the callable and its future
             # stay paired; ParamSpec verifies the submission before that boundary.
-            self.queue.put(cast(_Work, (future, function, args, kwargs)))
+            self.queue.put(cast("_Work", (future, function, args, kwargs)))
             if len(self.threads) < self.maximum:
                 thread = Thread(
                     target=self.work, name=f"{self.prefix}-{len(self.threads)}", daemon=True

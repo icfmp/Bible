@@ -459,7 +459,7 @@ class Reader:
             if path.is_symlink() or path.stat().st_size > 16384:
                 return {}
             value = json.loads(path.read_text())
-            return cast(_NumberingReceipt, value) if isinstance(value, dict) else {}
+            return cast("_NumberingReceipt", value) if isinstance(value, dict) else {}
         except (OSError, ValueError):
             return {}
 
@@ -664,7 +664,7 @@ class Reader:
                 or len(set(numbers)) != len(numbers)
             ):
                 raise ValueError("Invalid source verse order")
-        return cast(dict[str, list[int]], value)
+        return cast("dict[str, list[int]]", value)
 
     def chapter(
         self, reference: str = "Gen.1.1", *, cancelled: Callable[[], bool] | None = None

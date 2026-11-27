@@ -80,7 +80,7 @@ class ApplicationSettings:
             if type(value.get("restore_tabs", True)) is not bool:
                 raise ValueError("Invalid tab preference")
             # Validation above covers known fields; retain unknown keys on disk.
-            cast(dict[str, object], self.value).update(value)
+            cast("dict[str, object]", self.value).update(value)
             self.first_launch = False
         except FileNotFoundError:
             try:
@@ -100,7 +100,7 @@ class ApplicationSettings:
         """Save a UI-selected setting, restoring the in-memory value if saving fails."""
         # Keep the original dictionary (including unknown future keys) intact.
         # The UI supplies the scalar value associated with the selected setting.
-        record = cast(dict[str, object], self.value)
+        record = cast("dict[str, object]", self.value)
         previous = record.get(key)
         record[key] = value
         try:

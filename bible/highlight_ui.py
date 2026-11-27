@@ -22,7 +22,7 @@ from .reading_style import PALETTES
 
 def text_changed(buffer: Gtk.TextBuffer) -> None:
     """Invalidate paint-only caches when the native buffer text changes."""
-    revision = cast(int, getattr(buffer, "_highlight_revision"))
+    revision = cast("int", getattr(buffer, "_highlight_revision"))
     setattr(buffer, "_highlight_revision", revision + 1)
 
 
@@ -108,7 +108,7 @@ def paint(
         for (start, end), (_, mark) in groups.items():
             if end > start:
                 buffer.apply_tag(
-                    cast(Gtk.TextTag, table.lookup("highlight-" + mark["color"])),
+                    cast("Gtk.TextTag", table.lookup("highlight-" + mark["color"])),
                     buffer.get_iter_at_offset(start),
                     buffer.get_iter_at_offset(end),
                 )
@@ -185,8 +185,8 @@ class HighlightsWindow(Adw.Window):
         )
 
         def bind(_: object, item: Gtk.ListItem) -> None:
-            mark = cast(MarkItem, item.get_item()).mark
-            label = cast(Gtk.Label, item.get_child())
+            mark = cast("MarkItem", item.get_item()).mark
+            label = cast("Gtk.Label", item.get_child())
             label.set_text(
                 passage_label(mark["reference"], versification=mark["system"])
                 + " — "

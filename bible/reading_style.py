@@ -130,14 +130,14 @@ class ReadingStyle:
 
             def restore(native_widget: Gtk.Widget, *_: object) -> bool:
                 # GTK returns the same TextView registered below.
-                widget = cast(Gtk.TextView, native_widget)
+                widget = cast("Gtk.TextView", native_widget)
                 frames[0] += 1
                 if widget.get_mapped() and not self.owner.closed:
                     if frames[0] < 3:
                         return True
                     target = widget.get_iter_location(widget.get_buffer().get_iter_at_mark(mark))
                     visible = widget.get_visible_rect()
-                    adjustment = cast(Gtk.ScrolledWindow, widget.get_parent()).get_vadjustment()
+                    adjustment = cast("Gtk.ScrolledWindow", widget.get_parent()).get_vadjustment()
                     adjustment.set_value(adjustment.get_value() + target.y - visible.y)
                     if frames[0] < 5:
                         return True

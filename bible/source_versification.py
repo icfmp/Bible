@@ -142,7 +142,7 @@ def native_loader() -> tuple[ctypes.PyDLL, Callable[[bytes], int]]:
             function.argtypes = [ctypes.c_char_p]
             function.restype = ctypes.c_int
             # argtypes/restype above establish the native ABI at this boundary.
-            return library, cast(Callable[[bytes], int], function)
+            return library, cast("Callable[[bytes], int]", function)
         except (OSError, AttributeError):
             continue
     raise ValueError("Packaged source reference-index support is required")

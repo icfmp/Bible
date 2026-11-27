@@ -266,7 +266,7 @@ class InertHTML(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         start = self.position()
-        end = start + len(cast(str, self.get_starttag_text()))
+        end = start + len(cast("str", self.get_starttag_text()))
         self.ranges.append((start, end))
         if tag not in {
             "area",
@@ -288,7 +288,7 @@ class InertHTML(HTMLParser):
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.ranges.append(
-            (self.position(), self.position() + len(cast(str, self.get_starttag_text())))
+            (self.position(), self.position() + len(cast("str", self.get_starttag_text())))
         )
 
     def handle_endtag(self, tag: str) -> None:

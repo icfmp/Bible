@@ -223,7 +223,7 @@ def parse_catalogue(data: bytes) -> ModuleCatalogueData:
             raise ValueError("Unsupported curated module origin")
     # Preserve every source field; narrow only after the existing identity
     # and package-integrity checks above. No provider data is rewritten.
-    return cast(ModuleCatalogueData, value)
+    return cast("ModuleCatalogueData", value)
 
 
 class ModuleCatalogue:
@@ -244,7 +244,7 @@ class ModuleCatalogue:
         ):
             raise ValueError("Invalid saved module catalogue")
         parse_catalogue(record["body"].encode())
-        return cast(_SavedCatalogue, record)
+        return cast("_SavedCatalogue", record)
 
     def check(self, opener: _Opener | None = None) -> CatalogueCheck:
         """Refresh conditional metadata and retain a validated cache when the source is unavailable.

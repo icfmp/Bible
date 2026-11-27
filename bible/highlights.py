@@ -128,7 +128,7 @@ def decode(value: Any) -> Highlights:
             raise ValueError("Invalid highlight metadata") from error
         if key in result or mark["id"] in ids:
             raise ValueError("Duplicate highlight passage or identifier")
-        result[key] = cast(Highlight, mark)
+        result[key] = cast("Highlight", mark)
         ids.add(mark["id"])
     return result
 
@@ -376,7 +376,7 @@ class HighlightStore:
                     old = marks[key]
                     if old["color"] != color or old["resource"] != resource:
                         marks[key] = cast(
-                            Highlight,
+                            "Highlight",
                             dict(
                                 old,
                                 color=color,

@@ -359,7 +359,7 @@ class ReadingTab(Gtk.Box):
             self._restoring_scroll = True
             self.current = chapter
             if not restore and not self._travelling:
-                history.visit(self.state, cast(str, self.state.resource), canonical)
+                history.visit(self.state, cast("str", self.state.resource), canonical)
             self.state.reference = canonical
             self._jump_reference = canonical if not restore else None
             if not restore:
@@ -547,7 +547,7 @@ class ReadingTab(Gtk.Box):
                 self._comparison_reader = Reader(self.library.root / name, name)
                 self._comparison_name = name
             # Matching cached names retain a reader; failure clears both fields.
-            reader = cast(Reader, self._comparison_reader)
+            reader = cast("Reader", self._comparison_reader)
             if not self.reader:
                 raise ValueError(tr("Open a Bible passage to read its commentary."))
             from .reference_resolution import resolve_readers, available_chapter
@@ -737,7 +737,7 @@ class ReadingTab(Gtk.Box):
         from .bible_render import render
 
         self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
-            self.text, cast(Reader, self.reader), chapter, self.preferences
+            self.text, cast("Reader", self.reader), chapter, self.preferences
         )
         self.update_highlights()
 

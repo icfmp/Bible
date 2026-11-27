@@ -126,9 +126,9 @@ def annotation_card(
     title.set_text(passage_label(a.start, a.end, a.system))
     content = card._card_content
     content.remove(empty)
-    header = cast(Gtk.Box, content.get_first_child())
+    header = cast("Gtk.Box", content.get_first_child())
     kind = (
-        tr("Open note") if a.note else tr("Highlight") + " · " + tr(COLORS[cast(str, a.color)][1])
+        tr("Open note") if a.note else tr("Highlight") + " · " + tr(COLORS[cast("str", a.color)][1])
     )
     indicator = Gtk.Image(
         icon_name="notebook-symbolic" if a.note else "edit-select-all-symbolic",
@@ -141,7 +141,7 @@ def annotation_card(
     menu = None
     if a.mark:
         setattr(card, "highlight_key", (a.system, a.start))
-        card.add_css_class("highlight-" + cast(str, a.color))
+        card.add_css_class("highlight-" + cast("str", a.color))
         menu = Gtk.MenuButton(
             tooltip_text=kind + " — " + tr("Highlight actions"), valign=Gtk.Align.CENTER
         )
@@ -150,7 +150,7 @@ def annotation_card(
         menu.update_property(
             [Gtk.AccessibleProperty.LABEL], [kind + " — " + tr("Highlight actions")]
         )
-        color_dot(menu, cast(str, a.color))
+        color_dot(menu, cast("str", a.color))
         setattr(card, "actions", menu)
         if colors:
             colors(menu, a.mark)

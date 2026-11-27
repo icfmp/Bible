@@ -78,7 +78,7 @@ class ContextTextView(Gtk.TextView):
                                     "highlight-"
                                 ) and tag.props.foreground_set:
                                     # A set foreground is exposed by GTK as an RGBA value.
-                                    color = cast(Gdk.RGBA, tag.props.foreground_rgba).to_string()
+                                    color = cast("Gdk.RGBA", tag.props.foreground_rgba).to_string()
                         row = next((r for r in rows if max(y, r.top) < min(bottom, r.bottom)), None)
                         if row is None:
                             row = _IndicatorRow(y, bottom, [])

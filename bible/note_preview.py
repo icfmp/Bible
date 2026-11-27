@@ -46,7 +46,7 @@ class NotePreview(Gtk.TextView):
     ) -> None:
         # GObject validates this public bag of native construction properties.
         # Keep that boundary dynamic without weakening the note/citation model.
-        initialize = cast(Callable[..., None], super().__init__)
+        initialize = cast("Callable[..., None]", super().__init__)
         initialize(
             editable=False,
             cursor_visible=False,

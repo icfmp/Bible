@@ -23,7 +23,7 @@ def copy_selection(view: Gtk.TextView) -> None:
     selection = view.get_buffer().get_selection_bounds()
     if not selection:
         return
-    document, base = cast(tuple["Document", int], getattr(view, "_bible_copy_source"))
+    document, base = cast("tuple[Document, int]", getattr(view, "_bible_copy_source"))
     start, end = (base + i.get_offset() for i in selection)
     view.get_clipboard().set(document.copy(start, end))
     GObject.signal_stop_emission_by_name(view, "copy-clipboard")

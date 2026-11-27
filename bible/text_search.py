@@ -78,7 +78,7 @@ def search(
         raise ValueError("Invalid text search")
     # The same application version owns this subprocess and JSON schema.
     # Keep the existing bounded reference validation at the process boundary.
-    return cast(SearchResult, value)
+    return cast("SearchResult", value)
 
 
 def index(root: str | PathLike[str], name: str, reader: Reader) -> Path:

@@ -166,9 +166,9 @@ class Preferences:
                 note_indicators=value.get("note_indicators", True),
                 place_markers=value.get("place_markers", True),
                 study_font=study_font,
-                **cast(_Appearance, selected),
-                **cast(_Layout, advanced),
-                **cast(_Typography, typography),
+                **cast("_Appearance", selected),
+                **cast("_Layout", advanced),
+                **cast("_Typography", typography),
             )
         except FileNotFoundError:
             pass

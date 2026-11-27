@@ -89,7 +89,7 @@ def canon() -> dict[str, list[int]]:
         Path(__file__).with_name("versification_data").joinpath("KJV.json").read_text()
     )["canon"]
     result["3John"] = [15]
-    return cast(dict[str, list[int]], result)
+    return cast("dict[str, list[int]]", result)
 
 
 def reference_key(reference: str) -> int:

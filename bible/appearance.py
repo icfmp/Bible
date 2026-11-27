@@ -150,7 +150,7 @@ class AppearancePopover(Gtk.Popover):
         self.visible_elements = Gtk.Expander(
             label=tr("Visible elements"), expanded=owner.preferences.value.visible_elements_expanded
         )
-        expander_label = cast(Gtk.Widget, self.visible_elements.get_label_widget())
+        expander_label = cast("Gtk.Widget", self.visible_elements.get_label_widget())
         expander_label.set_margin_top(4)
         expander_label.set_margin_bottom(4)
         self.visible_elements.connect(
@@ -222,7 +222,7 @@ class AppearancePopover(Gtk.Popover):
         self.set_child(scroll)
 
         def shown(*_: object) -> None:
-            anchor = cast(Gtk.Widget, self.get_parent())
+            anchor = cast("Gtk.Widget", self.get_parent())
             found, bounds = anchor.compute_bounds(owner)
             below = (
                 owner.get_height() - (bounds.origin.y + bounds.size.height) - 44
@@ -353,7 +353,7 @@ class AppearancePopover(Gtk.Popover):
         elif key in ("serif_font", "sans_font"):
             if (key == "serif_font") == (p.font_style == "book"):
                 # Font controls supply family strings; other controls use scalars.
-                p.font = cast(str, value)
+                p.font = cast("str", value)
         elif key == "font":
             # Preserve callers of the original reading-font preference.
             setattr(p, "serif_font" if p.font_style == "book" else "sans_font", value)

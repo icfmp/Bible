@@ -66,7 +66,7 @@ def main() -> int:
                 request = urllib.request.Request(url, method="HEAD")
                 with urllib.request.urlopen(request, timeout=15) as response:
                     # All configured endpoints are HTTPS HTTP responses.
-                    return cast(int, response.status)
+                    return cast("int", response.status)
 
             check(url, endpoint, required="crosswire.org" in url)
     print(f"{len(failures)} prerequisite(s) failed.")

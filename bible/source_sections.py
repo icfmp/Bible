@@ -92,7 +92,7 @@ class SectionIndex:
                 or native in self.reverse
             ):
                 raise ValueError("Invalid or overlapping source storage coordinate")
-            native = cast(str, native)  # The full-match guard above proved a string.
+            native = cast("str", native)  # The full-match guard above proved a string.
             self.forward[chapter.reference] = native
             self.reverse[native] = chapter.reference
             self.labels[chapter.reference] = chapter.human

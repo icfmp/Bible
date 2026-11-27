@@ -46,7 +46,7 @@ class Annotation:
 
     @property
     def modified(self) -> str:
-        return self.note.modified if self.note else (cast(_Mark, self.mark).get("modified") or "")
+        return self.note.modified if self.note else (cast("_Mark", self.mark).get("modified") or "")
 
     @property
     def color(self) -> str | None:
@@ -65,7 +65,7 @@ def records(notes: Iterable[Note], marks: Iterable[_Mark]) -> list[Annotation]:
             m["reference"],
             m["reference"],
             m["resource"],
-            mark=cast(_Mark, dict(m)),  # Copy preserves the proven source field types.
+            mark=cast("_Mark", dict(m)),  # Copy preserves the proven source field types.
         )
         for m in marks
     ]

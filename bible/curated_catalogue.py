@@ -80,7 +80,7 @@ def entries(data: bytes) -> list[CuratedEdition]:
     # Shared identity is already checked; the filter excludes dictionaries for
     # which this adapter deliberately does not require verse numbering.
     return [
-        cast(CuratedEdition, entry)
+        cast("CuratedEdition", entry)
         for entry in value["modules"]
         if entry.get("category") != "dictionary"
     ]

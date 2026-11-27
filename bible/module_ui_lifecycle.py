@@ -97,7 +97,7 @@ class ModuleViewChange:
 
         changing(self.root, True)
         self.paused = True
-        application = cast(Gtk.Application, self.dialog.owner.get_application())
+        application = cast("Gtk.Application", self.dialog.owner.get_application())
         for window in application.get_windows():
             if (
                 not isinstance(window, Window)

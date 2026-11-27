@@ -288,7 +288,7 @@ def download(
 
         open_source = urllib.request.build_opener(SourceRedirect()).open
         opener = lambda request, timeout: cast(
-            HTTPResponse, open_response(open_source, request, lambda: False)
+            "HTTPResponse", open_response(open_source, request, lambda: False)
         )
     with opener(request, timeout=30) as response:
         if not response.url.startswith("https://"):
@@ -296,7 +296,7 @@ def download(
         if response_headers is not None:
             response_headers.update(
                 {
-                    key: cast(str, response.headers[key])
+                    key: cast("str", response.headers[key])
                     for key in ("ETag", "Last-Modified")
                     if response.headers.get(key)
                 }
@@ -356,7 +356,7 @@ def catalogue(
     if provider.id == "youversion":
         from .youversion_install import catalogue as editions
 
-        return cast(list[Resource], editions(timings))
+        return cast("list[Resource]", editions(timings))
     if provider.id == "bible-resources":
         from .curated_catalogue import catalogue as curated
 
@@ -410,7 +410,7 @@ def parse_sword_catalogue(data: bytes, provider: Provider = CROSSWIRE) -> list[R
             expanded += member.size
             if expanded > MAX_UNPACKED:
                 raise ValueError("Catalogue too large")
-            parser = config(cast(BinaryIO, archive.extractfile(member)).read())
+            parser = config(cast("BinaryIO", archive.extractfile(member)).read())
             for name in parser.sections():
                 section = parser[name]
                 if re.fullmatch(r"[A-Za-z0-9_-]+", name) and (
@@ -781,7 +781,7 @@ class Library:
                 )
                 first = reader.first_reference()
                 if actual.kind == "commentary":
-                    if not cast(CommentaryReader, reader).entry(first, reader.versification):
+                    if not cast("CommentaryReader", reader).entry(first, reader.versification):
                         raise ValueError("No readable commentary entry in resource")
                 elif not any(text.strip() for _, text in reader.chapter(first).verses):
                     raise ValueError("No readable chapter in resource")

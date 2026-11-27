@@ -445,11 +445,11 @@ class NoteStore:
             if existing
             else Note(
                 str(uuid.uuid4()),
-                cast(str, versification),
-                cast(str, start),
-                cast(str, end or start),
-                cast(str, origin_translation),
-                cast(str, origin_language),
+                cast("str", versification),
+                cast("str", start),
+                cast("str", end or start),
+                cast("str", origin_translation),
+                cast("str", origin_language),
                 body,
                 clean_labels(labels),
                 stamp,
@@ -457,7 +457,7 @@ class NoteStore:
             )
         )
         if links is not None:
-            note = replace(note, links=cast(tuple[PassageLink, ...], links))
+            note = replace(note, links=cast("tuple[PassageLink, ...]", links))
         note = validate(note)
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
