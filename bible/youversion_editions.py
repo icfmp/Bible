@@ -1,16 +1,16 @@
 """Stable identities and previously verified numbering; never infer from labels."""
 
-# edition ID: (expected source vrs label, verified native storage system).
-# Two sources use their own exact index because their published inventories
-# differ from registered schemes. Their cross-edition alignment is unavailable.
+import json
+from pathlib import Path
+from typing import cast
+
+# Compatibility assignments for previously installed editions. New editions
+# follow the verified source-index path and never add an assignment here.
 EDITIONS = {
-    21: ("org", "Original", "fra"),
-    93: ("org", "YouVersion93", "fra"),
-    64: ("org", "Original", "fra"),
-    131: ("org", "YouVersion131", "fra"),
-    1: ("eng", "KJV", "eng"),
-    12: ("eng", "KJV", "eng"),
-    3034: ("eng", "KJV", "eng"),
+    int(identifier): cast("tuple[str, str, str]", tuple(fields))
+    for identifier, fields in json.loads(
+        Path(__file__).with_name("youversion_legacy_numbering.json").read_text()
+    )["editions"].items()
 }
 METADATA_URL = "https://nodejs.bible.com/api/bible/version/3.3?id={edition}"
 CONFIGURATION_URL = "https://bible.youversionapi.com/3.1/configuration.json"

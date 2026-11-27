@@ -22,6 +22,34 @@ MAPPED_SYSTEMS = frozenset(
 )
 
 
+def checked_verse_key(
+    reference: str, system: str, *, normalize: bool = True, locale: str | None = None
+) -> Sword.VerseKey:
+    """Parse one ordinary native address and reject out-of-bounds coordinates.
+
+    Callers own their input grammar, source-section and entry checks. SWORD
+    can report success for an out-of-range chapter when normalization is off.
+    """
+    import Sword
+
+    key = Sword.VerseKey()
+    key.setVersificationSystem(system)
+    if key.getVersificationSystem() != system:
+        raise VersificationMismatch(system)
+    key.setAutoNormalize(False)
+    if locale:
+        key.setLocale(locale)
+    key.setText(reference)
+    if (
+        key.popError() != "\x00"
+        or not 1 <= key.getChapter() <= key.getChapterMax()
+        or not 1 <= key.getVerse() <= key.getVerseMax()
+    ):
+        raise ValueError("Invalid reference: " + reference)
+    key.setAutoNormalize(normalize)
+    return key
+
+
 @dataclass(frozen=True)
 class ResolvedPassage[T: str | None]:
     """A verified range whose endpoints are non-null in ordinary verse resolution.
@@ -141,28 +169,18 @@ def resolve(
         reference,
     ):
         raise ValueError(f"Invalid source reference: {reference}")
-    source = Sword.VerseKey()
-    source.setVersificationSystem(source_system)
-    if source.getVersificationSystem() != source_system:
-        raise VersificationMismatch(source_system)
-    source.setAutoNormalize(False)
-    source.setText(reference)
-    if (
-        source.popError() != "\x00"
-        or not 1 <= source.getChapter() <= source.getChapterMax()
-        or not 1 <= source.getVerse() <= source.getVerseMax()
-    ):
-        raise ValueError(f"Invalid source reference: {reference}")
+    source = checked_verse_key(reference, source_system, normalize=False)
     # Native SWORD can collapse numbered Psalm titles onto verse one and lose
     # split verse parts. Prefer the existing qualified tables when their
-    # complete canons match this runtime; retain native-only capabilities.
-    pinned = False
+    # canons match this runtime, even if only one system has a table. A
+    # native-only system cannot consume a qualified part as an ordinary verse.
+    has_table = False
     if source_system != target_system:
         from .versification_mapping import table
 
-        pinned = table(source_system) is not None and table(target_system) is not None
+        has_table = table(source_system) is not None or table(target_system) is not None
     if source_system != target_system and (
-        pinned or not {source_system, target_system} <= MAPPED_SYSTEMS
+        has_table or not {source_system, target_system} <= MAPPED_SYSTEMS
     ):
         from .versification_mapping import to_base, from_base
 

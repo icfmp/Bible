@@ -487,18 +487,9 @@ class Reader:
             reference,
         ):
             raise ValueError(f"Invalid reference: {reference}")
-        key = self.sword.VerseKey()
-        key.setAutoNormalize(False)
-        key.setVersificationSystem(self.versification)
-        key.setText(reference)
-        if (
-            key.popError() != "\x00"
-            or not 1 <= key.getChapter() <= key.getChapterMax()
-            or not 1 <= key.getVerse() <= key.getVerseMax()
-        ):
-            raise ValueError(f"Invalid reference: {reference}")
-        key.setAutoNormalize(True)
-        return key
+        from .reference_resolution import checked_verse_key
+
+        return checked_verse_key(reference, self.versification)
 
     @cached_property
     def books(self) -> tuple[Book, ...]:

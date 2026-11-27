@@ -80,16 +80,35 @@ def reference_header(header: list[str]) -> str:
     return generation_date(header[3], "#www.openbible.info CC-BY ")
 
 
+@lru_cache(maxsize=None)
+def _system_canon(system: str) -> dict[str, list[int]]:
+    """Read the bundled numbering dimensions without loading a native reader."""
+    return cast(
+        "dict[str, list[int]]",
+        json.loads(
+            Path(__file__).with_name("versification_data").joinpath(system + ".json").read_text()
+        )["canon"],
+    )
+
+
+@lru_cache(maxsize=1)
+def _source_convention() -> tuple[str, dict[str, str]]:
+    """Read the documented OpenBible address convention."""
+    data = json.loads(Path(__file__).with_name("openbible_numbering.json").read_text())
+    return cast("tuple[str, dict[str, str]]", (data["default"], data["books"]))
+
+
+def source_system(book: str) -> str:
+    """Return the verified native/table system for one dataset book."""
+    default, books = _source_convention()
+    return books.get(book, default)
+
+
 @lru_cache(maxsize=1)
 def canon() -> dict[str, list[int]]:
-    """Load the bundled address-validation inventory with the documented source ending."""
-    # Publisher's pinned parser default agrees with KJV chapter sizes except
-    # 3 John. See source audit; these counts validate addresses, not quotations.
-    result = json.loads(
-        Path(__file__).with_name("versification_data").joinpath("KJV.json").read_text()
-    )["canon"]
-    result["3John"] = [15]
-    return cast("dict[str, list[int]]", result)
+    """Combine the existing numbered book inventories declared by the dataset convention."""
+    default, books = _source_convention()
+    return {book: _system_canon(books.get(book, default))[book] for book in _system_canon(default)}
 
 
 def reference_key(reference: str) -> int:

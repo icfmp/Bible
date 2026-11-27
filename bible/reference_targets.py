@@ -9,8 +9,15 @@ from dataclasses import dataclass
 if TYPE_CHECKING:
     import Sword
     from .sword_provider import Chapter, Reader
-from .reference_data import reference_key, reference_span
-from .reference_resolution import ReferenceSpace, ResolvedPassage, resolve, VersificationMismatch
+from .reference_data import reference_key, reference_span, source_system as dataset_system
+from .reference_resolution import (
+    ReferenceSpace,
+    ResolvedPassage,
+    resolve,
+    VersificationMismatch,
+    _span,
+    checked_verse_key,
+)
 
 
 class _AlignmentSource(Protocol):
@@ -29,64 +36,35 @@ class Canon:
 
     def key(self, reference: str) -> Sword.VerseKey:
         """Validate a native canonical key without normalizing invalid input into another verse."""
-        import Sword
+        return checked_verse_key(reference, self.versification)
 
-        key = Sword.VerseKey()
-        key.setVersificationSystem(self.versification)
-        key.setAutoNormalize(False)
-        if key.getVersificationSystem() != self.versification:
-            raise VersificationMismatch(self.versification)
-        key.setText(reference)
-        if (
-            key.popError() != "\x00"
-            or not 1 <= key.getChapter() <= key.getChapterMax()
-            or not 1 <= key.getVerse() <= key.getVerseMax()
-        ):
-            raise ValueError("Invalid canonical reference: " + reference)
-        key.setAutoNormalize(True)
-        return key
+
+def _dataset_system(reference: str, paired_system: str) -> str:
+    """Select the documented dataset numbering and require qualified split support."""
+    system = dataset_system(reference.split(".", 1)[0])
+    if system != dataset_system(""):
+        from .versification_mapping import table
+
+        if table(paired_system) is None:
+            raise VersificationMismatch("No verified dataset alignment for " + paired_system)
+    return system
 
 
 def source_references(reader: ReferenceSpace, start: str, end: str) -> list[str]:
     """Project every selected verse into actual OpenBible source addresses."""
-    key = reader.key(start)
-    last = reader.key(end).getIndex()
+    source = reader.versification
+    first, last = reader.key(start).getOSISRef(), reader.key(end).getOSISRef()
     result = set()
-    count = 0
-    while key.getIndex() <= last:
-        reference = key.getOSISRef()
-        count += 1
+    for count, reference in enumerate(_span(first, last, source, reader), 1):
         if count > 1000:
             raise ValueError("Select at most 1000 verses")
         if hasattr(reader, "can_align_reference") and not cast(
             "_AlignmentSource", reader
         ).can_align_reference(reference):
             raise VersificationMismatch("Source numbering is not verified: " + reference)
-        if key.getOSISBookName() == "3John":
-            from .versification_mapping import to_base, from_base
-
-            qualified = to_base(reference, reader.versification)
-            if not qualified:
-                raise VersificationMismatch("No verified source alignment: " + reference)
-            mapped = []
-            for part in qualified:
-                values = from_base(part, "NRSV")
-                if not values:
-                    raise VersificationMismatch("No verified source alignment: " + reference)
-                mapped.extend(values)
-            result.update(mapped)
-        else:
-            resolved = resolve(reference, reader.versification, Canon("KJV"), require_entry=False)
-            target = Canon("KJV").key(resolved.start)
-            upper = Canon("KJV").key(resolved.end).getIndex()
-            while target.getIndex() <= upper:
-                result.add(target.getOSISRef())
-                target.increment()
-                if target.popError() != "\x00":
-                    break
-        key.increment()
-        if key.popError() != "\x00":
-            break
+        system = _dataset_system(reference, source)
+        resolved = resolve(reference, source, Canon(system), require_entry=False)
+        result.update(_span(resolved.start, resolved.end, system))
     for reference in result:
         reference_key(reference)
     return sorted(result, key=reference_key)
@@ -97,18 +75,9 @@ def destination(
 ) -> ResolvedPassage[str]:
     """Map an OpenBible-convention address and verify edition-specific target capability."""
     reference_key(reference)
-    if reference.startswith("3John."):
-        from .versification_mapping import table
-
-        if table(reader.versification) is None:
-            raise VersificationMismatch(
-                "No verified split-verse alignment for " + reader.versification
-            )
-        return resolve(reference, "NRSV", reader, require_entry=require_entry)
-    mapped = resolve(reference, "KJV", reader, require_entry=require_entry)
+    system = _dataset_system(reference, reader.versification)
+    mapped = resolve(reference, system, reader, require_entry=require_entry)
     if hasattr(reader, "can_align_reference"):
-        from .reference_resolution import _span
-
         # Readers advertising alignment also expose actual-entry availability;
         # bare canons deliberately do not claim either resource capability.
         entries = cast("_AlignedEntries", reader)
