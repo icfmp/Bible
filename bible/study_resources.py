@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from os import PathLike
+from typing import TYPE_CHECKING, NoReturn, cast
+
+if TYPE_CHECKING:
+    from .place_data import PlaceData
+    from .topic_data import TopicData
+    from .step_data import StepData
+
 from dataclasses import dataclass, replace
 from .i18n import tr
 from .reference_data import (
@@ -46,7 +55,7 @@ class StudyResource:
 class StudyResources:
     """Discover and install the existing reference, topic, place and STEP stores through their checked adapters."""
 
-    def __init__(self, root) -> None:
+    def __init__(self, root: str | PathLike[str]) -> None:
         from .place_data import PlaceData
 
         self.references = ReferenceData(root)
@@ -58,14 +67,14 @@ class StudyResources:
         from .step_data import StepData
 
         self.step = StepData(root)
-        self.stores = {
+        self.stores: dict[str, ReferenceData | PlaceData | TopicData | StepData] = {
             REFERENCE_RESOURCE_ID: self.references,
             PLACE_RESOURCE_ID: self.places,
             TOPIC_RESOURCE_ID: self.topics,
             STEP_RESOURCE_ID: self.step,
         }
 
-    def available(self):
+    def available(self) -> list[StudyResource]:
         """List existing study store choices using checked catalogue revisions and pinned provider metadata."""
         from . import place_data as places
         from . import topic_data as topics
@@ -153,10 +162,11 @@ class StudyResources:
             ),
         ]
 
-    def resource(self, name):
+    def resource(self, name: str) -> StudyResource:
+        """Resolve an existing study choice, rejecting unknown resource identifiers."""
         return next((r for r in self.available() if r.id == name), None) or self.unknown()
 
-    def installed_resource(self, name):
+    def installed_resource(self, name: str) -> StudyResource:
         """Describe an installed store using its actual revision rather than the latest advertised revision."""
         resource = self.resource(name)
         metadata = self.stores[name].metadata()
@@ -166,12 +176,15 @@ class StudyResources:
                 revision=str(metadata["commit" if name == STEP_RESOURCE_ID else "revision"]),
             )
         revision = str(metadata.get("archive_sha256", ""))
+        transformations = metadata.get("transformations", "")
+        if not isinstance(transformations, str):
+            raise ValueError("Invalid study resource attribution")
         about = (
             str(metadata.get("source_date", "—"))
             + "\nSHA-256: "
             + str(metadata.get("archive_sha256", "—"))
             + "\n"
-            + metadata.get("transformations", "")
+            + transformations
         )
         if name == TOPIC_RESOURCE_ID:
             from .topic_vocabulary import TopicVocabulary
@@ -183,10 +196,11 @@ class StudyResources:
             )
         return replace(resource, about=about, revision=revision)
 
-    def unknown(self) -> None:
+    def unknown(self) -> NoReturn:
+        """Keep unknown study choices unavailable instead of synthesizing metadata."""
         raise ValueError("Unknown study resource")
 
-    def installed(self):
+    def installed(self) -> list[str]:
         """List only study stores whose installed metadata can be validated."""
         result = []
         for name, store in self.stores.items():
@@ -197,7 +211,7 @@ class StudyResources:
                 pass
         return result
 
-    def current(self, name):
+    def current(self, name: str) -> bool:
         """Compare actual installed components with checked expected revisions, including vocabulary and maps."""
         try:
             metadata = self.stores[name].metadata()
@@ -220,14 +234,20 @@ class StudyResources:
         except (ValueError, OSError, KeyError):
             return False
 
-    def install(self, resource, progress, installing, cancelled=None):
+    def install(
+        self,
+        resource: StudyResource,
+        progress: Callable[[int, int], object],
+        installing: Callable[[], object],
+        cancelled: Callable[[], bool] | None = None,
+    ) -> object:
         """Dispatch an existing store installation with the selected revision and supported cancellation."""
         if resource.id not in self.stores:
             raise ValueError("Unknown study resource")
         if resource.id == STEP_RESOURCE_ID:
             return self.step.install(progress, installing, cancelled)
         if resource.id in (REFERENCE_RESOURCE_ID, TOPIC_RESOURCE_ID):
-            return self.stores[resource.id].install(
+            return cast("ReferenceData | TopicData", self.stores[resource.id]).install(
                 progress, installing, expected_revision=resource.revision
             )
-        return self.stores[resource.id].install(progress, installing)
+        return cast("PlaceData", self.stores[resource.id]).install(progress, installing)

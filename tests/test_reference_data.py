@@ -13,7 +13,7 @@ from bible import reference_data as data
 from bible.reference_data import ReferenceData, ReferenceDataError
 
 
-def archive(path, rows):
+def archive(path: Path, rows: str) -> str:
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as output:
         output.writestr(
             "cross_references.txt",
@@ -137,6 +137,38 @@ class ReferenceDataTests(unittest.TestCase):
             library = StudyResources(store.root)
             self.assertEqual(library.installed(), [])
             self.assertFalse(library.current(REFERENCE_RESOURCE_ID))
+
+    def test_invalid_installed_attribution_is_rejected_without_rewriting_the_index(self) -> None:
+        from contextlib import closing
+        import json
+        from bible.study_resources import StudyResources, REFERENCE_RESOURCE_ID
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "data.zip"
+            digest = archive(source, "John.1.5\tGen.1.3\t8\n")
+            store = ReferenceData(root / "study-data")
+            with patch.object(data, "ARCHIVE_SHA256", digest):
+                store.install_archive(source)
+            with closing(sqlite3.connect(store.path)) as connection:
+                value = json.loads(
+                    connection.execute("SELECT value FROM metadata WHERE key='source'").fetchone()[
+                        0
+                    ]
+                )
+                value["transformations"] = {"unexpected": "object"}
+                connection.execute(
+                    "UPDATE metadata SET value=? WHERE key='source'", (json.dumps(value),)
+                )
+                connection.commit()
+            before = store.path.read_bytes()
+            library = StudyResources(store.root)
+            with self.assertRaisesRegex(ValueError, "Invalid study resource attribution"):
+                library.installed_resource(REFERENCE_RESOURCE_ID)
+            self.assertEqual(store.path.read_bytes(), before)
+            self.assertEqual(
+                library.references.metadata()["transformations"], value["transformations"]
+            )
 
 
 class ReferenceNumberingTests(unittest.TestCase):
