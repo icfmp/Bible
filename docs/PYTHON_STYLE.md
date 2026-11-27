@@ -84,7 +84,11 @@ provider/reference models, annotations, persistence and several GTK helpers.
 Selected test and diagnostic modules are checked alongside the application code.
 Imported modules are read silently, not presented as fully checked. Every function
 in this boundary needs parameter/return annotations.
-Expand this explicit list when an additional component has actually been typed.
+Expand this explicit list only when a maintained component has actually been
+typed as part of a relevant change. Full-repository typing and a coverage
+percentage are not release requirements. Prioritize persistence, reference
+models and component boundaries; do not force exhaustive annotations onto
+trivial callbacks or one-off tools.
 Static GTK 4/GDK 4/Soup 3 declarations are pinned separately and installed with
 `--no-deps`: the checker needs no native GTK runtime. SWORD declarations live in
 `typings/Sword.pyi`. These are development inputs, never application dependencies.
