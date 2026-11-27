@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable, Sequence
+from concurrent.futures import Future
+from typing import TYPE_CHECKING, Protocol, cast
 
 if TYPE_CHECKING:
-    from .library import Resource
+    from .library import Library, Resource, CatalogueResult, CatalogueTimings
+    from .providers import Provider
+    from .study_resources import StudyResource
 
 from dataclasses import dataclass, replace
 from threading import RLock
@@ -24,20 +28,39 @@ class CatalogueSnapshot:
     """Plain-data Library inventory/search metadata snapshot for subscribed views."""
 
     resources: tuple[Resource, ...]
-    installed: dict
-    study_installed: frozenset
-    study_current: frozenset
-    languages: dict
-    search: dict
-    timings: dict
-    errors: dict
+    installed: dict[str, Resource]
+    study_installed: frozenset[str]
+    study_current: frozenset[str]
+    languages: dict[str, tuple[str, str, str]]
+    search: dict[str, str]
+    timings: dict[str, object]
+    errors: dict[str, str]
     refreshing: bool
     generation: int
-    covered_providers: frozenset = frozenset()
-    removed_resources: frozenset = frozenset()
-    archived_resources: frozenset = frozenset()
-    available_languages: frozenset = frozenset()
-    candidate_languages: frozenset = frozenset()
+    covered_providers: frozenset[str] = frozenset()
+    removed_resources: frozenset[str] = frozenset()
+    archived_resources: frozenset[str] = frozenset()
+    available_languages: frozenset[str] = frozenset()
+    candidate_languages: frozenset[str] = frozenset()
+
+
+type _SnapshotCallback = Callable[[CatalogueSnapshot], object]
+type _ProviderCallback = Callable[
+    [Provider, Sequence[Resource], str | None, CatalogueTimings], None
+]
+
+
+class _CatalogueFetcher(Protocol):
+    """Keyword interface used by existing catalogue refresh implementations."""
+
+    def __call__(
+        self,
+        *,
+        providers: Sequence[Provider],
+        on_provider: _ProviderCallback,
+        cache: CatalogueCache,
+        force: bool,
+    ) -> CatalogueResult | Sequence[Resource]: ...
 
 
 class CatalogueSession:
@@ -48,7 +71,7 @@ class CatalogueSession:
     the session prevents later worker results from becoming current snapshots.
     """
 
-    def __init__(self, library) -> None:
+    def __init__(self, library: Library) -> None:
         self.library = library
         self.cache = CatalogueCache(library.root.parent / "catalogue-cache")
         self.study = StudyResources(library.root.parent / "study-data")
@@ -56,36 +79,41 @@ class CatalogueSession:
         self.network = MetadataExecutor(thread_name_prefix="bible-library-refresh")
         self.lock = RLock()
         self.closed = False
-        self.listeners = []
-        self.snapshot = None
-        self.providers = {}
-        self.installed = {}
-        self.removed = {}
-        self.verified_providers = set()
-        self.study_installed = frozenset()
-        self.study_current = frozenset()
-        self.language_records = {}
-        self.metrics = {}
-        self.errors = {}
+        self.listeners: list[WeakMethod[_SnapshotCallback]] = []
+        self.snapshot: CatalogueSnapshot | None = None
+        self.providers: dict[str, tuple[Resource, ...]] = {}
+        self.installed: dict[str, Resource] = {}
+        self.removed: dict[str, Resource] = {}
+        self.verified_providers: set[str] = set()
+        self.study_installed: frozenset[str] = frozenset()
+        self.study_current: frozenset[str] = frozenset()
+        self.language_records: dict[str, tuple[str, str, str]] = {}
+        self.metrics: dict[str, object] = {}
+        self.errors: dict[str, str] = {}
         self.refreshing = False
-        self.youversion_languages = {}
-        self.youversion_loaded = {}
-        self.youversion_future = None
+        self.youversion_languages: dict[str, dict[str, object]] = {}
+        self.youversion_loaded: dict[str, float] = {}
+        self.youversion_future: Future[None] | None = None
         self.youversion_loading = False
         self.youversion_request = 0
-        self.language_future = None
-        self.refresh_future = None
-        self.installed_future = None
+        self.language_future: Future[None] | None = None
+        self.refresh_future: Future[None] | None = None
+        self.installed_future: Future[None] | None = None
         self.revision = 0
         self.generation = 0
         self.bootstrap_future = self.schedule(self.bootstrap)
 
-    def schedule(self, function, *args):
+    def schedule[*Args, R](
+        self,
+        function: Callable[[*Args], R],
+        *args: *Args,
+    ) -> Future[R]:
+        """Queue a positional preparation task and report its errors to subscribers."""
         future = self.prepare.submit(function, *args)
         future.add_done_callback(self.preparation_failed)
         return future
 
-    def preparation_failed(self, future) -> None:
+    def preparation_failed[R](self, future: Future[R]) -> None:
         """Publish a recoverable preparation error to live subscribers without discarding known state."""
         if future.cancelled():
             return
@@ -105,11 +133,17 @@ class CatalogueSession:
                 generation=self.generation,
             )
             self.snapshot = snapshot
-            listeners = [r() for r in self.listeners if r() is not None]
+            # Resolve weak methods once, retaining each owner through this delivery.
+            listeners = [callback for ref in self.listeners if (callback := ref()) is not None]
         for callback in listeners:
             callback(snapshot)
 
-    def subscribe(self, callback) -> None:
+    def subscribe(self, callback: _SnapshotCallback) -> None:
+        """Weakly subscribe a bound method and deliver any current snapshot immediately.
+
+        Later notifications run on the publishing worker; subscribers must
+        marshal GTK work onto its owner thread.
+        """
         reference = WeakMethod(callback)
         with self.lock:
             self.listeners.append(reference)
@@ -117,9 +151,14 @@ class CatalogueSession:
         if snapshot:
             callback(snapshot)
 
-    def unsubscribe(self, callback) -> None:
+    def unsubscribe(self, callback: _SnapshotCallback) -> None:
+        """Drop a bound subscriber and discard references whose owners have expired."""
         with self.lock:
-            self.listeners = [r for r in self.listeners if r() is not None and r() != callback]
+            self.listeners = [
+                ref
+                for ref in self.listeners
+                if (listener := ref()) is not None and listener != callback
+            ]
 
     def scan_installed(self) -> None:
         """Refresh resource/study inventories and record per-resource validation failures."""
@@ -166,7 +205,7 @@ class CatalogueSession:
         self.scan_installed()
         self.publish()
 
-    def load_youversion_language(self, choice, force: bool = False):
+    def load_youversion_language(self, choice: str, force: bool = False) -> Future[None] | None:
         """One language at a time; retain cached results, never acquire a Bible."""
         from .languages import canonical_language
         from .providers import YOUVERSION
@@ -205,7 +244,7 @@ class CatalogueSession:
                 if not records or force:
                     records = languages(root, force)
                 tags = tags_for_language(choice, records)
-                resources = []
+                resources: list[Resource] = []
                 for tag in tags:
                     with self.lock:
                         if self.closed or request != self.youversion_request:
@@ -240,7 +279,7 @@ class CatalogueSession:
         self.schedule(self.publish)
         return self.youversion_future
 
-    def load_languages(self):
+    def load_languages(self) -> Future[None] | None:
         """Prepare only source-backed choices; selecting one loads its editions."""
         with self.lock:
             if self.closed or self.language_future:
@@ -252,7 +291,7 @@ class CatalogueSession:
             self.language_future = self.schedule(prepare)
             return self.language_future
 
-    def reload_installed(self):
+    def reload_installed(self) -> Future[None] | None:
         """Coalesce an asynchronous inventory scan on the shared preparation worker."""
 
         def work() -> None:
@@ -267,7 +306,7 @@ class CatalogueSession:
             self.installed_future = self.schedule(work)
             return self.installed_future
 
-    def refresh_study(self):
+    def refresh_study(self) -> Future[None] | None:
         """Refresh only checked resource metadata; never fetch a dataset here."""
 
         def finish() -> None:
@@ -299,7 +338,12 @@ class CatalogueSession:
             self.refresh_future = self.network.submit(work)
             return self.refresh_future
 
-    def refresh(self, fetch, force, providers=DEFAULT_PROVIDERS):
+    def refresh(
+        self,
+        fetch: _CatalogueFetcher,
+        force: bool,
+        providers: Sequence[Provider] = DEFAULT_PROVIDERS,
+    ) -> Future[None] | None:
         """Coalesce network refresh requests, clear verification for requested sources and return its future."""
         with self.lock:
             if self.closed:
@@ -315,10 +359,15 @@ class CatalogueSession:
             self.refresh_future = self.network.submit(self.fetch, fetch, force, tuple(providers))
             return self.refresh_future
 
-    def fetch(self, fetch, force, providers) -> None:
+    def fetch(self, fetch: _CatalogueFetcher, force: bool, providers: Sequence[Provider]) -> None:
         """Merge incremental provider results without replacing unloaded YouVersion language inventories."""
 
-        def provider_ready(provider, items, error, timings) -> None:
+        def provider_ready(
+            provider: Provider,
+            items: Sequence[Resource],
+            error: str | None,
+            timings: CatalogueTimings,
+        ) -> None:
             records = timings.get("source_languages", {}) if provider.id == "youversion" else {}
             if records:
                 from .youversion_catalogue import remember
@@ -372,7 +421,8 @@ class CatalogueSession:
             result = fetch(
                 providers=providers, on_provider=provider_ready, cache=self.cache, force=force
             )
-            resources = getattr(result, "resources", result)
+            # Existing custom fetchers may return a batch or its resource sequence.
+            resources = cast("Sequence[Resource]", getattr(result, "resources", result))
             with self.lock:
                 if self.closed:
                     return
@@ -409,7 +459,7 @@ class CatalogueSession:
                 if not self.closed:
                     self.schedule(self.publish)
 
-    def publish(self, revision=None) -> None:
+    def publish(self, revision: int | None = None) -> None:
         """Build a current plain-data snapshot, rejecting stale revisions and retaining offline source context."""
         with self.lock:
             if self.closed or revision is not None and revision != self.revision:
@@ -452,7 +502,11 @@ class CatalogueSession:
                 if canonical_language(code) not in self.youversion_loaded
             }
         start = time.monotonic()
-        all_resources = (*resources, *installed.values(), *self.study.available())
+        all_resources: tuple[Resource | StudyResource, ...] = (
+            *resources,
+            *installed.values(),
+            *self.study.available(),
+        )
         languages = {r.language for r in all_resources} | source_languages
         for code in languages:
             if self.closed:
@@ -499,7 +553,8 @@ class CatalogueSession:
             if self.closed:
                 return
             self.snapshot = snapshot
-            listeners = [ref() for ref in self.listeners if ref() is not None]
+            # Resolve weak methods once, retaining each owner through this delivery.
+            listeners = [callback for ref in self.listeners if (callback := ref()) is not None]
         for callback in listeners:
             callback(snapshot)
 

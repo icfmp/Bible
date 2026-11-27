@@ -104,3 +104,8 @@ explain their evidence; never add blanket ignores or annotate uncertain code as
 Preserve GI initialization and avoid importing GTK
 solely for a type hint. Callbacks and the wider UI will be typed progressively,
 not through a speculative application-wide rewrite.
+
+Quote the type expression passed to `typing.cast`, as enforced by Ruff TC006.
+Unlike annotations, that argument is evaluated at runtime even with
+`from __future__ import annotations`; quoting it keeps imports guarded by
+`TYPE_CHECKING` safe. A cast does not validate or convert external data.

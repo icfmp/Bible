@@ -7,7 +7,7 @@ force-exclude = true
 extend-exclude = ["third_party", "build", "dist", ".flatpak-builder", ".venv", "**/__pycache__"]
 
 [tool.ruff.lint]
-select = ["E4", "E9", "F", "B006", "B012", "B018", "RUF006", "D100", "D104", "D205", "D209", "D300"]
+select = ["E4", "E9", "F", "B006", "B012", "B018", "RUF006", "TC006", "D100", "D104", "D205", "D209", "D300"]
 # Preserve GI version selection and renderer setup before importing GTK consumers.
 # The exception is file-scoped; import sorting is deliberately not enabled.
 
@@ -52,6 +52,7 @@ files = [
     "bible/bible_render.py",
     "bible/book_names.py",
     "bible/catalogue_cache.py",
+    "bible/catalogue_session.py",
     "bible/citations.py",
     "bible/comparison_control.py",
     "bible/comparison_layout.py",
