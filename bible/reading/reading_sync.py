@@ -116,6 +116,7 @@ class ReadingSync:
                 tab._tick_id = 0
             tab._appearance_anchor = None
             tab._jump_reference = None
+            tab._rollback_scroll = None
             tab._restoring_scroll = False
         if side == "bible" and self.owner.study.tool == "notes":
             self.owner.study.notes.resume_following()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, cast
+from weakref import ReferenceType, ref
 
 if TYPE_CHECKING:
     from .reading_sync import ReadingSync
@@ -32,6 +33,7 @@ from ..study.context_indicator import ContextTextView
 
 type PositionAnchor = tuple[str, Anchor | int]
 type StudyCoverage = tuple[str, str, str] | tuple[str, tuple[tuple[str, str], ...]]
+type ProjectionKey = tuple[ReferenceType[Reader], str, bool, bool]
 
 
 class ReadingTab(Gtk.Box):
@@ -74,9 +76,13 @@ class ReadingTab(Gtk.Box):
         self._study_coverage: StudyCoverage | None = None
         self.reader: Reader | None = None
         self.current: Chapter | None = None
+        self._document = None
+        self._comparison_document = None
+        self._primary_projection: tuple[ProjectionKey, Document] | None = None
         self._restoring_scroll = True
         self._tick_id = 0
         self._scroll_frames = 0
+        self._rollback_scroll: float | None = None
         self._verse_offsets: dict[str, int] = {}
         self._jump_reference: str | None = None
         self._appearance_anchor: PositionAnchor | None = None
@@ -278,23 +284,14 @@ class ReadingTab(Gtk.Box):
         return f"{passage} · {primary} | {secondary}" if secondary else f"{passage} · {primary}"
 
     def navigate(self, resource: str, reference: str) -> bool:
-        """Open an available target and roll back the selected reader/resource if rendering fails."""
+        """Open an available target while retaining the prior reader until rendering succeeds."""
         try:
             reader = (
                 self.reader
                 if resource == self.state.resource and self.reader
                 else Reader(self.library.root / resource, resource)
             )
-            if not reader.has_reference(reference):
-                raise ValueError(tr("This passage is not available in this translation."))
-            previous_reader, previous_resource = self.reader, self.state.resource
-            self.reader = reader
-            self.state.resource = resource
-            if self.show_reference(reference):
-                return True
-            self.reader, self.state.resource = previous_reader, previous_resource
-            self.changed(self)
-            return False
+            return self.open_reference(reader, resource, reference, restore=False)
         except Exception as error:
             self.status.set_text(f"{tr('Unable to read this passage.')} {error}")
             self.status.set_visible(True)
@@ -302,11 +299,12 @@ class ReadingTab(Gtk.Box):
 
     def load_resource(self, jump_to_reference: bool = False) -> None:
         """Reopen a saved source, reporting a missing source or an explicit first-passage fallback."""
-        self._verse_offsets = {}
         self._jump_reference = None
+        self._rollback_scroll = None
         self.reader = None
         self.current = None
-        self.text.get_buffer().set_text("")
+        self._primary_projection = None
+        self.clear_display()
         if not self.state.resource:
             self.status.set_text(
                 tr("Choose or download a Bible. Downloaded texts are available offline.")
@@ -339,43 +337,108 @@ class ReadingTab(Gtk.Box):
             self.status.set_visible(True)
 
     def show_reference(self, reference: str | None, restore: bool = False) -> bool | None:
-        """Render a verified available chapter and update history/canonical session position.
+        """Open a passage in the current source, retaining the saved position on restore."""
+        if not self.reader or not self.state.resource or not reference:
+            return None
+        return self.open_reference(self.reader, self.state.resource, reference, restore=restore)
 
-        Restore mode retains saved scroll state; explicit navigation arms the
-        Bible driver. Failures are reported in the tab and return False.
-        """
+    def open_reference(
+        self, reader: Reader, resource: str, reference: str, *, restore: bool
+    ) -> bool:
+        """Render first; publish the reader, current chapter, history and scroll intent together."""
+        try:
+            if not reader.has_reference(reference):
+                raise ValueError(tr("This passage is not available in this translation."))
+            chapter = reader.chapter(reference)
+            canonical = reader.key(reference).getOSISRef()
+            if not self.replace_display(chapter, reader):
+                return False
+        except Exception as error:
+            self.report_render_error(error)
+            return False
         self.scroll_motion.cancel()
+        self._rollback_scroll = None
         if not restore and not self._travelling and hasattr(self, "sync_coordinator"):
             self.sync_coordinator.explicit_bible()
         self._appearance_anchor = None
         self._layout_anchor = None
-        if not self.reader or not reference:
-            return None
+        if not restore and not self._travelling:
+            history.visit(self.state, resource, canonical)
+        self.reader, self.state.resource, self.current = reader, resource, chapter
+        self.state.reference = canonical
+        self._jump_reference = canonical if not restore else None
+        if not restore:
+            self.state.scroll = 0.0
+        self.finish_chapter_render()
+        self._notes_stamp = None
+        self.highlight_selection()
+        self.status.set_text(tr("Ready"))
+        self.status.set_visible(False)
+        self.schedule_scroll_restore()
+        self.changed(self)
+        return True
+
+    def replace_display(self, chapter: Chapter, reader: Reader) -> bool:
+        """Retain the exact prior display projection and GTK position until a render returns."""
+        from .bible_render import display_document
+
+        document = self._document
+        buffer = self.text.get_buffer()
+        insert, bound = (
+            buffer.get_iter_at_mark(mark).get_offset()
+            for mark in (buffer.get_insert(), buffer.get_selection_bound())
+        )
+        position = self.scroll.get_vadjustment().get_value()
+        root = self.get_root()
+        focus = root.get_focus() if root else None
+        buttons = getattr(self.text, "_inline_buttons", ())
+        marker = buttons.index(focus) if focus in buttons else None
+        self._restoring_scroll = True
         try:
-            if not self.reader.has_reference(reference):
-                raise ValueError(tr("This passage is not available in this translation."))
-            chapter = self.reader.chapter(reference)
-            canonical = self.reader.key(reference).getOSISRef()
-            self._restoring_scroll = True
-            self.current = chapter
-            if not restore and not self._travelling:
-                history.visit(self.state, cast("str", self.state.resource), canonical)
-            self.state.reference = canonical
-            self._jump_reference = canonical if not restore else None
-            if not restore:
-                self.state.scroll = 0.0
-            self.render_chapter(chapter)
-            self._notes_stamp = None
-            self.highlight_selection()
-            self.status.set_text(tr("Ready"))
-            self.status.set_visible(False)
-            self.schedule_scroll_restore()
-            self.changed(self)
-            return True
+            self.render_chapter(chapter, reader=reader)
         except Exception as error:
-            self.status.set_text(f"{tr('Unable to read this passage.')} {error}")
-            self.status.set_visible(True)
+            try:
+                if document and self.reader:
+                    self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = (
+                        display_document(self.text, self.reader, self.preferences, document)
+                    )
+                    self.comparison_rows.restore_primary_tags()
+                    self.update_highlights()
+                    self.highlight_selection()
+                    buffer.select_range(
+                        buffer.get_iter_at_offset(insert), buffer.get_iter_at_offset(bound)
+                    )
+                    if marker is not None:
+                        getattr(self.text, "_inline_buttons")[marker].grab_focus()
+                    elif focus and focus.get_root() == root:
+                        focus.grab_focus()
+                    if not self._tick_id:
+                        self._rollback_scroll = position
+                    self.schedule_scroll_restore()
+                else:
+                    self.clear_display()
+                    self._restoring_scroll = bool(self._tick_id)
+            except Exception as recovery_error:
+                self.clear_display()
+                self._restoring_scroll = bool(self._tick_id)
+                self.report_render_error(recovery_error)
+                return False
+            self.report_render_error(error)
             return False
+        return True
+
+    def clear_display(self) -> None:
+        """Clear the buffer and offsets together when no usable projection can be restored."""
+        from .bible_render import clear_view
+
+        clear_view(self.text)
+        self._document = None
+        self._verse_offsets, self._verse_ranges, self._marker_ends = {}, {}, {}
+
+    def report_render_error(self, error: Exception) -> None:
+        """Show a failed passage operation without changing its durable position."""
+        self.status.set_text(f"{tr('Unable to read this passage.')} {error}")
+        self.status.set_visible(True)
 
     def watch_layout_adjustment(self, scroll: Gtk.ScrolledWindow, *_events: object) -> None:
         # Comparison mode swaps between a shared and an independent adjustment.
@@ -585,54 +648,59 @@ class ReadingTab(Gtk.Box):
             self.comparison_end_reference = end
             self.set_comparison_alignment(alignment_error)
             signature = (name, chapter.reference, tuple(vars(self.preferences).items()))
-            rebuild = signature != getattr(self, "_comparison_signature", None)
+            previous_signature = getattr(self, "_comparison_signature", None)
+            was_shared = getattr(self, "_shared_comparison", False)
+            rebuild = signature != previous_signature
             anchor = None
-            if rebuild:
+            old = self._comparison_document
+            if rebuild and old and (previous_signature or (None,))[0] == name:
+                rect = self.comparison_text.get_visible_rect()
+                _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
+                if old.key == chapter.reference:
+                    anchor = old.anchor(iterator.get_offset())
+            shared = False
+            if alignment_error is None:
+                try:
+                    self.comparison_rows.build(chapter)
+                    shared = True
+                except ValueError as error:
+                    self._comparison_layout_error = error
+                    # A local row-layout gap does not disable mapped following.
+                    self.set_comparison_alignment(None)
+            if not shared and (rebuild or was_shared):
                 from .bible_render import render
 
                 buffer = self.comparison_text.get_buffer()
-                old: Document | None = getattr(self, "_comparison_document", None)
                 selected = (
                     [old.anchor(i.get_offset()) for i in buffer.get_selection_bounds()]
-                    if old
+                    if old and old.key == chapter.reference
                     else []
                 )
-                if old and (getattr(self, "_comparison_signature", None) or (None,))[0] == name:
-                    rect = self.comparison_text.get_visible_rect()
-                    _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
-                    if old.key == chapter.reference:
-                        anchor = old.anchor(iterator.get_offset())
                 (
                     self._comparison_document,
                     self._comparison_offsets,
                     self._comparison_ranges,
                     self._comparison_markers,
                 ) = render(self.comparison_text, reader, chapter, self.preferences)
-                self._comparison_signature = signature
-                self.update_highlights()
-                self.refresh_study_indicator()
-                if selected and cast("Document", old).key == chapter.reference:
+                if selected:
                     buffer.select_range(
                         *(
                             buffer.get_iter_at_offset(self._comparison_document.locate(a))
                             for a in selected
                         )
                     )
-            if alignment_error is None:
-                try:
-                    self.comparison_rows.build(chapter)
-                except ValueError as error:
-                    self.comparison_rows.leave()
-                    self._comparison_layout_error = error
-                    # Failure to build shared padded rows is not a failure of
-                    # the current reference mapping. Keep per-reference follow
-                    # active; report only a genuinely unmapped current location.
-                    self.set_comparison_alignment(None)
-            else:
+            if not shared:
+                # Leaving shared rows repaints both panes. Replace the secondary
+                # offsets first so the new reader never sees the previous canon.
                 self.comparison_rows.leave()
+                if rebuild and not was_shared:
+                    self.update_highlights()
+            self._comparison_signature = signature
             sync = getattr(self, "comparison_sync", None)
             if not (sync and sync.running and sync.driver == "comparison"):
-                self.reveal_comparison(reference, anchor=anchor, settle=rebuild)
+                self.reveal_comparison(
+                    reference, anchor=anchor, settle=rebuild or shared != was_shared
+                )
             self.remember_comparison(reference)
         except Exception as error:
             self.comparison_rows.leave()
@@ -729,22 +797,51 @@ class ReadingTab(Gtk.Box):
 
         self._comparison_tick = self.comparison_text.add_tick_callback(reveal)
 
-    def render_chapter(self, chapter: Chapter) -> None:
-        """Render primary source/copy spans and invalidate comparison layout dependent on that chapter."""
-        if hasattr(self, "comparison_rows"):
-            self.comparison_rows.signature = None
-            self._comparison_stamp = None
+    def render_chapter(self, chapter: Chapter, *, reader: Reader | None = None) -> None:
+        """Apply a primary projection, allowing navigation to stage a different source."""
         from .bible_render import render
 
+        source = reader or cast("Reader", self.reader)
+        document = self.primary_document(source, chapter.reference)
         self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
-            self.text, cast("Reader", self.reader), chapter, self.preferences
+            self.text, source, chapter, self.preferences, document
         )
-        self.update_highlights()
+        self.update_highlights(reader=reader)
+        if reader is None:
+            self.finish_chapter_render()
 
-    def update_highlights(self, high: bool | None = None, palette: str | None = None) -> None:
+    def primary_document(self, reader: Reader, reference: str) -> Document:
+        """Share the current chapter's undecorated projection between ordinary and parallel views."""
+        from ..paged_sources import BiblePages
+
+        # BiblePages uses these two preferences for the actual projected text.
+        # Layout and palette stay on the view. A weak key cannot hold an old
+        # SWORD module lease open during replacement or removal.
+        key = (
+            ref(reader),
+            reference,
+            self.preferences.chapter_numbers,
+            self.preferences.verse_numbers,
+        )
+        cached = self._primary_projection
+        if cached and cached[0] == key:
+            return cached[1]
+        document = cast("Document", BiblePages(reader, None).document(reference, self.preferences))
+        self._primary_projection = key, document
+        return document
+
+    def finish_chapter_render(self) -> None:
+        """Invalidate dependent comparison rows for the committed source."""
+        self.comparison_rows.signature = None
+        self._comparison_stamp = None
+
+    def update_highlights(
+        self, high: bool | None = None, palette: str | None = None, *, reader: Reader | None = None
+    ) -> None:
         """Paint saved marks onto verified primary/secondary display spans without changing stored anchors."""
         store = getattr(self, "_highlight_store", None)
-        if store is None or not self.reader:
+        reader = reader or self.reader
+        if store is None or not reader:
             return
         if high is not None:
             self._highlight_high = high
@@ -764,14 +861,14 @@ class ReadingTab(Gtk.Box):
         paint(
             self.text,
             store,
-            self.reader.versification,
+            reader.versification,
             getattr(
                 self.text,
                 "_verse_fragments",
                 [(ref, *bounds) for ref, bounds in self._verse_ranges.items()],
             ),
             *options,
-            reader=self.reader,
+            reader=reader,
             annotations=annotations,
         )
         if self._comparison_reader and self.state.comparison:
@@ -791,7 +888,7 @@ class ReadingTab(Gtk.Box):
                 reader=self._comparison_reader,
                 annotations=annotations,
             )
-        self.refresh_study_indicator()
+        self.refresh_study_indicator(reader=reader)
 
     def position_anchor(self, offset: int) -> PositionAnchor | None:
         """Convert a display position into a source-unit or legacy verse-body anchor."""
@@ -854,11 +951,13 @@ class ReadingTab(Gtk.Box):
             self.status.set_text(tr("History resource unavailable. The passage has been kept."))
             self.status.set_visible(True)
             return False
-        history.capture(self.state)
+        previous_index, previous_scroll = self.state.history_index, self.state.scroll
         self._travelling = True
         try:
             if not self.navigate(entry["resource"], entry["reference"]):
                 return False
+            if 0 <= previous_index < len(self.state.history):
+                self.state.history[previous_index]["scroll"] = previous_scroll
             self.state.history_index = index
             self.state.scroll = entry.get("scroll", 0.0)
             self._jump_reference = None
@@ -1116,14 +1215,14 @@ class ReadingTab(Gtk.Box):
         except ValueError:
             return []
 
-    def refresh_study_indicator(self) -> None:
+    def refresh_study_indicator(self, *, reader: Reader | None = None) -> None:
         """Paint current study coverage on both panes and active Bible immersion, without persisting links."""
         if not hasattr(self, "text"):
             return
         ranges = list(getattr(self.text, "_verse_fragments", ())) or [
             (ref, start, end) for ref, (start, end) in self._verse_ranges.items()
         ]
-        self.text.set_study_ranges(self.study_ranges(self.reader, ranges))
+        self.text.set_study_ranges(self.study_ranges(reader or self.reader, ranges))
         if hasattr(self, "comparison_text"):
             ranges = list(getattr(self.comparison_text, "_verse_fragments", ())) or [
                 (ref, start, end)
@@ -1174,7 +1273,11 @@ class ReadingTab(Gtk.Box):
         desired = self.state.scroll * maximum
         if self._appearance_anchor and self._appearance_anchor[0] not in self._verse_ranges:
             self._appearance_anchor = None
-        if self._appearance_anchor:
+        recovering = self._rollback_scroll is not None
+        if self._rollback_scroll is not None:
+            adjustment.set_value(min(self._rollback_scroll, maximum))
+            self._rollback_scroll = None
+        elif self._appearance_anchor:
             iterator = self.text.get_buffer().get_iter_at_offset(
                 self.anchor_offset(self._appearance_anchor)
             )
@@ -1208,7 +1311,8 @@ class ReadingTab(Gtk.Box):
         self._tick_id = 0
         self._jump_reference = None
         self._restoring_scroll = False
-        self.scroll_changed()
+        if not recovering:
+            self.scroll_changed()
         return False
 
     def scroll_changed(self, *_events: object) -> None:

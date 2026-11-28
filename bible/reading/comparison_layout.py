@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING
 from dataclasses import dataclass, replace
+from functools import cache
 
 if TYPE_CHECKING:
     from ..sword_provider import Reader
@@ -26,6 +27,8 @@ def correspondences(
     left: Iterable[str],
     right: Iterable[str],
     linked: tuple[Iterable[Sequence[str]], Iterable[Sequence[str]]] = ((), ()),
+    *,
+    mapped_range: Callable[[int, str], tuple[str, str]] | None = None,
 ) -> tuple[Correspondence, ...]:
     """Connected mappings preserve merged/split source blocks exactly once.
 
@@ -36,6 +39,17 @@ def correspondences(
     right = tuple(right)
     nodes = {(0, r): {(0, r)} for r in left}
     nodes.update({(1, r): {(1, r)} for r in right})
+    readers = (primary, secondary)
+
+    @cache
+    def position(side: int, reference: str) -> int:
+        return readers[side].key(reference).getIndex()
+
+    def bounds(side: int, reference: str) -> tuple[str, str]:
+        if mapped_range is not None:
+            return mapped_range(side, reference)
+        mapped = resolve(reference, readers[side], readers[1 - side], require_entry=False)
+        return mapped.start, mapped.end
 
     def merge(first: tuple[int, str], second: tuple[int, str]) -> None:
         own = nodes[first]
@@ -53,33 +67,29 @@ def correspondences(
         for members in linked_groups:
             for reference in members[1:]:
                 merge((side, members[0]), (side, reference))
-    for side, reader, target, refs in (
-        (0, primary, secondary, left),
-        (1, secondary, primary, right),
-    ):
+    for side, refs in enumerate((left, right)):
+        target = readers[1 - side]
         for ref in refs:
-            mapped = resolve(ref, reader, target, require_entry=False)
-            connect(side, ref, _span(mapped.start, mapped.end, target.versification, target))
+            start, end = bounds(side, ref)
+            connect(side, ref, _span(start, end, target.versification, target))
     unique = {id(group): group for group in nodes.values()}
 
     def order(group: set[tuple[int, str]]) -> int:
-        own = [primary.key(ref).getIndex() for side, ref in group if side == 0]
+        own = [position(0, ref) for side, ref in group if side == 0]
         if own:
             return min(own)
         ref = next(ref for _, ref in group)
-        return primary.key(resolve(ref, secondary, primary, require_entry=False).start).getIndex()
+        return position(0, bounds(1, ref)[0])
 
     groups = sorted(unique.values(), key=order)
     result = []
     last = (-1, -1)
     for group in groups:
-        a = tuple(sorted((r for s, r in group if s == 0), key=lambda r: primary.key(r).getIndex()))
-        b = tuple(
-            sorted((r for s, r in group if s == 1), key=lambda r: secondary.key(r).getIndex())
-        )
+        a = tuple(sorted((r for s, r in group if s == 0), key=lambda r: position(0, r)))
+        b = tuple(sorted((r for s, r in group if s == 1), key=lambda r: position(1, r)))
         positions = (
-            min((primary.key(r).getIndex() for r in a), default=last[0]),
-            min((secondary.key(r).getIndex() for r in b), default=last[1]),
+            min((position(0, r) for r in a), default=last[0]),
+            min((position(1, r) for r in b), default=last[1]),
         )
         if any(p < q for p, q in zip(positions, last)):
             raise ValueError("Non-monotonic correspondence; shared alignment unavailable")
