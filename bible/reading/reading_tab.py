@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, cast
+from weakref import ReferenceType, ref
 
 if TYPE_CHECKING:
     from .reading_sync import ReadingSync
@@ -32,6 +33,7 @@ from ..study.context_indicator import ContextTextView
 
 type PositionAnchor = tuple[str, Anchor | int]
 type StudyCoverage = tuple[str, str, str] | tuple[str, tuple[tuple[str, str], ...]]
+type ProjectionKey = tuple[ReferenceType[Reader], str, bool, bool]
 
 
 class ReadingTab(Gtk.Box):
@@ -75,6 +77,8 @@ class ReadingTab(Gtk.Box):
         self.reader: Reader | None = None
         self.current: Chapter | None = None
         self._document = None
+        self._comparison_document = None
+        self._primary_projection: tuple[ProjectionKey, Document] | None = None
         self._restoring_scroll = True
         self._tick_id = 0
         self._scroll_frames = 0
@@ -299,6 +303,7 @@ class ReadingTab(Gtk.Box):
         self._rollback_scroll = None
         self.reader = None
         self.current = None
+        self._primary_projection = None
         self.clear_display()
         if not self.state.resource:
             self.status.set_text(
@@ -643,54 +648,56 @@ class ReadingTab(Gtk.Box):
             self.comparison_end_reference = end
             self.set_comparison_alignment(alignment_error)
             signature = (name, chapter.reference, tuple(vars(self.preferences).items()))
-            rebuild = signature != getattr(self, "_comparison_signature", None)
+            previous_signature = getattr(self, "_comparison_signature", None)
+            was_shared = getattr(self, "_shared_comparison", False)
+            rebuild = signature != previous_signature
             anchor = None
-            if rebuild:
+            old = self._comparison_document
+            if rebuild and old and (previous_signature or (None,))[0] == name:
+                rect = self.comparison_text.get_visible_rect()
+                _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
+                if old.key == chapter.reference:
+                    anchor = old.anchor(iterator.get_offset())
+            shared = False
+            if alignment_error is None:
+                try:
+                    self.comparison_rows.build(chapter)
+                    shared = True
+                except ValueError as error:
+                    self._comparison_layout_error = error
+                    # A local row-layout gap does not disable mapped following.
+                    self.set_comparison_alignment(None)
+            if not shared:
+                self.comparison_rows.leave()
+            if not shared and (rebuild or was_shared):
                 from .bible_render import render
 
                 buffer = self.comparison_text.get_buffer()
-                old: Document | None = getattr(self, "_comparison_document", None)
                 selected = (
                     [old.anchor(i.get_offset()) for i in buffer.get_selection_bounds()]
-                    if old
+                    if old and old.key == chapter.reference
                     else []
                 )
-                if old and (getattr(self, "_comparison_signature", None) or (None,))[0] == name:
-                    rect = self.comparison_text.get_visible_rect()
-                    _, iterator = self.comparison_text.get_iter_at_location(rect.x, rect.y)
-                    if old.key == chapter.reference:
-                        anchor = old.anchor(iterator.get_offset())
                 (
                     self._comparison_document,
                     self._comparison_offsets,
                     self._comparison_ranges,
                     self._comparison_markers,
                 ) = render(self.comparison_text, reader, chapter, self.preferences)
-                self._comparison_signature = signature
                 self.update_highlights()
-                self.refresh_study_indicator()
-                if selected and cast("Document", old).key == chapter.reference:
+                if selected:
                     buffer.select_range(
                         *(
                             buffer.get_iter_at_offset(self._comparison_document.locate(a))
                             for a in selected
                         )
                     )
-            if alignment_error is None:
-                try:
-                    self.comparison_rows.build(chapter)
-                except ValueError as error:
-                    self.comparison_rows.leave()
-                    self._comparison_layout_error = error
-                    # Failure to build shared padded rows is not a failure of
-                    # the current reference mapping. Keep per-reference follow
-                    # active; report only a genuinely unmapped current location.
-                    self.set_comparison_alignment(None)
-            else:
-                self.comparison_rows.leave()
+            self._comparison_signature = signature
             sync = getattr(self, "comparison_sync", None)
             if not (sync and sync.running and sync.driver == "comparison"):
-                self.reveal_comparison(reference, anchor=anchor, settle=rebuild)
+                self.reveal_comparison(
+                    reference, anchor=anchor, settle=rebuild or shared != was_shared
+                )
             self.remember_comparison(reference)
         except Exception as error:
             self.comparison_rows.leave()
@@ -791,12 +798,34 @@ class ReadingTab(Gtk.Box):
         """Apply a primary projection, allowing navigation to stage a different source."""
         from .bible_render import render
 
+        source = reader or cast("Reader", self.reader)
+        document = self.primary_document(source, chapter.reference)
         self._document, self._verse_offsets, self._verse_ranges, self._marker_ends = render(
-            self.text, reader or cast("Reader", self.reader), chapter, self.preferences
+            self.text, source, chapter, self.preferences, document
         )
         self.update_highlights(reader=reader)
         if reader is None:
             self.finish_chapter_render()
+
+    def primary_document(self, reader: Reader, reference: str) -> Document:
+        """Share the current chapter's undecorated projection between ordinary and parallel views."""
+        from ..paged_sources import BiblePages
+
+        # BiblePages uses these two preferences for the actual projected text.
+        # Layout and palette stay on the view. A weak key cannot hold an old
+        # SWORD module lease open during replacement or removal.
+        key = (
+            ref(reader),
+            reference,
+            self.preferences.chapter_numbers,
+            self.preferences.verse_numbers,
+        )
+        cached = self._primary_projection
+        if cached and cached[0] == key:
+            return cached[1]
+        document = cast("Document", BiblePages(reader, None).document(reference, self.preferences))
+        self._primary_projection = key, document
+        return document
 
     def finish_chapter_render(self) -> None:
         """Invalidate dependent comparison rows for the committed source."""

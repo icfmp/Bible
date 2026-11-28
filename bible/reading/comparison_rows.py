@@ -10,6 +10,7 @@ from ..i18n import tr
 from ..reference_resolution import resolve_readers as resolve, _span
 from ..pagination import Document
 from dataclasses import replace
+from functools import cache
 
 
 class ComparisonRows:
@@ -44,14 +45,21 @@ class ComparisonRows:
         )
         if signature == self.signature:
             return
-        primary = BiblePages(left, None).document(tab.current.reference, tab.preferences)
+        primary = tab.primary_document(left, tab.current.reference)
+        readers = (left, right)
+
+        @cache
+        def mapped_range(side: int, reference: str) -> tuple[str, str]:
+            # Discovery and grouping share verified endpoints only during this build.
+            mapped = resolve(reference, readers[side], readers[1 - side], require_entry=False)
+            return mapped.start, mapped.end
+
         chapters = {chapter.reference}
         for span in primary.spans:
             for reference in span.members:
-                mapped = resolve(reference, left, right, require_entry=False)
+                start, end = mapped_range(0, reference)
                 chapters.update(
-                    ref.rsplit(".", 1)[0]
-                    for ref in _span(mapped.start, mapped.end, right.versification, right)
+                    ref.rsplit(".", 1)[0] for ref in _span(start, end, right.versification, right)
                 )
         key = left.key(tab.current.reference + ".1")
         low = key.getIndex()
@@ -65,10 +73,9 @@ class ComparisonRows:
         for name in sorted(chapters, key=lambda ref: right.key(ref + ".1").getIndex()):
             document = BiblePages(right, None).document(name, tab.preferences)
             for index, span in enumerate(document.spans):
-                mapped = [resolve(ref, right, left, require_entry=False) for ref in span.members]
                 if not any(
-                    left.key(m.end).getIndex() >= low and left.key(m.start).getIndex() <= high
-                    for m in mapped
+                    left.key(end).getIndex() >= low and left.key(start).getIndex() <= high
+                    for start, end in (mapped_range(1, ref) for ref in span.members)
                 ):
                     continue
                 end = (
@@ -104,6 +111,12 @@ class ComparisonRows:
             right,
             *(tuple(ref for s in doc.spans for ref in s.members) for doc in documents),
             linked=tuple(tuple(s.members for s in doc.spans if s.aliases) for doc in documents),
+            mapped_range=mapped_range,
+        )
+        # Reject a reordered projection on either side before replacing any buffer.
+        projections = tuple(
+            row_document(source, rows, side, tr("No verse in this edition."))
+            for side, source in enumerate(documents)
         )
         self.rows = rows
         tab.comparison_text.set_top_margin(tab.text.get_top_margin())
@@ -117,9 +130,7 @@ class ComparisonRows:
                 getattr(view, "_bible_copy_source", (source, 0))[0].anchor(i.get_offset())
                 for i in buffer.get_selection_bounds()
             ]
-            doc, self.bounds[side] = row_document(
-                source, rows, side, tr("No verse in this edition.")
-            )
+            doc, self.bounds[side] = projections[side]
             values = render(
                 view, reader, tab.current if side == 0 else chapter, tab.preferences, doc
             )

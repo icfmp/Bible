@@ -5,23 +5,69 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import tempfile
+from typing import cast
 import unittest
+from unittest.mock import patch
 from tests.test_ui import installed_fixture, spin
 from bible.i18n import tr
 
 
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires GTK")
 class ComparisonTests(unittest.TestCase):
-    def setUp(self) -> None:
-        from unittest.mock import patch
+    def test_shared_opening_builds_the_secondary_once_and_keeps_projection_identity(self) -> None:
+        from bible.paged_sources import BiblePages
+        from bible.pagination import Document
+        from bible.preferences import ReadingPreferences
+        from bible.ui import Application, Window, Library
 
+        app = Application.get_default() or Application()
+        app.register()
+        with tempfile.TemporaryDirectory() as directory:
+            for name in ("Primary", "Alternate", "Secondary"):
+                installed_fixture(directory, name, entries=[("Gen.1.1", f"{name} source body")])
+            window = Window(app, Library(Path(directory) / "translations"))
+            window.present()
+            try:
+                tab = window.active_tab
+                self.assertTrue(tab.navigate("Primary", "Gen.1.1"))
+                spin(lambda: not tab._restoring_scroll)
+                document = BiblePages.document
+                builds = []
+
+                def counted(
+                    pages: BiblePages, reference: str, preferences: ReadingPreferences
+                ) -> Document:
+                    builds.append((pages.reader.name, reference))
+                    return cast("Document", document(pages, reference, preferences))
+
+                with patch.object(BiblePages, "document", counted):
+                    tab.state.comparison = "Secondary"
+                    window.sync_comparison()
+                self.assertTrue(tab._shared_comparison)
+                self.assertEqual(builds, [("Secondary", "Gen.1")])
+                self.assertIn("Primary source body", tab.text.get_buffer().props.text)
+                self.assertIn("Secondary source body", tab.comparison_text.get_buffer().props.text)
+                self.assertTrue(tab.navigate("Alternate", "Gen.1.1"))
+                self.assertTrue(tab.navigate("Primary", "Gen.1.1"))
+                self.assertTrue(tab.navigate("Alternate", "Gen.1.1"))
+                spin(lambda: not tab._restoring_scroll)
+                self.assertIn("Alternate source body", tab.text.get_buffer().props.text)
+                self.assertIn("Secondary source body", tab.comparison_text.get_buffer().props.text)
+
+                window.appearance.update("chapter_numbers", False)
+                spin(lambda: not tab._restoring_scroll)
+                self.assertFalse(any(span.kind == "chapter" for span in tab._document.styles))
+                self.assertIn("Alternate source body", tab.text.get_buffer().props.text)
+            finally:
+                window.close()
+
+    def setUp(self) -> None:
         # Exercise follow/layout separately from resource evidence acquisition.
         self.enterContext(
             patch("bible.sword_provider.Reader.can_align_reference", return_value=True)
         )
 
     def test_a_local_row_mapping_gap_does_not_disable_valid_verse_following(self) -> None:
-        from unittest.mock import patch
         from bible.ui import Application, Window, Library
 
         app = Application.get_default() or Application()
