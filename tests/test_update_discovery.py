@@ -59,10 +59,10 @@ class DiscoveryTests(unittest.TestCase):
     ) -> None:
         from bible.ui import Application, Window, Library
         from bible.application_settings import ApplicationSettings
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
         from bible.providers import BIBLE_RESOURCES
         from bible.library import CatalogueResult
-        from bible.update_discovery import discovery
+        from bible.catalogue.update_discovery import discovery
 
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         library = Library(root / "translations")
@@ -151,7 +151,9 @@ class DiscoveryTests(unittest.TestCase):
         # targets. A row action cannot turn an old same-ID offer into an update.
         from bible.i18n import tr
 
-        with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+        with patch(
+            "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+        ):
             dialog = w.open_library()
             spin(lambda: not dialog.preparing and not dialog._building_rows)
         row = next(item for item, r in dialog._bound_rows.items() if r.id == old.id)
@@ -196,7 +198,7 @@ class DiscoveryTests(unittest.TestCase):
 
         with (
             patch("bible.library.download", side_effect=download),
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         ):
             dialog = manager.queue_all(w)
             spin(
@@ -230,9 +232,9 @@ class DiscoveryTests(unittest.TestCase):
     ) -> None:
         from bible.ui import Application, Window, Library
         from bible.application_settings import ApplicationSettings
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
         from bible.providers import BIBLE_RESOURCES
-        from bible.update_discovery import discovery
+        from bible.catalogue.update_discovery import discovery
 
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         library = Library(root / "translations")
@@ -276,7 +278,7 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(library.resource(old.id).version, "1.0")
 
     def test_study_offline_metadata_is_not_a_verified_update(self) -> None:
-        from bible.update_discovery import ResourceUpdates
+        from bible.catalogue.update_discovery import ResourceUpdates
         from bible.library import Library
         from bible.study_resources import REFERENCE_RESOURCE_ID
         from tests.test_study_catalogue import archive, revision, catalogue
@@ -301,9 +303,9 @@ class DiscoveryTests(unittest.TestCase):
         )
 
     def test_failed_metadata_bootstrap_is_reported_and_explicit_check_recovers(self) -> None:
-        from bible.update_discovery import ResourceUpdates
+        from bible.catalogue.update_discovery import ResourceUpdates
         from bible.library import Library
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
 
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         with patch.object(

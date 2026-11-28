@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from collections import OrderedDict
     from .sword_provider import Reader
     from .providers import Provider
-    from .catalogue_cache import CatalogueCache
+    from .catalogue.catalogue_cache import CatalogueCache
 from .providers import CROSSWIRE, PROVIDERS, DEFAULT_PROVIDERS, BY_ID, identity, module_name
 
 BASE = "https://www.crosswire.org/ftpmirror/pub/sword/"

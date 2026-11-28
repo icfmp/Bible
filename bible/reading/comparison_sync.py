@@ -1,0 +1,162 @@
+"""Reference-driven Bible comparison, independent of the study coordinator."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..ui import Window
+    from .reading_tab import ReadingTab
+    from gi.repository import Gtk
+
+import time
+from .reading_sync import ReadingSync
+from ..reference_resolution import resolve_readers as resolve
+from .scroll_motion import stop_native_scroll
+
+
+class ComparisonSync(ReadingSync):
+    """Coordinate user-led parallel following independently of the study-panel coordinator."""
+
+    def __init__(self, owner: Window, tab: ReadingTab) -> None:
+        self.owner = owner
+        self.tab = tab
+        self.driver: str | None = None
+        self.pending = False
+        self.running = False
+        self.armed_until: float = 0
+        self.dragging: str | None = None
+        self.last_target: tuple[str, str, int] | None = None
+        # Reuse input observation only. Never replace tab.sync_coordinator,
+        # which belongs to the client-validated Bible/commentary following.
+        self.bind(tab.scroll, tab.text, "primary")
+        self.bind(tab.comparison_scroll, tab.comparison_text, "comparison")
+
+    def intent(self, side: str, tab: ReadingTab | None = None) -> bool:
+        """Arm the explicitly used pane, cancelling obsolete motion and secondary restore work."""
+        if self.tab is not self.owner.active_tab or self.running:
+            return False
+        if self.driver != side:
+            self.last_target = None
+            stop_native_scroll(self.tab.comparison_scroll if side == "primary" else self.tab.scroll)
+        self.driver = side
+        self.armed_until = time.monotonic() + 0.4
+        if self.owner.study.tool == "notes":
+            self.owner.study.notes.resume_following()
+            if side == "comparison":
+                self.owner.reading_sync.driver = None
+                self.owner.reading_sync.needs_sync = False
+        if side == "comparison" and getattr(self.tab, "_comparison_tick", False):
+            self.tab.comparison_text.remove_tick_callback(self.tab._comparison_tick)
+            self.tab._comparison_tick = 0
+            self.tab._comparison_positioning = False
+        self.schedule()
+        return False
+
+    def moved(
+        self, side: str, view: Gtk.TextView, bar: Gtk.Widget, tab: ReadingTab | None = None
+    ) -> None:
+        """Observe user-led adjustments while excluding reflow, restoration and programmatic movement."""
+        if self.running or self.tab is not self.owner.active_tab:
+            return
+        if self.tab.scroll_motion.running:
+            return
+        if self.tab._restoring_scroll or getattr(self.tab, "_comparison_positioning", False):
+            return
+        geometry = (view.get_width(), view.get_height())
+        previous = getattr(view, "_comparison_geometry", geometry)
+        setattr(view, "_comparison_geometry", geometry)
+        if previous != geometry:
+            return
+        if bar.has_focus():
+            self.intent(side)
+        if self.driver == side and (self.dragging == side or time.monotonic() < self.armed_until):
+            self.schedule()
+
+    def synchronize(self) -> bool:
+        """Apply one live user intent through verified reader-to-reader correspondence.
+
+        Hidden/inactive/expired gestures do not lead. Shared adjustments already
+        move both panes natively; only semantic context is updated there. Unmapped
+        positions retain independent reading rather than invented equivalence.
+        """
+        self.pending = False
+        tab = self.tab
+        if (
+            self.owner.closed
+            or self.owner.active_tab is not tab
+            or self.owner.immersion
+            or getattr(self.owner, "_study_resizing", False)
+            or self.running
+            or not tab.state.comparison
+            or not tab.reader
+            or not tab._comparison_reader
+            or not tab.text.get_mapped()
+            or not tab.comparison_text.get_mapped()
+        ):
+            return False
+        # Queued layout callbacks must not outlive the actual input gesture.
+        if self.driver is None or (
+            self.dragging != self.driver and time.monotonic() >= self.armed_until
+        ):
+            return False
+        if tab._restoring_scroll or getattr(tab, "_comparison_positioning", False):
+            self.schedule()
+            return False
+        view = tab.text if self.driver == "primary" else tab.comparison_text
+        if view.get_buffer().get_has_selection():
+            return False
+        self.running = True
+        try:
+            if getattr(tab, "_shared_comparison", False):
+                # Native GTK adjusts both panes through the SAME adjustment.
+                # Only semantic study context follows the explicitly used side.
+                if self.driver == "comparison":
+                    reference = tab.comparison_visible_reference()
+                    if reference:
+                        mapped = resolve(reference, tab._comparison_reader, tab.reader)
+                        if mapped.start != tab.state.reference:
+                            tab.select_verse(mapped.start)
+                return False
+            if self.driver == "primary":
+                reference = tab.visible_reference()
+                if not reference:
+                    return False
+                resolved = resolve(reference, tab.reader, tab._comparison_reader)
+                target = ("comparison", resolved.start, id(tab._comparison_document))
+                if target != self.last_target:
+                    if reference != tab.state.reference:
+                        tab.select_verse(reference)
+                    if resolved.start not in tab._comparison_offsets:
+                        tab._comparison_stamp = None
+                        tab.refresh_comparison()
+                    tab.reveal_comparison(resolved.start)
+                    self.last_target = target
+            elif self.driver == "comparison":
+                reference = tab.comparison_visible_reference()
+                if not reference:
+                    return False
+                # Reuse the reference already sampled for this input frame;
+                # saving an independent pane must not add geometry polling.
+                if tab.remember_comparison(reference):
+                    self.owner.schedule_save()
+                resolved = resolve(reference, tab._comparison_reader, tab.reader)
+                target = ("primary", resolved.start, id(tab.current))
+                if target != self.last_target:
+                    if resolved.start != tab.state.reference:
+                        tab.reveal_reference(resolved.start)
+                    if resolved.start in tab._verse_offsets:
+                        buffer = tab.text.get_buffer()
+                        iterator = buffer.get_iter_at_offset(tab._verse_offsets[resolved.start])
+                        rect = tab.text.get_visible_rect()
+                        location = tab.text.get_iter_location(iterator)
+                        adjustment = tab.scroll.get_vadjustment()
+                        adjustment.set_value(adjustment.get_value() + location.y - rect.y)
+                    self.last_target = target
+            tab.set_comparison_alignment(None)
+        except ValueError as error:
+            tab.set_comparison_alignment(error)
+            self.last_target = None
+        finally:
+            self.running = False
+        return False

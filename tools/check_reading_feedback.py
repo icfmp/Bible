@@ -51,7 +51,7 @@ def main() -> None:
     app = Application()
     app.register()
     report = dict(app_import=inspect.getfile(Window), baseline=args.baseline, sections={})
-    with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+    with patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False):
         w = Window(app, Library(args.profile / "translations"))
         w.set_default_size(1440, 950)
         w.present()

@@ -173,7 +173,7 @@ class HighlightUITests(unittest.TestCase):
     def test_backup_chooser_without_local_path_preserves_marks_and_releases_dialog(self) -> None:
         from unittest.mock import Mock, patch
         from bible.ui import Window, Library, Gtk
-        from bible.highlight_ui import HighlightsWindow
+        from bible.annotations_ui.highlight_ui import HighlightsWindow
         from bible.i18n import tr
         from gi.repository import Gio
 
@@ -192,11 +192,11 @@ class HighlightUITests(unittest.TestCase):
                             chooser.get_file.return_value = selected_file
                             with (
                                 patch(
-                                    "bible.highlight_ui.Gtk.FileChooserNative.new",
+                                    "bible.annotations_ui.highlight_ui.Gtk.FileChooserNative.new",
                                     return_value=chooser,
                                 ),
                                 patch(
-                                    "bible.highlight_ui.message",
+                                    "bible.annotations_ui.highlight_ui.message",
                                     side_effect=lambda *args: args[-1](),
                                 ),
                                 patch.object(window.highlights, "backup") as backup,

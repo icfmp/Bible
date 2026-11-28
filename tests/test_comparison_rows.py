@@ -129,7 +129,7 @@ class ComparisonRowsTests(unittest.TestCase):
                 window.close()
 
     def test_split_final_john_verses_form_one_correspondence_group(self) -> None:
-        from bible.comparison_layout import correspondences
+        from bible.reading.comparison_layout import correspondences
         from bible.sword_provider import Reader
         from tests.test_ui import installed_fixture
 
@@ -243,7 +243,7 @@ class ComparisonRowsTests(unittest.TestCase):
                 window.close()
 
     def test_split_mapping_groups_and_known_absence_preserve_every_source_verse(self) -> None:
-        from bible.comparison_layout import correspondences
+        from bible.reading.comparison_layout import correspondences
         from bible.sword_provider import Reader
         from tests.test_ui import installed_fixture
 

@@ -11,7 +11,7 @@ import argparse
 import json
 from pathlib import Path
 import time
-from bible.catalogue_cache import CatalogueCache
+from bible.catalogue.catalogue_cache import CatalogueCache
 from bible.library import catalogues
 
 

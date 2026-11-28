@@ -38,9 +38,10 @@ def main() -> None:
     records = []
     transfer = {}
     with (
-        patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+        patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         patch(
-            "bible.catalogue_session.CatalogueSession.load_youversion_language", return_value=None
+            "bible.catalogue.catalogue_session.CatalogueSession.load_youversion_language",
+            return_value=None,
         ),
     ):
         w = Window(app, Library(a.profile / "translations"))

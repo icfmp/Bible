@@ -9,8 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from bible.catalogue_cache import CatalogueCache
-from bible.catalogue_session import CatalogueSession
+from bible.catalogue.catalogue_cache import CatalogueCache
+from bible.catalogue.catalogue_session import CatalogueSession
 from bible.library import Library, catalogues
 from bible.module_lifecycle import ModuleLifecycle
 from bible.providers import BIBLE_RESOURCES, CROSSWIRE, YOUVERSION

@@ -51,12 +51,12 @@ class PlaceCardTests(unittest.TestCase):
         # connection-refusal/retry policy on a guessed unavailable port.
         self.enterContext(
             patch(
-                "bible.place_map.TILE_URL",
+                "bible.study.place_map.TILE_URL",
                 f"http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png",
             )
         )
         self.enterContext(
-            patch("bible.place_map.TILE_SOURCE_ID", "unavailable-" + uuid.uuid4().hex)
+            patch("bible.study.place_map.TILE_SOURCE_ID", "unavailable-" + uuid.uuid4().hex)
         )
         self.directory = self.enterContext(tempfile.TemporaryDirectory())
         self.root = Path(self.directory)
@@ -216,7 +216,7 @@ class PlaceCardTests(unittest.TestCase):
         spin()
         self.assertTrue(dialog.download.get_visible())
         with patch(
-            "bible.catalogue_window.catalogue",
+            "bible.catalogue.catalogue_window.catalogue",
             side_effect=AssertionError("No SWORD refresh for place data"),
         ):
             dialog.open_library()

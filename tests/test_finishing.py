@@ -57,7 +57,7 @@ class FinishingTests(unittest.TestCase):
         self.assertEqual(w.active_tab.state.reference, first.state.reference)
 
     def test_one_click_lists_and_canvas_tooltip(self) -> None:
-        from bible.version_chooser import DirectChoices
+        from bible.catalogue.version_chooser import DirectChoices
 
         installed_fixture(self.root, "Other")
         w = self.window
@@ -116,10 +116,12 @@ class FinishingTests(unittest.TestCase):
 
     def test_catalogue_loading_zero_failure_and_retained_rows_are_distinct(self) -> None:
         from dataclasses import replace
-        from bible.catalogue_window import CatalogueWindow
+        from bible.catalogue.catalogue_window import CatalogueWindow
         from bible.providers import PROVIDERS
 
-        with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+        with patch(
+            "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+        ):
             w = self.window
             w.application_settings.set("library_language", "")
             d = CatalogueWindow(w, w.library, w.resource_installed)

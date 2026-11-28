@@ -56,7 +56,7 @@ def main() -> None:
     app.register()
     records = []
     actions = []
-    with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+    with patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False):
         w = Window(app, Library(args.profile / "translations"))
         w.present()
         spin()

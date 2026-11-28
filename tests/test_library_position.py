@@ -24,7 +24,7 @@ class LibraryPositionTests(unittest.TestCase):
         app.register()
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         ):
             root = Path(directory)
             w = Window(app, Library(root / "translations"))
@@ -114,9 +114,11 @@ class LibraryPositionTests(unittest.TestCase):
             with (
                 self.subTest(kind=kind),
                 tempfile.TemporaryDirectory() as directory,
-                patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
                 patch(
-                    "bible.catalogue_session.CatalogueSession.load_youversion_language",
+                    "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+                ),
+                patch(
+                    "bible.catalogue.catalogue_session.CatalogueSession.load_youversion_language",
                     return_value=None,
                 ),
             ):

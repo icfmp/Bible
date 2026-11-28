@@ -31,7 +31,7 @@ class AnchorTests(unittest.TestCase):
 class PaginationTests(unittest.TestCase):
     def test_wrapped_editorial_reference_inset_is_counted_once_per_paragraph(self) -> None:
         from bible.pagination import attributes, shaped_lines
-        from bible.reading_metrics import line_spacing, EDITORIAL_GAP
+        from bible.reading.reading_metrics import line_spacing, EDITORIAL_GAP
         from gi.repository import Pango
 
         text = "Editorial references: Écriture Ελληνικά\nScripture control text.\n"
@@ -130,7 +130,7 @@ class PaginationTests(unittest.TestCase):
     def test_empty_paragraph_spacing_reduces_only_blank_line_allocation(self) -> None:
         from dataclasses import replace
         from bible.ui import Gtk
-        from bible.bible_render import render
+        from bible.reading.bible_render import render
         from bible.pagination import paragraph_spaces, shaped_lines
         from tests.test_ui import spin
 
@@ -177,7 +177,7 @@ class PaginationTests(unittest.TestCase):
 
     def test_bounded_shaping_matches_one_native_layout_exactly(self) -> None:
         from bible.pagination import attributes, shaped_lines
-        from bible.reading_metrics import line_spacing
+        from bible.reading.reading_metrics import line_spacing
         from gi.repository import Pango
 
         # Exercise real paragraph boundaries, neutral lines, bidi, combining

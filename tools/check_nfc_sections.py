@@ -141,7 +141,9 @@ def main() -> None:
 
         resource = next(r for r in editions("fra") if r.name == "YV" + str(identifier))
         assert resource.id not in library.installed(), "A real fresh download is required"
-        with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+        with patch(
+            "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+        ):
             dialog = window.open_library("bible")
         spin(lambda: not dialog.preparing and not dialog._building_rows)
         dialog._catalogue_requested = True

@@ -104,7 +104,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
         self,
     ) -> None:
         from bible.module_lifecycle import ModuleLifecycle
-        from bible.module_ui_lifecycle import ModuleViewChange
+        from bible.catalogue.module_ui_lifecycle import ModuleViewChange
 
         w = self.w
         tab = w.active_tab
@@ -154,7 +154,7 @@ class ModuleUILifecycleTests(unittest.TestCase):
 
     def test_failed_download_leaves_existing_native_reader_and_text_usable(self) -> None:
         from bible.module_lifecycle import ModuleLifecycle
-        from bible.module_ui_lifecycle import ModuleViewChange
+        from bible.catalogue.module_ui_lifecycle import ModuleViewChange
 
         tab = self.w.active_tab
         old = tab.reader

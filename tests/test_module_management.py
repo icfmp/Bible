@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from bible.library import Library, Resource
-from bible.module_management import checked_modules
+from bible.catalogue.module_management import checked_modules
 from tests.test_module_lifecycle import package
 
 

@@ -188,7 +188,7 @@ def show_preferences(owner):
     feedback.add(status)
     page.add(feedback)
     dialog.add(page)
-    from .reading_preferences import ReadingSettings
+    from .reading.reading_preferences import ReadingSettings
 
     dialog.reading_settings = ReadingSettings(owner, dialog)
     dialog.add(dialog.reading_settings.page)
@@ -310,7 +310,7 @@ def choose_personal_backup(owner, status, restoring) -> None:
     profile and draft. Resources and credentials are excluded from this backup.
     """
     from . import personal_backup
-    from .notes_window import message
+    from .shared_ui import message
 
     def flush() -> None:
         if owner.notes_store is None:

@@ -8,7 +8,7 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
-from bible.catalogue_cache import CatalogueCache
+from bible.catalogue.catalogue_cache import CatalogueCache
 from bible.library import catalogues
 from bible.providers import CROSSWIRE, EXTRA
 from tests.test_library import RESOURCE
@@ -34,7 +34,9 @@ class CatalogueCacheTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             cache = CatalogueCache(directory)
             cache.write(CROSSWIRE, [RESOURCE])
-            with patch("bible.catalogue_cache.os.replace", side_effect=OSError("interrupted")):
+            with patch(
+                "bible.catalogue.catalogue_cache.os.replace", side_effect=OSError("interrupted")
+            ):
                 with self.assertRaises(OSError):
                     cache.write(CROSSWIRE, [])
             self.assertEqual(cache.read(CROSSWIRE)[0], (RESOURCE,))

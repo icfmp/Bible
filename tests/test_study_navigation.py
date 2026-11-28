@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from bible.study_settings import StudySettings
+from bible.study.study_settings import StudySettings
 
 
 class RememberedSourceTests(unittest.TestCase):
@@ -299,7 +299,7 @@ class CommentaryRemovalTests(unittest.TestCase):
 
     def test_removal_cancels_a_pending_choice_before_it_opens_a_native_source(self) -> None:
         from bible.module_lifecycle import ModuleLifecycle
-        from bible.module_ui_lifecycle import ModuleViewChange
+        from bible.catalogue.module_ui_lifecycle import ModuleViewChange
         from tests.test_ui import spin
 
         self.choose(self.w, "OtherNotes")

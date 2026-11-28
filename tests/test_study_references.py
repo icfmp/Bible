@@ -393,7 +393,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertTrue(refs.download.get_visible())
         original = self.window.library.installed()
         with patch(
-            "bible.catalogue_window.catalogue",
+            "bible.catalogue.catalogue_window.catalogue",
             side_effect=AssertionError("Study data needs no SWORD refresh"),
         ):
             refs.download.emit("clicked")
@@ -434,7 +434,7 @@ class StudyReferenceTests(unittest.TestCase):
         self.assertIsNone(refs.context)
 
     def test_complete_range_titles_and_bounded_unavailable_excerpt_keep_records(self) -> None:
-        from bible.study_references import ReferenceItem
+        from bible.study.study_references import ReferenceItem
         from bible.reference_data import Relationship
         from bible.reference_preview import passage_title
 

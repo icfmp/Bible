@@ -49,7 +49,7 @@ def main() -> None:
             native.click_at(tab.text, 8, 100)
             assert not window.appearance.get_visible()
             resources = [library.resource(name) for name in library.installed()]
-            with patch("bible.catalogue_window.catalogue", return_value=resources):
+            with patch("bible.catalogue.catalogue_window.catalogue", return_value=resources):
                 dialog = window.open_library()
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy)

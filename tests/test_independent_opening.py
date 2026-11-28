@@ -20,7 +20,7 @@ class IndependentOpeningTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         ):
             root = Path(directory)
             installed_fixture(
@@ -120,7 +120,7 @@ class IndependentOpeningTests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         ):
             root = Path(directory)
             installed_fixture(

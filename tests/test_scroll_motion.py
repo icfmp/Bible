@@ -13,7 +13,7 @@ class ScrollMotionTests(unittest.TestCase):
     )
     def test_native_edge_rebound_cannot_replace_a_new_programmatic_target(self) -> None:
         from bible.ui import Gtk
-        from bible.scroll_motion import ScrollMotion
+        from bible.reading.scroll_motion import ScrollMotion
         from tests.test_ui import spin
         from tools.check_alpha_ui import X11Input
 
@@ -49,7 +49,7 @@ class ScrollMotionTests(unittest.TestCase):
 
     def test_frames_latest_target_input_reflow_and_disabled_animations(self) -> None:
         from bible.ui import Gtk
-        from bible.scroll_motion import ScrollMotion
+        from bible.reading.scroll_motion import ScrollMotion
         from tests.test_ui import spin
 
         window = Gtk.Window(default_width=400, default_height=400)

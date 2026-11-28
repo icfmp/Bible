@@ -14,7 +14,7 @@ from urllib.error import HTTPError
 from bible.providers import BIBLE_RESOURCES, DEFAULT_PROVIDERS
 from bible.curated_catalogue import entries, catalogue, package_record
 from bible.library import Library, resource_from_section, config, catalogues
-from bible.catalogue_cache import CatalogueCache
+from bible.catalogue.catalogue_cache import CatalogueCache
 from tests.test_library import fixture, archive_bytes, CONF
 
 

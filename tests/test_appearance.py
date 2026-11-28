@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 from bible.preferences import Preferences, ReadingPreferences
-from bible.reading_style import PALETTES, effective_palette
+from bible.reading.reading_style import PALETTES, effective_palette
 
 
 def contrast(a, b):
@@ -55,7 +55,7 @@ class SystemStyleOverride:
 
 class PaletteTests(unittest.TestCase):
     def test_approved_defaults_missing_fields_and_saved_choices(self) -> None:
-        from bible.reading_style import SPACING
+        from bible.reading.reading_style import SPACING
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "reading.json"
@@ -109,7 +109,7 @@ class AppearanceTests(unittest.TestCase):
     def test_editorial_roles_follow_palette_without_replacing_the_buffer(self) -> None:
         from bible.ui import Window, Library, Gtk
         from gi.repository import Gdk
-        from bible.bible_render import render
+        from bible.reading.bible_render import render
         from bible.commentary_format import apply
         from bible.pagination import Document, StyleSpan
         from bible.verse_typography import NUMBER_COLORS

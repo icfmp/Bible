@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 from PIL import ImageGrab
 from bible.ui import Application, Window, Library, Gtk
-from bible.reading_style import PALETTES
+from bible.reading.reading_style import PALETTES
 from tests.test_ui import spin
 from tests.test_appearance import SystemStyleOverride
 from tools.check_alpha_ui import X11Input

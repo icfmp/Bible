@@ -67,6 +67,14 @@ cd Bible
 
 Use the system Python so that the distribution's GTK and SWORD bindings are available. The interface follows the system language; use `LANGUAGE=fr /usr/bin/python3 -m bible` to select French.
 
+### Application layout
+
+`bible/ui.py` assembles the native application window. Feature packages own the
+reading and comparison views (`bible/reading/`), study tools (`bible/study/`),
+annotation editors and cards (`bible/annotations_ui/`), and Library catalogue and
+resource controls (`bible/catalogue/`). The SWORD adapter, reference logic,
+resource installation and personal data stores have separate modules in `bible/`.
+
 ### Python consistency
 
 See [docs/PYTHON_STYLE.md](docs/PYTHON_STYLE.md) for the pinned Ruff formatter,

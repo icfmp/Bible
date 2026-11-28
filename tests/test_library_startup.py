@@ -15,7 +15,7 @@ from unittest.mock import patch
 from tests.test_library import RESOURCE
 from tests.test_ui import spin, close_test_dialogs
 from bible.library import Library, CatalogueResult
-from bible.catalogue_cache import CatalogueCache
+from bible.catalogue.catalogue_cache import CatalogueCache
 from bible.providers import CROSSWIRE
 
 
@@ -73,7 +73,7 @@ class LibraryStartupTests(unittest.TestCase):
         self.window.present()
         self.window.application_settings.set("library_language", "en")
         self.enterContext(
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False)
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False)
         )
 
     def tearDown(self) -> None:
@@ -139,7 +139,7 @@ class LibraryStartupTests(unittest.TestCase):
         first = self.window.open_library()
         first.source_filter.set_selected(first.source_ids.index(CROSSWIRE.id))
         with (
-            patch("bible.catalogue_window.catalogue", side_effect=fetch),
+            patch("bible.catalogue.catalogue_window.catalogue", side_effect=fetch),
             patch.object(
                 first.session,
                 "load_youversion_language",
@@ -162,7 +162,7 @@ class LibraryStartupTests(unittest.TestCase):
             self.assertEqual(second.selected_resource().id, RESOURCE.id)
 
     def test_large_valid_cache_uses_owner_thread_bounded_models_and_keeps_heartbeat(self) -> None:
-        from bible.catalogue_window import ResourceItem
+        from bible.catalogue.catalogue_window import ResourceItem
         from gi.repository import GLib
 
         cache = CatalogueCache(self.root / "catalogue-cache")
@@ -215,7 +215,8 @@ class LibraryStartupTests(unittest.TestCase):
         dialog.source_filter.set_selected(dialog.source_ids.index(CROSSWIRE.id))
         with (
             patch(
-                "bible.catalogue_window.catalogue", return_value=CatalogueResult((RESOURCE,), {})
+                "bible.catalogue.catalogue_window.catalogue",
+                return_value=CatalogueResult((RESOURCE,), {}),
             ),
             patch.object(
                 dialog.session,
@@ -246,7 +247,7 @@ class LibraryStartupTests(unittest.TestCase):
     def test_large_language_changes_use_bounded_native_updates_and_discard_stale_search(
         self,
     ) -> None:
-        from bible.language_picker import LanguagePicker
+        from bible.catalogue.language_picker import LanguagePicker
 
         picker = LanguagePicker(lambda: None)
         changes = []

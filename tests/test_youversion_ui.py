@@ -47,7 +47,7 @@ class EditorialUITests(unittest.TestCase):
 
         with (
             tempfile.TemporaryDirectory() as directory,
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False),
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False),
         ):
             installed_fixture(directory)
             window = Window(self.app, Library(Path(directory) / "translations"))
@@ -55,7 +55,9 @@ class EditorialUITests(unittest.TestCase):
             spin()
             dialog = None
             try:
-                with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+                with patch(
+                    "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+                ):
                     dialog = window.open_library()
                     spin(lambda: not dialog.preparing)
                 with (
@@ -125,7 +127,9 @@ class EditorialUITests(unittest.TestCase):
             spin()
             library_dialog = None
             try:
-                with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+                with patch(
+                    "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+                ):
                     library_dialog = window.open_library()
                     spin(lambda: not library_dialog.preparing)
                 item = resource_from_metadata(edition_metadata())

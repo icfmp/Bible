@@ -8,9 +8,9 @@ import json
 from pathlib import Path
 from gi.repository import Gtk
 from bible.ui import Application, Window, Library
-from bible.note_preview import NotePreview
+from bible.annotations_ui.note_preview import NotePreview
 from bible.reference_targets import local_excerpt
-from bible.notes_window import buffer_text
+from bible.annotations_ui.notes_window import buffer_text
 from tests.test_ui import spin
 from tools.check_alpha_ui import X11Input
 

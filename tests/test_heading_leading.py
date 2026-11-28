@@ -11,7 +11,7 @@ from types import SimpleNamespace
 class HeadingLeadingTests(unittest.TestCase):
     def test_wrapped_heading_lines_gain_room_without_changing_font_or_body(self) -> None:
         from bible.ui import Gtk
-        from bible.bible_render import render
+        from bible.reading.bible_render import render
         from bible.pagination import Document, PassageSpan, StyleSpan, attributes
         from bible.preferences import ReadingPreferences
         from gi.repository import Pango

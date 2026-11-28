@@ -59,7 +59,7 @@ class CollectionTests(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("DISPLAY"), "Requires actual GTK")
 class AnnotationWorkspaceTests(unittest.TestCase):
     def test_legacy_notes_window_still_lists_and_filters_saved_notes(self) -> None:
-        from bible.notes_window import NotesWindow
+        from bible.annotations_ui.notes_window import NotesWindow
 
         legacy = NotesWindow(self.window)
         try:

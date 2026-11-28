@@ -12,7 +12,7 @@ from dataclasses import asdict
 from pathlib import Path
 from bible.ui import Application, Window, Library, Gtk
 from bible.notes import PassageLink
-from bible.notes_window import NoteEditor
+from bible.annotations_ui.notes_window import NoteEditor
 from tests.test_ui import spin
 from tests.test_appearance import SystemStyleOverride
 from tools.check_alpha_ui import X11Input

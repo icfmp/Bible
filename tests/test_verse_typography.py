@@ -13,7 +13,7 @@ from tests.test_ui import installed_fixture, spin
 class VerseTypographyTests(unittest.TestCase):
     def test_no_space_script_wraps_without_detaching_its_marker_or_changing_copy(self) -> None:
         from bible.ui import Gtk
-        from bible.bible_render import render
+        from bible.reading.bible_render import render
         from bible.preferences import ReadingPreferences
         from bible.sword_provider import Reader
 

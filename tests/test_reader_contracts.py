@@ -408,7 +408,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(len(w.highlights.entries), 2)
 
     def test_label_candidates_are_real_nonblank_case_accent_search_and_reopen(self) -> None:
-        from bible.notes_window import Labels
+        from bible.annotations_ui.notes_window import Labels
 
         labels = Labels(["test", "toto", "Éclair", ""], lambda: None)
 
@@ -473,7 +473,7 @@ class ReaderContracts(unittest.TestCase):
         self.assertEqual(self.w.notes_store.get(note.id), note)
 
     def test_link_cards_use_saved_origin_and_unlink_keeps_note_body(self) -> None:
-        from bible.notes_window import NoteEditor as NoteEditor
+        from bible.annotations_ui.notes_window import NoteEditor as NoteEditor
         from bible.notes import PassageLink
 
         note = self.w.notes_store.save(
