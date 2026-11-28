@@ -8,7 +8,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from bible.preferences import Preferences, ReadingPreferences
-from bible.reading_metrics import line_spacing, text_width
+from bible.reading.reading_metrics import line_spacing, text_width
 
 
 class ReadingPreferenceDataTests(unittest.TestCase):

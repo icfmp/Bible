@@ -114,7 +114,7 @@ class WindowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             with patch(
-                "bible.catalogue_window.catalogue",
+                "bible.catalogue.catalogue_window.catalogue",
                 return_value=[Resource("Test", "Resource test", "fr", "Public Domain")],
             ):
                 dialog = window.open_library()
@@ -154,7 +154,7 @@ class WindowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
-            with patch("bible.catalogue_window.catalogue", return_value=[resource]):
+            with patch("bible.catalogue.catalogue_window.catalogue", return_value=[resource]):
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy and not dialog._building_rows)
             dialog.open_details(None, 0)
@@ -268,14 +268,14 @@ class WindowTests(unittest.TestCase):
         # tested separately; an automatic refresh must not race a local transfer
         # or turn a four-second GTK assertion into an external HTTP timeout.
         self.enterContext(
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False)
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False)
         )
         # Changing this fixture's language must not start the dynamic provider's
         # HTTP/cache worker either. Its real lifecycle is covered separately in
         # test_youversion_ui and the installed language-catalogue proof.
         self.enterContext(
             patch(
-                "bible.catalogue_session.CatalogueSession.load_youversion_language",
+                "bible.catalogue.catalogue_session.CatalogueSession.load_youversion_language",
                 return_value=None,
             )
         )
@@ -295,14 +295,16 @@ class WindowTests(unittest.TestCase):
             window = self.window(directory)
             self.assertIsNone(window.active_tab.reader)
             dialog = window.open_library()
-            with patch("bible.catalogue_window.catalogue", side_effect=OSError("offline test")):
+            with patch(
+                "bible.catalogue.catalogue_window.catalogue", side_effect=OSError("offline test")
+            ):
                 dialog.load_catalogue()
                 self.assertTrue(dialog.busy)
                 self.assertFalse(dialog.catalogue_button.get_sensitive())
                 spin(lambda: not dialog.busy)
             self.assertIn("offline test", dialog.status.get_text())
             self.assertTrue(dialog.catalogue_button.get_sensitive())
-            with patch("bible.catalogue_window.catalogue", return_value=[]):
+            with patch("bible.catalogue.catalogue_window.catalogue", return_value=[]):
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy)
             self.assertFalse(dialog.download_button.get_sensitive())
@@ -657,7 +659,7 @@ class WindowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             window = self.window(directory)
             dialog = window.open_library()
-            with patch("bible.catalogue_window.catalogue", return_value=resources):
+            with patch("bible.catalogue.catalogue_window.catalogue", return_value=resources):
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy)
             dialog.language.set_selected(dialog.languages.index("fr"))
@@ -822,7 +824,7 @@ class WindowTests(unittest.TestCase):
             window.navigation.sync(force=True)
             self.assertEqual(window.navigation.names, ["Test"])
             commentary_fixture(directory, "CatholicNotes", versification="LXX")
-            with self.assertLogs("bible.study_panel", level="WARNING") as diagnostics:
+            with self.assertLogs("bible.study.study_panel", level="WARNING") as diagnostics:
                 self.choose_commentary(window, "CatholicNotes")
             self.assertEqual(self.study_text(window), "")
             self.assertIn(
@@ -833,7 +835,7 @@ class WindowTests(unittest.TestCase):
                 window.study.status.get_text(), tr("No verified alignment for this passage.")
             )
             resources = [window.library.resource(name) for name in window.library.installed()]
-            with patch("bible.catalogue_window.catalogue", return_value=resources):
+            with patch("bible.catalogue.catalogue_window.catalogue", return_value=resources):
                 dialog = window.open_library("commentary")
                 dialog.load_catalogue()
                 spin(lambda: not dialog.busy)
@@ -1024,7 +1026,7 @@ class WindowTests(unittest.TestCase):
             window.close()
 
     def test_notes_backup_restore_and_safe_preview_remain_local(self) -> None:
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
 
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)
@@ -1093,7 +1095,7 @@ class WindowTests(unittest.TestCase):
             window.close()
 
     def test_note_formatting_commands_and_catholic_reference_labels(self) -> None:
-        from bible.notes_window import buffer_text, passage_label
+        from bible.annotations_ui.notes_window import buffer_text, passage_label
 
         with tempfile.TemporaryDirectory() as directory:
             installed_fixture(directory)

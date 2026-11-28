@@ -46,7 +46,9 @@ def main() -> None:
                 window.appearance.update(
                     "day_palette" if mode == "day" else "night_palette", palette
                 )
-                with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+                with patch(
+                    "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+                ):
                     dialog = window.open_library()
                     spin(lambda: not dialog.preparing)
                 dialog.source_filter.set_selected(dialog.source_ids.index("youversion"))

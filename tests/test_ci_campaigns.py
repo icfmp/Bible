@@ -30,10 +30,11 @@ class CampaignTests(unittest.TestCase):
 
     def test_specific_library_and_shared_visual_changes(self) -> None:
         self.assertEqual(select(["bible/module_updates.py"])[0], {"library"})
-        self.assertEqual(select(["bible/appearance.py"])[0], {"visual", "contextual"})
-        self.assertEqual(select(["bible/word_study.py"])[0], {"words", "contextual"})
+        self.assertEqual(select(["bible/catalogue/catalogue_session.py"]), ({"library"}, False))
+        self.assertEqual(select(["bible/reading/appearance.py"])[0], {"visual", "contextual"})
+        self.assertEqual(select(["bible/study/word_study.py"])[0], {"words", "contextual"})
         self.assertEqual(
-            select(["bible/module_updates.py", "bible/word_study.py"])[0],
+            select(["bible/module_updates.py", "bible/study/word_study.py"])[0],
             {"words", "contextual", "library"},
         )
 

@@ -522,7 +522,7 @@ def apply(view, styles, preferences, palette) -> None:
             tag.props.rise = -3000
         elif kind == "editorial":
             from .verse_typography import NUMBER_COLORS
-            from .reading_metrics import line_spacing, EDITORIAL_GAP
+            from .reading.reading_metrics import line_spacing, EDITORIAL_GAP
 
             tag.props.scale = 0.9
             tag.props.foreground = NUMBER_COLORS[palette]
@@ -538,7 +538,7 @@ def apply(view, styles, preferences, palette) -> None:
             tag.props.right_margin = 8
             tag.props.indent = -8 if kind == "list-item" else 0
         elif kind == "paragraph-space":
-            from .reading_metrics import paragraph_space_size
+            from .reading.reading_metrics import paragraph_space_size
 
             tag.props.size_points = paragraph_space_size(preferences)
             tag.props.pixels_above_lines = 0
@@ -551,7 +551,7 @@ def show_preface(owner, reader, resource, position):
     """Read actual source preverse material without changing the verse anchor."""
     from gi.repository import Adw, Gtk
     from .paged_sources import CommentaryPages
-    from .bible_render import bind_copy
+    from .reading.bible_render import bind_copy
     from .i18n import tr
     from .preferences import ReadingPreferences
 
@@ -586,7 +586,7 @@ def show_preface(owner, reader, resource, position):
         bottom_margin=24,
     )
     view.add_css_class(owner.reading_style.scope)
-    from .reading_style import apply_direction
+    from .reading.reading_style import apply_direction
 
     apply_direction(view, reader)
     buffer = view.get_buffer()

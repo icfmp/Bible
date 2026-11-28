@@ -94,7 +94,9 @@ def main() -> None:
         tab = window.active_tab
         assert tab.navigate(source, "Gen.11.3")
         spin()
-        with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+        with patch(
+            "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+        ):
             dialog = window.open_library()
             spin(lambda: not dialog.preparing)
         dialog.read_resource(library.resource(target))

@@ -20,7 +20,12 @@ import gi
 
 gi.require_version("Pango", "1.0")
 from gi.repository import Pango
-from .reading_metrics import SPACING as SPACING, line_spacing, EDITORIAL_GAP, HEADING_LINE_HEIGHT
+from .reading.reading_metrics import (
+    SPACING as SPACING,
+    line_spacing,
+    EDITORIAL_GAP,
+    HEADING_LINE_HEIGHT,
+)
 from .preparation import checkpoint
 
 
@@ -276,7 +281,7 @@ def attributes(
         elif span.kind == "ui-context":
             attrs = [Pango.attr_scale_new(0.85)]
         elif span.kind == "paragraph-space":
-            from .reading_metrics import paragraph_space_size
+            from .reading.reading_metrics import paragraph_space_size
 
             attrs = (
                 [Pango.attr_size_new(round(paragraph_space_size(preferences) * Pango.SCALE))]

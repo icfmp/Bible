@@ -15,22 +15,22 @@ select = ["E4", "E9", "F", "B006", "B012", "B018", "RUF006", "TC006", "D100", "D
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"bible/appearance.py" = ["E402"]
+"bible/reading/appearance.py" = ["E402"]
 "bible/book_stream.py" = ["E402"]
-"bible/catalogue_window.py" = ["E402"]
-"bible/context_indicator.py" = ["E402"]
+"bible/catalogue/catalogue_window.py" = ["E402"]
+"bible/study/context_indicator.py" = ["E402"]
 "bible/editorial_view.py" = ["E402"]
-"bible/immersion.py" = ["E402"]
-"bible/navigation.py" = ["E402"]
-"bible/notes_window.py" = ["E402"]
+"bible/reading/immersion.py" = ["E402"]
+"bible/reading/navigation.py" = ["E402"]
+"bible/annotations_ui/notes_window.py" = ["E402"]
 "bible/pagination.py" = ["E402"]
-"bible/place_map.py" = ["E402"]
-"bible/reading_style.py" = ["E402"]
-"bible/reading_sync.py" = ["E402"]
-"bible/reading_tab.py" = ["E402"]
+"bible/study/place_map.py" = ["E402"]
+"bible/reading/reading_style.py" = ["E402"]
+"bible/reading/reading_sync.py" = ["E402"]
+"bible/reading/reading_tab.py" = ["E402"]
 "bible/reference_data.py" = ["E402"]
 "bible/resource_details.py" = ["E402"]
-"bible/study_panel.py" = ["E402"]
+"bible/study/study_panel.py" = ["E402"]
 "bible/topic_data.py" = ["E402"]
 "bible/ui.py" = ["E402"]
 "tools/check_alpha_ui.py" = ["E402"]
@@ -45,42 +45,42 @@ mypy_path = "typings"
 files = [
     "bible/__init__.py",
     "bible/__main__.py",
-    "bible/annotation_card.py",
+    "bible/annotations_ui/annotation_card.py",
     "bible/annotation_collection.py",
-    "bible/appearance.py",
+    "bible/reading/appearance.py",
     "bible/application_settings.py",
-    "bible/bible_render.py",
+    "bible/reading/bible_render.py",
     "bible/book_names.py",
-    "bible/catalogue_cache.py",
-    "bible/catalogue_session.py",
+    "bible/catalogue/catalogue_cache.py",
+    "bible/catalogue/catalogue_session.py",
     "bible/citations.py",
     "bible/commentary_index.py",
-    "bible/comparison_control.py",
-    "bible/comparison_layout.py",
-    "bible/comparison_sync.py",
-    "bible/context_indicator.py",
+    "bible/reading/comparison_control.py",
+    "bible/reading/comparison_layout.py",
+    "bible/reading/comparison_sync.py",
+    "bible/study/context_indicator.py",
     "bible/curated_catalogue.py",
     "bible/disclosure.py",
     "bible/editorial_view.py",
-    "bible/highlight_ui.py",
+    "bible/annotations_ui/highlight_ui.py",
     "bible/highlights.py",
     "bible/history.py",
     "bible/i18n.py",
     "bible/icons.py",
     "bible/inline_document.py",
-    "bible/language_picker.py",
+    "bible/catalogue/language_picker.py",
     "bible/languages.py",
     "bible/library.py",
     "bible/loading_cards.py",
     "bible/markdown.py",
     "bible/metadata_workers.py",
-    "bible/module_ui_lifecycle.py",
+    "bible/catalogue/module_ui_lifecycle.py",
     "bible/module_updates.py",
-    "bible/module_updates_window.py",
+    "bible/catalogue/module_updates_window.py",
     "bible/native_module_probe.py",
-    "bible/navigation_overlay.py",
-    "bible/note_editing.py",
-    "bible/note_preview.py",
+    "bible/reading/navigation_overlay.py",
+    "bible/annotations_ui/note_editing.py",
+    "bible/annotations_ui/note_preview.py",
     "bible/notes.py",
     "bible/pagination.py",
     "bible/passage_annotations.py",
@@ -91,17 +91,18 @@ files = [
     "bible/preferences.py",
     "bible/preparation.py",
     "bible/providers.py",
-    "bible/reading_metrics.py",
-    "bible/reading_preferences.py",
-    "bible/reading_style.py",
-    "bible/reading_sync.py",
-    "bible/reading_tab.py",
+    "bible/reading/reading_metrics.py",
+    "bible/reading/reading_preferences.py",
+    "bible/reading/reading_style.py",
+    "bible/reading/reading_sync.py",
+    "bible/reading/reading_tab.py",
     "bible/reference_data.py",
+    "bible/reference_labels.py",
     "bible/reference_resolution.py",
     "bible/reference_targets.py",
     "bible/resource_details.py",
     "bible/resource_profile.py",
-    "bible/scroll_motion.py",
+    "bible/reading/scroll_motion.py",
     "bible/search_terms.py",
     "bible/segmented_choice.py",
     "bible/session.py",
@@ -114,17 +115,17 @@ files = [
     "bible/step_sources.py",
     "bible/structured_text.py",
     "bible/study_catalogue.py",
-    "bible/study_empty.py",
-    "bible/study_resize.py",
+    "bible/study/study_empty.py",
+    "bible/study/study_resize.py",
     "bible/study_resources.py",
-    "bible/study_settings.py",
+    "bible/study/study_settings.py",
     "bible/sword_provider.py",
     "bible/text_search.py",
     "bible/topic_data.py",
     "bible/topic_vocabulary.py",
     "bible/verse_typography.py",
     "bible/versification_mapping.py",
-    "bible/version_chooser.py",
+    "bible/catalogue/version_chooser.py",
     "bible/word_metadata.py",
     "bible/workspace_selector.py",
     "bible/youversion_content.py",

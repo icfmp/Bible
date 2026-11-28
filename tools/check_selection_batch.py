@@ -110,7 +110,7 @@ def main() -> None:
     app = Application.get_default() or Application()
     app.register()
     library = Library(args.profile / "translations")
-    with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+    with patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False):
         w = Window(app, library)
         w.set_default_size(1280, 900)
         w.present()
@@ -193,7 +193,9 @@ def main() -> None:
         from bible.youversion_catalogue import editions
 
         resource = next(r for r in editions("fra") if r.name == "YV" + str(identifier))
-        with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+        with patch(
+            "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+        ):
             d = w.open_library("bible")
         spin(lambda: not d.preparing and not d._building_rows)
         d._catalogue_requested = True

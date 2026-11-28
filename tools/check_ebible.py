@@ -24,7 +24,7 @@ def main() -> None:
     name = "ebible~" + args.module
     if not args.offline:
         resources = {r.name: r for r in catalogue(EBIBLE)}
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
 
         CatalogueCache(Path(args.profile) / "catalogue-cache").write(EBIBLE, resources.values())
         for code in (

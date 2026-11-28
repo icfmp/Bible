@@ -60,7 +60,7 @@ def envelope(value):
 
 class LanguageCatalogueTests(unittest.TestCase):
     def test_session_loads_only_chosen_languages_off_thread_and_retains_previous_rows(self) -> None:
-        from bible.catalogue_session import CatalogueSession
+        from bible.catalogue.catalogue_session import CatalogueSession
         from bible.library import Library
         from bible.providers import YOUVERSION
         from bible.languages import canonical_language

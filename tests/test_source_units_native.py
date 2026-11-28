@@ -255,7 +255,7 @@ class NativeUnitTests(unittest.TestCase):
     ) -> None:
         from bible.paged_sources import BiblePages
         from bible.preferences import ReadingPreferences
-        from bible.comparison_layout import Correspondence, row_document
+        from bible.reading.comparison_layout import Correspondence, row_document
 
         pages = BiblePages(self.reader, None)
         shared = pages.document("Sir.44", ReadingPreferences())

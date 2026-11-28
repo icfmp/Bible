@@ -4,7 +4,7 @@
     {
       "name": "accessories-dictionary-symbolic",
       "references": [
-        "bible/passage_actions.py:182"
+        "bible/passage_actions.py:316"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/accessories-dictionary-symbolic.svg",
@@ -21,7 +21,7 @@
     {
       "name": "bible-parallel-off-symbolic",
       "references": [
-        "bible/ui.py:834"
+        "bible/ui.py:1287"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/bible-parallel-off-symbolic.svg",
@@ -36,7 +36,7 @@
     {
       "name": "computer-symbolic",
       "references": [
-        "bible/appearance.py:120"
+        "bible/reading/appearance.py:242"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/computer-symbolic.svg",
@@ -53,7 +53,7 @@
     {
       "name": "dialog-information-symbolic",
       "references": [
-        "bible/immersion.py:128"
+        "bible/reading/immersion.py:262"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/dialog-information-symbolic.svg",
@@ -70,7 +70,7 @@
     {
       "name": "dictionary-symbolic",
       "references": [
-        "bible/workspace_selector.py:21"
+        "bible/workspace_selector.py:39"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/dictionary-symbolic.svg",
@@ -86,7 +86,7 @@
     {
       "name": "document-open-recent-symbolic",
       "references": [
-        "bible/navigation.py:93"
+        "bible/reading/navigation.py:146"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/document-open-recent-symbolic.svg",
@@ -101,7 +101,8 @@
     {
       "name": "edit-clear-symbolic",
       "references": [
-        "bible/reading_preferences.py:22"
+        "bible/annotations_ui/note_links.py:324",
+        "bible/reading/reading_preferences.py:49"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-clear-symbolic.svg",
@@ -116,7 +117,7 @@
     {
       "name": "edit-copy-symbolic",
       "references": [
-        "bible/passage_actions.py:173"
+        "bible/passage_actions.py:291"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-copy-symbolic.svg",
@@ -131,7 +132,7 @@
     {
       "name": "edit-find-symbolic",
       "references": [
-        "bible/catalogue_window.py:179"
+        "bible/catalogue/catalogue_window.py:276"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-find-symbolic.svg",
@@ -146,7 +147,7 @@
     {
       "name": "edit-select-all-symbolic",
       "references": [
-        "bible/passage_notes.py:288"
+        "bible/annotations_ui/annotation_card.py:135"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/edit-select-all-symbolic.svg",
@@ -161,7 +162,7 @@
     {
       "name": "edit-undo-symbolic",
       "references": [
-        "bible/reading_preferences.py:51"
+        "bible/reading/reading_preferences.py:128"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/edit-undo-symbolic.svg",
@@ -194,7 +195,7 @@
     {
       "name": "emblem-system-symbolic",
       "references": [
-        "bible/application_surfaces.py:20"
+        "bible/application_surfaces.py:41"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/emblems/emblem-system-symbolic.svg",
@@ -209,7 +210,7 @@
     {
       "name": "ephy-library-symbolic",
       "references": [
-        "bible/application_surfaces.py:19"
+        "bible/application_surfaces.py:40"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/ephy-library-symbolic.svg",
@@ -227,9 +228,9 @@
     {
       "name": "folder-download-symbolic",
       "references": [
-        "bible/catalogue_window.py:407",
-        "bible/catalogue_window.py:436",
-        "bible/version_chooser.py:61"
+        "bible/catalogue/catalogue_window.py:745",
+        "bible/catalogue/catalogue_window.py:826",
+        "bible/catalogue/version_chooser.py:103"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/places/folder-download-symbolic.svg",
@@ -244,7 +245,7 @@
     {
       "name": "font-select-symbolic",
       "references": [
-        "bible/reading_preferences.py:10"
+        "bible/reading/reading_preferences.py:24"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/font-select-symbolic.svg",
@@ -261,7 +262,8 @@
     {
       "name": "go-jump-symbolic",
       "references": [
-        "bible/reference_preview.py:116"
+        "bible/annotations_ui/notes_window.py:249",
+        "bible/reference_preview.py:211"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/go-jump-symbolic.svg",
@@ -294,15 +296,16 @@
     {
       "name": "go-next-symbolic",
       "references": [
-        "bible/appearance.py:99",
-        "bible/application_surfaces.py:80",
-        "bible/immersion.py:122",
-        "bible/immersion.py:166",
-        "bible/inline_markers.py:133",
-        "bible/notes_window.py:755",
-        "bible/passage_card.py:20",
-        "bible/reading_tab.py:77",
-        "bible/study_panel.py:41"
+        "bible/annotations_ui/notes_window.py:1268",
+        "bible/annotations_ui/notes_window.py:1280",
+        "bible/application_surfaces.py:178",
+        "bible/inline_markers.py:214",
+        "bible/passage_card.py:66",
+        "bible/reading/appearance.py:203",
+        "bible/reading/immersion.py:253",
+        "bible/reading/immersion.py:337",
+        "bible/reading/reading_tab.py:136",
+        "bible/study/study_panel.py:60"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/go-next-symbolic.svg",
@@ -317,14 +320,14 @@
     {
       "name": "go-previous-symbolic",
       "references": [
-        "bible/catalogue_window.py:91",
-        "bible/immersion.py:121",
-        "bible/immersion.py:166",
-        "bible/notes_window.py:447",
-        "bible/place_cards.py:36",
-        "bible/reading_tab.py:75",
-        "bible/study_search.py:77",
-        "bible/word_study.py:29"
+        "bible/annotations_ui/notes_window.py:735",
+        "bible/catalogue/catalogue_window.py:128",
+        "bible/reading/immersion.py:252",
+        "bible/reading/immersion.py:337",
+        "bible/reading/reading_tab.py:133",
+        "bible/study/place_cards.py:62",
+        "bible/study/study_search.py:144",
+        "bible/study/word_study.py:55"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/go-previous-symbolic.svg",
@@ -339,9 +342,9 @@
     {
       "name": "help-about-symbolic",
       "references": [
-        "bible/application_surfaces.py:22",
-        "bible/study_search.py:63",
-        "bible/word_study.py:24"
+        "bible/application_surfaces.py:48",
+        "bible/study/study_search.py:109",
+        "bible/study/word_study.py:39"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/help-about-symbolic.svg",
@@ -358,7 +361,7 @@
     {
       "name": "insert-link-symbolic",
       "references": [
-        "bible/note_links.py:33"
+        "bible/annotations_ui/note_links.py:56"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/insert-link-symbolic.svg",
@@ -375,7 +378,7 @@
     {
       "name": "list-add-symbolic",
       "references": [
-        "bible/notes_window.py:77"
+        "bible/annotations_ui/notes_window.py:57"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/list-add-symbolic.svg",
@@ -389,9 +392,7 @@
     },
     {
       "name": "list-remove-symbolic",
-      "references": [
-        "bible/note_links.py:131"
-      ],
+      "references": [],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/list-remove-symbolic.svg",
       "source": {
@@ -405,9 +406,9 @@
     {
       "name": "mark-location-symbolic",
       "references": [
-        "bible/inline_markers.py:99",
-        "bible/passage_study.py:52",
-        "bible/place_map.py:71"
+        "bible/inline_markers.py:140",
+        "bible/study/passage_study.py:100",
+        "bible/study/place_map.py:119"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/mark-location-symbolic.svg",
@@ -424,7 +425,7 @@
     {
       "name": "media-playback-start-symbolic",
       "references": [
-        "bible/catalogue_window.py:436"
+        "bible/catalogue/catalogue_window.py:824"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/media-playback-start-symbolic.svg",
@@ -439,12 +440,12 @@
     {
       "name": "notebook-symbolic",
       "references": [
-        "bible/inline_markers.py:99",
-        "bible/notes_window.py:723",
-        "bible/passage_actions.py:181",
-        "bible/passage_notes.py:24",
-        "bible/passage_notes.py:275",
-        "bible/workspace_selector.py:21"
+        "bible/annotations_ui/annotation_card.py:135",
+        "bible/annotations_ui/notes_window.py:1290",
+        "bible/annotations_ui/passage_notes.py:52",
+        "bible/inline_markers.py:140",
+        "bible/passage_actions.py:314",
+        "bible/workspace_selector.py:39"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/notebook-symbolic.svg",
@@ -460,9 +461,9 @@
     {
       "name": "object-select-symbolic",
       "references": [
-        "bible/catalogue_window.py:206",
-        "bible/passage_actions.py:169",
-        "bible/version_chooser.py:102"
+        "bible/catalogue/catalogue_window.py:331",
+        "bible/catalogue/version_chooser.py:205",
+        "bible/passage_actions.py:283"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/object-select-symbolic.svg",
@@ -477,9 +478,9 @@
     {
       "name": "open-menu-symbolic",
       "references": [
-        "bible/application_surfaces.py:13",
-        "bible/highlight_ui.py:57",
-        "bible/notes_window.py:450"
+        "bible/annotations_ui/highlight_ui.py:143",
+        "bible/annotations_ui/notes_window.py:738",
+        "bible/application_surfaces.py:27"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/open-menu-symbolic.svg",
@@ -494,10 +495,11 @@
     {
       "name": "pan-down-symbolic",
       "references": [
-        "bible/note_links.py:37",
-        "bible/passage_actions.py:176",
-        "bible/ui.py:102",
-        "bible/version_chooser.py:122"
+        "bible/annotations_ui/note_links.py:61",
+        "bible/annotations_ui/notes_window.py:1280",
+        "bible/catalogue/version_chooser.py:243",
+        "bible/passage_actions.py:298",
+        "bible/ui.py:133"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/pan-down-symbolic.svg",
@@ -512,7 +514,7 @@
     {
       "name": "preferences-desktop-keyboard-shortcuts-symbolic",
       "references": [
-        "bible/application_surfaces.py:21"
+        "bible/application_surfaces.py:45"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/preferences-desktop-keyboard-shortcuts-symbolic.svg",
@@ -529,8 +531,8 @@
     {
       "name": "preferences-system-symbolic",
       "references": [
-        "bible/appearance.py:96",
-        "bible/application_surfaces.py:47"
+        "bible/application_surfaces.py:96",
+        "bible/reading/appearance.py:192"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/preferences-system-symbolic.svg",
@@ -547,7 +549,7 @@
     {
       "name": "process-stop-symbolic",
       "references": [
-        "bible/catalogue_window.py:436"
+        "bible/catalogue/catalogue_window.py:822"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/process-stop-symbolic.svg",
@@ -564,7 +566,7 @@
     {
       "name": "sidebar-show-right-symbolic",
       "references": [
-        "bible/ui.py:119"
+        "bible/ui.py:158"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/sidebar-show-right-symbolic.svg",
@@ -597,7 +599,7 @@
     {
       "name": "sidebar-show-symbolic",
       "references": [
-        "bible/notes_window.py:659"
+        "bible/annotations_ui/notes_window.py:1089"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/sidebar-show-symbolic.svg",
@@ -630,9 +632,9 @@
     {
       "name": "system-search-symbolic",
       "references": [
-        "bible/study_search.py:51",
-        "bible/study_search.py:58",
-        "bible/ui.py:122"
+        "bible/study/study_search.py:90",
+        "bible/study/study_search.py:99",
+        "bible/ui.py:164"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/system-search-symbolic.svg",
@@ -647,8 +649,8 @@
     {
       "name": "tab-new-symbolic",
       "references": [
-        "bible/ui.py:112",
-        "bible/ui.py:263"
+        "bible/ui.py:149",
+        "bible/ui.py:407"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/tab-new-symbolic.svg",
@@ -665,7 +667,7 @@
     {
       "name": "talking-symbolic",
       "references": [
-        "bible/source_note_marker.py:10"
+        "bible/source_note_marker.py:32"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/talking-symbolic.svg",
@@ -681,9 +683,9 @@
     {
       "name": "text-x-generic-symbolic",
       "references": [
-        "bible/catalogue_window.py:197",
-        "bible/passage_study.py:52",
-        "bible/study_panel.py:132"
+        "bible/catalogue/catalogue_window.py:315",
+        "bible/study/passage_study.py:99",
+        "bible/study/study_panel.py:215"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/text-x-generic-symbolic.svg",
@@ -700,8 +702,8 @@
     {
       "name": "user-trash-symbolic",
       "references": [
-        "bible/module_management.py:61",
-        "bible/notes_window.py:254"
+        "bible/annotations_ui/notes_window.py:415",
+        "bible/catalogue/module_management.py:89"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/places/user-trash-symbolic.svg",
@@ -718,8 +720,8 @@
     {
       "name": "view-dual-symbolic",
       "references": [
-        "bible/comparison_control.py:7",
-        "bible/ui.py:834"
+        "bible/reading/comparison_control.py:17",
+        "bible/ui.py:1287"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/view-dual-symbolic.svg",
@@ -736,8 +738,8 @@
     {
       "name": "view-fullscreen-symbolic",
       "references": [
-        "bible/study_panel.py:53",
-        "bible/ui.py:124"
+        "bible/study/study_panel.py:82",
+        "bible/ui.py:169"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/view-fullscreen-symbolic.svg",
@@ -754,9 +756,10 @@
     {
       "name": "view-list-symbolic",
       "references": [
-        "bible/notes_window.py:70",
-        "bible/notes_window.py:196",
-        "bible/study_references.py:62"
+        "bible/annotations_ui/notes_window.py:48",
+        "bible/annotations_ui/notes_window.py:339",
+        "bible/annotations_ui/notes_window.py:1262",
+        "bible/study/study_references.py:138"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-list-symbolic.svg",
@@ -771,11 +774,9 @@
     {
       "name": "view-more-symbolic",
       "references": [
-        "bible/catalogue_window.py:97",
-        "bible/immersion.py:111",
-        "bible/notes_window.py:245",
-        "bible/passage_notes.py:218",
-        "bible/ui.py:176"
+        "bible/catalogue/catalogue_window.py:141",
+        "bible/reading/immersion.py:232",
+        "bible/ui.py:256"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-more-symbolic.svg",
@@ -790,7 +791,9 @@
     {
       "name": "view-refresh-symbolic",
       "references": [
-        "bible/catalogue_window.py:94"
+        "bible/catalogue/catalogue_window.py:134",
+        "bible/catalogue/catalogue_window.py:734",
+        "bible/catalogue/update_discovery.py:351"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/view-refresh-symbolic.svg",
@@ -805,7 +808,7 @@
     {
       "name": "view-restore-symbolic",
       "references": [
-        "bible/immersion.py:88"
+        "bible/reading/immersion.py:191"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/view-restore-symbolic.svg",
@@ -822,7 +825,7 @@
     {
       "name": "weather-clear-night-symbolic",
       "references": [
-        "bible/appearance.py:120"
+        "bible/reading/appearance.py:244"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/weather-clear-night-symbolic.svg",
@@ -839,7 +842,7 @@
     {
       "name": "weather-clear-symbolic",
       "references": [
-        "bible/appearance.py:120"
+        "bible/reading/appearance.py:243"
       ],
       "kind": "bundled",
       "path": "bible/icons/hicolor/scalable/actions/weather-clear-symbolic.svg",
@@ -856,9 +859,9 @@
     {
       "name": "window-close-symbolic",
       "references": [
-        "bible/passage_study.py:27",
-        "bible/reference_preview.py:90",
-        "bible/word_study.py:20"
+        "bible/reference_preview.py:152",
+        "bible/study/passage_study.py:48",
+        "bible/study/word_study.py:31"
       ],
       "kind": "gtk-resource",
       "resource_uri": "resource:///org/gtk/libgtk/icons/scalable/actions/window-close-symbolic.svg",

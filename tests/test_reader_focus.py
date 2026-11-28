@@ -20,7 +20,7 @@ from tools.check_alpha_ui import X11Input
 class ReaderFocusTests(unittest.TestCase):
     def test_focus_mark_pixels_native_keyboard_selection_and_geometry(self) -> None:
         from bible.ui import Application, Window, Library, Gtk
-        from bible.reading_style import PALETTES
+        from bible.reading.reading_style import PALETTES
 
         app = Application.get_default() or Application()
         app.register()

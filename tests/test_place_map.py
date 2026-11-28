@@ -33,7 +33,7 @@ def tile_png():
 
 def require_native_map() -> None:
     try:
-        from bible.place_map import Shumate as Shumate
+        from bible.study.place_map import Shumate as Shumate
     except (ImportError, ValueError) as error:
         if os.environ.get("BIBLE_REQUIRE_NATIVE_MAP") == "1":
             raise AssertionError("Packaged native map is missing") from error
@@ -44,7 +44,7 @@ def require_native_map() -> None:
 class PlaceMapTests(unittest.TestCase):
     def test_identified_cached_view_and_no_requests_after_close(self) -> None:
         require_native_map()
-        from bible.place_map import PlaceMap, USER_AGENT
+        from bible.study.place_map import PlaceMap, USER_AGENT
         from gi.repository import Gtk
 
         requests = []
@@ -72,9 +72,9 @@ class PlaceMapTests(unittest.TestCase):
         thread.start()
         try:
             with (
-                patch("bible.place_map.TILE_SOURCE_ID", "synthetic-" + uuid.uuid4().hex),
+                patch("bible.study.place_map.TILE_SOURCE_ID", "synthetic-" + uuid.uuid4().hex),
                 patch(
-                    "bible.place_map.TILE_URL",
+                    "bible.study.place_map.TILE_URL",
                     f"http://127.0.0.1:{server.server_port}/{{z}}/{{x}}/{{y}}.png",
                 ),
             ):
@@ -124,9 +124,9 @@ class PlaceMapTests(unittest.TestCase):
                 again.close()
                 spin()
             with (
-                patch("bible.place_map.TILE_SOURCE_ID", "invalid-" + uuid.uuid4().hex),
+                patch("bible.study.place_map.TILE_SOURCE_ID", "invalid-" + uuid.uuid4().hex),
                 patch(
-                    "bible.place_map.TILE_URL",
+                    "bible.study.place_map.TILE_URL",
                     f"http://127.0.0.1:{server.server_port}/invalid/{{z}}/{{x}}/{{y}}.png",
                 ),
             ):

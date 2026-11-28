@@ -19,7 +19,7 @@ def main() -> None:
     args = parser.parse_args()
     from bible.ui import Application, Window, Library, Gtk
     from tools.check_alpha_ui import X11Input
-    from bible.notes_window import buffer_text
+    from bible.annotations_ui.notes_window import buffer_text
 
     if args.require_packaged:
         assert inspect.getfile(Window).startswith("/app/"), inspect.getfile(Window)

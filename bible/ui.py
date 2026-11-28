@@ -17,23 +17,23 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from .catalogue_window import CatalogueWindow
+from .catalogue.catalogue_window import CatalogueWindow
 from .providers import module_name
 from .i18n import tr
 from .library import Library
-from .reading_tab import ReadingTab
-from .study_panel import StudyPanel
-from .navigation import PassagePopover
+from .reading.reading_tab import ReadingTab
+from .study.study_panel import StudyPanel
+from .reading.navigation import PassagePopover
 from .notes import NoteStore
 from .preferences import Preferences
-from .appearance import AppearancePopover
-from .reading_style import ReadingStyle
-from .reading_sync import ReadingSync
-from .immersion import Immersion
+from .reading.appearance import AppearancePopover
+from .reading.reading_style import ReadingStyle
+from .reading.reading_sync import ReadingSync
+from .reading.immersion import Immersion
 from .pagination import Anchor
 from .paged_sources import BibleBookPages, CommentaryPages
 from .highlights import HighlightStore, COLORS
-from .notes_window import NoteEditor, NotesWindow as NotesWindow, NotesSpace
+from .annotations_ui.notes_window import NoteEditor, NotesWindow as NotesWindow, NotesSpace
 from .session import Session, SessionError, SessionStore, TabState
 
 
@@ -65,7 +65,7 @@ class Window(Adw.ApplicationWindow):
         self.application_settings.first_launch = False
         self.store = SessionStore(session_path or library.root.parent / "session.json")
         self.preferences = Preferences(library.root.parent / "reading-preferences.json")
-        from .study_settings import StudySettings
+        from .study.study_settings import StudySettings
 
         self.study_settings = StudySettings(library.root.parent / "study-preferences.json")
         self._study_resizing = False
@@ -137,7 +137,7 @@ class Window(Adw.ApplicationWindow):
         self.navigation = PassagePopover(self)
         self.passage_button.set_popover(self.navigation)
         header.set_title_widget(self.passage_button)
-        from .update_discovery import UpdateButton
+        from .catalogue.update_discovery import UpdateButton
 
         self.resource_updates_button = UpdateButton(self)
         from .workspace_selector import WorkspaceSelector
@@ -158,7 +158,7 @@ class Window(Adw.ApplicationWindow):
             icon_name="sidebar-show-right-symbolic", tooltip_text=tr("Study")
         )
         self.study_button.connect("toggled", self.toggle_study)
-        from .search_popover import SearchPopover
+        from .study.search_popover import SearchPopover
 
         self.search_button = Gtk.MenuButton(
             icon_name="system-search-symbolic", tooltip_text=tr("Search")
@@ -174,11 +174,11 @@ class Window(Adw.ApplicationWindow):
         )
         self.appearance = AppearancePopover(self)
         self.appearance_button.set_popover(self.appearance)
-        from .comparison_control import ComparisonButton
+        from .reading.comparison_control import ComparisonButton
 
         self.comparison_button = ComparisonButton(self)
         self.comparison_popover = Gtk.Popover()
-        from .version_chooser import DirectChoices
+        from .catalogue.version_chooser import DirectChoices
 
         self.comparison_choices = DirectChoices()
         self.comparison_choices.connect("notify::selected", self.comparison_selected)
@@ -203,7 +203,7 @@ class Window(Adw.ApplicationWindow):
         self.stop_comparison = Gtk.Button(label=tr("Stop comparison"))
         self.stop_comparison.connect("clicked", lambda *_: self.end_comparison())
         self.stop_comparison.set_visible(False)
-        from .version_chooser import download_translations_action
+        from .catalogue.version_chooser import download_translations_action
 
         self.download_comparison = download_translations_action()
         self.download_comparison.connect(
@@ -233,7 +233,7 @@ class Window(Adw.ApplicationWindow):
         for button in (self.study_button, self.search_button):
             image = Gtk.Image(icon_name=button.get_icon_name(), pixel_size=16)
             button.set_child(image)
-        from .version_chooser import VersionChooser
+        from .catalogue.version_chooser import VersionChooser
 
         self.primary_version = VersionChooser(self)
         self.compared_version = VersionChooser(self, comparison=True)
@@ -430,7 +430,7 @@ class Window(Adw.ApplicationWindow):
         self.header_height_group.add_widget(header)
         self.header_height_group.add_widget(self.study.header)
         self.reading_sync = ReadingSync(self)
-        from .study_resize import StudyDivider
+        from .study.study_resize import StudyDivider
 
         sidebar = Gtk.Box()
         self.study_divider = StudyDivider(self, self.study_settings)
@@ -696,7 +696,7 @@ class Window(Adw.ApplicationWindow):
 
     def fit_reader_controls(self, *_: object) -> None:
         """Adapt selector/popup widths to actual text and available native geometry."""
-        from .version_chooser import fit_wrapped_button
+        from .catalogue.version_chooser import fit_wrapped_button
 
         fit_wrapped_button(self.primary_version, self.primary_version.caption.get_text())
         fit_wrapped_button(self.compared_version, self.compared_version.caption.get_text())
@@ -707,7 +707,7 @@ class Window(Adw.ApplicationWindow):
         self.search_popover.adapt()
 
     def fit_comparison_popup(self) -> None:
-        from .version_chooser import fit_translation_choices
+        from .catalogue.version_chooser import fit_translation_choices
 
         fit_translation_choices(self.comparison_popover, self.comparison_choices, self)
 
@@ -983,7 +983,7 @@ class Window(Adw.ApplicationWindow):
         ):
             surface.add_css_class(self.reading_style.scope + "-surface")
         self.reading_style.decorate(tab.comparison_text)
-        from .comparison_sync import ComparisonSync
+        from .reading.comparison_sync import ComparisonSync
 
         tab.comparison_sync = ComparisonSync(self, tab)
         tab._highlight_store = self.highlights
@@ -1261,7 +1261,7 @@ class Window(Adw.ApplicationWindow):
         self._comparison_names = [
             name for name in self.library.installed("bible") if name != tab.state.resource
         ]
-        from .version_chooser import choice_details
+        from .catalogue.version_chooser import choice_details
 
         details = [choice_details(self.library.resource(name)) for name in self._comparison_names]
         labels = [item[0] for item in details]
@@ -1439,7 +1439,7 @@ class Window(Adw.ApplicationWindow):
         previous = getattr(self, "passage_study_dialog", None)
         if previous and not previous.closed:
             previous.close()
-        from .passage_study import PassageStudy
+        from .study.passage_study import PassageStudy
 
         dialog = PassageStudy(
             self, target=target, context=context, mode=mode, place=place, metadata=metadata

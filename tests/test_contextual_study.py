@@ -40,7 +40,7 @@ class ContextualStudyTests(unittest.TestCase):
         spin(lambda: not tab._restoring_scroll)
         self.assertEqual(s.pages.get_visible_child_name(), "reading")
         self.assertIn("SOURCE COMMENTARY", s.text.get_buffer().props.text)
-        with patch("bible.study_panel.resolve", side_effect=ValueError("unverified mapping")):
+        with patch("bible.study.study_panel.resolve", side_effect=ValueError("unverified mapping")):
             s.follow("Gen.1.1")
         self.assertEqual(s.pages.get_visible_child_name(), "reading")
         self.assertEqual(s.status.get_text(), tr("No verified alignment for this passage."))

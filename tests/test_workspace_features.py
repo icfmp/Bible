@@ -120,13 +120,13 @@ class WorkspaceFeaturesTests(unittest.TestCase):
         from unittest.mock import patch
         from bible.ui import Window, Library, Gtk
         from bible.library import Resource as Resource
-        from bible.language_picker import LanguagePicker
+        from bible.catalogue.language_picker import LanguagePicker
 
         # This local picker test does not own dynamic-provider HTTP, which is
         # covered separately. Do not let that worker outlive its temp cache.
         self.enterContext(
             patch(
-                "bible.catalogue_session.CatalogueSession.load_youversion_language",
+                "bible.catalogue.catalogue_session.CatalogueSession.load_youversion_language",
                 return_value=None,
             )
         )
@@ -135,7 +135,7 @@ class WorkspaceFeaturesTests(unittest.TestCase):
             w = Window(self.app, Library(Path(directory) / "translations"))
             w.present()
             try:
-                with patch("bible.catalogue_window.catalogue", return_value=[]) as fetch:
+                with patch("bible.catalogue.catalogue_window.catalogue", return_value=[]) as fetch:
                     w.application_settings.set("automatic_catalogue_refresh", True)
                     w.application_settings.set("library_language", "")
                     dialog = w.open_library()

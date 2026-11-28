@@ -113,7 +113,9 @@ def main() -> None:
             spin(lambda: w.notes_store.get(note.id).body.endswith("xyz"))
             assert not editor.dirty
             assert editor.context["start"] == start
-            with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+            with patch(
+                "bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False
+            ):
                 native.click(s.main_menu)
                 native.click(s.main_menu.global_actions[0])
                 spin(lambda: w.catalogue_window.get_mapped())

@@ -68,7 +68,7 @@ def main() -> None:
     sys.excepthook = exception
     app = Application.get_default() or Application()
     app.register()
-    with patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False):
+    with patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False):
         w = Window(app, Library(args.profile / "translations"))
         w.set_default_size(1280, 900)
         w.present()

@@ -112,7 +112,7 @@ class AcquisitionTests(unittest.TestCase):
         self.assertEqual(resource_from_metadata(data).public_code, "")
 
     def test_one_metadata_refusal_keeps_other_editions_and_the_cached_record(self) -> None:
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
         from bible.library import catalogues
 
         old = resource_from_metadata(edition_metadata(93), 93)

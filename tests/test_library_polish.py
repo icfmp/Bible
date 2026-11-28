@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 from dataclasses import replace
 from bible.application_settings import ApplicationSettings
-from bible.catalogue_session import CatalogueSession
+from bible.catalogue.catalogue_session import CatalogueSession
 from bible.library import Library, CatalogueResult
 from bible.providers import CROSSWIRE, EXTRA
 from bible.languages import canonical_language, search_terms
@@ -116,7 +116,7 @@ class LibraryPolishTests(unittest.TestCase):
         self.app = Application.get_default() or Application()
         self.app.register()
         self.enterContext(
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False)
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False)
         )
         self.window = Window(self.app, Library(self.root / "translations"))
         self.window.present()
@@ -274,7 +274,7 @@ class LibraryPolishTests(unittest.TestCase):
             list(w.active_tab.state.history),
         )
         with (
-            patch("bible.catalogue_window.catalogue", side_effect=fetch),
+            patch("bible.catalogue.catalogue_window.catalogue", side_effect=fetch),
             patch.object(
                 d.session,
                 "load_youversion_language",
@@ -553,7 +553,7 @@ class LibraryPolishTests(unittest.TestCase):
         before = (d.kind.get_selected(), d.language_choice, d.source_filter.get_selected())
         with (
             patch.object(d.session, "refresh_study") as refresh,
-            patch("bible.catalogue_window.catalogue") as bibles,
+            patch("bible.catalogue.catalogue_window.catalogue") as bibles,
         ):
             d.catalogue_button.emit("clicked")
             refresh.assert_called_once_with()

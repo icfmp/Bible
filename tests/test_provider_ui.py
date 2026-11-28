@@ -23,7 +23,7 @@ class ProviderUITests(unittest.TestCase):
         # These unit cases explicitly supply provider results; do not race an
         # unrelated live auto-refresh while arranging their resource fixtures.
         self.enterContext(
-            patch("bible.catalogue_window.CatalogueWindow.auto_load", return_value=False)
+            patch("bible.catalogue.catalogue_window.CatalogueWindow.auto_load", return_value=False)
         )
 
     def open_library(self, window):
@@ -81,7 +81,7 @@ class ProviderUITests(unittest.TestCase):
                 dialog.choices.set_selected(target)
                 self.assertEqual(dialog.download_button.get_label(), tr("Retry"))
                 with patch(
-                    "bible.catalogue_window.catalogue",
+                    "bible.catalogue.catalogue_window.catalogue",
                     return_value=CatalogueResult(tuple(dialog.resources), {}),
                 ):
                     dialog.load_catalogue()
@@ -108,7 +108,7 @@ class ProviderUITests(unittest.TestCase):
                 with (
                     patch("babel.Locale.get_display_name", return_value=None),
                     patch(
-                        "bible.catalogue_window.catalogue",
+                        "bible.catalogue.catalogue_window.catalogue",
                         return_value=CatalogueResult((RESOURCE, coptic), {}),
                     ),
                 ):
@@ -136,7 +136,7 @@ class ProviderUITests(unittest.TestCase):
 
     def test_cached_results_load_without_network_and_survive_failed_refresh(self) -> None:
         from bible.ui import Window
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
         from bible.providers import CROSSWIRE
 
         with tempfile.TemporaryDirectory() as directory:
@@ -175,7 +175,7 @@ class ProviderUITests(unittest.TestCase):
             window = Window(self.app, Library(Path(directory) / "translations"))
             window.present()
             try:
-                with patch("bible.catalogue_window.catalogue", side_effect=fetch):
+                with patch("bible.catalogue.catalogue_window.catalogue", side_effect=fetch):
                     dialog = self.open_library(window)
                     dialog.load_catalogue()
                     spin(lambda: bool(dialog.filtered_resources))
@@ -236,7 +236,7 @@ class ProviderUITests(unittest.TestCase):
                 )
                 result = CatalogueResult((RESOURCE, extra), {"STEP": "HTTP 503 fixture"})
                 # Install the worker fixture before presenting the auto-loading UI.
-                with patch("bible.catalogue_window.catalogue", return_value=result):
+                with patch("bible.catalogue.catalogue_window.catalogue", return_value=result):
                     dialog = self.open_library(window)
                     dialog.load_catalogue()
                     spin(lambda: not dialog.busy)
@@ -249,7 +249,8 @@ class ProviderUITests(unittest.TestCase):
                 self.assertIn(EXTRA.name, dialog.metadata.get_text())
                 self.assertTrue(dialog.download_button.get_sensitive())
                 with patch(
-                    "bible.catalogue_window.catalogue", return_value=CatalogueResult((extra,), {})
+                    "bible.catalogue.catalogue_window.catalogue",
+                    return_value=CatalogueResult((extra,), {}),
                 ):
                     dialog.load_catalogue()
                     spin(lambda: not dialog.busy)

@@ -63,8 +63,8 @@ class NoteCitationTests(unittest.TestCase):
     def test_passage_and_global_previews_share_links_and_real_numbering_without_storage_changes(
         self,
     ) -> None:
-        from bible.note_preview import NotePreview
-        from bible.annotation_card import AnnotationPreview
+        from bible.annotations_ui.note_preview import NotePreview
+        from bible.annotations_ui.annotation_card import AnnotationPreview
 
         w = self.window
         w.study_button.set_active(True)
@@ -128,7 +128,7 @@ class NoteCitationTests(unittest.TestCase):
     def test_write_failure_cancel_then_autosave_guards_explicit_new_tab_without_retargeting_note(
         self,
     ) -> None:
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
 
         w = self.window
         editor = self.editor()

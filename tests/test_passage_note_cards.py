@@ -128,7 +128,7 @@ class PassageNoteCardTests(unittest.TestCase):
         self.assertEqual(self.w.highlights.entries, marks)
 
     def test_shared_popup_keeps_document_context_and_failed_close_retains_the_draft(self) -> None:
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
 
         panel = self.w.study.notes
         editor = panel.open_note(self.note)
@@ -213,7 +213,7 @@ class PassageNoteCardTests(unittest.TestCase):
 
     def test_empty_draft_save_failure_and_empty_preview_do_not_change_storage(self) -> None:
         from dataclasses import replace
-        from bible.annotation_card import AnnotationPreview
+        from bible.annotations_ui.annotation_card import AnnotationPreview
 
         panel = self.w.study.notes
         before = self.w.notes_store.all()
@@ -229,7 +229,7 @@ class PassageNoteCardTests(unittest.TestCase):
 
     def test_popup_coalesces_text_labels_links_and_flushes_immediate_close(self) -> None:
         from bible.notes import NoteStore
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
         from bible.ui import Gtk
 
         panel = self.w.study.notes

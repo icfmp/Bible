@@ -150,7 +150,7 @@ class MetadataTests(unittest.TestCase):
         from dataclasses import replace
         from bible.resource_profile import approved_profile, profile_text
         from bible.curated_catalogue import catalogue
-        from bible.catalogue_cache import CatalogueCache
+        from bible.catalogue.catalogue_cache import CatalogueCache
         from bible.providers import BIBLE_RESOURCES, CROSSWIRE
         from tests.test_curated_catalogue import record, body, sword_metadata, CONF
         from unittest.mock import patch

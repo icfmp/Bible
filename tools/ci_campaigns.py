@@ -15,65 +15,72 @@ import sys
 CAMPAIGNS = ("visual", "words", "contextual", "library")
 GROUPS = {
     "visual": {
-        "appearance",
-        "reading_style",
-        "reading_preferences",
-        "reading_metrics",
-        "immersion",
-        "pagination",
-        "paged_sources",
-        "passage_actions",
-        "scroll_motion",
-        "notes_window",
-        "note_editing",
-        "note_preview",
-        "workspace_selector",
+        "bible/reading/appearance.py",
+        "bible/reading/reading_style.py",
+        "bible/reading/reading_preferences.py",
+        "bible/reading/reading_metrics.py",
+        "bible/reading/immersion.py",
+        "bible/pagination.py",
+        "bible/paged_sources.py",
+        "bible/passage_actions.py",
+        "bible/reading/scroll_motion.py",
+        "bible/annotations_ui/notes_window.py",
+        "bible/annotations_ui/note_editing.py",
+        "bible/annotations_ui/note_preview.py",
+        "bible/workspace_selector.py",
     },
     "words": {
-        "word_study",
-        "word_metadata",
-        "step_data",
-        "step_sources",
-        "passage_study",
-        "place_cards",
-        "place_data",
-        "place_map",
-        "place_names",
+        "bible/study/word_study.py",
+        "bible/word_metadata.py",
+        "bible/step_data.py",
+        "bible/step_sources.py",
+        "bible/study/passage_study.py",
+        "bible/study/place_cards.py",
+        "bible/place_data.py",
+        "bible/study/place_map.py",
+        "bible/place_names.py",
     },
     "contextual": {
-        "reference_preview",
-        "study_empty",
-        "study_panel",
-        "study_references",
-        "study_search",
-        "topic_data",
-        "topic_vocabulary",
-        "search_popover",
-        "text_search",
-        "context_indicator",
-        "annotation_card",
-        "annotation_collection",
-        "note_links",
+        "bible/reference_preview.py",
+        "bible/study/study_empty.py",
+        "bible/study/study_panel.py",
+        "bible/study/study_references.py",
+        "bible/study/study_search.py",
+        "bible/topic_data.py",
+        "bible/topic_vocabulary.py",
+        "bible/study/search_popover.py",
+        "bible/text_search.py",
+        "bible/study/context_indicator.py",
+        "bible/annotations_ui/annotation_card.py",
+        "bible/annotation_collection.py",
+        "bible/annotations_ui/note_links.py",
     },
     "library": {
-        "library",
-        "catalogue_window",
-        "catalogue_cache",
-        "catalogue_session",
-        "module_updates",
-        "module_management",
-        "module_lifecycle",
-        "module_ui_lifecycle",
-        "module_updates_window",
-        "curated_catalogue",
-        "version_chooser",
-        "language_picker",
-        "resource_details",
-        "native_module_probe",
+        "bible/library.py",
+        "bible/catalogue/catalogue_window.py",
+        "bible/catalogue/catalogue_cache.py",
+        "bible/catalogue/catalogue_session.py",
+        "bible/module_updates.py",
+        "bible/catalogue/module_management.py",
+        "bible/module_lifecycle.py",
+        "bible/catalogue/module_ui_lifecycle.py",
+        "bible/catalogue/module_updates_window.py",
+        "bible/curated_catalogue.py",
+        "bible/catalogue/version_chooser.py",
+        "bible/catalogue/language_picker.py",
+        "bible/resource_details.py",
+        "bible/native_module_probe.py",
     },
 }
 # These persistence mechanisms remain covered by the full host and packaged suites.
-CORE_ONLY = {"notes", "highlights", "session", "history", "personal_backup", "markdown"}
+CORE_ONLY = {
+    "bible/notes.py",
+    "bible/highlights.py",
+    "bible/session.py",
+    "bible/history.py",
+    "bible/personal_backup.py",
+    "bible/markdown.py",
+}
 FRENCH_FULL = """test_ui test_alpha_ui test_provider_ui test_workspace_features test_appearance
  test_reading_preferences test_immersion test_reading_sync test_pagination test_reading_direction
  test_library_polish test_annotation_workspace test_chapter_notes test_finishing test_personal_backup
@@ -130,9 +137,9 @@ def select(paths: Iterable[str] | None) -> tuple[set[str], bool]:
         if path.suffix in (".po", ".pot", ".mo") or name == "bible/i18n.py":
             localization = True
             selected.update(CAMPAIGNS)
-        elif path.parent == Path("bible") and path.suffix == ".py":
-            found = {group for group, stems in GROUPS.items() if path.stem in stems}
-            if not found and path.stem not in CORE_ONLY:
+        elif path.is_relative_to("bible") and path.suffix == ".py":
+            found = {group for group, modules in GROUPS.items() if name in modules}
+            if not found and name not in CORE_ONLY:
                 found = set(CAMPAIGNS)
                 localization = True
             selected.update(found)

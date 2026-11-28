@@ -1,0 +1,120 @@
+"""Versioned, atomic metadata caches, isolated from installed modules and notes."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from os import PathLike
+from typing import TYPE_CHECKING
+from dataclasses import asdict
+
+if TYPE_CHECKING:
+    from ..providers import Provider
+    from ..library import Resource
+import json
+import os
+from pathlib import Path
+import tempfile
+import time
+
+
+class CatalogueCache:
+    """Persist provider-qualified metadata snapshots separately from installed resources and user content."""
+
+    def __init__(self, root: str | PathLike[str]) -> None:
+        self.root = Path(root)
+        self.validators: dict[str, dict[str, str]] = {}
+
+    def read(self, provider: Provider) -> tuple[tuple[Resource, ...], float] | None:
+        """Return a validated resource snapshot and timestamp, or None for unusable cache data.
+
+        Retain only bounded HTTP validators; a snapshot does not prove current
+        provider availability or authorize replacing installed resources.
+        """
+        from ..library import Resource
+
+        try:
+            path = self.root / (provider.id + ".json")
+            if path.stat().st_size > 16 * 1024 * 1024:
+                return None
+            value = json.loads(path.read_text())
+            if (
+                value["version"] != 1
+                or value["provider"] != provider.id
+                or value["url"] != provider.catalogue_url
+            ):
+                return None
+            if (
+                not isinstance(value["updated"], (float, int))
+                or value["updated"] > time.time() + 300
+            ):
+                return None
+            if not isinstance(value["resources"], list):
+                return None
+            resources = []
+            for item in value["resources"]:
+                if not isinstance(item, dict):
+                    return None
+                resource = Resource(**item)
+                if (
+                    resource.provider_id != provider.id
+                    or resource.source_url != provider.url
+                    or resource.source != provider.name
+                    or type(resource.locked) is not bool
+                    or any(
+                        not isinstance(v, str) for k, v in asdict(resource).items() if k != "locked"
+                    )
+                ):
+                    return None
+                _ = resource.id  # Evaluate the provider-specific identity validator.
+                if resource.provider_id == "bible-resources":
+                    from ..curated_catalogue import package_record
+
+                    package_record(resource)
+                resources.append(resource)
+            validators = value.get("validators", {})
+            if not isinstance(validators, dict):
+                return None
+            self.validators[provider.id] = {
+                k: v
+                for k, v in validators.items()
+                if k in ("ETag", "Last-Modified")
+                and isinstance(v, str)
+                and len(v) < 512
+                and "\n" not in v
+                and "\r" not in v
+            }
+            return tuple(resources), value["updated"]
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+
+    def write(
+        self,
+        provider: Provider,
+        resources: Iterable[Resource],
+        validators: Mapping[str, str] | None = None,
+    ) -> None:
+        """Flush and atomically replace one provider metadata snapshot without touching installed modules."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", dir=self.root, prefix="." + provider.id, delete=False
+            ) as out:
+                temporary = Path(out.name)
+                json.dump(
+                    dict(
+                        version=1,
+                        provider=provider.id,
+                        url=provider.catalogue_url,
+                        updated=time.time(),
+                        resources=[asdict(r) for r in resources],
+                        validators=validators or {},
+                    ),
+                    out,
+                )
+                out.flush()
+                os.fsync(out.fileno())
+            os.replace(temporary, self.root / (provider.id + ".json"))
+        finally:
+            if temporary:
+                temporary.unlink(missing_ok=True)

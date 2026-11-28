@@ -7,7 +7,7 @@ from .i18n import tr
 from .reference_labels import passage_label
 from .reference_targets import local_excerpt
 from .reference_resolution import VersificationMismatch
-from .reading_style import apply_direction
+from .reading.reading_style import apply_direction
 
 
 def passage_title(start, end=None, system=None):

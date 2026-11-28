@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from bible.study_settings import StudySettings
+from bible.study.study_settings import StudySettings
 
 
 class StudySettingsTests(unittest.TestCase):
@@ -101,7 +101,7 @@ class PassageStudyTests(unittest.TestCase):
 
     def test_contextual_range_notes_highlights_and_captured_draft_across_sources(self) -> None:
         from tests.test_ui import installed_fixture, spin
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
 
         with tempfile.TemporaryDirectory() as directory:
             entries = [

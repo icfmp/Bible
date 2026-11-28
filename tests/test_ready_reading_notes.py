@@ -377,7 +377,7 @@ class ReadyReadingNotesTests(unittest.TestCase):
     def test_201_continuous_typing_is_committed_before_the_burst_ends(self) -> None:
         from gi.repository import GLib
         from bible.notes import NoteStore
-        from bible.notes_window import buffer_text
+        from bible.annotations_ui.notes_window import buffer_text
 
         w = self.w
         note = self.note()
