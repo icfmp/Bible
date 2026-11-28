@@ -211,9 +211,7 @@ class ReaderContracts(unittest.TestCase):
             self.assertFalse(tab.travel(previous - 1))
             spin(lambda: not tab._restoring_scroll)
             self.assertEqual(snapshot(), before)
-        self.assertTrue(tab.travel(previous - 1))
-        self.assertTrue(tab.travel(previous))
-        spin(lambda: not tab._restoring_scroll)
+        saved_history = deepcopy(tab.state.history)
         window.close()
         spin()
         self.w = Window(self.app, Library(self.root / "translations"))
@@ -221,7 +219,13 @@ class ReaderContracts(unittest.TestCase):
         spin()
         reopened = self.w.active_tab
         self.assertEqual((reopened.state.resource, reopened.state.reference), ("Long", "Gen.1.1"))
+        self.assertEqual(reopened.state.history, saved_history)
+        self.assertEqual(reopened.state.history_index, previous)
         self.assertIn("SENTINEL Long", reopened.text.get_buffer().props.text)
+        self.assertTrue(reopened.travel(previous - 1))
+        self.assertEqual(reopened.state.reference, "Gen.2.1")
+        self.assertTrue(reopened.travel(previous))
+        self.assertEqual(reopened.state.reference, "Gen.1.1")
 
     def test_highlight_card_keeps_actual_origin_words_and_cache_separate_between_editions(
         self,

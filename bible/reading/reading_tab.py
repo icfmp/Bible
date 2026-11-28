@@ -667,8 +667,6 @@ class ReadingTab(Gtk.Box):
                     self._comparison_layout_error = error
                     # A local row-layout gap does not disable mapped following.
                     self.set_comparison_alignment(None)
-            if not shared:
-                self.comparison_rows.leave()
             if not shared and (rebuild or was_shared):
                 from .bible_render import render
 
@@ -684,7 +682,6 @@ class ReadingTab(Gtk.Box):
                     self._comparison_ranges,
                     self._comparison_markers,
                 ) = render(self.comparison_text, reader, chapter, self.preferences)
-                self.update_highlights()
                 if selected:
                     buffer.select_range(
                         *(
@@ -692,6 +689,12 @@ class ReadingTab(Gtk.Box):
                             for a in selected
                         )
                     )
+            if not shared:
+                # Leaving shared rows repaints both panes. Replace the secondary
+                # offsets first so the new reader never sees the previous canon.
+                self.comparison_rows.leave()
+                if rebuild and not was_shared:
+                    self.update_highlights()
             self._comparison_signature = signature
             sync = getattr(self, "comparison_sync", None)
             if not (sync and sync.running and sync.driver == "comparison"):
