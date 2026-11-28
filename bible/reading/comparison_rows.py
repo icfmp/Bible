@@ -153,20 +153,11 @@ class ComparisonRows:
                 )
                 for row, (start, end) in zip(rows, self.bounds[side])
             )
-            for body in self.bodies[side]:
-                tag = buffer.create_tag(None, pixels_above_lines=0)
-                # Align the verse body, preserving any preceding source titles.
-                # GTK paragraph padding never changes text or copy offsets.
-                first = buffer.get_iter_at_offset(body)
-                first.set_line_offset(0)
-                end = first.copy()
-                end.forward_line()
-                buffer.apply_tag(tag, first, end)
-                self.tags[side].append(tag)
+            self.tags[side] = [
+                buffer.create_tag(None, pixels_above_lines=0) for _ in self.bodies[side]
+            ]
             self.bottom_tags[side] = buffer.create_tag(None, pixels_below_lines=0)
-            last = buffer.get_iter_at_offset(max(0, buffer.get_char_count() - 1))
-            last.set_line_offset(0)
-            buffer.apply_tag(self.bottom_tags[side], last, buffer.get_end_iter())
+            self.apply_tags(buffer, side)
             if anchors and all(any(a.reference in s.members for s in doc.spans) for a in anchors):
                 buffer.select_range(*(buffer.get_iter_at_offset(doc.locate(a)) for a in anchors))
         self.signature = signature
@@ -176,6 +167,24 @@ class ComparisonRows:
         tab.comparison_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.EXTERNAL)
         tab._shared_comparison = True
         tab.update_highlights()
+
+    def apply_tags(self, buffer: Gtk.TextBuffer, side: int) -> None:
+        """Keep the existing alignment padding when applying or restoring a row document."""
+        # Align verse bodies without changing the text, headings, or copy offsets.
+        for body, tag in zip(self.bodies[side], self.tags[side]):
+            first = buffer.get_iter_at_offset(body)
+            first.set_line_offset(0)
+            end = first.copy()
+            end.forward_line()
+            buffer.apply_tag(tag, first, end)
+        last = buffer.get_iter_at_offset(max(0, buffer.get_char_count() - 1))
+        last.set_line_offset(0)
+        buffer.apply_tag(self.bottom_tags[side], last, buffer.get_end_iter())
+
+    def restore_primary_tags(self) -> None:
+        """Reapply shared row padding after a failed attempt to replace the primary buffer."""
+        if getattr(self.tab, "_shared_comparison", False):
+            self.apply_tags(self.tab.text.get_buffer(), 0)
 
     def layout(self) -> None:
         """Measure native row bodies after bounded settling and apply cumulative padding without changing text."""

@@ -55,19 +55,32 @@ def render(
         from ..inline_document import decorate
 
         document = decorate(document, marker_context.markers(reader, document))
+    return display_document(view, reader, preferences, document)
+
+
+def clear_view(view: Gtk.TextView) -> None:
+    """Unmap inline children before deleting their anchors from the buffer."""
+    for button in getattr(view, "_inline_buttons", ()):
+        view.remove(button)
+    setattr(view, "_inline_buttons", [])
+    view.get_buffer().set_text("")
+
+
+def display_document(
+    view: Gtk.TextView, reader: Reader, preferences: ReadingPreferences, document: Document
+) -> tuple[Document, dict[str, int], dict[str, tuple[int, int]], dict[str, int]]:
+    """Apply a prepared display projection, including its existing marker slots."""
     buffer = view.get_buffer()
     inline = getattr(document, "inline", {})
     # Unmap hovered/focused children while the text tree is still intact.
     # Deleting their anchors inside set_text can reenter GTK's selection
     # invalidation with a partially deleted tree (GTK 4.20).
-    for button in getattr(view, "_inline_buttons", ()):
-        view.remove(button)
-    setattr(view, "_inline_buttons", [])
-    buffer.set_text("")
+    clear_view(view)
     previous = 0
     children: list[Gtk.Button] = []
+    setattr(view, "_inline_buttons", children)
     # Inline child slots require the view’s existing marker owner.
-    context = cast("InlineMarkers", marker_context)
+    context = cast("InlineMarkers", getattr(view, "_marker_context", None))
     for offset, (reference, kind, payload) in inline.items():
         buffer.insert(buffer.get_end_iter(), document.text[previous:offset])
         anchor = buffer.create_child_anchor(buffer.get_end_iter())
@@ -76,7 +89,6 @@ def render(
         children.append(button)
         previous = offset + 1
     buffer.insert(buffer.get_end_iter(), document.text[previous:])
-    setattr(view, "_inline_buttons", children)
     bind_copy(view, document)
     apply_direction(view, reader, preferences)
     view.set_pixels_inside_wrap(line_spacing(preferences))

@@ -143,6 +143,86 @@ class ReaderContracts(unittest.TestCase):
         if not self.w.closed:
             self.w.close()
 
+    def test_failed_navigation_keeps_reader_selection_viewport_and_resume(self) -> None:
+        from copy import deepcopy
+        from bible.ui import Window, Library
+
+        installed_fixture(self.root, "Long", long_text=True)
+        window = self.w
+        tab = window.active_tab
+        self.assertTrue(window.navigate_selection("Long", "Gen.2.1"))
+        self.assertTrue(window.navigate_selection("Long", "Gen.1.1"))
+        previous = tab.state.history_index
+        tab.state.comparison = "First"
+        window.sync_comparison()
+        spin(lambda: not tab._restoring_scroll)
+        self.assertTrue(tab._shared_comparison)
+        buffer = tab.text.get_buffer()
+        adjustment = tab.scroll.get_vadjustment()
+        render = tab.render_chapter
+
+        def snapshot():
+            return (
+                tab.reader,
+                deepcopy(tab.state),
+                tab.current.reference,
+                buffer.get_slice(buffer.get_start_iter(), buffer.get_end_iter(), True),
+                tuple(
+                    buffer.get_iter_at_mark(mark).get_offset()
+                    for mark in (buffer.get_insert(), buffer.get_selection_bound())
+                ),
+                round(adjustment.get_value(), 2),
+                tab.visible_reference(),
+            )
+
+        for source in ("Long", "Second"):
+            for mutate in (False, True):
+                with self.subTest(source=source, mutate=mutate):
+                    tab.text.grab_focus()
+                    start = tab._marker_ends["Gen.1.1"]
+                    buffer.select_range(
+                        buffer.get_iter_at_offset(start + 7), buffer.get_iter_at_offset(start)
+                    )
+                    adjustment.set_value(140)
+                    spin(duration=0.2)
+                    self.assertGreater(adjustment.get_value(), 0)
+                    before = snapshot()
+
+                    mutated = []
+
+                    def fail(chapter, *, reader=None):
+                        if mutate:
+                            render(chapter, reader=reader)
+                            mutated.append(buffer.props.text != before[3])
+                        raise OSError("Injected passage render failure")
+
+                    with patch.object(tab, "render_chapter", side_effect=fail):
+                        self.assertFalse(window.navigate_selection(source, "Gen.2.1"))
+                    spin(lambda: not tab._restoring_scroll)
+                    self.assertEqual(mutated, [True] if mutate else [])
+                    self.assertEqual(snapshot(), before)
+                    self.assertIs(window.get_focus(), tab.text)
+                    self.assertEqual(tab._tick_id, 0)
+                    self.assertTrue(tab.status.get_visible())
+                    self.assertTrue(tab._shared_comparison)
+
+        with patch.object(tab, "render_chapter", side_effect=OSError("Failed history render")):
+            before = snapshot()
+            self.assertFalse(tab.travel(previous - 1))
+            spin(lambda: not tab._restoring_scroll)
+            self.assertEqual(snapshot(), before)
+        self.assertTrue(tab.travel(previous - 1))
+        self.assertTrue(tab.travel(previous))
+        spin(lambda: not tab._restoring_scroll)
+        window.close()
+        spin()
+        self.w = Window(self.app, Library(self.root / "translations"))
+        self.w.present()
+        spin()
+        reopened = self.w.active_tab
+        self.assertEqual((reopened.state.resource, reopened.state.reference), ("Long", "Gen.1.1"))
+        self.assertIn("SENTINEL Long", reopened.text.get_buffer().props.text)
+
     def test_highlight_card_keeps_actual_origin_words_and_cache_separate_between_editions(
         self,
     ) -> None:
