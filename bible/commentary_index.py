@@ -186,7 +186,7 @@ class CommentaryIndex:
             from .i18n import tr
 
             return tr("Introduction") + (" — " + section.start if section.start else "")
-        from .notes_window import passage_label
+        from .reference_labels import passage_label
 
         return "; ".join(
             passage_label(first, last, self.reader.versification)

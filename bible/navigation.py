@@ -297,7 +297,7 @@ class PassagePopover(Gtk.Popover):
         tab = self.owner.active_tab
         if not tab:
             return
-        from .notes_window import passage_label
+        from .reference_labels import passage_label
 
         if not tab.state.history:
             self.history_list.append(

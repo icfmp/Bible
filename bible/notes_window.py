@@ -8,39 +8,12 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gtk, Gdk, Pango, Gio, GObject, GLib
 
-from .book_names import display_name
 from .i18n import LANGUAGE, tr
 from .markdown import render
 from .notes import clean_labels, parts, passage_order
 from .highlights import COLORS
-
-
-def passage_label(start, end=None, versification=None):
-    """Format a canonical saved range for display without requiring the original module to be installed."""
-    code, chapter, verse = parts(start)
-    name = code
-    try:
-        import Sword
-
-        key = Sword.VerseKey()
-        key.setVersificationSystem(versification or "KJV")
-        key.setAutoNormalize(False)
-        key.setText(start)
-        if key.popError() == "\x00" and key.getOSISBookName() == code:
-            name = key.getBookName()
-    except Exception:
-        pass
-    result = f"{display_name(code, name, LANGUAGE)} {chapter}:{verse}"
-    if end and end != start:
-        final = parts(end)
-        result += "–" + (
-            str(final[2])
-            if final[:2] == (code, chapter)
-            else f"{final[1]}:{final[2]}"
-            if final[0] == code
-            else passage_label(end, versification=versification)
-        )
-    return result
+from .reference_labels import passage_label
+from .shared_ui import message
 
 
 def buffer_text(view):
@@ -48,28 +21,6 @@ def buffer_text(view):
         return view.source()
     buffer = view.get_buffer()
     return buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-
-
-def message(parent, heading, body, accepted, canceled=None):
-    """Present an explicit destructive confirmation, defaulting cancellation and retaining owner styling."""
-    dialog = Adw.MessageDialog.new(parent, tr(heading), tr(body))
-    if hasattr(parent, "reading_style"):
-        dialog.add_css_class(parent.reading_style.scope + "-window")
-    dialog.add_response("cancel", tr("Cancel"))
-    dialog.add_response("confirm", tr("Confirm"))
-    dialog.set_response_appearance("confirm", Adw.ResponseAppearance.DESTRUCTIVE)
-    dialog.set_default_response("cancel")
-    dialog.set_close_response("cancel")
-    dialog.connect(
-        "response",
-        lambda _, response: accepted()
-        if response == "confirm"
-        else canceled()
-        if canceled
-        else None,
-    )
-    dialog.present()
-    return dialog
 
 
 def metadata_row(title, icon):

@@ -11,7 +11,7 @@ from gi.repository import Adw, Gio, GLib, Gtk, Pango
 from .i18n import tr
 from .reading_style import apply_direction
 from .resource_details import plain
-from .catalogue_window import MetadataLabel
+from .shared_ui import MetadataLabel
 from .sword_provider import CommentaryReader, VersificationMismatch
 from .reference_resolution import resolve, introduction_key
 from .scroll_motion import stop_native_scroll
@@ -260,7 +260,7 @@ class StudyPanel(Gtk.Box):
         if self.tool == "notes":
             target = self.notes.indicated_passage()
             if target:
-                from .notes_window import passage_label
+                from .reference_labels import passage_label
 
                 label = passage_label(*target, tab.reader.versification)
         self.context_heading.set_text(label)

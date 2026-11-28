@@ -380,7 +380,7 @@ class ImmersionTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return
         from tools.check_alpha_ui import X11Input
-        from bible.notes_window import passage_label
+        from bible.reference_labels import passage_label
         from bible.ui import Gtk
 
         with self.profile() as directory:

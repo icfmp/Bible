@@ -79,7 +79,7 @@ def highlight_actions(
         def choose(_: object, value: str | None = color) -> None:
             popover.popdown()
             if value is None and confirm_remove:
-                from .notes_window import message
+                from .shared_ui import message
 
                 message(
                     owner,
@@ -116,7 +116,8 @@ def annotation_card(
 ) -> CompoundCard:
     """The same card in Study, the virtualized collection and related results."""
     from .passage_card import passage_card, bind_card_actions
-    from .notes_window import passage_label, readable_date
+    from .reference_labels import passage_label
+    from .notes_window import readable_date
     from .highlights import COLORS
 
     a = annotation

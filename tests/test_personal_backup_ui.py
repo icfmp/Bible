@@ -55,7 +55,7 @@ class PersonalBackupUITests(unittest.TestCase):
         ) -> None:
             return None
 
-        with patch("bible.notes_window.message", side_effect=decline) as confirm:
+        with patch("bible.shared_ui.message", side_effect=decline) as confirm:
             choose_personal_backup(w, status, True)
             chooser = w._personal_backup_chooser
             chooser.set_file(Gio.File.new_for_path(str(path)))

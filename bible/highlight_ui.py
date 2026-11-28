@@ -16,7 +16,8 @@ from .highlights import COLORS
 from .i18n import tr, LANGUAGE
 from .book_names import display_name, normalized
 from .notes import parts
-from .notes_window import passage_label, message
+from .reference_labels import passage_label
+from .shared_ui import message
 from .reading_style import PALETTES
 
 

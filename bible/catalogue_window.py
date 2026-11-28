@@ -22,6 +22,7 @@ from .resource_details import details, language_name, plain
 from .language_picker import LanguagePicker
 from .catalogue_session import CatalogueSession as CatalogueSession
 from .languages import canonical_language, language_order
+from .shared_ui import MetadataLabel
 
 
 class ResourceItem(GObject.Object):
@@ -30,15 +31,6 @@ class ResourceItem(GObject.Object):
     def __init__(self, resource) -> None:
         super().__init__()
         self.resource = resource
-
-
-class MetadataLabel(Gtk.Label):
-    """Keep native selection/copy, without GtkLabel's focus-time Select All."""
-
-    def do_grab_focus(self):
-        result = Gtk.Label.do_grab_focus(self)
-        self.select_region(0, 0)
-        return result
 
 
 class CatalogueWindow(Adw.Window):

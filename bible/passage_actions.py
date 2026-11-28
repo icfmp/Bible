@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .sword_provider import Reader
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango, Graphene, Gsk
 from .i18n import tr
-from .notes_window import passage_label
+from .reference_labels import passage_label
 from .providers import module_name
 
 BACKDROP_BLUR = 16

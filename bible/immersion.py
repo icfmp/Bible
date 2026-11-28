@@ -12,7 +12,7 @@ from .i18n import tr
 from .pagination import Anchor
 from .paged_sources import PagedStream, PageAddress as PageAddress
 from .reading_metrics import SPACING as SPACING, WIDTHS as WIDTHS, line_spacing, text_width
-from .notes_window import passage_label
+from .reference_labels import passage_label
 
 
 class Immersion(Gtk.Overlay):

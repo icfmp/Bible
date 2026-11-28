@@ -157,7 +157,7 @@ def main() -> None:
             )
             s.list.scroll_to(index, 0, None)
             spin()
-            from bible.notes_window import passage_label
+            from bible.reference_labels import passage_label
 
             label = next(
                 v

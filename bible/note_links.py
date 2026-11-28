@@ -184,7 +184,7 @@ class PassageLinks(Gtk.Box):
             except (ValueError, OSError, RuntimeError):
                 return False
             from .reference_targets import local_target_ranges
-            from .notes_window import passage_label as passage_label
+            from .reference_labels import passage_label as passage_label
 
             choices = []
             for result in rows:
@@ -238,7 +238,7 @@ class PassageLinks(Gtk.Box):
     def card(self, link, reader=None, *, compound: bool = False):
         """The saved origin is the only source of Scripture in this editor."""
         from .passage_card import passage_card
-        from .notes_window import passage_label
+        from .reference_labels import passage_label
 
         card = passage_card(compound=compound)
         title, text = card._reference_labels
@@ -307,7 +307,7 @@ class PassageLinks(Gtk.Box):
 
     def refresh(self) -> None:
         """Rebuild actual linked-passage cards and unlink actions without changing saved note identity."""
-        from .notes_window import passage_label
+        from .reference_labels import passage_label
 
         while self.rows.get_first_child():
             self.rows.remove(self.rows.get_first_child())

@@ -740,7 +740,7 @@ class Window(Adw.ApplicationWindow):
 
     def copy_passage(self, with_reference: bool = False, reference_only: bool = False) -> None:
         """Copy selected actual source units or their reference, keeping linked entries deduplicated."""
-        from .notes_window import passage_label
+        from .reference_labels import passage_label
 
         tab = self.active_tab
         if not tab or not tab.reader:
